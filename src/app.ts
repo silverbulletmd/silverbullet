@@ -1,4 +1,5 @@
-import {markdown} from "./lang-markdown/index";
+import {markdown} from "./markdown";
+import {commonmark, mkLang} from "./markdown/markdown";
 
 import {
     Decoration,
@@ -25,7 +26,7 @@ import {lintKeymap} from '@codemirror/lint';
 import {EditorSelection, EditorState, StateCommand, Transaction} from "@codemirror/state";
 import {Text} from "@codemirror/text";
 import {MarkdownConfig} from "@lezer/markdown";
-import {commonmark, mkLang} from "./lang-markdown/markdown";
+import {commonmarkLanguage} from "@codemirror/lang-markdown";
 
 const defaultMd = `# Custom Box Design
 Some #time ago I (that's @zef.hemel) wrote [No More Boxes](https://zef.me/musing/no-more-boxes/). Let me finally follow up on that and share an approach that I’ve been using opportunistically here and there, primarily for roles that hadn’t been well defined yet.
@@ -235,7 +236,6 @@ const TagLink: MarkdownConfig = {
         after: "Emphasis"
     }]
 }
-
 const WikiMarkdown = commonmark.configure([WikiLink, AtMention, TagLink, {
     props: [
         styleTags({
