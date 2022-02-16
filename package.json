@@ -1,0 +1,21 @@
+{
+  "name": "noot",
+  "version": "1.0.0",
+  "source": "src/index.html",
+  "license": "MIT",
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build"
+  },
+  "devDependencies": {
+    "parcel": "^2.3.1"
+  },
+  "dependencies": {
+    "@codemirror/basic-setup": "^0.19.1",
+    "@codemirror/commands": "^0.19.8",
+    "@codemirror/lang-markdown": "^0.19.6",
+    "@codemirror/state": "^0.19.7",
+    "@codemirror/view": "^0.19.42"
+  }
+}

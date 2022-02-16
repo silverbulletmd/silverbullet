@@ -1,0 +1,111 @@
+#editor {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+:root {
+    --ident: 18px;
+}
+
+.cm-editor {
+    width: 100%;
+    height: 100%;
+    font-size: var(--ident);
+}
+
+.cm-editor .cm-content {
+    font-family: "Menlo";
+    margin: 25px;
+}
+
+.cm-editor .cm-selectionBackground {
+    background-color: #d7e1f6 !important;
+}
+
+.cm-editor .h1 {
+    font-size: 1.5em;
+    color: #fff;
+    font-weight: bold;
+}
+
+.cm-editor .cm-line.line-h1 {
+    display: block;
+    background-color: rgba(0, 15, 52, 0.6);
+}
+
+.cm-editor .h1.meta {
+    color: orange;
+}
+
+.cm-editor .h2 {
+    font-size: 1.2em;
+    color: #fff;
+    font-weight: bold;
+}
+
+.cm-editor .cm-line.line-h2 {
+    display: block;
+    background-color: rgba(0, 15, 52, 0.6);
+}
+
+.cm-editor .h2.meta {
+    color: orange;
+}
+
+.cm-editor .line-code {
+    background-color: #efefef;
+    margin-left: 30px;
+}
+
+.cm-editor .line-fenced-code {
+    background-color: #efefef;
+}
+
+.cm-editor .meta {
+    color: #520130;
+}
+
+.cm-editor .line-blockquote {
+    background-color: #eee;
+    color: #676767;
+    text-indent: calc(-1 * (var(--ident) + 3px));
+    padding-left: var(--ident);
+}
+
+.cm-editor .emphasis {
+    font-style: italic;
+}
+
+.cm-editor .strong {
+    font-weight: 900;
+}
+
+.cm-editor .link:not(.meta,.url) {
+    color: #0330cb;
+    text-decoration: underline;
+}
+
+.cm-editor .link.url {
+    color: #7e7d7d;
+}
+
+.cm-editor .wiki-link {
+    color: #0330cb;
+    /*text-decoration: underline;*/
+}
+
+.cm-editor .mention {
+    color: gray;
+}
+
+.cm-editor .tag {
+    color: #8d8d8d;
+}
+
+.cm-editor .line-li {
+    text-indent: calc(-1 * var(--ident) - 3px);
+    margin-left: var(--ident);
+}
