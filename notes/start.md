@@ -7,9 +7,11 @@ For the rest of you, if you are not a parent, have no plan to be, or have absolu
 
 “So, do I need your permission to stop reading now? I will decide that myself, thank you very much!”
 
-Thank you for sharing that perspective. However, in your case specifically, I have to insist you keep reading. It’s kids with your independent mindset that we’re trying to raise here. Although, perhaps you already know how to do that. Get in touch.
+Thank you for sharing that perspective. However, in your case specifically, I have to insist you keep reading. It’s kids with your independent mindset that we’re trying to raise here. Although, perhaps you already know how to do that. Get in touch. 
 
----- 
+Hello there
+
+-----
 
 Before we start, why would you even listen to me? Let’s [[be honest]] here, I have no relevant credentials beyond being a dad myself. However, has that ever stopped anybody from doing anything? As any conspiracy theorist would say: you don’t need to take my word for it, do your own research — I’m just asking questions!
 

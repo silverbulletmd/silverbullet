@@ -130,3 +130,27 @@ body {
   text-indent: calc(-1 * var(--ident) - 3px);
   margin-left: var(--ident);
 }
+
+reach-portal input {
+  background-color: #fff;
+  border: 0;
+}
+
+reach-portal > div > div {
+  background-color: #fff;
+  border: #000 1px solid;
+  padding: 5px;
+}
+
+.filter-container {
+  background-color: white;
+  display: block;
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 1000;
+}
+
+.filter-container .selected-option {
+  background-color: #520130;
+}

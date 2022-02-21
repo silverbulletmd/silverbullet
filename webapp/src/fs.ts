@@ -4,7 +4,7 @@ export interface NoteMeta {
 }
 
 export interface FileSystem {
-    listNotes(): Promise<NoteMeta>;
+    listNotes(): Promise<NoteMeta[]>;
     readNote(name: string): Promise<string>;
     writeNote(name: string, text: string): Promise<void>;
 }
@@ -15,7 +15,7 @@ export class HttpFileSystem implements FileSystem {
     constructor(url: string) {
         this.url = url;
     }
-    async listNotes(): Promise<NoteMeta> {
+    async listNotes(): Promise<NoteMeta[]> {
         let req = await fetch(this.url, {
             method: 'GET'
         });
