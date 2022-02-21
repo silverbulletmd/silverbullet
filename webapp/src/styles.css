@@ -5,25 +5,31 @@ body {
   padding: 0;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-}
-
 #top {
   height: 40px;
   background-color: #eee;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 #bottom {
   height: 40px;
   background-color: #eee;
   margin: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: absolute;
 }
 
 #editor {
-  flex-grow: 1;
-  width: 100%;
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 0;
+  right: 0;
   overflow-y: hidden;
 }
 
@@ -39,7 +45,7 @@ body {
 
 .cm-editor .cm-content {
   font-family: "Menlo";
-  margin: 25px;
+  margin: 5px;
 }
 
 .cm-editor .cm-selectionBackground {
@@ -142,15 +148,46 @@ reach-portal > div > div {
   padding: 5px;
 }
 
+.current-note {
+  font-family: "Menlo";
+  margin-left: 10px;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
 .filter-container {
+  font-family: "Menlo";
   background-color: white;
   display: block;
   position: absolute;
   left: 10px;
   top: 10px;
+  right: 10px;
   z-index: 1000;
+  border: #333 1px solid;
+}
+
+.filter-container input {
+  font-family: "Menlo";
+  width: 100%;
+  /* border: 1px #333 solid; */
+  border: 0;
+  border-bottom: 1px #333 dotted;
+  padding: 3px;
+}
+
+.filter-container .option,
+.filter-container .selected-option {
+  padding: 3px 3px 3px 3px;
+  cursor: pointer;
 }
 
 .filter-container .selected-option {
-  background-color: #520130;
+  background-color: #b1b1b1;
+}
+
+.filter-container .hint {
+  float: right;
+  margin-right: 10px;
+  color: #333;
 }

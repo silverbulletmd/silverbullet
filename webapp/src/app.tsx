@@ -24,18 +24,10 @@ import customMarkdownStyle from "./style";
 
 import { FilterList } from "./components/filter";
 
+import { NoteMeta, AppViewState, Action } from "./types";
+import reducer from "./reducer";
+
 const fs = new HttpFileSystem("http://localhost:2222/fs");
-
-type NoteMeta = {
-  name: string;
-};
-
-type AppViewState = {
-  currentNote: string;
-  isSaved: boolean;
-  isFiltering: boolean;
-  allNotes: NoteMeta[];
-};
 
 const initialViewState = {
   currentNote: "",
@@ -43,50 +35,6 @@ const initialViewState = {
   isFiltering: false,
   allNotes: [],
 };
-
-type Action =
-  | { type: "loaded"; name: string }
-  | { type: "saved" }
-  | { type: "start-navigate" }
-  | { type: "stop-navigate" }
-  | { type: "updated" }
-  | { type: "notes-list"; notes: NoteMeta[] };
-
-function reducer(state: AppViewState, action: Action): AppViewState {
-  switch (action.type) {
-    case "loaded":
-      return {
-        ...state,
-        currentNote: action.name,
-        isSaved: true,
-      };
-    case "saved":
-      return {
-        ...state,
-        isSaved: true,
-      };
-    case "updated":
-      return {
-        ...state,
-        isSaved: false,
-      };
-    case "start-navigate":
-      return {
-        ...state,
-        isFiltering: true,
-      };
-    case "stop-navigate":
-      return {
-        ...state,
-        isFiltering: false,
-      };
-    case "notes-list":
-      return {
-        ...state,
-        allNotes: action.notes,
-      };
-  }
-}
 
 class Editor {
   view: EditorView;
@@ -184,7 +132,6 @@ class Editor {
 
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
-      console.log("Something changed");
       this.dispatch({
         type: "updated",
       });
@@ -215,6 +162,10 @@ class Editor {
   focus() {
     this.view.focus();
   }
+
+  navigate(name: string) {
+    location.hash = encodeURIComponent(name);
+  }
 }
 
 function TopBar({
@@ -223,28 +174,32 @@ function TopBar({
   isFiltering,
   allNotes,
   onNavigate,
+  onClick,
 }: {
   currentNote: string;
   isSaved: boolean;
   isFiltering: boolean;
   allNotes: NoteMeta[];
-  onNavigate: (note: string) => void;
+  onNavigate: (note: string | undefined) => void;
+  onClick: () => void;
 }) {
   return (
     <div id="top">
-      <span className="current-note">{currentNote}</span>
-      {isSaved ? "" : "*"}
+      <div className="current-note" onClick={onClick}>
+        » {currentNote}
+        {isSaved ? "" : "*"}
+      </div>
 
-      {isFiltering ? (
+      {isFiltering && (
         <FilterList
           initialText=""
           options={allNotes}
           onSelect={(opt) => {
             console.log("Selected", opt);
-            onNavigate(opt.name);
+            onNavigate(opt?.name);
           }}
         ></FilterList>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -260,13 +215,9 @@ function AppView() {
     editor.focus();
     // @ts-ignore
     window.editor = editor;
-    fs.readNote("start").then((text) => {
-      editor!.load("start", text);
-      dispatch({
-        type: "loaded",
-        name: "start",
-      });
-    });
+    if (!location.hash) {
+      editor.navigate("start");
+    }
   }, []);
 
   useEffect(() => {
@@ -280,6 +231,30 @@ function AppView() {
       .catch((e) => console.error(e));
   }, []);
 
+  useEffect(() => {
+    function hashChange() {
+      const noteName = decodeURIComponent(location.hash.substring(1));
+      console.log("Now navigating to", noteName);
+
+      fs.readNote(noteName)
+        .then((text) => {
+          editor!.load(noteName, text);
+          dispatch({
+            type: "loaded",
+            name: noteName,
+          });
+        })
+        .catch((e) => {
+          console.error("Error loading note", e);
+        });
+    }
+    hashChange();
+    window.addEventListener("hashchange", hashChange);
+    return () => {
+      window.removeEventListener("hashchange", hashChange);
+    };
+  }, []);
+
   return (
     <>
       <TopBar
@@ -287,16 +262,15 @@ function AppView() {
         isSaved={appState.isSaved}
         isFiltering={appState.isFiltering}
         allNotes={appState.allNotes}
+        onClick={() => {
+          dispatch({ type: "start-navigate" });
+        }}
         onNavigate={(note) => {
           dispatch({ type: "stop-navigate" });
           editor!.focus();
-          fs.readNote(note).then((text) => {
-            editor!.load(note, text);
-            dispatch({
-              type: "loaded",
-              name: note,
-            });
-          });
+          if (note) {
+            editor!.navigate(note);
+          }
         }}
       />
       <div id="editor" ref={editorRef}></div>
@@ -305,4 +279,4 @@ function AppView() {
   );
 }
 
-ReactDOM.render(<AppView />, document.body);
+ReactDOM.render(<AppView />, document.getElementById("root"));

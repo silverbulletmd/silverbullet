@@ -27,14 +27,24 @@ fsRouter.get('/', async context => {
 fsRouter.get('/:note', async context => {
     const noteName = context.params.note;
     const localPath = `${notesPath}/${noteName}.md`;
-    const text = await Deno.readTextFile(localPath);
-    context.response.body = text;
+    try {
+        const text = await Deno.readTextFile(localPath);
+        context.response.body = text;
+    } catch (e) {
+        context.response.status = 404;
+        context.response.body = "";
+    }
 });
 
 fsRouter.options('/:note', async context => {
     const localPath = `${notesPath}/${context.params.note}.md`;
-    const stat = await Deno.stat(localPath);
-    context.response.headers.set('Content-length', `${stat.size}`);
+    try {
+        const stat = await Deno.stat(localPath);
+        context.response.headers.set('Content-length', `${stat.size}`);
+    } catch (e) {
+        context.response.status = 200;
+        context.response.body = "";
+    }
 })
 
 fsRouter.put('/:note', async context => {

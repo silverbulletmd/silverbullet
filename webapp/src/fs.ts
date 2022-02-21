@@ -1,7 +1,6 @@
 
-export interface NoteMeta {
-    name: string;
-}
+import { NoteMeta } from "./types";
+
 
 export interface FileSystem {
     listNotes(): Promise<NoteMeta[]>;

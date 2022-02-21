@@ -9,6 +9,7 @@ For the rest of you, if you are not a parent, have no plan to be, or have absolu
 
 Thank you for sharing that perspective. However, in your case specifically, I have to insist you keep reading. It’s kids with your independent mindset that we’re trying to raise here. Although, perhaps you already know how to do that. Get in touch. 
 
+
 Hello there
 
 -----
