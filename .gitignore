@@ -1,4 +1,5 @@
-/node_modules/
-/dist/
+/webapp/node_modules/
+/webapp/dist/
 /.parcel-cache/
 /.idea
+

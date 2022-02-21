@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../server"
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true
+	}
+}
