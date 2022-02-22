@@ -1,5 +1,5 @@
 import { styleTags } from "@codemirror/highlight";
-import { MarkdownConfig } from "@lezer/markdown";
+import { MarkdownConfig, TaskList } from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
 
@@ -49,7 +49,7 @@ const AtMention: MarkdownConfig = {
   ],
 };
 const TagLink: MarkdownConfig = {
-  defineNodes: ["TagLink"],
+  defineNodes: ["Checkbox"],
   parseInline: [
     {
       name: "TagLink",
@@ -71,6 +71,7 @@ const WikiMarkdown = commonmark.configure([
   WikiLink,
   AtMention,
   TagLink,
+  TaskList,
   {
     props: [
       styleTags({
@@ -78,6 +79,8 @@ const WikiMarkdown = commonmark.configure([
         WikiLinkPage: ct.WikiLinkPageTag,
         AtMention: ct.MentionTag,
         TagLink: ct.TagTag,
+        Task: ct.TaskTag,
+        TaskMarker: ct.TaskMarkerTag,
       }),
     ],
   },

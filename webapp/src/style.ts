@@ -13,6 +13,8 @@ export default HighlightStyle.define([
   { tag: ct.WikiLinkPageTag, class: "wiki-link-page" },
   { tag: ct.TagTag, class: "tag" },
   { tag: ct.MentionTag, class: "mention" },
+  { tag: ct.TaskTag, class: "task" },
+  { tag: ct.TaskMarkerTag, class: "task-marker" },
   { tag: t.emphasis, class: "emphasis" },
   { tag: t.strong, class: "strong" },
   { tag: t.atom, class: "atom" },

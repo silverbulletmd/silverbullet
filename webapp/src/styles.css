@@ -1,8 +1,8 @@
 :root {
   --ident: 18px;
-  --editor-font: "Avenir";
+  /* --editor-font: "Avenir"; */
+  --editor-font: "Menlo";
   --top-bar-bg: rgb(41, 41, 41);
-  /* --editor-font: "Menlo"; */
 }
 
 html,
@@ -146,6 +146,10 @@ body {
 .cm-editor .line-li {
   text-indent: calc(-1 * var(--ident) - 3px);
   margin-left: var(--ident);
+}
+
+.cm-editor .task-marker {
+  background-color: #ddd;
 }
 
 .current-note {

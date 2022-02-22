@@ -28,6 +28,7 @@ import { Action, AppViewState } from "./types";
 
 import { syntaxTree } from "@codemirror/language";
 import * as util from "./util";
+import { NoteMeta } from "./types";
 
 const fs = new HttpFileSystem("http://localhost:2222/fs");
 
@@ -39,10 +40,13 @@ const initialViewState: AppViewState = {
   allNotes: [],
 };
 
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+
 class Editor {
   view: EditorView;
   currentNote: string;
   dispatch: React.Dispatch<Action>;
+  allNotes: NoteMeta[];
 
   constructor(
     parent: Element,
@@ -56,6 +60,7 @@ class Editor {
     });
     this.currentNote = currentNote;
     this.dispatch = dispatch;
+    this.allNotes = [];
   }
 
   createEditorState(text: string): EditorState {
@@ -71,7 +76,9 @@ class Editor {
         customMarkdownStyle,
         bracketMatching(),
         closeBrackets(),
-        autocompletion(),
+        autocompletion({
+          override: [this.noteCompleter.bind(this)],
+        }),
         EditorView.lineWrapping,
         lineWrapper([
           { selector: "ATXHeading1", class: "line-h1" },
@@ -161,6 +168,22 @@ class Editor {
     });
   }
 
+  noteCompleter(ctx: CompletionContext): CompletionResult | null {
+    let prefix = ctx.matchBefore(/\[\[\w*/);
+    if (!prefix) {
+      return null;
+    }
+    // TODO: Lots of optimization potential here
+    // TODO: put something in the cm-completionIcon-note style
+    return {
+      from: prefix.from + 2,
+      options: this.allNotes.map((noteMeta) => ({
+        label: noteMeta.name,
+        type: "note",
+      })),
+    };
+  }
+
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
       this.dispatch({
@@ -184,6 +207,18 @@ class Editor {
         let noteName = view.state.sliceDoc(node.from, node.to);
         this.navigate(noteName);
       }
+      if (node && node.name === "TaskMarker") {
+        let checkBoxText = view.state.sliceDoc(node.from, node.to);
+        if (checkBoxText === "[x]" || checkBoxText === "[X]") {
+          view.dispatch({
+            changes: { from: node.from, to: node.to, insert: "[ ]" },
+          });
+        } else {
+          view.dispatch({
+            changes: { from: node.from, to: node.to, insert: "[x]" },
+          });
+        }
+      }
       return false;
     }
   }
@@ -202,6 +237,7 @@ class Editor {
 
   async loadNoteList() {
     let notesMeta = await fs.listNotes();
+    this.allNotes = notesMeta;
     this.dispatch({
       type: "notes-listed",
       notes: notesMeta,
