@@ -16,23 +16,26 @@ import {
 import React, { useEffect, useReducer, useRef } from "react";
 import ReactDOM from "react-dom";
 import * as commands from "./commands";
+import { CommandPalette } from "./components/commandpalette";
+import { NoteNavigator } from "./components/notenavigator";
 import { HttpFileSystem } from "./fs";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import customMarkDown from "./parser";
-import customMarkdownStyle from "./style";
-
-import { FilterList } from "./components/filter";
-
-import { NoteMeta, AppViewState, Action } from "./types";
 import reducer from "./reducer";
+import customMarkdownStyle from "./style";
+import { Action, AppViewState } from "./types";
+
+import { syntaxTree } from "@codemirror/language";
+import * as util from "./util";
 
 const fs = new HttpFileSystem("http://localhost:2222/fs");
 
-const initialViewState = {
+const initialViewState: AppViewState = {
   currentNote: "",
   isSaved: false,
-  isFiltering: false,
+  showNoteNavigator: false,
+  showCommandPalette: false,
   allNotes: [],
 };
 
@@ -56,6 +59,7 @@ class Editor {
   }
 
   createEditorState(text: string): EditorState {
+    const editor = this;
     return EditorState.create({
       doc: text,
       extensions: [
@@ -108,10 +112,37 @@ class Editor {
             },
           },
           {
+            key: "Ctrl-Enter",
+            mac: "Cmd-Enter",
+            run: (target): boolean => {
+              // TODO: Factor this and click handler into one action
+              let selection = target.state.selection.main;
+              if (selection.empty) {
+                let node = syntaxTree(target.state).resolveInner(
+                  selection.from
+                );
+                if (node && node.name === "WikiLinkPage") {
+                  let noteName = target.state.sliceDoc(node.from, node.to);
+                  this.navigate(noteName);
+                  return true;
+                }
+              }
+              return false;
+            },
+          },
+          {
             key: "Ctrl-p",
             mac: "Cmd-p",
             run: (target): boolean => {
               this.dispatch({ type: "start-navigate" });
+              return true;
+            },
+          },
+          {
+            key: "Ctrl-.",
+            mac: "Cmd-.",
+            run: (target): boolean => {
+              this.dispatch({ type: "show-palette" });
               return true;
             },
           },
@@ -133,7 +164,7 @@ class Editor {
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
       this.dispatch({
-        type: "updated",
+        type: "note-updated",
       });
     }
 
@@ -147,16 +178,34 @@ class Editor {
 
   click(event: MouseEvent, view: EditorView) {
     if (event.metaKey || event.ctrlKey) {
-      console.log("Navigate click");
-      let coords = view.posAtCoords(event);
-      console.log("Coords", view.state.doc.sliceString(coords!, coords! + 1));
+      let coords = view.posAtCoords(event)!;
+      let node = syntaxTree(view.state).resolveInner(coords);
+      if (node && node.name === "WikiLinkPage") {
+        let noteName = view.state.sliceDoc(node.from, node.to);
+        this.navigate(noteName);
+      }
       return false;
     }
   }
 
   async save() {
-    await fs.writeNote(this.currentNote, this.view.state.sliceDoc());
-    this.dispatch({ type: "saved" });
+    const created = await fs.writeNote(
+      this.currentNote,
+      this.view.state.sliceDoc()
+    );
+    this.dispatch({ type: "note-saved" });
+    // If a new note was created, let's refresh the note list
+    if (created) {
+      await this.loadNoteList();
+    }
+  }
+
+  async loadNoteList() {
+    let notesMeta = await fs.listNotes();
+    this.dispatch({
+      type: "notes-listed",
+      notes: notesMeta,
+    });
   }
 
   focus() {
@@ -168,43 +217,38 @@ class Editor {
   }
 }
 
-function TopBar({
+let editor: Editor | null;
+
+function NavigationBar({
   currentNote,
-  isSaved,
-  isFiltering,
-  allNotes,
-  onNavigate,
   onClick,
 }: {
   currentNote: string;
-  isSaved: boolean;
-  isFiltering: boolean;
-  allNotes: NoteMeta[];
-  onNavigate: (note: string | undefined) => void;
   onClick: () => void;
 }) {
   return (
     <div id="top">
       <div className="current-note" onClick={onClick}>
         » {currentNote}
-        {isSaved ? "" : "*"}
       </div>
-
-      {isFiltering && (
-        <FilterList
-          initialText=""
-          options={allNotes}
-          onSelect={(opt) => {
-            console.log("Selected", opt);
-            onNavigate(opt?.name);
-          }}
-        ></FilterList>
-      )}
     </div>
   );
 }
 
-let editor: Editor | null;
+function StatusBar({ isSaved }: { isSaved: boolean }) {
+  let wordCount = 0,
+    readingTime = 0;
+  if (editor) {
+    let text = editor.view.state.sliceDoc();
+    wordCount = util.countWords(text);
+    readingTime = util.readingTime(wordCount);
+  }
+  return (
+    <div id="bottom">
+      {wordCount} words | {readingTime} min | {isSaved ? "Saved" : "Edited"}
+    </div>
+  );
+}
 
 function AppView() {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -221,15 +265,20 @@ function AppView() {
   }, []);
 
   useEffect(() => {
-    fs.listNotes()
-      .then((notes) => {
-        dispatch({
-          type: "notes-list",
-          notes: notes,
-        });
-      })
-      .catch((e) => console.error(e));
+    editor?.loadNoteList();
   }, []);
+
+  // Auto save
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (!appState.isSaved) {
+        editor?.save();
+      }
+    }, 2000);
+    return () => {
+      clearTimeout(id);
+    };
+  }, [appState.isSaved]);
 
   useEffect(() => {
     function hashChange() {
@@ -240,7 +289,7 @@ function AppView() {
         .then((text) => {
           editor!.load(noteName, text);
           dispatch({
-            type: "loaded",
+            type: "note-loaded",
             name: noteName,
           });
         })
@@ -257,24 +306,45 @@ function AppView() {
 
   return (
     <>
-      <TopBar
+      {appState.showNoteNavigator && (
+        <NoteNavigator
+          allNotes={appState.allNotes}
+          onNavigate={(note) => {
+            dispatch({ type: "stop-navigate" });
+            editor!.focus();
+            if (note) {
+              editor
+                ?.save()
+                .then(() => {
+                  editor!.navigate(note);
+                })
+                .catch((e) => {
+                  alert("Could not save note, not switching");
+                });
+            }
+          }}
+        />
+      )}
+      {appState.showCommandPalette && (
+        <CommandPalette
+          onTrigger={(cmd) => {
+            dispatch({ type: "hide-palette" });
+            editor!.focus();
+            if (cmd) {
+              console.log("Run", cmd);
+            }
+          }}
+          commands={[{ name: "My command", run: () => {} }]}
+        />
+      )}
+      <NavigationBar
         currentNote={appState.currentNote}
-        isSaved={appState.isSaved}
-        isFiltering={appState.isFiltering}
-        allNotes={appState.allNotes}
         onClick={() => {
           dispatch({ type: "start-navigate" });
         }}
-        onNavigate={(note) => {
-          dispatch({ type: "stop-navigate" });
-          editor!.focus();
-          if (note) {
-            editor!.navigate(note);
-          }
-        }}
       />
       <div id="editor" ref={editorRef}></div>
-      <div id="bottom">Bottom</div>
+      <StatusBar isSaved={appState.isSaved} />
     </>
   );
 }

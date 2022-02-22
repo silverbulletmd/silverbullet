@@ -1,41 +1,63 @@
 import React, { useEffect, useRef, useState } from "react";
 
-type Option = {
+export interface Option {
   name: string;
   hint?: string;
-};
+}
+
+function magicSorter(a: Option, b: Option): number {
+  if (a.name.toLowerCase() < b.name.toLowerCase()) {
+    return -1;
+  } else {
+    return 1;
+  }
+}
 
 export function FilterList({
-  initialText,
+  placeholder,
   options,
   onSelect,
   allowNew = false,
+  newHint,
 }: {
-  initialText: string;
+  placeholder: string;
   options: Option[];
   onSelect: (option: Option | undefined) => void;
   allowNew?: boolean;
+  newHint?: string;
 }) {
   const searchBoxRef = useRef<HTMLInputElement>(null);
-  const [text, setText] = useState(initialText);
-  const [matchingOptions, setMatchingOptions] = useState(options);
+  const [text, setText] = useState("");
+  const [matchingOptions, setMatchingOptions] = useState(
+    options.sort(magicSorter)
+  );
   const [selectedOption, setSelectionOption] = useState(0);
+
+  let selectedElementRef = useRef<HTMLDivElement>(null);
 
   const filter = (e: React.ChangeEvent<HTMLInputElement>) => {
     const originalPhrase = e.target.value;
     const searchPhrase = originalPhrase.toLowerCase();
 
     if (searchPhrase) {
+      let foundExactMatch = false;
       let results = options.filter((option) => {
+        if (option.name.toLowerCase() === searchPhrase) {
+          foundExactMatch = true;
+        }
         return option.name.toLowerCase().indexOf(searchPhrase) !== -1;
       });
-      results.splice(0, 0, {
-        name: originalPhrase,
-        hint: "Create new",
-      });
+      results = results.sort(magicSorter);
+      if (allowNew && !foundExactMatch) {
+        results.push({
+          name: originalPhrase,
+          hint: newHint,
+        });
+      }
       setMatchingOptions(results);
     } else {
-      setMatchingOptions(options);
+      let results = options.sort(magicSorter);
+      setMatchingOptions(results);
     }
 
     setText(originalPhrase);
@@ -58,11 +80,12 @@ export function FilterList({
     };
   }, []);
 
-  return (
+  const returEl = (
     <div className="filter-container">
       <input
         type="text"
         value={text}
+        placeholder={placeholder}
         ref={searchBoxRef}
         onChange={filter}
         onKeyDown={(e: React.KeyboardEvent) => {
@@ -86,7 +109,6 @@ export function FilterList({
           }
         }}
         className="input"
-        placeholder=""
       />
 
       <div className="result-list">
@@ -94,6 +116,7 @@ export function FilterList({
           ? matchingOptions.map((option, idx) => (
               <div
                 key={"" + idx}
+                ref={selectedOption === idx ? selectedElementRef : undefined}
                 className={
                   selectedOption === idx ? "selected-option" : "option"
                 }
@@ -113,4 +136,12 @@ export function FilterList({
       </div>
     </div>
   );
+
+  useEffect(() => {
+    selectedElementRef.current?.scrollIntoView({
+      block: "nearest",
+    });
+  });
+
+  return returEl;
 }

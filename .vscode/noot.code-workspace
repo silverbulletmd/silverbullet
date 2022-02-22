@@ -1,13 +1,19 @@
 {
-	"folders": [
-		{
-			"path": ".."
-		},
-		{
-			"path": "../server"
-		}
-	],
-	"settings": {
-		"editor.formatOnSave": true
-	}
+  "folders": [
+    {
+      "path": ".."
+    },
+    {
+      "path": "../server"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "javascript.format.enable": false,
+    "typescript.format.enable": false,
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  }
 }

@@ -1,5 +1,6 @@
-import { Tag } from '@codemirror/highlight';
+import { Tag } from "@codemirror/highlight";
 
 export const WikiLinkTag = Tag.define();
+export const WikiLinkPageTag = Tag.define();
 export const TagTag = Tag.define();
 export const MentionTag = Tag.define();

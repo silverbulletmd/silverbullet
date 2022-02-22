@@ -6,7 +6,8 @@
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
     "start": "parcel",
-    "build": "parcel build"
+    "build": "parcel build",
+    "check-watch": "tsc --noEmit --watch"
   },
   "devDependencies": {
     "@parcel/validator-typescript": "^2.3.2",
@@ -21,7 +22,6 @@
     "@codemirror/lang-markdown": "^0.19.6",
     "@codemirror/state": "^0.19.7",
     "@codemirror/view": "^0.19.42",
-    "kbar": "^0.1.0-beta.27",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   }

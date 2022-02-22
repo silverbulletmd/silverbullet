@@ -3,18 +3,27 @@ export type NoteMeta = {
   name: string;
 };
 
+export type AppCommand = {
+  name: string;
+  run: () => void;
+}
+
 export type AppViewState = {
   currentNote: string;
   isSaved: boolean;
-  isFiltering: boolean;
+  showNoteNavigator: boolean;
+  showCommandPalette: boolean;
   allNotes: NoteMeta[];
 };
 
 export type Action =
-  | { type: "loaded"; name: string }
-  | { type: "saved" }
+  | { type: "note-loaded"; name: string }
+  | { type: "note-saved" }
+  | { type: "note-updated" }
+  | { type: "notes-listed"; notes: NoteMeta[] }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
-  | { type: "updated" }
-  | { type: "notes-list"; notes: NoteMeta[] };
+  | { type: "show-palette" }
+  | { type: "hide-palette" }
+  ;
 

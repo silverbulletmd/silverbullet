@@ -1,20 +1,27 @@
 import { Action, AppViewState } from "./types";
 
-export default function reducer(state: AppViewState, action: Action): AppViewState {
-  console.log("Got action", action)
+export default function reducer(
+  state: AppViewState,
+  action: Action
+): AppViewState {
+  console.log("Got action", action);
   switch (action.type) {
-    case "loaded":
+    case "note-loaded":
       return {
         ...state,
         currentNote: action.name,
         isSaved: true,
       };
-    case "saved":
+    case "note-saved":
       return {
         ...state,
         isSaved: true,
       };
-    case "updated":
+    case "note-updated":
+      // Minor rerender optimization, this is triggered a lot
+      if (!state.isSaved) {
+        return state;
+      }
       return {
         ...state,
         isSaved: false,
@@ -22,17 +29,28 @@ export default function reducer(state: AppViewState, action: Action): AppViewSta
     case "start-navigate":
       return {
         ...state,
-        isFiltering: true,
+        showNoteNavigator: true,
       };
     case "stop-navigate":
       return {
         ...state,
-        isFiltering: false,
+        showNoteNavigator: false,
       };
-    case "notes-list":
+    case "notes-listed":
       return {
         ...state,
         allNotes: action.notes,
       };
+    case "show-palette":
+      return {
+        ...state,
+        showCommandPalette: true,
+      };
+    case "hide-palette":
+      return {
+        ...state,
+        showCommandPalette: false,
+      };
   }
+  return state;
 }

@@ -1,3 +1,10 @@
+:root {
+  --ident: 18px;
+  --editor-font: "Avenir";
+  --top-bar-bg: rgb(41, 41, 41);
+  /* --editor-font: "Menlo"; */
+}
+
 html,
 body {
   height: 100%;
@@ -7,21 +14,26 @@ body {
 
 #top {
   height: 40px;
-  background-color: #eee;
+  background-color: var(--top-bar-bg);
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  color: #eee;
 }
 
 #bottom {
-  height: 40px;
-  background-color: #eee;
-  margin: 0;
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  position: absolute;
+  height: 25px;
+  background-color: var(--top-bar-bg);
+  color: #eee;
+  margin: 0;
+  padding: 5px;
+  font-family: var(--editor-font);
+  text-align: right;
 }
 
 #editor {
@@ -33,10 +45,6 @@ body {
   overflow-y: hidden;
 }
 
-:root {
-  --ident: 18px;
-}
-
 .cm-editor {
   width: 100%;
   height: 100%;
@@ -44,7 +52,7 @@ body {
 }
 
 .cm-editor .cm-content {
-  font-family: "Menlo";
+  font-family: var(--editor-font);
   margin: 5px;
 }
 
@@ -92,7 +100,7 @@ body {
 }
 
 .cm-editor .meta {
-  color: #520130;
+  color: #650007;
 }
 
 .cm-editor .line-blockquote {
@@ -119,9 +127,12 @@ body {
   color: #7e7d7d;
 }
 
-.cm-editor .wiki-link {
+.cm-editor .wiki-link-page {
   color: #0330cb;
-  /*text-decoration: underline;*/
+  text-decoration: underline;
+}
+.cm-editor .wiki-link {
+  color: #808080;
 }
 
 .cm-editor .mention {
@@ -137,43 +148,40 @@ body {
   margin-left: var(--ident);
 }
 
-reach-portal input {
-  background-color: #fff;
-  border: 0;
-}
-
-reach-portal > div > div {
-  background-color: #fff;
-  border: #000 1px solid;
-  padding: 5px;
-}
-
 .current-note {
-  font-family: "Menlo";
+  font-family: var(--editor-font);
   margin-left: 10px;
   margin-top: 10px;
   font-weight: bold;
 }
 
 .filter-container {
-  font-family: "Menlo";
-  background-color: white;
+  font-family: var(--editor-font);
   display: block;
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  right: 10px;
-  z-index: 1000;
   border: #333 1px solid;
+  z-index: 1000;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  right: 10px;
+}
+
+.filter-container .result-list {
+  max-height: 200px;
+  overflow-y: scroll;
+  background-color: white;
 }
 
 .filter-container input {
-  font-family: "Menlo";
+  font-family: var(--editor-font);
   width: 100%;
   /* border: 1px #333 solid; */
+  background-color: var(--top-bar-bg);
+  color: #eee;
   border: 0;
-  border-bottom: 1px #333 dotted;
   padding: 3px;
+  outline: 0;
+  font-weight: bold;
 }
 
 .filter-container .option,
