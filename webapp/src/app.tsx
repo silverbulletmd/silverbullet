@@ -18,7 +18,7 @@ import ReactDOM from "react-dom";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/commandpalette";
 import { NoteNavigator } from "./components/notenavigator";
-import { HttpFileSystem } from "./fs";
+import { FileSystem, HttpFileSystem } from "./fs";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import customMarkDown from "./parser";
@@ -30,10 +30,7 @@ import { syntaxTree } from "@codemirror/language";
 import * as util from "./util";
 import { NoteMeta } from "./types";
 
-const fs = new HttpFileSystem("http://localhost:2222/fs");
-
 const initialViewState: AppViewState = {
-  currentNote: "",
   isSaved: false,
   showNoteNavigator: false,
   showCommandPalette: false,
@@ -41,26 +38,44 @@ const initialViewState: AppViewState = {
 };
 
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { NavigationBar } from "./components/navigation_bar";
+import { StatusBar } from "./components/status_bar";
+
+class NoteState {
+  editorState: EditorState;
+  scrollTop: number;
+
+  constructor(editorState: EditorState, scrollTop: number) {
+    this.editorState = editorState;
+    this.scrollTop = scrollTop;
+  }
+}
 
 class Editor {
-  view: EditorView;
-  currentNote: string;
-  dispatch: React.Dispatch<Action>;
-  allNotes: NoteMeta[];
+  editorView?: EditorView;
+  viewState: AppViewState;
+  viewDispatch: React.Dispatch<Action>;
+  $hashChange?: () => void;
+  openNotes: Map<string, NoteState>;
+  fs: FileSystem;
 
-  constructor(
-    parent: Element,
-    currentNote: string,
-    text: string,
-    dispatch: React.Dispatch<Action>
-  ) {
-    this.view = new EditorView({
-      state: this.createEditorState(text),
-      parent: parent,
+  constructor(fs: FileSystem, parent: Element) {
+    this.fs = fs;
+    this.viewState = initialViewState;
+    this.viewDispatch = () => {};
+    this.render(parent);
+    this.editorView = new EditorView({
+      state: this.createEditorState(""),
+      parent: document.getElementById("editor")!,
     });
-    this.currentNote = currentNote;
-    this.dispatch = dispatch;
-    this.allNotes = [];
+    this.addListeners();
+    this.loadNoteList();
+    this.openNotes = new Map();
+    this.$hashChange!();
+  }
+
+  get currentNote(): string | undefined {
+    return this.viewState.currentNote;
   }
 
   createEditorState(text: string): EditorState {
@@ -141,7 +156,7 @@ class Editor {
             key: "Ctrl-p",
             mac: "Cmd-p",
             run: (target): boolean => {
-              this.dispatch({ type: "start-navigate" });
+              this.viewDispatch({ type: "start-navigate" });
               return true;
             },
           },
@@ -149,7 +164,7 @@ class Editor {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
-              this.dispatch({ type: "show-palette" });
+              this.viewDispatch({ type: "show-palette" });
               return true;
             },
           },
@@ -177,7 +192,7 @@ class Editor {
     // TODO: put something in the cm-completionIcon-note style
     return {
       from: prefix.from + 2,
-      options: this.allNotes.map((noteMeta) => ({
+      options: this.viewState.allNotes.map((noteMeta) => ({
         label: noteMeta.name,
         type: "note",
       })),
@@ -186,17 +201,12 @@ class Editor {
 
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
-      this.dispatch({
+      this.viewDispatch({
         type: "note-updated",
       });
     }
 
     return null;
-  }
-
-  load(name: string, text: string) {
-    this.currentNote = name;
-    this.view.setState(this.createEditorState(text));
   }
 
   click(event: MouseEvent, view: EditorView) {
@@ -224,11 +234,26 @@ class Editor {
   }
 
   async save() {
-    const created = await fs.writeNote(
+    const editorState = this.editorView!.state;
+
+    if (!this.currentNote) {
+      return;
+    }
+    // Write to file system
+    const created = await this.fs.writeNote(
       this.currentNote,
-      this.view.state.sliceDoc()
+      editorState.sliceDoc()
     );
-    this.dispatch({ type: "note-saved" });
+
+    // Update in open note cache
+    this.openNotes.set(
+      this.currentNote,
+      new NoteState(editorState, this.editorView!.scrollDOM.scrollTop)
+    );
+
+    // Dispatch update to view
+    this.viewDispatch({ type: "note-saved" });
+
     // If a new note was created, let's refresh the note list
     if (created) {
       await this.loadNoteList();
@@ -236,153 +261,146 @@ class Editor {
   }
 
   async loadNoteList() {
-    let notesMeta = await fs.listNotes();
-    this.allNotes = notesMeta;
-    this.dispatch({
+    let notesMeta = await this.fs.listNotes();
+    this.viewDispatch({
       type: "notes-listed",
       notes: notesMeta,
     });
   }
 
   focus() {
-    this.view.focus();
+    this.editorView!.focus();
   }
 
-  navigate(name: string) {
+  async navigate(name: string) {
     location.hash = encodeURIComponent(name);
   }
-}
 
-let editor: Editor | null;
+  hashChange() {
+    Promise.resolve()
+      .then(async () => {
+        await this.save();
+        const noteName = decodeURIComponent(location.hash.substring(1));
+        console.log("Now navigating to", noteName);
 
-function NavigationBar({
-  currentNote,
-  onClick,
-}: {
-  currentNote: string;
-  onClick: () => void;
-}) {
-  return (
-    <div id="top">
-      <div className="current-note" onClick={onClick}>
-        » {currentNote}
-      </div>
-    </div>
-  );
-}
+        if (!this.editorView) {
+          return;
+        }
 
-function StatusBar({ isSaved }: { isSaved: boolean }) {
-  let wordCount = 0,
-    readingTime = 0;
-  if (editor) {
-    let text = editor.view.state.sliceDoc();
-    wordCount = util.countWords(text);
-    readingTime = util.readingTime(wordCount);
-  }
-  return (
-    <div id="bottom">
-      {wordCount} words | {readingTime} min | {isSaved ? "Saved" : "Edited"}
-    </div>
-  );
-}
+        let noteState = this.openNotes.get(noteName);
+        if (!noteState) {
+          let text = await this.fs.readNote(noteName);
+          noteState = new NoteState(this.createEditorState(text), 0);
+        }
+        this.openNotes.set(noteName, noteState!);
+        this.editorView!.setState(noteState!.editorState);
+        this.editorView.scrollDOM.scrollTop = noteState!.scrollTop;
 
-function AppView() {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [appState, dispatch] = useReducer(reducer, initialViewState);
-
-  useEffect(() => {
-    editor = new Editor(editorRef.current!, "", "", dispatch);
-    editor.focus();
-    // @ts-ignore
-    window.editor = editor;
-    if (!location.hash) {
-      editor.navigate("start");
-    }
-  }, []);
-
-  useEffect(() => {
-    editor?.loadNoteList();
-  }, []);
-
-  // Auto save
-  useEffect(() => {
-    const id = setTimeout(() => {
-      if (!appState.isSaved) {
-        editor?.save();
-      }
-    }, 2000);
-    return () => {
-      clearTimeout(id);
-    };
-  }, [appState.isSaved]);
-
-  useEffect(() => {
-    function hashChange() {
-      const noteName = decodeURIComponent(location.hash.substring(1));
-      console.log("Now navigating to", noteName);
-
-      fs.readNote(noteName)
-        .then((text) => {
-          editor!.load(noteName, text);
-          dispatch({
-            type: "note-loaded",
-            name: noteName,
-          });
-        })
-        .catch((e) => {
-          console.error("Error loading note", e);
+        this.viewDispatch({
+          type: "note-loaded",
+          name: noteName,
         });
-    }
-    hashChange();
-    window.addEventListener("hashchange", hashChange);
-    return () => {
-      window.removeEventListener("hashchange", hashChange);
-    };
-  }, []);
+      })
+      .catch((e) => {
+        console.error(e);
+      });
+  }
 
-  return (
-    <>
-      {appState.showNoteNavigator && (
-        <NoteNavigator
-          allNotes={appState.allNotes}
-          onNavigate={(note) => {
-            dispatch({ type: "stop-navigate" });
-            editor!.focus();
-            if (note) {
-              editor
-                ?.save()
-                .then(() => {
-                  editor!.navigate(note);
-                })
-                .catch((e) => {
-                  alert("Could not save note, not switching");
-                });
-            }
+  addListeners() {
+    this.$hashChange = this.hashChange.bind(this);
+    window.addEventListener("hashchange", this.$hashChange);
+  }
+
+  dispose() {
+    if (this.$hashChange) {
+      window.removeEventListener("hashchange", this.$hashChange);
+    }
+  }
+
+  ViewComponent(): React.ReactElement {
+    const [viewState, dispatch] = useReducer(reducer, initialViewState);
+    this.viewState = viewState;
+    this.viewDispatch = dispatch;
+
+    useEffect(() => {
+      if (!location.hash) {
+        this.navigate("start");
+      }
+    }, []);
+
+    // Auto save
+    useEffect(() => {
+      const id = setTimeout(() => {
+        if (!viewState.isSaved) {
+          this.save();
+        }
+      }, 2000);
+      return () => {
+        clearTimeout(id);
+      };
+    }, [viewState.isSaved]);
+
+    let editor = this;
+
+    useEffect(() => {}, []);
+
+    return (
+      <>
+        {viewState.showNoteNavigator && (
+          <NoteNavigator
+            allNotes={viewState.allNotes}
+            onNavigate={(note) => {
+              dispatch({ type: "stop-navigate" });
+              editor!.focus();
+              if (note) {
+                editor
+                  ?.save()
+                  .then(() => {
+                    editor!.navigate(note);
+                  })
+                  .catch((e) => {
+                    alert("Could not save note, not switching");
+                  });
+              }
+            }}
+          />
+        )}
+        {viewState.showCommandPalette && (
+          <CommandPalette
+            onTrigger={(cmd) => {
+              dispatch({ type: "hide-palette" });
+              editor!.focus();
+              if (cmd) {
+                console.log("Run", cmd);
+              }
+            }}
+            commands={[{ name: "My command", run: () => {} }]}
+          />
+        )}
+        <NavigationBar
+          currentNote={viewState.currentNote}
+          onClick={() => {
+            dispatch({ type: "start-navigate" });
           }}
         />
-      )}
-      {appState.showCommandPalette && (
-        <CommandPalette
-          onTrigger={(cmd) => {
-            dispatch({ type: "hide-palette" });
-            editor!.focus();
-            if (cmd) {
-              console.log("Run", cmd);
-            }
-          }}
-          commands={[{ name: "My command", run: () => {} }]}
-        />
-      )}
-      <NavigationBar
-        currentNote={appState.currentNote}
-        onClick={() => {
-          dispatch({ type: "start-navigate" });
-        }}
-      />
-      <div id="editor" ref={editorRef}></div>
-      <StatusBar isSaved={appState.isSaved} />
-    </>
-  );
+        <div id="editor"></div>
+        <StatusBar isSaved={viewState.isSaved} editorView={this.editorView} />
+      </>
+    );
+  }
+
+  render(container: ReactDOM.Container) {
+    const ViewComponent = this.ViewComponent.bind(this);
+    ReactDOM.render(<ViewComponent />, container);
+  }
 }
 
-ReactDOM.render(<AppView />, document.getElementById("root"));
+let ed = new Editor(
+  new HttpFileSystem("http://localhost:2222/fs"),
+  document.getElementById("root")!
+);
+
+ed.focus();
+
+// @ts-ignore
+window.editor = ed;

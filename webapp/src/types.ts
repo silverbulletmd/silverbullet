@@ -1,4 +1,3 @@
-
 export type NoteMeta = {
   name: string;
 };
@@ -6,10 +5,10 @@ export type NoteMeta = {
 export type AppCommand = {
   name: string;
   run: () => void;
-}
+};
 
 export type AppViewState = {
-  currentNote: string;
+  currentNote?: string;
   isSaved: boolean;
   showNoteNavigator: boolean;
   showCommandPalette: boolean;
@@ -24,6 +23,4 @@ export type Action =
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "show-palette" }
-  | { type: "hide-palette" }
-  ;
-
+  | { type: "hide-palette" };
