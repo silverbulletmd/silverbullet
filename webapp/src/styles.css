@@ -51,9 +51,16 @@ body {
   font-size: var(--ident);
 }
 
+@media only screen and (max-width: 800px) {
+  .cm-editor .cm-content {
+    margin: 0 10px !important;
+  }
+}
+
 .cm-editor .cm-content {
   font-family: var(--editor-font);
-  margin: 5px;
+  margin: auto;
+  max-width: 800px;
 }
 
 .cm-editor .cm-selectionBackground {
@@ -89,6 +96,11 @@ body {
 .cm-editor .h2.meta {
   color: orange;
 }
+
+/* .cm-editor .cm-line {
+  padding-left: 50px;
+  max-width: 800px;
+} */
 
 .cm-editor .line-code {
   background-color: #efefef;
