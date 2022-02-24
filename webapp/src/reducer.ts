@@ -51,6 +51,11 @@ export default function reducer(
         ...state,
         showCommandPalette: false,
       };
+    case "update-commands":
+      return {
+        ...state,
+        commands: action.commands,
+      };
   }
   return state;
 }

@@ -1,20 +1,29 @@
 import { AppCommand } from "../types";
-import { FilterList } from "./filter";
+import { FilterList, Option } from "./filter";
 
 export function CommandPalette({
   commands,
   onTrigger,
 }: {
-  commands: AppCommand[];
-  onTrigger: (command: AppCommand) => void;
+  commands: Map<string, AppCommand>;
+  onTrigger: (command: AppCommand | undefined) => void;
 }) {
+  let options: Option[] = [];
+  for (let [name, def] of commands.entries()) {
+    options.push({ name: name });
+  }
+  console.log("Commands", options);
   return (
     <FilterList
       placeholder="Enter command to run"
-      options={commands}
+      options={options}
       allowNew={false}
       onSelect={(opt) => {
-        onTrigger(opt as AppCommand);
+        if (opt) {
+          onTrigger(commands.get(opt.name));
+        } else {
+          onTrigger(undefined);
+        }
       }}
     />
   );

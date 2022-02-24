@@ -1,11 +1,17 @@
-import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import {
+  autocompletion,
+  CompletionContext,
+  completionKeymap,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
-import { indentOnInput } from "@codemirror/language";
+import { indentOnInput, syntaxTree } from "@codemirror/language";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
+import { KeyBinding } from "@codemirror/view";
 import {
   drawSelection,
   dropCursor,
@@ -13,33 +19,33 @@ import {
   highlightSpecialChars,
   keymap,
 } from "@codemirror/view";
-import React, { useEffect, useReducer, useRef } from "react";
+import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
+import coreManifest from "../../plugins/dist/core.plugin.json";
+import { buildContext } from "./buildContext";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/commandpalette";
+import { NavigationBar } from "./components/navigation_bar";
 import { NoteNavigator } from "./components/notenavigator";
+import { StatusBar } from "./components/status_bar";
 import { FileSystem, HttpFileSystem } from "./fs";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import customMarkDown from "./parser";
+import { BrowserSystem } from "./plugins/browser_system";
+import { Manifest } from "./plugins/types";
 import reducer from "./reducer";
 import customMarkdownStyle from "./style";
-import { Action, AppViewState } from "./types";
-
-import { syntaxTree } from "@codemirror/language";
-import * as util from "./util";
-import { NoteMeta } from "./types";
-
-const initialViewState: AppViewState = {
-  isSaved: false,
-  showNoteNavigator: false,
-  showCommandPalette: false,
-  allNotes: [],
-};
-
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { NavigationBar } from "./components/navigation_bar";
-import { StatusBar } from "./components/status_bar";
+import dbSyscalls from "./syscalls/db.localstorage";
+import editorSyscalls from "./syscalls/editor.browser";
+import {
+  Action,
+  AppCommand,
+  AppViewState,
+  CommandContext,
+  initialViewState,
+} from "./types";
+import { safeRun } from "./util";
 
 class NoteState {
   editorState: EditorState;
@@ -51,15 +57,18 @@ class NoteState {
   }
 }
 
-class Editor {
+export class Editor {
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   $hashChange?: () => void;
   openNotes: Map<string, NoteState>;
   fs: FileSystem;
+  editorCommands: Map<string, AppCommand>;
 
   constructor(fs: FileSystem, parent: Element) {
+    this.editorCommands = new Map();
+    this.openNotes = new Map();
     this.fs = fs;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -69,9 +78,37 @@ class Editor {
       parent: document.getElementById("editor")!,
     });
     this.addListeners();
-    this.loadNoteList();
-    this.openNotes = new Map();
+  }
+
+  async init() {
+    await this.loadNoteList();
+    await this.loadPlugins();
     this.$hashChange!();
+    this.focus();
+  }
+
+  async loadPlugins() {
+    const system = new BrowserSystem("plugin");
+    system.registerSyscalls(dbSyscalls, editorSyscalls(this));
+
+    await system.bootServiceWorker();
+    console.log("Now loading core plugin");
+    let mainCartridge = await system.load("core", coreManifest as Manifest);
+    this.editorCommands = new Map<string, AppCommand>();
+    const cmds = mainCartridge.manifest!.commands;
+    for (let name in cmds) {
+      let cmd = cmds[name];
+      this.editorCommands.set(name, {
+        command: cmd,
+        run: async (arg: CommandContext): Promise<any> => {
+          return await mainCartridge.invoke(cmd.invoke, [arg]);
+        },
+      });
+    }
+    this.viewDispatch({
+      type: "update-commands",
+      commands: this.editorCommands,
+    });
   }
 
   get currentNote(): string | undefined {
@@ -80,6 +117,23 @@ class Editor {
 
   createEditorState(text: string): EditorState {
     const editor = this;
+    let commandKeyBindings: KeyBinding[] = [];
+    for (let def of this.editorCommands.values()) {
+      if (def.command.key) {
+        commandKeyBindings.push({
+          key: def.command.key,
+          mac: def.command.mac,
+          run: (): boolean => {
+            Promise.resolve()
+              .then(async () => {
+                await def.run(buildContext(def, this));
+              })
+              .catch((e) => console.error(e));
+            return true;
+          },
+        });
+      }
+    }
     return EditorState.create({
       doc: text,
       extensions: [
@@ -110,6 +164,7 @@ class Editor {
           ...historyKeymap,
           ...completionKeymap,
           indentWithTab,
+          ...commandKeyBindings,
           {
             key: "Ctrl-b",
             mac: "Cmd-b",
@@ -131,25 +186,6 @@ class Editor {
                 })
                 .catch((e) => console.error(e));
               return true;
-            },
-          },
-          {
-            key: "Ctrl-Enter",
-            mac: "Cmd-Enter",
-            run: (target): boolean => {
-              // TODO: Factor this and click handler into one action
-              let selection = target.state.selection.main;
-              if (selection.empty) {
-                let node = syntaxTree(target.state).resolveInner(
-                  selection.from
-                );
-                if (node && node.name === "WikiLinkPage") {
-                  let noteName = target.state.sliceDoc(node.from, node.to);
-                  this.navigate(noteName);
-                  return true;
-                }
-              }
-              return false;
             },
           },
           {
@@ -371,10 +407,13 @@ class Editor {
               dispatch({ type: "hide-palette" });
               editor!.focus();
               if (cmd) {
-                console.log("Run", cmd);
+                safeRun(async () => {
+                  let result = await cmd.run(buildContext(cmd, editor));
+                  console.log("Result of command", result);
+                });
               }
             }}
-            commands={[{ name: "My command", run: () => {} }]}
+            commands={viewState.commands}
           />
         )}
         <NavigationBar
@@ -400,7 +439,13 @@ let ed = new Editor(
   document.getElementById("root")!
 );
 
-ed.focus();
+ed.loadPlugins().catch((e) => {
+  console.error(e);
+});
+
+safeRun(async () => {
+  await ed.init();
+});
 
 // @ts-ignore
 window.editor = ed;

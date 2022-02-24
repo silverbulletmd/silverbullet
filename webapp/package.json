@@ -22,6 +22,8 @@
     "@codemirror/lang-markdown": "^0.19.6",
     "@codemirror/state": "^0.19.7",
     "@codemirror/view": "^0.19.42",
+    "@parcel/service-worker": "^2.3.2",
+    "idb": "^7.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   }

@@ -1,10 +1,16 @@
+import { CommandDef } from "./plugins/types";
+
 export type NoteMeta = {
   name: string;
 };
 
+export type CommandContext = {
+  text?: string;
+};
+
 export type AppCommand = {
-  name: string;
-  run: () => void;
+  command: CommandDef;
+  run: (ctx: CommandContext) => Promise<any>;
 };
 
 export type AppViewState = {
@@ -13,6 +19,15 @@ export type AppViewState = {
   showNoteNavigator: boolean;
   showCommandPalette: boolean;
   allNotes: NoteMeta[];
+  commands: Map<string, AppCommand>;
+};
+
+export const initialViewState: AppViewState = {
+  isSaved: false,
+  showNoteNavigator: false,
+  showCommandPalette: false,
+  allNotes: [],
+  commands: new Map(),
 };
 
 export type Action =
@@ -22,5 +37,6 @@ export type Action =
   | { type: "notes-listed"; notes: NoteMeta[] }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
+  | { type: "update-commands"; commands: Map<string, AppCommand> }
   | { type: "show-palette" }
   | { type: "hide-palette" };

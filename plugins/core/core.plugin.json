@@ -1,0 +1,48 @@
+{
+  "commands": {
+    "Count Words": {
+      "invoke": "word_count_command",
+      "requiredContext": {
+        "text": true
+      }
+    },
+    "Navigate To page": {
+      "invoke": "link_navigate",
+      "key": "Ctrl-Enter",
+      "mac": "Cmd-Enter",
+      "requiredContext": {
+      }
+    },
+    "Insert Current Date": {
+      "invoke": "insert_nice_date"
+    },
+    "Toggle : Heading 1": {
+      "invoke": "toggle_h1",
+      "mac": "Cmd-1",
+      "key": "Ctrl-1"
+    },
+    "Toggle : Heading 2": {
+      "invoke": "toggle_h2",
+      "mac": "Cmd-2",
+      "key": "Ctrl-2"
+    }
+  },
+  "events": {},
+  "functions": {
+    "word_count_command": {
+      "path": "./word_count_command.ts:wordCount"
+    },
+    "link_navigate": {
+      "path": "./link_navigate.ts:linkNavigate"
+    },
+    "insert_nice_date": {
+      "path": "./dates.ts:insertToday"
+    },
+    "toggle_h1": {
+      "path": "./markup.ts:toggleH1"
+    },
+    "toggle_h2": {
+      "path": "./markup.ts:toggleH2"
+    }
+  }
+}

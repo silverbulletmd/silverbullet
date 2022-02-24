@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "path": "webapp"
+    },
+    {
+      "path": "plugins"
+    },
+    {
+      "path": "server"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true
+  }
+}
