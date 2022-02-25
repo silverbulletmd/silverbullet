@@ -1,5 +1,6 @@
 import {
   autocompletion,
+  Completion,
   CompletionContext,
   completionKeymap,
   CompletionResult,
@@ -11,12 +12,12 @@ import { indentOnInput, syntaxTree } from "@codemirror/language";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
-import { KeyBinding } from "@codemirror/view";
 import {
   drawSelection,
   dropCursor,
   EditorView,
   highlightSpecialChars,
+  KeyBinding,
   keymap,
 } from "@codemirror/view";
 import React, { useEffect, useReducer } from "react";
@@ -28,12 +29,12 @@ import { CommandPalette } from "./components/command_palette";
 import { NavigationBar } from "./components/navigation_bar";
 import { NuggetNavigator } from "./components/nugget_navigator";
 import { StatusBar } from "./components/status_bar";
-import { FileSystem, HttpFileSystem } from "./fs";
+import { FileSystem } from "./fs";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import customMarkDown from "./parser";
 import { BrowserSystem } from "./plugins/browser_system";
-import { Manifest } from "./plugins/types";
+import { Manifest, slashCommandRegexp } from "./plugins/types";
 import reducer from "./reducer";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
@@ -44,18 +45,23 @@ import {
   AppViewState,
   CommandContext,
   initialViewState,
+  NuggetMeta,
 } from "./types";
 import { safeRun } from "./util";
 
 class NuggetState {
   editorState: EditorState;
   scrollTop: number;
+  meta: NuggetMeta;
 
-  constructor(editorState: EditorState, scrollTop: number) {
+  constructor(editorState: EditorState, scrollTop: number, meta: NuggetMeta) {
     this.editorState = editorState;
     this.scrollTop = scrollTop;
+    this.meta = meta;
   }
 }
+
+const watchInterval = 5000;
 
 export class Editor {
   editorView?: EditorView;
@@ -78,6 +84,7 @@ export class Editor {
       parent: document.getElementById("editor")!,
     });
     this.addListeners();
+    this.watch();
   }
 
   async init() {
@@ -93,15 +100,15 @@ export class Editor {
 
     await system.bootServiceWorker();
     console.log("Now loading core plugin");
-    let mainCartridge = await system.load("core", coreManifest as Manifest);
+    let mainPlugin = await system.load("core", coreManifest as Manifest);
     this.editorCommands = new Map<string, AppCommand>();
-    const cmds = mainCartridge.manifest!.commands;
+    const cmds = mainPlugin.manifest!.commands;
     for (let name in cmds) {
       let cmd = cmds[name];
       this.editorCommands.set(name, {
         command: cmd,
         run: async (arg: CommandContext): Promise<any> => {
-          return await mainCartridge.invoke(cmd.invoke, [arg]);
+          return await mainPlugin.invoke(cmd.invoke, [arg]);
         },
       });
     }
@@ -111,7 +118,7 @@ export class Editor {
     });
   }
 
-  get currentNugget(): string | undefined {
+  get currentNugget(): NuggetMeta | undefined {
     return this.viewState.currentNugget;
   }
 
@@ -146,7 +153,10 @@ export class Editor {
         bracketMatching(),
         closeBrackets(),
         autocompletion({
-          override: [this.nuggetCompleter.bind(this)],
+          override: [
+            this.nuggetCompleter.bind(this),
+            this.commandCompleter.bind(this),
+          ],
         }),
         EditorView.lineWrapping,
         lineWrapper([
@@ -176,15 +186,10 @@ export class Editor {
             run: commands.insertMarker("_"),
           },
           {
-            key: "Ctrl-s",
-            mac: "Cmd-s",
-            run: (target: EditorView): boolean => {
-              Promise.resolve()
-                .then(async () => {
-                  console.log("Saving");
-                  await this.save();
-                })
-                .catch((e) => console.error(e));
+            key: "Ctrl-e",
+            mac: "Cmd-e",
+            run: (): boolean => {
+              window.open(location.href, "_blank")!.focus();
               return true;
             },
           },
@@ -200,7 +205,9 @@ export class Editor {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
-              this.viewDispatch({ type: "show-palette" });
+              this.viewDispatch({
+                type: "show-palette",
+              });
               return true;
             },
           },
@@ -220,18 +227,49 @@ export class Editor {
   }
 
   nuggetCompleter(ctx: CompletionContext): CompletionResult | null {
-    let prefix = ctx.matchBefore(/\[\[\w*/);
+    let prefix = ctx.matchBefore(/\[\[[\w\s]*/);
     if (!prefix) {
       return null;
     }
-    // TODO: Lots of optimization potential here
-    // TODO: put something in the cm-completionIcon-nugget style
     return {
       from: prefix.from + 2,
       options: this.viewState.allNuggets.map((nuggetMeta) => ({
         label: nuggetMeta.name,
         type: "nugget",
       })),
+    };
+  }
+
+  commandCompleter(ctx: CompletionContext): CompletionResult | null {
+    let prefix = ctx.matchBefore(slashCommandRegexp);
+    if (!prefix) {
+      return null;
+    }
+    let options: Completion[] = [];
+    for (let [name, def] of this.viewState.commands) {
+      if (!def.command.slashCommand) {
+        continue;
+      }
+      options.push({
+        label: def.command.slashCommand,
+        detail: name,
+        apply: () => {
+          this.editorView?.dispatch({
+            changes: {
+              from: prefix!.from,
+              to: ctx.pos,
+              insert: "",
+            },
+          });
+          safeRun(async () => {
+            def.run(buildContext(def, this));
+          });
+        },
+      });
+    }
+    return {
+      from: prefix.from + 1,
+      options: options,
     };
   }
 
@@ -276,22 +314,26 @@ export class Editor {
       return;
     }
     // Write to file system
-    const created = await this.fs.writeNugget(
-      this.currentNugget,
+    let nuggetMeta = await this.fs.writeNugget(
+      this.currentNugget.name,
       editorState.sliceDoc()
     );
 
     // Update in open nugget cache
     this.openNuggets.set(
-      this.currentNugget,
-      new NuggetState(editorState, this.editorView!.scrollDOM.scrollTop)
+      this.currentNugget.name,
+      new NuggetState(
+        editorState,
+        this.editorView!.scrollDOM.scrollTop,
+        nuggetMeta
+      )
     );
 
     // Dispatch update to view
-    this.viewDispatch({ type: "nugget-saved" });
+    this.viewDispatch({ type: "nugget-saved", meta: nuggetMeta });
 
     // If a new nugget was created, let's refresh the nugget list
-    if (created) {
+    if (nuggetMeta.created) {
       await this.loadNuggetList();
     }
   }
@@ -302,6 +344,34 @@ export class Editor {
       type: "nuggets-listed",
       nuggets: nuggetsMeta,
     });
+  }
+
+  watch() {
+    setInterval(() => {
+      safeRun(async () => {
+        if (!this.currentNugget) {
+          return;
+        }
+        const currentNuggetName = this.currentNugget.name;
+        let newNuggetMeta = await this.fs.getMeta(currentNuggetName);
+        if (
+          this.currentNugget.lastModified.getTime() <
+          newNuggetMeta.lastModified.getTime()
+        ) {
+          console.log("File changed on disk, reloading");
+          let nuggetData = await this.fs.readNugget(currentNuggetName);
+          this.openNuggets.set(
+            newNuggetMeta.name,
+            new NuggetState(
+              this.createEditorState(nuggetData.text),
+              0,
+              newNuggetMeta
+            )
+          );
+          await this.loadNugget(currentNuggetName);
+        }
+      });
+    }, watchInterval);
   }
 
   focus() {
@@ -323,23 +393,31 @@ export class Editor {
           return;
         }
 
-        let nuggetState = this.openNuggets.get(nuggetName);
-        if (!nuggetState) {
-          let text = await this.fs.readNugget(nuggetName);
-          nuggetState = new NuggetState(this.createEditorState(text), 0);
-        }
-        this.openNuggets.set(nuggetName, nuggetState!);
-        this.editorView!.setState(nuggetState!.editorState);
-        this.editorView.scrollDOM.scrollTop = nuggetState!.scrollTop;
-
-        this.viewDispatch({
-          type: "nugget-loaded",
-          name: nuggetName,
-        });
+        await this.loadNugget(nuggetName);
       })
       .catch((e) => {
         console.error(e);
       });
+  }
+
+  async loadNugget(nuggetName: string) {
+    let nuggetState = this.openNuggets.get(nuggetName);
+    if (!nuggetState) {
+      let nuggetData = await this.fs.readNugget(nuggetName);
+      nuggetState = new NuggetState(
+        this.createEditorState(nuggetData.text),
+        0,
+        nuggetData.meta
+      );
+      this.openNuggets.set(nuggetName, nuggetState!);
+    }
+    this.editorView!.setState(nuggetState!.editorState);
+    this.editorView!.scrollDOM.scrollTop = nuggetState!.scrollTop;
+
+    this.viewDispatch({
+      type: "nugget-loaded",
+      meta: nuggetState.meta,
+    });
   }
 
   addListeners() {
@@ -380,7 +458,7 @@ export class Editor {
 
     useEffect(() => {
       if (viewState.currentNugget) {
-        document.title = viewState.currentNugget;
+        document.title = viewState.currentNugget.name;
       }
     }, [viewState.currentNugget]);
 
@@ -437,19 +515,3 @@ export class Editor {
     ReactDOM.render(<ViewComponent />, container);
   }
 }
-
-let ed = new Editor(
-  new HttpFileSystem("http://localhost:2222/fs"),
-  document.getElementById("root")!
-);
-
-ed.loadPlugins().catch((e) => {
-  console.error(e);
-});
-
-safeRun(async () => {
-  await ed.init();
-});
-
-// @ts-ignore
-window.editor = ed;

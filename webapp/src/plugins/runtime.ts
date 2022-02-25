@@ -1,10 +1,10 @@
 import { Manifest } from "./types";
 
 export class SyscallContext {
-  public cartridge: Cartridge;
+  public plugin: Plugin;
 
-  constructor(cartridge: Cartridge) {
-    this.cartridge = cartridge;
+  constructor(Plugin: Plugin) {
+    this.plugin = Plugin;
   }
 }
 
@@ -19,9 +19,9 @@ export class FunctionWorker {
   private initCallback: any;
   private invokeResolve?: (result?: any) => void;
   private invokeReject?: (reason?: any) => void;
-  private cartridge: Cartridge;
+  private plugin: Plugin;
 
-  constructor(cartridge: Cartridge, pathPrefix: string, name: string) {
+  constructor(plugin: Plugin, pathPrefix: string, name: string) {
     // this.worker = new Worker(new URL("function_worker.ts", import.meta.url), {
     //   type: "classic",
     // });
@@ -40,7 +40,7 @@ export class FunctionWorker {
     this.inited = new Promise((resolve) => {
       this.initCallback = resolve;
     });
-    this.cartridge = cartridge;
+    this.plugin = plugin;
   }
 
   async onmessage(evt: MessageEvent) {
@@ -51,8 +51,8 @@ export class FunctionWorker {
         this.initCallback();
         break;
       case "syscall":
-        const ctx = new SyscallContext(this.cartridge);
-        let result = await this.cartridge.system.syscall(
+        const ctx = new SyscallContext(this.plugin);
+        let result = await this.plugin.system.syscall(
           ctx,
           data.name,
           data.args
@@ -92,11 +92,11 @@ export class FunctionWorker {
   }
 }
 
-export interface CartridgeLoader {
+export interface PluginLoader {
   load(name: string, manifest: Manifest): Promise<void>;
 }
 
-export class Cartridge {
+export class Plugin {
   pathPrefix: string;
   system: System;
   private runningFunctions: Map<string, FunctionWorker>;
@@ -112,7 +112,7 @@ export class Cartridge {
 
   async load(manifest: Manifest) {
     this.manifest = manifest;
-    await this.system.cartridgeLoader.load(this.name, manifest);
+    await this.system.pluginLoader.load(this.name, manifest);
     await this.dispatchEvent("load");
   }
 
@@ -149,15 +149,15 @@ export class Cartridge {
 }
 
 export class System {
-  protected cartridges: Map<string, Cartridge>;
+  protected plugins: Map<string, Plugin>;
   protected pathPrefix: string;
   registeredSyscalls: SysCallMapping;
-  cartridgeLoader: CartridgeLoader;
+  pluginLoader: PluginLoader;
 
-  constructor(cartridgeLoader: CartridgeLoader, pathPrefix: string) {
-    this.cartridgeLoader = cartridgeLoader;
+  constructor(PluginLoader: PluginLoader, pathPrefix: string) {
+    this.pluginLoader = PluginLoader;
     this.pathPrefix = pathPrefix;
-    this.cartridges = new Map<string, Cartridge>();
+    this.plugins = new Map<string, Plugin>();
     this.registeredSyscalls = {};
   }
 
@@ -184,16 +184,16 @@ export class System {
     return Promise.resolve(callback(ctx, ...args));
   }
 
-  async load(name: string, manifest: Manifest): Promise<Cartridge> {
-    const cartridge = new Cartridge(this, this.pathPrefix, name);
-    await cartridge.load(manifest);
-    this.cartridges.set(name, cartridge);
-    return cartridge;
+  async load(name: string, manifest: Manifest): Promise<Plugin> {
+    const plugin = new Plugin(this, this.pathPrefix, name);
+    await plugin.load(manifest);
+    this.plugins.set(name, plugin);
+    return plugin;
   }
 
   async stop(): Promise<void[]> {
     return Promise.all(
-      Array.from(this.cartridges.values()).map((cartridge) => cartridge.stop())
+      Array.from(this.plugins.values()).map((plugin) => plugin.stop())
     );
   }
 }

@@ -177,8 +177,8 @@ body {
   border: #333 1px solid;
   z-index: 1000;
   position: absolute;
-  left: 8px;
-  top: 8px;
+  left: 25px;
+  top: 10px;
   right: 10px;
 }
 

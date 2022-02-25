@@ -13,7 +13,8 @@
       "requiredContext": {}
     },
     "Insert Current Date": {
-      "invoke": "insert_nice_date"
+      "invoke": "insert_nice_date",
+      "slashCommand": "/insert-today"
     },
     "Toggle : Heading 1": {
       "invoke": "toggle_h1",

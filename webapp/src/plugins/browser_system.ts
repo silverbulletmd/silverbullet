@@ -1,8 +1,8 @@
-import { CartridgeLoader, System } from "./runtime";
+import { PluginLoader, System } from "./runtime";
 import { Manifest } from "./types";
 import { sleep } from "../util";
 
-export class BrowserLoader implements CartridgeLoader {
+export class BrowserLoader implements PluginLoader {
   readonly pathPrefix: string;
 
   constructor(pathPrefix: string) {

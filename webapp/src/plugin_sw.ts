@@ -66,13 +66,13 @@ self.addEventListener("fetch", (event: any) => {
           return await handlePut(req, path);
         }
 
-        let [cartridgeName, resourceType, functionName] = path.split("/");
+        let [pluginName, resourceType, functionName] = path.split("/");
 
-        let manifest = await getManifest(cartridgeName);
+        let manifest = await getManifest(pluginName);
 
         if (!manifest) {
-          // console.log("Ain't got", cartridgeName);
-          return new Response(`Cartridge not loaded: ${cartridgeName}`, {
+          // console.log("Ain't got", pluginName);
+          return new Response(`Plugin not loaded: ${pluginName}`, {
             status: 404,
           });
         }

@@ -21,3 +21,7 @@ export function sleep(ms: number): Promise<void> {
     }, ms);
   });
 }
+
+export function isMacLike() {
+  return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+}

@@ -2,26 +2,28 @@ import React, { useEffect, useRef, useState } from "react";
 
 export interface Option {
   name: string;
+  orderId?: number;
   hint?: string;
 }
 
 function magicSorter(a: Option, b: Option): number {
-  if (a.name.toLowerCase() < b.name.toLowerCase()) {
-    return -1;
-  } else {
-    return 1;
+  if (a.orderId && b.orderId) {
+    return a.orderId < b.orderId ? -1 : 1;
   }
+  return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
 }
 
 export function FilterList({
   placeholder,
   options,
   onSelect,
+  onKeyPress,
   allowNew = false,
   newHint,
 }: {
   placeholder: string;
   options: Option[];
+  onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: Option | undefined) => void;
   allowNew?: boolean;
   newHint?: string;
@@ -75,7 +77,6 @@ export function FilterList({
     document.addEventListener("click", closer);
 
     return () => {
-      console.log("Unsubscribing");
       document.removeEventListener("click", closer);
     };
   }, []);
@@ -90,6 +91,9 @@ export function FilterList({
         onChange={filter}
         onKeyDown={(e: React.KeyboardEvent) => {
           console.log("Key up", e.key);
+          if (onKeyPress) {
+            onKeyPress(e.key, text);
+          }
           switch (e.key) {
             case "ArrowUp":
               setSelectionOption(Math.max(0, selectedOption - 1));

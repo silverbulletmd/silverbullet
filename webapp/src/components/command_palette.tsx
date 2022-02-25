@@ -1,4 +1,5 @@
 import { AppCommand } from "../types";
+import { isMacLike } from "../util";
 import { FilterList, Option } from "./filter";
 
 export function CommandPalette({
@@ -9,8 +10,12 @@ export function CommandPalette({
   onTrigger: (command: AppCommand | undefined) => void;
 }) {
   let options: Option[] = [];
+  const isMac = isMacLike();
   for (let [name, def] of commands.entries()) {
-    options.push({ name: name });
+    options.push({
+      name: name,
+      hint: isMac && def.command.mac ? def.command.mac : def.command.key,
+    });
   }
   console.log("Commands", options);
   return (

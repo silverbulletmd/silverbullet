@@ -11,7 +11,11 @@ export function NuggetNavigator({
   return (
     <FilterList
       placeholder=""
-      options={allNuggets}
+      options={allNuggets.map((meta) => ({
+        ...meta,
+        // Order by last modified date in descending order
+        orderId: -meta.lastModified.getTime(),
+      }))}
       allowNew={true}
       newHint="Create nugget"
       onSelect={(opt) => {

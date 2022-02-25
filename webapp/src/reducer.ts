@@ -9,12 +9,13 @@ export default function reducer(
     case "nugget-loaded":
       return {
         ...state,
-        currentNugget: action.name,
+        currentNugget: action.meta,
         isSaved: true,
       };
     case "nugget-saved":
       return {
         ...state,
+        currentNugget: action.meta,
         isSaved: true,
       };
     case "nugget-updated":

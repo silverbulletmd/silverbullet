@@ -8,7 +8,7 @@ window.addEventListener("message", async (event) => {
   let data = messageEvent.data;
   if (data.type === "iframe_event") {
     // @ts-ignore
-    window.mainCartridge.dispatchEvent(data.data.event, data.data.data);
+    window.mainPlugin.dispatchEvent(data.data.event, data.data.data);
   }
 });
 

@@ -2,6 +2,8 @@ import { CommandDef } from "./plugins/types";
 
 export type NuggetMeta = {
   name: string;
+  lastModified: Date;
+  created?: boolean;
 };
 
 export type CommandContext = {
@@ -14,7 +16,7 @@ export type AppCommand = {
 };
 
 export type AppViewState = {
-  currentNugget?: string;
+  currentNugget?: NuggetMeta;
   isSaved: boolean;
   showNuggetNavigator: boolean;
   showCommandPalette: boolean;
@@ -31,8 +33,8 @@ export const initialViewState: AppViewState = {
 };
 
 export type Action =
-  | { type: "nugget-loaded"; name: string }
-  | { type: "nugget-saved" }
+  | { type: "nugget-loaded"; meta: NuggetMeta }
+  | { type: "nugget-saved"; meta: NuggetMeta }
   | { type: "nugget-updated" }
   | { type: "nuggets-listed"; nuggets: NuggetMeta[] }
   | { type: "start-navigate" }
