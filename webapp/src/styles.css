@@ -164,7 +164,7 @@ body {
   background-color: #ddd;
 }
 
-.current-note {
+.current-nugget {
   font-family: var(--editor-font);
   margin-left: 10px;
   margin-top: 10px;

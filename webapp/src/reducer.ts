@@ -6,18 +6,18 @@ export default function reducer(
 ): AppViewState {
   console.log("Got action", action);
   switch (action.type) {
-    case "note-loaded":
+    case "nugget-loaded":
       return {
         ...state,
-        currentNote: action.name,
+        currentNugget: action.name,
         isSaved: true,
       };
-    case "note-saved":
+    case "nugget-saved":
       return {
         ...state,
         isSaved: true,
       };
-    case "note-updated":
+    case "nugget-updated":
       // Minor rerender optimization, this is triggered a lot
       if (!state.isSaved) {
         return state;
@@ -29,17 +29,17 @@ export default function reducer(
     case "start-navigate":
       return {
         ...state,
-        showNoteNavigator: true,
+        showNuggetNavigator: true,
       };
     case "stop-navigate":
       return {
         ...state,
-        showNoteNavigator: false,
+        showNuggetNavigator: false,
       };
-    case "notes-listed":
+    case "nuggets-listed":
       return {
         ...state,
-        allNotes: action.notes,
+        allNuggets: action.nuggets,
       };
     case "show-palette":
       return {

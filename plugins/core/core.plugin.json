@@ -10,8 +10,7 @@
       "invoke": "link_navigate",
       "key": "Ctrl-Enter",
       "mac": "Cmd-Enter",
-      "requiredContext": {
-      }
+      "requiredContext": {}
     },
     "Insert Current Date": {
       "invoke": "insert_nice_date"

@@ -9,6 +9,7 @@
   "scripts": {
     "start": "cp src/function_worker.js dist/ && parcel",
     "build": "parcel build && cp src/function_worker.js dist/",
+    "clean": "rm -rf dist",
     "check-watch": "tsc --noEmit --watch"
   },
   "devDependencies": {

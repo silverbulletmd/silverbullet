@@ -24,9 +24,9 @@ import ReactDOM from "react-dom";
 import coreManifest from "../../plugins/dist/core.plugin.json";
 import { buildContext } from "./buildContext";
 import * as commands from "./commands";
-import { CommandPalette } from "./components/commandpalette";
+import { CommandPalette } from "./components/command_palette";
 import { NavigationBar } from "./components/navigation_bar";
-import { NoteNavigator } from "./components/notenavigator";
+import { NuggetNavigator } from "./components/nugget_navigator";
 import { StatusBar } from "./components/status_bar";
 import { FileSystem, HttpFileSystem } from "./fs";
 import { lineWrapper } from "./lineWrapper";
@@ -47,7 +47,7 @@ import {
 } from "./types";
 import { safeRun } from "./util";
 
-class NoteState {
+class NuggetState {
   editorState: EditorState;
   scrollTop: number;
 
@@ -62,13 +62,13 @@ export class Editor {
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   $hashChange?: () => void;
-  openNotes: Map<string, NoteState>;
+  openNuggets: Map<string, NuggetState>;
   fs: FileSystem;
   editorCommands: Map<string, AppCommand>;
 
   constructor(fs: FileSystem, parent: Element) {
     this.editorCommands = new Map();
-    this.openNotes = new Map();
+    this.openNuggets = new Map();
     this.fs = fs;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -81,7 +81,7 @@ export class Editor {
   }
 
   async init() {
-    await this.loadNoteList();
+    await this.loadNuggetList();
     await this.loadPlugins();
     this.$hashChange!();
     this.focus();
@@ -111,8 +111,8 @@ export class Editor {
     });
   }
 
-  get currentNote(): string | undefined {
-    return this.viewState.currentNote;
+  get currentNugget(): string | undefined {
+    return this.viewState.currentNugget;
   }
 
   createEditorState(text: string): EditorState {
@@ -146,7 +146,7 @@ export class Editor {
         bracketMatching(),
         closeBrackets(),
         autocompletion({
-          override: [this.noteCompleter.bind(this)],
+          override: [this.nuggetCompleter.bind(this)],
         }),
         EditorView.lineWrapping,
         lineWrapper([
@@ -219,18 +219,18 @@ export class Editor {
     });
   }
 
-  noteCompleter(ctx: CompletionContext): CompletionResult | null {
+  nuggetCompleter(ctx: CompletionContext): CompletionResult | null {
     let prefix = ctx.matchBefore(/\[\[\w*/);
     if (!prefix) {
       return null;
     }
     // TODO: Lots of optimization potential here
-    // TODO: put something in the cm-completionIcon-note style
+    // TODO: put something in the cm-completionIcon-nugget style
     return {
       from: prefix.from + 2,
-      options: this.viewState.allNotes.map((noteMeta) => ({
-        label: noteMeta.name,
-        type: "note",
+      options: this.viewState.allNuggets.map((nuggetMeta) => ({
+        label: nuggetMeta.name,
+        type: "nugget",
       })),
     };
   }
@@ -238,7 +238,7 @@ export class Editor {
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
       this.viewDispatch({
-        type: "note-updated",
+        type: "nugget-updated",
       });
     }
 
@@ -250,8 +250,8 @@ export class Editor {
       let coords = view.posAtCoords(event)!;
       let node = syntaxTree(view.state).resolveInner(coords);
       if (node && node.name === "WikiLinkPage") {
-        let noteName = view.state.sliceDoc(node.from, node.to);
-        this.navigate(noteName);
+        let nuggetName = view.state.sliceDoc(node.from, node.to);
+        this.navigate(nuggetName);
       }
       if (node && node.name === "TaskMarker") {
         let checkBoxText = view.state.sliceDoc(node.from, node.to);
@@ -272,35 +272,35 @@ export class Editor {
   async save() {
     const editorState = this.editorView!.state;
 
-    if (!this.currentNote) {
+    if (!this.currentNugget) {
       return;
     }
     // Write to file system
-    const created = await this.fs.writeNote(
-      this.currentNote,
+    const created = await this.fs.writeNugget(
+      this.currentNugget,
       editorState.sliceDoc()
     );
 
-    // Update in open note cache
-    this.openNotes.set(
-      this.currentNote,
-      new NoteState(editorState, this.editorView!.scrollDOM.scrollTop)
+    // Update in open nugget cache
+    this.openNuggets.set(
+      this.currentNugget,
+      new NuggetState(editorState, this.editorView!.scrollDOM.scrollTop)
     );
 
     // Dispatch update to view
-    this.viewDispatch({ type: "note-saved" });
+    this.viewDispatch({ type: "nugget-saved" });
 
-    // If a new note was created, let's refresh the note list
+    // If a new nugget was created, let's refresh the nugget list
     if (created) {
-      await this.loadNoteList();
+      await this.loadNuggetList();
     }
   }
 
-  async loadNoteList() {
-    let notesMeta = await this.fs.listNotes();
+  async loadNuggetList() {
+    let nuggetsMeta = await this.fs.listNuggets();
     this.viewDispatch({
-      type: "notes-listed",
-      notes: notesMeta,
+      type: "nuggets-listed",
+      nuggets: nuggetsMeta,
     });
   }
 
@@ -316,25 +316,25 @@ export class Editor {
     Promise.resolve()
       .then(async () => {
         await this.save();
-        const noteName = decodeURIComponent(location.hash.substring(1));
-        console.log("Now navigating to", noteName);
+        const nuggetName = decodeURIComponent(location.hash.substring(1));
+        console.log("Now navigating to", nuggetName);
 
         if (!this.editorView) {
           return;
         }
 
-        let noteState = this.openNotes.get(noteName);
-        if (!noteState) {
-          let text = await this.fs.readNote(noteName);
-          noteState = new NoteState(this.createEditorState(text), 0);
+        let nuggetState = this.openNuggets.get(nuggetName);
+        if (!nuggetState) {
+          let text = await this.fs.readNugget(nuggetName);
+          nuggetState = new NuggetState(this.createEditorState(text), 0);
         }
-        this.openNotes.set(noteName, noteState!);
-        this.editorView!.setState(noteState!.editorState);
-        this.editorView.scrollDOM.scrollTop = noteState!.scrollTop;
+        this.openNuggets.set(nuggetName, nuggetState!);
+        this.editorView!.setState(nuggetState!.editorState);
+        this.editorView.scrollDOM.scrollTop = nuggetState!.scrollTop;
 
         this.viewDispatch({
-          type: "note-loaded",
-          name: noteName,
+          type: "nugget-loaded",
+          name: nuggetName,
         });
       })
       .catch((e) => {
@@ -378,24 +378,28 @@ export class Editor {
 
     let editor = this;
 
-    useEffect(() => {}, []);
+    useEffect(() => {
+      if (viewState.currentNugget) {
+        document.title = viewState.currentNugget;
+      }
+    }, [viewState.currentNugget]);
 
     return (
       <>
-        {viewState.showNoteNavigator && (
-          <NoteNavigator
-            allNotes={viewState.allNotes}
-            onNavigate={(note) => {
+        {viewState.showNuggetNavigator && (
+          <NuggetNavigator
+            allNuggets={viewState.allNuggets}
+            onNavigate={(nugget) => {
               dispatch({ type: "stop-navigate" });
               editor!.focus();
-              if (note) {
+              if (nugget) {
                 editor
                   ?.save()
                   .then(() => {
-                    editor!.navigate(note);
+                    editor!.navigate(nugget);
                   })
                   .catch((e) => {
-                    alert("Could not save note, not switching");
+                    alert("Could not save nugget, not switching");
                   });
               }
             }}
@@ -417,7 +421,7 @@ export class Editor {
           />
         )}
         <NavigationBar
-          currentNote={viewState.currentNote}
+          currentNugget={viewState.currentNugget}
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}

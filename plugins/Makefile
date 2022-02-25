@@ -3,3 +3,5 @@ build: *
 	mkdir -p dist
 	$(DENO_BUNDLE) core/core.plugin.json dist/core.plugin.json
 
+entr:
+	ls core/* | entr make

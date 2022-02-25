@@ -25,7 +25,6 @@ self.addEventListener("install", (event) => {
   console.log("Installing");
   // @ts-ignore
   self.skipWaiting();
-  // event.waitUntil(fetchBundle());
 });
 
 async function handlePut(req: Request, path: string) {
@@ -34,6 +33,21 @@ async function handlePut(req: Request, path: string) {
   await saveManifest(path, manifest);
   // loadedBundles.set(path, manifest);
   return new Response("ok");
+}
+
+function wrapScript(functionName: string, code: string): string {
+  return `const mod = ${code}
+
+  self.addEventListener('invoke-function', async e => {
+      try {
+          let result = await mod['${functionName}'](...e.detail.args);
+          self.dispatchEvent(new CustomEvent('result', {detail: result}));
+      } catch(e) {
+          console.error(\`Error while running ${functionName}\`, e);
+          self.dispatchEvent(new CustomEvent('app-error', {detail: e.message}));
+      }
+  });
+  `;
 }
 
 self.addEventListener("fetch", (event: any) => {
@@ -75,7 +89,7 @@ self.addEventListener("fetch", (event: any) => {
               status: 404,
             });
           }
-          return new Response(func.code, {
+          return new Response(wrapScript(func.functionName!, func.code!), {
             status: 200,
             headers: {
               "Content-type": "application/javascript",

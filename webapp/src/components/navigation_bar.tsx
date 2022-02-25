@@ -1,14 +1,14 @@
 export function NavigationBar({
-  currentNote,
+  currentNugget,
   onClick,
 }: {
-  currentNote?: string;
+  currentNugget?: string;
   onClick: () => void;
 }) {
   return (
     <div id="top">
-      <div className="current-note" onClick={onClick}>
-        » {currentNote}
+      <div className="current-nugget" onClick={onClick}>
+        » {currentNugget}
       </div>
     </div>
   );

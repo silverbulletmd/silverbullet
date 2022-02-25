@@ -23,5 +23,6 @@ export interface CommandDef {
 
 export interface FunctionDef {
   path: string;
+  functionName?: string;
   code?: string;
 }

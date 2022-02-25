@@ -1,6 +1,6 @@
 import { CommandDef } from "./plugins/types";
 
-export type NoteMeta = {
+export type NuggetMeta = {
   name: string;
 };
 
@@ -14,27 +14,27 @@ export type AppCommand = {
 };
 
 export type AppViewState = {
-  currentNote?: string;
+  currentNugget?: string;
   isSaved: boolean;
-  showNoteNavigator: boolean;
+  showNuggetNavigator: boolean;
   showCommandPalette: boolean;
-  allNotes: NoteMeta[];
+  allNuggets: NuggetMeta[];
   commands: Map<string, AppCommand>;
 };
 
 export const initialViewState: AppViewState = {
   isSaved: false,
-  showNoteNavigator: false,
+  showNuggetNavigator: false,
   showCommandPalette: false,
-  allNotes: [],
+  allNuggets: [],
   commands: new Map(),
 };
 
 export type Action =
-  | { type: "note-loaded"; name: string }
-  | { type: "note-saved" }
-  | { type: "note-updated" }
-  | { type: "notes-listed"; notes: NoteMeta[] }
+  | { type: "nugget-loaded"; name: string }
+  | { type: "nugget-saved" }
+  | { type: "nugget-updated" }
+  | { type: "nuggets-listed"; nuggets: NuggetMeta[] }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "update-commands"; commands: Map<string, AppCommand> }

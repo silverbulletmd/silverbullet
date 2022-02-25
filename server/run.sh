@@ -1,3 +1,3 @@
 #!/bin/bash
 
-deno run --allow-net --allow-read --allow-write server.ts
+ls | entr -s 'deno run --allow-net --allow-read --allow-write server.ts'

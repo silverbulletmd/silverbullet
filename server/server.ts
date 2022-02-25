@@ -7,14 +7,14 @@ import { readAll } from "https://deno.land/std@0.126.0/streams/mod.ts";
 import { exists } from "https://deno.land/std@0.126.0/fs/mod.ts";
 
 const fsPrefix = "/fs";
-const notesPath = "../notes";
+const nuggetsPath = "../nuggets";
 
 const fsRouter = new Router();
 
 fsRouter.use(oakCors());
 
 fsRouter.get("/", async (context) => {
-  const localPath = notesPath;
+  const localPath = nuggetsPath;
   let fileNames: string[] = [];
   for await (const dirEntry of Deno.readDir(localPath)) {
     if (dirEntry.isFile) {
@@ -29,9 +29,9 @@ fsRouter.get("/", async (context) => {
   context.response.body = JSON.stringify(fileNames);
 });
 
-fsRouter.get("/:note", async (context) => {
-  const noteName = context.params.note;
-  const localPath = `${notesPath}/${noteName}.md`;
+fsRouter.get("/:nugget", async (context) => {
+  const nuggetName = context.params.nugget;
+  const localPath = `${nuggetsPath}/${nuggetName}.md`;
   try {
     const text = await Deno.readTextFile(localPath);
     context.response.body = text;
@@ -41,8 +41,8 @@ fsRouter.get("/:note", async (context) => {
   }
 });
 
-fsRouter.options("/:note", async (context) => {
-  const localPath = `${notesPath}/${context.params.note}.md`;
+fsRouter.options("/:nugget", async (context) => {
+  const localPath = `${nuggetsPath}/${context.params.nugget}.md`;
   try {
     const stat = await Deno.stat(localPath);
     context.response.headers.set("Content-length", `${stat.size}`);
@@ -52,10 +52,10 @@ fsRouter.options("/:note", async (context) => {
   }
 });
 
-fsRouter.put("/:note", async (context) => {
-  const noteName = context.params.note;
-  const localPath = `${notesPath}/${noteName}.md`;
-  const existingNote = await exists(localPath);
+fsRouter.put("/:nugget", async (context) => {
+  const nuggetName = context.params.nugget;
+  const localPath = `${nuggetsPath}/${nuggetName}.md`;
+  const existingNugget = await exists(localPath);
   let file;
   try {
     file = await Deno.create(localPath);
@@ -70,7 +70,7 @@ fsRouter.put("/:note", async (context) => {
   file.write(text);
   file.close();
   console.log("Wrote to", localPath);
-  context.response.status = existingNote ? 200 : 201;
+  context.response.status = existingNugget ? 200 : 201;
   context.response.body = "OK";
 });
 

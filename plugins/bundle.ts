@@ -1,26 +1,9 @@
 import { parse } from "https://deno.land/std@0.121.0/flags/mod.ts";
 
-// import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-//
-// async function dataEncodeUint8Array(path : string, data: Uint8Array): Promise<string> {
-//     const base64url: string = await new Promise((r) => {
-//         const reader = new FileReader();
-//         reader.onload = () => r(reader.result as string);
-//         reader.readAsDataURL(new Blob([data]))
-//     })
-//     let [meta, content] = base64url.split(';');
-//     let [prefix, mimeType] = meta.split(':');
-//     return `data:${mime.getType(path)};${content}`;
-// }
 import * as path from "https://deno.land/std@0.121.0/path/mod.ts";
 import { Manifest, FunctionDef } from "../webapp/src/plugins/types.ts";
 
-async function compile(
-  filePath: string,
-  prettyFunctionName: string,
-  jsFunctionName: string,
-  sourceMaps: boolean
-): Promise<string> {
+async function compile(filePath: string, sourceMaps: boolean): Promise<string> {
   // @ts-ignore for Deno.emit (unstable API)
   let { files, diagnostics } = await Deno.emit(filePath, {
     bundle: "classic",
@@ -47,18 +30,7 @@ async function compile(
     }
     throw new Error("Diagnostics");
   }
-  return `const mod = ${bundleSource}
-
-self.addEventListener('invoke-function', async e => {
-    try {
-        let result = await mod['${jsFunctionName}'](...e.detail.args);
-        self.dispatchEvent(new CustomEvent('result', {detail: result}));
-    } catch(e) {
-        console.error(\`Error while running ${jsFunctionName}\`, e);
-        self.dispatchEvent(new CustomEvent('app-error', {detail: e.message}));
-    }
-});
-`;
+  return bundleSource;
 }
 
 async function bundle(
@@ -73,23 +45,19 @@ async function bundle(
   for (let [name, def] of Object.entries(manifest.functions) as Array<
     [string, FunctionDef]
   >) {
-    let jsFunctionName,
+    let jsFunctionName = def.functionName,
       filePath = path.join(rootPath, def.path);
-    if (filePath.indexOf(":") !== 0) {
+    if (filePath.indexOf(":") !== -1) {
       [filePath, jsFunctionName] = filePath.split(":");
-    } else {
+    } else if (!jsFunctionName) {
       jsFunctionName = "default";
     }
 
-    def.code = await compile(filePath, name, jsFunctionName, sourceMaps);
+    def.code = await compile(filePath, sourceMaps);
+    def.path = filePath;
+    def.functionName = jsFunctionName;
   }
   return manifest;
-  // let files: { [key: string]: string } = {};
-  // for await (const entry of walk(path, {includeDirs: false})) {
-  //     let content = await Deno.readFile(entry.path);
-  //     files[entry.path.substring(path.length + 1)] = await dataEncodeUint8Array(entry.path, content);
-  // }
-  // return files;
 }
 
 let commandLineArguments = parse(Deno.args, {
@@ -103,13 +71,3 @@ await Deno.writeFile(
   outputPath,
   new TextEncoder().encode(JSON.stringify(b, null, 2))
 );
-/*
-const watcher = Deno.watchFs("test_app");
-
-for await (const event of watcher) {
-    console.log("Updating bundle...");
-    let b = await bundle("test_app/test.cartridge.json");
-    await Deno.writeFile("test_app.bundle.json", new TextEncoder().encode(JSON.stringify(b, null, 2)));
-}
-
- */
