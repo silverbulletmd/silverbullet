@@ -22,7 +22,12 @@ export class FunctionWorker {
   private cartridge: Cartridge;
 
   constructor(cartridge: Cartridge, pathPrefix: string, name: string) {
-    this.worker = new Worker(new URL("function_worker.ts", import.meta.url));
+    // this.worker = new Worker(new URL("function_worker.ts", import.meta.url), {
+    //   type: "classic",
+    // });
+    let worker = window.Worker;
+    this.worker = new worker("function_worker.js");
+
     // console.log("Starting worker", this.worker);
     this.worker.onmessage = this.onmessage.bind(this);
     this.worker.postMessage({

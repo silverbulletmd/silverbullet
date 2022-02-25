@@ -1,16 +1,16 @@
-function safeRun(fn: () => Promise<void>) {
+function safeRun(fn) {
   fn().catch((e) => {
     console.error(e);
   });
 }
 
 let func = null;
-let pendingRequests: {
-  [key: number]: any;
-} = {};
+let pendingRequests = {};
+
+console.log("hello world!");
 
 self.addEventListener("syscall", (event) => {
-  let customEvent = event as CustomEvent;
+  let customEvent = event;
   let detail = customEvent.detail;
   pendingRequests[detail.id] = detail.callback;
   self.postMessage({
@@ -22,7 +22,7 @@ self.addEventListener("syscall", (event) => {
 });
 
 self.addEventListener("result", (event) => {
-  let customEvent = event as CustomEvent;
+  let customEvent = event;
   self.postMessage({
     type: "result",
     result: customEvent.detail,
@@ -30,8 +30,8 @@ self.addEventListener("result", (event) => {
 });
 
 self.addEventListener("app-error", (event) => {
-  let customEvent = event as CustomEvent;
-  postMessage({
+  let customEvent = event;
+  self.postMessage({
     type: "error",
     reason: customEvent.detail,
   });
@@ -39,17 +39,12 @@ self.addEventListener("app-error", (event) => {
 
 self.addEventListener("message", (event) => {
   safeRun(async () => {
-    let messageEvent = event as MessageEvent;
+    let messageEvent = event;
     let data = messageEvent.data;
     switch (data.type) {
       case "boot":
         console.log("Booting", `./${data.prefix}/function/${data.name}`);
         importScripts(`./${data.prefix}/function/${data.name}`);
-        // if (data.userAgent && data.userAgent.indexOf("Firefox") !== -1) {
-        //   // @ts-ignore
-        // } else {
-        // await import(`./${data.prefix}/function/${data.name}`);
-        // }
         self.postMessage({
           type: "inited",
         });

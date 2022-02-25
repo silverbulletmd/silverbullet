@@ -280,10 +280,9 @@
     style-mod "^4.0.0"
     w3c-keyname "^2.2.4"
 
-"@lezer/common@^0.15.0", "@lezer/common@^0.15.5":
+"@lezer/common@^0.15.0", "@lezer/common@^0.15.5", "@lezer/common@git://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c":
   version "0.15.11"
-  resolved "https://registry.yarnpkg.com/@lezer/common/-/common-0.15.11.tgz#965b5067036305f12e8a3efc344076850be1d3a8"
-  integrity sha512-vv0nSdIaVCRcJ8rPuDdsrNVfBOYe/4Szr/LhF929XyDmBndLDuWiCCHooGlGlJfzELyO608AyDhVsuX/ZG36NA==
+  resolved "git://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c"
 
 "@lezer/css@^0.15.2":
   version "0.15.2"
@@ -1888,6 +1887,11 @@ typescript@>=3.0.0:
   version "4.5.5"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.5.5.tgz#d8c953832d28924a9e3d37c73d729c846c5896f3"
   integrity sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==
+
+uglify-js@^3.15.1:
+  version "3.15.1"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.15.1.tgz#9403dc6fa5695a6172a91bc983ea39f0f7c9086d"
+  integrity sha512-FAGKF12fWdkpvNJZENacOH0e/83eG6JyVQyanIJaBXCN1J11TUQv1T1/z8S+Z0CG0ZPk1nPcreF/c7lrTd0TEQ==
 
 util-deprecate@^1.0.2:
   version "1.0.2"
