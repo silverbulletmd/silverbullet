@@ -69,4 +69,17 @@ export default (editor: Editor) => ({
       }
     }
   },
+  "editor.getSyntaxNodeAtPos": (
+    ctx: SyscallContext,
+    pos: number
+  ): { name: string; text: string } | undefined => {
+    const editorState = editor.editorView!.state;
+    let node = syntaxTree(editorState).resolveInner(pos);
+    if (node) {
+      return {
+        name: node.name,
+        text: editorState.sliceDoc(node.from, node.to),
+      };
+    }
+  },
 });

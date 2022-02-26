@@ -1,16 +1,12 @@
 {
   "commands": {
     "Count Words": {
-      "invoke": "word_count_command",
-      "requiredContext": {
-        "text": true
-      }
+      "invoke": "word_count_command"
     },
     "Navigate To page": {
       "invoke": "link_navigate",
       "key": "Ctrl-Enter",
-      "mac": "Cmd-Enter",
-      "requiredContext": {}
+      "mac": "Cmd-Enter"
     },
     "Insert Current Date": {
       "invoke": "insert_nice_date",
@@ -28,11 +24,15 @@
     }
   },
   "events": {
-    "ready": ["welcome"]
+    "app:ready": ["welcome"],
+    "page:click": ["click"]
   },
   "functions": {
     "welcome": {
       "path": "./welcome.ts"
+    },
+    "click": {
+      "path": "./click.ts"
     },
     "word_count_command": {
       "path": "./word_count_command.ts:wordCount"

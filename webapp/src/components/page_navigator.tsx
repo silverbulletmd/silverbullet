@@ -1,23 +1,23 @@
-import { NuggetMeta } from "../types";
+import { PageMeta } from "../types";
 import { FilterList } from "./filter";
 
-export function NuggetNavigator({
-  allNuggets: allNuggets,
+export function PageNavigator({
+  allPages: allPages,
   onNavigate,
 }: {
-  allNuggets: NuggetMeta[];
-  onNavigate: (nugget: string | undefined) => void;
+  allPages: PageMeta[];
+  onNavigate: (page: string | undefined) => void;
 }) {
   return (
     <FilterList
       placeholder=""
-      options={allNuggets.map((meta) => ({
+      options={allPages.map((meta) => ({
         ...meta,
         // Order by last modified date in descending order
         orderId: -meta.lastModified.getTime(),
       }))}
       allowNew={true}
-      newHint="Create nugget"
+      newHint="Create page"
       onSelect={(opt) => {
         onNavigate(opt?.name);
       }}

@@ -6,21 +6,21 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.0/mod.ts";
 import { readAll } from "https://deno.land/std@0.126.0/streams/mod.ts";
 import { exists } from "https://deno.land/std@0.126.0/fs/mod.ts";
 
-type NuggetMeta = {
+type PageMeta = {
   name: string;
   lastModified: number;
 };
 
 const fsPrefix = "/fs";
-const nuggetsPath = "../pages";
+const pagesPath = "../pages";
 
 const fsRouter = new Router();
 
 fsRouter.use(oakCors({ methods: ["OPTIONS", "GET", "PUT", "POST"] }));
 
 fsRouter.get("/", async (context) => {
-  const localPath = nuggetsPath;
-  let fileNames: NuggetMeta[] = [];
+  const localPath = pagesPath;
+  let fileNames: PageMeta[] = [];
   for await (const dirEntry of Deno.readDir(localPath)) {
     if (dirEntry.isFile) {
       const stat = await Deno.stat(`${localPath}/${dirEntry.name}`);
@@ -36,9 +36,9 @@ fsRouter.get("/", async (context) => {
   context.response.body = JSON.stringify(fileNames);
 });
 
-fsRouter.get("/:nugget", async (context) => {
-  const nuggetName = context.params.nugget;
-  const localPath = `${nuggetsPath}/${nuggetName}.md`;
+fsRouter.get("/:page", async (context) => {
+  const pageName = context.params.page;
+  const localPath = `${pagesPath}/${pageName}.md`;
   try {
     const stat = await Deno.stat(localPath);
     const text = await Deno.readTextFile(localPath);
@@ -50,8 +50,8 @@ fsRouter.get("/:nugget", async (context) => {
   }
 });
 
-fsRouter.options("/:nugget", async (context) => {
-  const localPath = `${nuggetsPath}/${context.params.nugget}.md`;
+fsRouter.options("/:page", async (context) => {
+  const localPath = `${pagesPath}/${context.params.page}.md`;
   try {
     const stat = await Deno.stat(localPath);
     context.response.headers.set("Content-length", `${stat.size}`);
@@ -63,10 +63,10 @@ fsRouter.options("/:nugget", async (context) => {
   }
 });
 
-fsRouter.put("/:nugget", async (context) => {
-  const nuggetName = context.params.nugget;
-  const localPath = `${nuggetsPath}/${nuggetName}.md`;
-  const existingNugget = await exists(localPath);
+fsRouter.put("/:page", async (context) => {
+  const pageName = context.params.page;
+  const localPath = `${pagesPath}/${pageName}.md`;
+  const existingPage = await exists(localPath);
   let file;
   try {
     file = await Deno.create(localPath);
@@ -82,7 +82,7 @@ fsRouter.put("/:nugget", async (context) => {
   file.close();
   const stat = await Deno.stat(localPath);
   console.log("Wrote to", localPath);
-  context.response.status = existingNugget ? 200 : 201;
+  context.response.status = existingPage ? 200 : 201;
   context.response.headers.set("Last-Modified", "" + stat.mtime?.getTime());
   context.response.body = "OK";
 });

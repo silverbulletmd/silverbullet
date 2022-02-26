@@ -1,46 +1,40 @@
 import { CommandDef } from "./plugins/types";
 
-export type NuggetMeta = {
+export type PageMeta = {
   name: string;
   lastModified: Date;
   created?: boolean;
 };
 
-export type CommandContext = {
-  text?: string;
-};
-
 export type AppCommand = {
   command: CommandDef;
-  run: (ctx: CommandContext) => Promise<any>;
+  run: (arg: any) => Promise<any>;
 };
 
 export type AppViewState = {
-  currentNugget?: NuggetMeta;
+  currentPage?: PageMeta;
   isSaved: boolean;
-  showNuggetNavigator: boolean;
+  showPageNavigator: boolean;
   showCommandPalette: boolean;
-  allNuggets: NuggetMeta[];
+  allPages: PageMeta[];
   commands: Map<string, AppCommand>;
 };
 
 export const initialViewState: AppViewState = {
   isSaved: false,
-  showNuggetNavigator: false,
+  showPageNavigator: false,
   showCommandPalette: false,
-  allNuggets: [],
+  allPages: [],
   commands: new Map(),
 };
 
 export type Action =
-  | { type: "nugget-loaded"; meta: NuggetMeta }
-  | { type: "nugget-saved"; meta: NuggetMeta }
-  | { type: "nugget-updated" }
-  | { type: "nuggets-listed"; nuggets: NuggetMeta[] }
+  | { type: "page-loaded"; meta: PageMeta }
+  | { type: "page-saved"; meta: PageMeta }
+  | { type: "page-updated" }
+  | { type: "pages-listed"; pages: PageMeta[] }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "update-commands"; commands: Map<string, AppCommand> }
   | { type: "show-palette" }
   | { type: "hide-palette" };
-
-export type AppEvent = "ready" | "change" | "switch" | "click";

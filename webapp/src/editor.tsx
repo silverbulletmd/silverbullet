@@ -23,13 +23,12 @@ import {
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import coreManifest from "../../plugins/dist/core.plugin.json";
-import { buildContext } from "./buildContext";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { NavigationBar } from "./components/navigation_bar";
-import { NuggetNavigator } from "./components/nugget_navigator";
+import { PageNavigator } from "./components/page_navigator";
 import { StatusBar } from "./components/status_bar";
-import { FileSystem } from "./fs";
+import { Space } from "./space";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import customMarkDown from "./parser";
@@ -43,20 +42,19 @@ import editorSyscalls from "./syscalls/editor.browser";
 import {
   Action,
   AppCommand,
-  AppEvent,
   AppViewState,
-  CommandContext,
   initialViewState,
-  NuggetMeta,
+  PageMeta,
 } from "./types";
+import { AppEvent, ClickEvent } from "./app_event";
 import { safeRun } from "./util";
 
-class NuggetState {
+class PageState {
   editorState: EditorState;
   scrollTop: number;
-  meta: NuggetMeta;
+  meta: PageMeta;
 
-  constructor(editorState: EditorState, scrollTop: number, meta: NuggetMeta) {
+  constructor(editorState: EditorState, scrollTop: number, meta: PageMeta) {
     this.editorState = editorState;
     this.scrollTop = scrollTop;
     this.meta = meta;
@@ -70,14 +68,14 @@ export class Editor {
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   $hashChange?: () => void;
-  openNuggets: Map<string, NuggetState>;
-  fs: FileSystem;
+  openPages: Map<string, PageState>;
+  fs: Space;
   editorCommands: Map<string, AppCommand>;
   plugins: Plugin[];
 
-  constructor(fs: FileSystem, parent: Element) {
+  constructor(fs: Space, parent: Element) {
     this.editorCommands = new Map();
-    this.openNuggets = new Map();
+    this.openPages = new Map();
     this.plugins = [];
     this.fs = fs;
     this.viewState = initialViewState;
@@ -92,11 +90,11 @@ export class Editor {
   }
 
   async init() {
-    await this.loadNuggetList();
+    await this.loadPageList();
     await this.loadPlugins();
     this.$hashChange!();
     this.focus();
-    await this.dispatchAppEvent("ready");
+    await this.dispatchAppEvent("app:ready");
   }
 
   async loadPlugins() {
@@ -123,7 +121,7 @@ export class Editor {
       let cmd = cmds[name];
       this.editorCommands.set(name, {
         command: cmd,
-        run: async (arg: CommandContext): Promise<any> => {
+        run: async (arg): Promise<any> => {
           return await plugin.invoke(cmd.invoke, [arg]);
         },
       });
@@ -137,8 +135,8 @@ export class Editor {
     }
   }
 
-  get currentNugget(): NuggetMeta | undefined {
-    return this.viewState.currentNugget;
+  get currentPage(): PageMeta | undefined {
+    return this.viewState.currentPage;
   }
 
   createEditorState(text: string): EditorState {
@@ -152,7 +150,7 @@ export class Editor {
           run: (): boolean => {
             Promise.resolve()
               .then(async () => {
-                await def.run(buildContext(def, this));
+                await def.run(null);
               })
               .catch((e) => console.error(e));
             return true;
@@ -173,7 +171,7 @@ export class Editor {
         closeBrackets(),
         autocompletion({
           override: [
-            this.nuggetCompleter.bind(this),
+            this.pageCompleter.bind(this),
             this.commandCompleter.bind(this),
           ],
         }),
@@ -232,7 +230,17 @@ export class Editor {
           },
         ]),
         EditorView.domEventHandlers({
-          click: this.click.bind(this),
+          click: (event: MouseEvent, view: EditorView) => {
+            safeRun(async () => {
+              let clickEvent: ClickEvent = {
+                ctrlKey: event.ctrlKey,
+                metaKey: event.metaKey,
+                altKey: event.altKey,
+                pos: view.posAtCoords(event)!,
+              };
+              await this.dispatchAppEvent("page:click", clickEvent);
+            });
+          },
         }),
         markdown({
           base: customMarkDown,
@@ -245,16 +253,16 @@ export class Editor {
     });
   }
 
-  nuggetCompleter(ctx: CompletionContext): CompletionResult | null {
+  pageCompleter(ctx: CompletionContext): CompletionResult | null {
     let prefix = ctx.matchBefore(/\[\[[\w\s]*/);
     if (!prefix) {
       return null;
     }
     return {
       from: prefix.from + 2,
-      options: this.viewState.allNuggets.map((nuggetMeta) => ({
-        label: nuggetMeta.name,
-        type: "nugget",
+      options: this.viewState.allPages.map((pageMeta) => ({
+        label: pageMeta.name,
+        type: "page",
       })),
     };
   }
@@ -281,7 +289,7 @@ export class Editor {
             },
           });
           safeRun(async () => {
-            def.run(buildContext(def, this));
+            def.run(null);
           });
         },
       });
@@ -295,7 +303,7 @@ export class Editor {
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
       this.viewDispatch({
-        type: "nugget-updated",
+        type: "page-updated",
       });
     }
 
@@ -303,91 +311,83 @@ export class Editor {
   }
 
   click(event: MouseEvent, view: EditorView) {
-    if (event.metaKey || event.ctrlKey) {
-      let coords = view.posAtCoords(event)!;
-      let node = syntaxTree(view.state).resolveInner(coords);
-      if (node && node.name === "WikiLinkPage") {
-        let nuggetName = view.state.sliceDoc(node.from, node.to);
-        this.navigate(nuggetName);
-      }
-      if (node && node.name === "TaskMarker") {
-        let checkBoxText = view.state.sliceDoc(node.from, node.to);
-        if (checkBoxText === "[x]" || checkBoxText === "[X]") {
-          view.dispatch({
-            changes: { from: node.from, to: node.to, insert: "[ ]" },
-          });
-        } else {
-          view.dispatch({
-            changes: { from: node.from, to: node.to, insert: "[x]" },
-          });
-        }
-      }
-      return false;
-    }
+    // if (event.metaKey || event.ctrlKey) {
+    //   let coords = view.posAtCoords(event)!;
+    //   let node = syntaxTree(view.state).resolveInner(coords);
+    //   if (node && node.name === "WikiLinkPage") {
+    //     let pageName = view.state.sliceDoc(node.from, node.to);
+    //     this.navigate(pageName);
+    //   }
+    //   if (node && node.name === "TaskMarker") {
+    //     let checkBoxText = view.state.sliceDoc(node.from, node.to);
+    //     if (checkBoxText === "[x]" || checkBoxText === "[X]") {
+    //       view.dispatch({
+    //         changes: { from: node.from, to: node.to, insert: "[ ]" },
+    //       });
+    //     } else {
+    //       view.dispatch({
+    //         changes: { from: node.from, to: node.to, insert: "[x]" },
+    //       });
+    //     }
+    //   }
+    //   return false;
+    // }
   }
 
   async save() {
     const editorState = this.editorView!.state;
 
-    if (!this.currentNugget) {
+    if (!this.currentPage) {
       return;
     }
     // Write to file system
-    let nuggetMeta = await this.fs.writeNugget(
-      this.currentNugget.name,
+    let pageMeta = await this.fs.writePage(
+      this.currentPage.name,
       editorState.sliceDoc()
     );
 
-    // Update in open nugget cache
-    this.openNuggets.set(
-      this.currentNugget.name,
-      new NuggetState(
-        editorState,
-        this.editorView!.scrollDOM.scrollTop,
-        nuggetMeta
-      )
+    // Update in open page cache
+    this.openPages.set(
+      this.currentPage.name,
+      new PageState(editorState, this.editorView!.scrollDOM.scrollTop, pageMeta)
     );
 
     // Dispatch update to view
-    this.viewDispatch({ type: "nugget-saved", meta: nuggetMeta });
+    this.viewDispatch({ type: "page-saved", meta: pageMeta });
 
-    // If a new nugget was created, let's refresh the nugget list
-    if (nuggetMeta.created) {
-      await this.loadNuggetList();
+    // If a new page was created, let's refresh the page list
+    if (pageMeta.created) {
+      await this.loadPageList();
     }
   }
 
-  async loadNuggetList() {
-    let nuggetsMeta = await this.fs.listNuggets();
+  async loadPageList() {
+    let pagesMeta = await this.fs.listPages();
     this.viewDispatch({
-      type: "nuggets-listed",
-      nuggets: nuggetsMeta,
+      type: "pages-listed",
+      pages: pagesMeta,
     });
   }
 
   watch() {
     setInterval(() => {
       safeRun(async () => {
-        if (!this.currentNugget) {
+        if (!this.currentPage) {
           return;
         }
-        const currentNuggetName = this.currentNugget.name;
-        let newNuggetMeta = await this.fs.getMeta(currentNuggetName);
+        const currentPageName = this.currentPage.name;
+        let newPageMeta = await this.fs.getPageMeta(currentPageName);
         if (
-          this.currentNugget.lastModified.getTime() <
-          newNuggetMeta.lastModified.getTime()
+          this.currentPage.lastModified.getTime() <
+          newPageMeta.lastModified.getTime()
         ) {
           console.log("File changed on disk, reloading");
-          let nuggetData = await this.fs.readNugget(currentNuggetName);
-          this.openNuggets.set(
-            newNuggetMeta.name,
-            new NuggetState(
-              this.createEditorState(nuggetData.text),
-              0,
-              newNuggetMeta
-            )
+          let pageData = await this.fs.readPage(currentPageName);
+          this.openPages.set(
+            newPageMeta.name,
+            new PageState(this.createEditorState(pageData.text), 0, newPageMeta)
           );
-          await this.loadNugget(currentNuggetName);
+          await this.loadPage(currentPageName);
         }
       });
     }, watchInterval);
@@ -405,37 +405,37 @@ export class Editor {
     Promise.resolve()
       .then(async () => {
         await this.save();
-        const nuggetName = decodeURIComponent(location.hash.substring(1));
-        console.log("Now navigating to", nuggetName);
+        const pageName = decodeURIComponent(location.hash.substring(1));
+        console.log("Now navigating to", pageName);
 
         if (!this.editorView) {
           return;
         }
 
-        await this.loadNugget(nuggetName);
+        await this.loadPage(pageName);
       })
       .catch((e) => {
         console.error(e);
       });
   }
 
-  async loadNugget(nuggetName: string) {
-    let nuggetState = this.openNuggets.get(nuggetName);
-    if (!nuggetState) {
-      let nuggetData = await this.fs.readNugget(nuggetName);
-      nuggetState = new NuggetState(
-        this.createEditorState(nuggetData.text),
+  async loadPage(pageName: string) {
+    let pageState = this.openPages.get(pageName);
+    if (!pageState) {
+      let pageData = await this.fs.readPage(pageName);
+      pageState = new PageState(
+        this.createEditorState(pageData.text),
         0,
-        nuggetData.meta
+        pageData.meta
       );
-      this.openNuggets.set(nuggetName, nuggetState!);
+      this.openPages.set(pageName, pageState!);
     }
-    this.editorView!.setState(nuggetState!.editorState);
-    this.editorView!.scrollDOM.scrollTop = nuggetState!.scrollTop;
+    this.editorView!.setState(pageState!.editorState);
+    this.editorView!.scrollDOM.scrollTop = pageState!.scrollTop;
 
     this.viewDispatch({
-      type: "nugget-loaded",
-      meta: nuggetState.meta,
+      type: "page-loaded",
+      meta: pageState.meta,
     });
   }
 
@@ -476,27 +476,27 @@ export class Editor {
     let editor = this;
 
     useEffect(() => {
-      if (viewState.currentNugget) {
-        document.title = viewState.currentNugget.name;
+      if (viewState.currentPage) {
+        document.title = viewState.currentPage.name;
       }
-    }, [viewState.currentNugget]);
+    }, [viewState.currentPage]);
 
     return (
       <>
-        {viewState.showNuggetNavigator && (
-          <NuggetNavigator
-            allNuggets={viewState.allNuggets}
-            onNavigate={(nugget) => {
+        {viewState.showPageNavigator && (
+          <PageNavigator
+            allPages={viewState.allPages}
+            onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               editor!.focus();
-              if (nugget) {
+              if (page) {
                 editor
                   ?.save()
                   .then(() => {
-                    editor!.navigate(nugget);
+                    editor!.navigate(page);
                   })
                   .catch((e) => {
-                    alert("Could not save nugget, not switching");
+                    alert("Could not save page, not switching");
                   });
               }
             }}
@@ -509,7 +509,7 @@ export class Editor {
               editor!.focus();
               if (cmd) {
                 safeRun(async () => {
-                  let result = await cmd.run(buildContext(cmd, editor));
+                  let result = await cmd.run(null);
                   console.log("Result of command", result);
                 });
               }
@@ -518,7 +518,7 @@ export class Editor {
           />
         )}
         <NavigationBar
-          currentNugget={viewState.currentNugget}
+          currentPage={viewState.currentPage}
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}

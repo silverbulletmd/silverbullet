@@ -21,11 +21,6 @@ export interface CommandDef {
   // If to show in slash invoked menu and if so, with what label
   // should match slashCommandRegexp
   slashCommand?: string;
-
-  // Required context to be passed in as function arguments
-  requiredContext?: {
-    text?: boolean;
-  };
 }
 
 export interface FunctionDef {

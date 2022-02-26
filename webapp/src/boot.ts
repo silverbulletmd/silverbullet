@@ -1,9 +1,9 @@
 import { Editor } from "./editor";
-import { HttpFileSystem } from "./fs";
+import { HttpRemoteSpace } from "./space";
 import { safeRun } from "./util";
 
 let editor = new Editor(
-  new HttpFileSystem(`http://${location.hostname}:2222/fs`),
+  new HttpRemoteSpace(`http://${location.hostname}:2222/fs`),
   document.getElementById("root")!
 );
 

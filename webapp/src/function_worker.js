@@ -1,4 +1,4 @@
-// Nugget: this file is not built by Parcel, it's simply copied to the distribution
+// Page: this file is not built by Parcel, it's simply copied to the distribution
 // The reason is that somehow Parcel cannot accept using importScripts otherwise
 function safeRun(fn) {
   fn().catch((e) => {

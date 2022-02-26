@@ -6,19 +6,19 @@ export default function reducer(
 ): AppViewState {
   console.log("Got action", action);
   switch (action.type) {
-    case "nugget-loaded":
+    case "page-loaded":
       return {
         ...state,
-        currentNugget: action.meta,
+        currentPage: action.meta,
         isSaved: true,
       };
-    case "nugget-saved":
+    case "page-saved":
       return {
         ...state,
-        currentNugget: action.meta,
+        currentPage: action.meta,
         isSaved: true,
       };
-    case "nugget-updated":
+    case "page-updated":
       // Minor rerender optimization, this is triggered a lot
       if (!state.isSaved) {
         return state;
@@ -30,17 +30,17 @@ export default function reducer(
     case "start-navigate":
       return {
         ...state,
-        showNuggetNavigator: true,
+        showPageNavigator: true,
       };
     case "stop-navigate":
       return {
         ...state,
-        showNuggetNavigator: false,
+        showPageNavigator: false,
       };
-    case "nuggets-listed":
+    case "pages-listed":
       return {
         ...state,
-        allNuggets: action.nuggets,
+        allPages: action.pages,
       };
     case "show-palette":
       return {

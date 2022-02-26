@@ -1,18 +1,18 @@
-import { NuggetMeta } from "./types";
+import { PageMeta } from "./types";
 
-export interface FileSystem {
-  listNuggets(): Promise<NuggetMeta[]>;
-  readNugget(name: string): Promise<{ text: string; meta: NuggetMeta }>;
-  writeNugget(name: string, text: string): Promise<NuggetMeta>;
-  getMeta(name: string): Promise<NuggetMeta>;
+export interface Space {
+  listPages(): Promise<PageMeta[]>;
+  readPage(name: string): Promise<{ text: string; meta: PageMeta }>;
+  writePage(name: string, text: string): Promise<PageMeta>;
+  getPageMeta(name: string): Promise<PageMeta>;
 }
 
-export class HttpFileSystem implements FileSystem {
+export class HttpRemoteSpace implements Space {
   url: string;
   constructor(url: string) {
     this.url = url;
   }
-  async listNuggets(): Promise<NuggetMeta[]> {
+  async listPages(): Promise<PageMeta[]> {
     let req = await fetch(this.url, {
       method: "GET",
     });
@@ -22,7 +22,7 @@ export class HttpFileSystem implements FileSystem {
       lastModified: new Date(meta.lastModified),
     }));
   }
-  async readNugget(name: string): Promise<{ text: string; meta: NuggetMeta }> {
+  async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     let req = await fetch(`${this.url}/${name}`, {
       method: "GET",
     });
@@ -34,12 +34,12 @@ export class HttpFileSystem implements FileSystem {
       },
     };
   }
-  async writeNugget(name: string, text: string): Promise<NuggetMeta> {
+  async writePage(name: string, text: string): Promise<PageMeta> {
     let req = await fetch(`${this.url}/${name}`, {
       method: "PUT",
       body: text,
     });
-    // 201 (Created) means a new nugget was created
+    // 201 (Created) means a new page was created
     return {
       lastModified: new Date(+req.headers.get("Last-Modified")!),
       name: name,
@@ -47,7 +47,7 @@ export class HttpFileSystem implements FileSystem {
     };
   }
 
-  async getMeta(name: string): Promise<NuggetMeta> {
+  async getPageMeta(name: string): Promise<PageMeta> {
     let req = await fetch(`${this.url}/${name}`, {
       method: "OPTIONS",
     });

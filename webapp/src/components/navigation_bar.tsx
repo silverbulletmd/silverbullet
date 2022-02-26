@@ -1,16 +1,16 @@
-import { NuggetMeta } from "../types";
+import { PageMeta } from "../types";
 
 export function NavigationBar({
-  currentNugget,
+  currentPage,
   onClick,
 }: {
-  currentNugget?: NuggetMeta;
+  currentPage?: PageMeta;
   onClick: () => void;
 }) {
   return (
     <div id="top">
-      <div className="current-nugget" onClick={onClick}>
-        » {currentNugget?.name}
+      <div className="current-page" onClick={onClick}>
+        » {currentPage?.name}
       </div>
     </div>
   );
