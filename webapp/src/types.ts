@@ -42,3 +42,5 @@ export type Action =
   | { type: "update-commands"; commands: Map<string, AppCommand> }
   | { type: "show-palette" }
   | { type: "hide-palette" };
+
+export type AppEvent = "ready" | "change" | "switch" | "click";

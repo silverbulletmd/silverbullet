@@ -27,8 +27,13 @@
       "key": "Ctrl-2"
     }
   },
-  "events": {},
+  "events": {
+    "ready": ["welcome"]
+  },
   "functions": {
+    "welcome": {
+      "path": "./welcome.ts"
+    },
     "word_count_command": {
       "path": "./word_count_command.ts:wordCount"
     },

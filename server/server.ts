@@ -12,7 +12,7 @@ type NuggetMeta = {
 };
 
 const fsPrefix = "/fs";
-const nuggetsPath = "../nuggets";
+const nuggetsPath = "../pages";
 
 const fsRouter = new Router();
 

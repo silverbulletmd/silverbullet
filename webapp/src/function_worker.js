@@ -9,8 +9,6 @@ function safeRun(fn) {
 let func = null;
 let pendingRequests = {};
 
-console.log("hello world!");
-
 self.addEventListener("syscall", (event) => {
   let customEvent = event;
   let detail = customEvent.detail;

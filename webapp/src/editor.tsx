@@ -38,10 +38,12 @@ import { Manifest, slashCommandRegexp } from "./plugins/types";
 import reducer from "./reducer";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
+import { Plugin } from "./plugins/runtime";
 import editorSyscalls from "./syscalls/editor.browser";
 import {
   Action,
   AppCommand,
+  AppEvent,
   AppViewState,
   CommandContext,
   initialViewState,
@@ -71,10 +73,12 @@ export class Editor {
   openNuggets: Map<string, NuggetState>;
   fs: FileSystem;
   editorCommands: Map<string, AppCommand>;
+  plugins: Plugin[];
 
   constructor(fs: FileSystem, parent: Element) {
     this.editorCommands = new Map();
     this.openNuggets = new Map();
+    this.plugins = [];
     this.fs = fs;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -84,7 +88,7 @@ export class Editor {
       parent: document.getElementById("editor")!,
     });
     this.addListeners();
-    this.watch();
+    // this.watch();
   }
 
   async init() {
@@ -92,6 +96,7 @@ export class Editor {
     await this.loadPlugins();
     this.$hashChange!();
     this.focus();
+    await this.dispatchAppEvent("ready");
   }
 
   async loadPlugins() {
@@ -100,22 +105,36 @@ export class Editor {
 
     await system.bootServiceWorker();
     console.log("Now loading core plugin");
-    let mainPlugin = await system.load("core", coreManifest as Manifest);
+    let mainPlugin = await system.load("core", coreManifest);
+    this.plugins.push(mainPlugin);
     this.editorCommands = new Map<string, AppCommand>();
-    const cmds = mainPlugin.manifest!.commands;
-    for (let name in cmds) {
-      let cmd = cmds[name];
-      this.editorCommands.set(name, {
-        command: cmd,
-        run: async (arg: CommandContext): Promise<any> => {
-          return await mainPlugin.invoke(cmd.invoke, [arg]);
-        },
-      });
+    for (let plugin of this.plugins) {
+      this.buildCommands(plugin);
     }
     this.viewDispatch({
       type: "update-commands",
       commands: this.editorCommands,
     });
+  }
+
+  private buildCommands(plugin: Plugin) {
+    const cmds = plugin.manifest!.commands;
+    for (let name in cmds) {
+      let cmd = cmds[name];
+      this.editorCommands.set(name, {
+        command: cmd,
+        run: async (arg: CommandContext): Promise<any> => {
+          return await plugin.invoke(cmd.invoke, [arg]);
+        },
+      });
+    }
+  }
+
+  // TODO: Parallelize?
+  async dispatchAppEvent(name: AppEvent, data?: any) {
+    for (let plugin of this.plugins) {
+      await plugin.dispatchEvent(name, data);
+    }
   }
 
   get currentNugget(): NuggetMeta | undefined {
