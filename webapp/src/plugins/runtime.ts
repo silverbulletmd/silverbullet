@@ -1,13 +1,5 @@
 import { Manifest } from "./types";
 
-export class SyscallContext {
-  public plugin: Plugin;
-
-  constructor(Plugin: Plugin) {
-    this.plugin = Plugin;
-  }
-}
-
 interface SysCallMapping {
   // TODO: Better typing
   [key: string]: any;
@@ -51,12 +43,7 @@ export class FunctionWorker {
         this.initCallback();
         break;
       case "syscall":
-        const ctx = new SyscallContext(this.plugin);
-        let result = await this.plugin.system.syscall(
-          ctx,
-          data.name,
-          data.args
-        );
+        let result = await this.plugin.system.syscall(data.name, data.args);
 
         this.worker.postMessage({
           type: "syscall-response",
@@ -169,11 +156,7 @@ export class System {
     }
   }
 
-  async syscall(
-    ctx: SyscallContext,
-    name: string,
-    args: Array<any>
-  ): Promise<any> {
+  async syscall(name: string, args: Array<any>): Promise<any> {
     const callback = this.registeredSyscalls[name];
     if (!name) {
       throw Error(`Unregistered syscall ${name}`);
@@ -181,7 +164,7 @@ export class System {
     if (!callback) {
       throw Error(`Registered but not implemented syscall ${name}`);
     }
-    return Promise.resolve(callback(ctx, ...args));
+    return Promise.resolve(callback(...args));
   }
 
   async load(name: string, manifest: Manifest): Promise<Plugin> {

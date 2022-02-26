@@ -1,5 +1,4 @@
 import { Editor } from "../editor";
-import { SyscallContext } from "../plugins/runtime";
 import { syntaxTree } from "@codemirror/language";
 import { Transaction } from "@codemirror/state";
 
@@ -11,16 +10,16 @@ type SyntaxNode = {
 };
 
 export default (editor: Editor) => ({
-  "editor.getText": (ctx: SyscallContext) => {
+  "editor.getText": () => {
     return editor.editorView?.state.sliceDoc();
   },
-  "editor.getCursor": (ctx: SyscallContext): number => {
+  "editor.getCursor": (): number => {
     return editor.editorView!.state.selection.main.from;
   },
-  "editor.navigate": async (ctx: SyscallContext, name: string) => {
+  "editor.navigate": async (name: string) => {
     await editor.navigate(name);
   },
-  "editor.insertAtPos": (ctx: SyscallContext, text: string, pos: number) => {
+  "editor.insertAtPos": (text: string, pos: number) => {
     editor.editorView!.dispatch({
       changes: {
         insert: text,
@@ -28,12 +27,7 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.replaceRange": (
-    ctx: SyscallContext,
-    from: number,
-    to: number,
-    text: string
-  ) => {
+  "editor.replaceRange": (from: number, to: number, text: string) => {
     editor.editorView!.dispatch({
       changes: {
         insert: text,
@@ -42,14 +36,14 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.moveCursor": (ctx: SyscallContext, pos: number) => {
+  "editor.moveCursor": (pos: number) => {
     editor.editorView!.dispatch({
       selection: {
         anchor: pos,
       },
     });
   },
-  "editor.insertAtCursor": (ctx: SyscallContext, text: string) => {
+  "editor.insertAtCursor": (text: string) => {
     let editorView = editor.editorView!;
     let from = editorView.state.selection.main.from;
     editorView.dispatch({
@@ -62,9 +56,7 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.getSyntaxNodeUnderCursor": (
-    ctx: SyscallContext
-  ): SyntaxNode | undefined => {
+  "editor.getSyntaxNodeUnderCursor": (): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let selection = editorState.selection.main;
     if (selection.empty) {
@@ -79,10 +71,7 @@ export default (editor: Editor) => ({
       }
     }
   },
-  "editor.getSyntaxNodeAtPos": (
-    ctx: SyscallContext,
-    pos: number
-  ): SyntaxNode | undefined => {
+  "editor.getSyntaxNodeAtPos": (pos: number): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let node = syntaxTree(editorState).resolveInner(pos);
     if (node) {
@@ -94,7 +83,7 @@ export default (editor: Editor) => ({
       };
     }
   },
-  "editor.dispatch": (ctx: SyscallContext, change: Transaction) => {
+  "editor.dispatch": (change: Transaction) => {
     editor.editorView!.dispatch(change);
   },
 });

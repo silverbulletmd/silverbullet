@@ -39,6 +39,7 @@ import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
 import { Plugin } from "./plugins/runtime";
 import editorSyscalls from "./syscalls/editor.browser";
+import spaceSyscalls from "./syscalls/space.native";
 import {
   Action,
   AppCommand,
@@ -99,7 +100,11 @@ export class Editor {
 
   async loadPlugins() {
     const system = new BrowserSystem("plugin");
-    system.registerSyscalls(dbSyscalls, editorSyscalls(this));
+    system.registerSyscalls(
+      dbSyscalls,
+      editorSyscalls(this),
+      spaceSyscalls(this)
+    );
 
     await system.bootServiceWorker();
     console.log("Now loading core plugin");
@@ -203,16 +208,16 @@ export class Editor {
             run: commands.insertMarker("_"),
           },
           {
-            key: "Ctrl-e",
-            mac: "Cmd-e",
+            key: "Ctrl-p",
+            mac: "Cmd-p",
             run: (): boolean => {
               window.open(location.href, "_blank")!.focus();
               return true;
             },
           },
           {
-            key: "Ctrl-p",
-            mac: "Cmd-p",
+            key: "Ctrl-e",
+            mac: "Cmd-e",
             run: (target): boolean => {
               this.viewDispatch({ type: "start-navigate" });
               return true;
