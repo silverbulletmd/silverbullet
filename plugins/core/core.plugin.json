@@ -9,8 +9,8 @@
       "mac": "Cmd-Enter"
     },
     "Insert Current Date": {
-      "invoke": "insert_nice_date",
-      "slashCommand": "/insert-today"
+      "invoke": "insertToday",
+      "slashCommand": "/today"
     },
     "Toggle : Heading 1": {
       "invoke": "toggle_h1",
@@ -24,23 +24,22 @@
     }
   },
   "events": {
-    "app:ready": ["welcome"],
-    "page:click": ["click"]
+    "page:click": ["taskToggle", "clickNavigate"]
   },
   "functions": {
-    "welcome": {
-      "path": "./welcome.ts"
+    "linkNavigate": {
+      "path": "./navigate.ts:linkNavigate"
     },
-    "click": {
-      "path": "./click.ts"
+    "clickNavigate": {
+      "path": "./navigate.ts:clickNavigate"
+    },
+    "taskToggle": {
+      "path": "./task.ts:taskToggle"
     },
     "word_count_command": {
       "path": "./word_count_command.ts:wordCount"
     },
-    "link_navigate": {
-      "path": "./link_navigate.ts:linkNavigate"
-    },
-    "insert_nice_date": {
+    "insertToday": {
       "path": "./dates.ts:insertToday"
     },
     "toggle_h1": {

@@ -1,6 +1,14 @@
 import { Editor } from "../editor";
 import { SyscallContext } from "../plugins/runtime";
 import { syntaxTree } from "@codemirror/language";
+import { Transaction } from "@codemirror/state";
+
+type SyntaxNode = {
+  name: string;
+  text: string;
+  from: number;
+  to: number;
+};
 
 export default (editor: Editor) => ({
   "editor.getText": (ctx: SyscallContext) => {
@@ -56,7 +64,7 @@ export default (editor: Editor) => ({
   },
   "editor.getSyntaxNodeUnderCursor": (
     ctx: SyscallContext
-  ): { name: string; text: string } | undefined => {
+  ): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let selection = editorState.selection.main;
     if (selection.empty) {
@@ -65,6 +73,8 @@ export default (editor: Editor) => ({
         return {
           name: node.name,
           text: editorState.sliceDoc(node.from, node.to),
+          from: node.from,
+          to: node.to,
         };
       }
     }
@@ -72,14 +82,19 @@ export default (editor: Editor) => ({
   "editor.getSyntaxNodeAtPos": (
     ctx: SyscallContext,
     pos: number
-  ): { name: string; text: string } | undefined => {
+  ): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let node = syntaxTree(editorState).resolveInner(pos);
     if (node) {
       return {
         name: node.name,
         text: editorState.sliceDoc(node.from, node.to),
+        from: node.from,
+        to: node.to,
       };
     }
+  },
+  "editor.dispatch": (ctx: SyscallContext, change: Transaction) => {
+    editor.editorView!.dispatch(change);
   },
 });
