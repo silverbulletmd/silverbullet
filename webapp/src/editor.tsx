@@ -134,10 +134,17 @@ export class Editor {
   }
 
   // TODO: Parallelize?
-  async dispatchAppEvent(name: AppEvent, data?: any) {
+  async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
+    let results: any[] = [];
     for (let plugin of this.plugins) {
-      await plugin.dispatchEvent(name, data);
+      let pluginResults = await plugin.dispatchEvent(name, data);
+      if (pluginResults) {
+        for (let result of pluginResults) {
+          results.push(result);
+        }
+      }
     }
+    return results;
   }
 
   get currentPage(): PageMeta | undefined {
@@ -176,7 +183,7 @@ export class Editor {
         closeBrackets(),
         autocompletion({
           override: [
-            this.pageCompleter.bind(this),
+            this.pluginCompleter.bind(this),
             this.commandCompleter.bind(this),
           ],
         }),
@@ -224,6 +231,14 @@ export class Editor {
             },
           },
           {
+            key: "Ctrl-s",
+            mac: "Cmd-s",
+            run: (target): boolean => {
+              this.save();
+              return true;
+            },
+          },
+          {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
@@ -258,18 +273,20 @@ export class Editor {
     });
   }
 
-  pageCompleter(ctx: CompletionContext): CompletionResult | null {
-    let prefix = ctx.matchBefore(/\[\[[\w\s]*/);
-    if (!prefix) {
-      return null;
+  async pluginCompleter(
+    ctx: CompletionContext
+  ): Promise<CompletionResult | null> {
+    let allCompletionResults = await this.dispatchAppEvent("editor:complete");
+    // console.log("All results", allCompletionResults);
+    if (allCompletionResults.length === 1) {
+      return allCompletionResults[0];
+    } else if (allCompletionResults.length > 1) {
+      console.error(
+        "Got completion results from multiple sources, cannot deal with that",
+        allCompletionResults
+      );
     }
-    return {
-      from: prefix.from + 2,
-      options: this.viewState.allPages.map((pageMeta) => ({
-        label: pageMeta.name,
-        type: "page",
-      })),
-    };
+    return null;
   }
 
   commandCompleter(ctx: CompletionContext): CompletionResult | null {

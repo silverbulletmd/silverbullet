@@ -6,6 +6,8 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.0/mod.ts";
 import { readAll } from "https://deno.land/std@0.126.0/streams/mod.ts";
 import { exists } from "https://deno.land/std@0.126.0/fs/mod.ts";
 
+import { recursiveReaddir } from "https://deno.land/x/recursive_readdir@v2.0.0/mod.ts";
+
 type PageMeta = {
   name: string;
   lastModified: number;
@@ -21,22 +23,23 @@ fsRouter.use(oakCors({ methods: ["OPTIONS", "GET", "PUT", "POST"] }));
 fsRouter.get("/", async (context) => {
   const localPath = pagesPath;
   let fileNames: PageMeta[] = [];
-  for await (const dirEntry of Deno.readDir(localPath)) {
-    if (dirEntry.isFile) {
-      const stat = await Deno.stat(`${localPath}/${dirEntry.name}`);
-      fileNames.push({
-        name: dirEntry.name.substring(
-          0,
-          dirEntry.name.length - path.extname(dirEntry.name).length
-        ),
-        lastModified: stat.mtime?.getTime()!,
-      });
-    }
+  const markdownFiles = (await recursiveReaddir(localPath)).filter(
+    (file: string) => path.extname(file) === ".md"
+  );
+  for (const p of markdownFiles) {
+    const stat = await Deno.stat(p);
+    fileNames.push({
+      name: p.substring(
+        localPath.length + 1,
+        p.length - path.extname(p).length
+      ),
+      lastModified: stat.mtime?.getTime()!,
+    });
   }
   context.response.body = JSON.stringify(fileNames);
 });
 
-fsRouter.get("/:page", async (context) => {
+fsRouter.get("/:page(.*)", async (context) => {
   const pageName = context.params.page;
   const localPath = `${pagesPath}/${pageName}.md`;
   try {
@@ -50,7 +53,7 @@ fsRouter.get("/:page", async (context) => {
   }
 });
 
-fsRouter.options("/:page", async (context) => {
+fsRouter.options("/:page(.*)", async (context) => {
   const localPath = `${pagesPath}/${context.params.page}.md`;
   try {
     const stat = await Deno.stat(localPath);
@@ -63,10 +66,16 @@ fsRouter.options("/:page", async (context) => {
   }
 });
 
-fsRouter.put("/:page", async (context) => {
+fsRouter.put("/:page(.*)", async (context) => {
   const pageName = context.params.page;
   const localPath = `${pagesPath}/${pageName}.md`;
   const existingPage = await exists(localPath);
+  let dirName = path.dirname(localPath);
+  if (!(await exists(dirName))) {
+    await Deno.mkdir(dirName, {
+      recursive: true,
+    });
+  }
   let file;
   try {
     file = await Deno.create(localPath);

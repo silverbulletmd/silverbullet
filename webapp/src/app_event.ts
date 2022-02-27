@@ -1,4 +1,8 @@
-export type AppEvent = "app:ready" | "page:save" | "page:load" | "page:click";
+export type AppEvent =
+  | "app:ready"
+  | "page:save"
+  | "page:click"
+  | "editor:complete";
 
 export type ClickEvent = {
   pos: number;

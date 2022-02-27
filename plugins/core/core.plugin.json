@@ -4,7 +4,7 @@
       "invoke": "word_count_command"
     },
     "Navigate To page": {
-      "invoke": "link_navigate",
+      "invoke": "linkNavigate",
       "key": "Ctrl-Enter",
       "mac": "Cmd-Enter"
     },
@@ -24,9 +24,13 @@
     }
   },
   "events": {
-    "page:click": ["taskToggle", "clickNavigate"]
+    "page:click": ["taskToggle", "clickNavigate"],
+    "editor:complete": ["pageComplete"]
   },
   "functions": {
+    "pageComplete": {
+      "path": "./navigate.ts:pageComplete"
+    },
     "linkNavigate": {
       "path": "./navigate.ts:linkNavigate"
     },

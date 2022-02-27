@@ -9,6 +9,22 @@ type SyntaxNode = {
   to: number;
 };
 
+function ensureAnchor(expr: any, start: boolean) {
+  var _a;
+  let { source } = expr;
+  let addStart = start && source[0] != "^",
+    addEnd = source[source.length - 1] != "$";
+  if (!addStart && !addEnd) return expr;
+  return new RegExp(
+    `${addStart ? "^" : ""}(?:${source})${addEnd ? "$" : ""}`,
+    (_a = expr.flags) !== null && _a !== void 0
+      ? _a
+      : expr.ignoreCase
+      ? "i"
+      : ""
+  );
+}
+
 export default (editor: Editor) => ({
   "editor.getText": () => {
     return editor.editorView?.state.sliceDoc();
@@ -70,6 +86,24 @@ export default (editor: Editor) => ({
         };
       }
     }
+  },
+  "editor.matchBefore": (
+    regexp: string
+  ): { from: number; to: number; text: string } | null => {
+    const editorState = editor.editorView!.state;
+    let selection = editorState.selection.main;
+    let from = selection.from;
+    if (selection.empty) {
+      let line = editorState.doc.lineAt(from);
+      let start = Math.max(line.from, from - 250);
+      let str = line.text.slice(start - line.from, from - line.from);
+      let found = str.search(ensureAnchor(new RegExp(regexp), false));
+      // console.log("Line", line, start, str, new RegExp(regexp), found);
+      return found < 0
+        ? null
+        : { from: start + found, to: from, text: str.slice(found) };
+    }
+    return null;
   },
   "editor.getSyntaxNodeAtPos": (pos: number): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;

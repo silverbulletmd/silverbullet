@@ -113,14 +113,17 @@ export class Plugin {
     return await this.runningFunctions.get(name)!.invoke(args);
   }
 
-  async dispatchEvent(name: string, data?: any) {
+  async dispatchEvent(name: string, data?: any): Promise<any[]> {
     let functionsToSpawn = this.manifest!.events[name];
     if (functionsToSpawn) {
-      await Promise.all(
-        functionsToSpawn.map(async (functionToSpawn: string) => {
-          await this.invoke(functionToSpawn, [data]);
-        })
+      return await Promise.all(
+        functionsToSpawn.map(
+          async (functionToSpawn: string) =>
+            await this.invoke(functionToSpawn, [data])
+        )
       );
+    } else {
+      return [];
     }
   }
 

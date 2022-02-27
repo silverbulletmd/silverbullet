@@ -1,5 +1,3 @@
-import { SyscallContext } from "../plugins/runtime";
-
 // @ts-ignore
 let frameTest = document.getElementById("main-frame");
 
@@ -13,7 +11,7 @@ window.addEventListener("message", async (event) => {
 });
 
 export default {
-  "ui.update": function (ctx: SyscallContext, doc: any) {
+  "ui.update": function (doc: any) {
     // frameTest.contentWindow.postMessage({
     //     type: "loadContent",
     //     doc: doc,
