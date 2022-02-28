@@ -1,4 +1,4 @@
-import { styleTags } from "@codemirror/highlight";
+import { styleTags, tags as t } from "@codemirror/highlight";
 import { MarkdownConfig, TaskList } from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
@@ -53,8 +53,32 @@ const AtMention: MarkdownConfig = {
     },
   ],
 };
+
+const urlRegexp =
+  /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+
+const UnmarkedUrl: MarkdownConfig = {
+  defineNodes: ["URL"],
+  parseInline: [
+    {
+      name: "URL",
+      parse(cx, next, pos) {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 104 /* 'h' */ ||
+          !(match = urlRegexp.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        return cx.addElement(cx.elt("URL", pos, pos + match[0].length));
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
 const TagLink: MarkdownConfig = {
-  defineNodes: ["Checkbox"],
+  defineNodes: ["TagLink"],
   parseInline: [
     {
       name: "TagLink",
@@ -77,6 +101,7 @@ const WikiMarkdown = commonmark.configure([
   AtMention,
   TagLink,
   TaskList,
+  UnmarkedUrl,
   {
     props: [
       styleTags({
@@ -86,6 +111,7 @@ const WikiMarkdown = commonmark.configure([
         TagLink: ct.TagTag,
         Task: ct.TaskTag,
         TaskMarker: ct.TaskMarkerTag,
+        Url: t.url,
       }),
     ],
   },

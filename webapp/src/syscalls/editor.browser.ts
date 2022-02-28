@@ -39,6 +39,9 @@ export default (editor: Editor) => ({
   "editor.navigate": async (name: string) => {
     await editor.navigate(name);
   },
+  "editor.openUrl": async (url: string) => {
+    window.open(url, "_blank")!.focus();
+  },
   "editor.insertAtPos": (text: string, pos: number) => {
     editor.editorView!.dispatch({
       changes: {

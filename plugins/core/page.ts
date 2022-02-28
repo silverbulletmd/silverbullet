@@ -5,7 +5,6 @@ import { syscall } from "./lib/syscall.ts";
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");
 
 export async function indexLinks({ name, text }: IndexEvent) {
-  console.log("Now indexing", name);
   let backLinks: { key: string; value: string }[] = [];
   for (let match of text.matchAll(wikilinkRegex)) {
     let toPage = match[1];

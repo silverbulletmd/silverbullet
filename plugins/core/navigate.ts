@@ -1,22 +1,35 @@
 import { ClickEvent } from "../../webapp/src/app_event.ts";
 import { syscall } from "./lib/syscall.ts";
 
-export async function linkNavigate() {
-  let syntaxNode = await syscall("editor.getSyntaxNodeUnderCursor");
-  if (syntaxNode && syntaxNode.name === "WikiLinkPage") {
-    await syscall("editor.navigate", syntaxNode.text);
+async function navigate(syntaxNode: any) {
+  if (!syntaxNode) {
+    return;
+  }
+  console.log("Attempting to navigate based on syntax node", syntaxNode);
+  switch (syntaxNode.name) {
+    case "WikiLinkPage":
+      await syscall("editor.navigate", syntaxNode.text);
+      break;
+    case "URL":
+      await syscall("editor.openUrl", syntaxNode.text);
+      break;
+    case "Link":
+      // Markdown link: [bla](URLHERE) needs extraction
+      let match = /\[[^\\]+\]\(([^\)]+)\)/.exec(syntaxNode.text);
+      if (match) {
+        await syscall("editor.openUrl", match[1]);
+      }
   }
 }
 
-export async function clickNavigate(event: ClickEvent) {
-  let syntaxNode = await syscall("editor.getSyntaxNodeAtPos", event.pos);
+export async function linkNavigate() {
+  navigate(await syscall("editor.getSyntaxNodeUnderCursor"));
+}
 
+export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
-    console.log("Here", syntaxNode);
-    if (syntaxNode && syntaxNode.name === "WikiLinkPage") {
-      await syscall("editor.navigate", syntaxNode.text);
-      return;
-    }
+    let syntaxNode = await syscall("editor.getSyntaxNodeAtPos", event.pos);
+    navigate(syntaxNode);
   }
 }
 

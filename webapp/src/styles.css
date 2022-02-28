@@ -138,6 +138,10 @@ body {
 .cm-editor .link.url {
   color: #7e7d7d;
 }
+.cm-editor .url:not(.link) {
+  color: #0330cb;
+  text-decoration: underline;
+}
 
 .cm-editor .wiki-link-page {
   color: #0330cb;
