@@ -9,6 +9,11 @@ export default function reducer(
     case "page-loaded":
       return {
         ...state,
+        allPages: state.allPages.map((pageMeta) =>
+          pageMeta.name === action.meta.name
+            ? { ...pageMeta, lastOpened: new Date() }
+            : pageMeta
+        ),
         currentPage: action.meta,
         isSaved: true,
       };

@@ -1186,6 +1186,11 @@ detect-libc@^1.0.3:
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-1.0.3.tgz#fa137c4bd698edf55cd5cd02ac559f91a4c4ba9b"
   integrity sha1-+hN8S9aY7fVc1c0CrFWfkaTEups=
 
+dexie@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.2.1.tgz#ef21456d725e700c1ab7ac4307896e4fdabaf753"
+  integrity sha512-Y8oz3t2XC9hvjkP35B5I8rUkKKwM36GGRjWQCMjzIYScg7W+GHKDXobSYswkisW7CxL1/tKQtggMDsiWqDUc1g==
+
 dom-serializer@^1.0.1:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/dom-serializer/-/dom-serializer-1.3.2.tgz#6206437d32ceefaec7161803230c7a20bc1b4d91"

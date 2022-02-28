@@ -4,6 +4,7 @@ export type PageMeta = {
   name: string;
   lastModified: Date;
   created?: boolean;
+  lastOpened?: Date;
 };
 
 export type AppCommand = {

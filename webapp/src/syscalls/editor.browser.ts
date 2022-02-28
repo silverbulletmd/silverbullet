@@ -1,6 +1,7 @@
 import { Editor } from "../editor";
 import { syntaxTree } from "@codemirror/language";
 import { Transaction } from "@codemirror/state";
+import { PageMeta } from "../types";
 
 type SyntaxNode = {
   name: string;
@@ -26,6 +27,9 @@ function ensureAnchor(expr: any, start: boolean) {
 }
 
 export default (editor: Editor) => ({
+  "editor.getCurrentPage": (): PageMeta => {
+    return editor.currentPage!;
+  },
   "editor.getText": () => {
     return editor.editorView?.state.sliceDoc();
   },
@@ -119,5 +123,8 @@ export default (editor: Editor) => ({
   },
   "editor.dispatch": (change: Transaction) => {
     editor.editorView!.dispatch(change);
+  },
+  "editor.prompt": (message: string): string | null => {
+    return prompt(message);
   },
 });

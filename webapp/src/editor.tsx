@@ -39,6 +39,7 @@ import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
 import { Plugin } from "./plugins/runtime";
 import editorSyscalls from "./syscalls/editor.browser";
+import indexerSyscalls from "./syscalls/indexer.native";
 import spaceSyscalls from "./syscalls/space.native";
 import {
   Action,
@@ -47,8 +48,15 @@ import {
   initialViewState,
   PageMeta,
 } from "./types";
-import { AppEvent, ClickEvent } from "./app_event";
+import {
+  AppEvent,
+  AppEventDispatcher,
+  ClickEvent,
+  IndexEvent,
+} from "./app_event";
 import { safeRun } from "./util";
+import { Indexer } from "./indexer";
+import { IPageNavigator, PathPageNavigator } from "./navigator";
 
 class PageState {
   editorState: EditorState;
@@ -64,21 +72,23 @@ class PageState {
 
 const watchInterval = 5000;
 
-export class Editor {
+export class Editor implements AppEventDispatcher {
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
-  $hashChange?: () => void;
   openPages: Map<string, PageState>;
-  fs: Space;
+  space: Space;
   editorCommands: Map<string, AppCommand>;
   plugins: Plugin[];
+  indexer: Indexer;
+  navigationResolve?: (val: undefined) => void;
+  pageNavigator: IPageNavigator;
 
-  constructor(fs: Space, parent: Element) {
+  constructor(space: Space, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
     this.plugins = [];
-    this.fs = fs;
+    this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
     this.render(parent);
@@ -86,16 +96,30 @@ export class Editor {
       state: this.createEditorState(""),
       parent: document.getElementById("editor")!,
     });
-    this.addListeners();
-    // this.watch();
+    this.pageNavigator = new PathPageNavigator();
+    this.indexer = new Indexer("page-index", space);
+    this.watch();
   }
 
   async init() {
     await this.loadPageList();
     await this.loadPlugins();
-    this.$hashChange!();
     this.focus();
-    await this.dispatchAppEvent("app:ready");
+
+    this.pageNavigator.subscribe(async (pageName) => {
+      await this.save();
+      console.log("Now navigating to", pageName);
+
+      if (!this.editorView) {
+        return;
+      }
+
+      await this.loadPage(pageName);
+    });
+
+    if (this.pageNavigator.getCurrentPage() === "") {
+      this.pageNavigator.navigate("start");
+    }
   }
 
   async loadPlugins() {
@@ -103,7 +127,8 @@ export class Editor {
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
-      spaceSyscalls(this)
+      spaceSyscalls(this),
+      indexerSyscalls(this.indexer)
     );
 
     await system.bootServiceWorker();
@@ -332,41 +357,20 @@ export class Editor {
     return null;
   }
 
-  click(event: MouseEvent, view: EditorView) {
-    // if (event.metaKey || event.ctrlKey) {
-    //   let coords = view.posAtCoords(event)!;
-    //   let node = syntaxTree(view.state).resolveInner(coords);
-    //   if (node && node.name === "WikiLinkPage") {
-    //     let pageName = view.state.sliceDoc(node.from, node.to);
-    //     this.navigate(pageName);
-    //   }
-    //   if (node && node.name === "TaskMarker") {
-    //     let checkBoxText = view.state.sliceDoc(node.from, node.to);
-    //     if (checkBoxText === "[x]" || checkBoxText === "[X]") {
-    //       view.dispatch({
-    //         changes: { from: node.from, to: node.to, insert: "[ ]" },
-    //       });
-    //     } else {
-    //       view.dispatch({
-    //         changes: { from: node.from, to: node.to, insert: "[x]" },
-    //       });
-    //     }
-    //   }
-    //   return false;
-    // }
-  }
-
   async save() {
     const editorState = this.editorView!.state;
 
     if (!this.currentPage) {
       return;
     }
+
+    if (this.viewState.isSaved) {
+      console.log("Page not modified, skipping saving");
+      return;
+    }
     // Write to file system
-    let pageMeta = await this.fs.writePage(
-      this.currentPage.name,
-      editorState.sliceDoc()
-    );
+    let text = editorState.sliceDoc();
+    let pageMeta = await this.space.writePage(this.currentPage.name, text);
 
     // Update in open page cache
     this.openPages.set(
@@ -381,10 +385,18 @@ export class Editor {
     if (pageMeta.created) {
       await this.loadPageList();
     }
+
+    // Reindex page
+    await this.indexPage(text, pageMeta);
+  }
+
+  private async indexPage(text: string, pageMeta: PageMeta) {
+    console.log("Indexing page", pageMeta.name);
+    this.indexer.indexPage(this, pageMeta, text, true);
   }
 
   async loadPageList() {
-    let pagesMeta = await this.fs.listPages();
+    let pagesMeta = await this.space.listPages();
     this.viewDispatch({
       type: "pages-listed",
       pages: pagesMeta,
@@ -394,25 +406,27 @@ export class Editor {
   watch() {
     setInterval(() => {
       safeRun(async () => {
-        if (!this.currentPage) {
-          return;
-        }
-        const currentPageName = this.currentPage.name;
-        let newPageMeta = await this.fs.getPageMeta(currentPageName);
-        if (
-          this.currentPage.lastModified.getTime() <
-          newPageMeta.lastModified.getTime()
-        ) {
-          console.log("File changed on disk, reloading");
-          let pageData = await this.fs.readPage(currentPageName);
-          this.openPages.set(
-            newPageMeta.name,
-            new PageState(this.createEditorState(pageData.text), 0, newPageMeta)
-          );
-          await this.loadPage(currentPageName);
+        if (this.currentPage && this.viewState.isSaved) {
+          await this.checkForNewVersion(this.currentPage);
         }
       });
     }, watchInterval);
+  }
+
+  async checkForNewVersion(cachedMeta: PageMeta) {
+    const currentPageName = cachedMeta.name;
+    let newPageMeta = await this.space.getPageMeta(currentPageName);
+    if (
+      cachedMeta.lastModified.getTime() !== newPageMeta.lastModified.getTime()
+    ) {
+      console.log("File changed on disk, reloading");
+      let pageData = await this.space.readPage(currentPageName);
+      this.openPages.set(
+        newPageMeta.name,
+        new PageState(this.createEditorState(pageData.text), 0, newPageMeta)
+      );
+      await this.loadPage(currentPageName);
+    }
   }
 
   focus() {
@@ -420,37 +434,24 @@ export class Editor {
   }
 
   async navigate(name: string) {
-    location.hash = encodeURIComponent(name);
-  }
-
-  hashChange() {
-    Promise.resolve()
-      .then(async () => {
-        await this.save();
-        const pageName = decodeURIComponent(location.hash.substring(1));
-        console.log("Now navigating to", pageName);
-
-        if (!this.editorView) {
-          return;
-        }
-
-        await this.loadPage(pageName);
-      })
-      .catch((e) => {
-        console.error(e);
-      });
+    await this.pageNavigator.navigate(name);
   }
 
   async loadPage(pageName: string) {
     let pageState = this.openPages.get(pageName);
     if (!pageState) {
-      let pageData = await this.fs.readPage(pageName);
+      let pageData = await this.space.readPage(pageName);
       pageState = new PageState(
         this.createEditorState(pageData.text),
         0,
         pageData.meta
       );
       this.openPages.set(pageName, pageState!);
+    } else {
+      // Loaded page from in-mory cache, let's async see if this page hasn't been updated
+      this.checkForNewVersion(pageState.meta).catch((e) => {
+        console.error("Failed to check for new version");
+      });
     }
     this.editorView!.setState(pageState!.editorState);
     this.editorView!.scrollDOM.scrollTop = pageState!.scrollTop;
@@ -459,16 +460,15 @@ export class Editor {
       type: "page-loaded",
       meta: pageState.meta,
     });
-  }
 
-  addListeners() {
-    this.$hashChange = this.hashChange.bind(this);
-    window.addEventListener("hashchange", this.$hashChange);
-  }
-
-  dispose() {
-    if (this.$hashChange) {
-      window.removeEventListener("hashchange", this.$hashChange);
+    let indexerPageMeta = await this.indexer.getPageIndexPageMeta(pageName);
+    if (
+      (indexerPageMeta &&
+        pageState.meta.lastModified.getTime() !==
+          indexerPageMeta.lastModified.getTime()) ||
+      !indexerPageMeta
+    ) {
+      await this.indexPage(pageState.editorState.sliceDoc(), pageState.meta);
     }
   }
 
@@ -476,12 +476,6 @@ export class Editor {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
     this.viewState = viewState;
     this.viewDispatch = dispatch;
-
-    useEffect(() => {
-      if (!location.hash) {
-        this.navigate("start");
-      }
-    }, []);
 
     // Auto save
     useEffect(() => {
@@ -508,18 +502,14 @@ export class Editor {
         {viewState.showPageNavigator && (
           <PageNavigator
             allPages={viewState.allPages}
+            currentPage={this.currentPage}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
-              editor!.focus();
+              editor.focus();
               if (page) {
-                editor
-                  ?.save()
-                  .then(() => {
-                    editor!.navigate(page);
-                  })
-                  .catch((e) => {
-                    alert("Could not save page, not switching");
-                  });
+                safeRun(async () => {
+                  editor.navigate(page);
+                });
               }
             }}
           />

@@ -2,6 +2,11 @@ import { styleTags } from "@codemirror/highlight";
 import { MarkdownConfig, TaskList } from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
+import { pageLinkRegex } from "./constant";
+
+const pageLinkRegexPrefix = new RegExp(
+  "^" + pageLinkRegex.toString().slice(1, -1)
+);
 
 const WikiLink: MarkdownConfig = {
   defineNodes: ["WikiLink", "WikiLinkPage"],
@@ -12,13 +17,13 @@ const WikiLink: MarkdownConfig = {
         let match: RegExpMatchArray | null;
         if (
           next != 91 /* '[' */ ||
-          !(match = /^\[[^\]]+\]\]/.exec(cx.slice(pos + 1, cx.end)))
+          !(match = pageLinkRegexPrefix.exec(cx.slice(pos, cx.end)))
         ) {
           return -1;
         }
         return cx.addElement(
           cx.elt("WikiLink", pos, pos + match[0].length + 1, [
-            cx.elt("WikiLinkPage", pos + 2, pos + match[0].length - 1),
+            cx.elt("WikiLinkPage", pos + 2, pos + match[0].length - 2),
           ])
         );
       },

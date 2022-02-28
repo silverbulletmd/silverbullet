@@ -18,7 +18,7 @@ const pagesPath = "../pages";
 
 const fsRouter = new Router();
 
-fsRouter.use(oakCors({ methods: ["OPTIONS", "GET", "PUT", "POST"] }));
+fsRouter.use(oakCors({ methods: ["OPTIONS", "GET", "PUT", "POST", "DELETE"] }));
 
 fsRouter.get("/", async (context) => {
   const localPath = pagesPath;
@@ -96,6 +96,22 @@ fsRouter.put("/:page(.*)", async (context) => {
   context.response.body = "OK";
 });
 
+fsRouter.delete("/:page(.*)", async (context) => {
+  const pageName = context.params.page;
+  const localPath = `${pagesPath}/${pageName}.md`;
+  try {
+    await Deno.remove(localPath);
+  } catch (e) {
+    console.error("Error deleting file", localPath, e);
+    context.response.status = 500;
+    context.response.body = e.message;
+    return;
+  }
+  console.log("Deleted", localPath);
+
+  context.response.body = "OK";
+});
+
 const app = new Application();
 app.use(
   new Router()
@@ -109,7 +125,8 @@ app.use(async (context, next) => {
       index: "index.html",
     });
   } catch {
-    next();
+    await context.send({ root: "../webapp/dist", path: "index.html" });
+    // next();
   }
 });
 
