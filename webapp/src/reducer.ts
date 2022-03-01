@@ -4,7 +4,7 @@ export default function reducer(
   state: AppViewState,
   action: Action
 ): AppViewState {
-  console.log("Got action", action);
+  // console.log("Got action", action);
   switch (action.type) {
     case "page-loaded":
       return {

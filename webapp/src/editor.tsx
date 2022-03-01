@@ -57,6 +57,7 @@ import {
 import { safeRun } from "./util";
 import { Indexer } from "./indexer";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
+import { smartQuoteKeymap } from "./smart_quotes";
 
 class PageState {
   editorState: EditorState;
@@ -123,7 +124,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async loadPlugins() {
-    const system = new BrowserSystem("plugin");
+    const system = new BrowserSystem("/plugin");
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
@@ -222,6 +223,7 @@ export class Editor implements AppEventDispatcher {
           { selector: "FencedCode", class: "line-fenced-code" },
         ]),
         keymap.of([
+          ...smartQuoteKeymap,
           ...closeBracketsKeymap,
           ...standardKeymap,
           ...searchKeymap,
@@ -248,8 +250,8 @@ export class Editor implements AppEventDispatcher {
             },
           },
           {
-            key: "Ctrl-e",
-            mac: "Cmd-e",
+            key: "Ctrl-k",
+            mac: "Cmd-k",
             run: (target): boolean => {
               this.viewDispatch({ type: "start-navigate" });
               return true;
@@ -302,7 +304,6 @@ export class Editor implements AppEventDispatcher {
     ctx: CompletionContext
   ): Promise<CompletionResult | null> {
     let allCompletionResults = await this.dispatchAppEvent("editor:complete");
-    // console.log("All results", allCompletionResults);
     if (allCompletionResults.length === 1) {
       return allCompletionResults[0];
     } else if (allCompletionResults.length > 1) {
@@ -368,13 +369,14 @@ export class Editor implements AppEventDispatcher {
       console.log("Page not modified, skipping saving");
       return;
     }
-    // Write to file system
-    let text = editorState.sliceDoc();
-    let pageMeta = await this.space.writePage(this.currentPage.name, text);
+    // Write to the space
+    const pageName = this.currentPage.name;
+    const text = editorState.sliceDoc();
+    let pageMeta = await this.space.writePage(pageName, text);
 
     // Update in open page cache
     this.openPages.set(
-      this.currentPage.name,
+      pageName,
       new PageState(editorState, this.editorView!.scrollDOM.scrollTop, pageMeta)
     );
 
@@ -422,10 +424,10 @@ export class Editor implements AppEventDispatcher {
       console.log("File changed on disk, reloading");
       let pageData = await this.space.readPage(currentPageName);
       this.openPages.set(
-        newPageMeta.name,
+        currentPageName,
         new PageState(this.createEditorState(pageData.text), 0, newPageMeta)
       );
-      await this.loadPage(currentPageName);
+      await this.loadPage(currentPageName, false);
     }
   }
 
@@ -433,11 +435,11 @@ export class Editor implements AppEventDispatcher {
     this.editorView!.focus();
   }
 
-  async navigate(name: string) {
-    await this.pageNavigator.navigate(name);
+  navigate(name: string) {
+    this.pageNavigator.navigate(name);
   }
 
-  async loadPage(pageName: string) {
+  async loadPage(pageName: string, checkNewVersion: boolean = true) {
     let pageState = this.openPages.get(pageName);
     if (!pageState) {
       let pageData = await this.space.readPage(pageName);
@@ -447,11 +449,8 @@ export class Editor implements AppEventDispatcher {
         pageData.meta
       );
       this.openPages.set(pageName, pageState!);
-    } else {
-      // Loaded page from in-mory cache, let's async see if this page hasn't been updated
-      this.checkForNewVersion(pageState.meta).catch((e) => {
-        console.error("Failed to check for new version");
-      });
+      // Freshly loaded, no need to check for a new version either way
+      checkNewVersion = false;
     }
     this.editorView!.setState(pageState!.editorState);
     this.editorView!.scrollDOM.scrollTop = pageState!.scrollTop;
@@ -469,6 +468,13 @@ export class Editor implements AppEventDispatcher {
       !indexerPageMeta
     ) {
       await this.indexPage(pageState.editorState.sliceDoc(), pageState.meta);
+    }
+
+    if (checkNewVersion) {
+      // Loaded page from in-memory cache, let's async see if this page hasn't been updated
+      this.checkForNewVersion(pageState.meta).catch((e) => {
+        console.error("Failed to check for new version");
+      });
     }
   }
 

@@ -1,0 +1,77 @@
+@use "editor.scss";
+@use "filter_box.scss";
+
+:root {
+  --ident: 18px;
+  /* --editor-font: "Avenir"; */
+  --editor-font: "Menlo";
+  --ui-font: "Arial";
+  --top-bar-bg: rgb(41, 41, 41);
+  --highlight-color: #464cfc;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#top {
+  height: 55px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgb(213, 213, 213);
+  border-bottom: rgb(193, 193, 193) 1px solid;
+  color: rgb(55, 55, 55);
+
+  .inner {
+    padding-top: 12px;
+    max-width: 800px;
+    font-size: 28px;
+    margin: auto;
+  }
+
+  .current-page {
+    font-family: var(--ui-font);
+    font-weight: bold;
+  }
+
+  .icon {
+    padding-left: 5px;
+    padding-right: 10px;
+  }
+}
+
+#bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background-color: rgb(232, 232, 232);
+  color: rgb(79, 78, 78);
+  border-top: rgb(186, 186, 186) 1px solid;
+  margin: 0;
+  padding: 5px 10px;
+  font-family: var(--ui-font);
+  font-size: 0.9em;
+  text-align: right;
+}
+
+#editor {
+  position: absolute;
+  top: 60px;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  overflow-y: hidden;
+}
+
+@media only screen and (max-width: 800px) {
+  .cm-editor .cm-content {
+    margin: 0 10px !important;
+  }
+}

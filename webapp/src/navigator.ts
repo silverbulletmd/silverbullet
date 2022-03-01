@@ -17,7 +17,6 @@ function decodePageUrl(url: string): string {
 export class PathPageNavigator implements IPageNavigator {
   navigationResolve?: (value: undefined) => void;
   async navigate(page: string) {
-    console.log("Pushing state", page);
     window.history.pushState({ page: page }, page, `/${encodePageUrl(page)}`);
     window.dispatchEvent(new PopStateEvent("popstate"));
     await new Promise<undefined>((resolve) => {
@@ -27,7 +26,10 @@ export class PathPageNavigator implements IPageNavigator {
   }
   subscribe(pageLoadCallback: (pageName: string) => Promise<void>): void {
     const cb = () => {
-      console.log("State popped", this.getCurrentPage());
+      const gotoPage = this.getCurrentPage();
+      if (!gotoPage) {
+        return;
+      }
       safeRun(async () => {
         await pageLoadCallback(this.getCurrentPage());
         if (this.navigationResolve) {

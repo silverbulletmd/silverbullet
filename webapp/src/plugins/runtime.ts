@@ -18,7 +18,7 @@ export class FunctionWorker {
     //   type: "classic",
     // });
     let worker = window.Worker;
-    this.worker = new worker("function_worker.js");
+    this.worker = new worker("/function_worker.js");
 
     // console.log("Starting worker", this.worker);
     this.worker.onmessage = this.onmessage.bind(this);

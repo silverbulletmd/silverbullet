@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
 export interface Option {
   name: string;
@@ -16,17 +18,23 @@ function magicSorter(a: Option, b: Option): number {
 export function FilterList({
   placeholder,
   options,
+  label,
   onSelect,
   onKeyPress,
   allowNew = false,
+  helpText = "",
+  icon,
   newHint,
 }: {
   placeholder: string;
   options: Option[];
+  label: string;
   onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: Option | undefined) => void;
   allowNew?: boolean;
+  helpText: string;
   newHint?: string;
+  icon?: IconDefinition;
 }) {
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
@@ -81,40 +89,45 @@ export function FilterList({
     };
   }, []);
 
-  const returEl = (
-    <div className="filter-container">
-      <input
-        type="text"
-        value={text}
-        placeholder={placeholder}
-        ref={searchBoxRef}
-        onChange={filter}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          console.log("Key up", e.key);
-          if (onKeyPress) {
-            onKeyPress(e.key, text);
-          }
-          switch (e.key) {
-            case "ArrowUp":
-              setSelectionOption(Math.max(0, selectedOption - 1));
-              break;
-            case "ArrowDown":
-              setSelectionOption(
-                Math.min(matchingOptions.length - 1, selectedOption + 1)
-              );
-              break;
-            case "Enter":
-              onSelect(matchingOptions[selectedOption]);
-              e.preventDefault();
-              break;
-            case "Escape":
-              onSelect(undefined);
-              break;
-          }
-        }}
-        className="input"
-      />
-
+  const returnEl = (
+    <div className="filter-box">
+      <div className="header">
+        <label>{label}</label>
+        <input
+          type="text"
+          value={text}
+          placeholder={placeholder}
+          ref={searchBoxRef}
+          onChange={filter}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            console.log("Key up", e.key);
+            if (onKeyPress) {
+              onKeyPress(e.key, text);
+            }
+            switch (e.key) {
+              case "ArrowUp":
+                setSelectionOption(Math.max(0, selectedOption - 1));
+                break;
+              case "ArrowDown":
+                setSelectionOption(
+                  Math.min(matchingOptions.length - 1, selectedOption + 1)
+                );
+                break;
+              case "Enter":
+                onSelect(matchingOptions[selectedOption]);
+                e.preventDefault();
+                break;
+              case "Escape":
+                onSelect(undefined);
+                break;
+            }
+          }}
+        />
+      </div>
+      <div
+        className="help-text"
+        dangerouslySetInnerHTML={{ __html: helpText }}
+      ></div>
       <div className="result-list">
         {matchingOptions && matchingOptions.length > 0
           ? matchingOptions.map((option, idx) => (
@@ -132,7 +145,10 @@ export function FilterList({
                   onSelect(option);
                 }}
               >
-                <span className="user-name">{option.name}</span>
+                <span className="icon">
+                  {icon && <FontAwesomeIcon icon={icon} />}
+                </span>
+                <span className="name">{option.name}</span>
                 {option.hint && <span className="hint">{option.hint}</span>}
               </div>
             ))
@@ -147,5 +163,5 @@ export function FilterList({
     });
   });
 
-  return returEl;
+  return returnEl;
 }

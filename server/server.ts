@@ -89,8 +89,8 @@ fsRouter.put("/:page(.*)", async (context) => {
   const text = await readAll(result.value);
   file.write(text);
   file.close();
-  const stat = await Deno.stat(localPath);
   console.log("Wrote to", localPath);
+  const stat = await Deno.stat(localPath);
   context.response.status = existingPage ? 200 : 201;
   context.response.headers.set("Last-Modified", "" + stat.mtime?.getTime());
   context.response.body = "OK";

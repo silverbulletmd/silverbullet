@@ -10,6 +10,7 @@ export interface Space {
 
 export class HttpRemoteSpace implements Space {
   url: string;
+
   constructor(url: string) {
     this.url = url;
   }

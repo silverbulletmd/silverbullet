@@ -1,0 +1,120 @@
+.cm-editor {
+  width: 100%;
+  height: 100%;
+  font-size: var(--ident);
+
+  .cm-content {
+    font-family: var(--editor-font);
+    margin: auto;
+    max-width: 800px;
+  }
+
+  .cm-selectionBackground {
+    background-color: #d7e1f6 !important;
+  }
+
+  .h1 {
+    font-size: 1.5em;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .cm-line.line-h1 {
+    display: block;
+    background-color: rgba(0, 15, 52, 0.6);
+  }
+
+  .h1.meta {
+    color: orange;
+  }
+
+  .h2 {
+    font-size: 1.2em;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .cm-line.line-h2 {
+    display: block;
+    background-color: rgba(0, 15, 52, 0.6);
+  }
+
+  .h2.meta {
+    color: orange;
+  }
+
+  /* Color list item this way */
+  .line-li .meta {
+    color: rgb(0, 123, 19);
+  }
+  /* Then undo other meta */
+  .line-li .meta ~ .meta {
+    color: #650007;
+  }
+
+  .line-code {
+    background-color: #efefef;
+    margin-left: 30px;
+  }
+
+  .line-fenced-code {
+    background-color: #efefef;
+  }
+
+  .meta {
+    color: #650007;
+  }
+
+  .line-blockquote {
+    background-color: #eee;
+    color: #676767;
+    text-indent: calc(-1 * (var(--ident) + 3px));
+    padding-left: var(--ident);
+  }
+
+  .emphasis {
+    font-style: italic;
+  }
+
+  .strong {
+    font-weight: 900;
+  }
+
+  .link:not(.meta, .url) {
+    color: #0330cb;
+    text-decoration: underline;
+  }
+
+  .link.url {
+    color: #7e7d7d;
+  }
+  .url:not(.link) {
+    color: #0330cb;
+    text-decoration: underline;
+  }
+
+  .wiki-link-page {
+    color: #0330cb;
+    text-decoration: underline;
+  }
+  .wiki-link {
+    color: #808080;
+  }
+
+  .mention {
+    color: gray;
+  }
+
+  .tag {
+    color: #8d8d8d;
+  }
+
+  .line-li {
+    text-indent: calc(-1 * var(--ident) - 3px);
+    margin-left: var(--ident);
+  }
+
+  .task-marker {
+    background-color: #ddd;
+  }
+}

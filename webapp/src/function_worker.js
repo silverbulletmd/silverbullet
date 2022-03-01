@@ -43,8 +43,8 @@ self.addEventListener("message", (event) => {
     let data = messageEvent.data;
     switch (data.type) {
       case "boot":
-        console.log("Booting", `./${data.prefix}/function/${data.name}`);
-        importScripts(`./${data.prefix}/function/${data.name}`);
+        console.log("Booting", `${data.prefix}/function/${data.name}`);
+        importScripts(`${data.prefix}/function/${data.name}`);
         self.postMessage({
           type: "inited",
         });

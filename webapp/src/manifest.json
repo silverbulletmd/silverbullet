@@ -1,0 +1,17 @@
+{
+  "short_name": "Nugget",
+  "name": "Nugget",
+  "icons": [
+    {
+      "src": "./images/logo.png",
+      "type": "image/png",
+      "sizes": "1024x1024"
+    }
+  ],
+  "capture_links": "new-client",
+  "start_url": "/start",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000",
+  "description": "Note taking for winners"
+}

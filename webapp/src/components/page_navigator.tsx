@@ -1,5 +1,6 @@
 import { PageMeta } from "../types";
 import { FilterList, Option } from "./filter";
+import { faFileLines } from "@fortawesome/free-solid-svg-icons";
 
 export function PageNavigator({
   allPages,
@@ -28,9 +29,12 @@ export function PageNavigator({
   }
   return (
     <FilterList
-      placeholder=""
+      placeholder="Page"
+      label="Open"
       options={options}
+      icon={faFileLines}
       allowNew={true}
+      helpText="Start typing the page name to filter results, press <code>Return</code> to open."
       newHint="Create page"
       onSelect={(opt) => {
         onNavigate(opt?.name);

@@ -46,6 +46,7 @@ export class BrowserSystem extends System {
       new URL("../plugin_sw.ts", import.meta.url),
       {
         type: "module",
+        scope: "/",
       }
     );
 
