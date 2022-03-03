@@ -16,13 +16,29 @@
   border-radius: 8px;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 
-  label {
-    color: var(--highlight-color);
-  }
-
   .header {
     border-bottom: 1px rgb(108, 108, 108) solid;
     padding: 13px 10px 10px 10px;
+    display: flex;
+    label {
+      color: var(--highlight-color);
+      margin: 3px;
+    }
+
+    input {
+      font-family: "Arial";
+      background: transparent;
+      color: #000;
+      border: 0;
+      padding: 3px;
+      outline: 0;
+      font-size: 1em;
+      flex-grow: 100;
+    }
+    input::placeholder {
+      color: rgb(199, 199, 199);
+      font-weight: normal;
+    }
   }
 
   .help-text {
@@ -43,21 +59,6 @@
     .name {
       padding-top: -3px;
     }
-  }
-
-  input {
-    font-family: "Arial";
-    background: transparent;
-    color: #000;
-    border: 0;
-    padding: 3px;
-    outline: 0;
-    font-size: 1em;
-  }
-
-  input::placeholder {
-    color: rgb(199, 199, 199);
-    font-weight: normal;
   }
 
   .option,

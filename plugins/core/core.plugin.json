@@ -1,8 +1,5 @@
 {
   "commands": {
-    "Count Words": {
-      "invoke": "word_count_command"
-    },
     "Navigate To page": {
       "invoke": "linkNavigate",
       "key": "Ctrl-Enter",
@@ -67,9 +64,6 @@
     },
     "taskToggle": {
       "path": "./task.ts:taskToggle"
-    },
-    "word_count_command": {
-      "path": "./word_count_command.ts:wordCount"
     },
     "insertToday": {
       "path": "./dates.ts:insertToday"

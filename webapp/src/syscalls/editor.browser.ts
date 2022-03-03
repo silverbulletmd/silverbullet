@@ -127,7 +127,7 @@ export default (editor: Editor) => ({
   "editor.dispatch": (change: Transaction) => {
     editor.editorView!.dispatch(change);
   },
-  "editor.prompt": (message: string): string | null => {
-    return prompt(message);
+  "editor.prompt": (message: string, defaultValue = ""): string | null => {
+    return prompt(message, defaultValue);
   },
 });

@@ -29,9 +29,15 @@ export async function deletePage() {
 }
 
 export async function renamePage() {
+  // console.log("HELLO WORLD");
   const pageMeta = await syscall("editor.getCurrentPage");
   const oldName = pageMeta.name;
-  const newName = await syscall("editor.prompt", `Rename ${oldName} to:`);
+  console.log("Old name is", oldName);
+  const newName = await syscall(
+    "editor.prompt",
+    `Rename ${oldName} to:`,
+    oldName
+  );
   if (!newName) {
     return;
   }

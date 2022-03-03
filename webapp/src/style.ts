@@ -4,6 +4,7 @@ import * as ct from "./customtags";
 export default HighlightStyle.define([
   { tag: t.heading1, class: "h1" },
   { tag: t.heading2, class: "h2" },
+  { tag: t.heading3, class: "h3" },
   { tag: t.link, class: "link" },
   { tag: t.meta, class: "meta" },
   { tag: t.quote, class: "quote" },
@@ -15,6 +16,8 @@ export default HighlightStyle.define([
   { tag: ct.MentionTag, class: "mention" },
   { tag: ct.TaskTag, class: "task" },
   { tag: ct.TaskMarkerTag, class: "task-marker" },
+  { tag: ct.CommentTag, class: "comment" },
+  { tag: ct.CommentMarkerTag, class: "comment-marker" },
   { tag: t.emphasis, class: "emphasis" },
   { tag: t.strong, class: "strong" },
   { tag: t.atom, class: "atom" },

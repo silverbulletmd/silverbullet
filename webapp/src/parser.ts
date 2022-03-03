@@ -1,5 +1,11 @@
 import { styleTags, tags as t } from "@codemirror/highlight";
-import { MarkdownConfig, TaskList } from "@lezer/markdown";
+import {
+  MarkdownConfig,
+  TaskList,
+  BlockContext,
+  LeafBlock,
+  LeafBlockParser,
+} from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
 import { pageLinkRegex } from "./constant";
@@ -77,6 +83,35 @@ const UnmarkedUrl: MarkdownConfig = {
   ],
 };
 
+class CommentParser implements LeafBlockParser {
+  nextLine() {
+    return false;
+  }
+
+  finish(cx: BlockContext, leaf: LeafBlock) {
+    cx.addLeafElement(
+      leaf,
+      cx.elt("Comment", leaf.start, leaf.start + leaf.content.length, [
+        // cx.elt("CommentMarker", leaf.start, leaf.start + 3),
+        ...cx.parser.parseInline(leaf.content.slice(3), leaf.start + 3),
+      ])
+    );
+    return true;
+  }
+}
+export const Comment: MarkdownConfig = {
+  defineNodes: [{ name: "Comment", block: true }],
+  parseBlock: [
+    {
+      name: "Comment",
+      leaf(cx, leaf) {
+        return /^%%\s/.test(leaf.content) ? new CommentParser() : null;
+      },
+      after: "SetextHeading",
+    },
+  ],
+};
+
 const TagLink: MarkdownConfig = {
   defineNodes: ["TagLink"],
   parseInline: [
@@ -102,6 +137,7 @@ const WikiMarkdown = commonmark.configure([
   TagLink,
   TaskList,
   UnmarkedUrl,
+  Comment,
   {
     props: [
       styleTags({
@@ -112,6 +148,8 @@ const WikiMarkdown = commonmark.configure([
         Task: ct.TaskTag,
         TaskMarker: ct.TaskMarkerTag,
         Url: t.url,
+        Comment: ct.CommentTag,
+        // CommentMarker: ct.CommentMarkerTag,
       }),
     ],
   },

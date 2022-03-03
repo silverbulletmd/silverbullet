@@ -8,7 +8,6 @@ import {
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
-import { indentOnInput, syntaxTree } from "@codemirror/language";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
 import { EditorState, StateField, Transaction } from "@codemirror/state";
@@ -20,24 +19,31 @@ import {
   KeyBinding,
   keymap,
 } from "@codemirror/view";
+
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import coreManifest from "../../plugins/dist/core.plugin.json";
+import coreManifest from "./generated/core.plugin.json";
+// @ts-ignore
+window.coreManifest = coreManifest;
+import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
-import { NavigationBar } from "./components/navigation_bar";
 import { PageNavigator } from "./components/page_navigator";
 import { StatusBar } from "./components/status_bar";
-import { Space } from "./space";
+import { TopBar } from "./components/top_bar";
+import { Indexer } from "./indexer";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
+import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import { BrowserSystem } from "./plugins/browser_system";
-import { Manifest, slashCommandRegexp } from "./plugins/types";
+import { Plugin } from "./plugins/runtime";
+import { slashCommandRegexp } from "./plugins/types";
 import reducer from "./reducer";
+import { smartQuoteKeymap } from "./smart_quotes";
+import { Space } from "./space";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
-import { Plugin } from "./plugins/runtime";
 import editorSyscalls from "./syscalls/editor.browser";
 import indexerSyscalls from "./syscalls/indexer.native";
 import spaceSyscalls from "./syscalls/space.native";
@@ -48,16 +54,7 @@ import {
   initialViewState,
   PageMeta,
 } from "./types";
-import {
-  AppEvent,
-  AppEventDispatcher,
-  ClickEvent,
-  IndexEvent,
-} from "./app_event";
 import { safeRun } from "./util";
-import { Indexer } from "./indexer";
-import { IPageNavigator, PathPageNavigator } from "./navigator";
-import { smartQuoteKeymap } from "./smart_quotes";
 
 class PageState {
   editorState: EditorState;
@@ -203,7 +200,7 @@ export class Editor implements AppEventDispatcher {
         history(),
         drawSelection(),
         dropCursor(),
-        indentOnInput(),
+        // indentOnInput(),
         customMarkdownStyle,
         bracketMatching(),
         closeBrackets(),
@@ -217,10 +214,12 @@ export class Editor implements AppEventDispatcher {
         lineWrapper([
           { selector: "ATXHeading1", class: "line-h1" },
           { selector: "ATXHeading2", class: "line-h2" },
-          { selector: "ListItem", class: "line-li" },
+          { selector: "ATXHeading3", class: "line-h3" },
+          { selector: "ListItem", class: "line-li", nesting: true },
           { selector: "Blockquote", class: "line-blockquote" },
           { selector: "CodeBlock", class: "line-code" },
           { selector: "FencedCode", class: "line-fenced-code" },
+          { selector: "Comment", class: "line-comment" },
         ]),
         keymap.of([
           ...smartQuoteKeymap,
@@ -535,7 +534,7 @@ export class Editor implements AppEventDispatcher {
             commands={viewState.commands}
           />
         )}
-        <NavigationBar
+        <TopBar
           currentPage={viewState.currentPage}
           onClick={() => {
             dispatch({ type: "start-navigate" });
