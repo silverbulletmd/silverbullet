@@ -1,4 +1,4 @@
-import { Manifest } from "../../plugbox/src/types";
+import { Manifest } from "./types";
 
 import { openDB } from "idb";
 

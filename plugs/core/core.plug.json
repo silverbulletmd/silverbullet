@@ -1,41 +1,43 @@
 {
-  "commands": {
-    "Navigate To page": {
-      "invoke": "linkNavigate",
-      "key": "Ctrl-Enter",
-      "mac": "Cmd-Enter"
+  "hooks": {
+    "commands": {
+      "Navigate To page": {
+        "invoke": "linkNavigate",
+        "key": "Ctrl-Enter",
+        "mac": "Cmd-Enter"
+      },
+      "Insert Current Date": {
+        "invoke": "insertToday",
+        "slashCommand": "today"
+      },
+      "Toggle : Heading 1": {
+        "invoke": "toggle_h1",
+        "mac": "Cmd-1",
+        "key": "Ctrl-1"
+      },
+      "Toggle : Heading 2": {
+        "invoke": "toggle_h2",
+        "mac": "Cmd-2",
+        "key": "Ctrl-2"
+      },
+      "Page: Delete": {
+        "invoke": "deletePage"
+      },
+      "Page: Rename": {
+        "invoke": "renamePage"
+      },
+      "Pages: Reindex": {
+        "invoke": "reindexPages"
+      },
+      "Pages: Back Links": {
+        "invoke": "showBackLinks"
+      }
     },
-    "Insert Current Date": {
-      "invoke": "insertToday",
-      "slashCommand": "/today"
-    },
-    "Toggle : Heading 1": {
-      "invoke": "toggle_h1",
-      "mac": "Cmd-1",
-      "key": "Ctrl-1"
-    },
-    "Toggle : Heading 2": {
-      "invoke": "toggle_h2",
-      "mac": "Cmd-2",
-      "key": "Ctrl-2"
-    },
-    "Page: Delete": {
-      "invoke": "deletePage"
-    },
-    "Page: Rename": {
-      "invoke": "renamePage"
-    },
-    "Pages: Reindex": {
-      "invoke": "reindexPages"
-    },
-    "Pages: Back Links": {
-      "invoke": "showBackLinks"
+    "events": {
+      "page:click": ["taskToggle", "clickNavigate"],
+      "editor:complete": ["pageComplete"],
+      "page:index": ["indexLinks"]
     }
-  },
-  "events": {
-    "page:click": ["taskToggle", "clickNavigate"],
-    "editor:complete": ["pageComplete"],
-    "page:index": ["indexLinks"]
   },
   "functions": {
     "indexLinks": {

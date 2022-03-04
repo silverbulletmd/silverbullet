@@ -11,9 +11,9 @@ export class FunctionWorker {
   private initCallback: any;
   private invokeResolve?: (result?: any) => void;
   private invokeReject?: (reason?: any) => void;
-  private plugin: Plugin;
+  private plugin: Plugin<any>;
 
-  constructor(plugin: Plugin, pathPrefix: string, name: string) {
+  constructor(plugin: Plugin<any>, pathPrefix: string, name: string) {
     let worker = window.Worker;
     this.worker = new worker("/function_worker.js");
 
@@ -76,25 +76,25 @@ export class FunctionWorker {
   }
 }
 
-export interface PluginLoader {
-  load(name: string, manifest: Manifest): Promise<void>;
+export interface PluginLoader<HookT> {
+  load(name: string, manifest: Manifest<HookT>): Promise<void>;
 }
 
-export class Plugin {
+export class Plugin<HookT> {
   pathPrefix: string;
-  system: System;
+  system: System<HookT>;
   private runningFunctions: Map<string, FunctionWorker>;
-  public manifest?: Manifest;
+  public manifest?: Manifest<HookT>;
   private name: string;
 
-  constructor(system: System, pathPrefix: string, name: string) {
+  constructor(system: System<HookT>, pathPrefix: string, name: string) {
     this.name = name;
     this.pathPrefix = `${pathPrefix}/${name}`;
     this.system = system;
     this.runningFunctions = new Map<string, FunctionWorker>();
   }
 
-  async load(manifest: Manifest) {
+  async load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
     await this.system.pluginLoader.load(this.name, manifest);
     await this.dispatchEvent("load");
@@ -111,7 +111,7 @@ export class Plugin {
   }
 
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
-    let functionsToSpawn = this.manifest!.events[name];
+    let functionsToSpawn = this.manifest!.hooks.events[name];
     if (functionsToSpawn) {
       return await Promise.all(
         functionsToSpawn.map(
@@ -135,16 +135,16 @@ export class Plugin {
   }
 }
 
-export class System {
-  protected plugins: Map<string, Plugin>;
+export class System<HookT> {
+  protected plugins: Map<string, Plugin<HookT>>;
   protected pathPrefix: string;
   registeredSyscalls: SysCallMapping;
-  pluginLoader: PluginLoader;
+  pluginLoader: PluginLoader<HookT>;
 
-  constructor(PluginLoader: PluginLoader, pathPrefix: string) {
+  constructor(PluginLoader: PluginLoader<HookT>, pathPrefix: string) {
     this.pluginLoader = PluginLoader;
     this.pathPrefix = pathPrefix;
-    this.plugins = new Map<string, Plugin>();
+    this.plugins = new Map<string, Plugin<HookT>>();
     this.registeredSyscalls = {};
   }
 
@@ -167,7 +167,7 @@ export class System {
     return Promise.resolve(callback(...args));
   }
 
-  async load(name: string, manifest: Manifest): Promise<Plugin> {
+  async load(name: string, manifest: Manifest<HookT>): Promise<Plugin<HookT>> {
     const plugin = new Plugin(this, this.pathPrefix, name);
     await plugin.load(manifest);
     this.plugins.set(name, plugin);

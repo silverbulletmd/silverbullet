@@ -1,26 +1,12 @@
-export interface Manifest {
+export type EventHook = {
   events: { [key: string]: string[] };
-  commands: {
-    [key: string]: CommandDef;
-  };
+};
+
+export interface Manifest<HookT> {
+  hooks: HookT & EventHook;
   functions: {
     [key: string]: FunctionDef;
   };
-}
-
-export const slashCommandRegexp = /\/[\w\-]*/;
-
-export interface CommandDef {
-  // Function name to invoke
-  invoke: string;
-
-  // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-
-  // If to show in slash invoked menu and if so, with what label
-  // should match slashCommandRegexp
-  slashCommand?: string;
 }
 
 export interface FunctionDef {

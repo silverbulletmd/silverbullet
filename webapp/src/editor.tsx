@@ -23,6 +23,7 @@ import {
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import coreManifest from "./generated/core.plug.json";
+
 // @ts-ignore
 window.coreManifest = coreManifest;
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
@@ -38,7 +39,7 @@ import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import { BrowserSystem } from "./plugbox_browser/browser_system";
 import { Plugin } from "../../plugbox/src/runtime";
-import { slashCommandRegexp } from "../../plugbox/src/types";
+import { slashCommandRegexp } from "./types";
 
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
@@ -53,6 +54,7 @@ import {
   AppCommand,
   AppViewState,
   initialViewState,
+  NuggetHook,
   PageMeta,
 } from "./types";
 import { safeRun } from "./util";
@@ -78,7 +80,7 @@ export class Editor implements AppEventDispatcher {
   openPages: Map<string, PageState>;
   space: Space;
   editorCommands: Map<string, AppCommand>;
-  plugins: Plugin[];
+  plugins: Plugin<NuggetHook>[];
   indexer: Indexer;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
@@ -122,7 +124,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async loadPlugins() {
-    const system = new BrowserSystem("/plugin");
+    const system = new BrowserSystem<NuggetHook>("/plugin");
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
@@ -144,8 +146,8 @@ export class Editor implements AppEventDispatcher {
     });
   }
 
-  private buildCommands(plugin: Plugin) {
-    const cmds = plugin.manifest!.commands;
+  private buildCommands(plugin: Plugin<NuggetHook>) {
+    const cmds = plugin.manifest!.hooks.commands;
     for (let name in cmds) {
       let cmd = cmds[name];
       this.editorCommands.set(name, {

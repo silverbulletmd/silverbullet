@@ -1,12 +1,13 @@
+#!/usr/bin/env node
+
 import esbuild from "esbuild";
 import { readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { Manifest } from "../../webapp/src/plugins/types";
 
-async function compile(filePath: string, sourceMap: boolean) {
+async function compile(filePath, sourceMap) {
   let tempFile = "out.js";
   let js = await esbuild.build({
     entryPoints: [filePath],
@@ -25,11 +26,9 @@ async function compile(filePath: string, sourceMap: boolean) {
   return jsCode;
 }
 
-async function bundle(manifestPath: string, sourceMaps: boolean) {
+async function bundle(manifestPath, sourceMaps) {
   const rootPath = path.dirname(manifestPath);
-  const manifest = JSON.parse(
-    (await readFile(manifestPath)).toString()
-  ) as Manifest;
+  const manifest = JSON.parse((await readFile(manifestPath)).toString());
 
   for (let [name, def] of Object.entries(manifest.functions)) {
     let jsFunctionName = def.functionName,
@@ -53,8 +52,8 @@ async function run() {
     })
     .parse();
 
-  let generatedManifest = await bundle(args._[0] as string, !!args.debug);
-  writeFile(args._[1] as string, JSON.stringify(generatedManifest, null, 2));
+  let generatedManifest = await bundle(args._[0], !!args.debug);
+  writeFile(args._[1], JSON.stringify(generatedManifest, null, 2));
 }
 
 run().catch((e) => {

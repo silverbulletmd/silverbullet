@@ -2,14 +2,14 @@ import { PluginLoader, System } from "../../../plugbox/src/runtime";
 import { Manifest } from "../../../plugbox/src/types";
 import { sleep } from "../util";
 
-export class BrowserLoader implements PluginLoader {
+export class BrowserLoader<HookT> implements PluginLoader<HookT> {
   readonly pathPrefix: string;
 
   constructor(pathPrefix: string) {
     this.pathPrefix = pathPrefix;
   }
 
-  async load(name: string, manifest: Manifest): Promise<void> {
+  async load(name: string, manifest: Manifest<HookT>): Promise<void> {
     await fetch(`${this.pathPrefix}/${name}`, {
       method: "PUT",
       body: JSON.stringify(manifest),
@@ -17,7 +17,7 @@ export class BrowserLoader implements PluginLoader {
   }
 }
 
-export class BrowserSystem extends System {
+export class BrowserSystem<HookT> extends System<HookT> {
   constructor(pathPrefix: string) {
     super(new BrowserLoader(pathPrefix), pathPrefix);
   }
