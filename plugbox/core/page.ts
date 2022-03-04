@@ -1,6 +1,6 @@
-import { IndexEvent } from "../../webapp/src/app_event.ts";
-import { pageLinkRegex } from "../../webapp/src/constant.ts";
-import { syscall } from "./lib/syscall.ts";
+import { IndexEvent } from "../../webapp/src/app_event";
+import { pageLinkRegex } from "../../webapp/src/constant";
+import { syscall } from "./lib/syscall";
 
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");
 
@@ -29,7 +29,6 @@ export async function deletePage() {
 }
 
 export async function renamePage() {
-  // console.log("HELLO WORLD");
   const pageMeta = await syscall("editor.getCurrentPage");
   const oldName = pageMeta.name;
   console.log("Old name is", oldName);

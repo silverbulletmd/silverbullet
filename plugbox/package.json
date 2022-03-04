@@ -1,0 +1,22 @@
+{
+  "name": "plugbox",
+  "version": "1.0.0",
+  "type": "module",
+  "source": "src/bundle.ts",
+  "main": "dist/bundle.js",
+  "scripts": {
+    "build": "parcel build",
+    "core": "node dist/bundle.js --debug core/core.plugin.json ../webapp/src/generated/core.plugin.json"
+  },
+  "dependencies": {
+    "esbuild": "^0.14.24",
+    "typescript": ">=3.0.0",
+    "vm2": "^3.9.9",
+    "yargs": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.21",
+    "@types/yargs": "^17.0.9",
+    "parcel": "^2.3.2"
+  }
+}

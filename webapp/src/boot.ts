@@ -3,7 +3,7 @@ import { HttpRemoteSpace } from "./space";
 import { safeRun } from "./util";
 
 let editor = new Editor(
-  new HttpRemoteSpace(`http://${location.hostname}:2222/fs`),
+  new HttpRemoteSpace(`http://${location.hostname}:3000/fs`),
   document.getElementById("root")!
 );
 

@@ -268,6 +268,8 @@ export class Editor implements AppEventDispatcher {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
+              console.log("YO");
+
               this.viewDispatch({
                 type: "show-palette",
               });

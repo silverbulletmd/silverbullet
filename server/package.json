@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "license": "MIT",
+  "source": "src/server.ts",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "parcel build",
+    "watch": "parcel watch",
+    "start": "node dist/server.js",
+    "nodemon": "nodemon dist/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "typescript": "^4.6.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "nodemon": "^2.0.15",
+    "parcel": "^2.3.2"
+  }
+}
