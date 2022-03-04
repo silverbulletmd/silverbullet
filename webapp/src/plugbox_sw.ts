@@ -2,7 +2,7 @@ import { Manifest } from "./types";
 
 import { openDB } from "idb";
 
-const rootUrl = location.origin + "/plugin";
+const rootUrl = location.origin + "/plug";
 
 // Storing manifests in IndexedDB, y'all
 const db = openDB("manifests-store", undefined, {
@@ -64,13 +64,13 @@ self.addEventListener("fetch", (event: any) => {
           return await handlePut(req, path);
         }
 
-        let [pluginName, resourceType, functionName] = path.split("/");
+        let [plugName, resourceType, functionName] = path.split("/");
 
-        let manifest = await getManifest(pluginName);
+        let manifest = await getManifest(plugName);
 
         if (!manifest) {
-          // console.log("Ain't got", pluginName);
-          return new Response(`Plugin not loaded: ${pluginName}`, {
+          // console.log("Ain't got", plugName);
+          return new Response(`Plug not loaded: ${plugName}`, {
             status: 404,
           });
         }

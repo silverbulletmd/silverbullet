@@ -11,9 +11,9 @@ export class FunctionWorker {
   private initCallback: any;
   private invokeResolve?: (result?: any) => void;
   private invokeReject?: (reason?: any) => void;
-  private plugin: Plugin<any>;
+  private plug: Plug<any>;
 
-  constructor(plugin: Plugin<any>, pathPrefix: string, name: string) {
+  constructor(plug: Plug<any>, pathPrefix: string, name: string) {
     let worker = window.Worker;
     this.worker = new worker("/function_worker.js");
 
@@ -29,7 +29,7 @@ export class FunctionWorker {
     this.inited = new Promise((resolve) => {
       this.initCallback = resolve;
     });
-    this.plugin = plugin;
+    this.plug = plug;
   }
 
   async onmessage(evt: MessageEvent) {
@@ -40,7 +40,7 @@ export class FunctionWorker {
         this.initCallback();
         break;
       case "syscall":
-        let result = await this.plugin.system.syscall(data.name, data.args);
+        let result = await this.plug.system.syscall(data.name, data.args);
 
         this.worker.postMessage({
           type: "syscall-response",
@@ -76,11 +76,11 @@ export class FunctionWorker {
   }
 }
 
-export interface PluginLoader<HookT> {
+export interface PlugLoader<HookT> {
   load(name: string, manifest: Manifest<HookT>): Promise<void>;
 }
 
-export class Plugin<HookT> {
+export class Plug<HookT> {
   pathPrefix: string;
   system: System<HookT>;
   private runningFunctions: Map<string, FunctionWorker>;
@@ -96,7 +96,7 @@ export class Plugin<HookT> {
 
   async load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
-    await this.system.pluginLoader.load(this.name, manifest);
+    await this.system.plugLoader.load(this.name, manifest);
     await this.dispatchEvent("load");
   }
 
@@ -136,15 +136,15 @@ export class Plugin<HookT> {
 }
 
 export class System<HookT> {
-  protected plugins: Map<string, Plugin<HookT>>;
+  protected plugs: Map<string, Plug<HookT>>;
   protected pathPrefix: string;
   registeredSyscalls: SysCallMapping;
-  pluginLoader: PluginLoader<HookT>;
+  plugLoader: PlugLoader<HookT>;
 
-  constructor(PluginLoader: PluginLoader<HookT>, pathPrefix: string) {
-    this.pluginLoader = PluginLoader;
+  constructor(plugLoader: PlugLoader<HookT>, pathPrefix: string) {
+    this.plugLoader = plugLoader;
     this.pathPrefix = pathPrefix;
-    this.plugins = new Map<string, Plugin<HookT>>();
+    this.plugs = new Map<string, Plug<HookT>>();
     this.registeredSyscalls = {};
   }
 
@@ -167,16 +167,16 @@ export class System<HookT> {
     return Promise.resolve(callback(...args));
   }
 
-  async load(name: string, manifest: Manifest<HookT>): Promise<Plugin<HookT>> {
-    const plugin = new Plugin(this, this.pathPrefix, name);
-    await plugin.load(manifest);
-    this.plugins.set(name, plugin);
-    return plugin;
+  async load(name: string, manifest: Manifest<HookT>): Promise<Plug<HookT>> {
+    const plug = new Plug(this, this.pathPrefix, name);
+    await plug.load(manifest);
+    this.plugs.set(name, plug);
+    return plug;
   }
 
   async stop(): Promise<void[]> {
     return Promise.all(
-      Array.from(this.plugins.values()).map((plugin) => plugin.stop())
+      Array.from(this.plugs.values()).map((plug) => plug.stop())
     );
   }
 }

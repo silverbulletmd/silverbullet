@@ -6,7 +6,7 @@ window.addEventListener("message", async (event) => {
   let data = messageEvent.data;
   if (data.type === "iframe_event") {
     // @ts-ignore
-    window.mainPlugin.dispatchEvent(data.data.event, data.data.data);
+    window.mainPlug.dispatchEvent(data.data.event, data.data.data);
   }
 });
 

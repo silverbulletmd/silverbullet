@@ -1,8 +1,8 @@
-import { PluginLoader, System } from "../../../plugbox/src/runtime";
+import { PlugLoader, System } from "../../../plugbox/src/runtime";
 import { Manifest } from "../../../plugbox/src/types";
 import { sleep } from "../util";
 
-export class BrowserLoader<HookT> implements PluginLoader<HookT> {
+export class BrowserLoader<HookT> implements PlugLoader<HookT> {
   readonly pathPrefix: string;
 
   constructor(pathPrefix: string) {

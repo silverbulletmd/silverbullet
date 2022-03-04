@@ -38,7 +38,7 @@ import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import { BrowserSystem } from "./plugbox_browser/browser_system";
-import { Plugin } from "../../plugbox/src/runtime";
+import { Plug } from "../../plugbox/src/runtime";
 import { slashCommandRegexp } from "./types";
 
 import reducer from "./reducer";
@@ -80,7 +80,7 @@ export class Editor implements AppEventDispatcher {
   openPages: Map<string, PageState>;
   space: Space;
   editorCommands: Map<string, AppCommand>;
-  plugins: Plugin<NuggetHook>[];
+  plugs: Plug<NuggetHook>[];
   indexer: Indexer;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
@@ -88,7 +88,7 @@ export class Editor implements AppEventDispatcher {
   constructor(space: Space, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
-    this.plugins = [];
+    this.plugs = [];
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -104,7 +104,7 @@ export class Editor implements AppEventDispatcher {
 
   async init() {
     await this.loadPageList();
-    await this.loadPlugins();
+    await this.loadPlugs();
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName) => {
@@ -123,8 +123,8 @@ export class Editor implements AppEventDispatcher {
     }
   }
 
-  async loadPlugins() {
-    const system = new BrowserSystem<NuggetHook>("/plugin");
+  async loadPlugs() {
+    const system = new BrowserSystem<NuggetHook>("/plug");
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
@@ -133,12 +133,12 @@ export class Editor implements AppEventDispatcher {
     );
 
     await system.bootServiceWorker();
-    console.log("Now loading core plugin");
-    let mainPlugin = await system.load("core", coreManifest);
-    this.plugins.push(mainPlugin);
+    console.log("Now loading core plug");
+    let mainPlug = await system.load("core", coreManifest);
+    this.plugs.push(mainPlug);
     this.editorCommands = new Map<string, AppCommand>();
-    for (let plugin of this.plugins) {
-      this.buildCommands(plugin);
+    for (let plug of this.plugs) {
+      this.buildCommands(plug);
     }
     this.viewDispatch({
       type: "update-commands",
@@ -146,14 +146,14 @@ export class Editor implements AppEventDispatcher {
     });
   }
 
-  private buildCommands(plugin: Plugin<NuggetHook>) {
-    const cmds = plugin.manifest!.hooks.commands;
+  private buildCommands(plug: Plug<NuggetHook>) {
+    const cmds = plug.manifest!.hooks.commands;
     for (let name in cmds) {
       let cmd = cmds[name];
       this.editorCommands.set(name, {
         command: cmd,
         run: async (arg): Promise<any> => {
-          return await plugin.invoke(cmd.invoke, [arg]);
+          return await plug.invoke(cmd.invoke, [arg]);
         },
       });
     }
@@ -162,10 +162,10 @@ export class Editor implements AppEventDispatcher {
   // TODO: Parallelize?
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
     let results: any[] = [];
-    for (let plugin of this.plugins) {
-      let pluginResults = await plugin.dispatchEvent(name, data);
-      if (pluginResults) {
-        for (let result of pluginResults) {
+    for (let plug of this.plugs) {
+      let plugResults = await plug.dispatchEvent(name, data);
+      if (plugResults) {
+        for (let result of plugResults) {
           results.push(result);
         }
       }
@@ -209,7 +209,7 @@ export class Editor implements AppEventDispatcher {
         closeBrackets(),
         autocompletion({
           override: [
-            this.pluginCompleter.bind(this),
+            this.plugCompleter.bind(this),
             this.commandCompleter.bind(this),
           ],
         }),
@@ -304,7 +304,7 @@ export class Editor implements AppEventDispatcher {
     });
   }
 
-  async pluginCompleter(
+  async plugCompleter(
     ctx: CompletionContext
   ): Promise<CompletionResult | null> {
     let allCompletionResults = await this.dispatchAppEvent("editor:complete");
