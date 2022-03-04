@@ -1,4 +1,4 @@
-import { CommandDef } from "./plugins/types";
+import { CommandDef } from "../../plugbox/src/types";
 
 export type PageMeta = {
   name: string;

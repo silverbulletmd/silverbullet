@@ -1,12 +1,10 @@
-import { Manifest } from "./plugins/types";
+import { Manifest } from "../../plugbox/src/types";
 
-import { openDB, wrap, unwrap } from "idb";
+import { openDB } from "idb";
 
 const rootUrl = location.origin + "/plugin";
 
 // Storing manifests in IndexedDB, y'all
-let manifestCache = caches.open("manifests");
-
 const db = openDB("manifests-store", undefined, {
   upgrade(db) {
     db.createObjectStore("manifests");

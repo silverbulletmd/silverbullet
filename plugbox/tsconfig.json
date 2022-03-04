@@ -1,0 +1,11 @@
+{
+  "include": ["src/**/*", "../webapp/src/plugbox_browser/browser_system.ts"],
+  "compilerOptions": {
+    "target": "esnext",
+    "strict": true,
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  }
+}

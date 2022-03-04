@@ -1,5 +1,5 @@
-import { ClickEvent } from "../../webapp/src/app_event.ts";
-import { syscall } from "./lib/syscall.ts";
+import { ClickEvent } from "../../webapp/src/app_event";
+import { syscall } from "./lib/syscall";
 
 export async function taskToggle(event: ClickEvent) {
   let syntaxNode = await syscall("editor.getSyntaxNodeAtPos", event.pos);

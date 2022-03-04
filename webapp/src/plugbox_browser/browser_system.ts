@@ -1,5 +1,5 @@
-import { PluginLoader, System } from "./runtime";
-import { Manifest } from "./types";
+import { PluginLoader, System } from "../../../plugbox/src/runtime";
+import { Manifest } from "../../../plugbox/src/types";
 import { sleep } from "../util";
 
 export class BrowserLoader implements PluginLoader {
@@ -43,7 +43,7 @@ export class BrowserSystem extends System {
   async bootServiceWorker() {
     // @ts-ignore
     let reg = navigator.serviceWorker.register(
-      new URL("../plugin_sw.ts", import.meta.url),
+      new URL("../plugbox_sw.ts", import.meta.url),
       {
         type: "module",
         scope: "/",

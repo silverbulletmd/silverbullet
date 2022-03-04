@@ -1,4 +1,4 @@
-import { syscall } from "./lib/syscall.ts";
+import { syscall } from "./lib/syscall";
 
 export async function toggleH1() {
   await togglePrefix("# ");

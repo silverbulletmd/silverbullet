@@ -19,9 +19,20 @@
     "@parcel/validator-typescript": "^2.3.2",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
+    "assert": "^2.0.0",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "events": "^3.3.0",
+    "os-browserify": "^0.3.0",
     "parcel": "^2.3.2",
+    "path-browserify": "^1.0.1",
+    "querystring-es3": "^0.2.1",
+    "stream-browserify": "^3.0.0",
+    "tty-browserify": "^0.0.1",
     "typescript": ">=3.0.0",
-    "uglify-js": "^3.15.1"
+    "uglify-js": "^3.15.1",
+    "url": "^0.11.0",
+    "util": "^0.12.4"
   },
   "resolutions": {
     "@lezer/common": "git://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c"

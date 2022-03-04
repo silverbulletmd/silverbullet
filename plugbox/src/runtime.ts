@@ -14,9 +14,6 @@ export class FunctionWorker {
   private plugin: Plugin;
 
   constructor(plugin: Plugin, pathPrefix: string, name: string) {
-    // this.worker = new Worker(new URL("function_worker.ts", import.meta.url), {
-    //   type: "classic",
-    // });
     let worker = window.Worker;
     this.worker = new worker("/function_worker.js");
 

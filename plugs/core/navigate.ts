@@ -1,5 +1,5 @@
-import { ClickEvent } from "../../webapp/src/app_event.ts";
-import { syscall } from "./lib/syscall.ts";
+import { ClickEvent } from "../../webapp/src/app_event";
+import { syscall } from "./lib/syscall";
 
 async function navigate(syntaxNode: any) {
   if (!syntaxNode) {

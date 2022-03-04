@@ -6,7 +6,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../../webapp/src/plugins/types";
 
-async function compile(filePath: string, sourceMap: string) {
+async function compile(filePath: string, sourceMap: boolean) {
   let tempFile = "out.js";
   let js = await esbuild.build({
     entryPoints: [filePath],
@@ -25,7 +25,7 @@ async function compile(filePath: string, sourceMap: string) {
   return jsCode;
 }
 
-async function bundle(manifestPath, sourceMaps) {
+async function bundle(manifestPath: string, sourceMaps: boolean) {
   const rootPath = path.dirname(manifestPath);
   const manifest = JSON.parse(
     (await readFile(manifestPath)).toString()
@@ -53,7 +53,7 @@ async function run() {
     })
     .parse();
 
-  let generatedManifest = await bundle(args._[0], !!args.debug);
+  let generatedManifest = await bundle(args._[0] as string, !!args.debug);
   writeFile(args._[1] as string, JSON.stringify(generatedManifest, null, 2));
 }
 

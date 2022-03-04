@@ -6,10 +6,11 @@
   "main": "dist/bundle.js",
   "scripts": {
     "build": "parcel build",
-    "core": "node dist/bundle.js --debug core/core.plugin.json ../webapp/src/generated/core.plugin.json"
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "esbuild": "^0.14.24",
+    "idb": "^7.0.0",
     "typescript": ">=3.0.0",
     "vm2": "^3.9.9",
     "yargs": "^17.3.1"

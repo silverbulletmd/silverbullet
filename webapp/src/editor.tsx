@@ -22,7 +22,7 @@ import {
 
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import coreManifest from "./generated/core.plugin.json";
+import coreManifest from "./generated/core.plug.json";
 // @ts-ignore
 window.coreManifest = coreManifest;
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
@@ -36,9 +36,10 @@ import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
-import { BrowserSystem } from "./plugins/browser_system";
-import { Plugin } from "./plugins/runtime";
-import { slashCommandRegexp } from "./plugins/types";
+import { BrowserSystem } from "./plugbox_browser/browser_system";
+import { Plugin } from "../../plugbox/src/runtime";
+import { slashCommandRegexp } from "../../plugbox/src/types";
+
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { Space } from "./space";
