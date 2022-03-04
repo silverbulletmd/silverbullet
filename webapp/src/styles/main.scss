@@ -19,7 +19,7 @@ body {
 
 #top {
   height: 55px;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -46,7 +46,7 @@ body {
 }
 
 #bottom {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
@@ -60,6 +60,10 @@ body {
   font-size: 0.9em;
   text-align: right;
 }
+
+// body.keyboard #bottom {
+//   bottom: 250px;
+// }
 
 #editor {
   position: absolute;

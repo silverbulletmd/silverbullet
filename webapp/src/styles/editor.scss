@@ -109,29 +109,69 @@
     background-color: #efefef;
   }
 
-  .line-li-1 {
-    text-indent: -2ch;
-    padding-left: 2ch;
+  // Indentation of follow-up lines
+  @mixin lineOverflow($baseIndent) {
+    text-indent: -1 * ($baseIndent + 2ch);
+    padding-left: $baseIndent + 2ch;
+
+    &.line-task {
+      text-indent: -1 * ($baseIndent + 6ch);
+      padding-left: $baseIndent + 6ch;
+    }
+
+    &.line-blockquote {
+      text-indent: -1 * ($baseIndent + 4ch);
+      padding-left: $baseIndent + 4ch;
+    }
   }
 
-  .line-li-1.line-li-2 {
-    text-indent: -4ch;
-    padding-left: 4ch;
+  .line-ul {
+    &.line-li-1 {
+      @include lineOverflow(0);
+    }
+
+    &.line-li-1.line-li-2 {
+      @include lineOverflow(2);
+    }
+
+    &.line-li-1.line-li-2.line-li-3 {
+      @include lineOverflow(4);
+    }
+
+    &.line-li-1.line-li-2.line-li-3.line-li-4 {
+      @include lineOverflow(6);
+    }
+
+    &.line-li-1.line-li-2.line-li-3.line-li-4.line-li-5 {
+      @include lineOverflow(8);
+    }
   }
 
-  .line-li-1.line-li-2.line-li-3 {
-    text-indent: -6ch;
-    padding-left: 6ch;
+  .line-ol {
+    &.line-li-1 {
+      @include lineOverflow(1);
+    }
+
+    &.line-li-1.line-li-2 {
+      @include lineOverflow(2);
+    }
+
+    &.line-li-1.line-li-2.line-li-3 {
+      @include lineOverflow(4);
+    }
+
+    &.line-li-1.line-li-2.line-li-3.line-li-4 {
+      @include lineOverflow(6);
+    }
+
+    &.line-li-1.line-li-2.line-li-3.line-li-4.line-li-5 {
+      @include lineOverflow(8);
+    }
   }
 
-  .line-li-1.line-li-2.line-li-3.line-li-4 {
-    text-indent: -8ch;
-    padding-left: 8ch;
-  }
-
-  .line-li-1.line-li-2.line-li-3.line-li-4.line-li-5 {
-    text-indent: -10ch;
-    padding-left: 10ch;
+  .line-comment {
+    text-indent: -1 * 3ch;
+    padding-left: 3ch;
   }
 
   .task-marker {

@@ -220,9 +220,12 @@ export class Editor implements AppEventDispatcher {
           { selector: "ATXHeading3", class: "line-h3" },
           { selector: "ListItem", class: "line-li", nesting: true },
           { selector: "Blockquote", class: "line-blockquote" },
+          { selector: "Task", class: "line-task" },
           { selector: "CodeBlock", class: "line-code" },
           { selector: "FencedCode", class: "line-fenced-code" },
           { selector: "Comment", class: "line-comment" },
+          { selector: "BulletList", class: "line-ul" },
+          { selector: "OrderedList", class: "line-ol" },
         ]),
         keymap.of([
           ...smartQuoteKeymap,
@@ -292,6 +295,17 @@ export class Editor implements AppEventDispatcher {
               await this.dispatchAppEvent("page:click", clickEvent);
             });
           },
+          // focus: (event: FocusEvent, view: EditorView) => {
+          //   console.log("Got focus");
+          //   document.body.classList.add("keyboard");
+          // },
+          // blur: (event: FocusEvent, view: EditorView) => {
+          //   console.log("Lost focus");
+          //   document.body.classList.remove("keyboard");
+          // },
+          // focusout: (event: FocusEvent, view: EditorView) => {
+          //   window.scrollTo(0, 0);
+          // },
         }),
         markdown({
           base: customMarkDown,

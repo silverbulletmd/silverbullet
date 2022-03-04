@@ -149,7 +149,6 @@ const WikiMarkdown = commonmark.configure([
         TaskMarker: ct.TaskMarkerTag,
         Url: t.url,
         Comment: ct.CommentTag,
-        // CommentMarker: ct.CommentMarkerTag,
       }),
     ],
   },
