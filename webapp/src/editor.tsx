@@ -43,7 +43,7 @@ import { slashCommandRegexp } from "./types";
 
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { Space } from "./space";
+import { HttpRemoteSpace } from "./space";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
 import editorSyscalls from "./syscalls/editor.browser";
@@ -78,14 +78,14 @@ export class Editor implements AppEventDispatcher {
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   openPages: Map<string, PageState>;
-  space: Space;
+  space: HttpRemoteSpace;
   editorCommands: Map<string, AppCommand>;
   plugs: Plug<NuggetHook>[];
   indexer: Indexer;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
 
-  constructor(space: Space, parent: Element) {
+  constructor(space: HttpRemoteSpace, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
     this.plugs = [];

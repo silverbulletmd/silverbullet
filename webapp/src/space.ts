@@ -1,4 +1,7 @@
 import { PageMeta } from "./types";
+import { Socket } from "socket.io-client";
+import { serverEvents } from "../../server/src/events";
+import { EventEmitter } from "events";
 
 export interface Space {
   listPages(): Promise<PageMeta[]>;
@@ -10,9 +13,15 @@ export interface Space {
 
 export class HttpRemoteSpace implements Space {
   url: string;
+  socket: Socket;
 
-  constructor(url: string) {
+  constructor(url: string, socket: Socket) {
     this.url = url;
+    this.socket = socket;
+
+    socket.on("connect", () => {
+      console.log("connected via SocketIO", serverEvents.pageText);
+    });
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -24,6 +33,13 @@ export class HttpRemoteSpace implements Space {
       name: meta.name,
       lastModified: new Date(meta.lastModified),
     }));
+  }
+
+  async openPage(name: string) {
+    this.socket.on(serverEvents.pageText, (pageName, text) => {
+      console.log("Got this", pageName, text);
+    });
+    this.socket.emit(serverEvents.openPage, "start");
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

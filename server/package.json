@@ -11,8 +11,11 @@
     "nodemon": "nodemon dist/server.js"
   },
   "dependencies": {
+    "@codemirror/collab": "^0.19.0",
+    "@codemirror/state": "^0.19.9",
     "cors": "^2.8.5",
     "express": "^4.17.3",
+    "socket.io": "^4.4.1",
     "typescript": "^4.6.2"
   },
   "devDependencies": {

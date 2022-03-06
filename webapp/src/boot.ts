@@ -1,9 +1,14 @@
 import { Editor } from "./editor";
 import { HttpRemoteSpace } from "./space";
 import { safeRun } from "./util";
+import { io } from "socket.io-client";
+
+let socket = io("http://localhost:3000");
+
+import { serverEvents } from "../../server/src/events";
 
 let editor = new Editor(
-  new HttpRemoteSpace(`http://${location.hostname}:3000/fs`),
+  new HttpRemoteSpace(`http://${location.hostname}:3000/fs`, socket),
   document.getElementById("root")!
 );
 
