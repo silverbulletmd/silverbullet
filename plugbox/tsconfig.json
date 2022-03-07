@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*", "../webapp/src/plugbox_browser/browser_system.ts"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "target": "esnext",
     "strict": true,

@@ -1,5 +1,5 @@
 import cors from "cors";
-import express from "express";
+import express, { text } from "express";
 import fs from "fs";
 import { readdir, readFile, stat, unlink } from "fs/promises";
 import path from "path";
@@ -10,7 +10,6 @@ import { ChangeSet, Text } from "@codemirror/state";
 import { Update } from "@codemirror/collab";
 import http from "http";
 import { Server } from "socket.io";
-import { serverEvents } from "./events";
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +28,7 @@ const distDir = `${__dirname}/../../webapp/dist`;
 type PageMeta = {
   name: string;
   lastModified: number;
+  version?: number;
 };
 
 class DiskFS {
@@ -195,10 +195,14 @@ class Page {
   text: Text;
   updates: Update[];
   sockets: Map<string, Socket>;
+  meta: PageMeta;
 
-  constructor(text: string) {
+  pending: ((value: any) => void)[] = [];
+
+  constructor(text: string, meta: PageMeta) {
     this.updates = [];
-    this.text = Text.of([text]);
+    this.text = Text.of(text.split("\n"));
+    this.meta = meta;
     this.sockets = new Map<string, Socket>();
   }
 }
@@ -206,7 +210,7 @@ class Page {
 let openPages = new Map<string, Page>();
 
 io.on("connection", (socket) => {
-  function removeSocket(pageName: string) {
+  function disconnectSocket(pageName: string) {
     let page = openPages.get(pageName);
     if (page) {
       page.sockets.delete(socket.id);
@@ -219,30 +223,91 @@ io.on("connection", (socket) => {
 
   console.log("Connected", socket.id);
   let socketOpenPages = new Set<string>();
-  socket.on(serverEvents.openPage, async (pageName: string) => {
+
+  function onCall(eventName: string, cb: (...args: any[]) => Promise<any>) {
+    socket.on(eventName, (reqId: number, ...args) => {
+      cb(...args).then((result) => {
+        socket.emit(`${eventName}Resp${reqId}`, result);
+      });
+    });
+  }
+
+  onCall("openPage", async (pageName: string) => {
     let page = openPages.get(pageName);
     if (!page) {
-      let { text } = await diskFS.readPage(pageName);
-      page = new Page(text);
+      let { text, meta } = await diskFS.readPage(pageName);
+      page = new Page(text, meta);
       openPages.set(pageName, page);
     }
     page.sockets.set(socket.id, socket);
     socketOpenPages.add(pageName);
     console.log("Sending document text");
-    socket.emit(
-      serverEvents.pageText,
-      pageName,
-      openPages.get(pageName).text.toJSON()
-    );
+    let enhancedMeta = { ...page.meta, version: page.updates.length };
+    return [enhancedMeta, page.text.toJSON()];
   });
-  socket.on(serverEvents.closePage, (pageName: string) => {
+
+  socket.on("closePage", (pageName: string) => {
     console.log("Closing page", pageName);
-    removeSocket(pageName);
+    disconnectSocket(pageName);
     socketOpenPages.delete(pageName);
   });
+
+  onCall(
+    "pushUpdates",
+    async (
+      pageName: string,
+      version: number,
+      updates: any[]
+    ): Promise<boolean> => {
+      let page = openPages.get(pageName);
+
+      if (!page) {
+        console.error("Received updates for not open page");
+        return;
+      }
+      if (version !== page.updates.length) {
+        console.error("Invalid version", version, page.updates.length);
+        return false;
+      } else {
+        console.log("Applying", updates.length, "updates");
+        for (let update of updates) {
+          let changes = ChangeSet.fromJSON(update.changes);
+          page.updates.push({ changes, clientID: update.clientID });
+          page.text = changes.apply(page.text);
+        }
+        while (page.pending.length) {
+          page.pending.pop()!(updates);
+        }
+        return true;
+      }
+    }
+  );
+
+  onCall(
+    "pullUpdates",
+    async (pageName: string, version: number): Promise<Update[]> => {
+      let page = openPages.get(pageName);
+      console.log("Pulling updates for", pageName);
+      if (!page) {
+        console.error("Received updates for not open page");
+        return;
+      }
+      console.log(`Let's get real: ${version} < ${page.updates.length}`);
+      if (version < page.updates.length) {
+        console.log("Yes");
+        return page.updates.slice(version);
+      } else {
+        console.log("No");
+        return new Promise((resolve) => {
+          page.pending.push(resolve);
+        });
+      }
+    }
+  );
+
   socket.on("disconnect", () => {
     console.log("Disconnected", socket.id);
-    socketOpenPages.forEach(removeSocket);
+    socketOpenPages.forEach(disconnectSocket);
   });
 });
 //sup

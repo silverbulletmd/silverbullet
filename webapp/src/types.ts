@@ -11,6 +11,7 @@ export type Manifest = plugbox.Manifest<NuggetHook>;
 export type PageMeta = {
   name: string;
   lastModified: Date;
+  version?: number;
   created?: boolean;
   lastOpened?: Date;
 };

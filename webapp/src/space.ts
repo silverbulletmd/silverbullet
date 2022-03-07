@@ -1,7 +1,9 @@
 import { PageMeta } from "./types";
 import { Socket } from "socket.io-client";
-import { serverEvents } from "../../server/src/events";
-import { EventEmitter } from "events";
+import { Update } from "@codemirror/collab";
+import { Transaction, Text, ChangeSet } from "@codemirror/state";
+
+import { Document } from "./collab";
 
 export interface Space {
   listPages(): Promise<PageMeta[]>;
@@ -13,15 +15,48 @@ export interface Space {
 
 export class HttpRemoteSpace implements Space {
   url: string;
-  socket?: Socket;
+  socket: Socket;
+  reqId = 0;
 
-  constructor(url: string, socket: Socket | null) {
+  constructor(url: string, socket: Socket) {
     this.url = url;
-    // this.socket = socket;
+    this.socket = socket;
 
-    // socket.on("connect", () => {
-    //   console.log("connected via SocketIO", serverEvents.pageText);
-    // });
+    socket.on("connect", () => {
+      console.log("connected via SocketIO");
+    });
+  }
+
+  pushUpdates(
+    pageName: string,
+    version: number,
+    fullUpdates: readonly (Update & { origin: Transaction })[]
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (this.socket) {
+        let updates = fullUpdates.map((u) => ({
+          clientID: u.clientID,
+          changes: u.changes.toJSON(),
+        }));
+        this.reqId++;
+        this.socket.emit("pushUpdates", this.reqId, pageName, version, updates);
+        this.socket.once("pushUpdatesResp" + this.reqId, (result) => {
+          resolve(result);
+        });
+      }
+    });
+  }
+
+  async pullUpdates(
+    pageName: string,
+    version: number
+  ): Promise<readonly Update[]> {
+    let updates: Update[] = await this.wsCall("pullUpdates", pageName, version);
+    console.log("Got updates", updates);
+    return updates.map((u) => ({
+      changes: ChangeSet.fromJSON(u.changes),
+      clientID: u.clientID,
+    }));
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -35,11 +70,24 @@ export class HttpRemoteSpace implements Space {
     }));
   }
 
-  async openPage(name: string) {
-    this.socket!.on(serverEvents.pageText, (pageName, text) => {
-      console.log("Got this", pageName, text);
+  wsCall(eventName: string, ...args: any[]): Promise<any> {
+    return new Promise((resolve) => {
+      this.reqId++;
+      this.socket!.once(`${eventName}Resp${this.reqId}`, resolve);
+      this.socket!.emit(eventName, this.reqId, ...args);
     });
-    this.socket!.emit(serverEvents.openPage, "start");
+  }
+
+  async openPage(name: string): Promise<Document> {
+    this.reqId++;
+    let [meta, text] = await this.wsCall("openPage", name);
+    console.log("Got this", meta, text);
+    meta.lastModified = new Date(meta.lastModified);
+    return new Document(Text.of(text), meta);
+  }
+
+  async closePage(name: string): Promise<void> {
+    this.socket!.emit("closePage", name);
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

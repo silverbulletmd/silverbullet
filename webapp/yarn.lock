@@ -67,6 +67,13 @@
     "@codemirror/text" "^0.19.0"
     "@codemirror/view" "^0.19.0"
 
+"@codemirror/collab@^0.19.0":
+  version "0.19.0"
+  resolved "https://registry.yarnpkg.com/@codemirror/collab/-/collab-0.19.0.tgz#43938671d58ef8f12e43406ddd315410d85ac1c4"
+  integrity sha512-pyrEXLLkby82y9wzfanEQGl3V3DX/pIuA97Js7gVEbPAqhvse5iXKNyp1Yr37afhkl2TUeoZyUSFTtcimgdI6g==
+  dependencies:
+    "@codemirror/state" "^0.19.0"
+
 "@codemirror/commands@^0.19.0", "@codemirror/commands@^0.19.8":
   version "0.19.8"
   resolved "https://registry.yarnpkg.com/@codemirror/commands/-/commands-0.19.8.tgz#1f99c1a8bf200d17c4d6997379099459f3678107"

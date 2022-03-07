@@ -10,7 +10,7 @@ import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
-import { EditorState, StateField, Transaction } from "@codemirror/state";
+import { EditorState, StateField, Transaction, Text } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -59,6 +59,10 @@ import {
 } from "./types";
 import { safeRun } from "./util";
 
+import { collabExtension } from "./collab";
+
+import { Document } from "./collab";
+
 class PageState {
   editorState: EditorState;
   scrollTop: number;
@@ -94,12 +98,18 @@ export class Editor implements AppEventDispatcher {
     this.viewDispatch = () => {};
     this.render(parent);
     this.editorView = new EditorView({
-      state: this.createEditorState(""),
+      state: this.createEditorState(
+        new Document(Text.of([""]), {
+          name: "",
+          lastModified: new Date(),
+          version: 0,
+        })
+      ),
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
     this.indexer = new Indexer("page-index", space);
-    this.watch();
+    // this.watch();
   }
 
   async init() {
@@ -176,7 +186,7 @@ export class Editor implements AppEventDispatcher {
     return this.viewState.currentPage;
   }
 
-  createEditorState(text: string): EditorState {
+  createEditorState(doc: Document): EditorState {
     const editor = this;
     let commandKeyBindings: KeyBinding[] = [];
     for (let def of this.editorCommands.values()) {
@@ -196,7 +206,7 @@ export class Editor implements AppEventDispatcher {
       }
     }
     return EditorState.create({
-      doc: text,
+      doc: doc.text,
       extensions: [
         highlightSpecialChars(),
         history(),
@@ -206,6 +216,12 @@ export class Editor implements AppEventDispatcher {
         customMarkdownStyle,
         bracketMatching(),
         closeBrackets(),
+        collabExtension(
+          doc.meta.name,
+          doc.meta.version!,
+          this.space,
+          this.reloadPage.bind(this)
+        ),
         autocompletion({
           override: [
             this.plugCompleter.bind(this),
@@ -316,6 +332,8 @@ export class Editor implements AppEventDispatcher {
       ],
     });
   }
+
+  reloadPage() {}
 
   async plugCompleter(
     ctx: CompletionContext
@@ -439,10 +457,10 @@ export class Editor implements AppEventDispatcher {
       cachedMeta.lastModified.getTime() !== newPageMeta.lastModified.getTime()
     ) {
       console.log("File changed on disk, reloading");
-      let pageData = await this.space.readPage(currentPageName);
+      let doc = await this.space.openPage(currentPageName);
       this.openPages.set(
         currentPageName,
-        new PageState(this.createEditorState(pageData.text), 0, newPageMeta)
+        new PageState(this.createEditorState(doc), 0, doc.meta)
       );
       await this.loadPage(currentPageName, false);
     }
@@ -459,12 +477,8 @@ export class Editor implements AppEventDispatcher {
   async loadPage(pageName: string, checkNewVersion: boolean = true) {
     let pageState = this.openPages.get(pageName);
     if (!pageState) {
-      let pageData = await this.space.readPage(pageName);
-      pageState = new PageState(
-        this.createEditorState(pageData.text),
-        0,
-        pageData.meta
-      );
+      let doc = await this.space.openPage(pageName);
+      pageState = new PageState(this.createEditorState(doc), 0, doc.meta);
       this.openPages.set(pageName, pageState!);
       // Freshly loaded, no need to check for a new version either way
       checkNewVersion = false;
