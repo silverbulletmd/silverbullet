@@ -15,6 +15,7 @@ export async function indexLinks({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", backLinks.length, "wiki link(s)");
+  // throw Error("Boom");
   await syscall("indexer.batchSet", name, backLinks);
 }
 

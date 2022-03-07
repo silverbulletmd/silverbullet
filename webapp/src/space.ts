@@ -13,15 +13,15 @@ export interface Space {
 
 export class HttpRemoteSpace implements Space {
   url: string;
-  socket: Socket;
+  socket?: Socket;
 
-  constructor(url: string, socket: Socket) {
+  constructor(url: string, socket: Socket | null) {
     this.url = url;
-    this.socket = socket;
+    // this.socket = socket;
 
-    socket.on("connect", () => {
-      console.log("connected via SocketIO", serverEvents.pageText);
-    });
+    // socket.on("connect", () => {
+    //   console.log("connected via SocketIO", serverEvents.pageText);
+    // });
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -36,10 +36,10 @@ export class HttpRemoteSpace implements Space {
   }
 
   async openPage(name: string) {
-    this.socket.on(serverEvents.pageText, (pageName, text) => {
+    this.socket!.on(serverEvents.pageText, (pageName, text) => {
       console.log("Got this", pageName, text);
     });
-    this.socket.emit(serverEvents.openPage, "start");
+    this.socket!.emit(serverEvents.openPage, "start");
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

@@ -37,7 +37,7 @@ import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
-import { BrowserSystem } from "./plugbox_browser/browser_system";
+import { System } from "../../plugbox/src/runtime";
 import { Plug } from "../../plugbox/src/runtime";
 import { slashCommandRegexp } from "./types";
 
@@ -124,7 +124,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async loadPlugs() {
-    const system = new BrowserSystem<NuggetHook>("/plug");
+    const system = new System<NuggetHook>();
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
@@ -132,7 +132,6 @@ export class Editor implements AppEventDispatcher {
       indexerSyscalls(this.indexer)
     );
 
-    await system.bootServiceWorker();
     console.log("Now loading core plug");
     let mainPlug = await system.load("core", coreManifest);
     this.plugs.push(mainPlug);

@@ -13,18 +13,17 @@ export class FunctionWorker {
   private invokeReject?: (reason?: any) => void;
   private plug: Plug<any>;
 
-  constructor(plug: Plug<any>, pathPrefix: string, name: string) {
-    let worker = window.Worker;
-    this.worker = new worker("/function_worker.js");
+  constructor(plug: Plug<any>, name: string, code: string) {
+    // let worker = window.Worker;
+    this.worker = new Worker(new URL("function_worker.ts", import.meta.url), {
+      type: "module",
+    });
 
-    // console.log("Starting worker", this.worker);
     this.worker.onmessage = this.onmessage.bind(this);
     this.worker.postMessage({
       type: "boot",
-      prefix: pathPrefix,
       name: name,
-      // @ts-ignore
-      userAgent: navigator.userAgent,
+      code: code,
     });
     this.inited = new Promise((resolve) => {
       this.initCallback = resolve;
@@ -81,33 +80,31 @@ export interface PlugLoader<HookT> {
 }
 
 export class Plug<HookT> {
-  pathPrefix: string;
   system: System<HookT>;
   private runningFunctions: Map<string, FunctionWorker>;
   public manifest?: Manifest<HookT>;
-  private name: string;
 
-  constructor(system: System<HookT>, pathPrefix: string, name: string) {
-    this.name = name;
-    this.pathPrefix = `${pathPrefix}/${name}`;
+  constructor(system: System<HookT>, name: string) {
     this.system = system;
     this.runningFunctions = new Map<string, FunctionWorker>();
   }
 
   async load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
-    await this.system.plugLoader.load(this.name, manifest);
     await this.dispatchEvent("load");
   }
 
   async invoke(name: string, args: Array<any>): Promise<any> {
-    if (!this.runningFunctions.has(name)) {
-      this.runningFunctions.set(
+    let worker = this.runningFunctions.get(name);
+    if (!worker) {
+      worker = new FunctionWorker(
+        this,
         name,
-        new FunctionWorker(this, this.pathPrefix, name)
+        this.manifest!.functions[name].code!
       );
+      this.runningFunctions.set(name, worker);
     }
-    return await this.runningFunctions.get(name)!.invoke(args);
+    return await worker.invoke(args);
   }
 
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
@@ -137,13 +134,9 @@ export class Plug<HookT> {
 
 export class System<HookT> {
   protected plugs: Map<string, Plug<HookT>>;
-  protected pathPrefix: string;
   registeredSyscalls: SysCallMapping;
-  plugLoader: PlugLoader<HookT>;
 
-  constructor(plugLoader: PlugLoader<HookT>, pathPrefix: string) {
-    this.plugLoader = plugLoader;
-    this.pathPrefix = pathPrefix;
+  constructor() {
     this.plugs = new Map<string, Plug<HookT>>();
     this.registeredSyscalls = {};
   }
@@ -168,7 +161,7 @@ export class System<HookT> {
   }
 
   async load(name: string, manifest: Manifest<HookT>): Promise<Plug<HookT>> {
-    const plug = new Plug(this, this.pathPrefix, name);
+    const plug = new Plug(this, name);
     await plug.load(manifest);
     this.plugs.set(name, plug);
     return plug;

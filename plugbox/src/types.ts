@@ -10,7 +10,6 @@ export interface Manifest<HookT> {
 }
 
 export interface FunctionDef {
-  path: string;
-  functionName?: string;
+  path?: string;
   code?: string;
 }

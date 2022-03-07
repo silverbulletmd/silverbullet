@@ -19,6 +19,7 @@ async function navigate(syntaxNode: any) {
       if (match) {
         await syscall("editor.openUrl", match[1]);
       }
+      break;
   }
 }
 

@@ -7,8 +7,8 @@
   "license": "MIT",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
-    "start": "mkdir -p dist && cp src/function_worker.js dist/ && parcel",
-    "build": "parcel build && cp src/function_worker.js dist/",
+    "start": "parcel",
+    "build": "parcel build",
     "clean": "rm -rf dist",
     "check-watch": "tsc --noEmit --watch"
   },

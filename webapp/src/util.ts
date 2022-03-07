@@ -14,14 +14,6 @@ export function safeRun(fn: () => Promise<void>) {
   });
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-}
-
 export function isMacLike() {
   return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 }

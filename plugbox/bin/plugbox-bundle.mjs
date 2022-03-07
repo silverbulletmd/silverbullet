@@ -7,22 +7,39 @@ import path from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-async function compile(filePath, sourceMap) {
-  let tempFile = "out.js";
+async function compile(filePath, functionName, debug) {
+  let outFile = "out.js";
+
+  let inFile = filePath;
+
+  if (functionName) {
+    // Generate a new file importing just this one function and exporting it
+    inFile = "in.js";
+    await writeFile(
+      inFile,
+      `import {${functionName}} from "./${filePath}";
+export default ${functionName};`
+    );
+  }
+
+  // TODO: Figure out how to make source maps work correctly with eval() code
   let js = await esbuild.build({
-    entryPoints: [filePath],
+    entryPoints: [inFile],
     bundle: true,
     format: "iife",
     globalName: "mod",
     platform: "neutral",
-    sourcemap: sourceMap ? "inline" : false,
-    minify: true,
-    outfile: tempFile,
+    sourcemap: false, //sourceMap ? "inline" : false,
+    minify: !debug,
+    outfile: outFile,
   });
 
-  let jsCode = (await readFile(tempFile)).toString();
+  let jsCode = (await readFile(outFile)).toString();
   jsCode = jsCode.replace(/^var mod ?= ?/, "");
-  await unlink(tempFile);
+  await unlink(outFile);
+  if (inFile !== filePath) {
+    await unlink(inFile);
+  }
   return jsCode;
 }
 
@@ -35,13 +52,10 @@ async function bundle(manifestPath, sourceMaps) {
       filePath = path.join(rootPath, def.path);
     if (filePath.indexOf(":") !== -1) {
       [filePath, jsFunctionName] = filePath.split(":");
-    } else if (!jsFunctionName) {
-      jsFunctionName = "default";
     }
 
-    def.code = await compile(filePath, sourceMaps);
-    def.path = filePath;
-    def.functionName = jsFunctionName;
+    def.code = await compile(filePath, jsFunctionName, sourceMaps);
+    delete def.path;
   }
   return manifest;
 }
