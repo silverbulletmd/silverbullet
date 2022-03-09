@@ -20,18 +20,17 @@ export async function indexLinks({ name, text }: IndexEvent) {
 }
 
 export async function deletePage() {
-  let pageMeta = await syscall("editor.getCurrentPage");
+  let pageName = await syscall("editor.getCurrentPage");
   console.log("Navigating to start page");
   await syscall("editor.navigate", "start");
   console.log("Deleting page from space");
-  await syscall("space.deletePage", pageMeta.name);
+  await syscall("space.deletePage", pageName);
   console.log("Reloading page list");
   await syscall("space.reloadPageList");
 }
 
 export async function renamePage() {
-  const pageMeta = await syscall("editor.getCurrentPage");
-  const oldName = pageMeta.name;
+  const oldName = await syscall("editor.getCurrentPage");
   console.log("Old name is", oldName);
   const newName = await syscall(
     "editor.prompt",
@@ -98,8 +97,8 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 }
 
 export async function showBackLinks() {
-  const pageMeta = await syscall("editor.getCurrentPage");
-  let backLinks = await getBackLinks(pageMeta.name);
+  const pageName = await syscall("editor.getCurrentPage");
+  let backLinks = await getBackLinks(pageName);
 
   console.log("Backlinks", backLinks);
 }

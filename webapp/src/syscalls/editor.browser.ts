@@ -27,7 +27,7 @@ function ensureAnchor(expr: any, start: boolean) {
 }
 
 export default (editor: Editor) => ({
-  "editor.getCurrentPage": (): PageMeta => {
+  "editor.getCurrentPage": (): string => {
     return editor.currentPage!;
   },
   "editor.getText": () => {

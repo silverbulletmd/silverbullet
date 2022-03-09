@@ -23,7 +23,7 @@ export default (editor: Editor) => ({
     console.log("Clearing page index", name);
     await editor.indexer.clearPageIndexForPage(name);
     // If we're deleting the current page, navigate to the start page
-    if (editor.currentPage?.name === name) {
+    if (editor.currentPage === name) {
       await editor.navigate("start");
     }
     // Remove page from open pages in editor

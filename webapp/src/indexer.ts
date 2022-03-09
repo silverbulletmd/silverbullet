@@ -38,39 +38,39 @@ export class Indexer {
     await this.pageIndex.clear();
   }
 
-  async setPageIndexPageMeta(pageName: string, meta: PageMeta) {
-    await this.set(pageName, "$meta", {
-      lastModified: meta.lastModified.getTime(),
-    });
-  }
+  // async setPageIndexPageMeta(pageName: string, meta: PageMeta) {
+  //   await this.set(pageName, "$meta", {
+  //     lastModified: meta.lastModified.getTime(),
+  //   });
+  // }
 
-  async getPageIndexPageMeta(pageName: string): Promise<PageMeta | null> {
-    let meta = await this.get(pageName, "$meta");
-    if (meta) {
-      return {
-        name: pageName,
-        lastModified: new Date(meta.lastModified),
-      };
-    } else {
-      return null;
-    }
-  }
+  // async getPageIndexPageMeta(pageName: string): Promise<PageMeta | null> {
+  //   let meta = await this.get(pageName, "$meta");
+  //   if (meta) {
+  //     return {
+  //       name: pageName,
+  //       lastModified: new Date(meta.lastModified),
+  //     };
+  //   } else {
+  //     return null;
+  //   }
+  // }
 
   async indexPage(
     appEventDispatcher: AppEventDispatcher,
-    pageMeta: PageMeta,
+    pageName: string,
     text: string,
     withFlush: boolean
   ) {
     if (withFlush) {
-      await this.clearPageIndexForPage(pageMeta.name);
+      await this.clearPageIndexForPage(pageName);
     }
     let indexEvent: IndexEvent = {
-      name: pageMeta.name,
+      name: pageName,
       text,
     };
     await appEventDispatcher.dispatchAppEvent("page:index", indexEvent);
-    await this.setPageIndexPageMeta(pageMeta.name, pageMeta);
+    // await this.setPageIndexPageMeta(pageMeta.name, pageMeta);
   }
 
   async reindexSpace(space: Space, appEventDispatcher: AppEventDispatcher) {
@@ -79,12 +79,7 @@ export class Indexer {
     // TODO: Parallelize?
     for (let page of allPages) {
       let pageData = await space.readPage(page.name);
-      await this.indexPage(
-        appEventDispatcher,
-        pageData.meta,
-        pageData.text,
-        false
-      );
+      await this.indexPage(appEventDispatcher, page.name, pageData.text, false);
     }
   }
 

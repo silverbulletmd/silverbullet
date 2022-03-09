@@ -4,6 +4,7 @@ import { Update } from "@codemirror/collab";
 import { Transaction, Text, ChangeSet } from "@codemirror/state";
 
 import { Document } from "./collab";
+import { cursorEffect } from "./cursorEffect";
 
 export interface Space {
   listPages(): Promise<PageMeta[]>;
@@ -13,38 +14,48 @@ export interface Space {
   getPageMeta(name: string): Promise<PageMeta>;
 }
 
-export class HttpRemoteSpace implements Space {
+export class HttpRemoteSpace extends EventTarget implements Space {
   url: string;
   socket: Socket;
   reqId = 0;
 
   constructor(url: string, socket: Socket) {
+    super();
     this.url = url;
     this.socket = socket;
 
     socket.on("connect", () => {
-      console.log("connected via SocketIO");
+      console.log("connected to socket");
+      this.dispatchEvent(new Event("connect"));
+    });
+
+    socket.on("reload", (pageName: string) => {
+      this.dispatchEvent(new CustomEvent("reload", { detail: pageName }));
     });
   }
 
-  pushUpdates(
+  private wsCall(eventName: string, ...args: any[]): Promise<any> {
+    return new Promise((resolve) => {
+      this.reqId++;
+      this.socket!.once(`${eventName}Resp${this.reqId}`, resolve);
+      this.socket!.emit(eventName, this.reqId, ...args);
+    });
+  }
+
+  async pushUpdates(
     pageName: string,
     version: number,
     fullUpdates: readonly (Update & { origin: Transaction })[]
   ): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (this.socket) {
-        let updates = fullUpdates.map((u) => ({
-          clientID: u.clientID,
-          changes: u.changes.toJSON(),
-        }));
-        this.reqId++;
-        this.socket.emit("pushUpdates", this.reqId, pageName, version, updates);
-        this.socket.once("pushUpdatesResp" + this.reqId, (result) => {
-          resolve(result);
-        });
-      }
-    });
+    if (this.socket) {
+      let updates = fullUpdates.map((u) => ({
+        clientID: u.clientID,
+        changes: u.changes.toJSON(),
+        cursors: u.effects?.map((e) => e.value),
+      }));
+      return this.wsCall("pushUpdates", pageName, version, updates);
+    }
+    return false;
   }
 
   async pullUpdates(
@@ -52,11 +63,13 @@ export class HttpRemoteSpace implements Space {
     version: number
   ): Promise<readonly Update[]> {
     let updates: Update[] = await this.wsCall("pullUpdates", pageName, version);
-    console.log("Got updates", updates);
-    return updates.map((u) => ({
+    let ups = updates.map((u) => ({
       changes: ChangeSet.fromJSON(u.changes),
+      effects: u.effects?.map((e) => cursorEffect.of(e.value)),
       clientID: u.clientID,
     }));
+    console.log("Got updates", ups);
+    return ups;
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -70,20 +83,10 @@ export class HttpRemoteSpace implements Space {
     }));
   }
 
-  wsCall(eventName: string, ...args: any[]): Promise<any> {
-    return new Promise((resolve) => {
-      this.reqId++;
-      this.socket!.once(`${eventName}Resp${this.reqId}`, resolve);
-      this.socket!.emit(eventName, this.reqId, ...args);
-    });
-  }
-
   async openPage(name: string): Promise<Document> {
     this.reqId++;
-    let [meta, text] = await this.wsCall("openPage", name);
-    console.log("Got this", meta, text);
-    meta.lastModified = new Date(meta.lastModified);
-    return new Document(Text.of(text), meta);
+    let [version, text] = await this.wsCall("openPage", name);
+    return new Document(Text.of(text), version);
   }
 
   async closePage(name: string): Promise<void> {

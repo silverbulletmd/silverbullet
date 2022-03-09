@@ -10,27 +10,11 @@ export default function reducer(
       return {
         ...state,
         allPages: state.allPages.map((pageMeta) =>
-          pageMeta.name === action.meta.name
+          pageMeta.name === action.name
             ? { ...pageMeta, lastOpened: new Date() }
             : pageMeta
         ),
-        currentPage: action.meta,
-        isSaved: true,
-      };
-    case "page-saved":
-      return {
-        ...state,
-        currentPage: action.meta,
-        isSaved: true,
-      };
-    case "page-updated":
-      // Minor rerender optimization, this is triggered a lot
-      if (!state.isSaved) {
-        return state;
-      }
-      return {
-        ...state,
-        isSaved: false,
+        currentPage: action.name,
       };
     case "start-navigate":
       return {

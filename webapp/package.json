@@ -18,6 +18,7 @@
     "@parcel/transformer-webmanifest": "2.3.2",
     "@parcel/validator-typescript": "^2.3.2",
     "@types/events": "^3.0.0",
+    "@types/lodash": "^4.14.179",
     "@types/node": "^17.0.21",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
@@ -52,6 +53,7 @@
     "@parcel/service-worker": "^2.3.2",
     "dexie": "^3.2.1",
     "idb": "^7.0.0",
+    "lodash": "^4.17.21",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "socket.io-client": "^4.4.1"

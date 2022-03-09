@@ -1,13 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import * as util from "../util";
 
-export function StatusBar({
-  isSaved,
-  editorView,
-}: {
-  isSaved: boolean;
-  editorView?: EditorView;
-}) {
+export function StatusBar({ editorView }: { editorView?: EditorView }) {
   let wordCount = 0,
     readingTime = 0;
   if (editorView) {
@@ -17,7 +11,7 @@ export function StatusBar({
   }
   return (
     <div id="bottom">
-      {wordCount} words | {readingTime} min | {isSaved ? "Saved" : "Edited"}
+      {wordCount} words | {readingTime} min
     </div>
   );
 }

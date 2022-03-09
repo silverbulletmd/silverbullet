@@ -9,11 +9,11 @@ export function PageNavigator({
 }: {
   allPages: PageMeta[];
   onNavigate: (page: string | undefined) => void;
-  currentPage?: PageMeta;
+  currentPage?: string;
 }) {
   let options: Option[] = [];
   for (let pageMeta of allPages) {
-    if (currentPage && currentPage.name == pageMeta.name) {
+    if (currentPage && currentPage === pageMeta.name) {
       continue;
     }
     // Order by last modified date in descending order

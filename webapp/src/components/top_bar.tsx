@@ -13,7 +13,7 @@ export function TopBar({
   currentPage,
   onClick,
 }: {
-  currentPage?: PageMeta;
+  currentPage?: string;
   onClick: () => void;
 }) {
   return (
@@ -22,7 +22,7 @@ export function TopBar({
         <span className="icon">
           <FontAwesomeIcon icon={faFileLines} />
         </span>
-        <span className="current-page">{prettyName(currentPage?.name)}</span>
+        <span className="current-page">{prettyName(currentPage)}</span>
       </div>
     </div>
   );

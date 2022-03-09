@@ -9,6 +9,13 @@
     max-width: 800px;
   }
 
+  .other-cursor {
+    display: inline-block;
+    width: 1px;
+    margin-right: -1px;
+    height: 1em;
+  }
+
   .cm-selectionBackground {
     background-color: #d7e1f6 !important;
   }

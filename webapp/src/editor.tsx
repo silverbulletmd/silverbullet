@@ -20,6 +20,8 @@ import {
   keymap,
 } from "@codemirror/view";
 
+import { debounce } from "lodash";
+
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import coreManifest from "./generated/core.plug.json";
@@ -62,16 +64,15 @@ import { safeRun } from "./util";
 import { collabExtension } from "./collab";
 
 import { Document } from "./collab";
+import { EditorSelection } from "@codemirror/state";
 
 class PageState {
-  editorState: EditorState;
   scrollTop: number;
-  meta: PageMeta;
+  selection: EditorSelection;
 
-  constructor(editorState: EditorState, scrollTop: number, meta: PageMeta) {
-    this.editorState = editorState;
+  constructor(scrollTop: number, selection: EditorSelection) {
     this.scrollTop = scrollTop;
-    this.meta = meta;
+    this.selection = selection;
   }
 }
 
@@ -88,6 +89,7 @@ export class Editor implements AppEventDispatcher {
   indexer: Indexer;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
+  indexCurrentPageDebounced: () => any;
 
   constructor(space: HttpRemoteSpace, parent: Element) {
     this.editorCommands = new Map();
@@ -98,18 +100,13 @@ export class Editor implements AppEventDispatcher {
     this.viewDispatch = () => {};
     this.render(parent);
     this.editorView = new EditorView({
-      state: this.createEditorState(
-        new Document(Text.of([""]), {
-          name: "",
-          lastModified: new Date(),
-          version: 0,
-        })
-      ),
+      state: this.createEditorState("", new Document(Text.of([""]), 0)),
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
     this.indexer = new Indexer("page-index", space);
-    // this.watch();
+
+    this.indexCurrentPageDebounced = debounce(this.indexCurrentPage, 2000);
   }
 
   async init() {
@@ -118,14 +115,36 @@ export class Editor implements AppEventDispatcher {
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName) => {
-      await this.save();
       console.log("Now navigating to", pageName);
 
       if (!this.editorView) {
         return;
       }
 
+      if (this.currentPage) {
+        let pageState = this.openPages.get(this.currentPage)!;
+        pageState.selection = this.editorView!.state.selection;
+        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+
+        this.space.closePage(this.currentPage);
+      }
+
       await this.loadPage(pageName);
+    });
+
+    this.space.addEventListener("connect", () => {
+      if (this.currentPage) {
+        console.log("Connected to socket, fetch fresh?");
+        this.reloadPage();
+      }
+    });
+
+    this.space.addEventListener("reload", (e) => {
+      let pageName = (e as CustomEvent).detail;
+      if (this.currentPage === pageName) {
+        console.log("Was told to reload the page");
+        this.reloadPage();
+      }
     });
 
     if (this.pageNavigator.getCurrentPage() === "") {
@@ -182,11 +201,11 @@ export class Editor implements AppEventDispatcher {
     return results;
   }
 
-  get currentPage(): PageMeta | undefined {
+  get currentPage(): string | undefined {
     return this.viewState.currentPage;
   }
 
-  createEditorState(doc: Document): EditorState {
+  createEditorState(pageName: string, doc: Document): EditorState {
     const editor = this;
     let commandKeyBindings: KeyBinding[] = [];
     for (let def of this.editorCommands.values()) {
@@ -217,8 +236,9 @@ export class Editor implements AppEventDispatcher {
         bracketMatching(),
         closeBrackets(),
         collabExtension(
-          doc.meta.name,
-          doc.meta.version!,
+          pageName,
+          this.space.socket.id,
+          doc.version,
           this.space,
           this.reloadPage.bind(this)
         ),
@@ -278,14 +298,6 @@ export class Editor implements AppEventDispatcher {
             },
           },
           {
-            key: "Ctrl-s",
-            mac: "Cmd-s",
-            run: (target): boolean => {
-              this.save();
-              return true;
-            },
-          },
-          {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
@@ -310,17 +322,6 @@ export class Editor implements AppEventDispatcher {
               await this.dispatchAppEvent("page:click", clickEvent);
             });
           },
-          // focus: (event: FocusEvent, view: EditorView) => {
-          //   console.log("Got focus");
-          //   document.body.classList.add("keyboard");
-          // },
-          // blur: (event: FocusEvent, view: EditorView) => {
-          //   console.log("Lost focus");
-          //   document.body.classList.remove("keyboard");
-          // },
-          // focusout: (event: FocusEvent, view: EditorView) => {
-          //   window.scrollTo(0, 0);
-          // },
         }),
         markdown({
           base: customMarkDown,
@@ -333,7 +334,10 @@ export class Editor implements AppEventDispatcher {
     });
   }
 
-  reloadPage() {}
+  reloadPage() {
+    console.log("Reloading page");
+    this.loadPage(this.currentPage!);
+  }
 
   async plugCompleter(
     ctx: CompletionContext
@@ -385,51 +389,22 @@ export class Editor implements AppEventDispatcher {
 
   update(value: null, transaction: Transaction): null {
     if (transaction.docChanged) {
-      this.viewDispatch({
-        type: "page-updated",
-      });
+      this.indexCurrentPageDebounced();
     }
 
     return null;
   }
 
-  async save() {
-    const editorState = this.editorView!.state;
-
-    if (!this.currentPage) {
-      return;
+  private async indexCurrentPage() {
+    if (this.currentPage) {
+      console.log("Indexing page", this.currentPage);
+      await this.indexer.indexPage(
+        this,
+        this.currentPage,
+        this.editorView!.state.sliceDoc(),
+        true
+      );
     }
-
-    if (this.viewState.isSaved) {
-      console.log("Page not modified, skipping saving");
-      return;
-    }
-    // Write to the space
-    const pageName = this.currentPage.name;
-    const text = editorState.sliceDoc();
-    let pageMeta = await this.space.writePage(pageName, text);
-
-    // Update in open page cache
-    this.openPages.set(
-      pageName,
-      new PageState(editorState, this.editorView!.scrollDOM.scrollTop, pageMeta)
-    );
-
-    // Dispatch update to view
-    this.viewDispatch({ type: "page-saved", meta: pageMeta });
-
-    // If a new page was created, let's refresh the page list
-    if (pageMeta.created) {
-      await this.loadPageList();
-    }
-
-    // Reindex page
-    await this.indexPage(text, pageMeta);
-  }
-
-  private async indexPage(text: string, pageMeta: PageMeta) {
-    console.log("Indexing page", pageMeta.name);
-    this.indexer.indexPage(this, pageMeta, text, true);
   }
 
   async loadPageList() {
@@ -440,32 +415,6 @@ export class Editor implements AppEventDispatcher {
     });
   }
 
-  watch() {
-    setInterval(() => {
-      safeRun(async () => {
-        if (this.currentPage && this.viewState.isSaved) {
-          await this.checkForNewVersion(this.currentPage);
-        }
-      });
-    }, watchInterval);
-  }
-
-  async checkForNewVersion(cachedMeta: PageMeta) {
-    const currentPageName = cachedMeta.name;
-    let newPageMeta = await this.space.getPageMeta(currentPageName);
-    if (
-      cachedMeta.lastModified.getTime() !== newPageMeta.lastModified.getTime()
-    ) {
-      console.log("File changed on disk, reloading");
-      let doc = await this.space.openPage(currentPageName);
-      this.openPages.set(
-        currentPageName,
-        new PageState(this.createEditorState(doc), 0, doc.meta)
-      );
-      await this.loadPage(currentPageName, false);
-    }
-  }
-
   focus() {
     this.editorView!.focus();
   }
@@ -474,39 +423,41 @@ export class Editor implements AppEventDispatcher {
     this.pageNavigator.navigate(name);
   }
 
-  async loadPage(pageName: string, checkNewVersion: boolean = true) {
+  async loadPage(pageName: string) {
+    let doc = await this.space.openPage(pageName);
+    let editorState = this.createEditorState(pageName, doc);
     let pageState = this.openPages.get(pageName);
-    if (!pageState) {
-      let doc = await this.space.openPage(pageName);
-      pageState = new PageState(this.createEditorState(doc), 0, doc.meta);
-      this.openPages.set(pageName, pageState!);
-      // Freshly loaded, no need to check for a new version either way
-      checkNewVersion = false;
+    const editorView = this.editorView;
+    if (!editorView) {
+      return;
     }
-    this.editorView!.setState(pageState!.editorState);
-    this.editorView!.scrollDOM.scrollTop = pageState!.scrollTop;
+    editorView.setState(editorState);
+    if (!pageState) {
+      pageState = new PageState(0, editorState.selection);
+      this.openPages.set(pageName, pageState!);
+    } else {
+      // Restore state
+      console.log("Restoring selection state");
+      editorView.dispatch({
+        selection: pageState.selection,
+      });
+      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
+    }
 
     this.viewDispatch({
       type: "page-loaded",
-      meta: pageState.meta,
+      name: pageName,
     });
 
-    let indexerPageMeta = await this.indexer.getPageIndexPageMeta(pageName);
-    if (
-      (indexerPageMeta &&
-        pageState.meta.lastModified.getTime() !==
-          indexerPageMeta.lastModified.getTime()) ||
-      !indexerPageMeta
-    ) {
-      await this.indexPage(pageState.editorState.sliceDoc(), pageState.meta);
-    }
-
-    if (checkNewVersion) {
-      // Loaded page from in-memory cache, let's async see if this page hasn't been updated
-      this.checkForNewVersion(pageState.meta).catch((e) => {
-        console.error("Failed to check for new version");
-      });
-    }
+    // let indexerPageMeta = await this.indexer.getPageIndexPageMeta(pageName);
+    // if (
+    //   (indexerPageMeta &&
+    //     doc.meta.lastModified.getTime() !==
+    //       indexerPageMeta.lastModified.getTime()) ||
+    //   !indexerPageMeta
+    // ) {
+    await this.indexCurrentPage();
+    // }
   }
 
   ViewComponent(): React.ReactElement {
@@ -514,23 +465,11 @@ export class Editor implements AppEventDispatcher {
     this.viewState = viewState;
     this.viewDispatch = dispatch;
 
-    // Auto save
-    useEffect(() => {
-      const id = setTimeout(() => {
-        if (!viewState.isSaved) {
-          this.save();
-        }
-      }, 2000);
-      return () => {
-        clearTimeout(id);
-      };
-    }, [viewState.isSaved]);
-
     let editor = this;
 
     useEffect(() => {
       if (viewState.currentPage) {
-        document.title = viewState.currentPage.name;
+        document.title = viewState.currentPage;
       }
     }, [viewState.currentPage]);
 
@@ -573,7 +512,7 @@ export class Editor implements AppEventDispatcher {
           }}
         />
         <div id="editor"></div>
-        <StatusBar isSaved={viewState.isSaved} editorView={this.editorView} />
+        <StatusBar editorView={this.editorView} />
       </>
     );
   }

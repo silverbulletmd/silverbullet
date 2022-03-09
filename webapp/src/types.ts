@@ -37,8 +37,7 @@ export interface CommandDef {
 }
 
 export type AppViewState = {
-  currentPage?: PageMeta;
-  isSaved: boolean;
+  currentPage?: string;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
   allPages: PageMeta[];
@@ -46,7 +45,6 @@ export type AppViewState = {
 };
 
 export const initialViewState: AppViewState = {
-  isSaved: false,
   showPageNavigator: false,
   showCommandPalette: false,
   allPages: [],
@@ -54,9 +52,7 @@ export const initialViewState: AppViewState = {
 };
 
 export type Action =
-  | { type: "page-loaded"; meta: PageMeta }
-  | { type: "page-saved"; meta: PageMeta }
-  | { type: "page-updated" }
+  | { type: "page-loaded"; name: string }
   | { type: "pages-listed"; pages: PageMeta[] }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
