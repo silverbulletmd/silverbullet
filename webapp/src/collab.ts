@@ -10,6 +10,7 @@ import {
   receiveUpdates,
   sendableUpdates,
 } from "@codemirror/collab";
+import { RangeSetBuilder, Range } from "@codemirror/rangeset";
 import { EditorState, StateEffect, StateField, Text } from "@codemirror/state";
 import {
   Decoration,
@@ -19,81 +20,46 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { cursorEffect } from "./cursorEffect";
+import { Cursor, cursorEffect } from "./cursorEffect";
 import { HttpRemoteSpace } from "./space";
+
+const throttleInterval = 250;
+
+const throttle = (func: () => void, limit: number) => {
+  let timer: any = null;
+  return function () {
+    if (!timer) {
+      timer = setTimeout(() => {
+        func();
+        timer = null;
+      }, limit);
+    }
+  };
+};
+
+//@ts-ignore
+window.throttle = throttle;
 
 export class Document {
   text: Text;
   version: number;
+  cursors: Map<string, Cursor>;
 
-  constructor(text: Text, version: number) {
+  constructor(text: Text, version: number, cursors: Map<string, Cursor>) {
     this.text = text;
     this.version = version;
+    this.cursors = cursors;
   }
 }
-
-let meId = "";
-
-const cursorField = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none;
-  },
-  update(cursors, tr) {
-    cursors = cursors.map(tr.changes);
-    for (let e of tr.effects) {
-      if (e.is(cursorEffect)) {
-        const newCursorDecoration = Decoration.widget({
-          widget: new CursorWidget(e.value.userId, e.value.color, e.value.pos),
-          side: 1,
-        });
-        cursors = cursors.update({
-          filter: (from, to, d) => !d.eq(newCursorDecoration),
-          // add: [newCursorDecoration.range(e.value.pos)],
-          sort: true,
-        });
-      }
-    }
-    // console.log("New cursors", cursors.size);
-    return cursors;
-  },
-  provide: (f) => EditorView.decorations.from(f),
-  fromJSON(cursorJSONs) {
-    let cursors = [];
-    for (let cursorJSON of cursorJSONs) {
-      cursors.push(
-        Decoration.widget({
-          widget: new CursorWidget(
-            cursorJSON.userId,
-            cursorJSON.color,
-            cursorJSON.pos
-          ),
-          side: 1,
-        }).range(cursorJSON.pos)
-      );
-    }
-    return Decoration.set(cursors);
-  },
-  toJSON(cursors) {
-    let cursor = cursors.iter();
-    let results = [];
-    while (cursor.value) {
-      results.push({ ...cursor.value.spec.widget });
-      cursor.next();
-    }
-    return results;
-  },
-});
 
 class CursorWidget extends WidgetType {
   userId: string;
   color: string;
-  pos: number;
 
-  constructor(userId: string, color: string, pos: number) {
+  constructor(userId: string, color: string) {
     super();
     this.userId = userId;
     this.color = color;
-    this.pos = pos;
   }
 
   eq(other: CursorWidget) {
@@ -104,9 +70,13 @@ class CursorWidget extends WidgetType {
     let el = document.createElement("span");
     el.className = "other-cursor";
     el.style.backgroundColor = this.color;
-    if (this.userId == meId) {
-      el.style.display = "none";
-    }
+    // let nameSpanContainer = document.createElement("span");
+    // nameSpanContainer.className = "cursor-label-container";
+    // let nameSpanLabel = document.createElement("label");
+    // nameSpanLabel.className = "cursor-label";
+    // nameSpanLabel.textContent = this.userId;
+    // nameSpanContainer.appendChild(nameSpanLabel);
+    // el.appendChild(nameSpanContainer);
     return el;
   }
 }
@@ -114,28 +84,71 @@ class CursorWidget extends WidgetType {
 export function collabExtension(
   pageName: string,
   clientID: string,
-  startVersion: number,
+  doc: Document,
   space: HttpRemoteSpace,
   reloadCallback: () => void
 ) {
-  meId = clientID;
   let plugin = ViewPlugin.fromClass(
     class {
       private pushing = false;
       private done = false;
       private failedPushes = 0;
+      decorations: DecorationSet;
+      private cursorPositions: Map<string, Cursor> = doc.cursors;
+      throttledPush: () => void;
+
+      buildDecorations(view: EditorView) {
+        let builder = new RangeSetBuilder<Decoration>();
+
+        let list = [];
+        for (let [userId, def] of this.cursorPositions) {
+          if (userId == clientID) {
+            continue;
+          }
+          list.push({
+            pos: def.pos,
+            widget: Decoration.widget({
+              widget: new CursorWidget(userId, def.color),
+              side: 1,
+            }),
+          });
+        }
+
+        list
+          .sort((a, b) => a.pos - b.pos)
+          .forEach((r) => {
+            builder.add(r.pos, r.pos, r.widget);
+          });
+
+        return builder.finish();
+      }
 
       constructor(private view: EditorView) {
         if (pageName) {
           this.pull();
+        }
+        this.decorations = this.buildDecorations(view);
+        this.throttledPush = throttle(() => this.push(), throttleInterval);
+
+        console.log("Created collabo plug");
+        space.addEventListener("cursors", this.updateCursors);
+      }
+
+      updateCursors(cursorEvent: any) {
+        this.cursorPositions = new Map();
+        console.log("Received new cursor snapshot", cursorEvent.detail, this);
+        for (let userId in cursorEvent.detail) {
+          this.cursorPositions.set(userId, cursorEvent.detail[userId]);
         }
       }
 
       update(update: ViewUpdate) {
         if (update.selectionSet) {
           let pos = update.state.selection.main.head;
-          console.log("New pos", pos);
-          // return;
+          // if (pos === 0) {
+          //   console.error("Warning: position reset? at 0");
+          //   console.trace();
+          // }
           setTimeout(() => {
             update.view.dispatch({
               effects: [
@@ -144,17 +157,32 @@ export function collabExtension(
             });
           });
         }
-        let foundEffect = false;
+        let foundCursorMoves = new Set<string>();
         for (let tx of update.transactions) {
-          if (tx.effects.some((e) => e.is(cursorEffect))) {
-            foundEffect = true;
+          let cursorMove = tx.effects.find((e) => e.is(cursorEffect));
+          if (cursorMove) {
+            foundCursorMoves.add(cursorMove.value.userId);
           }
         }
-        if (update.docChanged || foundEffect) this.push();
+        // Update cursors
+        for (let cursor of this.cursorPositions.values()) {
+          if (foundCursorMoves.has(cursor.userId)) {
+            // Already got a cursor update for this one, no need to manually map
+            continue;
+          }
+          update.transactions.forEach((tx) => {
+            cursor.pos = tx.changes.mapPos(cursor.pos);
+          });
+        }
+        this.decorations = this.buildDecorations(update.view);
+        if (update.docChanged || foundCursorMoves.size > 0) {
+          this.throttledPush();
+        }
       }
 
       async push() {
         let updates = sendableUpdates(this.view.state);
+        // TODO: compose multiple updates into one
         if (this.pushing || !updates.length) return;
         console.log("Updates", updates);
         this.pushing = true;
@@ -178,7 +206,8 @@ export function collabExtension(
         // Regardless of whether the push failed or new updates came in
         // while it was running, try again if there's updates remaining
         if (sendableUpdates(this.view.state).length) {
-          setTimeout(() => this.push(), 100);
+          // setTimeout(() => this.push(), 100);
+          this.throttledPush();
         }
       }
 
@@ -187,26 +216,43 @@ export function collabExtension(
           let version = getSyncedVersion(this.view.state);
           let updates = await space.pullUpdates(pageName, version);
           let d = receiveUpdates(this.view.state, updates);
-          console.log("Received", d);
+          // Pull out cursor updates and update local state
+          for (let update of updates) {
+            if (update.effects) {
+              for (let effect of update.effects) {
+                if (effect.is(cursorEffect)) {
+                  this.cursorPositions.set(effect.value.userId, {
+                    userId: effect.value.userId,
+                    pos: effect.value.pos,
+                    color: effect.value.color,
+                  });
+                }
+              }
+            }
+          }
           this.view.dispatch(d);
         }
       }
 
       destroy() {
         this.done = true;
+        space.removeEventListener("cursors", this.updateCursors);
       }
+    },
+    {
+      decorations: (v) => v.decorations,
     }
   );
 
   return [
     collab({
-      startVersion,
+      startVersion: doc.version,
       clientID,
       sharedEffects: (tr) => {
         return tr.effects.filter((e) => e.is(cursorEffect));
       },
     }),
-    cursorField,
+    // cursorField,
     plugin,
   ];
 }

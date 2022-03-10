@@ -134,7 +134,7 @@ const TagLink: MarkdownConfig = {
 const WikiMarkdown = commonmark.configure([
   WikiLink,
   AtMention,
-  TagLink,
+  // TagLink,
   TaskList,
   UnmarkedUrl,
   Comment,

@@ -4,7 +4,7 @@ import { Update } from "@codemirror/collab";
 import { Transaction, Text, ChangeSet } from "@codemirror/state";
 
 import { Document } from "./collab";
-import { cursorEffect } from "./cursorEffect";
+import { Cursor, cursorEffect } from "./cursorEffect";
 
 export interface Space {
   listPages(): Promise<PageMeta[]>;
@@ -31,6 +31,10 @@ export class HttpRemoteSpace extends EventTarget implements Space {
 
     socket.on("reload", (pageName: string) => {
       this.dispatchEvent(new CustomEvent("reload", { detail: pageName }));
+    });
+
+    socket.on("cursors", (cursors) => {
+      this.dispatchEvent(new CustomEvent("cursors", { detail: cursors }));
     });
   }
 
@@ -68,7 +72,6 @@ export class HttpRemoteSpace extends EventTarget implements Space {
       effects: u.effects?.map((e) => cursorEffect.of(e.value)),
       clientID: u.clientID,
     }));
-    console.log("Got updates", ups);
     return ups;
   }
 
@@ -85,8 +88,12 @@ export class HttpRemoteSpace extends EventTarget implements Space {
 
   async openPage(name: string): Promise<Document> {
     this.reqId++;
-    let [version, text] = await this.wsCall("openPage", name);
-    return new Document(Text.of(text), version);
+    let pageJSON = await this.wsCall("openPage", name);
+    let cursors = new Map<string, Cursor>();
+    for (let p in pageJSON.cursors) {
+      cursors.set(p, pageJSON.cursors[p]);
+    }
+    return new Document(Text.of(pageJSON.text), pageJSON.version, cursors);
   }
 
   async closePage(name: string): Promise<void> {

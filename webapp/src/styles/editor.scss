@@ -11,9 +11,32 @@
 
   .other-cursor {
     display: inline-block;
-    width: 1px;
-    margin-right: -1px;
+    width: 2px;
+    margin-right: -2px;
     height: 1em;
+  }
+
+  .cursor-label-container {
+    // display: none;
+    position: relative;
+    top: 2ch;
+    float: left;
+    width: 120px;
+    height: 2.2ch;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #fff;
+    border: gray 1px solid;
+    background-color: purple;
+    // font-size: 0.5em;
+  }
+
+  .cursor-label-container label {
+    margin: 0;
+    padding: 0;
+    font-size: 0.7em;
   }
 
   .cm-selectionBackground {

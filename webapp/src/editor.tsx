@@ -65,6 +65,7 @@ import { collabExtension } from "./collab";
 
 import { Document } from "./collab";
 import { EditorSelection } from "@codemirror/state";
+import { Cursor } from "./cursorEffect";
 
 class PageState {
   scrollTop: number;
@@ -100,7 +101,10 @@ export class Editor implements AppEventDispatcher {
     this.viewDispatch = () => {};
     this.render(parent);
     this.editorView = new EditorView({
-      state: this.createEditorState("", new Document(Text.of([""]), 0)),
+      state: this.createEditorState(
+        "",
+        new Document(Text.of([""]), 0, new Map<string, Cursor>())
+      ),
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
@@ -238,7 +242,7 @@ export class Editor implements AppEventDispatcher {
         collabExtension(
           pageName,
           this.space.socket.id,
-          doc.version,
+          doc,
           this.space,
           this.reloadPage.bind(this)
         ),
@@ -435,6 +439,9 @@ export class Editor implements AppEventDispatcher {
     if (!pageState) {
       pageState = new PageState(0, editorState.selection);
       this.openPages.set(pageName, pageState!);
+      editorView.dispatch({
+        selection: { anchor: 0 },
+      });
     } else {
       // Restore state
       console.log("Restoring selection state");
