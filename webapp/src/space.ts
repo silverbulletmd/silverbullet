@@ -14,27 +14,81 @@ export interface Space {
   getPageMeta(name: string): Promise<PageMeta>;
 }
 
-export class HttpRemoteSpace extends EventTarget implements Space {
-  url: string;
+export type SpaceEventHandlers = {
+  connect: () => void;
+  cursorSnapshot: (
+    pageName: string,
+    cursors: { [key: string]: Cursor }
+  ) => void;
+  pageCreated: (meta: PageMeta) => void;
+  pageChanged: (meta: PageMeta) => void;
+  pageDeleted: (name: string) => void;
+  pageListUpdated: (pages: Set<PageMeta>) => void;
+};
+
+abstract class EventEmitter<HandlerT> {
+  private handlers: Partial<HandlerT>[] = [];
+
+  on(handlers: Partial<HandlerT>) {
+    this.handlers.push(handlers);
+  }
+
+  off(handlers: Partial<HandlerT>) {
+    this.handlers = this.handlers.filter((h) => h !== handlers);
+  }
+
+  emit(eventName: keyof HandlerT, ...args: any[]) {
+    for (let handler of this.handlers) {
+      let fn: any = handler[eventName];
+      if (fn) {
+        fn(...args);
+      }
+    }
+  }
+}
+
+export class RealtimeSpace
+  extends EventEmitter<SpaceEventHandlers>
+  implements Space
+{
   socket: Socket;
   reqId = 0;
+  allPages = new Set<PageMeta>();
 
-  constructor(url: string, socket: Socket) {
+  constructor(socket: Socket) {
     super();
-    this.url = url;
     this.socket = socket;
 
-    socket.on("connect", () => {
-      console.log("connected to socket");
-      this.dispatchEvent(new Event("connect"));
+    [
+      "connect",
+      "cursorSnapshot",
+      "pageCreated",
+      "pageChanged",
+      "pageDeleted",
+    ].forEach((eventName) => {
+      socket.on(eventName, (...args) => {
+        this.emit(eventName as keyof SpaceEventHandlers, ...args);
+      });
     });
-
-    socket.on("reload", (pageName: string) => {
-      this.dispatchEvent(new CustomEvent("reload", { detail: pageName }));
+    this.wsCall("listPages").then((pages) => {
+      this.allPages = new Set(pages);
+      this.emit("pageListUpdated", this.allPages);
     });
-
-    socket.on("cursors", (cursors) => {
-      this.dispatchEvent(new CustomEvent("cursors", { detail: cursors }));
+    this.on({
+      pageCreated: (meta) => {
+        this.allPages.add(meta);
+        console.log("New page created", meta);
+        this.emit("pageListUpdated", this.allPages);
+      },
+      pageDeleted: (name) => {
+        console.log("Page delete", name);
+        this.allPages.forEach((meta) => {
+          if (name === meta.name) {
+            this.allPages.delete(meta);
+          }
+        });
+        this.emit("pageListUpdated", this.allPages);
+      },
     });
   }
 
@@ -76,14 +130,7 @@ export class HttpRemoteSpace extends EventTarget implements Space {
   }
 
   async listPages(): Promise<PageMeta[]> {
-    let req = await fetch(this.url, {
-      method: "GET",
-    });
-
-    return (await req.json()).map((meta: any) => ({
-      name: meta.name,
-      lastModified: new Date(meta.lastModified),
-    }));
+    return Array.from(this.allPages);
   }
 
   async openPage(name: string): Promise<Document> {
@@ -101,47 +148,18 @@ export class HttpRemoteSpace extends EventTarget implements Space {
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let req = await fetch(`${this.url}/${name}`, {
-      method: "GET",
-    });
-    return {
-      text: await req.text(),
-      meta: {
-        lastModified: new Date(+req.headers.get("Last-Modified")!),
-        name: name,
-      },
-    };
+    return this.wsCall("readPage", name);
   }
 
   async writePage(name: string, text: string): Promise<PageMeta> {
-    let req = await fetch(`${this.url}/${name}`, {
-      method: "PUT",
-      body: text,
-    });
-    // 201 (Created) means a new page was created
-    return {
-      lastModified: new Date(+req.headers.get("Last-Modified")!),
-      name: name,
-      created: req.status === 201,
-    };
+    return this.wsCall("writePage", name, text);
   }
 
   async deletePage(name: string): Promise<void> {
-    let req = await fetch(`${this.url}/${name}`, {
-      method: "DELETE",
-    });
-    if (req.status !== 200) {
-      throw Error(`Failed to delete page: ${req.statusText}`);
-    }
+    return this.wsCall("deletePage", name);
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    let req = await fetch(`${this.url}/${name}`, {
-      method: "OPTIONS",
-    });
-    return {
-      name: name,
-      lastModified: new Date(+req.headers.get("Last-Modified")!),
-    };
+    return this.wsCall("deletePage", name);
   }
 }

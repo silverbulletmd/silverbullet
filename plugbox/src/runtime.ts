@@ -1,78 +1,16 @@
 import { Manifest } from "./types";
+import { WebworkerSandbox } from "./worker_sandbox";
 
 interface SysCallMapping {
   // TODO: Better typing
   [key: string]: any;
 }
 
-export class FunctionWorker {
-  private worker: Worker;
-  private inited: Promise<any>;
-  private initCallback: any;
-  private invokeResolve?: (result?: any) => void;
-  private invokeReject?: (reason?: any) => void;
-  private plug: Plug<any>;
-
-  constructor(plug: Plug<any>, name: string, code: string) {
-    // let worker = window.Worker;
-    this.worker = new Worker(new URL("function_worker.ts", import.meta.url), {
-      type: "module",
-    });
-
-    this.worker.onmessage = this.onmessage.bind(this);
-    this.worker.postMessage({
-      type: "boot",
-      name: name,
-      code: code,
-    });
-    this.inited = new Promise((resolve) => {
-      this.initCallback = resolve;
-    });
-    this.plug = plug;
-  }
-
-  async onmessage(evt: MessageEvent) {
-    let data = evt.data;
-    if (!data) return;
-    switch (data.type) {
-      case "inited":
-        this.initCallback();
-        break;
-      case "syscall":
-        let result = await this.plug.system.syscall(data.name, data.args);
-
-        this.worker.postMessage({
-          type: "syscall-response",
-          id: data.id,
-          data: result,
-        });
-        break;
-      case "result":
-        this.invokeResolve!(data.result);
-        break;
-      case "error":
-        this.invokeReject!(data.reason);
-        break;
-      default:
-        console.error("Unknown message type", data);
-    }
-  }
-
-  async invoke(args: Array<any>): Promise<any> {
-    await this.inited;
-    this.worker.postMessage({
-      type: "invoke",
-      args: args,
-    });
-    return new Promise((resolve, reject) => {
-      this.invokeResolve = resolve;
-      this.invokeReject = reject;
-    });
-  }
-
-  stop() {
-    this.worker.terminate();
-  }
+export interface Sandbox {
+  isLoaded(name: string): boolean;
+  load(name: string, code: string): Promise<void>;
+  invoke(name: string, args: any[]): Promise<any>;
+  stop(): void;
 }
 
 export interface PlugLoader<HookT> {
@@ -81,12 +19,13 @@ export interface PlugLoader<HookT> {
 
 export class Plug<HookT> {
   system: System<HookT>;
-  private runningFunctions: Map<string, FunctionWorker>;
+  // private runningFunctions: Map<string, FunctionWorker>;
+  functionWorker: WebworkerSandbox;
   public manifest?: Manifest<HookT>;
 
   constructor(system: System<HookT>, name: string) {
     this.system = system;
-    this.runningFunctions = new Map<string, FunctionWorker>();
+    this.functionWorker = new WebworkerSandbox(this);
   }
 
   async load(manifest: Manifest<HookT>) {
@@ -95,16 +34,13 @@ export class Plug<HookT> {
   }
 
   async invoke(name: string, args: Array<any>): Promise<any> {
-    let worker = this.runningFunctions.get(name);
-    if (!worker) {
-      worker = new FunctionWorker(
-        this,
+    if (!this.functionWorker.isLoaded(name)) {
+      await this.functionWorker.load(
         name,
         this.manifest!.functions[name].code!
       );
-      this.runningFunctions.set(name, worker);
     }
-    return await worker.invoke(args);
+    return await this.functionWorker.invoke(name, args);
   }
 
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
@@ -122,13 +58,7 @@ export class Plug<HookT> {
   }
 
   async stop() {
-    for (const [functionname, worker] of Object.entries(
-      this.runningFunctions
-    )) {
-      console.log(`Stopping ${functionname}`);
-      worker.stop();
-    }
-    this.runningFunctions = new Map<string, FunctionWorker>();
+    this.functionWorker.stop();
   }
 }
 
@@ -141,7 +71,7 @@ export class System<HookT> {
     this.registeredSyscalls = {};
   }
 
-  registerSyscalls(...registrationObjects: Array<SysCallMapping>) {
+  registerSyscalls(...registrationObjects: SysCallMapping[]) {
     for (const registrationObject of registrationObjects) {
       for (let p in registrationObject) {
         this.registeredSyscalls[p] = registrationObject[p];

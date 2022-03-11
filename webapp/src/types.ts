@@ -10,10 +10,9 @@ export type Manifest = plugbox.Manifest<NuggetHook>;
 
 export type PageMeta = {
   name: string;
-  lastModified: Date;
+  lastModified: number;
   version?: number;
-  created?: boolean;
-  lastOpened?: Date;
+  lastOpened?: number;
 };
 
 export type AppCommand = {
@@ -40,20 +39,20 @@ export type AppViewState = {
   currentPage?: string;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
-  allPages: PageMeta[];
+  allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
 };
 
 export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
-  allPages: [],
+  allPages: new Set(),
   commands: new Map(),
 };
 
 export type Action =
   | { type: "page-loaded"; name: string }
-  | { type: "pages-listed"; pages: PageMeta[] }
+  | { type: "pages-listed"; pages: Set<PageMeta> }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "update-commands"; commands: Map<string, AppCommand> }

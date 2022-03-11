@@ -4,7 +4,7 @@ import { Socket } from "socket.io";
 import { Cursor } from "../../webapp/src/cursorEffect";
 import { PageMeta } from "./server";
 
-export class Client {
+export class ClientPageState {
   constructor(public socket: Socket, public version: number) {}
 }
 
@@ -12,7 +12,7 @@ export class Page {
   versionOffset = 0;
   updates: Update[] = [];
   cursors = new Map<string, Cursor>();
-  clients = new Set<Client>();
+  clientStates = new Set<ClientPageState>();
 
   pending: ((value: any) => void)[] = [];
 

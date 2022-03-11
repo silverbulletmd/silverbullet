@@ -25,8 +25,6 @@ export async function deletePage() {
   await syscall("editor.navigate", "start");
   console.log("Deleting page from space");
   await syscall("space.deletePage", pageName);
-  console.log("Reloading page list");
-  await syscall("space.reloadPageList");
 }
 
 export async function renamePage() {
@@ -50,8 +48,6 @@ export async function renamePage() {
   await syscall("space.writePage", newName, text);
   console.log("Deleting page from space");
   await syscall("space.deletePage", oldName);
-  console.log("Reloading page list");
-  await syscall("space.reloadPageList");
   console.log("Navigating to new page");
   await syscall("editor.navigate", newName);
 
@@ -63,6 +59,7 @@ export async function renamePage() {
   for (let pageToUpdate of pageToUpdateSet) {
     console.log("Now going to update links in", pageToUpdate);
     let { text } = await syscall("space.readPage", pageToUpdate);
+    console.log("Received text", text);
     if (!text) {
       // Page likely does not exist, but at least we can skip it
       continue;

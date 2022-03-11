@@ -1,9 +1,9 @@
 declare global {
-  function syscall(id: string, name: string, args: any[]): Promise<any>;
+  function syscall(id: number, name: string, args: any[]): Promise<any>;
 }
 
 export async function syscall(name: string, ...args: any[]): Promise<any> {
-  let reqId = "" + Math.floor(Math.random() * 1000000);
+  let reqId = Math.floor(Math.random() * 1000000);
   // console.log("Syscall", name, reqId);
   return await self.syscall(reqId, name, args);
   // return new Promise((resolve, reject) => {

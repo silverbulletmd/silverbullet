@@ -10,8 +10,8 @@ import {
   receiveUpdates,
   sendableUpdates,
 } from "@codemirror/collab";
-import { RangeSetBuilder, Range } from "@codemirror/rangeset";
-import { EditorState, StateEffect, StateField, Text } from "@codemirror/state";
+import { RangeSetBuilder } from "@codemirror/rangeset";
+import { Text } from "@codemirror/state";
 import {
   Decoration,
   DecorationSet,
@@ -21,7 +21,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { Cursor, cursorEffect } from "./cursorEffect";
-import { HttpRemoteSpace } from "./space";
+import { RealtimeSpace, SpaceEventHandlers } from "./space";
 
 const throttleInterval = 250;
 
@@ -85,7 +85,7 @@ export function collabExtension(
   pageName: string,
   clientID: string,
   doc: Document,
-  space: HttpRemoteSpace,
+  space: RealtimeSpace,
   reloadCallback: () => void
 ) {
   let plugin = ViewPlugin.fromClass(
@@ -95,7 +95,15 @@ export function collabExtension(
       private failedPushes = 0;
       decorations: DecorationSet;
       private cursorPositions: Map<string, Cursor> = doc.cursors;
-      throttledPush: () => void;
+
+      throttledPush = throttle(() => this.push(), throttleInterval);
+
+      eventHandlers: Partial<SpaceEventHandlers> = {
+        cursorSnapshot: (pageName, cursors) => {
+          console.log("Received new cursor snapshot", cursors);
+          this.cursorPositions = new Map(Object.entries(cursors));
+        },
+      };
 
       buildDecorations(view: EditorView) {
         let builder = new RangeSetBuilder<Decoration>();
@@ -128,18 +136,7 @@ export function collabExtension(
           this.pull();
         }
         this.decorations = this.buildDecorations(view);
-        this.throttledPush = throttle(() => this.push(), throttleInterval);
-
-        console.log("Created collabo plug");
-        space.addEventListener("cursors", this.updateCursors);
-      }
-
-      updateCursors(cursorEvent: any) {
-        this.cursorPositions = new Map();
-        console.log("Received new cursor snapshot", cursorEvent.detail, this);
-        for (let userId in cursorEvent.detail) {
-          this.cursorPositions.set(userId, cursorEvent.detail[userId]);
-        }
+        space.on(this.eventHandlers);
       }
 
       update(update: ViewUpdate) {
@@ -190,7 +187,7 @@ export function collabExtension(
         let success = await space.pushUpdates(pageName, version, updates);
         this.pushing = false;
 
-        if (!success) {
+        if (!success && !this.done) {
           this.failedPushes++;
           if (this.failedPushes > 10) {
             // Not sure if 10 is a good number, but YOLO
@@ -198,14 +195,16 @@ export function collabExtension(
             reloadCallback();
             return this.destroy();
           }
-          console.log("Push failed temporarily, but will try again");
+          console.log(
+            `Push for page ${pageName} failed temporarily, but will try again`
+          );
         } else {
           this.failedPushes = 0;
         }
 
         // Regardless of whether the push failed or new updates came in
         // while it was running, try again if there's updates remaining
-        if (sendableUpdates(this.view.state).length) {
+        if (!this.done && sendableUpdates(this.view.state).length) {
           // setTimeout(() => this.push(), 100);
           this.throttledPush();
         }
@@ -236,7 +235,7 @@ export function collabExtension(
 
       destroy() {
         this.done = true;
-        space.removeEventListener("cursors", this.updateCursors);
+        space.off(this.eventHandlers);
       }
     },
     {
@@ -252,7 +251,6 @@ export function collabExtension(
         return tr.effects.filter((e) => e.is(cursorEffect));
       },
     }),
-    // cursorField,
     plugin,
   ];
 }

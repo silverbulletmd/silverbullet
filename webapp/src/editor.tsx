@@ -45,7 +45,7 @@ import { slashCommandRegexp } from "./types";
 
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { HttpRemoteSpace } from "./space";
+import { RealtimeSpace } from "./space";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
 import editorSyscalls from "./syscalls/editor.browser";
@@ -84,7 +84,7 @@ export class Editor implements AppEventDispatcher {
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   openPages: Map<string, PageState>;
-  space: HttpRemoteSpace;
+  space: RealtimeSpace;
   editorCommands: Map<string, AppCommand>;
   plugs: Plug<NuggetHook>[];
   indexer: Indexer;
@@ -92,7 +92,7 @@ export class Editor implements AppEventDispatcher {
   pageNavigator: IPageNavigator;
   indexCurrentPageDebounced: () => any;
 
-  constructor(space: HttpRemoteSpace, parent: Element) {
+  constructor(space: RealtimeSpace, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
     this.plugs = [];
@@ -114,7 +114,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async init() {
-    await this.loadPageList();
+    // await this.loadPageList();
     await this.loadPlugs();
     this.focus();
 
@@ -127,8 +127,10 @@ export class Editor implements AppEventDispatcher {
 
       if (this.currentPage) {
         let pageState = this.openPages.get(this.currentPage)!;
-        pageState.selection = this.editorView!.state.selection;
-        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+        if (pageState) {
+          pageState.selection = this.editorView!.state.selection;
+          pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+        }
 
         this.space.closePage(this.currentPage);
       }
@@ -136,19 +138,25 @@ export class Editor implements AppEventDispatcher {
       await this.loadPage(pageName);
     });
 
-    this.space.addEventListener("connect", () => {
-      if (this.currentPage) {
-        console.log("Connected to socket, fetch fresh?");
-        this.reloadPage();
-      }
-    });
-
-    this.space.addEventListener("reload", (e) => {
-      let pageName = (e as CustomEvent).detail;
-      if (this.currentPage === pageName) {
-        console.log("Was told to reload the page");
-        this.reloadPage();
-      }
+    this.space.on({
+      connect: () => {
+        if (this.currentPage) {
+          console.log("Connected to socket, fetch fresh?");
+          this.reloadPage();
+        }
+      },
+      pageChanged: (meta) => {
+        if (this.currentPage === meta.name) {
+          console.log("page changed on disk, reloading");
+          this.reloadPage();
+        }
+      },
+      pageListUpdated: (pages) => {
+        this.viewDispatch({
+          type: "pages-listed",
+          pages: pages,
+        });
+      },
     });
 
     if (this.pageNavigator.getCurrentPage() === "") {
@@ -409,14 +417,6 @@ export class Editor implements AppEventDispatcher {
         true
       );
     }
-  }
-
-  async loadPageList() {
-    let pagesMeta = await this.space.listPages();
-    this.viewDispatch({
-      type: "pages-listed",
-      pages: pagesMeta,
-    });
   }
 
   focus() {

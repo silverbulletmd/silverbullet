@@ -3,10 +3,7 @@ import { PageMeta } from "../types";
 
 export default (editor: Editor) => ({
   "space.listPages": (): PageMeta[] => {
-    return editor.viewState.allPages;
-  },
-  "space.reloadPageList": async () => {
-    await editor.loadPageList();
+    return [...editor.viewState.allPages];
   },
   "space.reindex": async () => {
     await editor.indexer.reindexSpace(editor.space, editor);

@@ -9,10 +9,12 @@ export default function reducer(
     case "page-loaded":
       return {
         ...state,
-        allPages: state.allPages.map((pageMeta) =>
-          pageMeta.name === action.name
-            ? { ...pageMeta, lastOpened: new Date() }
-            : pageMeta
+        allPages: new Set(
+          [...state.allPages].map((pageMeta) =>
+            pageMeta.name === action.name
+              ? { ...pageMeta, lastOpened: Date.now() }
+              : pageMeta
+          )
         ),
         currentPage: action.name,
       };

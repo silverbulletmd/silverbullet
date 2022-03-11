@@ -7,7 +7,7 @@ export function PageNavigator({
   onNavigate,
   currentPage,
 }: {
-  allPages: PageMeta[];
+  allPages: Set<PageMeta>;
   onNavigate: (page: string | undefined) => void;
   currentPage?: string;
 }) {
@@ -17,10 +17,10 @@ export function PageNavigator({
       continue;
     }
     // Order by last modified date in descending order
-    let orderId = -pageMeta.lastModified.getTime();
+    let orderId = -pageMeta.lastModified;
     // Unless it was opened and is still in memory
     if (pageMeta.lastOpened) {
-      orderId = -pageMeta.lastOpened.getTime();
+      orderId = -pageMeta.lastOpened;
     }
     options.push({
       ...pageMeta,

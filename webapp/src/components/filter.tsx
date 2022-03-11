@@ -100,7 +100,7 @@ export function FilterList({
           ref={searchBoxRef}
           onChange={filter}
           onKeyDown={(e: React.KeyboardEvent) => {
-            console.log("Key up", e.key);
+            // console.log("Key up", e.key);
             if (onKeyPress) {
               onKeyPress(e.key, text);
             }
