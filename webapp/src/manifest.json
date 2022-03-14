@@ -1,6 +1,6 @@
 {
-  "short_name": "Nugget",
-  "name": "Nugget",
+  "short_name": "Silver Bullet",
+  "name": "Silver Bullet",
   "icons": [
     {
       "src": "./images/logo.png",
@@ -9,7 +9,7 @@
     }
   ],
   "capture_links": "new-client",
-  "start_url": "/start",
+  "start_url": "/",
   "display": "standalone",
   "scope": "/",
   "theme_color": "#000",

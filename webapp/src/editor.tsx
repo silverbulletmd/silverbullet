@@ -46,7 +46,7 @@ import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { RealtimeSpace } from "./space";
+import { Space } from "./space";
 import customMarkdownStyle from "./style";
 import dbSyscalls from "./syscalls/db.localstorage";
 import editorSyscalls from "./syscalls/editor.browser";
@@ -77,7 +77,7 @@ export class Editor implements AppEventDispatcher {
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   openPages: Map<string, PageState>;
-  space: RealtimeSpace;
+  space: Space;
   editorCommands: Map<string, AppCommand>;
   plugs: Plug<NuggetHook>[];
   indexer: Indexer;
@@ -85,7 +85,7 @@ export class Editor implements AppEventDispatcher {
   pageNavigator: IPageNavigator;
   indexCurrentPageDebounced: () => any;
 
-  constructor(space: RealtimeSpace, parent: Element) {
+  constructor(space: Space, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
     this.plugs = [];
@@ -101,7 +101,7 @@ export class Editor implements AppEventDispatcher {
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
-    this.indexer = new Indexer("page-index", space);
+    this.indexer = new Indexer(space);
 
     this.indexCurrentPageDebounced = throttle(
       this.indexCurrentPage.bind(this),
@@ -175,7 +175,7 @@ export class Editor implements AppEventDispatcher {
       dbSyscalls,
       editorSyscalls(this),
       spaceSyscalls(this),
-      indexerSyscalls(this.indexer)
+      indexerSyscalls(this.space)
     );
 
     console.log("Now loading core plug");
@@ -319,8 +319,6 @@ export class Editor implements AppEventDispatcher {
             key: "Ctrl-.",
             mac: "Cmd-.",
             run: (target): boolean => {
-              console.log("YO");
-
               this.viewDispatch({
                 type: "show-palette",
               });

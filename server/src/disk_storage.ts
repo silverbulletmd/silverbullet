@@ -1,6 +1,6 @@
 import { readdir, readFile, stat, unlink, writeFile } from "fs/promises";
-import path from "path";
-import { PageMeta, pagesPath } from "./server";
+import * as path from "path";
+import { PageMeta } from "./types";
 
 export class DiskStorage {
   rootPath: string;
@@ -37,41 +37,55 @@ export class DiskStorage {
   }
 
   async readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
-    const localPath = path.join(pagesPath, pageName + ".md");
-    const s = await stat(localPath);
-    return {
-      text: await readFile(localPath, "utf8"),
-      meta: {
-        name: pageName,
-        lastModified: s.mtime.getTime(),
-      },
-    };
+    const localPath = path.join(this.rootPath, pageName + ".md");
+    try {
+      const s = await stat(localPath);
+      return {
+        text: await readFile(localPath, "utf8"),
+        meta: {
+          name: pageName,
+          lastModified: s.mtime.getTime(),
+        },
+      };
+    } catch (e) {
+      // console.error("Error while writing page", pageName, e);
+      throw Error(`Could not read page ${pageName}`);
+    }
   }
 
   async writePage(pageName: string, text: string): Promise<PageMeta> {
-    let localPath = path.join(pagesPath, pageName + ".md");
-    // await pipeline(body, fs.createWriteStream(localPath));
-    await writeFile(localPath, text);
+    let localPath = path.join(this.rootPath, pageName + ".md");
+    try {
+      await writeFile(localPath, text);
 
-    // console.log(`Wrote to ${localPath}`);
-    const s = await stat(localPath);
-    return {
-      name: pageName,
-      lastModified: s.mtime.getTime(),
-    };
+      // console.log(`Wrote to ${localPath}`);
+      const s = await stat(localPath);
+      return {
+        name: pageName,
+        lastModified: s.mtime.getTime(),
+      };
+    } catch (e) {
+      console.error("Error while writing page", pageName, e);
+      throw Error(`Could not write ${pageName}`);
+    }
   }
 
   async getPageMeta(pageName: string): Promise<PageMeta> {
-    let localPath = path.join(pagesPath, pageName + ".md");
-    const s = await stat(localPath);
-    return {
-      name: pageName,
-      lastModified: s.mtime.getTime(),
-    };
+    let localPath = path.join(this.rootPath, pageName + ".md");
+    try {
+      const s = await stat(localPath);
+      return {
+        name: pageName,
+        lastModified: s.mtime.getTime(),
+      };
+    } catch (e) {
+      console.error("Error while getting page meta", pageName, e);
+      throw Error(`Could not get meta for ${pageName}`);
+    }
   }
 
   async deletePage(pageName: string) {
-    let localPath = path.join(pagesPath, pageName + ".md");
+    let localPath = path.join(this.rootPath, pageName + ".md");
     await unlink(localPath);
   }
 }

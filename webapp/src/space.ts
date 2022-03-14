@@ -7,14 +7,6 @@ import { CollabEvents, CollabDocument } from "./collab";
 import { Cursor, cursorEffect } from "./cursorEffect";
 import { EventEmitter } from "./event";
 
-export interface Space {
-  listPages(): Promise<PageMeta[]>;
-  readPage(name: string): Promise<{ text: string; meta: PageMeta }>;
-  writePage(name: string, text: string): Promise<PageMeta>;
-  deletePage(name: string): Promise<void>;
-  getPageMeta(name: string): Promise<PageMeta>;
-}
-
 export type SpaceEvents = {
   connect: () => void;
   pageCreated: (meta: PageMeta) => void;
@@ -23,7 +15,12 @@ export type SpaceEvents = {
   pageListUpdated: (pages: Set<PageMeta>) => void;
 } & CollabEvents;
 
-export class RealtimeSpace extends EventEmitter<SpaceEvents> implements Space {
+export type KV = {
+  key: string;
+  value: any;
+};
+
+export class Space extends EventEmitter<SpaceEvents> {
   socket: Socket;
   reqId = 0;
   allPages = new Set<PageMeta>();
@@ -66,9 +63,15 @@ export class RealtimeSpace extends EventEmitter<SpaceEvents> implements Space {
   }
 
   private wsCall(eventName: string, ...args: any[]): Promise<any> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.reqId++;
-      this.socket!.once(`${eventName}Resp${this.reqId}`, resolve);
+      this.socket!.once(`${eventName}Resp${this.reqId}`, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
       this.socket!.emit(eventName, this.reqId, ...args);
     });
   }
@@ -135,5 +138,41 @@ export class RealtimeSpace extends EventEmitter<SpaceEvents> implements Space {
 
   async getPageMeta(name: string): Promise<PageMeta> {
     return this.wsCall("deletePage", name);
+  }
+
+  async indexSet(pageName: string, key: string, value: any) {
+    await this.wsCall("index:set", pageName, key, value);
+  }
+
+  async indexBatchSet(pageName: string, kvs: KV[]) {
+    // TODO: Optimize with batch call
+    for (let { key, value } of kvs) {
+      await this.indexSet(pageName, key, value);
+    }
+  }
+
+  async indexGet(pageName: string, key: string): Promise<any | null> {
+    return await this.wsCall("index:get", pageName, key);
+  }
+
+  async indexScanPrefixForPage(
+    pageName: string,
+    keyPrefix: string
+  ): Promise<{ key: string; value: any }[]> {
+    return await this.wsCall("index:scanPrefixForPage", pageName, keyPrefix);
+  }
+
+  async indexScanPrefixGlobal(
+    keyPrefix: string
+  ): Promise<{ key: string; value: any }[]> {
+    return await this.wsCall("index:scanPrefixGlobal", keyPrefix);
+  }
+
+  async indexDeletePrefixForPage(pageName: string, keyPrefix: string) {
+    await this.wsCall("index:deletePrefixForPage", keyPrefix);
+  }
+
+  async indexDelete(pageName: string, key: string) {
+    await this.wsCall("index:delete", pageName, key);
   }
 }

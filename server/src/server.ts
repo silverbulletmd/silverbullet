@@ -2,7 +2,19 @@ import express from "express";
 import { readFile } from "fs/promises";
 import http from "http";
 import { Server } from "socket.io";
-import { exposeSocketAPI } from "./api";
+import { SocketServer } from "./api";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
+let args = yargs(hideBin(process.argv))
+  .option("debug", {
+    type: "boolean",
+  })
+  .option("port", {
+    type: "number",
+    default: 3000,
+  })
+  .parse();
 
 const app = express();
 const server = http.createServer(app);
@@ -13,18 +25,11 @@ const io = new Server(server, {
   },
 });
 
-const port = 3000;
-export const pagesPath = "../pages";
+const port = args.port;
 const distDir = `${__dirname}/../../webapp/dist`;
 
-export type PageMeta = {
-  name: string;
-  lastModified: number;
-  version?: number;
-};
-
 app.use("/", express.static(distDir));
-exposeSocketAPI(pagesPath, io);
+let socketServer = new SocketServer(args._[0] as string, io);
 
 // Fallback, serve index.html
 let cachedIndex: string | undefined = undefined;
@@ -36,5 +41,5 @@ app.get("/*", async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Server istening on port ${port}`);
+  console.log(`Server listening on port ${port}`);
 });

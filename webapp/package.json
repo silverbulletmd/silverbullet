@@ -1,5 +1,5 @@
 {
-  "name": "noot",
+  "name": "silverbullet",
   "version": "1.0.0",
   "source": [
     "src/index.html"
@@ -7,10 +7,9 @@
   "license": "MIT",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
-    "start": "parcel",
+    "start": "parcel serve --no-cache",
     "build": "parcel build",
-    "clean": "rm -rf dist",
-    "check-watch": "tsc --noEmit --watch"
+    "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "2.3.2",

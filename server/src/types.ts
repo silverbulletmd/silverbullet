@@ -2,11 +2,15 @@ import { Update } from "@codemirror/collab";
 import { Text } from "@codemirror/state";
 import { Socket } from "socket.io";
 import { Cursor } from "../../webapp/src/cursorEffect";
-import { PageMeta } from "./server";
-
 export class ClientPageState {
   constructor(public socket: Socket, public version: number) {}
 }
+
+export type PageMeta = {
+  name: string;
+  lastModified: number;
+  version?: number;
+};
 
 export class Page {
   versionOffset = 0;

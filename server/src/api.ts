@@ -1,229 +1,376 @@
-import fs from "fs";
 import { stat } from "fs/promises";
-import path from "path";
 import { ChangeSet } from "@codemirror/state";
 import { Update } from "@codemirror/collab";
 import { Server } from "socket.io";
 import { Cursor, cursorEffect } from "../../webapp/src/cursorEffect";
 import { Socket } from "socket.io";
 import { DiskStorage } from "./disk_storage";
-import { PageMeta } from "./server";
-import { ClientPageState, Page } from "./types";
+import { ClientPageState, Page, PageMeta } from "./types";
 import { safeRun } from "./util";
+import * as fs from "fs";
+import * as path from "path";
+import knex, { Knex } from "knex";
 
-export function exposeSocketAPI(rootPath: string, io: Server) {
-  const openPages = new Map<string, Page>();
-  const connectedSockets: Set<Socket> = new Set();
-  const pageStore = new DiskStorage(rootPath);
-  fileWatcher(rootPath);
+type IndexItem = {
+  page: string;
+  key: string;
+  value: any;
+};
 
-  io.on("connection", (socket) => {
-    const socketOpenPages = new Set<string>();
+class ClientConnection {
+  openPages = new Set<string>();
+  constructor(readonly sock: Socket) {}
+}
 
-    console.log("Connected", socket.id);
-    connectedSockets.add(socket);
+export class SocketServer {
+  rootPath: string;
+  serverSock: Server;
+  openPages = new Map<string, Page>();
+  connectedSockets = new Set<Socket>();
+  pageStore: DiskStorage;
+  db: Knex;
+  serverSocket: Server;
 
-    socket.on("disconnect", () => {
-      console.log("Disconnected", socket.id);
-      socketOpenPages.forEach(disconnectPageSocket);
-      connectedSockets.delete(socket);
-    });
-
-    socket.on("closePage", (pageName: string) => {
-      console.log("Closing page", pageName);
-      socketOpenPages.delete(pageName);
-      disconnectPageSocket(pageName);
-    });
-
-    const onCall = (
-      eventName: string,
-      cb: (...args: any[]) => Promise<any>
-    ) => {
-      socket.on(eventName, (reqId: number, ...args) => {
-        cb(...args).then((result) => {
-          socket.emit(`${eventName}Resp${reqId}`, result);
-        });
-      });
-    };
-
-    const disconnectPageSocket = (pageName: string) => {
-      let page = openPages.get(pageName);
-      if (page) {
-        for (let client of page.clientStates) {
-          if (client.socket === socket) {
-            disconnectClient(client, page);
-          }
-        }
-      }
-    };
-
-    onCall("openPage", async (pageName: string) => {
-      let page = openPages.get(pageName);
+  api = {
+    openPage: async (clientConn: ClientConnection, pageName: string) => {
+      let page = this.openPages.get(pageName);
       if (!page) {
         try {
-          let { text, meta } = await pageStore.readPage(pageName);
+          let { text, meta } = await this.pageStore.readPage(pageName);
           page = new Page(pageName, text, meta);
         } catch (e) {
           console.log("Creating new page", pageName);
           page = new Page(pageName, "", { name: pageName, lastModified: 0 });
         }
-        openPages.set(pageName, page);
+        this.openPages.set(pageName, page);
       }
-      page.clientStates.add(new ClientPageState(socket, page.version));
-      socketOpenPages.add(pageName);
+      page.clientStates.add(new ClientPageState(clientConn.sock, page.version));
+      clientConn.openPages.add(pageName);
       console.log("Opened page", pageName);
-      broadcastCursors(page);
+      this.broadcastCursors(page);
       return page.toJSON();
-    });
+    },
+    pushUpdates: async (
+      clientConn: ClientConnection,
+      pageName: string,
+      version: number,
+      updates: any[]
+    ): Promise<boolean> => {
+      let page = this.openPages.get(pageName);
 
-    onCall(
-      "pushUpdates",
-      async (
-        pageName: string,
-        version: number,
-        updates: any[]
-      ): Promise<boolean> => {
-        let page = openPages.get(pageName);
-
-        if (!page) {
-          console.error(
-            "Received updates for not open page",
-            pageName,
-            openPages.keys()
-          );
-          return false;
-        }
-        if (version !== page.version) {
-          console.error("Invalid version", version, page.version);
-          return false;
-        } else {
-          console.log("Applying", updates.length, "updates to", pageName);
-          let transformedUpdates = [];
-          let textChanged = false;
-          for (let update of updates) {
-            let changes = ChangeSet.fromJSON(update.changes);
-            let transformedUpdate = {
-              changes,
-              clientID: update.clientID,
-              effects: update.cursors?.map((c: Cursor) => {
-                page.cursors.set(c.userId, c);
-                return cursorEffect.of(c);
-              }),
-            };
-            page.updates.push(transformedUpdate);
-            transformedUpdates.push(transformedUpdate);
-            let oldText = page.text;
-            page.text = changes.apply(page.text);
-            if (oldText !== page.text) {
-              textChanged = true;
-            }
-          }
-
-          if (textChanged) {
-            if (page.saveTimer) {
-              clearTimeout(page.saveTimer);
-            }
-
-            page.saveTimer = setTimeout(() => {
-              flushPageToDisk(pageName, page);
-            }, 1000);
-          }
-          while (page.pending.length) {
-            page.pending.pop()!(transformedUpdates);
-          }
-          return true;
-        }
+      if (!page) {
+        console.error(
+          "Received updates for not open page",
+          pageName,
+          this.openPages.keys()
+        );
+        return false;
       }
-    );
-
-    onCall(
-      "pullUpdates",
-      async (pageName: string, version: number): Promise<Update[]> => {
-        let page = openPages.get(pageName);
-        // console.log("Pulling updates for", pageName);
-        if (!page) {
-          console.error("Fetching updates for not open page");
-          return [];
-        }
-        // TODO: Optimize this
-        let oldestVersion = Infinity;
-        page.clientStates.forEach((client) => {
-          oldestVersion = Math.min(client.version, oldestVersion);
-          if (client.socket === socket) {
-            client.version = version;
-          }
-        });
-        page.flushUpdates(oldestVersion);
-        if (version < page.version) {
-          return page.updatesSince(version);
-        } else {
-          return new Promise((resolve) => {
-            page.pending.push(resolve);
-          });
-        }
-      }
-    );
-
-    onCall(
-      "readPage",
-      async (pageName: string): Promise<{ text: string; meta: PageMeta }> => {
-        let page = openPages.get(pageName);
-        if (page) {
-          console.log("Serving page from memory", pageName);
-          return {
-            text: page.text.sliceString(0),
-            meta: page.meta,
+      if (version !== page.version) {
+        console.error("Invalid version", version, page.version);
+        return false;
+      } else {
+        console.log("Applying", updates.length, "updates to", pageName);
+        let transformedUpdates = [];
+        let textChanged = false;
+        for (let update of updates) {
+          let changes = ChangeSet.fromJSON(update.changes);
+          let transformedUpdate = {
+            changes,
+            clientID: update.clientID,
+            effects: update.cursors?.map((c: Cursor) => {
+              page.cursors.set(c.userId, c);
+              return cursorEffect.of(c);
+            }),
           };
-        } else {
-          return pageStore.readPage(pageName);
+          page.updates.push(transformedUpdate);
+          transformedUpdates.push(transformedUpdate);
+          let oldText = page.text;
+          page.text = changes.apply(page.text);
+          if (oldText !== page.text) {
+            textChanged = true;
+          }
         }
-      }
-    );
 
-    onCall("writePage", async (pageName: string, text: string) => {
-      let page = openPages.get(pageName);
+        if (textChanged) {
+          if (page.saveTimer) {
+            clearTimeout(page.saveTimer);
+          }
+
+          page.saveTimer = setTimeout(() => {
+            this.flushPageToDisk(pageName, page);
+          }, 1000);
+        }
+        while (page.pending.length) {
+          page.pending.pop()!(transformedUpdates);
+        }
+        return true;
+      }
+    },
+
+    pullUpdates: async (
+      clientConn: ClientConnection,
+      pageName: string,
+      version: number
+    ): Promise<Update[]> => {
+      let page = this.openPages.get(pageName);
+      // console.log("Pulling updates for", pageName);
+      if (!page) {
+        console.error("Fetching updates for not open page");
+        return [];
+      }
+      // TODO: Optimize this
+      let oldestVersion = Infinity;
+      page.clientStates.forEach((client) => {
+        oldestVersion = Math.min(client.version, oldestVersion);
+        if (client.socket === clientConn.sock) {
+          client.version = version;
+        }
+      });
+      page.flushUpdates(oldestVersion);
+      if (version < page.version) {
+        return page.updatesSince(version);
+      } else {
+        return new Promise((resolve) => {
+          page.pending.push(resolve);
+        });
+      }
+    },
+
+    readPage: async (
+      clientConn: ClientConnection,
+      pageName: string
+    ): Promise<{ text: string; meta: PageMeta }> => {
+      let page = this.openPages.get(pageName);
+      if (page) {
+        console.log("Serving page from memory", pageName);
+        return {
+          text: page.text.sliceString(0),
+          meta: page.meta,
+        };
+      } else {
+        return this.pageStore.readPage(pageName);
+      }
+    },
+
+    writePage: async (
+      clientConn: ClientConnection,
+      pageName: string,
+      text: string
+    ) => {
+      let page = this.openPages.get(pageName);
       if (page) {
         for (let client of page.clientStates) {
           client.socket.emit("reloadPage", pageName);
         }
-        openPages.delete(pageName);
+        this.openPages.delete(pageName);
       }
-      return pageStore.writePage(pageName, text);
-    });
+      return this.pageStore.writePage(pageName, text);
+    },
 
-    onCall("deletePage", async (pageName: string) => {
-      openPages.delete(pageName);
-      socketOpenPages.delete(pageName);
+    deletePage: async (clientConn: ClientConnection, pageName: string) => {
+      this.openPages.delete(pageName);
+      clientConn.openPages.delete(pageName);
       // Cascading of this to all connected clients will be handled by file watcher
-      return pageStore.deletePage(pageName);
-    });
+      return this.pageStore.deletePage(pageName);
+    },
 
-    onCall("listPages", async (): Promise<PageMeta[]> => {
-      return pageStore.listPages();
-    });
+    listPages: async (clientConn: ClientConnection): Promise<PageMeta[]> => {
+      return this.pageStore.listPages();
+    },
 
-    onCall("getPageMeta", async (pageName: string): Promise<PageMeta> => {
-      let page = openPages.get(pageName);
+    getPageMeta: async (
+      clientConn: ClientConnection,
+      pageName: string
+    ): Promise<PageMeta> => {
+      let page = this.openPages.get(pageName);
       if (page) {
         return page.meta;
       }
-      return pageStore.getPageMeta(pageName);
-    });
-  });
+      return this.pageStore.getPageMeta(pageName);
+    },
 
-  function disconnectClient(client: ClientPageState, page: Page) {
-    page.clientStates.delete(client);
-    if (page.clientStates.size === 0) {
-      console.log("No more clients for", page.name, "flushing");
-      flushPageToDisk(page.name, page);
-      openPages.delete(page.name);
-    } else {
-      page.cursors.delete(client.socket.id);
-      broadcastCursors(page);
+    "index:clearPageIndexForPage": async (
+      clientConn: ClientConnection,
+      page: string
+    ) => {
+      await this.db<IndexItem>("page_index").where({ page }).del();
+    },
+    "index:set": async (
+      clientConn: ClientConnection,
+      page: string,
+      key: string,
+      value: any
+    ) => {
+      let changed = await this.db<IndexItem>("page_index")
+        .where({ page, key })
+        .update("value", JSON.stringify(value));
+      if (changed === 0) {
+        await this.db<IndexItem>("page_index").insert({
+          page,
+          key,
+          value: JSON.stringify(value),
+        });
+      }
+    },
+    "index:get": async (
+      clientConn: ClientConnection,
+      page: string,
+      key: string
+    ) => {
+      let result = await this.db<IndexItem>("page_index")
+        .where({ page, key })
+        .select("value");
+      if (result.length) {
+        return JSON.parse(result[0].value);
+      } else {
+        return null;
+      }
+    },
+    "index:delete": async (
+      clientConn: ClientConnection,
+      page: string,
+      key: string
+    ) => {
+      await this.db<IndexItem>("page_index").where({ page, key }).del();
+    },
+    "index:scanPrefixForPage": async (
+      clientConn: ClientConnection,
+      page: string,
+      prefix: string
+    ) => {
+      return (
+        await this.db<IndexItem>("page_index")
+          .where({ page })
+          .andWhereLike("key", `${prefix}%`)
+          .select("page", "key", "value")
+      ).map(({ page, key, value }) => ({
+        page,
+        key,
+        value: JSON.parse(value),
+      }));
+    },
+    "index:scanPrefixGlobal": async (
+      clientConn: ClientConnection,
+      prefix: string
+    ) => {
+      return (
+        await this.db<IndexItem>("page_index")
+          .andWhereLike("key", `${prefix}%`)
+          .select("page", "key", "value")
+      ).map(({ page, key, value }) => ({
+        page,
+        key,
+        value: JSON.parse(value),
+      }));
+    },
+    "index:deletePrefixForPage": async (
+      clientConn: ClientConnection,
+      page: string,
+      prefix: string
+    ) => {
+      return await this.db<IndexItem>("page_index")
+        .where({ page })
+        .andWhereLike("key", `${prefix}%`)
+        .del();
+    },
+
+    "index:clearPageIndex": async (clientConn: ClientConnection) => {
+      return await this.db<IndexItem>("page_index").del();
+    },
+  };
+
+  constructor(rootPath: string, serverSocket: Server) {
+    this.rootPath = path.resolve(rootPath);
+    this.serverSocket = serverSocket;
+    this.pageStore = new DiskStorage(this.rootPath);
+
+    this.db = knex({
+      client: "better-sqlite3",
+      connection: {
+        filename: path.join(rootPath, "data.db"),
+      },
+      useNullAsDefault: true,
+    });
+    this.initDb();
+
+    serverSocket.on("connection", (socket) => {
+      const clientConn = new ClientConnection(socket);
+      // const socketOpenPages = new Set<string>();
+
+      console.log("Connected", socket.id);
+      this.connectedSockets.add(socket);
+
+      socket.on("disconnect", () => {
+        console.log("Disconnected", socket.id);
+        clientConn.openPages.forEach(disconnectPageSocket);
+        this.connectedSockets.delete(socket);
+      });
+
+      socket.on("closePage", (pageName: string) => {
+        console.log("Closing page", pageName);
+        clientConn.openPages.delete(pageName);
+        disconnectPageSocket(pageName);
+      });
+
+      const onCall = (
+        eventName: string,
+        cb: (...args: any[]) => Promise<any>
+      ) => {
+        socket.on(eventName, (reqId: number, ...args) => {
+          cb(...args)
+            .then((result) => {
+              socket.emit(`${eventName}Resp${reqId}`, null, result);
+            })
+            .catch((err) => {
+              socket.emit(`${eventName}Resp${reqId}`, err.message);
+            });
+        });
+      };
+
+      const disconnectPageSocket = (pageName: string) => {
+        let page = this.openPages.get(pageName);
+        if (page) {
+          for (let client of page.clientStates) {
+            if (client.socket === socket) {
+              this.disconnectClient(client, page);
+            }
+          }
+        }
+      };
+      Object.entries(this.api).forEach(([eventName, cb]) => {
+        onCall(eventName, (...args: any[]): any => {
+          return cb.call(this, clientConn, ...args);
+        });
+      });
+    });
+  }
+
+  async initDb() {
+    if (!(await this.db.schema.hasTable("page_index"))) {
+      await this.db.schema.createTable("page_index", (table) => {
+        table.string("page");
+        table.string("key");
+        table.text("value");
+        table.primary(["page", "key"]);
+      });
+      console.log("Created table page_index");
     }
   }
 
-  function broadcastCursors(page: Page) {
+  disconnectClient(client: ClientPageState, page: Page) {
+    page.clientStates.delete(client);
+    if (page.clientStates.size === 0) {
+      console.log("No more clients for", page.name, "flushing");
+      this.flushPageToDisk(page.name, page);
+      this.openPages.delete(page.name);
+    } else {
+      page.cursors.delete(client.socket.id);
+      this.broadcastCursors(page);
+    }
+  }
+
+  broadcastCursors(page: Page) {
     page.clientStates.forEach((client) => {
       client.socket.emit(
         "cursorSnapshot",
@@ -233,27 +380,27 @@ export function exposeSocketAPI(rootPath: string, io: Server) {
     });
   }
 
-  function flushPageToDisk(name: string, page: Page) {
+  flushPageToDisk(name: string, page: Page) {
     safeRun(async () => {
-      let meta = await pageStore.writePage(name, page.text.sliceString(0));
+      let meta = await this.pageStore.writePage(name, page.text.sliceString(0));
       console.log(`Wrote page ${name} to disk`);
       page.meta = meta;
     });
   }
 
-  function fileWatcher(rootPath: string) {
+  fileWatcher() {
     fs.watch(
-      rootPath,
+      this.rootPath,
       {
         recursive: true,
         persistent: false,
       },
       (eventType, filename) => {
         safeRun(async () => {
-          if (path.extname(filename) !== ".md") {
+          if (!filename.endsWith(".md")) {
             return;
           }
-          let localPath = path.join(rootPath, filename);
+          let localPath = path.join(this.rootPath, filename);
           let pageName = filename.substring(0, filename.length - 3);
           // console.log("Edit in", pageName, eventType);
           let modifiedTime = 0;
@@ -263,16 +410,16 @@ export function exposeSocketAPI(rootPath: string, io: Server) {
           } catch (e) {
             // File was deleted
             console.log("Deleted", pageName);
-            for (let socket of connectedSockets) {
+            for (let socket of this.connectedSockets) {
               socket.emit("pageDeleted", pageName);
             }
             return;
           }
-          const openPage = openPages.get(pageName);
+          const openPage = this.openPages.get(pageName);
           if (openPage) {
             if (openPage.meta.lastModified < modifiedTime) {
               console.log("Page changed on disk outside of editor, reloading");
-              openPages.delete(pageName);
+              this.openPages.delete(pageName);
               const meta = {
                 name: pageName,
                 lastModified: modifiedTime,
@@ -285,9 +432,10 @@ export function exposeSocketAPI(rootPath: string, io: Server) {
           if (eventType === "rename") {
             // This most likely means a new file was created, let's push new file listings to all connected sockets
             console.log(
-              "New file created, broadcasting to all connected sockets"
+              "New file created, broadcasting to all connected sockets",
+              pageName
             );
-            for (let socket of connectedSockets) {
+            for (let socket of this.connectedSockets) {
               socket.emit("pageCreated", {
                 name: pageName,
                 lastModified: modifiedTime,
@@ -297,5 +445,9 @@ export function exposeSocketAPI(rootPath: string, io: Server) {
         });
       }
     );
+  }
+
+  close() {
+    this.db.destroy();
   }
 }

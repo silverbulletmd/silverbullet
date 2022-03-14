@@ -1,22 +1,22 @@
-import { Indexer, KV } from "../indexer";
+import { Space, KV } from "../space";
 
-export default (indexer: Indexer) => ({
+export default (space: Space) => ({
   "indexer.scanPrefixForPage": async (pageName: string, keyPrefix: string) => {
-    return await indexer.scanPrefixForPage(pageName, keyPrefix);
+    return await space.indexScanPrefixForPage(pageName, keyPrefix);
   },
   "indexer.scanPrefixGlobal": async (keyPrefix: string) => {
-    return await indexer.scanPrefixGlobal(keyPrefix);
+    return await space.indexScanPrefixGlobal(keyPrefix);
   },
   "indexer.get": async (pageName: string, key: string): Promise<any> => {
-    return await indexer.get(pageName, key);
+    return await space.indexGet(pageName, key);
   },
   "indexer.set": async (pageName: string, key: string, value: any) => {
-    await indexer.set(pageName, key, value);
+    await space.indexSet(pageName, key, value);
   },
   "indexer.batchSet": async (pageName: string, kvs: KV[]) => {
-    await indexer.batchSet(pageName, kvs);
+    await space.indexBatchSet(pageName, kvs);
   },
   "indexer.delete": async (pageName: string, key: string) => {
-    await indexer.delete(pageName, key);
+    await space.indexDelete(pageName, key);
   },
 });

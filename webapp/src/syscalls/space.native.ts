@@ -18,7 +18,7 @@ export default (editor: Editor) => ({
   },
   "space.deletePage": async (name: string) => {
     console.log("Clearing page index", name);
-    await editor.indexer.clearPageIndexForPage(name);
+    await editor.space.indexDeletePrefixForPage(name, "");
     // If we're deleting the current page, navigate to the start page
     if (editor.currentPage === name) {
       await editor.navigate("start");
