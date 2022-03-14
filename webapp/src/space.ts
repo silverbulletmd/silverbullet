@@ -3,8 +3,9 @@ import { Socket } from "socket.io-client";
 import { Update } from "@codemirror/collab";
 import { Transaction, Text, ChangeSet } from "@codemirror/state";
 
-import { Document } from "./collab";
+import { CollabEvents, CollabDocument } from "./collab";
 import { Cursor, cursorEffect } from "./cursorEffect";
+import { EventEmitter } from "./event";
 
 export interface Space {
   listPages(): Promise<PageMeta[]>;
@@ -14,43 +15,15 @@ export interface Space {
   getPageMeta(name: string): Promise<PageMeta>;
 }
 
-export type SpaceEventHandlers = {
+export type SpaceEvents = {
   connect: () => void;
-  cursorSnapshot: (
-    pageName: string,
-    cursors: { [key: string]: Cursor }
-  ) => void;
   pageCreated: (meta: PageMeta) => void;
   pageChanged: (meta: PageMeta) => void;
   pageDeleted: (name: string) => void;
   pageListUpdated: (pages: Set<PageMeta>) => void;
-};
+} & CollabEvents;
 
-abstract class EventEmitter<HandlerT> {
-  private handlers: Partial<HandlerT>[] = [];
-
-  on(handlers: Partial<HandlerT>) {
-    this.handlers.push(handlers);
-  }
-
-  off(handlers: Partial<HandlerT>) {
-    this.handlers = this.handlers.filter((h) => h !== handlers);
-  }
-
-  emit(eventName: keyof HandlerT, ...args: any[]) {
-    for (let handler of this.handlers) {
-      let fn: any = handler[eventName];
-      if (fn) {
-        fn(...args);
-      }
-    }
-  }
-}
-
-export class RealtimeSpace
-  extends EventEmitter<SpaceEventHandlers>
-  implements Space
-{
+export class RealtimeSpace extends EventEmitter<SpaceEvents> implements Space {
   socket: Socket;
   reqId = 0;
   allPages = new Set<PageMeta>();
@@ -67,7 +40,7 @@ export class RealtimeSpace
       "pageDeleted",
     ].forEach((eventName) => {
       socket.on(eventName, (...args) => {
-        this.emit(eventName as keyof SpaceEventHandlers, ...args);
+        this.emit(eventName as keyof SpaceEvents, ...args);
       });
     });
     this.wsCall("listPages").then((pages) => {
@@ -133,18 +106,19 @@ export class RealtimeSpace
     return Array.from(this.allPages);
   }
 
-  async openPage(name: string): Promise<Document> {
+  async openPage(name: string): Promise<CollabDocument> {
     this.reqId++;
     let pageJSON = await this.wsCall("openPage", name);
-    let cursors = new Map<string, Cursor>();
-    for (let p in pageJSON.cursors) {
-      cursors.set(p, pageJSON.cursors[p]);
-    }
-    return new Document(Text.of(pageJSON.text), pageJSON.version, cursors);
+
+    return new CollabDocument(
+      Text.of(pageJSON.text),
+      pageJSON.version,
+      new Map(Object.entries(pageJSON.cursors))
+    );
   }
 
   async closePage(name: string): Promise<void> {
-    this.socket!.emit("closePage", name);
+    this.socket.emit("closePage", name);
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

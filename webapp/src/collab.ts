@@ -1,17 +1,12 @@
-// TODO:
-// Send state to client
-// Shape of editor.editorView.state.toJSON({"cursors": cursorField})
-// From there import it
-// EditorState.fromJSON(js, {extensions: cursorField}, {cursors: cursorField})
-
 import {
   collab,
   getSyncedVersion,
   receiveUpdates,
   sendableUpdates,
+  Update,
 } from "@codemirror/collab";
 import { RangeSetBuilder } from "@codemirror/rangeset";
-import { Text } from "@codemirror/state";
+import { Text, Transaction } from "@codemirror/state";
 import {
   Decoration,
   DecorationSet,
@@ -20,27 +15,13 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import { throttle } from "./util";
 import { Cursor, cursorEffect } from "./cursorEffect";
-import { RealtimeSpace, SpaceEventHandlers } from "./space";
+import { EventEmitter } from "./event";
 
 const throttleInterval = 250;
 
-const throttle = (func: () => void, limit: number) => {
-  let timer: any = null;
-  return function () {
-    if (!timer) {
-      timer = setTimeout(() => {
-        func();
-        timer = null;
-      }, limit);
-    }
-  };
-};
-
-//@ts-ignore
-window.throttle = throttle;
-
-export class Document {
+export class CollabDocument {
   text: Text;
   version: number;
   cursors: Map<string, Cursor>;
@@ -81,24 +62,39 @@ class CursorWidget extends WidgetType {
   }
 }
 
+export type CollabEvents = {
+  cursorSnapshot: (pageName: string, cursors: Map<string, Cursor>) => void;
+};
+
 export function collabExtension(
   pageName: string,
   clientID: string,
-  doc: Document,
-  space: RealtimeSpace,
-  reloadCallback: () => void
+  doc: CollabDocument,
+  collabEmitter: EventEmitter<CollabEvents>,
+  callbacks: {
+    pushUpdates: (
+      pageName: string,
+      version: number,
+      updates: readonly (Update & { origin: Transaction })[]
+    ) => Promise<boolean>;
+    pullUpdates: (
+      pageName: string,
+      version: number
+    ) => Promise<readonly Update[]>;
+    reload: () => void;
+  }
 ) {
   let plugin = ViewPlugin.fromClass(
     class {
       private pushing = false;
       private done = false;
       private failedPushes = 0;
-      decorations: DecorationSet;
       private cursorPositions: Map<string, Cursor> = doc.cursors;
+      decorations: DecorationSet;
 
       throttledPush = throttle(() => this.push(), throttleInterval);
 
-      eventHandlers: Partial<SpaceEventHandlers> = {
+      eventHandlers: Partial<CollabEvents> = {
         cursorSnapshot: (pageName, cursors) => {
           console.log("Received new cursor snapshot", cursors);
           this.cursorPositions = new Map(Object.entries(cursors));
@@ -136,7 +132,7 @@ export function collabExtension(
           this.pull();
         }
         this.decorations = this.buildDecorations(view);
-        space.on(this.eventHandlers);
+        collabEmitter.on(this.eventHandlers);
       }
 
       update(update: ViewUpdate) {
@@ -184,7 +180,7 @@ export function collabExtension(
         console.log("Updates", updates);
         this.pushing = true;
         let version = getSyncedVersion(this.view.state);
-        let success = await space.pushUpdates(pageName, version, updates);
+        let success = await callbacks.pushUpdates(pageName, version, updates);
         this.pushing = false;
 
         if (!success && !this.done) {
@@ -192,7 +188,7 @@ export function collabExtension(
           if (this.failedPushes > 10) {
             // Not sure if 10 is a good number, but YOLO
             console.log("10 pushes failed, reloading");
-            reloadCallback();
+            callbacks.reload();
             return this.destroy();
           }
           console.log(
@@ -213,7 +209,7 @@ export function collabExtension(
       async pull() {
         while (!this.done) {
           let version = getSyncedVersion(this.view.state);
-          let updates = await space.pullUpdates(pageName, version);
+          let updates = await callbacks.pullUpdates(pageName, version);
           let d = receiveUpdates(this.view.state, updates);
           // Pull out cursor updates and update local state
           for (let update of updates) {
@@ -235,7 +231,7 @@ export function collabExtension(
 
       destroy() {
         this.done = true;
-        space.off(this.eventHandlers);
+        collabEmitter.off(this.eventHandlers);
       }
     },
     {

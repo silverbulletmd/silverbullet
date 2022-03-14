@@ -1,9 +1,8 @@
 import { Manifest } from "./types";
-import { WebworkerSandbox } from "./worker_sandbox";
+// import { WebworkerSandbox } from "./worker_sandbox";
 
 interface SysCallMapping {
-  // TODO: Better typing
-  [key: string]: any;
+  [key: string]: (...args: any) => Promise<any> | any;
 }
 
 export interface Sandbox {
@@ -13,19 +12,14 @@ export interface Sandbox {
   stop(): void;
 }
 
-export interface PlugLoader<HookT> {
-  load(name: string, manifest: Manifest<HookT>): Promise<void>;
-}
-
 export class Plug<HookT> {
   system: System<HookT>;
-  // private runningFunctions: Map<string, FunctionWorker>;
-  functionWorker: WebworkerSandbox;
+  sandbox: Sandbox;
   public manifest?: Manifest<HookT>;
 
-  constructor(system: System<HookT>, name: string) {
+  constructor(system: System<HookT>, name: string, sandbox: Sandbox) {
     this.system = system;
-    this.functionWorker = new WebworkerSandbox(this);
+    this.sandbox = sandbox;
   }
 
   async load(manifest: Manifest<HookT>) {
@@ -34,13 +28,11 @@ export class Plug<HookT> {
   }
 
   async invoke(name: string, args: Array<any>): Promise<any> {
-    if (!this.functionWorker.isLoaded(name)) {
-      await this.functionWorker.load(
-        name,
-        this.manifest!.functions[name].code!
-      );
+    if (!this.sandbox.isLoaded(name)) {
+      await this.sandbox.load(name, this.manifest!.functions[name].code!);
     }
-    return await this.functionWorker.invoke(name, args);
+    console.log("Loaded", name);
+    return await this.sandbox.invoke(name, args);
   }
 
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
@@ -58,18 +50,13 @@ export class Plug<HookT> {
   }
 
   async stop() {
-    this.functionWorker.stop();
+    this.sandbox.stop();
   }
 }
 
 export class System<HookT> {
-  protected plugs: Map<string, Plug<HookT>>;
-  registeredSyscalls: SysCallMapping;
-
-  constructor() {
-    this.plugs = new Map<string, Plug<HookT>>();
-    this.registeredSyscalls = {};
-  }
+  protected plugs = new Map<string, Plug<HookT>>();
+  registeredSyscalls: SysCallMapping = {};
 
   registerSyscalls(...registrationObjects: SysCallMapping[]) {
     for (const registrationObject of registrationObjects) {
@@ -90,8 +77,12 @@ export class System<HookT> {
     return Promise.resolve(callback(...args));
   }
 
-  async load(name: string, manifest: Manifest<HookT>): Promise<Plug<HookT>> {
-    const plug = new Plug(this, name);
+  async load(
+    name: string,
+    manifest: Manifest<HookT>,
+    sandbox: Sandbox
+  ): Promise<Plug<HookT>> {
+    const plug = new Plug(this, name, sandbox);
     await plug.load(manifest);
     this.plugs.set(name, plug);
     return plug;

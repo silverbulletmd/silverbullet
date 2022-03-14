@@ -8,6 +8,7 @@ async function navigate(syntaxNode: any) {
   console.log("Attempting to navigate based on syntax node", syntaxNode);
   switch (syntaxNode.name) {
     case "WikiLinkPage":
+    case "AtMention":
       await syscall("editor.navigate", syntaxNode.text);
       break;
     case "URL":
@@ -35,16 +36,31 @@ export async function clickNavigate(event: ClickEvent) {
 }
 
 export async function pageComplete() {
-  let prefix = await syscall("editor.matchBefore", "\\[\\[[\\w\\s]*");
+  let prefix = await syscall(
+    "editor.matchBefore",
+    "(\\[\\[[\\w\\s]*|@[\\w\\.]*)"
+  );
   if (!prefix) {
     return null;
   }
   let allPages = await syscall("space.listPages");
-  return {
-    from: prefix.from + 2,
-    options: allPages.map((pageMeta: any) => ({
-      label: pageMeta.name,
-      type: "page",
-    })),
-  };
+  if (prefix.text[0] === "@") {
+    return {
+      from: prefix.from,
+      options: allPages
+        .filter((page) => page.name.startsWith(prefix.text))
+        .map((pageMeta: any) => ({
+          label: pageMeta.name,
+          type: "page",
+        })),
+    };
+  } else {
+    return {
+      from: prefix.from + 2,
+      options: allPages.map((pageMeta: any) => ({
+        label: pageMeta.name,
+        type: "page",
+      })),
+    };
+  }
 }

@@ -1,26 +1,30 @@
 import { ControllerMessage, WorkerMessage } from "./types";
-import { Plug, Sandbox, System } from "./runtime";
+import { System, Sandbox } from "./runtime";
 
-export class WebworkerSandbox implements Sandbox {
-  private worker: Worker;
+import { Worker } from "worker_threads";
+
+function wrapScript(code: string): string {
+  return `${code}["default"]`;
+}
+
+export class NodeSandbox implements Sandbox {
+  worker: Worker;
   private reqId = 0;
 
-  private outstandingInits = new Map<string, () => void>();
-  private outstandingInvocations = new Map<
+  outstandingInits = new Map<string, () => void>();
+  outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
-  private loadedFunctions = new Set<string>();
+  loadedFunctions = new Set<string>();
 
-  constructor(readonly system: System<any>) {
-    this.worker = new Worker(new URL("sandbox_worker.ts", import.meta.url), {
-      type: "module",
-    });
+  constructor(readonly system: System<any>, workerScript: string) {
+    this.worker = new Worker(workerScript);
 
-    this.worker.onmessage = this.onmessage.bind(this);
+    this.worker.on("message", this.onmessage.bind(this));
   }
 
-  isLoaded(name: string) {
+  isLoaded(name: string): boolean {
     return this.loadedFunctions.has(name);
   }
 
@@ -36,9 +40,9 @@ export class WebworkerSandbox implements Sandbox {
     });
   }
 
-  async onmessage(evt: { data: ControllerMessage }) {
-    let data = evt.data;
-    if (!data) return;
+  async onmessage(data: ControllerMessage) {
+    // let data = evt.data;
+    // let data = JSON.parse(msg) as ControllerMessage;
     switch (data.type) {
       case "inited":
         let initCb = this.outstandingInits.get(data.name!);

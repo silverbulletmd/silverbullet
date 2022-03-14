@@ -10,7 +10,13 @@ import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
-import { EditorState, StateField, Transaction, Text } from "@codemirror/state";
+import {
+  EditorSelection,
+  EditorState,
+  StateField,
+  Text,
+  Transaction,
+} from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -19,30 +25,25 @@ import {
   KeyBinding,
   keymap,
 } from "@codemirror/view";
-
-import { debounce } from "lodash";
-
+// import { debounce } from "lodash";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import coreManifest from "./generated/core.plug.json";
-
-// @ts-ignore
-window.coreManifest = coreManifest;
+import { Plug, System } from "../../plugbox/src/runtime";
+import { WebworkerSandbox } from "../../plugbox/src/worker_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
+import { collabExtension, CollabDocument } from "./collab";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { StatusBar } from "./components/status_bar";
 import { TopBar } from "./components/top_bar";
+import { Cursor } from "./cursorEffect";
+import coreManifest from "./generated/core.plug.json";
 import { Indexer } from "./indexer";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
-import { System } from "../../plugbox/src/runtime";
-import { Plug } from "../../plugbox/src/runtime";
-import { slashCommandRegexp } from "./types";
-
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { RealtimeSpace } from "./space";
@@ -57,15 +58,9 @@ import {
   AppViewState,
   initialViewState,
   NuggetHook,
-  PageMeta,
+  slashCommandRegexp,
 } from "./types";
-import { safeRun } from "./util";
-
-import { collabExtension } from "./collab";
-
-import { Document } from "./collab";
-import { EditorSelection } from "@codemirror/state";
-import { Cursor } from "./cursorEffect";
+import { safeRun, throttle } from "./util";
 
 class PageState {
   scrollTop: number;
@@ -76,8 +71,6 @@ class PageState {
     this.selection = selection;
   }
 }
-
-const watchInterval = 5000;
 
 export class Editor implements AppEventDispatcher {
   editorView?: EditorView;
@@ -103,18 +96,20 @@ export class Editor implements AppEventDispatcher {
     this.editorView = new EditorView({
       state: this.createEditorState(
         "",
-        new Document(Text.of([""]), 0, new Map<string, Cursor>())
+        new CollabDocument(Text.of([""]), 0, new Map<string, Cursor>())
       ),
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
     this.indexer = new Indexer("page-index", space);
 
-    this.indexCurrentPageDebounced = debounce(this.indexCurrentPage, 2000);
+    this.indexCurrentPageDebounced = throttle(
+      this.indexCurrentPage.bind(this),
+      2000
+    );
   }
 
   async init() {
-    // await this.loadPageList();
     await this.loadPlugs();
     this.focus();
 
@@ -125,16 +120,6 @@ export class Editor implements AppEventDispatcher {
         return;
       }
 
-      if (this.currentPage) {
-        let pageState = this.openPages.get(this.currentPage)!;
-        if (pageState) {
-          pageState.selection = this.editorView!.state.selection;
-          pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
-        }
-
-        this.space.closePage(this.currentPage);
-      }
-
       await this.loadPage(pageName);
     });
 
@@ -142,12 +127,14 @@ export class Editor implements AppEventDispatcher {
       connect: () => {
         if (this.currentPage) {
           console.log("Connected to socket, fetch fresh?");
+          this.flashNotification("Reconnected, reloading page");
           this.reloadPage();
         }
       },
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
-          console.log("page changed on disk, reloading");
+          console.log("Page changed on disk, reloading");
+          this.flashNotification("Page changed on disk, reloading");
           this.reloadPage();
         }
       },
@@ -164,6 +151,24 @@ export class Editor implements AppEventDispatcher {
     }
   }
 
+  flashNotification(message: string) {
+    let id = Math.floor(Math.random() * 1000000);
+    this.viewDispatch({
+      type: "show-notification",
+      notification: {
+        id: id,
+        message: message,
+        date: new Date(),
+      },
+    });
+    setTimeout(() => {
+      this.viewDispatch({
+        type: "dismiss-notification",
+        id: id,
+      });
+    }, 2000);
+  }
+
   async loadPlugs() {
     const system = new System<NuggetHook>();
     system.registerSyscalls(
@@ -174,7 +179,11 @@ export class Editor implements AppEventDispatcher {
     );
 
     console.log("Now loading core plug");
-    let mainPlug = await system.load("core", coreManifest);
+    let mainPlug = await system.load(
+      "core",
+      coreManifest,
+      new WebworkerSandbox(system)
+    );
     this.plugs.push(mainPlug);
     this.editorCommands = new Map<string, AppCommand>();
     for (let plug of this.plugs) {
@@ -217,7 +226,7 @@ export class Editor implements AppEventDispatcher {
     return this.viewState.currentPage;
   }
 
-  createEditorState(pageName: string, doc: Document): EditorState {
+  createEditorState(pageName: string, doc: CollabDocument): EditorState {
     const editor = this;
     let commandKeyBindings: KeyBinding[] = [];
     for (let def of this.editorCommands.values()) {
@@ -243,17 +252,14 @@ export class Editor implements AppEventDispatcher {
         history(),
         drawSelection(),
         dropCursor(),
-        // indentOnInput(),
         customMarkdownStyle,
         bracketMatching(),
         closeBrackets(),
-        collabExtension(
-          pageName,
-          this.space.socket.id,
-          doc,
-          this.space,
-          this.reloadPage.bind(this)
-        ),
+        collabExtension(pageName, this.space.socket.id, doc, this.space, {
+          pushUpdates: this.space.pushUpdates.bind(this.space),
+          pullUpdates: this.space.pullUpdates.bind(this.space),
+          reload: this.reloadPage.bind(this),
+        }),
         autocompletion({
           override: [
             this.plugCompleter.bind(this),
@@ -428,13 +434,26 @@ export class Editor implements AppEventDispatcher {
   }
 
   async loadPage(pageName: string) {
-    let doc = await this.space.openPage(pageName);
-    let editorState = this.createEditorState(pageName, doc);
-    let pageState = this.openPages.get(pageName);
     const editorView = this.editorView;
     if (!editorView) {
       return;
     }
+
+    // Persist current page state and nicely close page
+    if (this.currentPage) {
+      let pageState = this.openPages.get(this.currentPage)!;
+      if (pageState) {
+        pageState.selection = this.editorView!.state.selection;
+        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+      }
+
+      this.space.closePage(this.currentPage);
+    }
+
+    // Fetch next page to open
+    let doc = await this.space.openPage(pageName);
+    let editorState = this.createEditorState(pageName, doc);
+    let pageState = this.openPages.get(pageName);
     editorView.setState(editorState);
     if (!pageState) {
       pageState = new PageState(0, editorState.selection);
@@ -444,7 +463,7 @@ export class Editor implements AppEventDispatcher {
       });
     } else {
       // Restore state
-      console.log("Restoring selection state");
+      console.log("Restoring selection state", pageState.selection);
       editorView.dispatch({
         selection: pageState.selection,
       });
@@ -456,15 +475,8 @@ export class Editor implements AppEventDispatcher {
       name: pageName,
     });
 
-    // let indexerPageMeta = await this.indexer.getPageIndexPageMeta(pageName);
-    // if (
-    //   (indexerPageMeta &&
-    //     doc.meta.lastModified.getTime() !==
-    //       indexerPageMeta.lastModified.getTime()) ||
-    //   !indexerPageMeta
-    // ) {
+    // TODO: Check if indexing is required?
     await this.indexCurrentPage();
-    // }
   }
 
   ViewComponent(): React.ReactElement {
@@ -513,13 +525,13 @@ export class Editor implements AppEventDispatcher {
           />
         )}
         <TopBar
-          currentPage={viewState.currentPage}
+          pageName={viewState.currentPage}
+          notifications={viewState.notifications}
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}
         />
         <div id="editor"></div>
-        <StatusBar editorView={this.editorView} />
       </>
     );
   }

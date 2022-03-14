@@ -12,9 +12,7 @@ export class DiskStorage {
   async listPages(): Promise<PageMeta[]> {
     let fileNames: PageMeta[] = [];
 
-    let _this = this;
-
-    async function walkPath(dir: string) {
+    const walkPath = async (dir: string) => {
       let files = await readdir(dir);
       for (let file of files) {
         const fullPath = path.join(dir, file);
@@ -25,7 +23,7 @@ export class DiskStorage {
           if (path.extname(file) === ".md") {
             fileNames.push({
               name: fullPath.substring(
-                _this.rootPath.length + 1,
+                this.rootPath.length + 1,
                 fullPath.length - 3
               ),
               lastModified: s.mtime.getTime(),
@@ -33,7 +31,7 @@ export class DiskStorage {
           }
         }
       }
-    }
+    };
     await walkPath(this.rootPath);
     return fileNames;
   }

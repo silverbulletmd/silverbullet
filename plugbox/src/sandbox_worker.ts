@@ -1,11 +1,12 @@
-declare global {
-  function syscall(id: number, name: string, args: any[]): Promise<any>;
-}
 import { ControllerMessage, WorkerMessage, WorkerMessageType } from "./types";
 import { safeRun } from "./util";
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<number, (result: unknown) => void>();
+
+declare global {
+  function syscall(id: number, name: string, args: any[]): Promise<any>;
+}
 
 self.syscall = async (id: number, name: string, args: any[]) => {
   return await new Promise((resolve, reject) => {
@@ -18,22 +19,6 @@ self.syscall = async (id: number, name: string, args: any[]) => {
     });
   });
 };
-
-self.addEventListener("result", (event) => {
-  let customEvent = event as CustomEvent;
-  self.postMessage({
-    type: "result",
-    result: customEvent.detail,
-  });
-});
-
-self.addEventListener("app-error", (event) => {
-  let customEvent = event as CustomEvent;
-  self.postMessage({
-    type: "error",
-    reason: customEvent.detail,
-  });
-});
 
 function wrapScript(code: string): string {
   return `const fn = ${code};

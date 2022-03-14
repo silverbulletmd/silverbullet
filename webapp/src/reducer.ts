@@ -48,6 +48,16 @@ export default function reducer(
         ...state,
         commands: action.commands,
       };
+    case "show-notification":
+      return {
+        ...state,
+        notifications: [action.notification, ...state.notifications],
+      };
+    case "dismiss-notification":
+      return {
+        ...state,
+        notifications: state.notifications.filter((n) => n.id !== action.id),
+      };
   }
   return state;
 }

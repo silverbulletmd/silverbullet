@@ -1,6 +1,7 @@
-import { PageMeta } from "../types";
+import { AppViewState, PageMeta } from "../types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons";
+import { Notification } from "../types";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -10,10 +11,14 @@ function prettyName(s: string | undefined): string {
 }
 
 export function TopBar({
-  currentPage,
+  pageName,
+  status,
+  notifications,
   onClick,
 }: {
-  currentPage?: string;
+  pageName?: string;
+  status?: string;
+  notifications: Notification[];
   onClick: () => void;
 }) {
   return (
@@ -22,7 +27,12 @@ export function TopBar({
         <span className="icon">
           <FontAwesomeIcon icon={faFileLines} />
         </span>
-        <span className="current-page">{prettyName(currentPage)}</span>
+        <span className="current-page">{prettyName(pageName)}</span>
+        <div className="status">
+          {notifications.map((notification) => (
+            <div key={notification.id}>{notification.message}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

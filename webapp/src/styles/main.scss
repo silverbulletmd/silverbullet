@@ -32,34 +32,41 @@ body {
     max-width: 800px;
     font-size: 28px;
     margin: auto;
-  }
 
-  .current-page {
-    font-family: var(--ui-font);
-    font-weight: bold;
-  }
+    .status {
+      float: right;
+      border: rgb(41, 41, 41) 1px solid;
+      border-radius: 5px;
+      padding: 3px;
+      font-size: 14px;
+    }
+    .current-page {
+      font-family: var(--ui-font);
+      font-weight: bold;
+    }
 
-  .icon {
-    padding-left: 5px;
-    padding-right: 10px;
+    .icon {
+      padding-left: 5px;
+      padding-right: 10px;
+    }
   }
 }
 
-#bottom {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  background-color: rgb(232, 232, 232);
-  color: rgb(79, 78, 78);
-  border-top: rgb(186, 186, 186) 1px solid;
-  margin: 0;
-  padding: 5px 10px;
-  font-family: var(--ui-font);
-  font-size: 0.9em;
-  text-align: right;
-}
+// #bottom {
+//   position: fixed;
+//   bottom: 0;
+//   left: 0;
+//   right: 0;
+//   height: 20px;
+//   background-color: rgb(232, 232, 232);
+//   color: rgb(79, 78, 78);
+//   border-top: rgb(186, 186, 186) 1px solid;
+//   margin: 0;
+//   padding: 5px 10px;
+//   font-family: var(--ui-font);
+//   font-size: 0.9em;
+//   text-align: right;
+// }
 
 // body.keyboard #bottom {
 //   bottom: 250px;
@@ -68,7 +75,7 @@ body {
 #editor {
   position: absolute;
   top: 55px;
-  bottom: 30px;
+  bottom: 0;
   left: 0;
   right: 0;
   overflow-y: hidden;

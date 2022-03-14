@@ -2,7 +2,7 @@ import express from "express";
 import { readFile } from "fs/promises";
 import http from "http";
 import { Server } from "socket.io";
-import { SocketAPI } from "./api";
+import { exposeSocketAPI } from "./api";
 
 const app = express();
 const server = http.createServer(app);
@@ -24,7 +24,7 @@ export type PageMeta = {
 };
 
 app.use("/", express.static(distDir));
-let filesystem = new SocketAPI(pagesPath, io);
+exposeSocketAPI(pagesPath, io);
 
 // Fallback, serve index.html
 let cachedIndex: string | undefined = undefined;

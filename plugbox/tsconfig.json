@@ -4,7 +4,7 @@
     "target": "esnext",
     "strict": true,
     "moduleResolution": "node",
-    "module": "ESNext",
+    "module": "esnext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   }
