@@ -30,6 +30,7 @@ const distDir = `${__dirname}/../../webapp/dist`;
 
 app.use("/", express.static(distDir));
 let socketServer = new SocketServer(args._[0] as string, io);
+socketServer.init();
 
 // Fallback, serve index.html
 let cachedIndex: string | undefined = undefined;

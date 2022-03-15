@@ -31,7 +31,6 @@ export class Plug<HookT> {
     if (!this.sandbox.isLoaded(name)) {
       await this.sandbox.load(name, this.manifest!.functions[name].code!);
     }
-    console.log("Loaded", name);
     return await this.sandbox.invoke(name, args);
   }
 

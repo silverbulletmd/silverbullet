@@ -42,6 +42,6 @@ test("Run a Node sandbox", async () => {
   for (let i = 0; i < 100; i++) {
     expect(await plug.invoke("addNumbersSyscall", [10, i])).toBe(10 + i);
   }
-  console.log(plug.sandbox);
+  // console.log(plug.sandbox);
   await system.stop();
 });

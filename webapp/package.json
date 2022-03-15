@@ -28,6 +28,7 @@
     "os-browserify": "^0.3.0",
     "parcel": "^2.3.2",
     "path-browserify": "^1.0.1",
+    "prettier": "^2.5.1",
     "querystring-es3": "^0.2.1",
     "stream-browserify": "^3.0.0",
     "tty-browserify": "^0.0.1",

@@ -1,10 +1,10 @@
 import { PageMeta } from "./types";
 import { Socket } from "socket.io-client";
 import { Update } from "@codemirror/collab";
-import { Transaction, Text, ChangeSet } from "@codemirror/state";
+import { ChangeSet, Text, Transaction } from "@codemirror/state";
 
-import { CollabEvents, CollabDocument } from "./collab";
-import { Cursor, cursorEffect } from "./cursorEffect";
+import { CollabDocument, CollabEvents } from "./collab";
+import { cursorEffect } from "./cursorEffect";
 import { EventEmitter } from "./event";
 
 export type SpaceEvents = {
@@ -40,7 +40,7 @@ export class Space extends EventEmitter<SpaceEvents> {
         this.emit(eventName as keyof SpaceEvents, ...args);
       });
     });
-    this.wsCall("listPages").then((pages) => {
+    this.wsCall("page.listPages").then((pages) => {
       this.allPages = new Set(pages);
       this.emit("pageListUpdated", this.allPages);
     });
@@ -87,7 +87,7 @@ export class Space extends EventEmitter<SpaceEvents> {
         changes: u.changes.toJSON(),
         cursors: u.effects?.map((e) => e.value),
       }));
-      return this.wsCall("pushUpdates", pageName, version, updates);
+      return this.wsCall("page.pushUpdates", pageName, version, updates);
     }
     return false;
   }
@@ -96,13 +96,16 @@ export class Space extends EventEmitter<SpaceEvents> {
     pageName: string,
     version: number
   ): Promise<readonly Update[]> {
-    let updates: Update[] = await this.wsCall("pullUpdates", pageName, version);
-    let ups = updates.map((u) => ({
+    let updates: Update[] = await this.wsCall(
+      "page.pullUpdates",
+      pageName,
+      version
+    );
+    return updates.map((u) => ({
       changes: ChangeSet.fromJSON(u.changes),
       effects: u.effects?.map((e) => cursorEffect.of(e.value)),
       clientID: u.clientID,
     }));
-    return ups;
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -111,7 +114,7 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   async openPage(name: string): Promise<CollabDocument> {
     this.reqId++;
-    let pageJSON = await this.wsCall("openPage", name);
+    let pageJSON = await this.wsCall("page.openPage", name);
 
     return new CollabDocument(
       Text.of(pageJSON.text),
@@ -121,27 +124,27 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async closePage(name: string): Promise<void> {
-    this.socket.emit("closePage", name);
+    this.socket.emit("page.closePage", name);
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    return this.wsCall("readPage", name);
+    return this.wsCall("page.readPage", name);
   }
 
   async writePage(name: string, text: string): Promise<PageMeta> {
-    return this.wsCall("writePage", name, text);
+    return this.wsCall("page.writePage", name, text);
   }
 
   async deletePage(name: string): Promise<void> {
-    return this.wsCall("deletePage", name);
+    return this.wsCall("page.deletePage", name);
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    return this.wsCall("deletePage", name);
+    return this.wsCall("page.getPageMeta", name);
   }
 
   async indexSet(pageName: string, key: string, value: any) {
-    await this.wsCall("index:set", pageName, key, value);
+    await this.wsCall("index.set", pageName, key, value);
   }
 
   async indexBatchSet(pageName: string, kvs: KV[]) {
@@ -152,27 +155,27 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async indexGet(pageName: string, key: string): Promise<any | null> {
-    return await this.wsCall("index:get", pageName, key);
+    return await this.wsCall("index.get", pageName, key);
   }
 
   async indexScanPrefixForPage(
     pageName: string,
     keyPrefix: string
   ): Promise<{ key: string; value: any }[]> {
-    return await this.wsCall("index:scanPrefixForPage", pageName, keyPrefix);
+    return await this.wsCall("index.scanPrefixForPage", pageName, keyPrefix);
   }
 
   async indexScanPrefixGlobal(
     keyPrefix: string
   ): Promise<{ key: string; value: any }[]> {
-    return await this.wsCall("index:scanPrefixGlobal", keyPrefix);
+    return await this.wsCall("index.scanPrefixGlobal", keyPrefix);
   }
 
   async indexDeletePrefixForPage(pageName: string, keyPrefix: string) {
-    await this.wsCall("index:deletePrefixForPage", keyPrefix);
+    await this.wsCall("index.deletePrefixForPage", keyPrefix);
   }
 
   async indexDelete(pageName: string, key: string) {
-    await this.wsCall("index:delete", pageName, key);
+    await this.wsCall("index.delete", pageName, key);
   }
 }

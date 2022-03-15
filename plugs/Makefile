@@ -1,6 +1,8 @@
+.PHONY: core
+
 BUILD=../plugbox/bin/plugbox-bundle.mjs
 
-core: *
+core: core/*
 	${BUILD} --debug core/core.plug.json ../webapp/src/generated/core.plug.json
 
 watch: *

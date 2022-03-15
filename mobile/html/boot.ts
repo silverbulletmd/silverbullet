@@ -1,5 +1,5 @@
 import { Editor } from "../../webapp/src/editor";
-import { HttpRemoteSpace } from "../../webapp/src/space";
+import { Space } from "../../webapp/src/space";
 
 declare namespace window {
   var ReactNativeWebView: any;
@@ -32,17 +32,17 @@ console.error = (...args) => {
   );
 };
 try {
-  let editor = new Editor(
-    new HttpRemoteSpace(`http://192.168.2.22:3000/fs`, null),
-    document.getElementById("root")!
-  );
-  console.log("Initing editor");
-  safeRun(async () => {
-    await editor.loadPageList();
-    await editor.loadPlugs();
-    editor.focus();
-    console.log("Inited", editor.viewState);
-  });
+  // let editor = new Editor(
+  //   new Space(`http://192.168.2.22:3000/fs`, null),
+  //   document.getElementById("root")!
+  // );
+  // console.log("Initing editor");
+  // safeRun(async () => {
+  //   await editor.loadPageList();
+  //   await editor.loadPlugs();
+  //   editor.focus();
+  //   console.log("Inited", editor.viewState);
+  // });
 } catch (e: any) {
   console.error("Got an error", e.message);
 }

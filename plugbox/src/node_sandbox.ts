@@ -20,7 +20,6 @@ export class NodeSandbox implements Sandbox {
 
   constructor(readonly system: System<any>, workerScript: string) {
     this.worker = new Worker(workerScript);
-
     this.worker.on("message", this.onmessage.bind(this));
   }
 

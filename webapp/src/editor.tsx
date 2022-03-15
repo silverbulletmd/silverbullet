@@ -392,7 +392,7 @@ export class Editor implements AppEventDispatcher {
             },
           });
           safeRun(async () => {
-            def.run(null);
+            await def.run(null);
           });
         },
       });
@@ -445,7 +445,7 @@ export class Editor implements AppEventDispatcher {
         pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
       }
 
-      this.space.closePage(this.currentPage);
+      await this.space.closePage(this.currentPage);
     }
 
     // Fetch next page to open

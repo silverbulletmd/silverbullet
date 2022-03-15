@@ -1,5 +1,5 @@
 import { ControllerMessage, WorkerMessage } from "./types";
-import { Plug, Sandbox, System } from "./runtime";
+import { Sandbox, System } from "./runtime";
 
 export class WebworkerSandbox implements Sandbox {
   private worker: Worker;

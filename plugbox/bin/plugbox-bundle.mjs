@@ -67,7 +67,7 @@ async function run() {
     .parse();
 
   let generatedManifest = await bundle(args._[0], !!args.debug);
-  writeFile(args._[1], JSON.stringify(generatedManifest, null, 2));
+  await writeFile(args._[1], JSON.stringify(generatedManifest, null, 2));
 }
 
 run().catch((e) => {

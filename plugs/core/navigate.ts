@@ -25,13 +25,13 @@ async function navigate(syntaxNode: any) {
 }
 
 export async function linkNavigate() {
-  navigate(await syscall("editor.getSyntaxNodeUnderCursor"));
+  await navigate(await syscall("editor.getSyntaxNodeUnderCursor"));
 }
 
 export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
     let syntaxNode = await syscall("editor.getSyntaxNodeAtPos", event.pos);
-    navigate(syntaxNode);
+    await navigate(syntaxNode);
   }
 }
 
@@ -48,7 +48,7 @@ export async function pageComplete() {
     return {
       from: prefix.from,
       options: allPages
-        .filter((page) => page.name.startsWith(prefix.text))
+        .filter((page: any) => page.name.startsWith(prefix.text))
         .map((pageMeta: any) => ({
           label: pageMeta.name,
           type: "page",
