@@ -7,12 +7,14 @@
   "license": "MIT",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
-    "start": "parcel serve --no-cache",
+    "start": "rm -rf .parcel-cache && parcel serve --no-cache",
+    "start-no-hmr": "rm -rf .parcel-cache && parcel serve --no-cache --no-hmr",
     "build": "parcel build",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "2.3.2",
+    "@parcel/transformer-inline-string": "2.3.2",
     "@parcel/transformer-sass": "2.3.2",
     "@parcel/transformer-webmanifest": "2.3.2",
     "@parcel/validator-typescript": "^2.3.2",

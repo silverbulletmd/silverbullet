@@ -40,7 +40,8 @@ export default ${functionName};`
   if (inFile !== filePath) {
     await unlink(inFile);
   }
-  return jsCode;
+  // Strip final ';'
+  return jsCode.substring(0, jsCode.length - 2);
 }
 
 async function bundle(manifestPath, sourceMaps) {

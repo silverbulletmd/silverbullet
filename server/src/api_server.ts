@@ -3,6 +3,11 @@ import { Page } from "./types";
 import * as path from "path";
 import { IndexApi } from "./index_api";
 import { PageApi } from "./page_api";
+import { System } from "../../plugbox/src/runtime";
+import { createSandbox } from "../../plugbox/src/node_sandbox";
+import { NuggetHook } from "../../webapp/src/types";
+import corePlug from "../../webapp/src/generated/core.plug.json";
+import pageIndexSyscalls from "./syscalls/page_index";
 
 export class ClientConnection {
   openPages = new Set<string>();
@@ -15,27 +20,42 @@ export interface ApiProvider {
 }
 
 export class SocketServer {
-  rootPath: string;
-  openPages = new Map<string, Page>();
-  connectedSockets = new Set<Socket>();
-  serverSocket: Server;
+  private openPages = new Map<string, Page>();
+  private connectedSockets = new Set<Socket>();
   private apis = new Map<string, ApiProvider>();
+  readonly rootPath: string;
+  private serverSocket: Server;
+  system: System<NuggetHook>;
+
+  constructor(rootPath: string, serverSocket: Server) {
+    this.rootPath = path.resolve(rootPath);
+    this.serverSocket = serverSocket;
+    this.system = new System<NuggetHook>();
+  }
 
   async registerApi(name: string, apiProvider: ApiProvider) {
     await apiProvider.init();
     this.apis.set(name, apiProvider);
   }
 
-  constructor(rootPath: string, serverSocket: Server) {
-    this.rootPath = path.resolve(rootPath);
-    this.serverSocket = serverSocket;
-  }
-
   public async init() {
-    await this.registerApi("index", new IndexApi(this.rootPath));
+    const indexApi = new IndexApi(this.rootPath);
+    await this.registerApi("index", indexApi);
+    this.system.registerSyscalls(pageIndexSyscalls(indexApi.db));
     await this.registerApi(
       "page",
-      new PageApi(this.rootPath, this.connectedSockets)
+      new PageApi(
+        this.rootPath,
+        this.connectedSockets,
+        this.openPages,
+        this.system
+      )
+    );
+
+    let plug = await this.system.load(
+      "core",
+      corePlug,
+      createSandbox(this.system)
     );
 
     this.serverSocket.on("connection", (socket) => {
@@ -51,9 +71,8 @@ export class SocketServer {
       });
 
       socket.on("closePage", (pageName: string) => {
-        console.log("Closing page", pageName);
-        clientConn.openPages.delete(pageName);
         disconnectPageSocket(pageName);
+        clientConn.openPages.delete(pageName);
       });
 
       const onCall = (

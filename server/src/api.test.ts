@@ -3,7 +3,7 @@ import { test, expect, beforeAll, afterAll, describe } from "@jest/globals";
 import { createServer } from "http";
 import { io as Client } from "socket.io-client";
 import { Server } from "socket.io";
-import { SocketServer } from "./api";
+import { SocketServer } from "./api_server";
 import * as path from "path";
 import * as fs from "fs";
 

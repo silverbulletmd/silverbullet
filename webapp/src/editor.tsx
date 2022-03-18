@@ -29,7 +29,8 @@ import {
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { Plug, System } from "../../plugbox/src/runtime";
-import { WebworkerSandbox } from "../../plugbox/src/worker_sandbox";
+import { createSandbox } from "../../plugbox/src/webworker_sandbox";
+import { createSandbox as createIFrameSandbox } from "../../plugbox/src/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import { collabExtension, CollabDocument } from "./collab";
 import * as commands from "./commands";
@@ -182,7 +183,7 @@ export class Editor implements AppEventDispatcher {
     let mainPlug = await system.load(
       "core",
       coreManifest,
-      new WebworkerSandbox(system)
+      createIFrameSandbox(system)
     );
     this.plugs.push(mainPlug);
     this.editorCommands = new Map<string, AppCommand>();

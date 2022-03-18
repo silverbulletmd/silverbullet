@@ -5,6 +5,7 @@
     "moduleResolution": "node",
     "module": "esnext",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   }
 }

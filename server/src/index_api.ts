@@ -1,6 +1,7 @@
-import { ApiProvider, ClientConnection } from "./api";
+import { ApiProvider, ClientConnection } from "./api_server";
 import knex, { Knex } from "knex";
 import path from "path";
+import pageIndexSyscalls from "./syscalls/page_index";
 
 type IndexItem = {
   page: string;
@@ -10,6 +11,7 @@ type IndexItem = {
 
 export class IndexApi implements ApiProvider {
   db: Knex;
+
   constructor(rootPath: string) {
     this.db = knex({
       client: "better-sqlite3",
@@ -33,12 +35,13 @@ export class IndexApi implements ApiProvider {
   }
 
   api() {
+    const syscalls = pageIndexSyscalls(this.db);
     return {
       clearPageIndexForPage: async (
         clientConn: ClientConnection,
         page: string
       ) => {
-        await this.db<IndexItem>("page_index").where({ page }).del();
+        return syscalls["indexer.clearPageIndexForPage"](page);
       },
       set: async (
         clientConn: ClientConnection,
@@ -46,77 +49,41 @@ export class IndexApi implements ApiProvider {
         key: string,
         value: any
       ) => {
-        let changed = await this.db<IndexItem>("page_index")
-          .where({ page, key })
-          .update("value", JSON.stringify(value));
-        if (changed === 0) {
-          await this.db<IndexItem>("page_index").insert({
-            page,
-            key,
-            value: JSON.stringify(value),
-          });
-        }
+        return syscalls["indexer.set"](page, key, value);
       },
       get: async (clientConn: ClientConnection, page: string, key: string) => {
-        let result = await this.db<IndexItem>("page_index")
-          .where({ page, key })
-          .select("value");
-        if (result.length) {
-          return JSON.parse(result[0].value);
-        } else {
-          return null;
-        }
+        return syscalls["indexer.get"](page, key);
       },
       delete: async (
         clientConn: ClientConnection,
         page: string,
         key: string
       ) => {
-        await this.db<IndexItem>("page_index").where({ page, key }).del();
+        return syscalls["indexer.delete"](page, key);
       },
       scanPrefixForPage: async (
         clientConn: ClientConnection,
         page: string,
         prefix: string
       ) => {
-        return (
-          await this.db<IndexItem>("page_index")
-            .where({ page })
-            .andWhereLike("key", `${prefix}%`)
-            .select("page", "key", "value")
-        ).map(({ page, key, value }) => ({
-          page,
-          key,
-          value: JSON.parse(value),
-        }));
+        return syscalls["indexer.scanPrefixForPage"](page, prefix);
       },
       scanPrefixGlobal: async (
         clientConn: ClientConnection,
         prefix: string
       ) => {
-        return (
-          await this.db<IndexItem>("page_index")
-            .andWhereLike("key", `${prefix}%`)
-            .select("page", "key", "value")
-        ).map(({ page, key, value }) => ({
-          page,
-          key,
-          value: JSON.parse(value),
-        }));
+        return syscalls["indexer.scanPrefixGlobal"](prefix);
       },
       deletePrefixForPage: async (
         clientConn: ClientConnection,
         page: string,
         prefix: string
       ) => {
-        return this.db<IndexItem>("page_index")
-          .where({ page })
-          .andWhereLike("key", `${prefix}%`)
-          .del();
+        return syscalls["indexer.deletePrefixForPage"](page, prefix);
       },
 
       clearPageIndex: async (clientConn: ClientConnection) => {
-        return this.db<IndexItem>("page_index").del();
+        return syscalls["indexer.clearPageIndex"]();
       },
     };
   }

@@ -10,18 +10,19 @@ export type WorkerMessage = {
   name?: string;
   code?: string;
   args?: any[];
-  data?: any;
+  result?: any;
+  error?: any;
 };
 
-export type ControllerMessageType = "inited" | "result" | "error" | "syscall";
+export type ControllerMessageType = "inited" | "result" | "syscall";
 
 export type ControllerMessage = {
   type: ControllerMessageType;
   id?: number;
   name?: string;
-  reason?: string;
   args?: any[];
-  result: any;
+  error?: string;
+  result?: any;
 };
 
 export interface Manifest<HookT> {
@@ -34,4 +35,10 @@ export interface Manifest<HookT> {
 export interface FunctionDef {
   path?: string;
   code?: string;
+}
+
+export interface WorkerLike {
+  onMessage?: (message: any) => Promise<void>;
+  postMessage(message: any): void;
+  terminate(): void;
 }

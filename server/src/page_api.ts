@@ -1,7 +1,7 @@
 import { ClientPageState, Page, PageMeta } from "./types";
 import { ChangeSet } from "@codemirror/state";
 import { Update } from "@codemirror/collab";
-import { ApiProvider, ClientConnection } from "./api";
+import { ApiProvider, ClientConnection } from "./api_server";
 import { Socket } from "socket.io";
 import { DiskStorage } from "./disk_storage";
 import { safeRun } from "./util";
@@ -9,17 +9,27 @@ import fs from "fs";
 import path from "path";
 import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../../webapp/src/cursorEffect";
+import { System } from "../../plugbox/src/runtime";
+import { NuggetHook } from "../../webapp/src/types";
 
 export class PageApi implements ApiProvider {
-  openPages = new Map<string, Page>();
+  openPages: Map<string, Page>;
   pageStore: DiskStorage;
   rootPath: string;
   connectedSockets: Set<Socket>;
+  private system: System<NuggetHook>;
 
-  constructor(rootPath: string, connectedSockets: Set<Socket>) {
+  constructor(
+    rootPath: string,
+    connectedSockets: Set<Socket>,
+    openPages: Map<string, Page>,
+    system: System<NuggetHook>
+  ) {
     this.pageStore = new DiskStorage(rootPath);
     this.rootPath = rootPath;
+    this.openPages = openPages;
     this.connectedSockets = connectedSockets;
+    this.system = system;
   }
 
   async init(): Promise<void> {
@@ -45,6 +55,7 @@ export class PageApi implements ApiProvider {
   }
 
   disconnectClient(client: ClientPageState, page: Page) {
+    console.log("Disconnecting client");
     page.clientStates.delete(client);
     if (page.clientStates.size === 0) {
       console.log("No more clients for", page.name, "flushing");
@@ -178,6 +189,12 @@ export class PageApi implements ApiProvider {
               textChanged = true;
             }
           }
+          console.log(
+            "New version",
+            page.version,
+            "Updates buffered:",
+            page.updates.length
+          );
 
           if (textChanged) {
             if (page.saveTimer) {
@@ -185,6 +202,11 @@ export class PageApi implements ApiProvider {
             }
 
             page.saveTimer = setTimeout(() => {
+              console.log("This is the time to index a page");
+              this.system.dispatchEvent("page:index", {
+                name: pageName,
+                text: page!.text.sliceString(0),
+              });
               this.flushPageToDisk(pageName, page!);
             }, 1000);
           }

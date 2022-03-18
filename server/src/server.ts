@@ -2,7 +2,7 @@ import express from "express";
 import { readFile } from "fs/promises";
 import http from "http";
 import { Server } from "socket.io";
-import { SocketServer } from "./api";
+import { SocketServer } from "./api_server";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 

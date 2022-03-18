@@ -21,7 +21,8 @@ export class Indexer {
       name: pageName,
       text,
     };
-    await appEventDispatcher.dispatchAppEvent("page:index", indexEvent);
+
+    // await appEventDispatcher.dispatchAppEvent("page:index", indexEvent);
     // await this.setPageIndexPageMeta(pageMeta.name, pageMeta);
   }
 

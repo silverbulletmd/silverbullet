@@ -2,21 +2,38 @@ import { ControllerMessage, WorkerMessage, WorkerMessageType } from "./types";
 import { safeRun } from "./util";
 
 let loadedFunctions = new Map<string, Function>();
-let pendingRequests = new Map<number, (result: unknown) => void>();
+let pendingRequests = new Map<
+  number,
+  {
+    resolve: (result: unknown) => void;
+    reject: (e: any) => void;
+  }
+>();
 
 declare global {
   function syscall(id: number, name: string, args: any[]): Promise<any>;
 }
 
+let postMessage = self.postMessage.bind(self);
+
+if (window.parent !== window) {
+  console.log("running in an iframe");
+  postMessage = window.parent.postMessage.bind(window.parent);
+  // postMessage({ type: "test" }, "*");
+}
+
 self.syscall = async (id: number, name: string, args: any[]) => {
   return await new Promise((resolve, reject) => {
-    pendingRequests.set(id, resolve);
-    self.postMessage({
-      type: "syscall",
-      id,
-      name,
-      args,
-    });
+    pendingRequests.set(id, { resolve, reject });
+    postMessage(
+      {
+        type: "syscall",
+        id,
+        name,
+        args,
+      },
+      "*"
+    );
   });
 };
 
@@ -26,6 +43,7 @@ return fn["default"].apply(null, arguments);`;
 }
 
 self.addEventListener("message", (event: { data: WorkerMessage }) => {
+  // console.log("Got a message", event.data);
   safeRun(async () => {
     let messageEvent = event;
     let data = messageEvent.data;
@@ -33,10 +51,13 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
       case "load":
         console.log("Booting", data.name);
         loadedFunctions.set(data.name!, new Function(wrapScript(data.code!)));
-        self.postMessage({
-          type: "inited",
-          name: data.name,
-        } as ControllerMessage);
+        postMessage(
+          {
+            type: "inited",
+            name: data.name,
+          } as ControllerMessage,
+          "*"
+        );
         break;
       case "invoke":
         let fn = loadedFunctions.get(data.name!);
@@ -45,17 +66,23 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         }
         try {
           let result = await Promise.resolve(fn(...(data.args || [])));
-          self.postMessage({
-            type: "result",
-            id: data.id,
-            result: result,
-          } as ControllerMessage);
+          postMessage(
+            {
+              type: "result",
+              id: data.id,
+              result: result,
+            } as ControllerMessage,
+            "*"
+          );
         } catch (e: any) {
-          self.postMessage({
-            type: "error",
-            id: data.id,
-            reason: e.message,
-          } as ControllerMessage);
+          postMessage(
+            {
+              type: "result",
+              id: data.id,
+              error: e.message,
+            } as ControllerMessage,
+            "*"
+          );
           throw e;
         }
 
@@ -73,7 +100,11 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
           throw Error("Invalid request id");
         }
         pendingRequests.delete(syscallId);
-        lookup(data.data);
+        if (data.error) {
+          lookup.reject(new Error(data.error));
+        } else {
+          lookup.resolve(data.result);
+        }
         break;
     }
   });
