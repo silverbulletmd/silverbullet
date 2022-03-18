@@ -197,18 +197,21 @@ export class PageApi implements ApiProvider {
           );
 
           if (textChanged) {
-            if (page.saveTimer) {
-              clearTimeout(page.saveTimer);
-            }
+            // Throttle
+            if (!page.saveTimer) {
+              page.saveTimer = setTimeout(() => {
+                if (page) {
+                  console.log("Indexing", pageName);
 
-            page.saveTimer = setTimeout(() => {
-              console.log("This is the time to index a page");
-              this.system.dispatchEvent("page:index", {
-                name: pageName,
-                text: page!.text.sliceString(0),
-              });
-              this.flushPageToDisk(pageName, page!);
-            }, 1000);
+                  this.system.dispatchEvent("page:index", {
+                    name: pageName,
+                    text: page.text.sliceString(0),
+                  });
+                  this.flushPageToDisk(pageName, page);
+                  page.saveTimer = undefined;
+                }
+              }, 1000);
+            }
           }
           while (page.pending.length) {
             page.pending.pop()!(transformedUpdates);

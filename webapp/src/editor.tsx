@@ -10,13 +10,7 @@ import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
-import {
-  EditorSelection,
-  EditorState,
-  StateField,
-  Text,
-  Transaction,
-} from "@codemirror/state";
+import { EditorSelection, EditorState, Text } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -29,18 +23,15 @@ import {
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { Plug, System } from "../../plugbox/src/runtime";
-import { createSandbox } from "../../plugbox/src/webworker_sandbox";
 import { createSandbox as createIFrameSandbox } from "../../plugbox/src/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
-import { collabExtension, CollabDocument } from "./collab";
+import { CollabDocument, collabExtension } from "./collab";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
-import { StatusBar } from "./components/status_bar";
 import { TopBar } from "./components/top_bar";
 import { Cursor } from "./cursorEffect";
 import coreManifest from "./generated/core.plug.json";
-import { Indexer } from "./indexer";
 import { lineWrapper } from "./lineWrapper";
 import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
@@ -61,7 +52,7 @@ import {
   NuggetHook,
   slashCommandRegexp,
 } from "./types";
-import { safeRun, throttle } from "./util";
+import { safeRun } from "./util";
 
 class PageState {
   scrollTop: number;
@@ -81,10 +72,8 @@ export class Editor implements AppEventDispatcher {
   space: Space;
   editorCommands: Map<string, AppCommand>;
   plugs: Plug<NuggetHook>[];
-  indexer: Indexer;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
-  indexCurrentPageDebounced: () => any;
 
   constructor(space: Space, parent: Element) {
     this.editorCommands = new Map();
@@ -102,12 +91,6 @@ export class Editor implements AppEventDispatcher {
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
-    this.indexer = new Indexer(space);
-
-    this.indexCurrentPageDebounced = throttle(
-      this.indexCurrentPage.bind(this),
-      2000
-    );
   }
 
   async init() {
@@ -228,7 +211,6 @@ export class Editor implements AppEventDispatcher {
   }
 
   createEditorState(pageName: string, doc: CollabDocument): EditorState {
-    const editor = this;
     let commandKeyBindings: KeyBinding[] = [];
     for (let def of this.editorCommands.values()) {
       if (def.command.key) {
@@ -311,7 +293,7 @@ export class Editor implements AppEventDispatcher {
           {
             key: "Ctrl-k",
             mac: "Cmd-k",
-            run: (target): boolean => {
+            run: (): boolean => {
               this.viewDispatch({ type: "start-navigate" });
               return true;
             },
@@ -319,7 +301,7 @@ export class Editor implements AppEventDispatcher {
           {
             key: "Ctrl-.",
             mac: "Cmd-.",
-            run: (target): boolean => {
+            run: (): boolean => {
               this.viewDispatch({
                 type: "show-palette",
               });
@@ -343,22 +325,18 @@ export class Editor implements AppEventDispatcher {
         markdown({
           base: customMarkDown,
         }),
-        StateField.define({
-          create: () => null,
-          update: this.update.bind(this),
-        }),
       ],
     });
   }
 
   reloadPage() {
     console.log("Reloading page");
-    this.loadPage(this.currentPage!);
+    safeRun(async () => {
+      await this.loadPage(this.currentPage!);
+    });
   }
 
-  async plugCompleter(
-    ctx: CompletionContext
-  ): Promise<CompletionResult | null> {
+  async plugCompleter(): Promise<CompletionResult | null> {
     let allCompletionResults = await this.dispatchAppEvent("editor:complete");
     if (allCompletionResults.length === 1) {
       return allCompletionResults[0];
@@ -402,26 +380,6 @@ export class Editor implements AppEventDispatcher {
       from: prefix.from + 1,
       options: options,
     };
-  }
-
-  update(value: null, transaction: Transaction): null {
-    if (transaction.docChanged) {
-      this.indexCurrentPageDebounced();
-    }
-
-    return null;
-  }
-
-  private async indexCurrentPage() {
-    if (this.currentPage) {
-      console.log("Indexing page", this.currentPage);
-      await this.indexer.indexPage(
-        this,
-        this.currentPage,
-        this.editorView!.state.sliceDoc(),
-        true
-      );
-    }
   }
 
   focus() {
@@ -473,9 +431,6 @@ export class Editor implements AppEventDispatcher {
       type: "page-loaded",
       name: pageName,
     });
-
-    // TODO: Check if indexing is required?
-    await this.indexCurrentPage();
   }
 
   ViewComponent(): React.ReactElement {

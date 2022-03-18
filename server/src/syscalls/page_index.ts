@@ -1,4 +1,5 @@
 import { Knex } from "knex";
+
 type IndexItem = {
   page: string;
   key: string;
@@ -11,26 +12,25 @@ export type KV = {
 };
 
 export default function (db: Knex) {
-  const setter = async (page: string, key: string, value: any) => {
-    let changed = await db<IndexItem>("page_index")
-      .where({ page, key })
-      .update("value", JSON.stringify(value));
-    if (changed === 0) {
-      await db<IndexItem>("page_index").insert({
-        page,
-        key,
-        value: JSON.stringify(value),
-      });
-    }
-  };
-  return {
+  const apiObj = {
     "indexer.clearPageIndexForPage": async (page: string) => {
       await db<IndexItem>("page_index").where({ page }).del();
     },
-    "indexer.set": setter,
+    "indexer.set": async (page: string, key: string, value: any) => {
+      let changed = await db<IndexItem>("page_index")
+        .where({ page, key })
+        .update("value", JSON.stringify(value));
+      if (changed === 0) {
+        await db<IndexItem>("page_index").insert({
+          page,
+          key,
+          value: JSON.stringify(value),
+        });
+      }
+    },
     "indexer.batchSet": async (page: string, kvs: KV[]) => {
       for (let { key, value } of kvs) {
-        await setter(page, key, value);
+        await apiObj["indexer.set"](page, key, value);
       }
     },
     "indexer.get": async (page: string, key: string) => {
@@ -79,4 +79,5 @@ export default function (db: Knex) {
       return db<IndexItem>("page_index").del();
     },
   };
+  return apiObj;
 }

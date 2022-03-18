@@ -70,7 +70,8 @@ export class SocketServer {
         this.connectedSockets.delete(socket);
       });
 
-      socket.on("closePage", (pageName: string) => {
+      socket.on("page.closePage", (pageName: string) => {
+        console.log("Client closed page", pageName);
         disconnectPageSocket(pageName);
         clientConn.openPages.delete(pageName);
       });
