@@ -1,0 +1,88 @@
+.filter-box {
+  position: absolute;
+  font-family: var(--ui-font);
+  margin: auto;
+  max-width: 500px;
+  height: 600px;
+  background-color: #fff;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  max-height: 290px;
+  overflow: auto;
+  z-index: 100;
+  border: rgb(103, 103, 103) 1px solid;
+  border-radius: 8px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+
+  .header {
+    border-bottom: 1px rgb(108, 108, 108) solid;
+    padding: 13px 10px 10px 10px;
+    display: flex;
+    label {
+      color: var(--highlight-color);
+      margin: 3px;
+    }
+
+    input {
+      font-family: "Arial";
+      background: transparent;
+      color: #000;
+      border: 0;
+      padding: 3px;
+      outline: 0;
+      font-size: 1em;
+      flex-grow: 100;
+    }
+    input::placeholder {
+      color: rgb(199, 199, 199);
+      font-weight: normal;
+    }
+  }
+
+  .help-text {
+    background-color: #eee;
+    border-bottom: 1px rgb(108, 108, 108) solid;
+    padding: 5px;
+    color: #555;
+  }
+
+  .result-list {
+    max-height: 200px;
+    overflow-y: scroll;
+    background-color: white;
+
+    .icon {
+      padding: 0 8px 0 5px;
+    }
+    .name {
+      padding-top: -3px;
+    }
+  }
+
+  .option,
+  .selected-option {
+    padding: 8px;
+    cursor: pointer;
+  }
+
+  .selected-option {
+    background-color: var(--highlight-color);
+    color: #eee;
+  }
+
+  .option .hint,
+  .selected-option .hint {
+    float: right;
+    margin-right: 0;
+    margin-top: -4px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    color: #eee;
+    background-color: #212476;
+    border-radius: 5px;
+  }
+}
