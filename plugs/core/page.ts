@@ -1,5 +1,5 @@
-import { IndexEvent } from "../../webapp/src/app_event";
-import { pageLinkRegex } from "../../webapp/src/constant";
+import { IndexEvent } from "../../webapp/app_event";
+import { pageLinkRegex } from "../../webapp/constant";
 import { syscall } from "./lib/syscall";
 
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");

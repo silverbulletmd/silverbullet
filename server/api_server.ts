@@ -116,6 +116,9 @@ export class SocketServer {
   }
 
   close() {
-    (this.apis.get("index")! as IndexApi).db.destroy();
+    console.log("Closing server");
+    (this.apis.get("index")! as IndexApi).db.destroy().catch((err) => {
+      console.error(err);
+    });
   }
 }

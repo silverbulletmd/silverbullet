@@ -6,8 +6,9 @@ import path from "path";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import {Manifest} from "../types";
 
-async function compile(filePath, functionName, debug) {
+async function compile(filePath : string, functionName : string, debug: boolean) {
   let outFile = "out.js";
 
   let inFile = filePath;
@@ -44,13 +45,13 @@ export default ${functionName};`
   return jsCode.substring(0, jsCode.length - 2);
 }
 
-async function bundle(manifestPath, sourceMaps) {
+async function bundle(manifestPath: string, sourceMaps: boolean) {
   const rootPath = path.dirname(manifestPath);
-  const manifest = JSON.parse((await readFile(manifestPath)).toString());
+  const manifest = JSON.parse((await readFile(manifestPath)).toString()) as Manifest<any>;
 
   for (let [name, def] of Object.entries(manifest.functions)) {
-    let jsFunctionName = def.functionName,
-      filePath = path.join(rootPath, def.path);
+    let jsFunctionName = "default",
+      filePath = path.join(rootPath, def.path!);
     if (filePath.indexOf(":") !== -1) {
       [filePath, jsFunctionName] = filePath.split(":");
     }
@@ -67,8 +68,8 @@ async function run() {
     })
     .parse();
 
-  let generatedManifest = await bundle(args._[0], !!args.debug);
-  await writeFile(args._[1], JSON.stringify(generatedManifest, null, 2));
+  let generatedManifest = await bundle(args._[0] as string, !!args.debug);
+  await writeFile(args._[1] as string, JSON.stringify(generatedManifest, null, 2));
 }
 
 run().catch((e) => {

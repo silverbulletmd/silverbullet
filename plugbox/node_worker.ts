@@ -65,7 +65,7 @@ parentPort.on("message", (data : any) => {
             result: result,
           });
         } catch (e : any) {
-          console.log("ERROR", e);
+          // console.log("ERROR", e);
           parentPort.postMessage({
             type: "result",
             id: data.id,
