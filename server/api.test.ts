@@ -6,6 +6,8 @@ import { Server } from "socket.io";
 import { SocketServer } from "./api_server";
 import * as path from "path";
 import * as fs from "fs";
+import { SilverBulletHooks } from "../common/manifest";
+import { System } from "../plugbox/runtime";
 
 describe("Server test", () => {
   let io: Server,
@@ -38,7 +40,11 @@ describe("Server test", () => {
       const port = httpServer.address().port;
       // @ts-ignore
       clientSocket = new Client(`http://localhost:${port}`);
-      socketServer = new SocketServer(tmpDir, io);
+      socketServer = new SocketServer(
+        tmpDir,
+        io,
+        new System<SilverBulletHooks>()
+      );
       clientSocket.on("connect", done);
       await socketServer.init();
     });

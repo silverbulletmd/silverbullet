@@ -1,7 +1,3 @@
-export type EventHook = {
-  events: { [key: string]: string[] };
-};
-
 export type WorkerMessageType = "load" | "invoke" | "syscall-response";
 
 export type WorkerMessage = {
@@ -37,7 +33,30 @@ export interface FunctionDef {
   code?: string;
 }
 
+export type EventHook = {
+  events?: { [key: string]: string[] };
+};
+
+export type EndpointHook = {
+  endpoints?: EndPointDef[];
+};
+export type EndPointDef = {
+  method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS";
+  path: string;
+  handler: string; // function name
+};
+
+export type CronHook = {
+  crons?: CronDef[];
+};
+
+export type CronDef = {
+  cron: string;
+  handler: string; // function name
+};
+
 export interface WorkerLike {
+  ready: Promise<void>;
   onMessage?: (message: any) => Promise<void>;
   postMessage(message: any): void;
   terminate(): void;

@@ -1,12 +1,4 @@
-import * as plugbox from "../plugbox/types";
-
-export type NuggetHook = {
-  commands: {
-    [key: string]: CommandDef;
-  };
-};
-
-export type Manifest = plugbox.Manifest<NuggetHook>;
+import { CommandDef } from "../common/manifest";
 
 export type PageMeta = {
   name: string;
@@ -21,19 +13,6 @@ export type AppCommand = {
 };
 
 export const slashCommandRegexp = /\/[\w\-]*/;
-
-export interface CommandDef {
-  // Function name to invoke
-  invoke: string;
-
-  // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-
-  // If to show in slash invoked menu and if so, with what label
-  // should match slashCommandRegexp
-  slashCommand?: string;
-}
 
 export type Notification = {
   id: number;

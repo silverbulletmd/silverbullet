@@ -3,18 +3,18 @@ const { parentPort } = require("worker_threads");
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<
-    number,
-    {
-      resolve: (result: unknown) => void;
-      reject: (e: any) => void;
-    }
-    >();
+  number,
+  {
+    resolve: (result: unknown) => void;
+    reject: (e: any) => void;
+  }
+>();
 
 let vm = new VM({
   sandbox: {
     console: console,
     self: {
-      syscall: (reqId : number, name : string, args: any[]) => {
+      syscall: (reqId: number, name: string, args: any[]) => {
         return new Promise((resolve, reject) => {
           pendingRequests.set(reqId, { resolve, reject });
           parentPort.postMessage({
@@ -30,17 +30,17 @@ let vm = new VM({
   },
 });
 
-function wrapScript(code : string) {
+function wrapScript(code: string) {
   return `(${code})["default"]`;
 }
 
-function safeRun(fn : any) {
-  fn().catch((e : any) => {
+function safeRun(fn: any) {
+  fn().catch((e: any) => {
     console.error(e);
   });
 }
 
-parentPort.on("message", (data : any) => {
+parentPort.on("message", (data: any) => {
   safeRun(async () => {
     switch (data.type) {
       case "load":
@@ -62,9 +62,10 @@ parentPort.on("message", (data : any) => {
           parentPort.postMessage({
             type: "result",
             id: data.id,
-            result: result,
+            // TOOD: Figure out if this is necessary, because it's expensive
+            result: result && JSON.parse(JSON.stringify(result)),
           });
-        } catch (e : any) {
+        } catch (e: any) {
           // console.log("ERROR", e);
           parentPort.postMessage({
             type: "result",

@@ -6,14 +6,12 @@ import * as fs from "fs";
 import { safeRun } from "./util";
 
 // @ts-ignore
-import workerCode from "bundle-text:./node_worker.ts"
-
-// ParcelJS will simply inline this into the bundle.
-// const workerCode = fs.readFileSync(__dirname + "/node_worker.ts", "utf-8");
+import workerCode from "bundle-text:./node_worker.ts";
 
 class NodeWorkerWrapper implements WorkerLike {
   onMessage?: (message: any) => Promise<void>;
   private worker: Worker;
+  ready: Promise<void>;
 
   constructor(worker: Worker) {
     this.worker = worker;
@@ -21,6 +19,9 @@ class NodeWorkerWrapper implements WorkerLike {
       safeRun(async () => {
         await this.onMessage!(message);
       });
+    });
+    this.ready = new Promise((resolve) => {
+      worker.once("online", resolve);
     });
   }
 
@@ -34,6 +35,9 @@ class NodeWorkerWrapper implements WorkerLike {
 }
 
 export function createSandbox(system: System<any>) {
+  let worker = new Worker(workerCode, {
+    eval: true,
+  });
   return new Sandbox(
     system,
     new NodeWorkerWrapper(

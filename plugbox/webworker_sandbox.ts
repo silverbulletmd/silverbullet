@@ -5,6 +5,7 @@ import { safeRun } from "./util";
 class WebWorkerWrapper implements WorkerLike {
   private worker: Worker;
   onMessage?: (message: any) => Promise<void>;
+  ready: Promise<void>;
 
   constructor(worker: Worker) {
     this.worker = worker;
@@ -15,6 +16,7 @@ class WebWorkerWrapper implements WorkerLike {
         await this.onMessage!(data);
       });
     });
+    this.ready = Promise.resolve();
   }
   postMessage(message: any): void {
     this.worker.postMessage(message);

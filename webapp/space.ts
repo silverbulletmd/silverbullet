@@ -5,7 +5,9 @@ import { ChangeSet, Text, Transaction } from "@codemirror/state";
 
 import { CollabDocument, CollabEvents } from "./collab";
 import { cursorEffect } from "./cursorEffect";
-import { EventEmitter } from "./event";
+import { EventEmitter } from "../common/event";
+import { SystemJSON } from "../plugbox/runtime";
+import { Manifest } from "../common/manifest";
 
 export type SpaceEvents = {
   connect: () => void;
@@ -13,6 +15,9 @@ export type SpaceEvents = {
   pageChanged: (meta: PageMeta) => void;
   pageDeleted: (name: string) => void;
   pageListUpdated: (pages: Set<PageMeta>) => void;
+  loadSystem: (systemJSON: SystemJSON<any>) => void;
+  plugUpdated: (plugName: string, plug: Manifest) => void;
+  plugRemoved: (plugName: string) => void;
 } & CollabEvents;
 
 export type KV = {
@@ -35,6 +40,9 @@ export class Space extends EventEmitter<SpaceEvents> {
       "pageCreated",
       "pageChanged",
       "pageDeleted",
+      "loadSystem",
+      "plugUpdated",
+      "plugRemoved",
     ].forEach((eventName) => {
       socket.on(eventName, (...args) => {
         this.emit(eventName as keyof SpaceEvents, ...args);
@@ -54,7 +62,7 @@ export class Space extends EventEmitter<SpaceEvents> {
             break;
           }
         }
-        if(!found) {
+        if (!found) {
           this.allPages.add(meta);
           console.log("New page created", meta);
           this.emit("pageListUpdated", this.allPages);

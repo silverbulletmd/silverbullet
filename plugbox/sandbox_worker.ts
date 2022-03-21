@@ -17,9 +17,7 @@ declare global {
 let postMessage = self.postMessage.bind(self);
 
 if (window.parent !== window) {
-  console.log("running in an iframe");
   postMessage = window.parent.postMessage.bind(window.parent);
-  // postMessage({ type: "test" }, "*");
 }
 
 self.syscall = async (id: number, name: string, args: any[]) => {
@@ -43,7 +41,6 @@ return fn["default"].apply(null, arguments);`;
 }
 
 self.addEventListener("message", (event: { data: WorkerMessage }) => {
-  // console.log("Got a message", event.data);
   safeRun(async () => {
     let messageEvent = event;
     let data = messageEvent.data;

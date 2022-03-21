@@ -4,6 +4,7 @@ import {
   WorkerLike,
   WorkerMessage,
 } from "./types";
+import { EventEmitter } from "../common/event";
 
 interface SysCallMapping {
   [key: string]: (...args: any) => Promise<any> | any;
@@ -31,6 +32,7 @@ export class Sandbox {
   }
 
   async load(name: string, code: string): Promise<void> {
+    await this.worker.ready;
     this.worker.postMessage({
       type: "load",
       name: name,
@@ -119,18 +121,20 @@ export class Plug<HookT> {
       if (!funDef) {
         throw new Error(`Function ${name} not found in manifest`);
       }
-      await this.sandbox.load(name, this.manifest!.functions[name].code!);
+      await this.sandbox.load(name, funDef.code!);
     }
     return await this.sandbox.invoke(name, args);
   }
 
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
+    if (!this.manifest!.hooks?.events) {
+      return [];
+    }
     let functionsToSpawn = this.manifest!.hooks.events[name];
     if (functionsToSpawn) {
       return await Promise.all(
-        functionsToSpawn.map(
-          async (functionToSpawn: string) =>
-            await this.invoke(functionToSpawn, [data])
+        functionsToSpawn.map((functionToSpawn: string) =>
+          this.invoke(functionToSpawn, [data])
         )
       );
     } else {
@@ -143,9 +147,20 @@ export class Plug<HookT> {
   }
 }
 
-export class System<HookT> {
+export type SystemJSON<HookT> = { [key: string]: Manifest<HookT> };
+
+export type SystemEvents<HookT> = {
+  plugUpdated: (name: string, plug: Plug<HookT>) => void;
+  plugRemoved: (name: string) => void;
+};
+
+export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
   registeredSyscalls: SysCallMapping = {};
+
+  constructor() {
+    super();
+  }
 
   registerSyscalls(...registrationObjects: SysCallMapping[]) {
     for (const registrationObject of registrationObjects) {
@@ -171,23 +186,63 @@ export class System<HookT> {
     manifest: Manifest<HookT>,
     sandbox: Sandbox
   ): Promise<Plug<HookT>> {
+    if (this.plugs.has(name)) {
+      await this.unload(name);
+    }
     const plug = new Plug(this, name, sandbox);
     await plug.load(manifest);
     this.plugs.set(name, plug);
     return plug;
   }
 
+  async unload(name: string) {
+    const plug = this.plugs.get(name);
+    if (!plug) {
+      throw Error(`Plug ${name} not found`);
+    }
+    await plug.stop();
+    this.plugs.delete(name);
+  }
+
   async dispatchEvent(name: string, data?: any): Promise<any[]> {
     let promises = [];
     for (let plug of this.plugs.values()) {
-      promises.push(plug.dispatchEvent(name, data));
+      for (let result of await plug.dispatchEvent(name, data)) {
+        promises.push(result);
+      }
     }
     return await Promise.all(promises);
   }
 
-  async stop(): Promise<void[]> {
+  get loadedPlugs(): Map<string, Plug<HookT>> {
+    return this.plugs;
+  }
+
+  toJSON(): SystemJSON<HookT> {
+    let plugJSON: { [key: string]: Manifest<HookT> } = {};
+    for (let [name, plug] of this.plugs) {
+      if (!plug.manifest) {
+        continue;
+      }
+      plugJSON[name] = plug.manifest;
+    }
+    return plugJSON;
+  }
+
+  async replaceAllFromJSON(
+    json: SystemJSON<HookT>,
+    sandboxFactory: () => Sandbox
+  ) {
+    await this.unloadAll();
+    for (let [name, manifest] of Object.entries(json)) {
+      console.log("Loading plug", name);
+      await this.load(name, manifest, sandboxFactory());
+    }
+  }
+
+  async unloadAll(): Promise<void[]> {
     return Promise.all(
-      Array.from(this.plugs.values()).map((plug) => plug.stop())
+      Array.from(this.plugs.keys()).map(this.unload.bind(this))
     );
   }
 }

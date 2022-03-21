@@ -19,7 +19,6 @@ import {
   KeyBinding,
   keymap,
 } from "@codemirror/view";
-// import { debounce } from "lodash";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { Plug, System } from "../plugbox/runtime";
@@ -31,7 +30,6 @@ import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
 import { Cursor } from "./cursorEffect";
-import coreManifest from "./generated/core.plug.json";
 import { lineWrapper } from "./line_wrapper";
 import { markdown } from "./markdown";
 import { IPageNavigator, PathPageNavigator } from "./navigator";
@@ -49,9 +47,9 @@ import {
   AppCommand,
   AppViewState,
   initialViewState,
-  NuggetHook,
   slashCommandRegexp,
 } from "./types";
+import { SilverBulletHooks } from "../common/manifest";
 import { safeRun } from "./util";
 
 class PageState {
@@ -65,20 +63,19 @@ class PageState {
 }
 
 export class Editor implements AppEventDispatcher {
+  private system = new System<SilverBulletHooks>();
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   openPages: Map<string, PageState>;
   space: Space;
   editorCommands: Map<string, AppCommand>;
-  plugs: Plug<NuggetHook>[];
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
 
   constructor(space: Space, parent: Element) {
     this.editorCommands = new Map();
     this.openPages = new Map();
-    this.plugs = [];
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -91,6 +88,13 @@ export class Editor implements AppEventDispatcher {
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
+
+    this.system.registerSyscalls(
+      dbSyscalls,
+      editorSyscalls(this),
+      spaceSyscalls(this),
+      indexerSyscalls(this.space)
+    );
   }
 
   async init() {
@@ -128,6 +132,39 @@ export class Editor implements AppEventDispatcher {
           pages: pages,
         });
       },
+      loadSystem: (systemJSON) => {
+        safeRun(async () => {
+          console.log("Received SYSTEM", systemJSON);
+          await this.system.replaceAllFromJSON(systemJSON, () =>
+            createIFrameSandbox(this.system)
+          );
+          console.log("Loaded plugs, now updating editor comands");
+          this.editorCommands = new Map<string, AppCommand>();
+          for (let plug of this.system.loadedPlugs.values()) {
+            this.buildCommands(plug);
+          }
+          this.viewDispatch({
+            type: "update-commands",
+            commands: this.editorCommands,
+          });
+        });
+      },
+      plugUpdated: (plugName, plug) => {
+        safeRun(async () => {
+          console.log("Plug updated", plugName);
+          await this.system.load(
+            plugName,
+            plug,
+            createIFrameSandbox(this.system)
+          );
+        });
+      },
+      plugRemoved: (plugName) => {
+        safeRun(async () => {
+          console.log("Plug removed", plugName);
+          await this.system.unload(plugName);
+        });
+      },
     });
 
     if (this.pageNavigator.getCurrentPage() === "") {
@@ -154,32 +191,16 @@ export class Editor implements AppEventDispatcher {
   }
 
   async loadPlugs() {
-    const system = new System<NuggetHook>();
+    const system = new System<SilverBulletHooks>();
     system.registerSyscalls(
       dbSyscalls,
       editorSyscalls(this),
       spaceSyscalls(this),
       indexerSyscalls(this.space)
     );
-
-    console.log("Now loading core plug");
-    let mainPlug = await system.load(
-      "core",
-      coreManifest,
-      createIFrameSandbox(system)
-    );
-    this.plugs.push(mainPlug);
-    this.editorCommands = new Map<string, AppCommand>();
-    for (let plug of this.plugs) {
-      this.buildCommands(plug);
-    }
-    this.viewDispatch({
-      type: "update-commands",
-      commands: this.editorCommands,
-    });
   }
 
-  private buildCommands(plug: Plug<NuggetHook>) {
+  private buildCommands(plug: Plug<SilverBulletHooks>) {
     const cmds = plug.manifest!.hooks.commands;
     for (let name in cmds) {
       let cmd = cmds[name];
@@ -192,18 +213,8 @@ export class Editor implements AppEventDispatcher {
     }
   }
 
-  // TODO: Parallelize?
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
-    let results: any[] = [];
-    for (let plug of this.plugs) {
-      let plugResults = await plug.dispatchEvent(name, data);
-      if (plugResults) {
-        for (let result of plugResults) {
-          results.push(result);
-        }
-      }
-    }
-    return results;
+    return this.system.dispatchEvent(name, data);
   }
 
   get currentPage(): string | undefined {
@@ -338,6 +349,7 @@ export class Editor implements AppEventDispatcher {
 
   async plugCompleter(): Promise<CompletionResult | null> {
     let allCompletionResults = await this.dispatchAppEvent("editor:complete");
+    console.log("Completion results", allCompletionResults);
     if (allCompletionResults.length === 1) {
       return allCompletionResults[0];
     } else if (allCompletionResults.length > 1) {

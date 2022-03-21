@@ -17,5 +17,5 @@ window.editor = editor;
 navigator.serviceWorker
   .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
   .then((r) => {
-    console.log("Service worker registered", r);
+    // console.log("Service worker registered", r);
   });

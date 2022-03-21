@@ -75,5 +75,5 @@ test("Run a Node sandbox", async () => {
   } catch (e: any) {
     expect(e.message).toBe("#fail");
   }
-  await system.stop();
+  await system.unloadAll();
 });

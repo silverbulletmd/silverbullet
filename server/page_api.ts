@@ -10,20 +10,20 @@ import path from "path";
 import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../webapp/cursorEffect";
 import { System } from "../plugbox/runtime";
-import { NuggetHook } from "../webapp/types";
+import { SilverBulletHooks } from "../common/manifest";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;
   pageStore: DiskStorage;
   rootPath: string;
   connectedSockets: Set<Socket>;
-  private system: System<NuggetHook>;
+  private system: System<SilverBulletHooks>;
 
   constructor(
     rootPath: string,
     connectedSockets: Set<Socket>,
     openPages: Map<string, Page>,
-    system: System<NuggetHook>
+    system: System<SilverBulletHooks>
   ) {
     this.pageStore = new DiskStorage(rootPath);
     this.rootPath = rootPath;
@@ -34,6 +34,20 @@ export class PageApi implements ApiProvider {
 
   async init(): Promise<void> {
     this.fileWatcher();
+    this.system.on({
+      plugUpdated: (plugName, plugDef) => {
+        console.log("Plug updated on disk, broadcasting to all clients");
+        this.connectedSockets.forEach((socket) => {
+          socket.emit("plugUpdated", plugName, plugDef);
+        });
+      },
+      plugRemoved: (plugName) => {
+        console.log("Plug removed on disk, broadcasting to all clients");
+        this.connectedSockets.forEach((socket) => {
+          socket.emit("plugRemoved", plugName);
+        });
+      },
+    });
   }
 
   broadcastCursors(page: Page) {

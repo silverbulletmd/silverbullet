@@ -8,6 +8,7 @@ import sandboxHtml from "bundle-text:./iframe_sandbox.html";
 class IFrameWrapper implements WorkerLike {
   private iframe: HTMLIFrameElement;
   onMessage?: (message: any) => Promise<void>;
+  ready: Promise<void>;
 
   constructor() {
     const iframe = document.createElement("iframe", {});
@@ -27,6 +28,12 @@ class IFrameWrapper implements WorkerLike {
       });
     });
     document.body.appendChild(iframe);
+    this.ready = new Promise((resolve) => {
+      iframe.onload = () => {
+        resolve();
+        iframe.onload = null;
+      };
+    });
   }
 
   postMessage(message: any): void {

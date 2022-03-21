@@ -36,8 +36,16 @@
     "events": {
       "page:click": ["taskToggle", "clickNavigate"],
       "editor:complete": ["pageComplete"],
-      "page:index": ["indexLinks"]
-    }
+      "page:index": ["indexLinks"],
+      "load": ["welcome"]
+    },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/",
+        "handler": "endpointTest"
+      }
+    ]
   },
   "functions": {
     "indexLinks": {
@@ -76,8 +84,11 @@
     "toggle_h2": {
       "path": "./markup.ts:toggleH2"
     },
-    "server_test": {
-      "path": "./server.ts:test"
+    "endpointTest": {
+      "path": "./server.ts:endpointTest"
+    },
+    "welcome": {
+      "path": "./server.ts:welcome"
     }
   }
 }

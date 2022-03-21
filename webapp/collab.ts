@@ -17,7 +17,7 @@ import {
 } from "@codemirror/view";
 import { throttle } from "./util";
 import { Cursor, cursorEffect } from "./cursorEffect";
-import { EventEmitter } from "./event";
+import { EventEmitter } from "../common/event";
 
 const throttleInterval = 250;
 

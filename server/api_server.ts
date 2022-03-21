@@ -4,9 +4,7 @@ import * as path from "path";
 import { IndexApi } from "./index_api";
 import { PageApi } from "./page_api";
 import { System } from "../plugbox/runtime";
-import { createSandbox } from "../plugbox/node_sandbox";
-import { NuggetHook } from "../webapp/types";
-import corePlug from "../webapp/generated/core.plug.json";
+import { SilverBulletHooks } from "../common/manifest";
 import pageIndexSyscalls from "./syscalls/page_index";
 
 export class ClientConnection {
@@ -25,12 +23,16 @@ export class SocketServer {
   private apis = new Map<string, ApiProvider>();
   readonly rootPath: string;
   private serverSocket: Server;
-  system: System<NuggetHook>;
+  system: System<SilverBulletHooks>;
 
-  constructor(rootPath: string, serverSocket: Server) {
+  constructor(
+    rootPath: string,
+    serverSocket: Server,
+    system: System<SilverBulletHooks>
+  ) {
     this.rootPath = path.resolve(rootPath);
     this.serverSocket = serverSocket;
-    this.system = new System<NuggetHook>();
+    this.system = system;
   }
 
   async registerApi(name: string, apiProvider: ApiProvider) {
@@ -50,12 +52,6 @@ export class SocketServer {
         this.openPages,
         this.system
       )
-    );
-
-    let plug = await this.system.load(
-      "core",
-      corePlug,
-      createSandbox(this.system)
     );
 
     this.serverSocket.on("connection", (socket) => {
@@ -112,6 +108,9 @@ export class SocketServer {
           });
         });
       }
+
+      console.log("Sending the sytem to the client");
+      socket.emit("loadSystem", this.system.toJSON());
     });
   }
 
