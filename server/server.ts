@@ -4,10 +4,12 @@ import { Server } from "socket.io";
 import { SocketServer } from "./api_server";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { System } from "../plugbox/runtime";
 import { SilverBulletHooks } from "../common/manifest";
 import { ExpressServer } from "./express_server";
 import { DiskPlugLoader } from "../plugbox/plug_loader";
+import { NodeCronFeature } from "../plugbox/feature/node_cron";
+import shellSyscalls from "./syscalls/shell";
+import { System } from "../plugbox/system";
 
 let args = yargs(hideBin(process.argv))
   .option("debug", {
@@ -23,7 +25,7 @@ const pagesPath = args._[0] as string;
 
 const app = express();
 const server = http.createServer(app);
-const system = new System<SilverBulletHooks>();
+const system = new System<SilverBulletHooks>("server");
 
 const io = new Server(server, {
   cors: {
@@ -52,6 +54,8 @@ expressServer
     );
     await plugLoader.loadPlugs();
     plugLoader.watcher();
+    system.registerSyscalls(shellSyscalls(pagesPath));
+    system.addFeature(new NodeCronFeature());
     server.listen(port, () => {
       console.log(`Server listening on port ${port}`);
     });

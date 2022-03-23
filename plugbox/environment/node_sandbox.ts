@@ -1,12 +1,11 @@
-import { ControllerMessage, WorkerLike, WorkerMessage } from "./types";
-import { System, Sandbox } from "./runtime";
-
 import { Worker } from "worker_threads";
-import * as fs from "fs";
-import { safeRun } from "./util";
+import { safeRun } from "../util";
 
 // @ts-ignore
 import workerCode from "bundle-text:./node_worker.ts";
+import { Sandbox } from "../sandbox";
+import { System } from "../system";
+import { WorkerLike } from "./worker";
 
 class NodeWorkerWrapper implements WorkerLike {
   onMessage?: (message: any) => Promise<void>;

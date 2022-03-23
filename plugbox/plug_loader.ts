@@ -1,8 +1,8 @@
-import fs, { stat, watch } from "fs/promises";
+import fs, { watch } from "fs/promises";
 import path from "path";
-import { createSandbox } from "./node_sandbox";
-import { System } from "./runtime";
+import { createSandbox } from "./environment/node_sandbox";
 import { safeRun } from "../server/util";
+import { System } from "./system";
 
 function extractPlugName(localPath: string): string {
   const baseName = path.basename(localPath);
@@ -34,10 +34,8 @@ export class DiskPlugLoader<HookT> {
           } catch (e) {
             // Likely removed
             await this.system.unload(plugName);
-            this.system.emit("plugRemoved", plugName);
           }
           const plugDef = await this.loadPlugFromFile(localPath);
-          this.system.emit("plugUpdated", plugName, plugDef);
         } catch {
           // ignore, error handled by loadPlug
         }

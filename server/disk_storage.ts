@@ -1,4 +1,4 @@
-import { readdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import * as path from "path";
 import { PageMeta } from "./types";
 
@@ -48,7 +48,7 @@ export class DiskStorage {
         },
       };
     } catch (e) {
-      // console.error("Error while writing page", pageName, e);
+      // console.error("Error while reading page", pageName, e);
       throw Error(`Could not read page ${pageName}`);
     }
   }
@@ -56,9 +56,13 @@ export class DiskStorage {
   async writePage(pageName: string, text: string): Promise<PageMeta> {
     let localPath = path.join(this.rootPath, pageName + ".md");
     try {
+      // Ensure parent folder exists
+      await mkdir(path.dirname(localPath), { recursive: true });
+
+      // Actually write the file
       await writeFile(localPath, text);
 
-      // console.log(`Wrote to ${localPath}`);
+      // Fetch new metadata
       const s = await stat(localPath);
       return {
         name: pageName,

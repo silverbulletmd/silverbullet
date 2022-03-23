@@ -1,4 +1,7 @@
-import { EndpointRequest, EndpointResponse } from "../../plugbox/endpoints";
+import {
+  EndpointRequest,
+  EndpointResponse,
+} from "../../plugbox/feature/endpoint";
 
 export function endpointTest(req: EndpointRequest): EndpointResponse {
   console.log("I'm running on the server!", req);
@@ -9,7 +12,5 @@ export function endpointTest(req: EndpointRequest): EndpointResponse {
 }
 
 export function welcome() {
-  for (var i = 0; i < 10; i++) {
-    console.log("Welcome to you all!!!");
-  }
+  console.log("Hello world!");
 }

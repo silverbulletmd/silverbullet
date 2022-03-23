@@ -1,9 +1,9 @@
-import { createSandbox } from "./node_sandbox";
-import { System } from "./runtime";
-import { test, expect } from "@jest/globals";
+import { createSandbox } from "./environment/node_sandbox";
+import { expect, test } from "@jest/globals";
+import { System } from "./system";
 
 test("Run a Node sandbox", async () => {
-  let system = new System();
+  let system = new System("server");
   system.registerSyscalls({
     addNumbers: (a, b) => {
       return a + b;

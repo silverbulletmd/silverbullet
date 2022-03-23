@@ -1,9 +1,10 @@
-import { ControllerMessage, WorkerLike, WorkerMessage } from "./types";
-import { Sandbox, System } from "./runtime";
-import { safeRun } from "./util";
+import { safeRun } from "../util";
 
 // @ts-ignore
 import sandboxHtml from "bundle-text:./iframe_sandbox.html";
+import { Sandbox } from "../sandbox";
+import { System } from "../system";
+import { WorkerLike } from "./worker";
 
 class IFrameWrapper implements WorkerLike {
   private iframe: HTMLIFrameElement;

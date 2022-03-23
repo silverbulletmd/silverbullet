@@ -1,4 +1,4 @@
-import { test, expect, beforeAll, afterAll, describe } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 
 import { createServer } from "http";
 import { io as Client } from "socket.io-client";
@@ -7,7 +7,7 @@ import { SocketServer } from "./api_server";
 import * as path from "path";
 import * as fs from "fs";
 import { SilverBulletHooks } from "../common/manifest";
-import { System } from "../plugbox/runtime";
+import { System } from "../plugbox/system";
 
 describe("Server test", () => {
   let io: Server,
@@ -43,7 +43,7 @@ describe("Server test", () => {
       socketServer = new SocketServer(
         tmpDir,
         io,
-        new System<SilverBulletHooks>()
+        new System<SilverBulletHooks>("server")
       );
       clientSocket.on("connect", done);
       await socketServer.init();

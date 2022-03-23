@@ -3,17 +3,20 @@ import { Page } from "./types";
 import * as path from "path";
 import { IndexApi } from "./index_api";
 import { PageApi } from "./page_api";
-import { System } from "../plugbox/runtime";
 import { SilverBulletHooks } from "../common/manifest";
 import pageIndexSyscalls from "./syscalls/page_index";
+import { safeRun } from "./util";
+import { System } from "../plugbox/system";
 
 export class ClientConnection {
   openPages = new Set<string>();
+
   constructor(readonly sock: Socket) {}
 }
 
 export interface ApiProvider {
   init(): Promise<void>;
+
   api(): Object;
 }
 
@@ -62,13 +65,19 @@ export class SocketServer {
 
       socket.on("disconnect", () => {
         console.log("Disconnected", socket.id);
-        clientConn.openPages.forEach(disconnectPageSocket);
+        clientConn.openPages.forEach((pageName) => {
+          safeRun(async () => {
+            await disconnectPageSocket(pageName);
+          });
+        });
         this.connectedSockets.delete(socket);
       });
 
       socket.on("page.closePage", (pageName: string) => {
         console.log("Client closed page", pageName);
-        disconnectPageSocket(pageName);
+        safeRun(async () => {
+          await disconnectPageSocket(pageName);
+        });
         clientConn.openPages.delete(pageName);
       });
 
@@ -87,12 +96,12 @@ export class SocketServer {
         });
       };
 
-      const disconnectPageSocket = (pageName: string) => {
+      const disconnectPageSocket = async (pageName: string) => {
         let page = this.openPages.get(pageName);
         if (page) {
           for (let client of page.clientStates) {
             if (client.socket === socket) {
-              (this.apis.get("page")! as PageApi).disconnectClient(
+              await (this.apis.get("page")! as PageApi).disconnectClient(
                 client,
                 page
               );

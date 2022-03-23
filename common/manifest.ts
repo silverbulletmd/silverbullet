@@ -1,5 +1,6 @@
 import * as plugbox from "../plugbox/types";
-import { EndpointHook } from "../plugbox/types";
+import { EndpointHook } from "../plugbox/feature/endpoint";
+import { CronHook } from "../plugbox/feature/node_cron";
 
 export type CommandDef = {
   // Function name to invoke
@@ -18,6 +19,7 @@ export type SilverBulletHooks = {
   commands?: {
     [key: string]: CommandDef;
   };
-} & plugbox.EndpointHook;
+} & EndpointHook &
+  CronHook;
 
 export type Manifest = plugbox.Manifest<SilverBulletHooks>;

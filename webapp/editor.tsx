@@ -21,8 +21,7 @@ import {
 } from "@codemirror/view";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import { Plug, System } from "../plugbox/runtime";
-import { createSandbox as createIFrameSandbox } from "../plugbox/iframe_sandbox";
+import { createSandbox as createIFrameSandbox } from "../plugbox/environment/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import { CollabDocument, collabExtension } from "./collab";
 import * as commands from "./commands";
@@ -38,7 +37,6 @@ import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { Space } from "./space";
 import customMarkdownStyle from "./style";
-import dbSyscalls from "./syscalls/db.localstorage";
 import editorSyscalls from "./syscalls/editor.browser";
 import indexerSyscalls from "./syscalls/indexer.native";
 import spaceSyscalls from "./syscalls/space.native";
@@ -51,6 +49,7 @@ import {
 } from "./types";
 import { SilverBulletHooks } from "../common/manifest";
 import { safeRun } from "./util";
+import { System } from "../plugbox/system";
 
 class PageState {
   scrollTop: number;
@@ -63,19 +62,17 @@ class PageState {
 }
 
 export class Editor implements AppEventDispatcher {
-  private system = new System<SilverBulletHooks>();
+  private system = new System<SilverBulletHooks>("client");
+  openPages = new Map<string, PageState>();
+  editorCommands = new Map<string, AppCommand>();
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
-  openPages: Map<string, PageState>;
   space: Space;
-  editorCommands: Map<string, AppCommand>;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
 
   constructor(space: Space, parent: Element) {
-    this.editorCommands = new Map();
-    this.openPages = new Map();
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -90,7 +87,6 @@ export class Editor implements AppEventDispatcher {
     this.pageNavigator = new PathPageNavigator();
 
     this.system.registerSyscalls(
-      dbSyscalls,
       editorSyscalls(this),
       spaceSyscalls(this),
       indexerSyscalls(this.space)
@@ -98,7 +94,6 @@ export class Editor implements AppEventDispatcher {
   }
 
   async init() {
-    await this.loadPlugs();
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName) => {
@@ -134,34 +129,26 @@ export class Editor implements AppEventDispatcher {
       },
       loadSystem: (systemJSON) => {
         safeRun(async () => {
-          console.log("Received SYSTEM", systemJSON);
           await this.system.replaceAllFromJSON(systemJSON, () =>
             createIFrameSandbox(this.system)
           );
-          console.log("Loaded plugs, now updating editor comands");
-          this.editorCommands = new Map<string, AppCommand>();
-          for (let plug of this.system.loadedPlugs.values()) {
-            this.buildCommands(plug);
-          }
-          this.viewDispatch({
-            type: "update-commands",
-            commands: this.editorCommands,
-          });
+          this.buildAllCommands();
         });
       },
-      plugUpdated: (plugName, plug) => {
+      plugLoaded: (plugName, plug) => {
         safeRun(async () => {
-          console.log("Plug updated", plugName);
+          console.log("Plug load", plugName);
           await this.system.load(
             plugName,
             plug,
             createIFrameSandbox(this.system)
           );
+          this.buildAllCommands();
         });
       },
-      plugRemoved: (plugName) => {
+      plugUnloaded: (plugName) => {
         safeRun(async () => {
-          console.log("Plug removed", plugName);
+          console.log("Plug unload", plugName);
           await this.system.unload(plugName);
         });
       },
@@ -170,6 +157,27 @@ export class Editor implements AppEventDispatcher {
     if (this.pageNavigator.getCurrentPage() === "") {
       this.pageNavigator.navigate("start");
     }
+  }
+
+  private buildAllCommands() {
+    console.log("Loaded plugs, now updating editor commands");
+    this.editorCommands.clear();
+    for (let plug of this.system.loadedPlugs.values()) {
+      const cmds = plug.manifest!.hooks.commands;
+      for (let name in cmds) {
+        let cmd = cmds[name];
+        this.editorCommands.set(name, {
+          command: cmd,
+          run: async (arg): Promise<any> => {
+            return await plug.invoke(cmd.invoke, [arg]);
+          },
+        });
+      }
+    }
+    this.viewDispatch({
+      type: "update-commands",
+      commands: this.editorCommands,
+    });
   }
 
   flashNotification(message: string) {
@@ -188,29 +196,6 @@ export class Editor implements AppEventDispatcher {
         id: id,
       });
     }, 2000);
-  }
-
-  async loadPlugs() {
-    const system = new System<SilverBulletHooks>();
-    system.registerSyscalls(
-      dbSyscalls,
-      editorSyscalls(this),
-      spaceSyscalls(this),
-      indexerSyscalls(this.space)
-    );
-  }
-
-  private buildCommands(plug: Plug<SilverBulletHooks>) {
-    const cmds = plug.manifest!.hooks.commands;
-    for (let name in cmds) {
-      let cmd = cmds[name];
-      this.editorCommands.set(name, {
-        command: cmd,
-        run: async (arg): Promise<any> => {
-          return await plug.invoke(cmd.invoke, [arg]);
-        },
-      });
-    }
   }
 
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
@@ -349,7 +334,6 @@ export class Editor implements AppEventDispatcher {
 
   async plugCompleter(): Promise<CompletionResult | null> {
     let allCompletionResults = await this.dispatchAppEvent("editor:complete");
-    console.log("Completion results", allCompletionResults);
     if (allCompletionResults.length === 1) {
       return allCompletionResults[0];
     } else if (allCompletionResults.length > 1) {
@@ -398,8 +382,8 @@ export class Editor implements AppEventDispatcher {
     this.editorView!.focus();
   }
 
-  navigate(name: string) {
-    this.pageNavigator.navigate(name);
+  async navigate(name: string) {
+    await this.pageNavigator.navigate(name);
   }
 
   async loadPage(pageName: string) {

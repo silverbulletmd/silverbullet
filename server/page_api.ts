@@ -9,8 +9,8 @@ import fs from "fs";
 import path from "path";
 import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../webapp/cursorEffect";
-import { System } from "../plugbox/runtime";
 import { SilverBulletHooks } from "../common/manifest";
+import { System } from "../plugbox/system";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;
@@ -34,17 +34,18 @@ export class PageApi implements ApiProvider {
 
   async init(): Promise<void> {
     this.fileWatcher();
+    // TODO: Move this elsewhere, this doesn't belong here
     this.system.on({
-      plugUpdated: (plugName, plugDef) => {
+      plugLoaded: (plugName, plugDef) => {
         console.log("Plug updated on disk, broadcasting to all clients");
         this.connectedSockets.forEach((socket) => {
-          socket.emit("plugUpdated", plugName, plugDef);
+          socket.emit("plugLoaded", plugName, plugDef.manifest);
         });
       },
-      plugRemoved: (plugName) => {
+      plugUnloaded: (plugName) => {
         console.log("Plug removed on disk, broadcasting to all clients");
         this.connectedSockets.forEach((socket) => {
-          socket.emit("plugRemoved", plugName);
+          socket.emit("plugUnloaded", plugName);
         });
       },
     });
@@ -53,27 +54,25 @@ export class PageApi implements ApiProvider {
   broadcastCursors(page: Page) {
     page.clientStates.forEach((client) => {
       client.socket.emit(
-        "cursorSnapshot",
-        page.name,
-        Object.fromEntries(page.cursors.entries())
+          "cursorSnapshot",
+          page.name,
+          Object.fromEntries(page.cursors.entries())
       );
     });
   }
 
-  flushPageToDisk(name: string, page: Page) {
-    safeRun(async () => {
-      let meta = await this.pageStore.writePage(name, page.text.sliceString(0));
-      console.log(`Wrote page ${name} to disk`);
-      page.meta = meta;
-    });
+  async flushPageToDisk(name: string, page: Page) {
+    let meta = await this.pageStore.writePage(name, page.text.sliceString(0));
+    console.log(`Wrote page ${name} to disk`);
+    page.meta = meta;
   }
 
-  disconnectClient(client: ClientPageState, page: Page) {
+  async disconnectClient(client: ClientPageState, page: Page) {
     console.log("Disconnecting client");
     page.clientStates.delete(client);
     if (page.clientStates.size === 0) {
       console.log("No more clients for", page.name, "flushing");
-      this.flushPageToDisk(page.name, page);
+      await this.flushPageToDisk(page.name, page);
       this.openPages.delete(page.name);
     } else {
       page.cursors.delete(client.socket.id);
@@ -214,16 +213,22 @@ export class PageApi implements ApiProvider {
             // Throttle
             if (!page.saveTimer) {
               page.saveTimer = setTimeout(() => {
-                if (page) {
-                  console.log("Indexing", pageName);
+                safeRun(async () => {
+                  if (page) {
+                    console.log(
+                      "Persisting",
+                      pageName,
+                      " to disk and indexing."
+                    );
+                    await this.flushPageToDisk(pageName, page);
 
-                  this.system.dispatchEvent("page:index", {
-                    name: pageName,
-                    text: page.text.sliceString(0),
-                  });
-                  this.flushPageToDisk(pageName, page);
-                  page.saveTimer = undefined;
-                }
+                    await this.system.dispatchEvent("page:index", {
+                      name: pageName,
+                      text: page.text.sliceString(0),
+                    });
+                    page.saveTimer = undefined;
+                  }
+                });
               }, 1000);
             }
           }

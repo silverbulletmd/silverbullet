@@ -2,7 +2,9 @@ import { safeRun } from "./util";
 
 export interface IPageNavigator {
   subscribe(pageLoadCallback: (pageName: string) => Promise<void>): void;
-  navigate(page: string): void;
+
+  navigate(page: string): Promise<void>;
+
   getCurrentPage(): string;
 }
 

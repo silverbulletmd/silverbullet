@@ -1,13 +1,13 @@
-import { createSandbox } from "./node_sandbox";
-import { System } from "./runtime";
-import { test, expect } from "@jest/globals";
-import { EndPointDef, EndpointHook, Manifest } from "./types";
+import { createSandbox } from "../environment/node_sandbox";
+import { expect, test } from "@jest/globals";
+import { Manifest } from "../types";
 import express from "express";
 import request from "supertest";
-import { exposeSystem } from "./endpoints";
+import { EndpointFeature, EndpointHook } from "./endpoint";
+import { System } from "../system";
 
 test("Run a plugbox endpoint server", async () => {
-  let system = new System<EndpointHook>();
+  let system = new System<EndpointHook>("server");
   let plug = await system.load(
     "test",
     {
@@ -32,7 +32,9 @@ test("Run a plugbox endpoint server", async () => {
 
   const app = express();
   const port = 3123;
-  app.use(exposeSystem(system));
+
+  system.addFeature(new EndpointFeature(app));
+
   let server = app.listen(port, () => {
     console.log(`Listening on port ${port}`);
   });

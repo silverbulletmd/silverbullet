@@ -1,5 +1,5 @@
-import { ControllerMessage, WorkerMessage, WorkerMessageType } from "./types";
-import { safeRun } from "./util";
+import { safeRun } from "../util";
+import { ControllerMessage, WorkerMessage } from "./worker";
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<

@@ -57,10 +57,10 @@ export async function renamePage() {
   let text = await syscall("editor.getText");
   console.log("Writing new page to space");
   await syscall("space.writePage", newName, text);
-  console.log("Deleting page from space");
-  await syscall("space.deletePage", oldName);
   console.log("Navigating to new page");
   await syscall("editor.navigate", newName);
+  console.log("Deleting page from space");
+  await syscall("space.deletePage", oldName);
 
   let pageToUpdateSet = new Set<string>();
   for (let pageToUpdate of pagesToUpdate) {
