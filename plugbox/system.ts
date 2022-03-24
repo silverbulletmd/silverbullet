@@ -3,11 +3,12 @@ import { EventEmitter } from "../common/event";
 import { Sandbox } from "./sandbox";
 import { Plug } from "./plug";
 
-interface SysCallMapping {
+export interface SysCallMapping {
   [key: string]: (...args: any) => Promise<any> | any;
 }
 
 export type SystemJSON<HookT> = { [key: string]: Manifest<HookT> };
+
 export type SystemEvents<HookT> = {
   plugLoaded: (name: string, plug: Plug<HookT>) => void;
   plugUnloaded: (name: string, plug: Plug<HookT>) => void;
@@ -32,13 +33,13 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
   registerSyscalls(...registrationObjects: SysCallMapping[]) {
     for (const registrationObject of registrationObjects) {
-      for (let p in registrationObject) {
-        this.registeredSyscalls[p] = registrationObject[p];
+      for (let [name, def] of Object.entries(registrationObject)) {
+        this.registeredSyscalls[name] = def;
       }
     }
   }
 
-  async syscall(name: string, args: Array<any>): Promise<any> {
+  async syscall(name: string, args: any[]): Promise<any> {
     const callback = this.registeredSyscalls[name];
     if (!name) {
       throw Error(`Unregistered syscall ${name}`);

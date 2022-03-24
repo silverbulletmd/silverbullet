@@ -10,6 +10,7 @@ class IFrameWrapper implements WorkerLike {
   private iframe: HTMLIFrameElement;
   onMessage?: (message: any) => Promise<void>;
   ready: Promise<void>;
+  private messageListener: (evt: any) => void;
 
   constructor() {
     const iframe = document.createElement("iframe", {});
@@ -18,7 +19,7 @@ class IFrameWrapper implements WorkerLike {
     // Let's lock this down significantly
     iframe.setAttribute("sandbox", "allow-scripts");
     iframe.srcdoc = sandboxHtml;
-    window.addEventListener("message", (evt: any) => {
+    this.messageListener = (evt: any) => {
       if (evt.source !== iframe.contentWindow) {
         return;
       }
@@ -27,7 +28,8 @@ class IFrameWrapper implements WorkerLike {
       safeRun(async () => {
         await this.onMessage!(data);
       });
-    });
+    };
+    window.addEventListener("message", this.messageListener);
     document.body.appendChild(iframe);
     this.ready = new Promise((resolve) => {
       iframe.onload = () => {
@@ -42,6 +44,7 @@ class IFrameWrapper implements WorkerLike {
   }
 
   terminate() {
+    window.removeEventListener("message", this.messageListener);
     return this.iframe.remove();
   }
 }

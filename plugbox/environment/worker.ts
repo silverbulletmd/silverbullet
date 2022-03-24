@@ -19,6 +19,7 @@ export interface WorkerLike {
 }
 
 export type WorkerMessageType = "load" | "invoke" | "syscall-response";
+
 export type WorkerMessage = {
   type: WorkerMessageType;
   id?: number;

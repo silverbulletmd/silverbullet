@@ -54,9 +54,9 @@ export class PageApi implements ApiProvider {
   broadcastCursors(page: Page) {
     page.clientStates.forEach((client) => {
       client.socket.emit(
-          "cursorSnapshot",
-          page.name,
-          Object.fromEntries(page.cursors.entries())
+        "cursorSnapshot",
+        page.name,
+        Object.fromEntries(page.cursors.entries())
       );
     });
   }

@@ -29,7 +29,7 @@ test("Run a Node sandbox", async () => {
           code: `(() => {
           return {
             default: async (a, b) => {
-              return await self.syscall(1, "addNumbers", [a, b]);
+              return await self.syscall("addNumbers", a, b);
             }
           };
         })()`,
@@ -47,7 +47,7 @@ test("Run a Node sandbox", async () => {
           code: `(() => {
           return {
             default: async () => {
-              await self.syscall(2, "failingSyscall", []);
+              await self.syscall("failingSyscall");
             }
           };
         })()`,

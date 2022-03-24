@@ -9,24 +9,26 @@ let pendingRequests = new Map<
     reject: (e: any) => void;
   }
 >();
-
-declare global {
-  function syscall(id: number, name: string, args: any[]): Promise<any>;
-}
-
 let postMessage = self.postMessage.bind(self);
 
 if (window.parent !== window) {
   postMessage = window.parent.postMessage.bind(window.parent);
 }
 
-self.syscall = async (id: number, name: string, args: any[]) => {
+declare global {
+  function syscall(name: string, ...args: any[]): Promise<any>;
+}
+
+let syscallReqId = 0;
+
+self.syscall = async (name: string, ...args: any[]) => {
   return await new Promise((resolve, reject) => {
-    pendingRequests.set(id, { resolve, reject });
+    syscallReqId++;
+    pendingRequests.set(syscallReqId, { resolve, reject });
     postMessage(
       {
         type: "syscall",
-        id,
+        id: syscallReqId,
         name,
         args,
       },

@@ -10,16 +10,19 @@ let pendingRequests = new Map<
   }
 >();
 
+let syscallReqId = 0;
+
 let vm = new VM({
   sandbox: {
     console: console,
     self: {
-      syscall: (reqId: number, name: string, args: any[]) => {
+      syscall: (name: string, ...args: any[]) => {
         return new Promise((resolve, reject) => {
-          pendingRequests.set(reqId, { resolve, reject });
+          syscallReqId++;
+          pendingRequests.set(syscallReqId, { resolve, reject });
           parentPort.postMessage({
             type: "syscall",
-            id: reqId,
+            id: syscallReqId,
             name,
             // TODO: Figure out why this is necessary (to avoide a CloneError)
             args: JSON.parse(JSON.stringify(args)),
