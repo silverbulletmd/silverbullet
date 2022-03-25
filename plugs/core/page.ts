@@ -1,23 +1,14 @@
 import { IndexEvent } from "../../webapp/app_event";
 import { pageLinkRegex } from "../../webapp/constant";
-import { syscall } from "./lib/syscall";
+import { syscall } from "../lib/syscall";
 
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");
-const atMentionRegex = /(@[A-Za-z\.]+)/g;
 
 export async function indexLinks({ name, text }: IndexEvent) {
   let backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
+
   for (let match of text.matchAll(wikilinkRegex)) {
-    let toPage = match[1];
-    let pos = match.index!;
-    backLinks.push({
-      key: `pl:${toPage}:${pos}`,
-      value: name,
-    });
-  }
-  // @links
-  for (let match of text.matchAll(atMentionRegex)) {
     let toPage = match[1];
     let pos = match.index!;
     backLinks.push({

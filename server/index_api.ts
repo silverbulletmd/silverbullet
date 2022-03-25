@@ -36,12 +36,13 @@ export class IndexApi implements ApiProvider {
 
   api() {
     const syscalls = pageIndexSyscalls(this.db);
+    const nullContext = { plug: null };
     return {
       clearPageIndexForPage: async (
         clientConn: ClientConnection,
         page: string
       ) => {
-        return syscalls["indexer.clearPageIndexForPage"](page);
+        return syscalls.clearPageIndexForPage(nullContext, page);
       },
       set: async (
         clientConn: ClientConnection,
@@ -49,41 +50,41 @@ export class IndexApi implements ApiProvider {
         key: string,
         value: any
       ) => {
-        return syscalls["indexer.set"](page, key, value);
+        return syscalls.set(nullContext, page, key, value);
       },
       get: async (clientConn: ClientConnection, page: string, key: string) => {
-        return syscalls["indexer.get"](page, key);
+        return syscalls.get(nullContext, page, key);
       },
       delete: async (
         clientConn: ClientConnection,
         page: string,
         key: string
       ) => {
-        return syscalls["indexer.delete"](page, key);
+        return syscalls.delete(nullContext, page, key);
       },
       scanPrefixForPage: async (
         clientConn: ClientConnection,
         page: string,
         prefix: string
       ) => {
-        return syscalls["indexer.scanPrefixForPage"](page, prefix);
+        return syscalls.scanPrefixForPage(nullContext, page, prefix);
       },
       scanPrefixGlobal: async (
         clientConn: ClientConnection,
         prefix: string
       ) => {
-        return syscalls["indexer.scanPrefixGlobal"](prefix);
+        return syscalls.scanPrefixGlobal(nullContext, prefix);
       },
       deletePrefixForPage: async (
         clientConn: ClientConnection,
         page: string,
         prefix: string
       ) => {
-        return syscalls["indexer.deletePrefixForPage"](page, prefix);
+        return syscalls.deletePrefixForPage(nullContext, page, prefix);
       },
 
       clearPageIndex: async (clientConn: ClientConnection) => {
-        return syscalls["indexer.clearPageIndex"]();
+        return syscalls.clearPageIndex(nullContext);
       },
     };
   }

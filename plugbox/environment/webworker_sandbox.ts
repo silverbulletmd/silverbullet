@@ -1,7 +1,7 @@
 import { safeRun } from "../util";
 import { Sandbox } from "../sandbox";
-import { System } from "../system";
 import { WorkerLike } from "./worker";
+import { Plug } from "../plug";
 
 class WebWorkerWrapper implements WorkerLike {
   private worker: Worker;
@@ -28,10 +28,10 @@ class WebWorkerWrapper implements WorkerLike {
   }
 }
 
-export function createSandbox(system: System<any>) {
+export function createSandbox(plug: Plug<any>) {
   // ParcelJS will build this file into a worker.
   let worker = new Worker(new URL("sandbox_worker.ts", import.meta.url), {
     type: "module",
   });
-  return new Sandbox(system, new WebWorkerWrapper(worker));
+  return new Sandbox(plug, new WebWorkerWrapper(worker));
 }

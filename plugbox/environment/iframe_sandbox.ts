@@ -3,8 +3,8 @@ import { safeRun } from "../util";
 // @ts-ignore
 import sandboxHtml from "bundle-text:./iframe_sandbox.html";
 import { Sandbox } from "../sandbox";
-import { System } from "../system";
 import { WorkerLike } from "./worker";
+import { Plug } from "../plug";
 
 class IFrameWrapper implements WorkerLike {
   private iframe: HTMLIFrameElement;
@@ -49,6 +49,6 @@ class IFrameWrapper implements WorkerLike {
   }
 }
 
-export function createSandbox(system: System<any>) {
-  return new Sandbox(system, new IFrameWrapper());
+export function createSandbox(plug: Plug<any>) {
+  return new Sandbox(plug, new IFrameWrapper());
 }

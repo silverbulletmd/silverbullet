@@ -11,6 +11,7 @@ import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../webapp/cursorEffect";
 import { SilverBulletHooks } from "../common/manifest";
 import { System } from "../plugbox/system";
+import { EventFeature } from "../plugbox/feature/event";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;
@@ -18,6 +19,7 @@ export class PageApi implements ApiProvider {
   rootPath: string;
   connectedSockets: Set<Socket>;
   private system: System<SilverBulletHooks>;
+  private eventFeature: EventFeature;
 
   constructor(
     rootPath: string,
@@ -30,6 +32,8 @@ export class PageApi implements ApiProvider {
     this.openPages = openPages;
     this.connectedSockets = connectedSockets;
     this.system = system;
+    this.eventFeature = new EventFeature();
+    system.addFeature(this.eventFeature);
   }
 
   async init(): Promise<void> {
@@ -222,7 +226,7 @@ export class PageApi implements ApiProvider {
                     );
                     await this.flushPageToDisk(pageName, page);
 
-                    await this.system.dispatchEvent("page:index", {
+                    await this.eventFeature.dispatchEvent("page:index", {
                       name: pageName,
                       text: page.text.sliceString(0),
                     });

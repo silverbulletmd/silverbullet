@@ -20,9 +20,7 @@ export class DiskPlugLoader<HookT> {
 
   watcher() {
     safeRun(async () => {
-      for await (const { filename, eventType } of watch(this.plugPath, {
-        recursive: true,
-      })) {
+      for await (const { filename, eventType } of watch(this.plugPath)) {
         if (!filename.endsWith(".plug.json")) {
           return;
         }
@@ -50,7 +48,7 @@ export class DiskPlugLoader<HookT> {
     console.log("Now loading plug", plugName);
     try {
       const plugDef = JSON.parse(plug);
-      await this.system.load(plugName, plugDef, createSandbox(this.system));
+      await this.system.load(plugName, plugDef, createSandbox);
       return plugDef;
     } catch (e) {
       console.error("Could not parse plugin file", e);

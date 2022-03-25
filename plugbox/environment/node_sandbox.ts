@@ -4,8 +4,8 @@ import { safeRun } from "../util";
 // @ts-ignore
 import workerCode from "bundle-text:./node_worker.ts";
 import { Sandbox } from "../sandbox";
-import { System } from "../system";
 import { WorkerLike } from "./worker";
+import { Plug } from "../plug";
 
 class NodeWorkerWrapper implements WorkerLike {
   onMessage?: (message: any) => Promise<void>;
@@ -33,12 +33,12 @@ class NodeWorkerWrapper implements WorkerLike {
   }
 }
 
-export function createSandbox(system: System<any>) {
+export function createSandbox(plug: Plug<any>) {
   let worker = new Worker(workerCode, {
     eval: true,
   });
   return new Sandbox(
-    system,
+    plug,
     new NodeWorkerWrapper(
       new Worker(workerCode, {
         eval: true,

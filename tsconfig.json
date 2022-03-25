@@ -1,9 +1,5 @@
 {
-  "include": [
-    "webapp/**/*",
-    "server/**/*",
-    "plugbox/**/*"
-  ],
+  "include": ["webapp/**/*", "server/**/*", "plugbox/**/*", "plugs/**/*"],
   "compilerOptions": {
     "target": "esnext",
     "strict": true,
@@ -12,6 +8,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "downlevelIteration": true
   }
 }

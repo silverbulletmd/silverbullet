@@ -37,9 +37,9 @@ import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { Space } from "./space";
 import customMarkdownStyle from "./style";
-import editorSyscalls from "./syscalls/editor.browser";
-import indexerSyscalls from "./syscalls/indexer.native";
-import spaceSyscalls from "./syscalls/space.native";
+import editorSyscalls from "./syscalls/editor";
+import indexerSyscalls from "./syscalls/indexer";
+import spaceSyscalls from "./syscalls/space";
 import {
   Action,
   AppCommand,
@@ -50,6 +50,8 @@ import {
 import { SilverBulletHooks } from "../common/manifest";
 import { safeRun } from "./util";
 import { System } from "../plugbox/system";
+import { EventFeature } from "../plugbox/feature/event";
+import { systemSyscalls } from "./syscalls/system";
 
 class PageState {
   scrollTop: number;
@@ -71,11 +73,16 @@ export class Editor implements AppEventDispatcher {
   space: Space;
   navigationResolve?: (val: undefined) => void;
   pageNavigator: IPageNavigator;
+  private eventFeature: EventFeature;
 
   constructor(space: Space, parent: Element) {
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
+
+    this.eventFeature = new EventFeature();
+    this.system.addFeature(this.eventFeature);
+
     this.render(parent);
     this.editorView = new EditorView({
       state: this.createEditorState(
@@ -86,11 +93,10 @@ export class Editor implements AppEventDispatcher {
     });
     this.pageNavigator = new PathPageNavigator();
 
-    this.system.registerSyscalls(
-      editorSyscalls(this),
-      spaceSyscalls(this),
-      indexerSyscalls(this.space)
-    );
+    this.system.registerSyscalls("editor", [], editorSyscalls(this));
+    this.system.registerSyscalls("space", [], spaceSyscalls(this));
+    this.system.registerSyscalls("indexer", [], indexerSyscalls(this.space));
+    this.system.registerSyscalls("system", [], systemSyscalls(this.space));
   }
 
   async init() {
@@ -129,20 +135,14 @@ export class Editor implements AppEventDispatcher {
       },
       loadSystem: (systemJSON) => {
         safeRun(async () => {
-          await this.system.replaceAllFromJSON(systemJSON, () =>
-            createIFrameSandbox(this.system)
-          );
+          await this.system.replaceAllFromJSON(systemJSON, createIFrameSandbox);
           this.buildAllCommands();
         });
       },
       plugLoaded: (plugName, plug) => {
         safeRun(async () => {
           console.log("Plug load", plugName);
-          await this.system.load(
-            plugName,
-            plug,
-            createIFrameSandbox(this.system)
-          );
+          await this.system.load(plugName, plug, createIFrameSandbox);
           this.buildAllCommands();
         });
       },
@@ -199,7 +199,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
-    return this.system.dispatchEvent(name, data);
+    return this.eventFeature.dispatchEvent(name, data);
   }
 
   get currentPage(): string | undefined {

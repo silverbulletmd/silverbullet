@@ -1,7 +1,7 @@
 import { Editor } from "../editor";
 import { syntaxTree } from "@codemirror/language";
 import { Transaction } from "@codemirror/state";
-import { PageMeta } from "../types";
+import { SysCallMapping } from "../../plugbox/system";
 
 type SyntaxNode = {
   name: string;
@@ -26,23 +26,23 @@ function ensureAnchor(expr: any, start: boolean) {
   );
 }
 
-export default (editor: Editor) => ({
-  "editor.getCurrentPage": (): string => {
+export default (editor: Editor): SysCallMapping => ({
+  getCurrentPage: (): string => {
     return editor.currentPage!;
   },
-  "editor.getText": () => {
+  getText: () => {
     return editor.editorView?.state.sliceDoc();
   },
-  "editor.getCursor": (): number => {
+  getCursor: (): number => {
     return editor.editorView!.state.selection.main.from;
   },
-  "editor.navigate": async (name: string) => {
+  navigate: async (ctx, name: string) => {
     await editor.navigate(name);
   },
-  "editor.openUrl": async (url: string) => {
+  openUrl: async (ctx, url: string) => {
     window.open(url, "_blank")!.focus();
   },
-  "editor.insertAtPos": (text: string, pos: number) => {
+  insertAtPos: (ctx, text: string, pos: number) => {
     editor.editorView!.dispatch({
       changes: {
         insert: text,
@@ -50,7 +50,7 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.replaceRange": (from: number, to: number, text: string) => {
+  replaceRange: (ctx, from: number, to: number, text: string) => {
     editor.editorView!.dispatch({
       changes: {
         insert: text,
@@ -59,14 +59,14 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.moveCursor": (pos: number) => {
+  moveCursor: (ctx, pos: number) => {
     editor.editorView!.dispatch({
       selection: {
         anchor: pos,
       },
     });
   },
-  "editor.insertAtCursor": (text: string) => {
+  insertAtCursor: (ctx, text: string) => {
     let editorView = editor.editorView!;
     let from = editorView.state.selection.main.from;
     editorView.dispatch({
@@ -79,7 +79,7 @@ export default (editor: Editor) => ({
       },
     });
   },
-  "editor.getSyntaxNodeUnderCursor": (): SyntaxNode | undefined => {
+  getSyntaxNodeUnderCursor: (): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let selection = editorState.selection.main;
     if (selection.empty) {
@@ -94,7 +94,8 @@ export default (editor: Editor) => ({
       }
     }
   },
-  "editor.matchBefore": (
+  matchBefore: (
+    ctx,
     regexp: string
   ): { from: number; to: number; text: string } | null => {
     const editorState = editor.editorView!.state;
@@ -112,7 +113,7 @@ export default (editor: Editor) => ({
     }
     return null;
   },
-  "editor.getSyntaxNodeAtPos": (pos: number): SyntaxNode | undefined => {
+  getSyntaxNodeAtPos: (ctx, pos: number): SyntaxNode | undefined => {
     const editorState = editor.editorView!.state;
     let node = syntaxTree(editorState).resolveInner(pos);
     if (node) {
@@ -124,10 +125,10 @@ export default (editor: Editor) => ({
       };
     }
   },
-  "editor.dispatch": (change: Transaction) => {
+  dispatch: (ctx, change: Transaction) => {
     editor.editorView!.dispatch(change);
   },
-  "editor.prompt": (message: string, defaultValue = ""): string | null => {
+  prompt: (ctx, message: string, defaultValue = ""): string | null => {
     return prompt(message, defaultValue);
   },
 });

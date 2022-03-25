@@ -7,16 +7,28 @@ export class Plug<HookT> {
   sandbox: Sandbox;
   public manifest?: Manifest<HookT>;
   readonly runtimeEnv: RuntimeEnvironment;
+  grantedPermissions: string[] = [];
+  name: string;
 
-  constructor(system: System<HookT>, name: string, sandbox: Sandbox) {
+  constructor(
+    system: System<HookT>,
+    name: string,
+    sandboxFactory: (plug: Plug<HookT>) => Sandbox
+  ) {
     this.system = system;
-    this.sandbox = sandbox;
+    this.name = name;
+    this.sandbox = sandboxFactory(this);
     this.runtimeEnv = system.runtimeEnv;
   }
 
   async load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
-    await this.dispatchEvent("load");
+    // TODO: These need to be explicitly granted, not just taken
+    this.grantedPermissions = manifest.requiredPermissions || [];
+  }
+
+  syscall(name: string, args: any[]): Promise<any> {
+    return this.system.syscallWithContext({ plug: this }, name, args);
   }
 
   canInvoke(name: string) {
@@ -44,27 +56,6 @@ export class Plug<HookT> {
       await this.sandbox.load(name, funDef.code!);
     }
     return await this.sandbox.invoke(name, args);
-  }
-
-  async dispatchEvent(name: string, data?: any): Promise<any[]> {
-    if (!this.manifest!.hooks?.events) {
-      return [];
-    }
-    let functionsToSpawn = this.manifest!.hooks.events[name];
-    if (functionsToSpawn) {
-      return await Promise.all(
-        functionsToSpawn.map((functionToSpawn: string) => {
-          // Only dispatch functions on events when they're allowed to be invoked in this environment
-          if (this.canInvoke(functionToSpawn)) {
-            return this.invoke(functionToSpawn, [data]);
-          } else {
-            return Promise.resolve();
-          }
-        })
-      );
-    } else {
-      return [];
-    }
   }
 
   async stop() {

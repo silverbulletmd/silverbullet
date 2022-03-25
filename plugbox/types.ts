@@ -1,7 +1,8 @@
 import { System } from "./system";
 
 export interface Manifest<HookT> {
-  hooks: HookT & EventHook;
+  requiredPermissions?: string[];
+  hooks: HookT;
   functions: {
     [key: string]: FunctionDef;
   };
@@ -14,10 +15,6 @@ export interface FunctionDef {
 }
 
 export type RuntimeEnvironment = "client" | "server";
-
-export type EventHook = {
-  events?: { [key: string]: string[] };
-};
 
 export interface Feature<HookT> {
   validateManifest(manifest: Manifest<HookT>): string[];

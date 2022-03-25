@@ -1,4 +1,5 @@
 import { Knex } from "knex";
+import { SysCallMapping } from "../../plugbox/system";
 
 type IndexItem = {
   page: string;
@@ -11,12 +12,12 @@ export type KV = {
   value: any;
 };
 
-export default function (db: Knex) {
-  const apiObj = {
-    "indexer.clearPageIndexForPage": async (page: string) => {
+export default function (db: Knex): SysCallMapping {
+  const apiObj: SysCallMapping = {
+    clearPageIndexForPage: async (ctx, page: string) => {
       await db<IndexItem>("page_index").where({ page }).del();
     },
-    "indexer.set": async (page: string, key: string, value: any) => {
+    set: async (ctx, page: string, key: string, value: any) => {
       let changed = await db<IndexItem>("page_index")
         .where({ page, key })
         .update("value", JSON.stringify(value));
@@ -28,12 +29,12 @@ export default function (db: Knex) {
         });
       }
     },
-    "indexer.batchSet": async (page: string, kvs: KV[]) => {
+    batchSet: async (ctx, page: string, kvs: KV[]) => {
       for (let { key, value } of kvs) {
-        await apiObj["indexer.set"](page, key, value);
+        await apiObj.set(ctx, page, key, value);
       }
     },
-    "indexer.get": async (page: string, key: string) => {
+    get: async (ctx, page: string, key: string) => {
       let result = await db<IndexItem>("page_index")
         .where({ page, key })
         .select("value");
@@ -43,10 +44,10 @@ export default function (db: Knex) {
         return null;
       }
     },
-    "indexer.delete": async (page: string, key: string) => {
+    delete: async (ctx, page: string, key: string) => {
       await db<IndexItem>("page_index").where({ page, key }).del();
     },
-    "indexer.scanPrefixForPage": async (page: string, prefix: string) => {
+    scanPrefixForPage: async (ctx, page: string, prefix: string) => {
       return (
         await db<IndexItem>("page_index")
           .where({ page })
@@ -58,7 +59,7 @@ export default function (db: Knex) {
         value: JSON.parse(value),
       }));
     },
-    "indexer.scanPrefixGlobal": async (prefix: string) => {
+    scanPrefixGlobal: async (ctx, prefix: string) => {
       return (
         await db<IndexItem>("page_index")
           .andWhereLike("key", `${prefix}%`)
@@ -69,13 +70,13 @@ export default function (db: Knex) {
         value: JSON.parse(value),
       }));
     },
-    "indexer.deletePrefixForPage": async (page: string, prefix: string) => {
+    deletePrefixForPage: async (ctx, page: string, prefix: string) => {
       return db<IndexItem>("page_index")
         .where({ page })
         .andWhereLike("key", `${prefix}%`)
         .del();
     },
-    "indexer.clearPageIndex": async () => {
+    clearPageIndex: async () => {
       return db<IndexItem>("page_index").del();
     },
   };

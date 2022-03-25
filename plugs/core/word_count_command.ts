@@ -1,4 +1,4 @@
-import { syscall } from "./lib/syscall";
+import { syscall } from "../lib/syscall";
 
 function countWords(str: string): number {
   var matches = str.match(/[\w\d\'\'-]+/gi);

@@ -1,11 +1,16 @@
 import { promisify } from "util";
 import { execFile } from "child_process";
+import type { SysCallMapping } from "../system";
 
 const execFilePromise = promisify(execFile);
 
-export default function (cwd: string) {
+export default function (cwd: string): SysCallMapping {
   return {
-    "shell.run": async (cmd: string, args: string[]) => {
+    run: async (
+      ctx,
+      cmd: string,
+      args: string[]
+    ): Promise<{ stdout: string; stderr: string }> => {
       let { stdout, stderr } = await execFilePromise(cmd, args, {
         cwd: cwd,
       });

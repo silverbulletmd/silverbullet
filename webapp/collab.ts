@@ -179,7 +179,7 @@ export function collabExtension(
         if (this.pushing || !updates.length) return;
         this.pushing = true;
         let version = getSyncedVersion(this.view.state);
-        console.log("Updates", updates, "to apply to version", version);
+        // console.log("Updates", updates, "to apply to version", version);
         let success = await callbacks.pushUpdates(pageName, version, updates);
         this.pushing = false;
 
@@ -201,7 +201,6 @@ export function collabExtension(
         // Regardless of whether the push failed or new updates came in
         // while it was running, try again if there's updates remaining
         if (!this.done && sendableUpdates(this.view.state).length) {
-          // setTimeout(() => this.push(), 100);
           this.throttledPush();
         }
       }

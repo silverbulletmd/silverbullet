@@ -45,12 +45,6 @@
         "path": "/",
         "handler": "endpointTest"
       }
-    ],
-    "crons": [
-      {
-        "cron": "*/15 * * * *",
-        "handler": "gitSnapshot"
-      }
     ]
   },
   "functions": {
@@ -95,10 +89,6 @@
     },
     "welcome": {
       "path": "./server.ts:welcome",
-      "env": "server"
-    },
-    "gitSnapshot": {
-      "path": "./git.ts:commit",
       "env": "server"
     }
   }

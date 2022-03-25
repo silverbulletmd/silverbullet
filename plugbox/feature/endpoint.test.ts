@@ -27,7 +27,7 @@ test("Run a plugbox endpoint server", async () => {
         endpoints: [{ method: "GET", path: "/", handler: "testhandler" }],
       },
     } as Manifest<EndpointHook>,
-    createSandbox(system)
+    createSandbox
   );
 
   const app = express();

@@ -13,4 +13,5 @@ export function endpointTest(req: EndpointRequest): EndpointResponse {
 
 export function welcome() {
   console.log("Hello world!");
+  return "hi";
 }

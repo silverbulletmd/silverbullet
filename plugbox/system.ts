@@ -1,10 +1,10 @@
 import { Feature, Manifest, RuntimeEnvironment } from "./types";
 import { EventEmitter } from "../common/event";
-import { Sandbox } from "./sandbox";
+import { SandboxFactory } from "./sandbox";
 import { Plug } from "./plug";
 
 export interface SysCallMapping {
-  [key: string]: (...args: any) => Promise<any> | any;
+  [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
 }
 
 export type SystemJSON<HookT> = { [key: string]: Manifest<HookT> };
@@ -14,9 +14,23 @@ export type SystemEvents<HookT> = {
   plugUnloaded: (name: string, plug: Plug<HookT>) => void;
 };
 
+type SyscallContext = {
+  plug: Plug<any> | null;
+};
+
+type SyscallSignature = (
+  ctx: SyscallContext,
+  ...args: any[]
+) => Promise<any> | any;
+
+type Syscall = {
+  requiredPermissions: string[];
+  callback: SyscallSignature;
+};
+
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
-  registeredSyscalls: SysCallMapping = {};
+  protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledFeatures = new Set<Feature<HookT>>();
 
   readonly runtimeEnv: RuntimeEnvironment;
@@ -31,29 +45,46 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     feature.apply(this);
   }
 
-  registerSyscalls(...registrationObjects: SysCallMapping[]) {
+  registerSyscalls(
+    namespace: string,
+    requiredCapabilities: string[],
+    ...registrationObjects: SysCallMapping[]
+  ) {
     for (const registrationObject of registrationObjects) {
-      for (let [name, def] of Object.entries(registrationObject)) {
-        this.registeredSyscalls[name] = def;
+      for (let [name, callback] of Object.entries(registrationObject)) {
+        const callName = namespace ? `${namespace}.${name}` : name;
+        this.registeredSyscalls.set(callName, {
+          requiredPermissions: requiredCapabilities,
+          callback,
+        });
       }
     }
   }
 
-  async syscall(name: string, args: any[]): Promise<any> {
-    const callback = this.registeredSyscalls[name];
-    if (!name) {
+  async syscallWithContext(
+    ctx: SyscallContext,
+    name: string,
+    args: any[]
+  ): Promise<any> {
+    const syscall = this.registeredSyscalls.get(name);
+    if (!syscall) {
       throw Error(`Unregistered syscall ${name}`);
     }
-    if (!callback) {
-      throw Error(`Registered but not implemented syscall ${name}`);
+    for (const permission of syscall.requiredPermissions) {
+      if (!ctx.plug) {
+        throw Error(`Syscall ${name} requires permission and no plug is set`);
+      }
+      if (!ctx.plug.grantedPermissions.includes(permission)) {
+        throw Error(`Missing permission '${permission}' for syscall ${name}`);
+      }
     }
-    return Promise.resolve(callback(...args));
+    return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
   async load(
     name: string,
     manifest: Manifest<HookT>,
-    sandbox: Sandbox
+    sandboxFactory: SandboxFactory<HookT>
   ): Promise<Plug<HookT>> {
     if (this.plugs.has(name)) {
       await this.unload(name);
@@ -67,7 +98,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
       throw new Error(`Invalid manifest: ${errors.join(", ")}`);
     }
     // Ok, let's load this thing!
-    const plug = new Plug(this, name, sandbox);
+    const plug = new Plug(this, name, sandboxFactory);
     await plug.load(manifest);
     this.plugs.set(name, plug);
     this.emit("plugLoaded", name, plug);
@@ -82,16 +113,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     await plug.stop();
     this.emit("plugUnloaded", name, plug);
     this.plugs.delete(name);
-  }
-
-  async dispatchEvent(name: string, data?: any): Promise<any[]> {
-    let promises = [];
-    for (let plug of this.plugs.values()) {
-      for (let result of await plug.dispatchEvent(name, data)) {
-        promises.push(result);
-      }
-    }
-    return await Promise.all(promises);
   }
 
   get loadedPlugs(): Map<string, Plug<HookT>> {
@@ -111,12 +132,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
   async replaceAllFromJSON(
     json: SystemJSON<HookT>,
-    sandboxFactory: () => Sandbox
+    sandboxFactory: SandboxFactory<HookT>
   ) {
     await this.unloadAll();
     for (let [name, manifest] of Object.entries(json)) {
       console.log("Loading plug", name);
-      await this.load(name, manifest, sandboxFactory());
+      await this.load(name, manifest, sandboxFactory);
     }
   }
 

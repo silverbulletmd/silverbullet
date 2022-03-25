@@ -46,7 +46,7 @@ export class SocketServer {
   public async init() {
     const indexApi = new IndexApi(this.rootPath);
     await this.registerApi("index", indexApi);
-    this.system.registerSyscalls(pageIndexSyscalls(indexApi.db));
+    this.system.registerSyscalls("indexer", [], pageIndexSyscalls(indexApi.db));
     await this.registerApi(
       "page",
       new PageApi(
@@ -117,6 +117,24 @@ export class SocketServer {
           });
         });
       }
+
+      onCall(
+          "invokeFunction",
+          (plugName: string, name: string, ...args: any[]): Promise<any> => {
+            let plug = this.system.loadedPlugs.get(plugName);
+            if (!plug) {
+              throw new Error(`Plug ${plugName} not loaded`);
+            }
+            console.log(
+                "Invoking function",
+                name,
+                "for plug",
+                plugName,
+                "as requested over socket"
+            );
+            return plug.invoke(name, args);
+          }
+      );
 
       console.log("Sending the sytem to the client");
       socket.emit("loadSystem", this.system.toJSON());

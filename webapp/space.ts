@@ -80,7 +80,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     });
   }
 
-  private wsCall(eventName: string, ...args: any[]): Promise<any> {
+  public wsCall(eventName: string, ...args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
       this.reqId++;
       this.socket!.once(`${eventName}Resp${this.reqId}`, (err, result) => {
@@ -159,41 +159,5 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   async getPageMeta(name: string): Promise<PageMeta> {
     return this.wsCall("page.getPageMeta", name);
-  }
-
-  async indexSet(pageName: string, key: string, value: any) {
-    await this.wsCall("index.set", pageName, key, value);
-  }
-
-  async indexBatchSet(pageName: string, kvs: KV[]) {
-    // TODO: Optimize with batch call
-    for (let { key, value } of kvs) {
-      await this.indexSet(pageName, key, value);
-    }
-  }
-
-  async indexGet(pageName: string, key: string): Promise<any | null> {
-    return await this.wsCall("index.get", pageName, key);
-  }
-
-  async indexScanPrefixForPage(
-    pageName: string,
-    keyPrefix: string
-  ): Promise<{ key: string; value: any }[]> {
-    return await this.wsCall("index.scanPrefixForPage", pageName, keyPrefix);
-  }
-
-  async indexScanPrefixGlobal(
-    keyPrefix: string
-  ): Promise<{ key: string; value: any }[]> {
-    return await this.wsCall("index.scanPrefixGlobal", keyPrefix);
-  }
-
-  async indexDeletePrefixForPage(pageName: string, keyPrefix: string) {
-    await this.wsCall("index.deletePrefixForPage", keyPrefix);
-  }
-
-  async indexDelete(pageName: string, key: string) {
-    await this.wsCall("index.delete", pageName, key);
   }
 }

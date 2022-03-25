@@ -1,9 +1,11 @@
-import { System } from "./system";
 import {
   ControllerMessage,
   WorkerLike,
   WorkerMessage,
 } from "./environment/worker";
+import { Plug } from "./plug";
+
+export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox;
 
 export class Sandbox {
   protected worker: WorkerLike;
@@ -14,12 +16,12 @@ export class Sandbox {
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
   protected loadedFunctions = new Set<string>();
-  protected system: System<any>;
+  protected plug: Plug<any>;
 
-  constructor(system: System<any>, worker: WorkerLike) {
+  constructor(plug: Plug<any>, worker: WorkerLike) {
     worker.onMessage = this.onMessage.bind(this);
     this.worker = worker;
-    this.system = system;
+    this.plug = plug;
   }
 
   isLoaded(name: string) {
@@ -48,7 +50,7 @@ export class Sandbox {
         break;
       case "syscall":
         try {
-          let result = await this.system.syscall(data.name!, data.args!);
+          let result = await this.plug.syscall(data.name!, data.args!);
 
           this.worker.postMessage({
             type: "syscall-response",
