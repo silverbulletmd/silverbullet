@@ -1,0 +1,116 @@
+Arguments: 
+  /Users/zef/.nvm/versions/node/v16.13.2/bin/node /opt/homebrew/Cellar/yarn/1.22.18/libexec/bin/yarn.js install
+
+PATH: 
+  /Users/zef/.nvm/versions/node/v16.13.2/bin:/Library/Frameworks/Python.framework/Versions/2.7/bin:/Users/zef/.local/share/solana/install/active_release/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/zef/.cargo/bin:/Users/zef/git/silverbullet/node_modules/.bin
+
+Yarn version: 
+  1.22.18
+
+Node version: 
+  16.13.2
+
+Platform: 
+  darwin arm64
+
+Trace: 
+  SyntaxError: /Users/zef/git/silverbullet/plugos/package.json: Unexpected token ] in JSON at position 755
+      at JSON.parse (<anonymous>)
+      at /opt/homebrew/Cellar/yarn/1.22.18/libexec/lib/cli.js:1625:59
+      at Generator.next (<anonymous>)
+      at step (/opt/homebrew/Cellar/yarn/1.22.18/libexec/lib/cli.js:310:30)
+      at /opt/homebrew/Cellar/yarn/1.22.18/libexec/lib/cli.js:321:13
+
+npm manifest: 
+  {
+    "name": "plugos",
+    "version": "0.0.1",
+    "license": "MIT",
+    "bin": {
+      "plugos-bundle": "./dist/plugos-bundle.js",
+      "plugos-server": "./dist/plugos-server.js"
+    },
+    "scripts": {
+      "watch": "rm -rf .parcel-cache && parcel watch",
+      "build": "parcel build",
+      "clean": "rm -rf dist",
+      "test": "jest"
+    },
+    "files": [
+      "dist"
+    ],
+    "targets": {
+      "plugos": {
+        "source": [
+          "bin/plugos-bundle.ts",
+          "bin/plugos-server.ts"
+        ],
+        "outputFormat": "commonjs",
+        "isLibrary": true,
+        "context": "node"
+      },
+      "test": {
+        "source": [
+          "runtime.test.ts",
+          "feature/endpoint.test.ts",
+          "syscall/store.knex_node.test.ts",
+          "syscall/store.dexie_browser.test.ts",
+        ],
+        "outputFormat": "commonjs",
+        "isLibrary": true,
+        "context": "node"
+      }
+    },
+    "dependencies": {
+      "@jest/globals": "^27.5.1",
+      "@parcel/optimizer-data-url": "2.3.2",
+      "@parcel/service-worker": "^2.3.2",
+      "@parcel/transformer-inline-string": "2.3.2",
+      "@types/cors": "^2.8.12",
+      "@types/express": "^4.17.13",
+      "better-sqlite3": "^7.5.0",
+      "body-parser": "^1.19.2",
+      "cors": "^2.8.5",
+      "esbuild": "^0.14.27",
+      "express": "^4.17.3",
+      "fake-indexeddb": "^3.1.7",
+      "jest": "^27.5.1",
+      "knex": "^1.0.4",
+      "node-cron": "^3.0.0",
+      "node-fetch": "2",
+      "parcel": "^2.3.2",
+      "supertest": "^6.2.2",
+      "vm2": "^3.9.9",
+      "yaml": "^1.10.2",
+      "yargs": "^17.3.1"
+    },
+    "devDependencies": {
+      "@parcel/packager-raw-url": "2.3.2",
+      "@parcel/service-worker": "^2.3.2",
+      "@parcel/transformer-inline-string": "2.3.2",
+      "@parcel/transformer-sass": "2.3.2",
+      "@parcel/transformer-webmanifest": "2.3.2",
+      "@parcel/validator-typescript": "^2.3.2",
+      "@types/events": "^3.0.0",
+      "@types/jest": "^27.4.1",
+      "@types/node": "^17.0.21",
+      "@types/node-cron": "^3.0.1",
+      "@types/node-fetch": "^2.6.1",
+      "@types/react": "^17.0.39",
+      "@types/react-dom": "^17.0.11",
+      "@types/supertest": "^2.0.11",
+      "@types/yaml": "^1.9.7",
+      "@vscode/sqlite3": "^5.0.7",
+      "assert": "^2.0.0",
+      "events": "^3.3.0",
+      "parcel": "^2.3.2",
+      "prettier": "^2.5.1",
+      "typescript": "^4.6.2"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
