@@ -21,8 +21,8 @@ let args = yargs(hideBin(process.argv))
     .parse();
 
 if (!args._.length) {
-    console.error("Usage: silverbullet <path-to-pages>");
-    process.exit(1);
+  console.error("Usage: silverbullet <path-to-pages>");
+  process.exit(1);
 }
 
 const pagesPath = args._[0] as string;
@@ -45,7 +45,7 @@ app.use("/", express.static(distDir));
 
 let socketServer = new SocketServer(pagesPath, io, system);
 socketServer.init().catch((e) => {
-    console.error(e);
+  console.error(e);
 });
 
 const expressServer = new ExpressServer(app, pagesPath, distDir, system);

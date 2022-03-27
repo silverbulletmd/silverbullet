@@ -1,0 +1,14 @@
+{
+  "include": ["bin/*", "environment/*", "feature/**", "syscall/*", "*"],
+  "compilerOptions": {
+    "target": "esnext",
+    "strict": true,
+    "moduleResolution": "node",
+    "module": "esnext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "downlevelIteration": true
+  }
+}
