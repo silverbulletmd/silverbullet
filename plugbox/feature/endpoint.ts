@@ -17,13 +17,12 @@ export type EndpointResponse = {
 };
 
 export type EndpointHook = {
-  endpoints?: EndPointDef[];
+  http?: EndPointDef | EndPointDef[];
 };
 
 export type EndPointDef = {
-  method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS";
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "ANY";
   path: string;
-  handler: string; // function name
 };
 
 export class EndpointFeature implements Feature<EndpointHook> {
@@ -43,35 +42,42 @@ export class EndpointFeature implements Feature<EndpointHook> {
       console.log("Endpoint request", req.path);
       Promise.resolve()
         .then(async () => {
+          // Iterate over all loaded plugins
           for (const [plugName, plug] of system.loadedPlugs.entries()) {
             const manifest = plug.manifest;
             if (!manifest) {
               continue;
             }
-            const endpoints = manifest.hooks?.endpoints;
-            console.log("Checking plug", plugName, endpoints);
-            if (endpoints) {
-              let prefix = `${this.prefix}/${plugName}`;
-              console.log("Need prefix", prefix, "got", req.path);
-              if (!req.path.startsWith(prefix)) {
+            const functions = manifest.functions;
+            console.log("Checking plug", plugName);
+            let prefix = `${this.prefix}/${plugName}`;
+            if (!req.path.startsWith(prefix)) {
+              continue;
+            }
+            for (const [name, functionDef] of Object.entries(functions)) {
+              if (!functionDef.http) {
                 continue;
               }
-              for (const { path, method, handler } of endpoints) {
+              let endpoints = Array.isArray(functionDef.http)
+                ? functionDef.http
+                : [functionDef.http];
+              console.log(endpoints);
+              for (const { path, method } of endpoints) {
                 let prefixedPath = `${prefix}${path}`;
-                if (prefixedPath === req.path && method === req.method) {
+                if (
+                  prefixedPath === req.path &&
+                  ((method || "GET") === req.method || method === "ANY")
+                ) {
                   try {
-                    const response: EndpointResponse = await plug.invoke(
-                      handler,
-                      [
-                        {
-                          path: req.path,
-                          method: req.method,
-                          body: req.body,
-                          query: req.query,
-                          headers: req.headers,
-                        } as EndpointRequest,
-                      ]
-                    );
+                    const response: EndpointResponse = await plug.invoke(name, [
+                      {
+                        path: req.path,
+                        method: req.method,
+                        body: req.body,
+                        query: req.query,
+                        headers: req.headers,
+                      } as EndpointRequest,
+                    ]);
                     let resp = res.status(response.status);
                     if (response.headers) {
                       for (const [key, value] of Object.entries(
@@ -101,20 +107,25 @@ export class EndpointFeature implements Feature<EndpointHook> {
   }
 
   validateManifest(manifest: Manifest<EndpointHook>): string[] {
-    const endpoints = manifest.hooks.endpoints;
     let errors = [];
-    if (endpoints) {
-      for (let { method, path, handler } of endpoints) {
+    for (const [name, functionDef] of Object.entries(manifest.functions)) {
+      if (!functionDef.http) {
+        continue;
+      }
+      let endpoints = Array.isArray(functionDef.http)
+        ? functionDef.http
+        : [functionDef.http];
+      for (let { path, method } of endpoints) {
         if (!path) {
           errors.push("Path not defined for endpoint");
         }
-        if (["GET", "POST", "PUT", "DELETE"].indexOf(method) === -1) {
+        if (
+          method &&
+          ["GET", "POST", "PUT", "DELETE", "ANY"].indexOf(method) === -1
+        ) {
           errors.push(
             `Invalid method ${method} for end point with with ${path}`
           );
-        }
-        if (!manifest.functions[handler]) {
-          errors.push(`Endpoint handler function ${handler} not found`);
         }
       }
     }

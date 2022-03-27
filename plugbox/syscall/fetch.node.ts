@@ -3,11 +3,11 @@ import { SysCallMapping } from "../system";
 
 export function fetchSyscalls(): SysCallMapping {
   return {
-    async fetchJson(ctx, url: RequestInfo, init: RequestInit) {
+    async json(ctx, url: RequestInfo, init: RequestInit) {
       let resp = await fetch(url, init);
       return resp.json();
     },
-    async fetchText(ctx, url: RequestInfo, init: RequestInit) {
+    async text(ctx, url: RequestInfo, init: RequestInit) {
       let resp = await fetch(url, init);
       return resp.text();
     },

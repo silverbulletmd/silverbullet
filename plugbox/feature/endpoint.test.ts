@@ -13,6 +13,9 @@ test("Run a plugbox endpoint server", async () => {
     {
       functions: {
         testhandler: {
+          http: {
+            path: "/",
+          },
           code: `(() => {
           return {
             default: (req) => {
@@ -22,9 +25,6 @@ test("Run a plugbox endpoint server", async () => {
           };
         })()`,
         },
-      },
-      hooks: {
-        endpoints: [{ method: "GET", path: "/", handler: "testhandler" }],
       },
     } as Manifest<EndpointHook>,
     createSandbox

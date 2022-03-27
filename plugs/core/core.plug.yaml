@@ -1,0 +1,46 @@
+functions:
+  indexLinks:
+    path: "./page.ts:indexLinks"
+    events:
+      - page:index
+  deletePage:
+    path: "./page.ts:deletePage"
+    command:
+      name: "Page: Delete"
+  showBackLinks:
+    path: "./page.ts:showBackLinks"
+    command:
+      name: "Page: Back Links"
+  renamePage:
+    path: "./page.ts:renamePage"
+    command:
+      name: "Page: Rename"
+  pageComplete:
+    path: "./navigate.ts:pageComplete"
+    events:
+      - editor:complete
+  linkNavigate:
+    path: "./navigate.ts:linkNavigate"
+    command:
+      name: Navigate To page
+      key: Ctrl-Enter
+      mac: Cmd-Enter
+  clickNavigate:
+    path: "./navigate.ts:clickNavigate"
+    events:
+      - page:click
+  taskToggle:
+    path: "./task.ts:taskToggle"
+    events:
+      - page:click
+  insertToday:
+    path: "./dates.ts:insertToday"
+    command:
+      name: Insert Current Date
+      slashCommand: today
+  welcome:
+    path: "./server.ts:welcome"
+    events:
+      - load
+    env: server
+

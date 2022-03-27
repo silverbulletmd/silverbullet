@@ -163,15 +163,23 @@ export class Editor implements AppEventDispatcher {
     console.log("Loaded plugs, now updating editor commands");
     this.editorCommands.clear();
     for (let plug of this.system.loadedPlugs.values()) {
-      const cmds = plug.manifest!.hooks.commands;
-      for (let name in cmds) {
-        let cmd = cmds[name];
-        this.editorCommands.set(name, {
-          command: cmd,
-          run: async (arg): Promise<any> => {
-            return await plug.invoke(cmd.invoke, [arg]);
-          },
-        });
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions
+      )) {
+        if (!functionDef.command) {
+          continue;
+        }
+        const cmds = Array.isArray(functionDef.command)
+          ? functionDef.command
+          : [functionDef.command];
+        for (let cmd of cmds) {
+          this.editorCommands.set(cmd.name, {
+            command: cmd,
+            run: async (arg): Promise<any> => {
+              return await plug.invoke(name, [arg]);
+            },
+          });
+        }
       }
     }
     this.viewDispatch({

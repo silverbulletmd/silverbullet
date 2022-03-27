@@ -82,9 +82,6 @@ test("Run a Node sandbox", async () => {
         })()`,
         },
       },
-      hooks: {
-        events: {},
-      },
     },
     createSandbox
   );

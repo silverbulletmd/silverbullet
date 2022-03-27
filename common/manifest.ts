@@ -4,8 +4,7 @@ import { CronHook } from "../plugbox/feature/node_cron";
 import { EventHook } from "../plugbox/feature/event";
 
 export type CommandDef = {
-  // Function name to invoke
-  invoke: string;
+  name: string;
 
   // Bind to keyboard shortcut
   key?: string;
@@ -17,9 +16,7 @@ export type CommandDef = {
 };
 
 export type SilverBulletHooks = {
-  commands?: {
-    [key: string]: CommandDef;
-  };
+  command?: CommandDef | CommandDef[];
 } & EndpointHook &
   CronHook &
   EventHook;

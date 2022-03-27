@@ -16,6 +16,8 @@ import {
   storeWriteSyscalls,
 } from "../syscall/store.knex_node";
 import { fetchSyscalls } from "../syscall/fetch.node";
+import { EventFeature, EventHook } from "../feature/event";
+import { eventSyscalls } from "../syscall/event";
 
 let args = yargs(hideBin(process.argv))
   .option("port", {
@@ -33,7 +35,7 @@ const plugPath = args._[0] as string;
 
 const app = express();
 
-type ServerHook = EndpointHook & CronHook;
+type ServerHook = EndpointHook & CronHook & EventHook;
 const system = new System<ServerHook>("server");
 
 safeRun(async () => {
@@ -51,6 +53,9 @@ safeRun(async () => {
   await plugLoader.loadPlugs();
   plugLoader.watcher();
   system.addFeature(new NodeCronFeature());
+  let eventFeature = new EventFeature();
+  system.addFeature(eventFeature);
+  system.registerSyscalls("event", [], eventSyscalls(eventFeature));
   system.addFeature(new EndpointFeature(app, ""));
   system.registerSyscalls("shell", [], shellSyscalls("."));
   system.registerSyscalls("fetch", [], fetchSyscalls());

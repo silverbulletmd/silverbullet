@@ -8,6 +8,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
 import { watchFile } from "fs";
+import YAML from "yaml";
 
 async function compile(filePath: string, functionName: string, debug: boolean) {
   let outFile = "out.js";
@@ -48,7 +49,7 @@ export default ${functionName};`
 
 async function bundle(manifestPath: string, sourceMaps: boolean) {
   const rootPath = path.dirname(manifestPath);
-  const manifest = JSON.parse(
+  const manifest = YAML.parse(
     (await readFile(manifestPath)).toString()
   ) as Manifest<any>;
 
@@ -71,7 +72,12 @@ async function buildManifest(
   debug: boolean
 ) {
   let generatedManifest = await bundle(manifestPath, debug);
-  const outPath = path.join(distPath, path.basename(manifestPath));
+  const outFile =
+    manifestPath.substring(
+      0,
+      manifestPath.length - path.extname(manifestPath).length
+    ) + ".json";
+  const outPath = path.join(distPath, path.basename(outFile));
   console.log("Emitting bundle to", outPath);
   await writeFile(outPath, JSON.stringify(generatedManifest, null, 2));
   return { generatedManifest, outPath };
@@ -93,7 +99,7 @@ async function run() {
     .parse();
   if (args._.length === 0) {
     console.log(
-      "Usage: plugbox-bundle [--debug] [--dist <path>] <manifest.plug.json> <manifest2.plug.json> ..."
+      "Usage: plugbox-bundle [--debug] [--dist <path>] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
     );
     process.exit(1);
   }

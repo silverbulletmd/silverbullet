@@ -1,0 +1,22 @@
+requiredPermissions:
+  - shell
+functions:
+  snapshotCommand:
+    path: "./git.ts:snapshotCommand"
+    env: client
+    command:
+      name: "Git: Snapshot"
+  syncCommand:
+    path: "./git.ts:syncCommand"
+    env: client
+    command:
+      name: "Git: Sync"
+  commit:
+    path: "./git.ts:commit"
+    env: server
+    cron:
+      - "*/15 * * * *"
+  sync:
+    path: "./git.ts:sync"
+    env: server
+

@@ -14,7 +14,7 @@
     "watch": "rm -rf .parcel-cache && parcel watch",
     "build": "parcel build",
     "clean": "rm -rf dist",
-    "plugs": "plugbox-bundle -w --dist plugs/dist plugs/core/core.plug.json plugs/git/git.plug.json",
+    "plugs": "plugbox-bundle -w --dist plugs/dist plugs/*/*.plug.yaml",
     "server": "nodemon -w dist/server dist/server/server.js pages",
     "test": "jest"
   },

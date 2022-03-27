@@ -28,7 +28,6 @@ test("Test store", async () => {
   let plug = await system.load(
     "test",
     {
-      hooks: {},
       functions: {
         test1: {
           code: `(() => {

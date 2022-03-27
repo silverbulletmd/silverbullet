@@ -2,17 +2,16 @@ import { System } from "./system";
 
 export interface Manifest<HookT> {
   requiredPermissions?: string[];
-  hooks: HookT;
   functions: {
-    [key: string]: FunctionDef;
+    [key: string]: FunctionDef<HookT>;
   };
 }
 
-export interface FunctionDef {
+export type FunctionDef<HookT> = {
   path?: string;
   code?: string;
   env?: RuntimeEnvironment;
-}
+} & HookT;
 
 export type RuntimeEnvironment = "client" | "server";
 

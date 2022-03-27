@@ -4,12 +4,7 @@ import { safeRun } from "../util";
 import { System } from "../system";
 
 export type CronHook = {
-  crons?: CronDef[];
-};
-
-export type CronDef = {
-  cron: string;
-  handler: string; // function name
+  cron?: string | string[];
 };
 
 export class NodeCronFeature implements Feature<CronHook> {
@@ -27,19 +22,28 @@ export class NodeCronFeature implements Feature<CronHook> {
     reloadCrons();
 
     function reloadCrons() {
-      // ts-ignore
       tasks.forEach((task) => task.stop());
       tasks = [];
       for (let plug of system.loadedPlugs.values()) {
-        const crons = plug.manifest?.hooks?.crons;
-        if (crons) {
+        if (!plug.manifest) {
+          continue;
+        }
+        for (const [name, functionDef] of Object.entries(
+          plug.manifest.functions
+        )) {
+          if (!functionDef.cron) {
+            continue;
+          }
+          const crons = Array.isArray(functionDef.cron)
+            ? functionDef.cron
+            : [functionDef.cron];
           for (let cronDef of crons) {
             tasks.push(
-              cron.schedule(cronDef.cron, () => {
-                console.log("Now acting on cron", cronDef.cron);
+              cron.schedule(cronDef, () => {
+                console.log("Now acting on cron", cronDef);
                 safeRun(async () => {
                   try {
-                    await plug.invoke(cronDef.handler, []);
+                    await plug.invoke(name, [cronDef]);
                   } catch (e: any) {
                     console.error("Execution of cron function failed", e);
                   }
@@ -53,15 +57,17 @@ export class NodeCronFeature implements Feature<CronHook> {
   }
 
   validateManifest(manifest: Manifest<CronHook>): string[] {
-    const crons = manifest.hooks.crons;
     let errors = [];
-    if (crons) {
+    for (const [name, functionDef] of Object.entries(manifest.functions)) {
+      if (!functionDef.cron) {
+        continue;
+      }
+      const crons = Array.isArray(functionDef.cron)
+        ? functionDef.cron
+        : [functionDef.cron];
       for (let cronDef of crons) {
-        if (!cron.validate(cronDef.cron)) {
-          errors.push(`Invalid cron expression ${cronDef.cron}`);
-        }
-        if (!manifest.functions[cronDef.handler]) {
-          errors.push(`Cron handler function ${cronDef.handler} not found`);
+        if (!cron.validate(cronDef)) {
+          errors.push(`Invalid cron expression ${cronDef}`);
         }
       }
     }
