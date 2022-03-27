@@ -6,15 +6,15 @@
     "@lezer/common": "https://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c"
   },
   "bin": {
-    "plugbox-bundle": "./dist/plugbox/plugbox-bundle.js",
-    "plugbox-server": "./dist/plugbox/plugbox-server.js",
+    "plugos-bundle": "./dist/plugos/plugos-bundle.js",
+    "plugos-server": "./dist/plugos/plugos-server.js",
     "silverbullet": "./dist/server/server.js"
   },
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
     "build": "parcel build",
     "clean": "rm -rf dist",
-    "plugs": "plugbox-bundle -w --dist plugs/dist plugs/*/*.plug.yaml",
+    "plugs": "./dist/plugos/plugos-bundle.js -w --dist plugs/dist plugs/*/*.plug.yaml",
     "server": "nodemon -w dist/server dist/server/server.js pages",
     "test": "jest"
   },
@@ -36,10 +36,10 @@
       "isLibrary": true,
       "context": "node"
     },
-    "plugbox": {
+    "plugos": {
       "source": [
-        "plugbox/bin/plugbox-bundle.ts",
-        "plugbox/bin/plugbox-server.ts"
+        "plugos/bin/plugos-bundle.ts",
+        "plugos/bin/plugos-server.ts"
       ],
       "outputFormat": "commonjs",
       "isLibrary": true,
@@ -47,10 +47,10 @@
     },
     "test": {
       "source": [
-        "plugbox/runtime.test.ts",
-        "plugbox/feature/endpoint.test.ts",
-        "plugbox/syscall/store.knex_node.test.ts",
-        "plugbox/syscall/store.dexie_browser.test.ts",
+        "plugos/runtime.test.ts",
+        "plugos/feature/endpoint.test.ts",
+        "plugos/syscall/store.knex_node.test.ts",
+        "plugos/syscall/store.dexie_browser.test.ts",
         "server/api.test.ts"
       ],
       "outputFormat": "commonjs",

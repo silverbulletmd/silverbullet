@@ -6,7 +6,7 @@ import { PageApi } from "./page_api";
 import { SilverBulletHooks } from "../common/manifest";
 import pageIndexSyscalls from "./syscalls/page_index";
 import { safeRun } from "./util";
-import { System } from "../plugbox/system";
+import { System } from "../plugos/system";
 
 export class ClientConnection {
   openPages = new Set<string>();

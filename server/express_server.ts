@@ -1,8 +1,8 @@
 import { Express } from "express";
 import { SilverBulletHooks } from "../common/manifest";
-import { EndpointFeature } from "../plugbox/feature/endpoint";
+import { EndpointFeature } from "../plugos/feature/endpoint";
 import { readFile } from "fs/promises";
-import { System } from "../plugbox/system";
+import { System } from "../plugos/system";
 
 export class ExpressServer {
   app: Express;

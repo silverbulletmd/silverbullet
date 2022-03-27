@@ -1,5 +1,5 @@
 {
-  "include": ["webapp/**/*", "server/**/*", "plugbox/**/*", "plugs/**/*"],
+  "include": ["webapp/**/*", "server/**/*", "plugos/**/*", "plugs/**/*"],
   "compilerOptions": {
     "target": "esnext",
     "strict": true,

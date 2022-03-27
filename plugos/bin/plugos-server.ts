@@ -27,7 +27,7 @@ let args = yargs(hideBin(process.argv))
   .parse();
 
 if (!args._.length) {
-  console.error("Usage: plugbox-server <path-to-plugs>");
+  console.error("Usage: plugos-server <path-to-plugs>");
   process.exit(1);
 }
 
@@ -42,7 +42,7 @@ safeRun(async () => {
   const db = knex({
     client: "better-sqlite3",
     connection: {
-      filename: "plugbox.db",
+      filename: "plugos.db",
     },
     useNullAsDefault: true,
   });

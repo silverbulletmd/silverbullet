@@ -6,7 +6,7 @@ import request from "supertest";
 import { EndpointFeature, EndpointHook } from "./endpoint";
 import { System } from "../system";
 
-test("Run a plugbox endpoint server", async () => {
+test("Run a plugos endpoint server", async () => {
   let system = new System<EndpointHook>("server");
   let plug = await system.load(
     "test",

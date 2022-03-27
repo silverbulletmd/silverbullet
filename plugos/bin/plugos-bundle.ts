@@ -99,7 +99,7 @@ async function run() {
     .parse();
   if (args._.length === 0) {
     console.log(
-      "Usage: plugbox-bundle [--debug] [--dist <path>] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
+      "Usage: plugos-bundle [--debug] [--dist <path>] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
     );
     process.exit(1);
   }

@@ -10,8 +10,8 @@ import path from "path";
 import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../webapp/cursorEffect";
 import { SilverBulletHooks } from "../common/manifest";
-import { System } from "../plugbox/system";
-import { EventFeature } from "../plugbox/feature/event";
+import { System } from "../plugos/system";
+import { EventFeature } from "../plugos/feature/event";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;

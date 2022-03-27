@@ -1,7 +1,7 @@
 import {
   EndpointRequest,
   EndpointResponse,
-} from "../../plugbox/feature/endpoint";
+} from "../../plugos/feature/endpoint";
 
 export function endpointTest(req: EndpointRequest): EndpointResponse {
   console.log("I'm running on the server!", req);

@@ -1,6 +1,6 @@
 import { Editor } from "../editor";
 import { PageMeta } from "../types";
-import { SysCallMapping } from "../../plugbox/system";
+import { SysCallMapping } from "../../plugos/system";
 
 export default (editor: Editor): SysCallMapping => ({
   listPages: (): PageMeta[] => {

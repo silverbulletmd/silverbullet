@@ -1,7 +1,7 @@
-import * as plugbox from "../plugbox/types";
-import { EndpointHook } from "../plugbox/feature/endpoint";
-import { CronHook } from "../plugbox/feature/node_cron";
-import { EventHook } from "../plugbox/feature/event";
+import * as plugos from "../plugos/types";
+import { EndpointHook } from "../plugos/feature/endpoint";
+import { CronHook } from "../plugos/feature/node_cron";
+import { EventHook } from "../plugos/feature/event";
 
 export type CommandDef = {
   name: string;
@@ -21,4 +21,4 @@ export type SilverBulletHooks = {
   CronHook &
   EventHook;
 
-export type Manifest = plugbox.Manifest<SilverBulletHooks>;
+export type Manifest = plugos.Manifest<SilverBulletHooks>;

@@ -7,7 +7,7 @@ import { CollabDocument, CollabEvents } from "./collab";
 import { cursorEffect } from "./cursorEffect";
 import { EventEmitter } from "../common/event";
 import { Manifest } from "../common/manifest";
-import { SystemJSON } from "../plugbox/system";
+import { SystemJSON } from "../plugos/system";
 
 export type SpaceEvents = {
   connect: () => void;

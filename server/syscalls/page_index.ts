@@ -1,5 +1,5 @@
 import { Knex } from "knex";
-import { SysCallMapping } from "../../plugbox/system";
+import { SysCallMapping } from "../../plugos/system";
 
 type IndexItem = {
   page: string;

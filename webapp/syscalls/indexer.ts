@@ -1,6 +1,6 @@
 import { Space } from "../space";
-import { SysCallMapping } from "../../plugbox/system";
-import { transportSyscalls } from "../../plugbox/syscall/transport";
+import { SysCallMapping } from "../../plugos/system";
+import { transportSyscalls } from "../../plugos/syscall/transport";
 
 export default function indexerSyscalls(space: Space): SysCallMapping {
   return transportSyscalls(

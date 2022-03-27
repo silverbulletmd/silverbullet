@@ -1,7 +1,7 @@
 import { Editor } from "../editor";
 import { syntaxTree } from "@codemirror/language";
 import { Transaction } from "@codemirror/state";
-import { SysCallMapping } from "../../plugbox/system";
+import { SysCallMapping } from "../../plugos/system";
 
 type SyntaxNode = {
   name: string;

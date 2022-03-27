@@ -7,7 +7,7 @@ import { SocketServer } from "./api_server";
 import * as path from "path";
 import * as fs from "fs";
 import { SilverBulletHooks } from "../common/manifest";
-import { System } from "../plugbox/system";
+import { System } from "../plugos/system";
 
 describe("Server test", () => {
   let io: Server,

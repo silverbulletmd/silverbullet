@@ -21,7 +21,7 @@ import {
 } from "@codemirror/view";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import { createSandbox as createIFrameSandbox } from "../plugbox/environment/iframe_sandbox";
+import { createSandbox as createIFrameSandbox } from "../plugos/environment/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import { CollabDocument, collabExtension } from "./collab";
 import * as commands from "./commands";
@@ -49,8 +49,8 @@ import {
 } from "./types";
 import { SilverBulletHooks } from "../common/manifest";
 import { safeRun } from "./util";
-import { System } from "../plugbox/system";
-import { EventFeature } from "../plugbox/feature/event";
+import { System } from "../plugos/system";
+import { EventFeature } from "../plugos/feature/event";
 import { systemSyscalls } from "./syscalls/system";
 
 class PageState {

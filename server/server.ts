@@ -8,10 +8,10 @@ import yargs from "yargs";
 import {hideBin} from "yargs/helpers";
 import {SilverBulletHooks} from "../common/manifest";
 import {ExpressServer} from "./express_server";
-import {DiskPlugLoader} from "../plugbox/plug_loader";
-import {NodeCronFeature} from "../plugbox/feature/node_cron";
-import shellSyscalls from "../plugbox/syscall/shell.node";
-import {System} from "../plugbox/system";
+import {DiskPlugLoader} from "../plugos/plug_loader";
+import {NodeCronFeature} from "../plugos/feature/node_cron";
+import shellSyscalls from "../plugos/syscall/shell.node";
+import {System} from "../plugos/system";
 
 let args = yargs(hideBin(process.argv))
     .option("port", {
@@ -21,7 +21,7 @@ let args = yargs(hideBin(process.argv))
     .parse();
 
 if (!args._.length) {
-  console.error("Usage: silverbullet <path-to-pages>");
+    console.error("Usage: silverbullet <path-to-pages>");
   process.exit(1);
 }
 
