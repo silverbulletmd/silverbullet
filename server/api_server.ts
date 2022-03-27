@@ -119,21 +119,21 @@ export class SocketServer {
       }
 
       onCall(
-          "invokeFunction",
-          (plugName: string, name: string, ...args: any[]): Promise<any> => {
-            let plug = this.system.loadedPlugs.get(plugName);
-            if (!plug) {
-              throw new Error(`Plug ${plugName} not loaded`);
-            }
-            console.log(
-                "Invoking function",
-                name,
-                "for plug",
-                plugName,
-                "as requested over socket"
-            );
-            return plug.invoke(name, args);
+        "invokeFunction",
+        (plugName: string, name: string, ...args: any[]): Promise<any> => {
+          let plug = this.system.loadedPlugs.get(plugName);
+          if (!plug) {
+            throw new Error(`Plug ${plugName} not loaded`);
           }
+          console.log(
+            "Invoking function",
+            name,
+            "for plug",
+            plugName,
+            "as requested over socket"
+          );
+          return plug.invoke(name, args);
+        }
       );
 
       console.log("Sending the sytem to the client");

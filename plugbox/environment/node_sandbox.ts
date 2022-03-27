@@ -6,6 +6,8 @@ import workerCode from "bundle-text:./node_worker.ts";
 import { Sandbox } from "../sandbox";
 import { WorkerLike } from "./worker";
 import { Plug } from "../plug";
+import path from "path";
+import fs from "fs";
 
 class NodeWorkerWrapper implements WorkerLike {
   onMessage?: (message: any) => Promise<void>;
@@ -33,16 +35,16 @@ class NodeWorkerWrapper implements WorkerLike {
   }
 }
 
+// Look for the node_modules directory, to be passed to the worker to find e.g. the vm2 module
+let nodeModulesDir = __dirname;
+while (!fs.existsSync(nodeModulesDir + "/node_modules")) {
+  nodeModulesDir = path.dirname(nodeModulesDir);
+}
+
 export function createSandbox(plug: Plug<any>) {
   let worker = new Worker(workerCode, {
     eval: true,
+    workerData: path.join(nodeModulesDir, "node_modules"),
   });
-  return new Sandbox(
-    plug,
-    new NodeWorkerWrapper(
-      new Worker(workerCode, {
-        eval: true,
-      })
-    )
-  );
+  return new Sandbox(plug, new NodeWorkerWrapper(worker));
 }

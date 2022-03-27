@@ -1,4 +1,4 @@
-import { ClickEvent } from "../../webapp/src/app_event";
+import type { ClickEvent } from "../../webapp/app_event";
 import { syscall } from "../lib/syscall";
 
 export async function taskToggle(event: ClickEvent) {

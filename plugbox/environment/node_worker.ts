@@ -1,5 +1,8 @@
-const { VM, VMScript } = require("vm2");
-const { parentPort } = require("worker_threads");
+const { parentPort, workerData } = require("worker_threads");
+let vm2 = `${workerData}/vm2`;
+const { VM, VMScript } = require(vm2);
+
+// console.log("Process env", process.env);
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<

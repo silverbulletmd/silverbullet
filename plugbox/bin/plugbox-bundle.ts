@@ -7,6 +7,7 @@ import path from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
+import { watchFile } from "fs";
 
 async function compile(filePath: string, functionName: string, debug: boolean) {
   let outFile = "out.js";
@@ -63,18 +64,49 @@ async function bundle(manifestPath: string, sourceMaps: boolean) {
   }
   return manifest;
 }
+
+async function buildManifest(
+  manifestPath: string,
+  distPath: string,
+  debug: boolean
+) {
+  let generatedManifest = await bundle(manifestPath, debug);
+  const outPath = path.join(distPath, path.basename(manifestPath));
+  console.log("Emitting bundle to", outPath);
+  await writeFile(outPath, JSON.stringify(generatedManifest, null, 2));
+  return { generatedManifest, outPath };
+}
+
 async function run() {
-  let args = await yargs(hideBin(process.argv))
+  let args = yargs(hideBin(process.argv))
     .option("debug", {
       type: "boolean",
     })
+    .option("watch", {
+      type: "boolean",
+      alias: "w",
+    })
+    .option("dist", {
+      type: "string",
+      default: ".",
+    })
     .parse();
-
-  let generatedManifest = await bundle(args._[0] as string, !!args.debug);
-  await writeFile(
-    args._[1] as string,
-    JSON.stringify(generatedManifest, null, 2)
-  );
+  if (args._.length === 0) {
+    console.log(
+      "Usage: plugbox-bundle [--debug] [--dist <path>] <manifest.plug.json> <manifest2.plug.json> ..."
+    );
+    process.exit(1);
+  }
+  for (const plugManifestPath of args._) {
+    let manifestPath = plugManifestPath as string;
+    await buildManifest(manifestPath, args.dist, !!args.debug);
+    if (args.watch) {
+      watchFile(manifestPath, { interval: 1000 }, async () => {
+        console.log("Rebuilding", manifestPath);
+        await buildManifest(manifestPath, args.dist, !!args.debug);
+      });
+    }
+  }
 }
 
 run().catch((e) => {

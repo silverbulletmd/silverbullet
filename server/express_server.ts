@@ -19,7 +19,7 @@ export class ExpressServer {
     this.rootPath = rootPath;
     this.system = system;
 
-    system.addFeature(new EndpointFeature(app));
+    system.addFeature(new EndpointFeature(app, "/_"));
 
     // Fallback, serve index.html
     let cachedIndex: string | undefined = undefined;

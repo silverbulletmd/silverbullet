@@ -1,21 +1,26 @@
 {
-  "name": "silverbullet",
+  "name": "@zefhemel/silverbullet",
   "version": "0.0.1",
   "license": "MIT",
   "resolutions": {
     "@lezer/common": "https://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c"
   },
   "bin": {
-    "plugbox-bundle": "./dist/bundler/plugbox-bundle.js"
+    "plugbox-bundle": "./dist/plugbox/plugbox-bundle.js",
+    "plugbox-server": "./dist/plugbox/plugbox-server.js",
+    "silverbullet": "./dist/server/server.js"
   },
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
     "build": "parcel build",
     "clean": "rm -rf dist",
-    "plugs": "node dist/bundler/plugbox-bundle.js plugs/core/core.plug.json plugs/dist/core.plug.json && node dist/bundler/plugbox-bundle.js plugs/git/git.plug.json plugs/dist/git.plug.json",
+    "plugs": "plugbox-bundle -w --dist plugs/dist plugs/core/core.plug.json plugs/git/git.plug.json",
     "server": "nodemon -w dist/server dist/server/server.js pages",
     "test": "jest"
   },
+  "files": [
+    "dist"
+  ],
   "targets": {
     "webapp": {
       "source": [
@@ -31,8 +36,11 @@
       "isLibrary": true,
       "context": "node"
     },
-    "bundler": {
-      "source": "plugbox/bin/plugbox-bundle.ts",
+    "plugbox": {
+      "source": [
+        "plugbox/bin/plugbox-bundle.ts",
+        "plugbox/bin/plugbox-server.ts"
+      ],
       "outputFormat": "commonjs",
       "isLibrary": true,
       "context": "node"
@@ -80,7 +88,7 @@
     "knex": "^1.0.4",
     "lodash": "^4.17.21",
     "node-cron": "^3.0.0",
-    "node-fetch": "^3.2.3",
+    "node-fetch": "2",
     "nodemon": "^2.0.15",
     "parcel": "^2.3.2",
     "react": "^17.0.2",
@@ -90,6 +98,7 @@
     "supertest": "^6.2.2",
     "ts-jest": "^27.1.3",
     "vm2": "^3.9.9",
+    "yaml": "^1.10.2",
     "yargs": "^17.3.1"
   },
   "devDependencies": {
@@ -107,6 +116,7 @@
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
     "@types/supertest": "^2.0.11",
+    "@types/yaml": "^1.9.7",
     "@vscode/sqlite3": "^5.0.7",
     "assert": "^2.0.0",
     "crypto-browserify": "^3.12.0",

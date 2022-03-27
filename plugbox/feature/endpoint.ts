@@ -26,20 +26,21 @@ export type EndPointDef = {
   handler: string; // function name
 };
 
-const endPointPrefix = "/_";
-
 export class EndpointFeature implements Feature<EndpointHook> {
   private app: Express;
+  private prefix: string;
 
-  constructor(app: Express) {
+  constructor(app: Express, prefix: string) {
     this.app = app;
+    this.prefix = prefix;
   }
 
   apply(system: System<EndpointHook>): void {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
-      if (!req.path.startsWith(endPointPrefix)) {
+      if (!req.path.startsWith(this.prefix)) {
         return next();
       }
+      console.log("Endpoint request", req.path);
       Promise.resolve()
         .then(async () => {
           for (const [plugName, plug] of system.loadedPlugs.entries()) {
@@ -48,8 +49,10 @@ export class EndpointFeature implements Feature<EndpointHook> {
               continue;
             }
             const endpoints = manifest.hooks?.endpoints;
+            console.log("Checking plug", plugName, endpoints);
             if (endpoints) {
-              let prefix = `${endPointPrefix}/${plugName}`;
+              let prefix = `${this.prefix}/${plugName}`;
+              console.log("Need prefix", prefix, "got", req.path);
               if (!req.path.startsWith(prefix)) {
                 continue;
               }

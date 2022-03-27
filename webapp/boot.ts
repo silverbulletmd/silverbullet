@@ -3,8 +3,7 @@ import { Space } from "./space";
 import { safeRun } from "./util";
 import { io } from "socket.io-client";
 
-let socket = io(`http://${location.hostname}:3000`);
-
+let socket = io();
 let editor = new Editor(new Space(socket), document.getElementById("root")!);
 
 safeRun(async () => {

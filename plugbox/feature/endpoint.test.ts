@@ -33,7 +33,7 @@ test("Run a plugbox endpoint server", async () => {
   const app = express();
   const port = 3123;
 
-  system.addFeature(new EndpointFeature(app));
+  system.addFeature(new EndpointFeature(app, "/_"));
 
   let server = app.listen(port, () => {
     console.log(`Listening on port ${port}`);
