@@ -28,8 +28,8 @@ export function storeWriteSyscalls(
   tableName: string
 ): SysCallMapping {
   const apiObj: SysCallMapping = {
-    delete: async (ctx, page: string, key: string) => {
-      await db<Item>(tableName).where({ page, key }).del();
+    delete: async (ctx, key: string) => {
+      await db<Item>(tableName).where({ key }).del();
     },
     deletePrefix: async (ctx, prefix: string) => {
       return db<Item>(tableName).andWhereLike("key", `${prefix}%`).del();
@@ -48,9 +48,15 @@ export function storeWriteSyscalls(
         });
       }
     },
+    // TODO: Optimize
     batchSet: async (ctx, kvs: KV[]) => {
       for (let { key, value } of kvs) {
-        await apiObj["store.set"](ctx, key, value);
+        await apiObj.set(ctx, key, value);
+      }
+    },
+    batchDelete: async (ctx, keys: string[]) => {
+      for (let key of keys) {
+        await apiObj.delete(ctx, key);
       }
     },
   };

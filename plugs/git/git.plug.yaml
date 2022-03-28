@@ -14,8 +14,6 @@ functions:
   commit:
     path: "./git.ts:commit"
     env: server
-    cron:
-      - "*/15 * * * *"
   sync:
     path: "./git.ts:sync"
     env: server

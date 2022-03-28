@@ -36,14 +36,20 @@ export default (editor: Editor): SysCallMapping => ({
   getCursor: (): number => {
     return editor.editorView!.state.selection.main.from;
   },
-  navigate: async (ctx, name: string) => {
-    await editor.navigate(name);
+  navigate: async (ctx, name: string, pos: number) => {
+    await editor.navigate(name, pos);
   },
   openUrl: async (ctx, url: string) => {
     window.open(url, "_blank")!.focus();
   },
   flashNotification: (ctx, message: string) => {
     editor.flashNotification(message);
+  },
+  showRhs: (ctx, html: string) => {
+    editor.viewDispatch({
+      type: "show-rhs",
+      html: html,
+    });
   },
   insertAtPos: (ctx, text: string, pos: number) => {
     editor.editorView!.dispatch({
@@ -96,6 +102,12 @@ export default (editor: Editor): SysCallMapping => ({
         };
       }
     }
+  },
+  getLineUnderCursor: (): string => {
+    const editorState = editor.editorView!.state;
+    let selection = editorState.selection.main;
+    let line = editorState.doc.lineAt(selection.from);
+    return editorState.sliceDoc(line.from, line.to);
   },
   matchBefore: (
     ctx,

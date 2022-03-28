@@ -52,14 +52,15 @@
     "knex": "^1.0.4",
     "node-cron": "^3.0.0",
     "node-fetch": "2",
+    "node-watch": "^0.7.3",
     "supertest": "^6.2.2",
     "vm2": "^3.9.9",
     "yaml": "^1.10.2",
     "yargs": "^17.3.1"
   },
   "devDependencies": {
-    "@parcel/packager-raw-url": "2.3.2",
     "@parcel/optimizer-data-url": "2.3.2",
+    "@parcel/packager-raw-url": "2.3.2",
     "@parcel/service-worker": "2.3.2",
     "@parcel/transformer-inline-string": "2.3.2",
     "@parcel/transformer-sass": "2.3.2",

@@ -1,4 +1,10 @@
 functions:
+  clearPageIndex:
+    path: "./page.ts:clearPageIndex"
+    env: server
+    events:
+      - page:saved
+      - page:deleted
   indexLinks:
     path: "./page.ts:indexLinks"
     events:
@@ -7,6 +13,13 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
+  reindexSpaceCommand:
+    path: "./page.ts:reindexCommand"
+    command:
+      name: "Space: Reindex"
+  reindexSpace:
+    path: "./page.ts:reindexSpace"
+    env: server
   showBackLinks:
     path: "./page.ts:showBackLinks"
     command:
@@ -29,10 +42,6 @@ functions:
     path: "./navigate.ts:clickNavigate"
     events:
       - page:click
-  taskToggle:
-    path: "./task.ts:taskToggle"
-    events:
-      - page:click
   insertToday:
     path: "./dates.ts:insertToday"
     command:
@@ -43,4 +52,7 @@ functions:
     events:
       - plug:load
     env: server
-
+#  renderMD:
+#    path: "./markdown.ts:renderMD"
+#    command:
+#      name: Render Markdown

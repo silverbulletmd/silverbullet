@@ -1,0 +1,12 @@
+{
+  "name": "markdown",
+  "dependencies": {
+    "commonmark": "^0.30.0",
+    "markdown-it": "^12.3.2",
+    "markdown-it-task-lists": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/commonmark": "^0.27.5",
+    "@types/markdown-it": "^12.2.3"
+  }
+}

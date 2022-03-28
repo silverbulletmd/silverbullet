@@ -58,6 +58,18 @@ export default function reducer(
         ...state,
         notifications: state.notifications.filter((n) => n.id !== action.id),
       };
+    case "show-rhs":
+      return {
+        ...state,
+        showRHS: true,
+        rhsHTML: action.html,
+      };
+    case "hide-rhs":
+      return {
+        ...state,
+        showRHS: false,
+        rhsHTML: "",
+      };
   }
   return state;
 }

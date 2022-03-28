@@ -61,11 +61,13 @@
     "body-parser": "^1.19.2",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
+    "events": "^3.3.0",
     "express": "^4.17.3",
     "jest": "^27.5.1",
     "knex": "^1.0.4",
     "node-cron": "^3.0.0",
     "node-fetch": "2",
+    "node-watch": "^0.7.3",
     "nodemon": "^2.0.15",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -74,7 +76,6 @@
     "supertest": "^6.2.2",
     "vm2": "^3.9.9",
     "yaml": "^1.10.2",
-    "events": "^3.3.0",
     "yargs": "^17.3.1"
   },
   "devDependencies": {

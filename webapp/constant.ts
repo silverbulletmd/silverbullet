@@ -1,1 +1,1 @@
-export const pageLinkRegex = /\[\[([\w\s\/\:,\.\-]+)\]\]/;
+export const pageLinkRegex = /\[\[([\w\s\/\:,\.@\-]+)\]\]/;

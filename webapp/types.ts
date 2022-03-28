@@ -9,7 +9,7 @@ export type PageMeta = {
 
 export type AppCommand = {
   command: CommandDef;
-  run: (arg: any) => Promise<any>;
+  run: () => Promise<void>;
 };
 
 export const slashCommandRegexp = /\/[\w\-]*/;
@@ -24,6 +24,8 @@ export type AppViewState = {
   currentPage?: string;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
+  showRHS: boolean;
+  rhsHTML: string;
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
@@ -32,6 +34,8 @@ export type AppViewState = {
 export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
+  showRHS: false,
+  rhsHTML: "<h1>Loading...</h1>",
   allPages: new Set(),
   commands: new Map(),
   notifications: [],
@@ -46,4 +50,6 @@ export type Action =
   | { type: "show-palette" }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
-  | { type: "dismiss-notification"; id: number };
+  | { type: "dismiss-notification"; id: number }
+  | { type: "show-rhs"; html: string }
+  | { type: "hide-rhs" };

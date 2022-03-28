@@ -71,6 +71,7 @@ export class Sandbox {
             result: result,
           } as WorkerMessage);
         } catch (e: any) {
+          // console.error("Syscall fail", e);
           this.worker.postMessage({
             type: "syscall-response",
             id: data.id,

@@ -1,7 +1,7 @@
 import { ApiProvider, ClientConnection } from "./api_server";
 import knex, { Knex } from "knex";
 import path from "path";
-import pageIndexSyscalls from "./syscalls/page_index";
+import { ensurePageIndexTable, pageIndexSyscalls } from "./syscalls/page_index";
 
 type IndexItem = {
   page: string;
@@ -10,7 +10,7 @@ type IndexItem = {
 };
 
 export class IndexApi implements ApiProvider {
-  db: Knex;
+  db: Knex<any, unknown>;
 
   constructor(rootPath: string) {
     this.db = knex({
@@ -23,15 +23,7 @@ export class IndexApi implements ApiProvider {
   }
 
   async init() {
-    if (!(await this.db.schema.hasTable("page_index"))) {
-      await this.db.schema.createTable("page_index", (table) => {
-        table.string("page");
-        table.string("key");
-        table.text("value");
-        table.primary(["page", "key"]);
-      });
-      console.log("Created table page_index");
-    }
+    await ensurePageIndexTable(this.db);
   }
 
   api() {
@@ -42,6 +34,7 @@ export class IndexApi implements ApiProvider {
         clientConn: ClientConnection,
         page: string
       ) => {
+        console.log("Now going to clear index for", page);
         return syscalls.clearPageIndexForPage(nullContext, page);
       },
       set: async (

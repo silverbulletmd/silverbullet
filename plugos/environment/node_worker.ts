@@ -72,7 +72,6 @@ parentPort.on("message", (data: any) => {
             result: result && JSON.parse(JSON.stringify(result)),
           });
         } catch (e: any) {
-          // console.log("ERROR", e);
           parentPort.postMessage({
             type: "result",
             id: data.id,
@@ -94,6 +93,7 @@ parentPort.on("message", (data: any) => {
         }
         pendingRequests.delete(syscallId);
         if (data.error) {
+          console.log("Got rejection", data.error);
           lookup.reject(new Error(data.error));
         } else {
           lookup.resolve(data.result);

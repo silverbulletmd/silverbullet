@@ -1,11 +1,7 @@
-export type AppEvent =
-  | "app:ready"
-  | "page:save"
-  | "page:click"
-  | "page:index"
-  | "editor:complete";
+export type AppEvent = "page:click" | "editor:complete";
 
 export type ClickEvent = {
+  page: string;
   pos: number;
   metaKey: boolean;
   ctrlKey: boolean;

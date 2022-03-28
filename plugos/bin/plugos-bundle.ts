@@ -28,20 +28,19 @@ async function compile(filePath: string, functionName: string, debug: boolean) {
     bundle: true,
     format: "iife",
     globalName: "mod",
-    platform: "neutral",
+    platform: "browser",
     sourcemap: false, //sourceMap ? "inline" : false,
     minify: !debug,
     outfile: outFile,
   });
 
   let jsCode = (await readFile(outFile)).toString();
-  jsCode = jsCode.replace(/^var mod ?= ?/, "");
   await unlink(outFile);
   if (inFile !== filePath) {
     await unlink(inFile);
   }
-  // Strip final ';'
-  return jsCode.substring(0, jsCode.length - 2);
+  return `(() => { ${jsCode}
+  return mod;})()`;
 }
 
 async function bundle(manifestPath: string, sourceMaps: boolean) {

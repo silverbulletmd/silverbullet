@@ -85,7 +85,7 @@ export class Space extends EventEmitter<SpaceEvents> {
       this.reqId++;
       this.socket!.once(`${eventName}Resp${this.reqId}`, (err, result) => {
         if (err) {
-          reject(err);
+          reject(new Error(err));
         } else {
           resolve(result);
         }

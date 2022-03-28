@@ -8,7 +8,12 @@ async function navigate(syntaxNode: any) {
   console.log("Attempting to navigate based on syntax node", syntaxNode);
   switch (syntaxNode.name) {
     case "WikiLinkPage":
-      await syscall("editor.navigate", syntaxNode.text);
+      let pageLink = syntaxNode.text;
+      let pos = 0;
+      if (pageLink.includes("@")) {
+        [pageLink, pos] = syntaxNode.text.split("@");
+      }
+      await syscall("editor.navigate", pageLink, +pos);
       break;
     case "URL":
       await syscall("editor.openUrl", syntaxNode.text);

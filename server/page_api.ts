@@ -12,6 +12,8 @@ import { Cursor, cursorEffect } from "../webapp/cursorEffect";
 import { SilverBulletHooks } from "../common/manifest";
 import { System } from "../plugos/system";
 import { EventFeature } from "../plugos/feature/event";
+import spaceSyscalls from "./syscalls/space";
+import { eventSyscalls } from "../plugos/syscall/event";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;
@@ -34,6 +36,8 @@ export class PageApi implements ApiProvider {
     this.system = system;
     this.eventFeature = new EventFeature();
     system.addFeature(this.eventFeature);
+    system.registerSyscalls("space", [], spaceSyscalls(this));
+    system.registerSyscalls("event", [], eventSyscalls(this.eventFeature));
   }
 
   async init(): Promise<void> {
@@ -225,7 +229,10 @@ export class PageApi implements ApiProvider {
                       " to disk and indexing."
                     );
                     await this.flushPageToDisk(pageName, page);
-
+                    await this.eventFeature.dispatchEvent(
+                      "page:saved",
+                      pageName
+                    );
                     await this.eventFeature.dispatchEvent("page:index", {
                       name: pageName,
                       text: page.text.sliceString(0),
@@ -293,21 +300,32 @@ export class PageApi implements ApiProvider {
         pageName: string,
         text: string
       ) => {
+        // Write to disk
+        let pageMeta = await this.pageStore.writePage(pageName, text);
+
+        // Notify clients that have the page open
         let page = this.openPages.get(pageName);
         if (page) {
           for (let client of page.clientStates) {
-            client.socket.emit("reloadPage", pageName);
+            client.socket.emit("pageChanged", pageMeta);
           }
           this.openPages.delete(pageName);
         }
-        return this.pageStore.writePage(pageName, text);
+        // Trigger system events
+        await this.eventFeature.dispatchEvent("page:saved", pageName);
+        await this.eventFeature.dispatchEvent("page:index", {
+          name: pageName,
+          text: text,
+        });
+        return pageMeta;
       },
 
       deletePage: async (clientConn: ClientConnection, pageName: string) => {
         this.openPages.delete(pageName);
         clientConn.openPages.delete(pageName);
         // Cascading of this to all connected clients will be handled by file watcher
-        return this.pageStore.deletePage(pageName);
+        await this.pageStore.deletePage(pageName);
+        await this.eventFeature.dispatchEvent("page:deleted", pageName);
       },
 
       listPages: async (clientConn: ClientConnection): Promise<PageMeta[]> => {

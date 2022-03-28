@@ -1,6 +1,12 @@
 import { Knex } from "knex";
 import { SysCallMapping } from "../../plugos/system";
 
+import {
+  ensureTable,
+  storeReadSyscalls,
+  storeWriteSyscalls,
+} from "../../plugos/syscall/store.knex_node";
+
 type IndexItem = {
   page: string;
   key: string;
@@ -12,72 +18,99 @@ export type KV = {
   value: any;
 };
 
-export default function (db: Knex): SysCallMapping {
+/*
+ Keyspace design:
+
+ for page lookups:
+ p~page~key
+
+ for global lookups:
+ k~key~page
+
+ */
+
+function pageKey(page: string, key: string) {
+  return `p~${page}~${key}`;
+}
+
+function unpackPageKey(dbKey: string): { page: string; key: string } {
+  const [, page, key] = dbKey.split("~");
+  return { page, key };
+}
+
+function globalKey(page: string, key: string) {
+  return `k~${key}~${page}`;
+}
+
+function unpackGlobalKey(dbKey: string): { page: string; key: string } {
+  const [, key, page] = dbKey.split("~");
+  return { page, key };
+}
+
+export async function ensurePageIndexTable(db: Knex<any, unknown>) {
+  await ensureTable(db, "page_index");
+}
+
+export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
+  const readCalls = storeReadSyscalls(db, "page_index");
+  const writeCalls = storeWriteSyscalls(db, "page_index");
   const apiObj: SysCallMapping = {
-    clearPageIndexForPage: async (ctx, page: string) => {
-      await db<IndexItem>("page_index").where({ page }).del();
-    },
     set: async (ctx, page: string, key: string, value: any) => {
-      let changed = await db<IndexItem>("page_index")
-        .where({ page, key })
-        .update("value", JSON.stringify(value));
-      if (changed === 0) {
-        await db<IndexItem>("page_index").insert({
-          page,
-          key,
-          value: JSON.stringify(value),
-        });
-      }
+      await writeCalls.set(ctx, pageKey(page, key), value);
+      await writeCalls.set(ctx, globalKey(page, key), value);
     },
     batchSet: async (ctx, page: string, kvs: KV[]) => {
       for (let { key, value } of kvs) {
         await apiObj.set(ctx, page, key, value);
       }
     },
-    get: async (ctx, page: string, key: string) => {
-      let result = await db<IndexItem>("page_index")
-        .where({ page, key })
-        .select("value");
-      if (result.length) {
-        return JSON.parse(result[0].value);
-      } else {
-        return null;
-      }
-    },
     delete: async (ctx, page: string, key: string) => {
-      await db<IndexItem>("page_index").where({ page, key }).del();
+      await writeCalls.delete(ctx, pageKey(page, key));
+      await writeCalls.delete(ctx, globalKey(page, key));
+    },
+    get: async (ctx, page: string, key: string) => {
+      return readCalls.get(ctx, pageKey(page, key));
     },
     scanPrefixForPage: async (ctx, page: string, prefix: string) => {
-      return (
-        await db<IndexItem>("page_index")
-          .where({ page })
-          .andWhereLike("key", `${prefix}%`)
-          .select("page", "key", "value")
-      ).map(({ page, key, value }) => ({
-        page,
-        key,
-        value: JSON.parse(value),
-      }));
+      return (await readCalls.queryPrefix(ctx, pageKey(page, prefix))).map(
+        ({ key, value }: { key: string; value: any }) => {
+          const { key: pageKey } = unpackPageKey(key);
+          return {
+            page,
+            key: pageKey,
+            value,
+          };
+        }
+      );
     },
     scanPrefixGlobal: async (ctx, prefix: string) => {
-      return (
-        await db<IndexItem>("page_index")
-          .andWhereLike("key", `${prefix}%`)
-          .select("page", "key", "value")
-      ).map(({ page, key, value }) => ({
-        page,
-        key,
-        value: JSON.parse(value),
-      }));
+      return (await readCalls.queryPrefix(ctx, `k~${prefix}`)).map(
+        ({ key, value }: { key: string; value: any }) => {
+          const { page, key: pageKey } = unpackGlobalKey(key);
+          return {
+            page,
+            key: pageKey,
+            value,
+          };
+        }
+      );
+    },
+    clearPageIndexForPage: async (ctx, page: string) => {
+      await apiObj.deletePrefixForPage(ctx, page, "");
     },
     deletePrefixForPage: async (ctx, page: string, prefix: string) => {
-      return db<IndexItem>("page_index")
-        .where({ page })
-        .andWhereLike("key", `${prefix}%`)
-        .del();
+      // Collect all global keys for this page to delete
+      let keysToDelete = (
+        await readCalls.queryPrefix(ctx, pageKey(page, prefix))
+      ).map(({ key }: { key: string; value: string }) =>
+        globalKey(page, unpackPageKey(key).key)
+      );
+      // Delete all page keys
+      await writeCalls.deletePrefix(ctx, pageKey(page, prefix));
+      await writeCalls.batchDelete(ctx, keysToDelete);
     },
-    clearPageIndex: async () => {
-      return db<IndexItem>("page_index").del();
+    clearPageIndex: async (ctx) => {
+      await writeCalls.deleteAll(ctx);
     },
   };
   return apiObj;

@@ -31,7 +31,7 @@ import { TopBar } from "./components/top_bar";
 import { Cursor } from "./cursorEffect";
 import { lineWrapper } from "./line_wrapper";
 import { markdown } from "./markdown";
-import { IPageNavigator, PathPageNavigator } from "./navigator";
+import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
@@ -52,6 +52,7 @@ import { safeRun } from "./util";
 import { System } from "../plugos/system";
 import { EventFeature } from "../plugos/feature/event";
 import { systemSyscalls } from "./syscalls/system";
+import { Panel } from "./components/panel";
 
 class PageState {
   scrollTop: number;
@@ -72,7 +73,7 @@ export class Editor implements AppEventDispatcher {
   viewDispatch: React.Dispatch<Action>;
   space: Space;
   navigationResolve?: (val: undefined) => void;
-  pageNavigator: IPageNavigator;
+  pageNavigator: PathPageNavigator;
   private eventFeature: EventFeature;
 
   constructor(space: Space, parent: Element) {
@@ -102,7 +103,7 @@ export class Editor implements AppEventDispatcher {
   async init() {
     this.focus();
 
-    this.pageNavigator.subscribe(async (pageName) => {
+    this.pageNavigator.subscribe(async (pageName, pos) => {
       console.log("Now navigating to", pageName);
 
       if (!this.editorView) {
@@ -110,6 +111,11 @@ export class Editor implements AppEventDispatcher {
       }
 
       await this.loadPage(pageName);
+      if (pos) {
+        this.editorView.dispatch({
+          selection: { anchor: pos },
+        });
+      }
     });
 
     this.space.on({
@@ -175,8 +181,8 @@ export class Editor implements AppEventDispatcher {
         for (let cmd of cmds) {
           this.editorCommands.set(cmd.name, {
             command: cmd,
-            run: async (arg): Promise<any> => {
-              return await plug.invoke(name, [arg]);
+            run: () => {
+              return plug.invoke(name, []);
             },
           });
         }
@@ -223,10 +229,11 @@ export class Editor implements AppEventDispatcher {
           mac: def.command.mac,
           run: (): boolean => {
             Promise.resolve()
-              .then(async () => {
-                await def.run(null);
-              })
-              .catch((e) => console.error(e));
+              .then(def.run)
+              .catch((e: any) => {
+                console.error(e);
+                this.flashNotification(`Error running command: ${e.message}`);
+              });
             return true;
           },
         });
@@ -317,6 +324,7 @@ export class Editor implements AppEventDispatcher {
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               let clickEvent: ClickEvent = {
+                page: pageName,
                 ctrlKey: event.ctrlKey,
                 metaKey: event.metaKey,
                 altKey: event.altKey,
@@ -375,7 +383,7 @@ export class Editor implements AppEventDispatcher {
             },
           });
           safeRun(async () => {
-            await def.run(null);
+            await def.run();
           });
         },
       });
@@ -390,8 +398,8 @@ export class Editor implements AppEventDispatcher {
     this.editorView!.focus();
   }
 
-  async navigate(name: string) {
-    await this.pageNavigator.navigate(name);
+  async navigate(name: string, pos?: number) {
+    await this.pageNavigator.navigate(name, pos);
   }
 
   async loadPage(pageName: string) {
@@ -451,7 +459,7 @@ export class Editor implements AppEventDispatcher {
     }, [viewState.currentPage]);
 
     return (
-      <>
+      <div className={viewState.showRHS ? "rhs-open" : ""}>
         {viewState.showPageNavigator && (
           <PageNavigator
             allPages={viewState.allPages}
@@ -473,15 +481,15 @@ export class Editor implements AppEventDispatcher {
               dispatch({ type: "hide-palette" });
               editor!.focus();
               if (cmd) {
-                safeRun(async () => {
-                  let result = await cmd.run(null);
-                  console.log("Result of command", result);
+                cmd.run().catch((e) => {
+                  console.error("Error running command", e);
                 });
               }
             }}
             commands={viewState.commands}
           />
         )}
+        {viewState.showRHS && <Panel html={viewState.rhsHTML} />}
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
@@ -490,7 +498,7 @@ export class Editor implements AppEventDispatcher {
           }}
         />
         <div id="editor"></div>
-      </>
+      </div>
     );
   }
 

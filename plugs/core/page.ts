@@ -7,9 +7,12 @@ const wikilinkRegex = new RegExp(pageLinkRegex, "g");
 export async function indexLinks({ name, text }: IndexEvent) {
   let backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
-
+  console.log("Now indexing", name);
   for (let match of text.matchAll(wikilinkRegex)) {
     let toPage = match[1];
+    if (toPage.includes("@")) {
+      toPage = toPage.split("@")[0];
+    }
     let pos = match.index!;
     backLinks.push({
       key: `pl:${toPage}:${pos}`,
@@ -17,7 +20,6 @@ export async function indexLinks({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", backLinks.length, "wiki link(s)");
-  // throw Error("Boom");
   await syscall("indexer.batchSet", name, backLinks);
 }
 
@@ -102,6 +104,29 @@ export async function showBackLinks() {
   console.log("Backlinks", backLinks);
 }
 
-export async function reindex() {
-  await syscall("space.reindex");
+export async function reindexCommand() {
+  await syscall("editor.flashNotification", "Reindexing...");
+  await syscall("system.invokeFunctionOnServer", "reindexSpace");
+  await syscall("editor.flashNotification", "Reindexing done");
+}
+
+// Server functions
+export async function reindexSpace() {
+  console.log("Clearing page index...");
+  await syscall("indexer.clearPageIndex");
+  console.log("Listing all pages");
+  let pages = await syscall("space.listPages");
+  for (let { name } of pages) {
+    console.log("Indexing", name);
+    const pageObj = await syscall("space.readPage", name);
+    await syscall("event.dispatch", "page:index", {
+      name,
+      text: pageObj.text,
+    });
+  }
+}
+
+export async function clearPageIndex(page: string) {
+  console.log("Clearing page index for page", page);
+  await syscall("indexer.clearPageIndexForPage", page);
 }

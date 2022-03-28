@@ -1,4 +1,5 @@
-import fs, { watch } from "fs/promises";
+import fs from "fs/promises";
+import watch from "node-watch";
 import path from "path";
 import { createSandbox } from "./environment/node_sandbox";
 import { safeRun } from "../server/util";
@@ -19,14 +20,15 @@ export class DiskPlugLoader<HookT> {
   }
 
   watcher() {
-    safeRun(async () => {
-      for await (const { filename, eventType } of watch(this.plugPath)) {
-        if (!filename.endsWith(".plug.json")) {
-          return;
-        }
+    watch(this.plugPath, (eventType, localPath) => {
+      if (!localPath.endsWith(".plug.json")) {
+        return;
+      }
+      safeRun(async () => {
         try {
-          let localPath = path.join(this.plugPath, filename);
+          // let localPath = path.join(this.plugPath, filename);
           const plugName = extractPlugName(localPath);
+          console.log("Change detected for", plugName);
           try {
             await fs.stat(localPath);
           } catch (e) {
@@ -34,10 +36,11 @@ export class DiskPlugLoader<HookT> {
             await this.system.unload(plugName);
           }
           const plugDef = await this.loadPlugFromFile(localPath);
-        } catch {
+        } catch (e) {
+          console.log("Ignoring something FYI", e);
           // ignore, error handled by loadPlug
         }
-      }
+      });
     });
   }
 

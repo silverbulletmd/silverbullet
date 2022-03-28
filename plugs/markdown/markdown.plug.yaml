@@ -1,0 +1,6 @@
+functions:
+  mdTest:
+    path: "./markdown.ts:renderMarkdown"
+    env: client
+    command:
+      name: "Markdown: Render"
