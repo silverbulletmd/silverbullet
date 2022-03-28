@@ -1,27 +1,24 @@
 #!/usr/bin/env node
 
 import esbuild from "esbuild";
-import { readFile, unlink, writeFile } from "fs/promises";
+import { readFile, unlink, watch, writeFile } from "fs/promises";
 import path from "path";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
-import { watchFile } from "fs";
 import YAML from "yaml";
 
 async function compile(filePath: string, functionName: string, debug: boolean) {
-  let outFile = "out.js";
-
+  let outFile = "_out.tmp";
   let inFile = filePath;
 
   if (functionName) {
     // Generate a new file importing just this one function and exporting it
-    inFile = "in.js";
+    inFile = "_in.js";
     await writeFile(
       inFile,
-      `import {${functionName}} from "./${filePath}";
-export default ${functionName};`
+      `import {${functionName}} from "./${filePath}";export default ${functionName};`
     );
   }
 
@@ -103,14 +100,32 @@ async function run() {
     );
     process.exit(1);
   }
-  for (const plugManifestPath of args._) {
-    let manifestPath = plugManifestPath as string;
-    await buildManifest(manifestPath, args.dist, !!args.debug);
-    if (args.watch) {
-      watchFile(manifestPath, { interval: 1000 }, async () => {
-        console.log("Rebuilding", manifestPath);
+
+  async function buildAll() {
+    for (const plugManifestPath of args._) {
+      let manifestPath = plugManifestPath as string;
+      try {
         await buildManifest(manifestPath, args.dist, !!args.debug);
-      });
+      } catch (e) {
+        console.error(`Error building ${manifestPath}:`, e);
+      }
+    }
+  }
+
+  await buildAll();
+  if (args.watch) {
+    console.log("Watching for changes...");
+    for await (const { eventType, filename } of watch(".", {
+      recursive: true,
+    })) {
+      if (
+        filename.endsWith(".plug.yaml") ||
+        filename.endsWith(".ts") ||
+        (filename.endsWith(".js") && !filename.endsWith("_in.js"))
+      ) {
+        console.log("Change detected", eventType, filename);
+        await buildAll();
+      }
     }
   }
 }

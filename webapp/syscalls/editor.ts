@@ -42,6 +42,9 @@ export default (editor: Editor): SysCallMapping => ({
   openUrl: async (ctx, url: string) => {
     window.open(url, "_blank")!.focus();
   },
+  flashNotification: (ctx, message: string) => {
+    editor.flashNotification(message);
+  },
   insertAtPos: (ctx, text: string, pos: number) => {
     editor.editorView!.dispatch({
       changes: {

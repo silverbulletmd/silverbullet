@@ -11,7 +11,10 @@ export function endpointTest(req: EndpointRequest): EndpointResponse {
   };
 }
 
-export function welcome() {
-  console.log("Hello world!");
+export function welcome(plugName: string) {
+  if (plugName !== "core") {
+    return;
+  }
+  console.log("Hello world!!", plugName);
   return "hi";
 }

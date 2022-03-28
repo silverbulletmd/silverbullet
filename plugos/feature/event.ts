@@ -1,6 +1,9 @@
 import { Feature, Manifest } from "../types";
 import { System } from "../system";
 
+// System events:
+// - plug:load (plugName: string)
+
 export type EventHook = {
   events?: string[];
 };
@@ -18,7 +21,10 @@ export class EventFeature implements Feature<EventHook> {
         plug.manifest!.functions
       )) {
         if (functionDef.events && functionDef.events.includes(eventName)) {
-          promises.push(plug.invoke(name, [data]));
+          // Only dispatch functions that can run in this environment
+          if (plug.canInvoke(name)) {
+            promises.push(plug.invoke(name, [data]));
+          }
         }
       }
     }
@@ -27,6 +33,11 @@ export class EventFeature implements Feature<EventHook> {
 
   apply(system: System<EventHook>): void {
     this.system = system;
+    this.system.on({
+      plugLoaded: (name) => {
+        this.dispatchEvent("plug:load", name);
+      },
+    });
   }
 
   validateManifest(manifest: Manifest<EventHook>): string[] {

@@ -30,14 +30,27 @@ export class Sandbox {
 
   async load(name: string, code: string): Promise<void> {
     await this.worker.ready;
+    let outstandingInit = this.outstandingInits.get(name);
+    if (outstandingInit) {
+      // Load already in progress, let's wait for it...
+      return new Promise((resolve) => {
+        this.outstandingInits.set(name, () => {
+          outstandingInit!();
+          resolve();
+        });
+      });
+    }
     this.worker.postMessage({
       type: "load",
       name: name,
       code: code,
     } as WorkerMessage);
     return new Promise((resolve) => {
-      this.loadedFunctions.add(name);
-      this.outstandingInits.set(name, resolve);
+      this.outstandingInits.set(name, () => {
+        this.loadedFunctions.add(name);
+        this.outstandingInits.delete(name);
+        resolve();
+      });
     });
   }
 

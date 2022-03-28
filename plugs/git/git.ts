@@ -27,12 +27,13 @@ export async function snapshotCommand() {
 }
 
 export async function syncCommand() {
+  await syscall("editor.flashNotification", "Syncing with git");
   await syscall("system.invokeFunctionOnServer", "sync");
+  await syscall("editor.flashNotification", "Git sync complete!");
 }
 
 export async function sync() {
   console.log("Going to sync with git");
-  console.log("First locally committing everything");
   await commit();
   console.log("Then pulling from remote");
   await syscall("shell.run", "git", ["pull"]);

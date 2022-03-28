@@ -41,6 +41,6 @@ functions:
   welcome:
     path: "./server.ts:welcome"
     events:
-      - load
+      - plug:load
     env: server
 
