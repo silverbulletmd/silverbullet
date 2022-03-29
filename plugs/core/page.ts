@@ -110,6 +110,22 @@ export async function reindexCommand() {
   await syscall("editor.flashNotification", "Reindexing done");
 }
 
+// Completion
+export async function pageComplete() {
+  let prefix = await syscall("editor.matchBefore", "\\[\\[[\\w\\s]*");
+  if (!prefix) {
+    return null;
+  }
+  let allPages = await syscall("space.listPages");
+  return {
+    from: prefix.from + 2,
+    options: allPages.map((pageMeta: any) => ({
+      label: pageMeta.name,
+      type: "page",
+    })),
+  };
+}
+
 // Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");

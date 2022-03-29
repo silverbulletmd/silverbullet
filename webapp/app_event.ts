@@ -14,5 +14,5 @@ export type IndexEvent = {
 };
 
 export interface AppEventDispatcher {
-  dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]>;
+  dispatchAppEvent(name: AppEvent, data?: any): Promise<void>;
 }

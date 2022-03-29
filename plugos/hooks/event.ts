@@ -1,5 +1,6 @@
 import { Hook, Manifest } from "../types";
 import { System } from "../system";
+import { safeRun } from "../util";
 
 // System events:
 // - plug:load (plugName: string)
@@ -11,11 +12,11 @@ export type EventHookT = {
 export class EventHook implements Hook<EventHookT> {
   private system?: System<EventHookT>;
 
-  async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
+  async dispatchEvent(eventName: string, data?: any): Promise<void> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    let promises: Promise<any>[] = [];
+    let promises: Promise<void>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions
@@ -28,14 +29,16 @@ export class EventHook implements Hook<EventHookT> {
         }
       }
     }
-    return Promise.all(promises);
+    await Promise.all(promises);
   }
 
   apply(system: System<EventHookT>): void {
     this.system = system;
     this.system.on({
       plugLoaded: (name) => {
-        this.dispatchEvent("plug:load", name);
+        safeRun(async () => {
+          await this.dispatchEvent("plug:load", name);
+        });
       },
     });
   }

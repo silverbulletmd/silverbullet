@@ -29,9 +29,8 @@ functions:
     command:
       name: "Page: Rename"
   pageComplete:
-    path: "./navigate.ts:pageComplete"
-    events:
-      - editor:complete
+    path: "./page.ts:pageComplete"
+    isCompleter: true
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
     command:

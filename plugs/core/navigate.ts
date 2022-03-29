@@ -38,18 +38,3 @@ export async function clickNavigate(event: ClickEvent) {
     await navigate(syntaxNode);
   }
 }
-
-export async function pageComplete() {
-  let prefix = await syscall("editor.matchBefore", "\\[\\[[\\w\\s]*");
-  if (!prefix) {
-    return null;
-  }
-  let allPages = await syscall("space.listPages");
-  return {
-    from: prefix.from + 2,
-    options: allPages.map((pageMeta: any) => ({
-      label: pageMeta.name,
-      type: "page",
-    })),
-  };
-}

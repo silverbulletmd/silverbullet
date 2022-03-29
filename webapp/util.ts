@@ -1,5 +1,5 @@
 export function countWords(str: string): number {
-  var matches = str.match(/[\w\d\'\'-]+/gi);
+  const matches = str.match(/[\w\d\'-]+/gi);
   return matches ? matches.length : 0;
 }
 

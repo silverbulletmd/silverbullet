@@ -27,7 +27,7 @@ export type EndPointDef = {
 
 export class EndpointHook implements Hook<EndpointHookT> {
   private app: Express;
-  private prefix: string;
+  readonly prefix: string;
 
   constructor(app: Express, prefix: string) {
     this.app = app;

@@ -44,8 +44,7 @@ return fn["default"].apply(null, arguments);`;
 
 self.addEventListener("message", (event: { data: WorkerMessage }) => {
   safeRun(async () => {
-    let messageEvent = event;
-    let data = messageEvent.data;
+    let data = event.data;
     switch (data.type) {
       case "load":
         loadedFunctions.set(data.name!, new Function(wrapScript(data.code!)));

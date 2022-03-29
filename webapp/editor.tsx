@@ -1,8 +1,4 @@
-import {
-  autocompletion,
-  completionKeymap,
-  CompletionResult,
-} from "@codemirror/autocomplete";
+import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
@@ -47,6 +43,7 @@ import { systemSyscalls } from "./syscalls/system";
 import { Panel } from "./components/panel";
 import { CommandHook } from "./hooks/command";
 import { SlashCommandHook } from "./hooks/slash_command";
+import { CompleterHook } from "./hooks/completer";
 
 class PageState {
   scrollTop: number;
@@ -60,15 +57,17 @@ class PageState {
 
 export class Editor implements AppEventDispatcher {
   private system = new System<SilverBulletHooks>("client");
+  readonly commandHook: CommandHook;
+  readonly slashCommandHook: SlashCommandHook;
+  readonly completerHook: CompleterHook;
+
   openPages = new Map<string, PageState>();
-  commandHook: CommandHook;
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   space: Space;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
-  private slashCommandHook: SlashCommandHook;
 
   constructor(space: Space, parent: Element) {
     this.space = space;
@@ -94,6 +93,10 @@ export class Editor implements AppEventDispatcher {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this);
     this.system.addHook(this.slashCommandHook);
+
+    // Completer hook
+    this.completerHook = new CompleterHook();
+    this.system.addHook(this.completerHook);
 
     this.render(parent);
     this.editorView = new EditorView({
@@ -192,7 +195,7 @@ export class Editor implements AppEventDispatcher {
     }, 2000);
   }
 
-  async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
+  async dispatchAppEvent(name: AppEvent, data?: any): Promise<void> {
     return this.eventHook.dispatchEvent(name, data);
   }
 
@@ -236,7 +239,7 @@ export class Editor implements AppEventDispatcher {
         }),
         autocompletion({
           override: [
-            this.plugCompleter.bind(this),
+            this.completerHook.plugCompleter.bind(this.completerHook),
             this.slashCommandHook.slashCommandCompleter.bind(
               this.slashCommandHook
             ),
@@ -328,19 +331,6 @@ export class Editor implements AppEventDispatcher {
     safeRun(async () => {
       await this.loadPage(this.currentPage!);
     });
-  }
-
-  async plugCompleter(): Promise<CompletionResult | null> {
-    let allCompletionResults = await this.dispatchAppEvent("editor:complete");
-    if (allCompletionResults.length === 1) {
-      return allCompletionResults[0];
-    } else if (allCompletionResults.length > 1) {
-      console.error(
-        "Got completion results from multiple sources, cannot deal with that",
-        allCompletionResults
-      );
-    }
-    return null;
   }
 
   focus() {

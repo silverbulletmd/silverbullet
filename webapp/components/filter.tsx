@@ -2,17 +2,53 @@ import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
-export interface Option {
+export type Option = {
   name: string;
   orderId?: number;
   hint?: string;
-}
+};
 
 function magicSorter(a: Option, b: Option): number {
   if (a.orderId && b.orderId) {
     return a.orderId < b.orderId ? -1 : 1;
   }
   return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+function fuzzyFilter(pattern: string, options: Option[]): Option[] {
+  let closeMatchRegex = escapeRegExp(pattern);
+  closeMatchRegex = closeMatchRegex.split(/\s+/).join(".*?");
+  closeMatchRegex = closeMatchRegex.replace(/\\\//g, ".*?\\/.*?");
+  const distantMatchRegex = escapeRegExp(pattern).split("").join(".*?");
+  const r1 = new RegExp(closeMatchRegex, "i");
+  const r2 = new RegExp(distantMatchRegex, "i");
+  let matches = [];
+  if (!pattern) {
+    return options;
+  }
+  for (let option of options) {
+    let m = r1.exec(option.name);
+    if (m) {
+      matches.push({
+        ...option,
+        orderId: 100000 - (options.length - m[0].length - m.index),
+      });
+    } else {
+      // Let's try the distant matcher
+      var m2 = r2.exec(option.name);
+      if (m2) {
+        matches.push({
+          ...option,
+          orderId: 10000 - (options.length - m2[0].length - m2.index),
+        });
+      }
+    }
+  }
+  return matches;
 }
 
 export function FilterList({
@@ -51,12 +87,7 @@ export function FilterList({
 
     if (searchPhrase) {
       let foundExactMatch = false;
-      let results = options.filter((option) => {
-        if (option.name.toLowerCase() === searchPhrase) {
-          foundExactMatch = true;
-        }
-        return option.name.toLowerCase().indexOf(searchPhrase) !== -1;
-      });
+      let results = fuzzyFilter(searchPhrase, options);
       results = results.sort(magicSorter);
       if (allowNew && !foundExactMatch) {
         results.push({

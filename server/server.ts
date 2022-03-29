@@ -22,7 +22,7 @@ let args = yargs(hideBin(process.argv))
 
 if (!args._.length) {
     console.error("Usage: silverbullet <path-to-pages>");
-  process.exit(1);
+    process.exit(1);
 }
 
 const pagesPath = args._[0] as string;
@@ -58,11 +58,11 @@ expressServer
     );
     await plugLoader.loadPlugs();
     plugLoader.watcher();
-      system.registerSyscalls("shell", ["shell"], shellSyscalls(pagesPath));
-      system.addHook(new NodeCronHook());
-      server.listen(port, () => {
-        console.log(`Server listening on port ${port}`);
-      });
+    system.registerSyscalls("shell", ["shell"], shellSyscalls(pagesPath));
+    system.addHook(new NodeCronHook());
+    server.listen(port, () => {
+      console.log(`Server listening on port ${port}`);
+    });
   })
   .catch((e) => {
     console.error(e);
