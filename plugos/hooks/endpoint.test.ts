@@ -1,13 +1,13 @@
-import { createSandbox } from "../environment/node_sandbox";
+import { createSandbox } from "../environments/node_sandbox";
 import { expect, test } from "@jest/globals";
 import { Manifest } from "../types";
 import express from "express";
 import request from "supertest";
-import { EndpointFeature, EndpointHook } from "./endpoint";
+import { EndpointHook, EndpointHookT } from "./endpoint";
 import { System } from "../system";
 
 test("Run a plugos endpoint server", async () => {
-  let system = new System<EndpointHook>("server");
+  let system = new System<EndpointHookT>("server");
   let plug = await system.load(
     "test",
     {
@@ -26,14 +26,14 @@ test("Run a plugos endpoint server", async () => {
         })()`,
         },
       },
-    } as Manifest<EndpointHook>,
+    } as Manifest<EndpointHookT>,
     createSandbox
   );
 
   const app = express();
   const port = 3123;
 
-  system.addFeature(new EndpointFeature(app, "/_"));
+  system.addHook(new EndpointHook(app, "/_"));
 
   let server = app.listen(port, () => {
     console.log(`Listening on port ${port}`);

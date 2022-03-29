@@ -1,7 +1,5 @@
 import {
   autocompletion,
-  Completion,
-  CompletionContext,
   completionKeymap,
   CompletionResult,
 } from "@codemirror/autocomplete";
@@ -21,7 +19,7 @@ import {
 } from "@codemirror/view";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import { createSandbox as createIFrameSandbox } from "../plugos/environment/iframe_sandbox";
+import { createSandbox as createIFrameSandbox } from "../plugos/environments/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import { CollabDocument, collabExtension } from "./collab";
 import * as commands from "./commands";
@@ -40,19 +38,15 @@ import customMarkdownStyle from "./style";
 import editorSyscalls from "./syscalls/editor";
 import indexerSyscalls from "./syscalls/indexer";
 import spaceSyscalls from "./syscalls/space";
-import {
-  Action,
-  AppCommand,
-  AppViewState,
-  initialViewState,
-  slashCommandRegexp,
-} from "./types";
+import { Action, AppViewState, initialViewState } from "./types";
 import { SilverBulletHooks } from "../common/manifest";
 import { safeRun } from "./util";
 import { System } from "../plugos/system";
-import { EventFeature } from "../plugos/feature/event";
+import { EventHook } from "../plugos/hooks/event";
 import { systemSyscalls } from "./syscalls/system";
 import { Panel } from "./components/panel";
+import { CommandHook } from "./hooks/command";
+import { SlashCommandHook } from "./hooks/slash_command";
 
 class PageState {
   scrollTop: number;
@@ -67,22 +61,39 @@ class PageState {
 export class Editor implements AppEventDispatcher {
   private system = new System<SilverBulletHooks>("client");
   openPages = new Map<string, PageState>();
-  editorCommands = new Map<string, AppCommand>();
+  commandHook: CommandHook;
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
   space: Space;
-  navigationResolve?: (val: undefined) => void;
   pageNavigator: PathPageNavigator;
-  private eventFeature: EventFeature;
+  eventHook: EventHook;
+  private slashCommandHook: SlashCommandHook;
 
   constructor(space: Space, parent: Element) {
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
 
-    this.eventFeature = new EventFeature();
-    this.system.addFeature(this.eventFeature);
+    // Event hook
+    this.eventHook = new EventHook();
+    this.system.addHook(this.eventHook);
+
+    // Command hook
+    this.commandHook = new CommandHook();
+    this.commandHook.on({
+      commandsUpdated: (commandMap) => {
+        this.viewDispatch({
+          type: "update-commands",
+          commands: commandMap,
+        });
+      },
+    });
+    this.system.addHook(this.commandHook);
+
+    // Slash command hook
+    this.slashCommandHook = new SlashCommandHook(this);
+    this.system.addHook(this.slashCommandHook);
 
     this.render(parent);
     this.editorView = new EditorView({
@@ -142,14 +153,12 @@ export class Editor implements AppEventDispatcher {
       loadSystem: (systemJSON) => {
         safeRun(async () => {
           await this.system.replaceAllFromJSON(systemJSON, createIFrameSandbox);
-          this.buildAllCommands();
         });
       },
       plugLoaded: (plugName, plug) => {
         safeRun(async () => {
           console.log("Plug load", plugName);
           await this.system.load(plugName, plug, createIFrameSandbox);
-          this.buildAllCommands();
         });
       },
       plugUnloaded: (plugName) => {
@@ -161,37 +170,8 @@ export class Editor implements AppEventDispatcher {
     });
 
     if (this.pageNavigator.getCurrentPage() === "") {
-      this.pageNavigator.navigate("start");
+      await this.pageNavigator.navigate("start");
     }
-  }
-
-  private buildAllCommands() {
-    console.log("Loaded plugs, now updating editor commands");
-    this.editorCommands.clear();
-    for (let plug of this.system.loadedPlugs.values()) {
-      for (const [name, functionDef] of Object.entries(
-        plug.manifest!.functions
-      )) {
-        if (!functionDef.command) {
-          continue;
-        }
-        const cmds = Array.isArray(functionDef.command)
-          ? functionDef.command
-          : [functionDef.command];
-        for (let cmd of cmds) {
-          this.editorCommands.set(cmd.name, {
-            command: cmd,
-            run: () => {
-              return plug.invoke(name, []);
-            },
-          });
-        }
-      }
-    }
-    this.viewDispatch({
-      type: "update-commands",
-      commands: this.editorCommands,
-    });
   }
 
   flashNotification(message: string) {
@@ -213,7 +193,7 @@ export class Editor implements AppEventDispatcher {
   }
 
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
-    return this.eventFeature.dispatchEvent(name, data);
+    return this.eventHook.dispatchEvent(name, data);
   }
 
   get currentPage(): string | undefined {
@@ -222,7 +202,7 @@ export class Editor implements AppEventDispatcher {
 
   createEditorState(pageName: string, doc: CollabDocument): EditorState {
     let commandKeyBindings: KeyBinding[] = [];
-    for (let def of this.editorCommands.values()) {
+    for (let def of this.commandHook.editorCommands.values()) {
       if (def.command.key) {
         commandKeyBindings.push({
           key: def.command.key,
@@ -257,7 +237,9 @@ export class Editor implements AppEventDispatcher {
         autocompletion({
           override: [
             this.plugCompleter.bind(this),
-            this.commandCompleter.bind(this),
+            this.slashCommandHook.slashCommandCompleter.bind(
+              this.slashCommandHook
+            ),
           ],
         }),
         EditorView.lineWrapping,
@@ -361,39 +343,6 @@ export class Editor implements AppEventDispatcher {
     return null;
   }
 
-  commandCompleter(ctx: CompletionContext): CompletionResult | null {
-    let prefix = ctx.matchBefore(slashCommandRegexp);
-    if (!prefix) {
-      return null;
-    }
-    let options: Completion[] = [];
-    for (let [name, def] of this.viewState.commands) {
-      if (!def.command.slashCommand) {
-        continue;
-      }
-      options.push({
-        label: def.command.slashCommand,
-        detail: name,
-        apply: () => {
-          this.editorView?.dispatch({
-            changes: {
-              from: prefix!.from,
-              to: ctx.pos,
-              insert: "",
-            },
-          });
-          safeRun(async () => {
-            await def.run();
-          });
-        },
-      });
-    }
-    return {
-      from: prefix.from + 1,
-      options: options,
-    };
-  }
-
   focus() {
     this.editorView!.focus();
   }
@@ -469,7 +418,7 @@ export class Editor implements AppEventDispatcher {
               editor.focus();
               if (page) {
                 safeRun(async () => {
-                  editor.navigate(page);
+                  await editor.navigate(page);
                 });
               }
             }}
@@ -497,7 +446,7 @@ export class Editor implements AppEventDispatcher {
             dispatch({ type: "start-navigate" });
           }}
         />
-        <div id="editor"></div>
+        <div id="editor" />
       </div>
     );
   }

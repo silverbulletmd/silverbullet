@@ -1,14 +1,14 @@
-import { Feature, Manifest } from "../types";
+import { Hook, Manifest } from "../types";
 import cron, { ScheduledTask } from "node-cron";
 import { safeRun } from "../util";
 import { System } from "../system";
 
-export type CronHook = {
+export type CronHookT = {
   cron?: string | string[];
 };
 
-export class NodeCronFeature implements Feature<CronHook> {
-  apply(system: System<CronHook>): void {
+export class NodeCronHook implements Hook<CronHookT> {
+  apply(system: System<CronHookT>): void {
     let tasks: ScheduledTask[] = [];
     system.on({
       plugLoaded: (name, plug) => {
@@ -56,7 +56,7 @@ export class NodeCronFeature implements Feature<CronHook> {
     }
   }
 
-  validateManifest(manifest: Manifest<CronHook>): string[] {
+  validateManifest(manifest: Manifest<CronHookT>): string[] {
     let errors = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (!functionDef.cron) {

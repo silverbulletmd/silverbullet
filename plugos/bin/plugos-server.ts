@@ -2,29 +2,29 @@
 
 import express from "express";
 import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
-import { DiskPlugLoader } from "../plug_loader";
-import { CronHook, NodeCronFeature } from "../feature/node_cron";
-import shellSyscalls from "../syscall/shell.node";
-import { System } from "../system";
-import { EndpointFeature, EndpointHook } from "../feature/endpoint";
-import { safeRun } from "../util";
+import {hideBin} from "yargs/helpers";
+import {DiskPlugLoader} from "../plug_loader";
+import {CronHookT, NodeCronHook} from "../hooks/node_cron";
+import shellSyscalls from "../syscalls/shell.node";
+import {System} from "../system";
+import {EndpointHook, EndpointHookT} from "../hooks/endpoint";
+import {safeRun} from "../util";
 import knex from "knex";
 import {
   ensureTable,
   storeReadSyscalls,
   storeWriteSyscalls,
-} from "../syscall/store.knex_node";
-import { fetchSyscalls } from "../syscall/fetch.node";
-import { EventFeature, EventHook } from "../feature/event";
-import { eventSyscalls } from "../syscall/event";
+} from "../syscalls/store.knex_node";
+import {fetchSyscalls} from "../syscalls/fetch.node";
+import {EventHook, EventHookT} from "../hooks/event";
+import {eventSyscalls} from "../syscalls/event";
 
 let args = yargs(hideBin(process.argv))
-  .option("port", {
-    type: "number",
-    default: 1337,
-  })
-  .parse();
+    .option("port", {
+      type: "number",
+      default: 1337,
+    })
+    .parse();
 
 if (!args._.length) {
   console.error("Usage: plugos-server <path-to-plugs>");
@@ -35,7 +35,7 @@ const plugPath = args._[0] as string;
 
 const app = express();
 
-type ServerHook = EndpointHook & CronHook & EventHook;
+type ServerHook = EndpointHookT & CronHookT & EventHookT;
 const system = new System<ServerHook>("server");
 
 safeRun(async () => {
@@ -52,11 +52,11 @@ safeRun(async () => {
   let plugLoader = new DiskPlugLoader(system, plugPath);
   await plugLoader.loadPlugs();
   plugLoader.watcher();
-  system.addFeature(new NodeCronFeature());
-  let eventFeature = new EventFeature();
-  system.addFeature(eventFeature);
-  system.registerSyscalls("event", [], eventSyscalls(eventFeature));
-  system.addFeature(new EndpointFeature(app, ""));
+  system.addHook(new NodeCronHook());
+  let eventHook = new EventHook();
+  system.addHook(eventHook);
+  system.registerSyscalls("event", [], eventSyscalls(eventHook));
+  system.addHook(new EndpointHook(app, ""));
   system.registerSyscalls("shell", [], shellSyscalls("."));
   system.registerSyscalls("fetch", [], fetchSyscalls());
   system.registerSyscalls(

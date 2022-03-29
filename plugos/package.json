@@ -10,7 +10,7 @@
     "watch": "rm -rf .parcel-cache && parcel watch",
     "build": "parcel build",
     "clean": "rm -rf dist",
-    "test": "jest dist"
+    "test": "jest dist/test"
   },
   "files": [
     "dist"
@@ -28,9 +28,9 @@
     "test": {
       "source": [
         "runtime.test.ts",
-        "feature/endpoint.test.ts",
-        "syscall/store.knex_node.test.ts",
-        "syscall/store.dexie_browser.test.ts"
+        "hooks/endpoint.test.ts",
+        "syscalls/store.knex_node.test.ts",
+        "syscalls/store.dexie_browser.test.ts"
       ],
       "outputFormat": "commonjs",
       "isLibrary": true,

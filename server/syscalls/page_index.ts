@@ -5,7 +5,7 @@ import {
   ensureTable,
   storeReadSyscalls,
   storeWriteSyscalls,
-} from "../../plugos/syscall/store.knex_node";
+} from "../../plugos/syscalls/store.knex_node";
 
 type IndexItem = {
   page: string;

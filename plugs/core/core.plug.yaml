@@ -44,15 +44,10 @@ functions:
       - page:click
   insertToday:
     path: "./dates.ts:insertToday"
-    command:
-      name: Insert Current Date
-      slashCommand: today
+    slashCommand:
+      name: today
   welcome:
     path: "./server.ts:welcome"
     events:
       - plug:load
     env: server
-#  renderMD:
-#    path: "./markdown.ts:renderMD"
-#    command:
-#      name: Render Markdown

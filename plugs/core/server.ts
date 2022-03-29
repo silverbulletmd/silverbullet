@@ -1,7 +1,4 @@
-import {
-  EndpointRequest,
-  EndpointResponse,
-} from "../../plugos/feature/endpoint";
+import { EndpointRequest, EndpointResponse } from "../../plugos/hooks/endpoint";
 
 export function endpointTest(req: EndpointRequest): EndpointResponse {
   console.log("I'm running on the server!", req);

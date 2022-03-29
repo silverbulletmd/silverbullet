@@ -2,7 +2,7 @@ import {
   ControllerMessage,
   WorkerLike,
   WorkerMessage,
-} from "./environment/worker";
+} from "./environments/worker";
 import { Plug } from "./plug";
 
 export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox;

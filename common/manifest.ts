@@ -1,24 +1,14 @@
 import * as plugos from "../plugos/types";
-import { EndpointHook } from "../plugos/feature/endpoint";
-import { CronHook } from "../plugos/feature/node_cron";
-import { EventHook } from "../plugos/feature/event";
+import { EndpointHookT } from "../plugos/hooks/endpoint";
+import { CronHookT } from "../plugos/hooks/node_cron";
+import { EventHookT } from "../plugos/hooks/event";
+import { CommandHookT } from "../webapp/hooks/command";
+import { SlashCommandHookT } from "../webapp/hooks/slash_command";
 
-export type CommandDef = {
-  name: string;
-
-  // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-
-  // If to show in slash invoked menu and if so, with what label
-  // should match slashCommandRegexp
-  slashCommand?: string;
-};
-
-export type SilverBulletHooks = {
-  command?: CommandDef | CommandDef[];
-} & EndpointHook &
-  CronHook &
-  EventHook;
+export type SilverBulletHooks = CommandHookT &
+  SlashCommandHookT &
+  EndpointHookT &
+  CronHookT &
+  EventHookT;
 
 export type Manifest = plugos.Manifest<SilverBulletHooks>;

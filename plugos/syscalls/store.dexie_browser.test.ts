@@ -1,4 +1,4 @@
-import { createSandbox } from "../environment/node_sandbox";
+import { createSandbox } from "../environments/node_sandbox";
 import { expect, test } from "@jest/globals";
 import { System } from "../system";
 import { storeSyscalls } from "./store.dexie_browser";

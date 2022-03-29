@@ -1,19 +1,19 @@
-import { Feature, Manifest } from "../types";
+import { Hook, Manifest } from "../types";
 import { System } from "../system";
 
 // System events:
 // - plug:load (plugName: string)
 
-export type EventHook = {
+export type EventHookT = {
   events?: string[];
 };
 
-export class EventFeature implements Feature<EventHook> {
-  private system?: System<EventHook>;
+export class EventHook implements Hook<EventHookT> {
+  private system?: System<EventHookT>;
 
   async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
     if (!this.system) {
-      throw new Error("EventFeature is not initialized");
+      throw new Error("Event hook is not initialized");
     }
     let promises: Promise<any>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
@@ -31,7 +31,7 @@ export class EventFeature implements Feature<EventHook> {
     return Promise.all(promises);
   }
 
-  apply(system: System<EventHook>): void {
+  apply(system: System<EventHookT>): void {
     this.system = system;
     this.system.on({
       plugLoaded: (name) => {
@@ -40,7 +40,7 @@ export class EventFeature implements Feature<EventHook> {
     });
   }
 
-  validateManifest(manifest: Manifest<EventHook>): string[] {
+  validateManifest(manifest: Manifest<EventHookT>): string[] {
     let errors = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (functionDef.events && !Array.isArray(functionDef.events)) {

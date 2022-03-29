@@ -1,7 +1,7 @@
-import { AppCommand } from "../types";
 import { isMacLike } from "../util";
 import { FilterList, Option } from "./filter";
 import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
+import { AppCommand } from "../hooks/command";
 
 export function CommandPalette({
   commands,
@@ -18,7 +18,6 @@ export function CommandPalette({
       hint: isMac && def.command.mac ? def.command.mac : def.command.key,
     });
   }
-  console.log("Commands", options);
   return (
     <FilterList
       label="Run"

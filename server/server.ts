@@ -9,8 +9,8 @@ import {hideBin} from "yargs/helpers";
 import {SilverBulletHooks} from "../common/manifest";
 import {ExpressServer} from "./express_server";
 import {DiskPlugLoader} from "../plugos/plug_loader";
-import {NodeCronFeature} from "../plugos/feature/node_cron";
-import shellSyscalls from "../plugos/syscall/shell.node";
+import {NodeCronHook} from "../plugos/hooks/node_cron";
+import shellSyscalls from "../plugos/syscalls/shell.node";
 import {System} from "../plugos/system";
 
 let args = yargs(hideBin(process.argv))
@@ -21,7 +21,7 @@ let args = yargs(hideBin(process.argv))
     .parse();
 
 if (!args._.length) {
-  console.error("Usage: silverbullet <path-to-pages>");
+    console.error("Usage: silverbullet <path-to-pages>");
   process.exit(1);
 }
 
@@ -58,11 +58,11 @@ expressServer
     );
     await plugLoader.loadPlugs();
     plugLoader.watcher();
-    system.registerSyscalls("shell", ["shell"], shellSyscalls(pagesPath));
-    system.addFeature(new NodeCronFeature());
-    server.listen(port, () => {
-      console.log(`Server listening on port ${port}`);
-    });
+      system.registerSyscalls("shell", ["shell"], shellSyscalls(pagesPath));
+      system.addHook(new NodeCronHook());
+      server.listen(port, () => {
+        console.log(`Server listening on port ${port}`);
+      });
   })
   .catch((e) => {
     console.error(e);

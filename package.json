@@ -14,7 +14,7 @@
     "clean": "rm -rf dist",
     "plugs": "cd plugs && ../plugos/dist/plugos/plugos-bundle.js -w --dist dist */*.plug.yaml",
     "server": "nodemon -w dist/server dist/server/server.js pages",
-    "test": "jest dist/test"
+    "test": "jest dist/test plugos/dist/test"
   },
   "files": [
     "dist"

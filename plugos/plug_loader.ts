@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import watch from "node-watch";
 import path from "path";
-import { createSandbox } from "./environment/node_sandbox";
+import { createSandbox } from "./environments/node_sandbox";
 import { safeRun } from "../server/util";
 import { System } from "./system";
 

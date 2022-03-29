@@ -11,9 +11,9 @@ import { stat } from "fs/promises";
 import { Cursor, cursorEffect } from "../webapp/cursorEffect";
 import { SilverBulletHooks } from "../common/manifest";
 import { System } from "../plugos/system";
-import { EventFeature } from "../plugos/feature/event";
+import { EventHook } from "../plugos/hooks/event";
 import spaceSyscalls from "./syscalls/space";
-import { eventSyscalls } from "../plugos/syscall/event";
+import { eventSyscalls } from "../plugos/syscalls/event";
 
 export class PageApi implements ApiProvider {
   openPages: Map<string, Page>;
@@ -21,7 +21,7 @@ export class PageApi implements ApiProvider {
   rootPath: string;
   connectedSockets: Set<Socket>;
   private system: System<SilverBulletHooks>;
-  private eventFeature: EventFeature;
+  private eventHook: EventHook;
 
   constructor(
     rootPath: string,
@@ -34,10 +34,10 @@ export class PageApi implements ApiProvider {
     this.openPages = openPages;
     this.connectedSockets = connectedSockets;
     this.system = system;
-    this.eventFeature = new EventFeature();
-    system.addFeature(this.eventFeature);
+    this.eventHook = new EventHook();
+    system.addHook(this.eventHook);
     system.registerSyscalls("space", [], spaceSyscalls(this));
-    system.registerSyscalls("event", [], eventSyscalls(this.eventFeature));
+    system.registerSyscalls("event", [], eventSyscalls(this.eventHook));
   }
 
   async init(): Promise<void> {
@@ -229,11 +229,8 @@ export class PageApi implements ApiProvider {
                       " to disk and indexing."
                     );
                     await this.flushPageToDisk(pageName, page);
-                    await this.eventFeature.dispatchEvent(
-                      "page:saved",
-                      pageName
-                    );
-                    await this.eventFeature.dispatchEvent("page:index", {
+                    await this.eventHook.dispatchEvent("page:saved", pageName);
+                    await this.eventHook.dispatchEvent("page:index", {
                       name: pageName,
                       text: page.text.sliceString(0),
                     });
@@ -312,8 +309,8 @@ export class PageApi implements ApiProvider {
           this.openPages.delete(pageName);
         }
         // Trigger system events
-        await this.eventFeature.dispatchEvent("page:saved", pageName);
-        await this.eventFeature.dispatchEvent("page:index", {
+        await this.eventHook.dispatchEvent("page:saved", pageName);
+        await this.eventHook.dispatchEvent("page:index", {
           name: pageName,
           text: text,
         });
@@ -325,7 +322,7 @@ export class PageApi implements ApiProvider {
         clientConn.openPages.delete(pageName);
         // Cascading of this to all connected clients will be handled by file watcher
         await this.pageStore.deletePage(pageName);
-        await this.eventFeature.dispatchEvent("page:deleted", pageName);
+        await this.eventHook.dispatchEvent("page:deleted", pageName);
       },
 
       listPages: async (clientConn: ClientConnection): Promise<PageMeta[]> => {

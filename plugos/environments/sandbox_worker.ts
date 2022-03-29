@@ -48,7 +48,6 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
     let data = messageEvent.data;
     switch (data.type) {
       case "load":
-        console.log("Booting", data.name);
         loadedFunctions.set(data.name!, new Function(wrapScript(data.code!)));
         postMessage(
           {

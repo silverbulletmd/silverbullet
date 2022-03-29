@@ -1,15 +1,10 @@
-import { CommandDef } from "../common/manifest";
+import { AppCommand } from "./hooks/command";
 
 export type PageMeta = {
   name: string;
   lastModified: number;
   version?: number;
   lastOpened?: number;
-};
-
-export type AppCommand = {
-  command: CommandDef;
-  run: () => Promise<void>;
 };
 
 export const slashCommandRegexp = /\/[\w\-]*/;

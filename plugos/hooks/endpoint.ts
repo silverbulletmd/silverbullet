@@ -1,4 +1,4 @@
-import { Feature, Manifest } from "../types";
+import { Hook, Manifest } from "../types";
 import { Express, NextFunction, Request, Response } from "express";
 import { System } from "../system";
 
@@ -16,7 +16,7 @@ export type EndpointResponse = {
   body: any;
 };
 
-export type EndpointHook = {
+export type EndpointHookT = {
   http?: EndPointDef | EndPointDef[];
 };
 
@@ -25,7 +25,7 @@ export type EndPointDef = {
   path: string;
 };
 
-export class EndpointFeature implements Feature<EndpointHook> {
+export class EndpointHook implements Hook<EndpointHookT> {
   private app: Express;
   private prefix: string;
 
@@ -34,7 +34,7 @@ export class EndpointFeature implements Feature<EndpointHook> {
     this.prefix = prefix;
   }
 
-  apply(system: System<EndpointHook>): void {
+  apply(system: System<EndpointHookT>): void {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       if (!req.path.startsWith(this.prefix)) {
         return next();
@@ -106,7 +106,7 @@ export class EndpointFeature implements Feature<EndpointHook> {
     });
   }
 
-  validateManifest(manifest: Manifest<EndpointHook>): string[] {
+  validateManifest(manifest: Manifest<EndpointHookT>): string[] {
     let errors = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (!functionDef.http) {

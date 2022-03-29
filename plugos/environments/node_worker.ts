@@ -50,7 +50,6 @@ parentPort.on("message", (data: any) => {
   safeRun(async () => {
     switch (data.type) {
       case "load":
-        console.log("Booting", data.name);
         loadedFunctions.set(data.name, new VMScript(wrapScript(data.code)));
         parentPort.postMessage({
           type: "inited",

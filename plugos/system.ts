@@ -1,4 +1,4 @@
-import { Feature, Manifest, RuntimeEnvironment } from "./types";
+import { Hook, Manifest, RuntimeEnvironment } from "./types";
 import { EventEmitter } from "../common/event";
 import { SandboxFactory } from "./sandbox";
 import { Plug } from "./plug";
@@ -31,7 +31,7 @@ type Syscall = {
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
-  protected enabledFeatures = new Set<Feature<HookT>>();
+  protected enabledHooks = new Set<Hook<HookT>>();
 
   readonly runtimeEnv: RuntimeEnvironment;
 
@@ -40,8 +40,8 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     this.runtimeEnv = env;
   }
 
-  addFeature(feature: Feature<HookT>) {
-    this.enabledFeatures.add(feature);
+  addHook(feature: Hook<HookT>) {
+    this.enabledHooks.add(feature);
     feature.apply(this);
   }
 
@@ -91,7 +91,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
     // Validate
     let errors: string[] = [];
-    for (const feature of this.enabledFeatures) {
+    for (const feature of this.enabledHooks) {
       errors = [...errors, ...feature.validateManifest(manifest)];
     }
     if (errors.length > 0) {

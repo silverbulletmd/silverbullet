@@ -15,7 +15,7 @@ export type FunctionDef<HookT> = {
 
 export type RuntimeEnvironment = "client" | "server";
 
-export interface Feature<HookT> {
+export interface Hook<HookT> {
   validateManifest(manifest: Manifest<HookT>): string[];
 
   apply(system: System<HookT>): void;

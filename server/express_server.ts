@@ -1,6 +1,6 @@
 import { Express } from "express";
 import { SilverBulletHooks } from "../common/manifest";
-import { EndpointFeature } from "../plugos/feature/endpoint";
+import { EndpointHook } from "../plugos/hooks/endpoint";
 import { readFile } from "fs/promises";
 import { System } from "../plugos/system";
 
@@ -19,7 +19,7 @@ export class ExpressServer {
     this.rootPath = rootPath;
     this.system = system;
 
-    system.addFeature(new EndpointFeature(app, "/_"));
+    system.addHook(new EndpointHook(app, "/_"));
 
     // Fallback, serve index.html
     let cachedIndex: string | undefined = undefined;
