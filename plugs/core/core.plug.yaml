@@ -9,6 +9,10 @@ functions:
     path: "./page.ts:indexLinks"
     events:
       - page:index
+  indexItems:
+    path: "./item.ts:indexItems"
+    events:
+      - page:index
   deletePage:
     path: "./page.ts:deletePage"
     command:
@@ -50,3 +54,10 @@ functions:
     events:
       - plug:load
     env: server
+  updateMaterializedQueriesOnPage:
+    path: ./materialized_queries.ts:updateMaterializedQueriesOnPage
+    env: server
+  updateMaterializedQueriesCommand:
+    path: ./materialized_queries.ts:updateMaterializedQueriesCommand
+    command:
+      name: "Materialized Queries: Update"

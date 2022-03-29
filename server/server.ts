@@ -21,8 +21,8 @@ let args = yargs(hideBin(process.argv))
     .parse();
 
 if (!args._.length) {
-    console.error("Usage: silverbullet <path-to-pages>");
-    process.exit(1);
+  console.error("Usage: silverbullet <path-to-pages>");
+  process.exit(1);
 }
 
 const pagesPath = args._[0] as string;

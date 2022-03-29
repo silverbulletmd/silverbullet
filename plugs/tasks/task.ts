@@ -2,11 +2,20 @@ import type { ClickEvent } from "../../webapp/app_event";
 import { IndexEvent } from "../../webapp/app_event";
 import { syscall } from "../lib/syscall";
 
+import { whiteOutQueries } from "../core/materialized_queries";
+
 const allTasksPageName = "ALL TASKS";
 const taskRe = /[\-\*]\s*\[([ Xx])\]\s*(.*)/g;
+const taskFullRe =
+  /(?<prefix>[\t ]*)[\-\*]\s*\[([ Xx])\]\s*([^\n]+)(\n\k<prefix>\s+[\-\*][^\n]+)*/g;
 const extractPageLink = /[\-\*]\s*\[[ Xx]\]\s\[\[([^\]]+)@(\d+)\]\]\s*(.*)/;
 
-type Task = { task: string; complete: boolean; pos?: number };
+type Task = {
+  task: string;
+  complete: boolean;
+  pos?: number;
+  children?: string[];
+};
 
 export async function indexTasks({ name, text }: IndexEvent) {
   if (name === allTasksPageName) {
@@ -15,16 +24,24 @@ export async function indexTasks({ name, text }: IndexEvent) {
 
   console.log("Indexing tasks");
   let tasks: { key: string; value: Task }[] = [];
-  for (let match of text.matchAll(taskRe)) {
-    let complete = match[1] !== " ";
-    let task = match[2];
+  text = whiteOutQueries(text);
+  for (let match of text.matchAll(taskFullRe)) {
+    let entire = match[0];
+    let complete = match[2] !== " ";
+    let task = match[3];
     let pos = match.index!;
+    let lines = entire.split("\n");
+
+    let value: Task = {
+      task,
+      complete,
+    };
+    if (lines.length > 1) {
+      value.children = lines.slice(1);
+    }
     tasks.push({
       key: `task:${pos}`,
-      value: {
-        task,
-        complete,
-      },
+      value,
     });
   }
   console.log("Found", tasks.length, "task(s)");
@@ -37,7 +54,7 @@ export async function updateTaskPage() {
   for (let {
     key,
     page,
-    value: { task, complete, pos },
+    value: { task, complete },
   } of allTasks) {
     if (complete) {
       continue;

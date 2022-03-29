@@ -1,5 +1,8 @@
 import { ClickEvent } from "../../webapp/app_event";
 import { syscall } from "../lib/syscall";
+import { updateMaterializedQueriesCommand } from "./materialized_queries";
+
+const materializedQueryPrefix = /<!--\s*#query\s+/;
 
 async function navigate(syntaxNode: any) {
   if (!syntaxNode) {
@@ -17,6 +20,11 @@ async function navigate(syntaxNode: any) {
       break;
     case "URL":
       await syscall("editor.openUrl", syntaxNode.text);
+      break;
+    case "CommentBlock":
+      if (syntaxNode.text.match(materializedQueryPrefix)) {
+        await updateMaterializedQueriesCommand();
+      }
       break;
     case "Link":
       // Markdown link: [bla](URLHERE) needs extraction
