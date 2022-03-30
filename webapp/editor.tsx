@@ -44,6 +44,7 @@ import { Panel } from "./components/panel";
 import { CommandHook } from "./hooks/command";
 import { SlashCommandHook } from "./hooks/slash_command";
 import { CompleterHook } from "./hooks/completer";
+import { pasteLinkExtension } from "./editor_paste";
 
 class PageState {
   scrollTop: number;
@@ -305,6 +306,7 @@ export class Editor implements AppEventDispatcher {
             },
           },
         ]),
+
         EditorView.domEventHandlers({
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
@@ -319,6 +321,7 @@ export class Editor implements AppEventDispatcher {
             });
           },
         }),
+        pasteLinkExtension,
         markdown({
           base: customMarkDown,
         }),

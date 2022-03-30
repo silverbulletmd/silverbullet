@@ -11,9 +11,9 @@ import {EndpointHook, EndpointHookT} from "../hooks/endpoint";
 import {safeRun} from "../util";
 import knex from "knex";
 import {
-    ensureTable,
-    storeReadSyscalls,
-    storeWriteSyscalls,
+  ensureTable,
+  storeReadSyscalls,
+  storeWriteSyscalls,
 } from "../syscalls/store.knex_node";
 import {fetchSyscalls} from "../syscalls/fetch.node";
 import {EventHook, EventHookT} from "../hooks/event";
@@ -21,13 +21,13 @@ import {eventSyscalls} from "../syscalls/event";
 
 let args = yargs(hideBin(process.argv))
     .option("port", {
-        type: "number",
-        default: 1337,
+      type: "number",
+      default: 1337,
     })
     .parse();
 
 if (!args._.length) {
-    console.error("Usage: plugos-server <path-to-plugs>");
+  console.error("Usage: plugos-server <path-to-plugs>");
   process.exit(1);
 }
 

@@ -80,17 +80,21 @@ export class Space extends EventEmitter<SpaceEvents> {
     });
   }
 
+  openRequests = new Map<number, string>();
   public wsCall(eventName: string, ...args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
       this.reqId++;
-      this.socket!.once(`${eventName}Resp${this.reqId}`, (err, result) => {
+      const reqId = this.reqId;
+      this.openRequests.set(reqId, eventName);
+      this.socket!.once(`${eventName}Resp${reqId}`, (err, result) => {
+        this.openRequests.delete(reqId);
         if (err) {
           reject(new Error(err));
         } else {
           resolve(result);
         }
       });
-      this.socket!.emit(eventName, this.reqId, ...args);
+      this.socket!.emit(eventName, reqId, ...args);
     });
   }
 

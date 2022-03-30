@@ -4,7 +4,7 @@ import {
   receiveUpdates,
   sendableUpdates,
   Update,
-} from "@codemirror/collab";
+} from "./cm_collab";
 import { RangeSetBuilder } from "@codemirror/rangeset";
 import { Text, Transaction } from "@codemirror/state";
 import {
@@ -138,10 +138,6 @@ export function collabExtension(
       update(update: ViewUpdate) {
         if (update.selectionSet) {
           let pos = update.state.selection.main.head;
-          // if (pos === 0) {
-          //   console.error("Warning: position reset? at 0");
-          //   console.trace();
-          // }
           setTimeout(() => {
             update.view.dispatch({
               effects: [
@@ -209,7 +205,6 @@ export function collabExtension(
         while (!this.done) {
           let version = getSyncedVersion(this.view.state);
           let updates = await callbacks.pullUpdates(pageName, version);
-          let d = receiveUpdates(this.view.state, updates);
           // Pull out cursor updates and update local state
           for (let update of updates) {
             if (update.effects) {
@@ -224,7 +219,9 @@ export function collabExtension(
               }
             }
           }
-          this.view.dispatch(d);
+
+          // Apply updates locally
+          this.view.dispatch(receiveUpdates(this.view.state, updates));
         }
       }
 

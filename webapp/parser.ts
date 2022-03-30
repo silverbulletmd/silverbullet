@@ -1,10 +1,10 @@
 import { styleTags, tags as t } from "@codemirror/highlight";
 import {
-  MarkdownConfig,
-  TaskList,
   BlockContext,
   LeafBlock,
   LeafBlockParser,
+  MarkdownConfig,
+  TaskList,
 } from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
@@ -60,8 +60,8 @@ const AtMention: MarkdownConfig = {
   ],
 };
 
-const urlRegexp =
-  /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+export const urlRegexp =
+  /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
 const UnmarkedUrl: MarkdownConfig = {
   defineNodes: ["URL"],
