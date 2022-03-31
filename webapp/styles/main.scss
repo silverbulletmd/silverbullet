@@ -68,7 +68,16 @@ body {
       padding-left: 5px;
       padding-right: 10px;
     }
+
+    .icon.saved {
+      color: #015701;
+    }
+
+    .icon.unsaved {
+      color: #e19502;
+    }
   }
+
 }
 
 #editor {

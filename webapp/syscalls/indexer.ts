@@ -12,6 +12,6 @@ export default function indexerSyscalls(space: Space): SysCallMapping {
       "batchSet",
       "delete",
     ],
-    (name, ...args) => space.wsCall(`index.${name}`, ...args)
+    (ctx, name, ...args) => space.remoteSyscall(ctx.plug, `index.${name}`, args)
   );
 }

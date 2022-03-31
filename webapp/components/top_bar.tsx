@@ -11,19 +11,19 @@ function prettyName(s: string | undefined): string {
 
 export function TopBar({
   pageName,
-  status,
+  unsavedChanges,
   notifications,
   onClick,
 }: {
   pageName?: string;
-  status?: string;
+  unsavedChanges: boolean;
   notifications: Notification[];
   onClick: () => void;
 }) {
   return (
     <div id="top" onClick={onClick}>
       <div className="inner">
-        <span className="icon">
+        <span className={`icon ${unsavedChanges ? "unsaved" : "saved"}`}>
           <FontAwesomeIcon icon={faFileLines} />
         </span>
         <span className="current-page">{prettyName(pageName)}</span>

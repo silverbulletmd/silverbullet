@@ -35,5 +35,5 @@ export async function indexItems({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", items.length, "item(s)");
-  await syscall("indexer.batchSet", name, items);
+  await syscall("index.batchSet", name, items);
 }

@@ -14,8 +14,8 @@ export type SystemEvents<HookT> = {
   plugUnloaded: (name: string, plug: Plug<HookT>) => void;
 };
 
-type SyscallContext = {
-  plug: Plug<any> | null;
+export type SyscallContext = {
+  plug: Plug<any>;
 };
 
 type SyscallSignature = (

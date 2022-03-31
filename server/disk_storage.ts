@@ -1,8 +1,54 @@
 import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import * as path from "path";
 import { PageMeta } from "./types";
+import { EventHook } from "../plugos/hooks/event";
 
-export class DiskStorage {
+export interface Storage {
+  listPages(): Promise<PageMeta[]>;
+
+  readPage(pageName: string): Promise<{ text: string; meta: PageMeta }>;
+
+  writePage(pageName: string, text: string): Promise<PageMeta>;
+
+  getPageMeta(pageName: string): Promise<PageMeta>;
+
+  deletePage(pageName: string): Promise<void>;
+}
+
+export class EventedStorage implements Storage {
+  constructor(private wrapped: Storage, private eventHook: EventHook) {}
+
+  listPages(): Promise<PageMeta[]> {
+    return this.wrapped.listPages();
+  }
+
+  readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
+    return this.wrapped.readPage(pageName);
+  }
+
+  async writePage(pageName: string, text: string): Promise<PageMeta> {
+    const newPageMeta = this.wrapped.writePage(pageName, text);
+    // This can happen async
+    this.eventHook.dispatchEvent("page:saved", pageName).then(() => {
+      return this.eventHook.dispatchEvent("page:index", {
+        name: pageName,
+        text: text,
+      });
+    });
+    return newPageMeta;
+  }
+
+  getPageMeta(pageName: string): Promise<PageMeta> {
+    return this.wrapped.getPageMeta(pageName);
+  }
+
+  async deletePage(pageName: string): Promise<void> {
+    await this.eventHook.dispatchEvent("page:deleted", pageName);
+    return this.wrapped.deletePage(pageName);
+  }
+}
+
+export class DiskStorage implements Storage {
   rootPath: string;
 
   constructor(rootPath: string) {
@@ -88,7 +134,7 @@ export class DiskStorage {
     }
   }
 
-  async deletePage(pageName: string) {
+  async deletePage(pageName: string): Promise<void> {
     let localPath = path.join(this.rootPath, pageName + ".md");
     await unlink(localPath);
   }

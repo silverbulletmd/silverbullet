@@ -7,7 +7,7 @@ export function systemSyscalls(space: Space): SysCallMapping {
       if (!ctx.plug) {
         throw Error("No plug associated with context");
       }
-      return space.wsCall("invokeFunction", ctx.plug.name, name, ...args);
+      return space.remoteInvoke(ctx.plug, name, args);
     },
   };
 }

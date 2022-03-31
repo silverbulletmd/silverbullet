@@ -1,6 +1,3 @@
-import { Editor } from "../../webapp/editor";
-import { Space } from "../../webapp/space";
-
 declare namespace window {
   var ReactNativeWebView: any;
   var receiveMessage: any;

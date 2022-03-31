@@ -9,6 +9,7 @@ export class Plug<HookT> {
   readonly runtimeEnv: RuntimeEnvironment;
   grantedPermissions: string[] = [];
   name: string;
+  version: number;
 
   constructor(
     system: System<HookT>,
@@ -19,6 +20,7 @@ export class Plug<HookT> {
     this.name = name;
     this.sandbox = sandboxFactory(this);
     this.runtimeEnv = system.runtimeEnv;
+    this.version = new Date().getTime();
   }
 
   async load(manifest: Manifest<HookT>) {

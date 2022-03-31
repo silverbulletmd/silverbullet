@@ -47,7 +47,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           key,
           page,
           value: { task, complete, children },
-        } of await syscall("indexer.scanPrefixGlobal", "task:")) {
+        } of await syscall("index.scanPrefixGlobal", "task:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && task.includes(filter))) {
             results.push(
@@ -64,7 +64,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           key,
           page,
           value: { item, children },
-        } of await syscall("indexer.scanPrefixGlobal", "it:")) {
+        } of await syscall("index.scanPrefixGlobal", "it:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && item.includes(filter))) {
             results.push(`* [[${page}@${pos}]] ${item}`);

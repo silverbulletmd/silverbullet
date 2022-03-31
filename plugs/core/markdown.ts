@@ -15,7 +15,7 @@ export async function renderMD() {
       }
     },
   });
-  console.log("output peices", JSON.stringify(tree));
+  // console.log("output peices", JSON.stringify(tree));
   slicesToRemove.reverse().forEach(([from, to]) => {
     text = text.slice(0, from) + text.slice(to);
   });

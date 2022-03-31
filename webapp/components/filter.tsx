@@ -81,8 +81,11 @@ export function FilterList({
 
   let selectedElementRef = useRef<HTMLDivElement>(null);
 
-  const filter = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const originalPhrase = e.target.value;
+  function filterUpdate(e: React.ChangeEvent<HTMLInputElement>) {
+    updateFilter(e.target.value);
+  }
+
+  function updateFilter(originalPhrase: string) {
     const searchPhrase = originalPhrase.toLowerCase();
 
     if (searchPhrase) {
@@ -103,7 +106,11 @@ export function FilterList({
 
     setText(originalPhrase);
     setSelectionOption(0);
-  };
+  }
+
+  useEffect(() => {
+    updateFilter(text);
+  }, [options]);
 
   useEffect(() => {
     searchBoxRef.current!.focus();
@@ -113,6 +120,7 @@ export function FilterList({
     function closer() {
       onSelect(undefined);
     }
+
     document.addEventListener("click", closer);
 
     return () => {
@@ -129,7 +137,7 @@ export function FilterList({
           value={text}
           placeholder={placeholder}
           ref={searchBoxRef}
-          onChange={filter}
+          onChange={filterUpdate}
           onKeyDown={(e: React.KeyboardEvent) => {
             // console.log("Key up", e.key);
             if (onKeyPress) {

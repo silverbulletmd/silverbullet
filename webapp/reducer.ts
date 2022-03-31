@@ -10,13 +10,23 @@ export default function reducer(
       return {
         ...state,
         allPages: new Set(
-          [...state.allPages].map((pageMeta) =>
-            pageMeta.name === action.name
-              ? { ...pageMeta, lastOpened: Date.now() }
-              : pageMeta
-          )
+            [...state.allPages].map((pageMeta) =>
+                pageMeta.name === action.name
+                    ? {...pageMeta, lastOpened: Date.now()}
+                    : pageMeta
+            )
         ),
         currentPage: action.name,
+      };
+    case "page-changed":
+      return {
+        ...state,
+        unsavedChanges: true,
+      };
+    case "page-saved":
+      return {
+        ...state,
+        unsavedChanges: false,
       };
     case "start-navigate":
       return {

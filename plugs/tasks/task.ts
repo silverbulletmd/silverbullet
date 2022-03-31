@@ -45,11 +45,11 @@ export async function indexTasks({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", tasks.length, "task(s)");
-  await syscall("indexer.batchSet", name, tasks);
+  await syscall("index.batchSet", name, tasks);
 }
 
 export async function updateTaskPage() {
-  let allTasks = await syscall("indexer.scanPrefixGlobal", "task:");
+  let allTasks = await syscall("index.scanPrefixGlobal", "task:");
   let pageTasks = new Map<string, Task[]>();
   for (let {
     key,

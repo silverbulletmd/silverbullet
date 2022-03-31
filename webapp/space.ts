@@ -1,167 +1,266 @@
 import { PageMeta } from "./types";
-import { Socket } from "socket.io-client";
-import { Update } from "@codemirror/collab";
-import { ChangeSet, Text, Transaction } from "@codemirror/state";
-
-import { CollabDocument, CollabEvents } from "./collab";
-import { cursorEffect } from "./cursorEffect";
 import { EventEmitter } from "../common/event";
 import { Manifest } from "../common/manifest";
-import { SystemJSON } from "../plugos/system";
+import { safeRun } from "./util";
+import { Plug } from "../plugos/plug";
 
 export type SpaceEvents = {
-  connect: () => void;
   pageCreated: (meta: PageMeta) => void;
   pageChanged: (meta: PageMeta) => void;
   pageDeleted: (name: string) => void;
   pageListUpdated: (pages: Set<PageMeta>) => void;
-  loadSystem: (systemJSON: SystemJSON<any>) => void;
   plugLoaded: (plugName: string, plug: Manifest) => void;
   plugUnloaded: (plugName: string) => void;
-} & CollabEvents;
-
-export type KV = {
-  key: string;
-  value: any;
 };
 
+type PlugMeta = {
+  name: string;
+  version: number;
+};
+
+const pageWatchInterval = 2000;
+const plugWatchInterval = 5000;
+
 export class Space extends EventEmitter<SpaceEvents> {
-  socket: Socket;
-  reqId = 0;
-  allPages = new Set<PageMeta>();
+  pageUrl: string;
+  pageMetaCache = new Map<string, PageMeta>();
+  plugMetaCache = new Map<string, PlugMeta>();
+  watchedPages = new Set<string>();
+  saving = false;
+  private plugUrl: string;
+  private initialPageListLoad = true;
+  private initialPlugListLoad = true;
 
-  constructor(socket: Socket) {
+  constructor(url: string) {
     super();
-    this.socket = socket;
+    this.pageUrl = url + "/fs";
+    this.plugUrl = url + "/plug";
+    this.watch();
+    this.pollPlugs();
+    this.updatePageListAsync();
+  }
 
-    [
-      "connect",
-      "cursorSnapshot",
-      "pageCreated",
-      "pageChanged",
-      "pageDeleted",
-      "loadSystem",
-      "plugLoaded",
-      "plugUnloaded",
-    ].forEach((eventName) => {
-      socket.on(eventName, (...args) => {
-        this.emit(eventName as keyof SpaceEvents, ...args);
+  public watchPage(pageName: string) {
+    this.watchedPages.add(pageName);
+  }
+
+  public unwatchPage(pageName: string) {
+    this.watchedPages.delete(pageName);
+  }
+
+  watch() {
+    setInterval(() => {
+      safeRun(async () => {
+        if (this.saving) {
+          return;
+        }
+        for (const pageName of this.watchedPages) {
+          const oldMeta = this.pageMetaCache.get(pageName);
+          if (!oldMeta) {
+            // No longer in cache, meaning probably deleted let's unwatch
+            this.watchedPages.delete(pageName);
+            continue;
+          }
+          const newMeta = await this.getPageMeta(pageName);
+          if (oldMeta.lastModified !== newMeta.lastModified) {
+            console.log("Page", pageName, "changed on disk, emitting event");
+            this.emit("pageChanged", newMeta);
+          }
+        }
       });
-    });
-    this.wsCall("page.listPages").then((pages) => {
-      this.allPages = new Set(pages);
-      this.emit("pageListUpdated", this.allPages);
-    });
-    this.on({
-      pageCreated: (meta) => {
-        // Cannot reply on equivalence in set, need to iterate over all pages
-        let found = false;
-        for (const page of this.allPages) {
-          if (page.name === meta.name) {
-            found = true;
-            break;
-          }
+    }, pageWatchInterval);
+
+    setInterval(() => {
+      safeRun(this.pollPlugs.bind(this));
+    }, plugWatchInterval);
+  }
+
+  public updatePageListAsync() {
+    safeRun(async () => {
+      let req = await fetch(this.pageUrl, {
+        method: "GET",
+      });
+
+      let deletedPages = new Set<string>(this.pageMetaCache.keys());
+      ((await req.json()) as any[]).forEach((meta: any) => {
+        const pageName = meta.name;
+        const oldPageMeta = this.pageMetaCache.get(pageName);
+        const newPageMeta = {
+          name: pageName,
+          lastModified: meta.lastModified,
+        };
+        if (!oldPageMeta && !this.initialPageListLoad) {
+          this.emit("pageCreated", newPageMeta);
+        } else if (
+          oldPageMeta &&
+          oldPageMeta.lastModified !== newPageMeta.lastModified
+        ) {
+          this.emit("pageChanged", newPageMeta);
         }
-        if (!found) {
-          this.allPages.add(meta);
-          console.log("New page created", meta);
-          this.emit("pageListUpdated", this.allPages);
-        }
-      },
-      pageDeleted: (name) => {
-        console.log("Page delete", name);
-        this.allPages.forEach((meta) => {
-          if (name === meta.name) {
-            this.allPages.delete(meta);
-          }
-        });
-        this.emit("pageListUpdated", this.allPages);
-      },
+        // Page found, not deleted
+        deletedPages.delete(pageName);
+
+        // Update in cache
+        this.pageMetaCache.set(pageName, newPageMeta);
+      });
+
+      for (const deletedPage of deletedPages) {
+        this.pageMetaCache.delete(deletedPage);
+        this.emit("pageDeleted", deletedPage);
+      }
+
+      this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
+      this.initialPageListLoad = false;
     });
   }
 
-  openRequests = new Map<number, string>();
-  public wsCall(eventName: string, ...args: any[]): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.reqId++;
-      const reqId = this.reqId;
-      this.openRequests.set(reqId, eventName);
-      this.socket!.once(`${eventName}Resp${reqId}`, (err, result) => {
-        this.openRequests.delete(reqId);
-        if (err) {
-          reject(new Error(err));
-        } else {
-          resolve(result);
-        }
-      });
-      this.socket!.emit(eventName, reqId, ...args);
-    });
+  public async listPages(): Promise<Set<PageMeta>> {
+    // this.updatePageListAsync();
+    return new Set([...this.pageMetaCache.values()]);
   }
 
-  async pushUpdates(
-    pageName: string,
-    version: number,
-    fullUpdates: readonly (Update & { origin: Transaction })[]
-  ): Promise<boolean> {
-    if (this.socket) {
-      let updates = fullUpdates.map((u) => ({
-        clientID: u.clientID,
-        changes: u.changes.toJSON(),
-        cursors: u.effects?.map((e) => e.value),
-      }));
-      return this.wsCall("page.pushUpdates", pageName, version, updates);
+  private responseToMetaCacher(name: string, res: Response): PageMeta {
+    const meta = {
+      name,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+    };
+    this.pageMetaCache.set(name, meta);
+    return meta;
+  }
+
+  public async readPage(
+    name: string
+  ): Promise<{ text: string; meta: PageMeta }> {
+    let res = await fetch(`${this.pageUrl}/${name}`, {
+      method: "GET",
+    });
+    return {
+      text: await res.text(),
+      meta: this.responseToMetaCacher(name, res),
+    };
+  }
+
+  public async writePage(
+    name: string,
+    text: string,
+    selfUpdate?: boolean
+  ): Promise<PageMeta> {
+    try {
+      this.saving = true;
+      let res = await fetch(`${this.pageUrl}/${name}`, {
+        method: "PUT",
+        body: text,
+      });
+      const newMeta = this.responseToMetaCacher(name, res);
+      if (!selfUpdate) {
+        this.emit("pageChanged", newMeta);
+      }
+      return newMeta;
+    } finally {
+      this.saving = false;
     }
-    return false;
   }
 
-  async pullUpdates(
-    pageName: string,
-    version: number
-  ): Promise<readonly Update[]> {
-    let updates: Update[] = await this.wsCall(
-      "page.pullUpdates",
-      pageName,
-      version
-    );
-    return updates.map((u) => ({
-      changes: ChangeSet.fromJSON(u.changes),
-      effects: u.effects?.map((e) => cursorEffect.of(e.value)),
-      clientID: u.clientID,
-    }));
+  public async deletePage(name: string): Promise<void> {
+    let req = await fetch(`${this.pageUrl}/${name}`, {
+      method: "DELETE",
+    });
+    if (req.status !== 200) {
+      throw Error(`Failed to delete page: ${req.statusText}`);
+    }
+    this.pageMetaCache.delete(name);
+    this.emit("pageDeleted", name);
+    this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
   }
 
-  async listPages(): Promise<PageMeta[]> {
-    return Array.from(this.allPages);
+  private async getPageMeta(name: string): Promise<PageMeta> {
+    let res = await fetch(`${this.pageUrl}/${name}`, {
+      method: "OPTIONS",
+    });
+    return this.responseToMetaCacher(name, res);
   }
 
-  async openPage(name: string): Promise<CollabDocument> {
-    this.reqId++;
-    let pageJSON = await this.wsCall("page.openPage", name);
-
-    return new CollabDocument(
-      Text.of(pageJSON.text),
-      pageJSON.version,
-      new Map(Object.entries(pageJSON.cursors))
-    );
+  async remoteSyscall(
+    plug: Plug<any>,
+    name: string,
+    args: any[]
+  ): Promise<any> {
+    console.log("Making a remote syscall", name, args);
+    let req = await fetch(`${this.plugUrl}/${plug.name}/syscall/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify(args),
+    });
+    if (req.status !== 200) {
+      let error = await req.text();
+      throw Error(error);
+    }
+    if (req.headers.get("Content-length") === "0") {
+      return;
+    }
+    return await req.json();
   }
 
-  async closePage(name: string): Promise<void> {
-    this.socket.emit("page.closePage", name);
+  async remoteInvoke(plug: Plug<any>, name: string, args: any[]): Promise<any> {
+    console.log("Making a remote syscall", name, JSON.stringify(args));
+    let req = await fetch(`${this.plugUrl}/${plug.name}/function/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify(args),
+    });
+    if (req.status !== 200) {
+      let error = await req.text();
+      throw Error(error);
+    }
+    if (req.headers.get("Content-length") === "0") {
+      return;
+    }
+    return await req.json();
   }
 
-  async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    return this.wsCall("page.readPage", name);
+  private async pollPlugs(): Promise<void> {
+    const newPlugs = await this.loadPlugs();
+    let deletedPlugs = new Set<string>(this.plugMetaCache.keys());
+    for (const newPlugMeta of newPlugs) {
+      const oldPlugMeta = this.plugMetaCache.get(newPlugMeta.name);
+      if (
+        !oldPlugMeta ||
+        (oldPlugMeta && oldPlugMeta.version !== newPlugMeta.version)
+      ) {
+        this.emit(
+          "plugLoaded",
+          newPlugMeta.name,
+          await this.loadPlug(newPlugMeta.name)
+        );
+      }
+      // Page found, not deleted
+      deletedPlugs.delete(newPlugMeta.name);
+
+      // Update in cache
+      this.plugMetaCache.set(newPlugMeta.name, newPlugMeta);
+    }
+
+    for (const deletedPlug of deletedPlugs) {
+      this.plugMetaCache.delete(deletedPlug);
+      this.emit("plugUnloaded", deletedPlug);
+    }
   }
 
-  async writePage(name: string, text: string): Promise<PageMeta> {
-    return this.wsCall("page.writePage", name, text);
+  private async loadPlugs(): Promise<PlugMeta[]> {
+    let res = await fetch(`${this.plugUrl}`, {
+      method: "GET",
+    });
+    return (await res.json()) as PlugMeta[];
   }
 
-  async deletePage(name: string): Promise<void> {
-    return this.wsCall("page.deletePage", name);
-  }
-
-  async getPageMeta(name: string): Promise<PageMeta> {
-    return this.wsCall("page.getPageMeta", name);
+  private async loadPlug(name: string): Promise<Manifest> {
+    let res = await fetch(`${this.plugUrl}/${name}`, {
+      method: "GET",
+    });
+    return (await res.json()) as Manifest;
   }
 }

@@ -5,6 +5,7 @@ export type PageMeta = {
   lastModified: number;
   version?: number;
   lastOpened?: number;
+  created?: boolean;
 };
 
 export const slashCommandRegexp = /\/[\w\-]*/;
@@ -19,6 +20,7 @@ export type AppViewState = {
   currentPage?: string;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
+  unsavedChanges: boolean;
   showRHS: boolean;
   rhsHTML: string;
   allPages: Set<PageMeta>;
@@ -29,6 +31,7 @@ export type AppViewState = {
 export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
+  unsavedChanges: false,
   showRHS: false,
   rhsHTML: "<h1>Loading...</h1>",
   allPages: new Set(),
@@ -39,6 +42,8 @@ export const initialViewState: AppViewState = {
 export type Action =
   | { type: "page-loaded"; name: string }
   | { type: "pages-listed"; pages: Set<PageMeta> }
+  | { type: "page-changed" }
+  | { type: "page-saved" }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "update-commands"; commands: Map<string, AppCommand> }

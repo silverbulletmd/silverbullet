@@ -1,8 +1,8 @@
 import {
+  ChangeSpec,
+  EditorSelection,
   StateCommand,
   Text,
-  EditorSelection,
-  ChangeSpec,
 } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, Tree } from "@lezer/common";

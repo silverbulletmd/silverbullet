@@ -3,8 +3,8 @@ import { PageMeta } from "../types";
 import { SysCallMapping } from "../../plugos/system";
 
 export default (editor: Editor): SysCallMapping => ({
-  listPages: (): PageMeta[] => {
-    return [...editor.viewState.allPages];
+  listPages: async (): Promise<PageMeta[]> => {
+    return [...(await editor.space.listPages())];
   },
   readPage: async (
     ctx,

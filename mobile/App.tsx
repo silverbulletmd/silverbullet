@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text } from "react-native";
 import { WebView } from "react-native-webview";
 
 function safeRun(fn: () => Promise<void>) {

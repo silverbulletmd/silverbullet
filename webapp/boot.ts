@@ -1,10 +1,8 @@
 import { Editor } from "./editor";
 import { Space } from "./space";
 import { safeRun } from "./util";
-import { io } from "socket.io-client";
 
-let socket = io();
-let editor = new Editor(new Space(socket), document.getElementById("root")!);
+let editor = new Editor(new Space(""), document.getElementById("root")!);
 
 safeRun(async () => {
   await editor.init();

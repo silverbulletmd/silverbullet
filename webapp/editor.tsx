@@ -4,7 +4,7 @@ import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
 import { bracketMatching } from "@codemirror/matchbrackets";
 import { searchKeymap } from "@codemirror/search";
-import { EditorSelection, EditorState, Text } from "@codemirror/state";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -12,17 +12,17 @@ import {
   highlightSpecialChars,
   KeyBinding,
   keymap,
+  ViewPlugin,
+  ViewUpdate,
 } from "@codemirror/view";
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { createSandbox as createIFrameSandbox } from "../plugos/environments/iframe_sandbox";
 import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
-import { CollabDocument, collabExtension } from "./collab";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
-import { Cursor } from "./cursorEffect";
 import { lineWrapper } from "./line_wrapper";
 import { markdown } from "./markdown";
 import { PathPageNavigator } from "./navigator";
@@ -55,6 +55,8 @@ class PageState {
     this.selection = selection;
   }
 }
+
+const saveInterval = 2000;
 
 export class Editor implements AppEventDispatcher {
   private system = new System<SilverBulletHooks>("client");
@@ -101,17 +103,14 @@ export class Editor implements AppEventDispatcher {
 
     this.render(parent);
     this.editorView = new EditorView({
-      state: this.createEditorState(
-        "",
-        new CollabDocument(Text.of([""]), 0, new Map<string, Cursor>())
-      ),
+      state: this.createEditorState("", ""),
       parent: document.getElementById("editor")!,
     });
     this.pageNavigator = new PathPageNavigator();
 
     this.system.registerSyscalls("editor", [], editorSyscalls(this));
     this.system.registerSyscalls("space", [], spaceSyscalls(this));
-    this.system.registerSyscalls("indexer", [], indexerSyscalls(this.space));
+    this.system.registerSyscalls("index", [], indexerSyscalls(this.space));
     this.system.registerSyscalls("system", [], systemSyscalls(this.space));
   }
 
@@ -134,12 +133,11 @@ export class Editor implements AppEventDispatcher {
     });
 
     this.space.on({
-      connect: () => {
-        if (this.currentPage) {
-          console.log("Connected to socket, fetch fresh?");
-          this.flashNotification("Reconnected, reloading page");
-          this.reloadPage();
-        }
+      pageCreated: (meta) => {
+        console.log("Page created", meta);
+      },
+      pageDeleted: (meta) => {
+        console.log("Page delete", meta);
       },
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
@@ -152,11 +150,6 @@ export class Editor implements AppEventDispatcher {
         this.viewDispatch({
           type: "pages-listed",
           pages: pages,
-        });
-      },
-      loadSystem: (systemJSON) => {
-        safeRun(async () => {
-          await this.system.replaceAllFromJSON(systemJSON, createIFrameSandbox);
         });
       },
       plugLoaded: (plugName, plug) => {
@@ -176,6 +169,40 @@ export class Editor implements AppEventDispatcher {
     if (this.pageNavigator.getCurrentPage() === "") {
       await this.pageNavigator.navigate("start");
     }
+  }
+
+  saveTimeout: any;
+
+  async save(immediate: boolean = false): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.viewState.unsavedChanges) {
+        return resolve();
+      }
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+      }
+      this.saveTimeout = setTimeout(
+        () => {
+          if (this.currentPage) {
+            console.log("Saving page", this.currentPage);
+            this.space
+              .writePage(
+                this.currentPage,
+                this.editorView!.state.sliceDoc(0),
+                true
+              )
+              .then(() => {
+                this.viewDispatch({ type: "page-saved" });
+                resolve();
+              })
+              .catch(reject);
+          } else {
+            resolve();
+          }
+        },
+        immediate ? 0 : saveInterval
+      );
+    });
   }
 
   flashNotification(message: string) {
@@ -204,7 +231,7 @@ export class Editor implements AppEventDispatcher {
     return this.viewState.currentPage;
   }
 
-  createEditorState(pageName: string, doc: CollabDocument): EditorState {
+  createEditorState(pageName: string, text: string): EditorState {
     let commandKeyBindings: KeyBinding[] = [];
     for (let def of this.commandHook.editorCommands.values()) {
       if (def.command.key) {
@@ -223,8 +250,9 @@ export class Editor implements AppEventDispatcher {
         });
       }
     }
+    const editor = this;
     return EditorState.create({
-      doc: doc.text,
+      doc: text,
       extensions: [
         highlightSpecialChars(),
         history(),
@@ -233,11 +261,6 @@ export class Editor implements AppEventDispatcher {
         customMarkdownStyle,
         bracketMatching(),
         closeBrackets(),
-        collabExtension(pageName, this.space.socket.id, doc, this.space, {
-          pushUpdates: this.space.pushUpdates.bind(this.space),
-          pullUpdates: this.space.pullUpdates.bind(this.space),
-          reload: this.reloadPage.bind(this),
-        }),
         autocompletion({
           override: [
             this.completerHook.plugCompleter.bind(this.completerHook),
@@ -292,6 +315,8 @@ export class Editor implements AppEventDispatcher {
             mac: "Cmd-k",
             run: (): boolean => {
               this.viewDispatch({ type: "start-navigate" });
+              // asynchornously will dispatch pageListUpdate event
+              this.space.updatePageListAsync();
               return true;
             },
           },
@@ -321,6 +346,16 @@ export class Editor implements AppEventDispatcher {
             });
           },
         }),
+        ViewPlugin.fromClass(
+          class {
+            update(update: ViewUpdate): void {
+              if (update.docChanged) {
+                editor.viewDispatch({ type: "page-changed" });
+                editor.save();
+              }
+            }
+          }
+        ),
         pasteLinkExtension,
         markdown({
           base: customMarkDown,
@@ -332,6 +367,7 @@ export class Editor implements AppEventDispatcher {
   reloadPage() {
     console.log("Reloading page");
     safeRun(async () => {
+      clearTimeout(this.saveTimeout);
       await this.loadPage(this.currentPage!);
     });
   }
@@ -357,13 +393,13 @@ export class Editor implements AppEventDispatcher {
         pageState.selection = this.editorView!.state.selection;
         pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
       }
-
-      await this.space.closePage(this.currentPage);
+      this.space.unwatchPage(this.currentPage);
+      await this.save(true);
     }
 
     // Fetch next page to open
-    let doc = await this.space.openPage(pageName);
-    let editorState = this.createEditorState(pageName, doc);
+    let doc = await this.space.readPage(pageName);
+    let editorState = this.createEditorState(pageName, doc.text);
     let pageState = this.openPages.get(pageName);
     editorView.setState(editorState);
     if (!pageState) {
@@ -380,6 +416,8 @@ export class Editor implements AppEventDispatcher {
       });
       editorView.scrollDOM.scrollTop = pageState!.scrollTop;
     }
+
+    this.space.watchPage(pageName);
 
     this.viewDispatch({
       type: "page-loaded",
@@ -435,6 +473,7 @@ export class Editor implements AppEventDispatcher {
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
+          unsavedChanges={viewState.unsavedChanges}
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}

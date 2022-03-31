@@ -20,7 +20,7 @@ export async function indexLinks({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", backLinks.length, "wiki link(s)");
-  await syscall("indexer.batchSet", name, backLinks);
+  await syscall("index.batchSet", name, backLinks);
 }
 
 export async function deletePage() {
@@ -82,10 +82,7 @@ type BackLink = {
 };
 
 async function getBackLinks(pageName: string): Promise<BackLink[]> {
-  let allBackLinks = await syscall(
-    "indexer.scanPrefixGlobal",
-    `pl:${pageName}:`
-  );
+  let allBackLinks = await syscall("index.scanPrefixGlobal", `pl:${pageName}:`);
   let pagesToUpdate: BackLink[] = [];
   for (let { key, value } of allBackLinks) {
     let keyParts = key.split(":");
@@ -129,7 +126,7 @@ export async function pageComplete() {
 // Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");
-  await syscall("indexer.clearPageIndex");
+  await syscall("index.clearPageIndex");
   console.log("Listing all pages");
   let pages = await syscall("space.listPages");
   for (let { name } of pages) {
@@ -144,5 +141,5 @@ export async function reindexSpace() {
 
 export async function clearPageIndex(page: string) {
   console.log("Clearing page index for page", page);
-  await syscall("indexer.clearPageIndexForPage", page);
+  await syscall("index.clearPageIndexForPage", page);
 }
