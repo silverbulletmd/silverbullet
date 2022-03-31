@@ -87,6 +87,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     sandboxFactory: SandboxFactory<HookT>
   ): Promise<Plug<HookT>> {
     if (this.plugs.has(name)) {
+      console.log("Unloading", name);
       await this.unload(name);
     }
     // Validate

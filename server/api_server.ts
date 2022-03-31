@@ -12,6 +12,8 @@ import spaceSyscalls from "./syscalls/space";
 import { eventSyscalls } from "../plugos/syscalls/event";
 import { pageIndexSyscalls } from "./syscalls";
 import knex, { Knex } from "knex";
+import shellSyscalls from "../plugos/syscalls/shell.node";
+import { NodeCronHook } from "../plugos/hooks/node_cron";
 
 export class ExpressServer {
   app: Express;
@@ -47,6 +49,10 @@ export class ExpressServer {
       },
       useNullAsDefault: true,
     });
+
+    system.registerSyscalls("shell", ["shell"], shellSyscalls(rootPath));
+    system.addHook(new NodeCronHook());
+
     system.registerSyscalls("index", [], pageIndexSyscalls(this.db));
     system.registerSyscalls("space", [], spaceSyscalls(this.storage));
     system.registerSyscalls("event", [], eventSyscalls(this.eventHook));
@@ -69,7 +75,7 @@ export class ExpressServer {
       .route(/\/(.+)/)
       .get(async (req, res) => {
         let pageName = req.params[0];
-        console.log("Getting", pageName);
+        // console.log("Getting", pageName);
         try {
           let pageData = await this.storage.readPage(pageName);
           res.status(200);
@@ -80,7 +86,7 @@ export class ExpressServer {
           res.status(200);
           res.send("");
         }
-      })
+      };)
       .put(bodyParser.text({ type: "*/*" }), async (req, res) => {
         let pageName = req.params[0];
         console.log("Saving", pageName);

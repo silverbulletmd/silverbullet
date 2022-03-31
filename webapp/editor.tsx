@@ -36,7 +36,7 @@ import indexerSyscalls from "./syscalls/indexer";
 import spaceSyscalls from "./syscalls/space";
 import { Action, AppViewState, initialViewState } from "./types";
 import { SilverBulletHooks } from "../common/manifest";
-import { safeRun } from "./util";
+import { safeRun, throttle } from "./util";
 import { System } from "../plugos/system";
 import { EventHook } from "../plugos/hooks/event";
 import { systemSyscalls } from "./syscalls/system";
@@ -132,6 +132,10 @@ export class Editor implements AppEventDispatcher {
       }
     });
 
+    let throttledRebuildEditorState = throttle(() => {
+      this.rebuildEditorState();
+    }, 100);
+
     this.space.on({
       pageCreated: (meta) => {
         console.log("Page created", meta);
@@ -156,12 +160,14 @@ export class Editor implements AppEventDispatcher {
         safeRun(async () => {
           console.log("Plug load", plugName);
           await this.system.load(plugName, plug, createIFrameSandbox);
+          throttledRebuildEditorState();
         });
       },
       plugUnloaded: (plugName) => {
         safeRun(async () => {
           console.log("Plug unload", plugName);
           await this.system.unload(plugName);
+          throttledRebuildEditorState();
         });
       },
     });
@@ -362,6 +368,15 @@ export class Editor implements AppEventDispatcher {
         }),
       ],
     });
+  }
+
+  rebuildEditorState() {
+    const editorView = this.editorView;
+    if (editorView && this.currentPage) {
+      editorView.setState(
+        this.createEditorState(this.currentPage, editorView.state.sliceDoc())
+      );
+    }
   }
 
   reloadPage() {

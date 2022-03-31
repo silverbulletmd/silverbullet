@@ -39,6 +39,9 @@ export default (editor: Editor): SysCallMapping => ({
   navigate: async (ctx, name: string, pos: number) => {
     await editor.navigate(name, pos);
   },
+  reloadPage: async (ctx) => {
+    await editor.reloadPage();
+  },
   openUrl: async (ctx, url: string) => {
     window.open(url, "_blank")!.focus();
   },

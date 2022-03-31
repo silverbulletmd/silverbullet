@@ -44,6 +44,7 @@ class IFrameWrapper implements WorkerLike {
   }
 
   terminate() {
+    console.log("Terminating iframe sandbox");
     window.removeEventListener("message", this.messageListener);
     return this.iframe.remove();
   }

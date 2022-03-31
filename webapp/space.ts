@@ -185,7 +185,6 @@ export class Space extends EventEmitter<SpaceEvents> {
     name: string,
     args: any[]
   ): Promise<any> {
-    console.log("Making a remote syscall", name, args);
     let req = await fetch(`${this.plugUrl}/${plug.name}/syscall/${name}`, {
       method: "POST",
       headers: {
@@ -204,7 +203,6 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async remoteInvoke(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    console.log("Making a remote syscall", name, JSON.stringify(args));
     let req = await fetch(`${this.plugUrl}/${plug.name}/function/${name}`, {
       method: "POST",
       headers: {

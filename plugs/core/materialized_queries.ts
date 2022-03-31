@@ -30,7 +30,8 @@ export async function updateMaterializedQueriesCommand() {
     "updateMaterializedQueriesOnPage",
     await syscall("editor.getCurrentPage")
   );
-  syscall("editor.flashNotification", "Updated materialized queries");
+  await syscall("editor.reloadPage");
+  await syscall("editor.flashNotification", "Updated materialized queries");
 }
 
 // Called from client, running on server
@@ -51,7 +52,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           let [, pos] = key.split(":");
           if (!filter || (filter && task.includes(filter))) {
             results.push(
-              `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}`
+                `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}`
             );
             if (children) {
               results.push(children.join("\n"));
@@ -59,11 +60,26 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           }
         }
         return `${startQuery}\n${results.join("\n")}\n${endQuery}`;
+      case "link":
+        let uniqueLinks = new Set<string>();
+        for (let {key, page, value: name} of await syscall(
+            "index.scanPrefixGlobal",
+            `pl:${pageName}:`
+        )) {
+          let [, pos] = key.split(":");
+          if (!filter || (filter && name.includes(filter))) {
+            uniqueLinks.add(name);
+          }
+        }
+        for (const uniqueResult of uniqueLinks) {
+          results.push(`* [[${uniqueResult}]]`);
+        }
+        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "item":
         for (let {
           key,
           page,
-          value: { item, children },
+          value: {item, children},
         } of await syscall("index.scanPrefixGlobal", "it:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && item.includes(filter))) {
