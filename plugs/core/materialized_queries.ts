@@ -79,8 +79,8 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         for (let {
           key,
           page,
-          value: {item, children},
-        } of await syscall("index.scanPrefixGlobal", "it:")) {
+          value: { item, children },
+        }; of await syscall("index.scanPrefixGlobal", "it:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && item.includes(filter))) {
             results.push(`* [[${page}@${pos}]] ${item}`);

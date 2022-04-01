@@ -51,6 +51,13 @@ function fuzzyFilter(pattern: string, options: Option[]): Option[] {
   return matches;
 }
 
+function simpleFilter(pattern: string, options: Option[]): Option[] {
+  const lowerPattern = pattern.toLowerCase();
+  return options.filter((option) => {
+    return option.name.toLowerCase().includes(lowerPattern);
+  });
+}
+
 export function FilterList({
   placeholder,
   options,
@@ -59,6 +66,7 @@ export function FilterList({
   onKeyPress,
   allowNew = false,
   helpText = "",
+  completePrefix,
   icon,
   newHint,
 }: {
@@ -68,6 +76,7 @@ export function FilterList({
   onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: Option | undefined) => void;
   allowNew?: boolean;
+  completePrefix?: string;
   helpText: string;
   newHint?: string;
   icon?: IconDefinition;
@@ -90,7 +99,7 @@ export function FilterList({
 
     if (searchPhrase) {
       let foundExactMatch = false;
-      let results = fuzzyFilter(searchPhrase, options);
+      let results = simpleFilter(searchPhrase, options);
       results = results.sort(magicSorter);
       if (allowNew && !foundExactMatch) {
         results.push({
@@ -139,7 +148,7 @@ export function FilterList({
           ref={searchBoxRef}
           onChange={filterUpdate}
           onKeyDown={(e: React.KeyboardEvent) => {
-            // console.log("Key up", e.key);
+            // console.log("Key up", e);
             if (onKeyPress) {
               onKeyPress(e.key, text);
             }
@@ -158,6 +167,12 @@ export function FilterList({
                 break;
               case "Escape":
                 onSelect(undefined);
+                break;
+              case " ":
+                if (completePrefix) {
+                  setText(completePrefix);
+                  e.preventDefault();
+                }
                 break;
             }
           }}

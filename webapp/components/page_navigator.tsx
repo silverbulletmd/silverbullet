@@ -27,6 +27,11 @@ export function PageNavigator({
       orderId: orderId,
     });
   }
+  let completePrefix: string | undefined = undefined;
+  if (currentPage && currentPage.includes("/")) {
+    const pieces = currentPage.split("/");
+    completePrefix = pieces.slice(0, pieces.length - 1).join("/") + "/";
+  }
   return (
     <FilterList
       placeholder="Page"
@@ -36,6 +41,7 @@ export function PageNavigator({
       allowNew={true}
       helpText="Start typing the page name to filter results, press <code>Return</code> to open."
       newHint="Create page"
+      completePrefix={completePrefix}
       onSelect={(opt) => {
         onNavigate(opt?.name);
       }}

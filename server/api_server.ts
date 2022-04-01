@@ -86,7 +86,7 @@ export class ExpressServer {
           res.status(200);
           res.send("");
         }
-      };)
+      })
       .put(bodyParser.text({ type: "*/*" }), async (req, res) => {
         let pageName = req.params[0];
         console.log("Saving", pageName);

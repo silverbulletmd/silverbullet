@@ -12,12 +12,12 @@ export class PathPageNavigator {
   navigationResolve?: () => void;
 
   async navigate(page: string, pos?: number) {
-    window.history.pushState(
-      { page, pos },
-      page,
-      `/${encodePageUrl(page)}${pos ? "@" + pos : ""}`
+    window.history.pushState({ page, pos }, page, `/${encodePageUrl(page)}`);
+    window.dispatchEvent(
+      new PopStateEvent("popstate", {
+        state: { page, pos },
+      })
     );
-    window.dispatchEvent(new PopStateEvent("popstate"));
     await new Promise<void>((resolve) => {
       this.navigationResolve = resolve;
     });
@@ -27,19 +27,22 @@ export class PathPageNavigator {
   subscribe(
     pageLoadCallback: (pageName: string, pos: number) => Promise<void>
   ): void {
-    const cb = () => {
-      const gotoPage = this.getCurrentPage();
-      if (!gotoPage) {
-        return;
-      }
-      safeRun(async () => {
-        await pageLoadCallback(this.getCurrentPage(), this.getCurrentPos());
-        if (this.navigationResolve) {
-          this.navigationResolve();
+      const cb = (event?: PopStateEvent) => {
+        const gotoPage = this.getCurrentPage();
+        if (!gotoPage) {
+          return;
         }
-      });
-    };
-    window.addEventListener("popstate", cb);
+        safeRun(async () => {
+          await pageLoadCallback(
+            this.getCurrentPage(),
+            event && event.state.pos
+          );
+          if (this.navigationResolve) {
+            this.navigationResolve();
+          }
+        });
+      };
+      window.addEventListener("popstate", cb);
     cb();
   }
 

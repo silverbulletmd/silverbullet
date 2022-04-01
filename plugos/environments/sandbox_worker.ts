@@ -37,9 +37,8 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
-function wrapScript(code: string): string {
-  return `const fn = ${code};
-return fn["default"].apply(null, arguments);`;
+function wrapScript(code: string) {
+  return `return (${code})["default"]`;
 }
 
 self.addEventListener("message", (event: { data: WorkerMessage }) => {
@@ -47,7 +46,8 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
     let data = event.data;
     switch (data.type) {
       case "load":
-        loadedFunctions.set(data.name!, new Function(wrapScript(data.code!)));
+        let fn2 = new Function(wrapScript(data.code!));
+        loadedFunctions.set(data.name!, fn2());
         postMessage(
           {
             type: "inited",

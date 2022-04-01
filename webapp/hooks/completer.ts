@@ -17,23 +17,26 @@ export class CompleterHook implements Hook<CompleterHookT> {
         continue;
       }
       for (const [functionName, functionDef] of Object.entries(
-        plug.manifest.functions
+          plug.manifest.functions
       )) {
         if (functionDef.isCompleter) {
           completerPromises.push(plug.invoke(functionName, []));
         }
       }
     }
-    let allCompletionResults = await Promise.all(completerPromises);
-    if (allCompletionResults.length === 1) {
-      return allCompletionResults[0];
-    } else if (allCompletionResults.length > 1) {
-      console.error(
-        "Got completion results from multiple sources, cannot deal with that",
-        allCompletionResults
-      );
+    let actualResult = null;
+    for (const result of await Promise.all(completerPromises)) {
+      if (result) {
+        if (actualResult) {
+          console.error(
+              "Got completion results from multiple sources, cannot deal with that"
+          );
+          return null;
+        }
+        actualResult = result;
+      }
     }
-    return null;
+    return actualResult;
   }
 
   apply(system: System<CompleterHookT>): void {
