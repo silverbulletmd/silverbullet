@@ -1,7 +1,16 @@
-import { syscall } from "../lib/syscall";
+import {
+  flashNotification,
+  getCurrentPage,
+  reloadPage,
+  save,
+} from "plugos-silverbullet-syscall/editor";
+
+import { readPage, writePage } from "plugos-silverbullet-syscall/space";
+import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
+import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
 
 export const queryRegex =
-  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*(group by\s+(?<groupBy>\w+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
+  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
 
 export function whiteOutQueries(text: string): string {
   return text.replaceAll(queryRegex, (match) =>
@@ -25,18 +34,16 @@ async function replaceAsync(
 }
 
 export async function updateMaterializedQueriesCommand() {
-  await syscall(
-    "system.invokeFunctionOnServer",
-    "updateMaterializedQueriesOnPage",
-    await syscall("editor.getCurrentPage")
-  );
-  await syscall("editor.reloadPage");
-  await syscall("editor.flashNotification", "Updated materialized queries");
+  const currentPage = await getCurrentPage();
+  await save();
+  await invokeFunctionOnServer("updateMaterializedQueriesOnPage", currentPage);
+  await reloadPage();
+  await flashNotification("Updated materialized queries");
 }
 
 // Called from client, running on server
 export async function updateMaterializedQueriesOnPage(pageName: string) {
-  let { text } = await syscall("space.readPage", pageName);
+  let { text } = await readPage(pageName);
   text = await replaceAsync(text, queryRegex, async (match, ...args) => {
     let { table, filter, groupBy } = args[args.length - 1];
     const startQuery = args[0];
@@ -48,23 +55,20 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           key,
           page,
           value: { task, complete, children },
-        } of await syscall("index.scanPrefixGlobal", "task:")) {
+        } of await scanPrefixGlobal("task:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && task.includes(filter))) {
             results.push(
-                `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}`
+              `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}` +
+                (children ? "\n" + children.join("\n") : "")
             );
-            if (children) {
-              results.push(children.join("\n"));
-            }
           }
         }
-        return `${startQuery}\n${results.join("\n")}\n${endQuery}`;
+        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "link":
         let uniqueLinks = new Set<string>();
-        for (let {key, page, value: name} of await syscall(
-            "index.scanPrefixGlobal",
-            `pl:${pageName}:`
+        for (let { key, page, value: name } of await scanPrefixGlobal(
+          `pl:${pageName}:`
         )) {
           let [, pos] = key.split(":");
           if (!filter || (filter && name.includes(filter))) {
@@ -80,20 +84,20 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
           key,
           page,
           value: { item, children },
-        }; of await syscall("index.scanPrefixGlobal", "it:")) {
+        } of await scanPrefixGlobal("it:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && item.includes(filter))) {
-            results.push(`* [[${page}@${pos}]] ${item}`);
-            if (children) {
-              results.push(children.join("\n"));
-            }
+            results.push(
+              `* [[${page}@${pos}]] ${item}` +
+                (children ? "\n" + children.join("\n") : "")
+            );
           }
         }
-        return `${startQuery}\n${results.join("\n")}\n${endQuery}`;
+        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       default:
         return match;
     }
   });
   // console.log("New text", text);
-  await syscall("space.writePage", pageName, text);
+  await writePage(pageName, text);
 }

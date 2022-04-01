@@ -1,8 +1,8 @@
-import { syscall } from "../lib/syscall";
 import mdParser from "../../webapp/parser";
+import { getText } from "plugos-silverbullet-syscall/editor";
 
 export async function renderMD() {
-  let text = await syscall("editor.getText");
+  let text = await getText();
   let tree = mdParser.parser.parse(text);
   let slicesToRemove: [number, number][] = [];
 

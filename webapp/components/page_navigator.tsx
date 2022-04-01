@@ -1,6 +1,6 @@
-import { PageMeta } from "../types";
 import { FilterList, Option } from "./filter";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons";
+import { PageMeta } from "../../common/types";
 
 export function PageNavigator({
   allPages,

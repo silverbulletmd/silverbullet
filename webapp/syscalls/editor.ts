@@ -36,6 +36,9 @@ export default (editor: Editor): SysCallMapping => ({
   getCursor: (): number => {
     return editor.editorView!.state.selection.main.from;
   },
+  save: async () => {
+    return editor.save(true);
+  },
   navigate: async (ctx, name: string, pos: number) => {
     await editor.navigate(name, pos);
   },

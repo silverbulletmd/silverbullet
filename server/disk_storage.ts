@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import * as path from "path";
-import { PageMeta } from "./types";
+import { PageMeta } from "../common/types";
 import { EventHook } from "../plugos/hooks/event";
 
 export interface Storage {

@@ -1,4 +1,4 @@
-import { PageMeta } from "../types";
+import { PageMeta } from "../../common/types";
 import { SysCallMapping } from "../../plugos/system";
 import { Storage } from "../disk_storage";
 

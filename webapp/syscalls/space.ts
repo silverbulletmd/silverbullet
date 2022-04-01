@@ -1,6 +1,6 @@
 import { Editor } from "../editor";
-import { PageMeta } from "../types";
 import { SysCallMapping } from "../../plugos/system";
+import { PageMeta } from "../../common/types";
 
 export default (editor: Editor): SysCallMapping => ({
   listPages: async (): Promise<PageMeta[]> => {

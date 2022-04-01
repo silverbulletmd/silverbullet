@@ -1,11 +1,11 @@
 // @ts-ignore
 import emojis from "./emoji.json";
-import { syscall } from "../lib/syscall";
+import { matchBefore } from "plugos-silverbullet-syscall/editor";
 
 const emojiMatcher = /\(([^\)]+)\)\s+(.+)$/;
 
 export async function emojiCompleter() {
-  let prefix = await syscall("editor.matchBefore", ":[\\w\\s]*");
+  let prefix = await matchBefore(":[\\w\\s]*");
   if (!prefix) {
     return null;
   }

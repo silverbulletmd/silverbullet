@@ -1,0 +1,8 @@
+{
+  "name": "plugs",
+  "version": "1.0.0",
+  "dependencies": {
+    "plugos-silverbullet-syscall": "file:../plugos-silverbullet-syscall",
+    "plugos-syscall": "file:../plugos-syscall"
+  }
+}

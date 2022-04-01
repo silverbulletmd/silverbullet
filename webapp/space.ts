@@ -1,8 +1,8 @@
-import { PageMeta } from "./types";
 import { EventEmitter } from "../common/event";
 import { Manifest } from "../common/manifest";
 import { safeRun } from "./util";
 import { Plug } from "../plugos/plug";
+import { PageMeta } from "../common/types";
 
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;

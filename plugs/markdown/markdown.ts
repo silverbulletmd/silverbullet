@@ -1,5 +1,5 @@
 import MarkdownIt from "markdown-it";
-import { syscall } from "../lib/syscall";
+import { getText, showRhs } from "plugos-silverbullet-syscall/editor";
 
 var taskLists = require("markdown-it-task-lists");
 
@@ -10,7 +10,7 @@ const md = new MarkdownIt({
 }).use(taskLists);
 
 export async function renderMarkdown() {
-  let text = await syscall("editor.getText");
+  let text = await getText();
   let html = md.render(text);
-  await syscall("editor.showRhs", `<html><body>${html}</body></html>`);
+  await showRhs(`<html><body>${html}</body></html>`);
 }

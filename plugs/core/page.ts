@@ -1,6 +1,27 @@
 import { IndexEvent } from "../../webapp/app_event";
 import { pageLinkRegex } from "../../webapp/constant";
-import { syscall } from "../lib/syscall";
+import {
+  batchSet,
+  clearPageIndex as clearPageIndexSyscall,
+  clearPageIndexForPage,
+  scanPrefixGlobal,
+} from "plugos-silverbullet-syscall/index";
+import {
+  flashNotification,
+  getCurrentPage,
+  getText,
+  matchBefore,
+  navigate,
+} from "plugos-silverbullet-syscall/editor";
+
+import { dispatch } from "plugos-syscall/event";
+import {
+  deletePage as deletePageSyscall,
+  listPages,
+  readPage,
+  writePage,
+} from "plugos-silverbullet-syscall/space";
+import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
 
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");
 
@@ -20,25 +41,21 @@ export async function indexLinks({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", backLinks.length, "wiki link(s)");
-  await syscall("index.batchSet", name, backLinks);
+  await batchSet(name, backLinks);
 }
 
 export async function deletePage() {
-  let pageName = await syscall("editor.getCurrentPage");
+  let pageName = await getCurrentPage();
   console.log("Navigating to start page");
-  await syscall("editor.navigate", "start");
+  await navigate("start");
   console.log("Deleting page from space");
-  await syscall("space.deletePage", pageName);
+  await deletePageSyscall(pageName);
 }
 
 export async function renamePage() {
-  const oldName = await syscall("editor.getCurrentPage");
+  const oldName = await getCurrentPage();
   console.log("Old name is", oldName);
-  const newName = await syscall(
-    "editor.prompt",
-    `Rename ${oldName} to:`,
-    oldName
-  );
+  const newName = await prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return;
   }
@@ -47,13 +64,13 @@ export async function renamePage() {
   let pagesToUpdate = await getBackLinks(oldName);
   console.log("All pages containing backlinks", pagesToUpdate);
 
-  let text = await syscall("editor.getText");
+  let text = await getText();
   console.log("Writing new page to space");
-  await syscall("space.writePage", newName, text);
+  await writePage(newName, text);
   console.log("Navigating to new page");
-  await syscall("editor.navigate", newName);
+  await navigate(newName);
   console.log("Deleting page from space");
-  await syscall("space.deletePage", oldName);
+  await deletePageSyscall(oldName);
 
   let pageToUpdateSet = new Set<string>();
   for (let pageToUpdate of pagesToUpdate) {
@@ -62,7 +79,7 @@ export async function renamePage() {
 
   for (let pageToUpdate of pageToUpdateSet) {
     console.log("Now going to update links in", pageToUpdate);
-    let { text } = await syscall("space.readPage", pageToUpdate);
+    let { text } = await readPage(pageToUpdate);
     console.log("Received text", text);
     if (!text) {
       // Page likely does not exist, but at least we can skip it
@@ -71,7 +88,7 @@ export async function renamePage() {
     let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
     if (text !== newText) {
       console.log("Changes made, saving...");
-      await syscall("space.writePage", pageToUpdate, newText);
+      await writePage(pageToUpdate, newText);
     }
   }
 }
@@ -82,7 +99,7 @@ type BackLink = {
 };
 
 async function getBackLinks(pageName: string): Promise<BackLink[]> {
-  let allBackLinks = await syscall("index.scanPrefixGlobal", `pl:${pageName}:`);
+  let allBackLinks = await scanPrefixGlobal(`pl:${pageName}:`);
   let pagesToUpdate: BackLink[] = [];
   for (let { key, value } of allBackLinks) {
     let keyParts = key.split(":");
@@ -95,28 +112,28 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 }
 
 export async function showBackLinks() {
-  const pageName = await syscall("editor.getCurrentPage");
+  const pageName = await getCurrentPage();
   let backLinks = await getBackLinks(pageName);
 
   console.log("Backlinks", backLinks);
 }
 
 export async function reindexCommand() {
-  await syscall("editor.flashNotification", "Reindexing...");
-  await syscall("system.invokeFunctionOnServer", "reindexSpace");
-  await syscall("editor.flashNotification", "Reindexing done");
+  await flashNotification("Reindexing...");
+  await invokeFunctionOnServer("reindexSpace");
+  await flashNotification("Reindexing done");
 }
 
 // Completion
 export async function pageComplete() {
-  let prefix = await syscall("editor.matchBefore", "\\[\\[[\\w\\s]*");
+  let prefix = await matchBefore("\\[\\[[\\w\\s]*");
   if (!prefix) {
     return null;
   }
-  let allPages = await syscall("space.listPages");
+  let allPages = await listPages();
   return {
     from: prefix.from + 2,
-    options: allPages.map((pageMeta: any) => ({
+    options: allPages.map((pageMeta) => ({
       label: pageMeta.name,
       type: "page",
     })),
@@ -126,13 +143,13 @@ export async function pageComplete() {
 // Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");
-  await syscall("index.clearPageIndex");
+  await clearPageIndexSyscall();
   console.log("Listing all pages");
-  let pages = await syscall("space.listPages");
+  let pages = await listPages();
   for (let { name } of pages) {
     console.log("Indexing", name);
-    const pageObj = await syscall("space.readPage", name);
-    await syscall("event.dispatch", "page:index", {
+    const pageObj = await readPage(name);
+    await dispatch("page:index", {
       name,
       text: pageObj.text,
     });
@@ -141,5 +158,5 @@ export async function reindexSpace() {
 
 export async function clearPageIndex(page: string) {
   console.log("Clearing page index for page", page);
-  await syscall("index.clearPageIndexForPage", page);
+  await clearPageIndexForPage(page);
 }

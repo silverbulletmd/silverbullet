@@ -1,6 +1,7 @@
 import { IndexEvent } from "../../webapp/app_event";
 import { whiteOutQueries } from "./materialized_queries";
-import { syscall } from "../lib/syscall";
+
+import { batchSet } from "plugos-silverbullet-syscall/index";
 
 type Item = {
   item: string;
@@ -35,5 +36,5 @@ export async function indexItems({ name, text }: IndexEvent) {
     });
   }
   console.log("Found", items.length, "item(s)");
-  await syscall("index.batchSet", name, items);
+  await batchSet(name, items);
 }

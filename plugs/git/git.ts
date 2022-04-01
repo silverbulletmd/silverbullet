@@ -1,4 +1,6 @@
-import { syscall } from "../lib/syscall";
+import { run } from "plugos-syscall/shell";
+import { flashNotification, prompt } from "plugos-silverbullet-syscall/editor";
+import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
 
 export async function commit(message?: string) {
   if (!message) {
@@ -8,9 +10,9 @@ export async function commit(message?: string) {
     "Snapshotting the current space to git with commit message",
     message
   );
-  await syscall("shell.run", "git", ["add", "./*.md"]);
+  await run("git", ["add", "./*.md"]);
   try {
-    await syscall("shell.run", "git", ["commit", "-a", "-m", message]);
+    await run("git", ["commit", "-a", "-m", message]);
   } catch (e) {
     // We can ignore, this happens when there's no changes to commit
   }
@@ -18,26 +20,26 @@ export async function commit(message?: string) {
 }
 
 export async function snapshotCommand() {
-  let revName = await syscall("editor.prompt", `Revision name:`);
+  let revName = await prompt(`Revision name:`);
   if (!revName) {
     revName = "Snapshot";
   }
   console.log("Revision name", revName);
-  await syscall("system.invokeFunctionOnServer", "commit", revName);
+  await invokeFunctionOnServer("commit", revName);
 }
 
 export async function syncCommand() {
-  await syscall("editor.flashNotification", "Syncing with git");
-  await syscall("system.invokeFunctionOnServer", "sync");
-  await syscall("editor.flashNotification", "Git sync complete!");
+  await flashNotification("Syncing with git");
+  await invokeFunctionOnServer("sync");
+  await flashNotification("Git sync complete!");
 }
 
 export async function sync() {
   console.log("Going to sync with git");
   await commit();
   console.log("Then pulling from remote");
-  await syscall("shell.run", "git", ["pull"]);
+  await run("git", ["pull"]);
   console.log("And then pushing to remote");
-  await syscall("shell.run", "git", ["push"]);
+  await run("git", ["push"]);
   console.log("Done!");
 }

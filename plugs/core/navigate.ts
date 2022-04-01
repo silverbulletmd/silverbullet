@@ -1,6 +1,11 @@
 import { ClickEvent } from "../../webapp/app_event";
-import { syscall } from "../lib/syscall";
 import { updateMaterializedQueriesCommand } from "./materialized_queries";
+import {
+  getSyntaxNodeAtPos,
+  getSyntaxNodeUnderCursor,
+  navigate as navigateTo,
+  openUrl,
+} from "plugos-silverbullet-syscall/editor";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 
@@ -16,10 +21,10 @@ async function navigate(syntaxNode: any) {
       if (pageLink.includes("@")) {
         [pageLink, pos] = syntaxNode.text.split("@");
       }
-      await syscall("editor.navigate", pageLink, +pos);
+      await navigateTo(pageLink, +pos);
       break;
     case "URL":
-      await syscall("editor.openUrl", syntaxNode.text);
+      await openUrl(syntaxNode.text);
       break;
     case "CommentBlock":
       if (syntaxNode.text.match(materializedQueryPrefix)) {
@@ -30,19 +35,19 @@ async function navigate(syntaxNode: any) {
       // Markdown link: [bla](URLHERE) needs extraction
       let match = /\[[^\\]+\]\(([^\)]+)\)/.exec(syntaxNode.text);
       if (match) {
-        await syscall("editor.openUrl", match[1]);
+        await openUrl(match[1]);
       }
       break;
   }
 }
 
 export async function linkNavigate() {
-  await navigate(await syscall("editor.getSyntaxNodeUnderCursor"));
+  await navigate(await getSyntaxNodeUnderCursor());
 }
 
 export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
-    let syntaxNode = await syscall("editor.getSyntaxNodeAtPos", event.pos);
+    let syntaxNode = await getSyntaxNodeAtPos(event.pos);
     await navigate(syntaxNode);
   }
 }

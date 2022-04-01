@@ -1,4 +1,9 @@
-import { syscall } from "../lib/syscall";
+import {
+  getCursor,
+  getText,
+  insertAtPos,
+  replaceRange,
+} from "plugos-silverbullet-syscall/editor";
 
 export async function toggleH1() {
   await togglePrefix("# ");
@@ -13,15 +18,15 @@ function lookBack(s: string, pos: number, backString: string): boolean {
 }
 
 async function togglePrefix(prefix: string) {
-  let text = (await syscall("editor.getText")) as string;
-  let pos = (await syscall("editor.getCursor")) as number;
+  let text = await getText();
+  let pos = await getCursor();
   if (text[pos] === "\n") {
     pos--;
   }
   while (pos > 0 && text[pos] !== "\n") {
     if (lookBack(text, pos, prefix)) {
       // Already has this prefix, let's flip it
-      await syscall("editor.replaceRange", pos - prefix.length, pos, "");
+      await replaceRange(pos - prefix.length, pos, "");
       return;
     }
     pos--;
@@ -29,5 +34,5 @@ async function togglePrefix(prefix: string) {
   if (pos) {
     pos++;
   }
-  await syscall("editor.insertAtPos", prefix, pos);
+  await insertAtPos(prefix, pos);
 }
