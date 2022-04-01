@@ -3,10 +3,6 @@ functions:
     path: "./task.ts:indexTasks"
     events:
       - page:index
-  updateTaskPage:
-    path: "./task.ts:updateTaskPage"
-    command:
-      name: "Tasks: Update Page"
   taskToggle:
     path: "./task.ts:taskToggle"
     events:

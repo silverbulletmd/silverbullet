@@ -6,10 +6,11 @@ import {
   navigate as navigateTo,
   openUrl,
 } from "plugos-silverbullet-syscall/editor";
+import { taskToggleAtPos } from "../tasks/task";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 
-async function navigate(syntaxNode: any) {
+async function actionClickOrActionEnter(syntaxNode: any) {
   if (!syntaxNode) {
     return;
   }
@@ -38,16 +39,19 @@ async function navigate(syntaxNode: any) {
         await openUrl(match[1]);
       }
       break;
+    case "TaskMarker":
+      await taskToggleAtPos(syntaxNode.from + 1);
+      break;
   }
 }
 
 export async function linkNavigate() {
-  await navigate(await getSyntaxNodeUnderCursor());
+  await actionClickOrActionEnter(await getSyntaxNodeUnderCursor());
 }
 
 export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
     let syntaxNode = await getSyntaxNodeAtPos(event.pos);
-    await navigate(syntaxNode);
+    await actionClickOrActionEnter(syntaxNode);
   }
 }

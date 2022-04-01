@@ -2,7 +2,7 @@ import type { ClickEvent } from "../../webapp/app_event";
 import { IndexEvent } from "../../webapp/app_event";
 
 import { whiteOutQueries } from "../core/materialized_queries";
-import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall/index";
+import { batchSet } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import {
   dispatch,
@@ -10,10 +10,9 @@ import {
   getSyntaxNodeAtPos,
 } from "plugos-silverbullet-syscall/editor";
 
-const allTasksPageName = "ALL TASKS";
-const taskRe = /[\-\*]\s*\[([ Xx])\]\s*(.*)/g;
 const taskFullRe =
   /(?<prefix>[\t ]*)[\-\*]\s*\[([ Xx])\]\s*([^\n]+)(\n\k<prefix>\s+[\-\*][^\n]+)*/g;
+
 const extractPageLink = /[\-\*]\s*\[[ Xx]\]\s\[\[([^\]]+)@(\d+)\]\]\s*(.*)/;
 
 type Task = {
@@ -24,10 +23,6 @@ type Task = {
 };
 
 export async function indexTasks({ name, text }: IndexEvent) {
-  if (name === allTasksPageName) {
-    return;
-  }
-
   console.log("Indexing tasks");
   let tasks: { key: string; value: Task }[] = [];
   text = whiteOutQueries(text);
@@ -54,41 +49,12 @@ export async function indexTasks({ name, text }: IndexEvent) {
   await batchSet(name, tasks);
 }
 
-export async function updateTaskPage() {
-  let allTasks = await scanPrefixGlobal("task:");
-  let pageTasks = new Map<string, Task[]>();
-  for (let {
-    key,
-    page,
-    value: { task, complete },
-  } of allTasks) {
-    if (complete) {
-      continue;
-    }
-    let [, pos] = key.split(":");
-    let tasks = pageTasks.get(page) || [];
-    tasks.push({ task, complete, pos: +pos });
-    pageTasks.set(page, tasks);
-  }
-
-  let mdPieces = [];
-  for (let pageName of [...pageTasks.keys()].sort()) {
-    mdPieces.push(`\n## ${pageName}\n`);
-    for (let task of pageTasks.get(pageName)!) {
-      mdPieces.push(
-        `* [${task.complete ? "x" : " "}] [[${pageName}@${task.pos}]] ${
-          task.task
-        }`
-      );
-    }
-  }
-
-  let taskMd = mdPieces.join("\n");
-  await writePage(allTasksPageName, taskMd);
+export async function taskToggle(event: ClickEvent) {
+  return taskToggleAtPos(event.pos);
 }
 
-export async function taskToggle(event: ClickEvent) {
-  let syntaxNode = await getSyntaxNodeAtPos(event.pos);
+export async function taskToggleAtPos(pos: number) {
+  let syntaxNode = await getSyntaxNodeAtPos(pos);
   if (syntaxNode && syntaxNode.name === "TaskMarker") {
     let changeTo = "[x]";
     if (syntaxNode.text === "[x]" || syntaxNode.text === "[X]") {
@@ -101,26 +67,28 @@ export async function taskToggle(event: ClickEvent) {
         insert: changeTo,
       },
       selection: {
-        anchor: event.pos,
+        anchor: pos,
       },
     });
-    if (event.page === allTasksPageName) {
-      // Propagate back to the page in question
-      let line = await getLineUnderCursor();
-      let match = line.match(extractPageLink);
-      if (match) {
-        let [, page, posS] = match;
-        let pos = +posS;
-        let pageData = await readPage(page);
-        let text = pageData.text;
+    // In case there's a page reference with @ position in the task, let's propagate this change back to that page
+    // Example: * [ ] [[MyPage@123]] My task
+    let line = await getLineUnderCursor();
+    let match = line.match(extractPageLink);
+    if (match) {
+      console.log("Found a remote task reference, updating other page");
+      let [, page, posS] = match;
+      let pos = +posS;
+      let pageData = await readPage(page);
+      let text = pageData.text;
 
-        // Apply the toggle
-        text =
-          text.substring(0, pos) +
-          text.substring(pos).replace(/^([\-\*]\s*)\[[ xX]\]/, "$1" + changeTo);
+      // Apply the toggle
+      text =
+        text.substring(0, pos) +
+        text
+          .substring(pos)
+          .replace(/^(\s*[\-\*]\s*)\[[ xX]\]/, "$1" + changeTo);
 
-        await writePage(page, text);
-      }
+      await writePage(page, text);
     }
   }
 }
