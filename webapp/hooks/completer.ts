@@ -17,7 +17,7 @@ export class CompleterHook implements Hook<CompleterHookT> {
         continue;
       }
       for (const [functionName, functionDef] of Object.entries(
-          plug.manifest.functions
+        plug.manifest.functions
       )) {
         if (functionDef.isCompleter) {
           completerPromises.push(plug.invoke(functionName, []));
@@ -29,7 +29,7 @@ export class CompleterHook implements Hook<CompleterHookT> {
       if (result) {
         if (actualResult) {
           console.error(
-              "Got completion results from multiple sources, cannot deal with that"
+            "Got completion results from multiple sources, cannot deal with that"
           );
           return null;
         }

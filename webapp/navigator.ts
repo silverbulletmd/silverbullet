@@ -27,22 +27,19 @@ export class PathPageNavigator {
   subscribe(
     pageLoadCallback: (pageName: string, pos: number) => Promise<void>
   ): void {
-      const cb = (event?: PopStateEvent) => {
-        const gotoPage = this.getCurrentPage();
-        if (!gotoPage) {
-          return;
+    const cb = (event?: PopStateEvent) => {
+      const gotoPage = this.getCurrentPage();
+      if (!gotoPage) {
+        return;
+      }
+      safeRun(async () => {
+        await pageLoadCallback(this.getCurrentPage(), event && event.state.pos);
+        if (this.navigationResolve) {
+          this.navigationResolve();
         }
-        safeRun(async () => {
-          await pageLoadCallback(
-            this.getCurrentPage(),
-            event && event.state.pos
-          );
-          if (this.navigationResolve) {
-            this.navigationResolve();
-          }
-        });
-      };
-      window.addEventListener("popstate", cb);
+      });
+    };
+    window.addEventListener("popstate", cb);
     cb();
   }
 
