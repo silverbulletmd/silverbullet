@@ -1,12 +1,14 @@
-import { ClickEvent } from "../../webapp/app_event";
-import { updateMaterializedQueriesCommand } from "./materialized_queries";
+import {ClickEvent} from "../../webapp/app_event";
+import {updateMaterializedQueriesCommand} from "./materialized_queries";
 import {
-  getSyntaxNodeAtPos,
-  getSyntaxNodeUnderCursor,
-  navigate as navigateTo,
-  openUrl,
+    getSyntaxNodeAtPos,
+    getSyntaxNodeUnderCursor,
+    getText,
+    navigate as navigateTo,
+    openUrl,
 } from "plugos-silverbullet-syscall/editor";
-import { taskToggleAtPos } from "../tasks/task";
+import {taskToggleAtPos} from "../tasks/task";
+import {nodeAtPos, parse} from "plugos-silverbullet-syscall/markdown";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 
@@ -52,6 +54,9 @@ export async function linkNavigate() {
 export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
     let syntaxNode = await getSyntaxNodeAtPos(event.pos);
+    let mdTree = await parse(await getText());
+    let newNode = await nodeAtPos(mdTree, event.pos);
+    console.log("New node", newNode);
     await actionClickOrActionEnter(syntaxNode);
   }
 }

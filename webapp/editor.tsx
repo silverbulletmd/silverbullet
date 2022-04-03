@@ -1,10 +1,10 @@
-import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
-import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
-import { indentWithTab, standardKeymap } from "@codemirror/commands";
-import { history, historyKeymap } from "@codemirror/history";
-import { bracketMatching } from "@codemirror/matchbrackets";
-import { searchKeymap } from "@codemirror/search";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import {autocompletion, completionKeymap} from "@codemirror/autocomplete";
+import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets";
+import {indentWithTab, standardKeymap} from "@codemirror/commands";
+import {history, historyKeymap} from "@codemirror/history";
+import {bracketMatching} from "@codemirror/matchbrackets";
+import {searchKeymap} from "@codemirror/search";
+import {EditorSelection, EditorState} from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -15,36 +15,38 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
-import React, { useEffect, useReducer } from "react";
+import React, {useEffect, useReducer} from "react";
 import ReactDOM from "react-dom";
-import { createSandbox as createIFrameSandbox } from "../plugos/environments/iframe_sandbox";
-import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
+import {createSandbox as createIFrameSandbox} from "../plugos/environments/iframe_sandbox";
+import {AppEvent, AppEventDispatcher, ClickEvent} from "./app_event";
 import * as commands from "./commands";
-import { CommandPalette } from "./components/command_palette";
-import { PageNavigator } from "./components/page_navigator";
-import { TopBar } from "./components/top_bar";
-import { lineWrapper } from "./line_wrapper";
-import { markdown } from "./markdown";
-import { PathPageNavigator } from "./navigator";
+import {CommandPalette} from "./components/command_palette";
+import {PageNavigator} from "./components/page_navigator";
+import {TopBar} from "./components/top_bar";
+import {lineWrapper} from "./line_wrapper";
+import {markdown} from "./markdown";
+import {PathPageNavigator} from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
-import { smartQuoteKeymap } from "./smart_quotes";
-import { Space } from "./space";
+import {smartQuoteKeymap} from "./smart_quotes";
+import {Space} from "./space";
 import customMarkdownStyle from "./style";
-import editorSyscalls from "./syscalls/editor";
-import indexerSyscalls from "./syscalls/indexer";
-import spaceSyscalls from "./syscalls/space";
-import { Action, AppViewState, initialViewState } from "./types";
-import { SilverBulletHooks } from "../common/manifest";
-import { safeRun, throttle } from "./util";
-import { System } from "../plugos/system";
-import { EventHook } from "../plugos/hooks/event";
-import { systemSyscalls } from "./syscalls/system";
-import { Panel } from "./components/panel";
-import { CommandHook } from "./hooks/command";
-import { SlashCommandHook } from "./hooks/slash_command";
-import { CompleterHook } from "./hooks/completer";
-import { pasteLinkExtension } from "./editor_paste";
+import {editorSyscalls} from "./syscalls/editor";
+import {indexerSyscalls} from "./syscalls/indexer";
+import {spaceSyscalls} from "./syscalls/space";
+import {Action, AppViewState, initialViewState} from "./types";
+import {SilverBulletHooks} from "../common/manifest";
+import {safeRun, throttle} from "./util";
+import {System} from "../plugos/system";
+import {EventHook} from "../plugos/hooks/event";
+import {systemSyscalls} from "./syscalls/system";
+import {Panel} from "./components/panel";
+import {CommandHook} from "./hooks/command";
+import {SlashCommandHook} from "./hooks/slash_command";
+import {CompleterHook} from "./hooks/completer";
+import {pasteLinkExtension} from "./editor_paste";
+import {markdownSyscalls} from "../common/syscalls/markdown";
+
 
 class PageState {
   scrollTop: number;
@@ -112,6 +114,7 @@ export class Editor implements AppEventDispatcher {
     this.system.registerSyscalls("space", [], spaceSyscalls(this));
     this.system.registerSyscalls("index", [], indexerSyscalls(this.space));
     this.system.registerSyscalls("system", [], systemSyscalls(this.space));
+    this.system.registerSyscalls("markdown", [], markdownSyscalls());
   }
 
   async init() {

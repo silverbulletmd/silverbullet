@@ -37,7 +37,7 @@ body {
 
 #top {
   height: 55px;
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -83,7 +83,7 @@ body {
 #editor {
   position: absolute;
   top: 55px;
-  bottom: 0;
+  bottom: 50px;
   left: 0;
   right: 0;
   overflow-y: hidden;

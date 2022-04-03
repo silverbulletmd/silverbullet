@@ -1,19 +1,20 @@
-import express, { Express } from "express";
-import { SilverBulletHooks } from "../common/manifest";
-import { EndpointHook } from "../plugos/hooks/endpoint";
-import { readFile } from "fs/promises";
-import { System } from "../plugos/system";
+import express, {Express} from "express";
+import {SilverBulletHooks} from "../common/manifest";
+import {EndpointHook} from "../plugos/hooks/endpoint";
+import {readFile} from "fs/promises";
+import {System} from "../plugos/system";
 import cors from "cors";
-import { DiskStorage, EventedStorage, Storage } from "./disk_storage";
+import {DiskStorage, EventedStorage, Storage} from "./disk_storage";
 import path from "path";
 import bodyParser from "body-parser";
-import { EventHook } from "../plugos/hooks/event";
+import {EventHook} from "../plugos/hooks/event";
 import spaceSyscalls from "./syscalls/space";
-import { eventSyscalls } from "../plugos/syscalls/event";
-import { pageIndexSyscalls } from "./syscalls";
-import knex, { Knex } from "knex";
+import {eventSyscalls} from "../plugos/syscalls/event";
+import {pageIndexSyscalls} from "./syscalls";
+import knex, {Knex} from "knex";
 import shellSyscalls from "../plugos/syscalls/shell.node";
-import { NodeCronHook } from "../plugos/hooks/node_cron";
+import {NodeCronHook} from "../plugos/hooks/node_cron";
+import {markdownSyscalls} from "../common/syscalls/markdown";
 
 export class ExpressServer {
   app: Express;
@@ -56,6 +57,7 @@ export class ExpressServer {
     system.registerSyscalls("index", [], pageIndexSyscalls(this.db));
     system.registerSyscalls("space", [], spaceSyscalls(this.storage));
     system.registerSyscalls("event", [], eventSyscalls(this.eventHook));
+    system.registerSyscalls("markdown", [], markdownSyscalls());
     system.addHook(new EndpointHook(app, "/_"));
   }
 

@@ -1,16 +1,11 @@
-import {
-  flashNotification,
-  getCurrentPage,
-  reloadPage,
-  save,
-} from "plugos-silverbullet-syscall/editor";
+import {flashNotification, getCurrentPage, reloadPage, save,} from "plugos-silverbullet-syscall/editor";
 
-import { readPage, writePage } from "plugos-silverbullet-syscall/space";
-import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
-import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
+import {readPage, writePage} from "plugos-silverbullet-syscall/space";
+import {invokeFunctionOnServer} from "plugos-silverbullet-syscall/system";
+import {scanPrefixGlobal} from "plugos-silverbullet-syscall";
 
 export const queryRegex =
-  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
+  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*(group by\s+(?<groupBy>\w+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
 
 export function whiteOutQueries(text: string): string {
   return text.replaceAll(queryRegex, (match) =>
