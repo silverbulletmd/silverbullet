@@ -1,14 +1,14 @@
-import { createSandbox } from "../environments/node_sandbox";
-import { expect, test } from "@jest/globals";
-import { System } from "../system";
-import { storeSyscalls } from "./store.dexie_browser";
+import {createSandbox} from "../environments/node_sandbox";
+import {expect, test} from "@jest/globals";
+import {System} from "../system";
+import {storeSyscalls} from "./store.dexie_browser";
 
 // For testing in node.js
 require("fake-indexeddb/auto");
 
 test("Test store", async () => {
   let system = new System("server");
-  system.registerSyscalls("store", [], storeSyscalls("test", "test"));
+  system.registerSyscalls([], storeSyscalls("test", "test"));
   let plug = await system.load(
     "test",
     {

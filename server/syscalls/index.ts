@@ -1,11 +1,7 @@
-import { Knex } from "knex";
-import { SysCallMapping } from "../../plugos/system";
+import {Knex} from "knex";
+import {SysCallMapping} from "../../plugos/system";
 
-import {
-  ensureTable,
-  storeReadSyscalls,
-  storeWriteSyscalls,
-} from "../../plugos/syscalls/store.knex_node";
+import {ensureTable, storeSyscalls,} from "../../plugos/syscalls/store.knex_node";
 
 type IndexItem = {
   page: string;
@@ -52,39 +48,38 @@ export async function ensurePageIndexTable(db: Knex<any, unknown>) {
 }
 
 export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
-  const readCalls = storeReadSyscalls(db, "page_index");
-  const writeCalls = storeWriteSyscalls(db, "page_index");
+  const storeCalls = storeSyscalls(db, "page_index");
   const apiObj: SysCallMapping = {
-    set: async (ctx, page: string, key: string, value: any) => {
-      await writeCalls.set(ctx, pageKey(page, key), value);
-      await writeCalls.set(ctx, globalKey(page, key), value);
+    "index.set": async (ctx, page: string, key: string, value: any) => {
+      await storeCalls["store.set"](ctx, pageKey(page, key), value);
+      await storeCalls["store.set"](ctx, globalKey(page, key), value);
     },
-    batchSet: async (ctx, page: string, kvs: KV[]) => {
+    "index.batchSet": async (ctx, page: string, kvs: KV[]) => {
       for (let { key, value } of kvs) {
-        await apiObj.set(ctx, page, key, value);
+        await apiObj["index.set"](ctx, page, key, value);
       }
     },
-    delete: async (ctx, page: string, key: string) => {
-      await writeCalls.delete(ctx, pageKey(page, key));
-      await writeCalls.delete(ctx, globalKey(page, key));
+    "index.delete": async (ctx, page: string, key: string) => {
+      await storeCalls["store.delete"](ctx, pageKey(page, key));
+      await storeCalls["store.delete"](ctx, globalKey(page, key));
     },
-    get: async (ctx, page: string, key: string) => {
-      return readCalls.get(ctx, pageKey(page, key));
+    "index.get": async (ctx, page: string, key: string) => {
+      return storeCalls["store.get"](ctx, pageKey(page, key));
     },
-    scanPrefixForPage: async (ctx, page: string, prefix: string) => {
-      return (await readCalls.queryPrefix(ctx, pageKey(page, prefix))).map(
-        ({ key, value }: { key: string; value: any }) => {
-          const { key: pageKey } = unpackPageKey(key);
-          return {
-            page,
-            key: pageKey,
-            value,
-          };
-        }
-      );
+    "index.scanPrefixForPage": async (ctx, page: string, prefix: string) => {
+      return (
+        await storeCalls["store.queryPrefix"](ctx, pageKey(page, prefix))
+      ).map(({ key, value }: { key: string; value: any }) => {
+        const { key: pageKey } = unpackPageKey(key);
+        return {
+          page,
+          key: pageKey,
+          value,
+        };
+      });
     },
-    scanPrefixGlobal: async (ctx, prefix: string) => {
-      return (await readCalls.queryPrefix(ctx, `k~${prefix}`)).map(
+    "index.scanPrefixGlobal": async (ctx, prefix: string) => {
+      return (await storeCalls["store.queryPrefix"](ctx, `k~${prefix}`)).map(
         ({ key, value }: { key: string; value: any }) => {
           const { page, key: pageKey } = unpackGlobalKey(key);
           return {
@@ -95,22 +90,22 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
         }
       );
     },
-    clearPageIndexForPage: async (ctx, page: string) => {
-      await apiObj.deletePrefixForPage(ctx, page, "");
+    "index.clearPageIndexForPage": async (ctx, page: string) => {
+      await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
-    deletePrefixForPage: async (ctx, page: string, prefix: string) => {
+    "index.deletePrefixForPage": async (ctx, page: string, prefix: string) => {
       // Collect all global keys for this page to delete
       let keysToDelete = (
-        await readCalls.queryPrefix(ctx, pageKey(page, prefix))
+        await storeCalls["store.queryPrefix"](ctx, pageKey(page, prefix))
       ).map(({ key }: { key: string; value: string }) =>
         globalKey(page, unpackPageKey(key).key)
       );
       // Delete all page keys
-      await writeCalls.deletePrefix(ctx, pageKey(page, prefix));
-      await writeCalls.batchDelete(ctx, keysToDelete);
+      await storeCalls["store.deletePrefix"](ctx, pageKey(page, prefix));
+      await storeCalls["store.batchDelete"](ctx, keysToDelete);
     },
-    clearPageIndex: async (ctx) => {
-      await writeCalls.deleteAll(ctx);
+    "index.clearPageIndex": async (ctx) => {
+      await storeCalls["store.deleteAll"](ctx);
     },
   };
   return apiObj;

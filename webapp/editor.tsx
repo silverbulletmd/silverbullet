@@ -6,14 +6,14 @@ import {bracketMatching} from "@codemirror/matchbrackets";
 import {searchKeymap} from "@codemirror/search";
 import {EditorSelection, EditorState} from "@codemirror/state";
 import {
-  drawSelection,
-  dropCursor,
-  EditorView,
-  highlightSpecialChars,
-  KeyBinding,
-  keymap,
-  ViewPlugin,
-  ViewUpdate,
+    drawSelection,
+    dropCursor,
+    EditorView,
+    highlightSpecialChars,
+    KeyBinding,
+    keymap,
+    ViewPlugin,
+    ViewUpdate,
 } from "@codemirror/view";
 import React, {useEffect, useReducer} from "react";
 import ReactDOM from "react-dom";
@@ -47,7 +47,6 @@ import {CompleterHook} from "./hooks/completer";
 import {pasteLinkExtension} from "./editor_paste";
 import {markdownSyscalls} from "../common/syscalls/markdown";
 
-
 class PageState {
   scrollTop: number;
   selection: EditorSelection;
@@ -61,11 +60,9 @@ class PageState {
 const saveInterval = 2000;
 
 export class Editor implements AppEventDispatcher {
-  private system = new System<SilverBulletHooks>("client");
   readonly commandHook: CommandHook;
   readonly slashCommandHook: SlashCommandHook;
   readonly completerHook: CompleterHook;
-
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState;
@@ -73,6 +70,8 @@ export class Editor implements AppEventDispatcher {
   space: Space;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
+  saveTimeout: any;
+  private system = new System<SilverBulletHooks>("client");
 
   constructor(space: Space, parent: Element) {
     this.space = space;
@@ -110,11 +109,15 @@ export class Editor implements AppEventDispatcher {
     });
     this.pageNavigator = new PathPageNavigator();
 
-    this.system.registerSyscalls("editor", [], editorSyscalls(this));
-    this.system.registerSyscalls("space", [], spaceSyscalls(this));
-    this.system.registerSyscalls("index", [], indexerSyscalls(this.space));
-    this.system.registerSyscalls("system", [], systemSyscalls(this.space));
-    this.system.registerSyscalls("markdown", [], markdownSyscalls());
+    this.system.registerSyscalls([], editorSyscalls(this));
+    this.system.registerSyscalls([], spaceSyscalls(this));
+    this.system.registerSyscalls([], indexerSyscalls(this.space));
+    this.system.registerSyscalls([], systemSyscalls(this.space));
+    this.system.registerSyscalls([], markdownSyscalls());
+  }
+
+  get currentPage(): string | undefined {
+    return this.viewState.currentPage;
   }
 
   async init() {
@@ -180,8 +183,6 @@ export class Editor implements AppEventDispatcher {
     }
   }
 
-  saveTimeout: any;
-
   async save(immediate: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.viewState.unsavedChanges) {
@@ -234,10 +235,6 @@ export class Editor implements AppEventDispatcher {
 
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<void> {
     return this.eventHook.dispatchEvent(name, data);
-  }
-
-  get currentPage(): string | undefined {
-    return this.viewState.currentPage;
   }
 
   createEditorState(pageName: string, text: string): EditorState {

@@ -28,37 +28,37 @@ function ensureAnchor(expr: any, start: boolean) {
 
 export function editorSyscalls(editor: Editor): SysCallMapping {
   return {
-    getCurrentPage: (): string => {
+    "editor.getCurrentPage": (): string => {
       return editor.currentPage!;
     },
-    getText: () => {
+    "editor.getText": () => {
       return editor.editorView?.state.sliceDoc();
     },
-    getCursor: (): number => {
+    "editor.getCursor": (): number => {
       return editor.editorView!.state.selection.main.from;
     },
-    save: async () => {
+    "editor.save": async () => {
       return editor.save(true);
     },
-    navigate: async (ctx, name: string, pos: number) => {
+    "editor.navigate": async (ctx, name: string, pos: number) => {
       await editor.navigate(name, pos);
     },
-    reloadPage: async (ctx) => {
+    "editor.reloadPage": async (ctx) => {
       await editor.reloadPage();
     },
-    openUrl: async (ctx, url: string) => {
+    "editor.openUrl": async (ctx, url: string) => {
       window.open(url, "_blank")!.focus();
     },
-    flashNotification: (ctx, message: string) => {
+    "editor.flashNotification": (ctx, message: string) => {
       editor.flashNotification(message);
     },
-    showRhs: (ctx, html: string) => {
+    "editor.showRhs": (ctx, html: string) => {
       editor.viewDispatch({
         type: "show-rhs",
         html: html,
       });
     },
-    insertAtPos: (ctx, text: string, pos: number) => {
+    "editor.insertAtPos": (ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({
         changes: {
           insert: text,
@@ -66,7 +66,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    replaceRange: (ctx, from: number, to: number, text: string) => {
+    "editor.replaceRange": (ctx, from: number, to: number, text: string) => {
       editor.editorView!.dispatch({
         changes: {
           insert: text,
@@ -75,14 +75,14 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    moveCursor: (ctx, pos: number) => {
+    "editor.moveCursor": (ctx, pos: number) => {
       editor.editorView!.dispatch({
         selection: {
           anchor: pos,
         },
       });
     },
-    insertAtCursor: (ctx, text: string) => {
+    "editor.insertAtCursor": (ctx, text: string) => {
       let editorView = editor.editorView!;
       let from = editorView.state.selection.main.from;
       editorView.dispatch({
@@ -95,7 +95,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    getSyntaxNodeUnderCursor: (): SyntaxNode | undefined => {
+    "editor.getSyntaxNodeUnderCursor": (): SyntaxNode | undefined => {
       const editorState = editor.editorView!.state;
       let selection = editorState.selection.main;
       if (selection.empty) {
@@ -110,13 +110,13 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         }
       }
     },
-    getLineUnderCursor: (): string => {
+    "editor.getLineUnderCursor": (): string => {
       const editorState = editor.editorView!.state;
       let selection = editorState.selection.main;
       let line = editorState.doc.lineAt(selection.from);
       return editorState.sliceDoc(line.from, line.to);
     },
-    matchBefore: (
+    "editor.matchBefore": (
       ctx,
       regexp: string
     ): { from: number; to: number; text: string } | null => {
@@ -135,7 +135,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       }
       return null;
     },
-    getSyntaxNodeAtPos: (ctx, pos: number): SyntaxNode | undefined => {
+    "editor.getSyntaxNodeAtPos": (ctx, pos: number): SyntaxNode | undefined => {
       const editorState = editor.editorView!.state;
       let node = syntaxTree(editorState).resolveInner(pos);
       if (node) {
@@ -147,10 +147,14 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         };
       }
     },
-    dispatch: (ctx, change: Transaction) => {
+    "editor.dispatch": (ctx, change: Transaction) => {
       editor.editorView!.dispatch(change);
     },
-    prompt: (ctx, message: string, defaultValue = ""): string | null => {
+    "editor.prompt": (
+      ctx,
+      message: string,
+      defaultValue = ""
+    ): string | null => {
       return prompt(message, defaultValue);
     },
   };

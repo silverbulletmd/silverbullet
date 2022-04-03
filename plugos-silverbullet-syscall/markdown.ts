@@ -8,7 +8,7 @@ export async function parse(text: string): Promise<MarkdownTree> {
 export async function nodeAtPos(
   mdTree: MarkdownTree,
   pos: number
-): Promise<any | null> {
+): Promise<MarkdownTree | null> {
   return syscall("markdown.nodeAtPos", mdTree, pos);
 }
 

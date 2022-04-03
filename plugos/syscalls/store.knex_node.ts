@@ -1,5 +1,5 @@
-import { Knex } from "knex";
-import { SysCallMapping } from "../system";
+import {Knex} from "knex";
+import {SysCallMapping} from "../system";
 
 type Item = {
   page: string;
@@ -23,21 +23,21 @@ export async function ensureTable(db: Knex<any, unknown>, tableName: string) {
   }
 }
 
-export function storeWriteSyscalls(
+export function storeSyscalls(
   db: Knex<any, unknown>,
   tableName: string
 ): SysCallMapping {
   const apiObj: SysCallMapping = {
-    delete: async (ctx, key: string) => {
+    "store.delete": async (ctx, key: string) => {
       await db<Item>(tableName).where({ key }).del();
     },
-    deletePrefix: async (ctx, prefix: string) => {
+    "store.deletePrefix": async (ctx, prefix: string) => {
       return db<Item>(tableName).andWhereLike("key", `${prefix}%`).del();
     },
-    deleteAll: async (ctx) => {
+    "store.deleteAll": async (ctx) => {
       await db<Item>(tableName).del();
     },
-    set: async (ctx, key: string, value: any) => {
+    "store.set": async (ctx, key: string, value: any) => {
       let changed = await db<Item>(tableName)
         .where({ key })
         .update("value", JSON.stringify(value));
@@ -49,26 +49,17 @@ export function storeWriteSyscalls(
       }
     },
     // TODO: Optimize
-    batchSet: async (ctx, kvs: KV[]) => {
+    "store.batchSet": async (ctx, kvs: KV[]) => {
       for (let { key, value } of kvs) {
-        await apiObj.set(ctx, key, value);
+        await apiObj["store.set"](ctx, key, value);
       }
     },
-    batchDelete: async (ctx, keys: string[]) => {
+    "store.batchDelete": async (ctx, keys: string[]) => {
       for (let key of keys) {
-        await apiObj.delete(ctx, key);
+        await apiObj["store.delete"](ctx, key);
       }
     },
-  };
-  return apiObj;
-}
-
-export function storeReadSyscalls(
-  db: Knex<any, unknown>,
-  tableName: string
-): SysCallMapping {
-  return {
-    get: async (ctx, key: string): Promise<any | null> => {
+    "store.get": async (ctx, key: string): Promise<any | null> => {
       let result = await db<Item>(tableName).where({ key }).select("value");
       if (result.length) {
         return JSON.parse(result[0].value);
@@ -76,7 +67,7 @@ export function storeReadSyscalls(
         return null;
       }
     },
-    queryPrefix: async (ctx, prefix: string) => {
+    "store.queryPrefix": async (ctx, prefix: string) => {
       return (
         await db<Item>(tableName)
           .andWhereLike("key", `${prefix}%`)
@@ -87,4 +78,5 @@ export function storeReadSyscalls(
       }));
     },
   };
+  return apiObj;
 }

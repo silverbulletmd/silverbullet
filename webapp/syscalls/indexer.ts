@@ -5,13 +5,13 @@ import {transportSyscalls} from "../../plugos/syscalls/transport";
 export function indexerSyscalls(space: Space): SysCallMapping {
   return transportSyscalls(
     [
-      "scanPrefixForPage",
-      "scanPrefixGlobal",
-      "get",
-      "set",
-      "batchSet",
-      "delete",
+      "index.scanPrefixForPage",
+      "index.scanPrefixGlobal",
+      "index.get",
+      "index.set",
+      "index.batchSet",
+      "index.delete",
     ],
-    (ctx, name, ...args) => space.remoteSyscall(ctx.plug, `index.${name}`, args)
+    (ctx, name, ...args) => space.remoteSyscall(ctx.plug, name, args)
   );
 }

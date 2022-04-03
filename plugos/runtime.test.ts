@@ -1,10 +1,10 @@
-import { createSandbox } from "./environments/node_sandbox";
-import { expect, test } from "@jest/globals";
-import { System } from "./system";
+import {createSandbox} from "./environments/node_sandbox";
+import {expect, test} from "@jest/globals";
+import {System} from "./system";
 
 test("Run a Node sandbox", async () => {
   let system = new System("server");
-  system.registerSyscalls("", [], {
+  system.registerSyscalls([], {
     addNumbers: (ctx, a, b) => {
       return a + b;
     },
@@ -12,12 +12,12 @@ test("Run a Node sandbox", async () => {
       throw new Error("#fail");
     },
   });
-  system.registerSyscalls("", ["restricted"], {
+  system.registerSyscalls(["restricted"], {
     restrictedSyscall: () => {
       return "restricted";
     },
   });
-  system.registerSyscalls("", ["dangerous"], {
+  system.registerSyscalls(["dangerous"], {
     dangerousSyscall: () => {
       return "yay";
     },

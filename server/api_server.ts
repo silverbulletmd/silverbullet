@@ -51,13 +51,13 @@ export class ExpressServer {
       useNullAsDefault: true,
     });
 
-    system.registerSyscalls("shell", ["shell"], shellSyscalls(rootPath));
+    system.registerSyscalls(["shell"], shellSyscalls(rootPath));
     system.addHook(new NodeCronHook());
 
-    system.registerSyscalls("index", [], pageIndexSyscalls(this.db));
-    system.registerSyscalls("space", [], spaceSyscalls(this.storage));
-    system.registerSyscalls("event", [], eventSyscalls(this.eventHook));
-    system.registerSyscalls("markdown", [], markdownSyscalls());
+    system.registerSyscalls([], pageIndexSyscalls(this.db));
+    system.registerSyscalls([], spaceSyscalls(this.storage));
+    system.registerSyscalls([], eventSyscalls(this.eventHook));
+    system.registerSyscalls([], markdownSyscalls());
     system.addHook(new EndpointHook(app, "/_"));
   }
 

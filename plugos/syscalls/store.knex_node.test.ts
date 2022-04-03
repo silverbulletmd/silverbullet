@@ -1,11 +1,7 @@
-import { createSandbox } from "../environments/node_sandbox";
-import { expect, test } from "@jest/globals";
-import { System } from "../system";
-import {
-  ensureTable,
-  storeReadSyscalls,
-  storeWriteSyscalls,
-} from "./store.knex_node";
+import {createSandbox} from "../environments/node_sandbox";
+import {expect, test} from "@jest/globals";
+import {System} from "../system";
+import {ensureTable, storeSyscalls} from "./store.knex_node";
 import knex from "knex";
 import fs from "fs/promises";
 
@@ -19,12 +15,7 @@ test("Test store", async () => {
   });
   await ensureTable(db, "test_table");
   let system = new System("server");
-  system.registerSyscalls(
-    "store",
-    [],
-    storeWriteSyscalls(db, "test_table"),
-    storeReadSyscalls(db, "test_table")
-  );
+  system.registerSyscalls([], storeSyscalls(db, "test_table"));
   let plug = await system.load(
     "test",
     {

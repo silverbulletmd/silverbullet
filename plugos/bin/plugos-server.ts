@@ -10,21 +10,17 @@ import {System} from "../system";
 import {EndpointHook, EndpointHookT} from "../hooks/endpoint";
 import {safeRun} from "../util";
 import knex from "knex";
-import {
-  ensureTable,
-  storeReadSyscalls,
-  storeWriteSyscalls,
-} from "../syscalls/store.knex_node";
+import {ensureTable, storeSyscalls} from "../syscalls/store.knex_node";
 import {fetchSyscalls} from "../syscalls/fetch.node";
 import {EventHook, EventHookT} from "../hooks/event";
 import {eventSyscalls} from "../syscalls/event";
 
 let args = yargs(hideBin(process.argv))
-    .option("port", {
-      type: "number",
-      default: 1337,
-    })
-    .parse();
+  .option("port", {
+    type: "number",
+    default: 1337,
+  })
+  .parse();
 
 if (!args._.length) {
   console.error("Usage: plugos-server <path-to-plugs>");
@@ -55,16 +51,11 @@ safeRun(async () => {
   system.addHook(new NodeCronHook());
   let eventHook = new EventHook();
   system.addHook(eventHook);
-  system.registerSyscalls("event", [], eventSyscalls(eventHook));
+  system.registerSyscalls([], eventSyscalls(eventHook));
   system.addHook(new EndpointHook(app, ""));
-  system.registerSyscalls("shell", [], shellSyscalls("."));
-  system.registerSyscalls("fetch", [], fetchSyscalls());
-  system.registerSyscalls(
-    "store",
-    [],
-    storeWriteSyscalls(db, "item"),
-    storeReadSyscalls(db, "item")
-  );
+  system.registerSyscalls([], shellSyscalls("."));
+  system.registerSyscalls([], fetchSyscalls());
+  system.registerSyscalls([], storeSyscalls(db, "item"));
   app.listen(args.port, () => {
     console.log(`Plugbox server listening on port ${args.port}`);
   });

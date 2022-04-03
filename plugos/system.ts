@@ -1,7 +1,7 @@
-import { Hook, Manifest, RuntimeEnvironment } from "./types";
-import { EventEmitter } from "../common/event";
-import { SandboxFactory } from "./sandbox";
-import { Plug } from "./plug";
+import {Hook, Manifest, RuntimeEnvironment} from "./types";
+import {EventEmitter} from "../common/event";
+import {SandboxFactory} from "./sandbox";
+import {Plug} from "./plug";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -29,15 +29,18 @@ type Syscall = {
 };
 
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
+  readonly runtimeEnv: RuntimeEnvironment;
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
 
-  readonly runtimeEnv: RuntimeEnvironment;
-
   constructor(env: RuntimeEnvironment) {
     super();
     this.runtimeEnv = env;
+  }
+
+  get loadedPlugs(): Map<string, Plug<HookT>> {
+    return this.plugs;
   }
 
   addHook(feature: Hook<HookT>) {
@@ -46,14 +49,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   registerSyscalls(
-    namespace: string,
     requiredCapabilities: string[],
     ...registrationObjects: SysCallMapping[]
   ) {
     for (const registrationObject of registrationObjects) {
       for (let [name, callback] of Object.entries(registrationObject)) {
-        const callName = namespace ? `${namespace}.${name}` : name;
-        this.registeredSyscalls.set(callName, {
+        this.registeredSyscalls.set(name, {
           requiredPermissions: requiredCapabilities,
           callback,
         });
@@ -114,10 +115,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     await plug.stop();
     this.emit("plugUnloaded", name, plug);
     this.plugs.delete(name);
-  }
-
-  get loadedPlugs(): Map<string, Plug<HookT>> {
-    return this.plugs;
   }
 
   toJSON(): SystemJSON<HookT> {

@@ -1,5 +1,5 @@
 import Dexie from "dexie";
-import { SysCallMapping } from "../system";
+import {SysCallMapping} from "../system";
 
 export type KV = {
   key: string;
@@ -17,26 +17,26 @@ export function storeSyscalls(
   const items = db.table(tableName);
 
   return {
-    async delete(ctx, key: string) {
+    "store.delete": async (ctx, key: string) => {
       await items.delete(key);
     },
 
-    async deletePrefix(ctx, prefix: string) {
+    "store.deletePrefix": async (ctx, prefix: string) => {
       await items.where("key").startsWith(prefix).delete();
     },
 
-    async deleteAll() {
+    "store.deleteAll": async () => {
       await items.clear();
     },
 
-    async set(ctx, key: string, value: any) {
+    "store.set": async (ctx, key: string, value: any) => {
       await items.put({
         key,
         value,
       });
     },
 
-    async batchSet(ctx, kvs: KV[]) {
+    "store.batchSet": async (ctx, kvs: KV[]) => {
       await items.bulkPut(
         kvs.map(({ key, value }) => ({
           key,
@@ -45,17 +45,17 @@ export function storeSyscalls(
       );
     },
 
-    async get(ctx, key: string): Promise<any | null> {
+    "store.get": async (ctx, key: string): Promise<any | null> => {
       let result = await items.get({
         key,
       });
       return result ? result.value : null;
     },
 
-    async queryPrefix(
+    "store.queryPrefix": async (
       ctx,
       keyPrefix: string
-    ): Promise<{ key: string; value: any }[]> {
+    ): Promise<{ key: string; value: any }[]> => {
       let results = await items.where("key").startsWith(keyPrefix).toArray();
       return results.map((result) => ({
         key: result.key,
