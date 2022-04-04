@@ -1,5 +1,7 @@
 @use "editor.scss";
 @use "filter_box.scss";
+@import "constants";
+
 
 :root {
   --ident: 18px;
@@ -19,25 +21,24 @@ body {
 
 .panel {
   position: absolute;
-  top: 55px;
-  bottom: 0;
+  top: $top-bar-height + 1px;
+  bottom: $bottom-bar-height;
   right: 0;
-  width: 400px;
+  width: 50%;
   z-index: 20;
-  background: #efefef;
 
   iframe {
     border: 0;
     width: 100%;
     height: 100%;
-    padding: 10px;
-    scroll: auto;
+    padding: 0px;
+    margin: 0;
   }
 }
 
 #top {
-  height: 55px;
-  position: absolute;
+  height: $top-bar-height;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -47,7 +48,7 @@ body {
 
   .inner {
     padding-top: 12px;
-    max-width: 800px;
+    max-width: $max-editor-width;
     font-size: 28px;
     margin: auto;
 
@@ -82,19 +83,40 @@ body {
 
 #editor {
   position: absolute;
-  top: 55px;
-  bottom: 50px;
+  top: $top-bar-height;
+  bottom: $bottom-bar-height;
   left: 0;
   right: 0;
   overflow-y: hidden;
 }
 
 div.rhs-open #editor {
-  right: 350px;
+  right: 50%;
 }
 
-@media only screen and (max-width: 800px) {
+div.rhs-open #top .inner {
+  max-width: 550px;
+  padding-right: 50%;
+}
+
+@media only screen and (max-width: $max-editor-width) {
   .cm-editor .cm-content {
     margin: 0 10px !important;
+  }
+}
+
+#bottom {
+  height: $bottom-bar-height;
+  background-color: #ccc;
+  position: fixed;
+  text-align: right;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgb(213, 213, 213);
+  border-top: rgb(193, 193, 193) 1px solid;
+
+  .inner {
+    padding: 5px;
   }
 }

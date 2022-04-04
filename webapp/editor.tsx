@@ -6,18 +6,18 @@ import {bracketMatching} from "@codemirror/matchbrackets";
 import {searchKeymap} from "@codemirror/search";
 import {EditorSelection, EditorState} from "@codemirror/state";
 import {
-    drawSelection,
-    dropCursor,
-    EditorView,
-    highlightSpecialChars,
-    KeyBinding,
-    keymap,
-    ViewPlugin,
-    ViewUpdate,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightSpecialChars,
+  KeyBinding,
+  keymap,
+  ViewPlugin,
+  ViewUpdate,
 } from "@codemirror/view";
 import React, {useEffect, useReducer} from "react";
 import ReactDOM from "react-dom";
-import {createSandbox as createIFrameSandbox} from "../plugos/environments/iframe_sandbox";
+import {createSandbox as createIFrameSandbox} from "../plugos/environments/webworker_sandbox";
 import {AppEvent, AppEventDispatcher, ClickEvent} from "./app_event";
 import * as commands from "./commands";
 import {CommandPalette} from "./components/command_palette";
@@ -46,6 +46,8 @@ import {SlashCommandHook} from "./hooks/slash_command";
 import {CompleterHook} from "./hooks/completer";
 import {pasteLinkExtension} from "./editor_paste";
 import {markdownSyscalls} from "../common/syscalls/markdown";
+import {clientStoreSyscalls} from "./syscalls/clientStore";
+import {StatusBar} from "./components/status_bar";
 
 class PageState {
   scrollTop: number;
@@ -71,6 +73,9 @@ export class Editor implements AppEventDispatcher {
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
   saveTimeout: any;
+  debouncedUpdateEvent = throttle(() => {
+    this.eventHook.dispatchEvent("editor:updated");
+  }, 1000);
   private system = new System<SilverBulletHooks>("client");
 
   constructor(space: Space, parent: Element) {
@@ -114,6 +119,7 @@ export class Editor implements AppEventDispatcher {
     this.system.registerSyscalls([], indexerSyscalls(this.space));
     this.system.registerSyscalls([], systemSyscalls(this.space));
     this.system.registerSyscalls([], markdownSyscalls());
+    this.system.registerSyscalls([], clientStoreSyscalls());
   }
 
   get currentPage(): string | undefined {
@@ -357,6 +363,7 @@ export class Editor implements AppEventDispatcher {
             update(update: ViewUpdate): void {
               if (update.docChanged) {
                 editor.viewDispatch({ type: "page-changed" });
+                editor.debouncedUpdateEvent();
                 editor.save();
               }
             }
@@ -438,6 +445,8 @@ export class Editor implements AppEventDispatcher {
       type: "page-loaded",
       name: pageName,
     });
+
+    await this.eventHook.dispatchEvent("editor:pageSwitched");
   }
 
   ViewComponent(): React.ReactElement {
@@ -494,6 +503,7 @@ export class Editor implements AppEventDispatcher {
           }}
         />
         <div id="editor" />
+        <StatusBar editorView={editor.editorView} />
       </div>
     );
   }

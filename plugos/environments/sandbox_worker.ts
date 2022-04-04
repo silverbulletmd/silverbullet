@@ -1,5 +1,5 @@
-import { safeRun } from "../util";
-import { ControllerMessage, WorkerMessage } from "./worker";
+import {safeRun} from "../util";
+import {ControllerMessage, WorkerMessage} from "./worker";
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<
@@ -9,10 +9,13 @@ let pendingRequests = new Map<
     reject: (e: any) => void;
   }
 >();
-let postMessage = self.postMessage.bind(self);
 
-if (window.parent !== window) {
-  postMessage = window.parent.postMessage.bind(window.parent);
+function workerPostMessage(msg: ControllerMessage) {
+  if (typeof window !== "undefined" && window.parent !== window) {
+    window.parent.postMessage(msg, "*");
+  } else {
+    self.postMessage(msg);
+  }
 }
 
 declare global {
@@ -25,15 +28,12 @@ self.syscall = async (name: string, ...args: any[]) => {
   return await new Promise((resolve, reject) => {
     syscallReqId++;
     pendingRequests.set(syscallReqId, { resolve, reject });
-    postMessage(
-      {
-        type: "syscall",
-        id: syscallReqId,
-        name,
-        args,
-      },
-      "*"
-    );
+    workerPostMessage({
+      type: "syscall",
+      id: syscallReqId,
+      name,
+      args,
+    });
   });
 };
 
@@ -48,13 +48,10 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
       case "load":
         let fn2 = new Function(wrapScript(data.code!));
         loadedFunctions.set(data.name!, fn2());
-        postMessage(
-          {
-            type: "inited",
-            name: data.name,
-          } as ControllerMessage,
-          "*"
-        );
+        workerPostMessage({
+          type: "inited",
+          name: data.name,
+        });
         break;
       case "invoke":
         let fn = loadedFunctions.get(data.name!);
@@ -63,23 +60,17 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         }
         try {
           let result = await Promise.resolve(fn(...(data.args || [])));
-          postMessage(
-            {
-              type: "result",
-              id: data.id,
-              result: result,
-            } as ControllerMessage,
-            "*"
-          );
+          workerPostMessage({
+            type: "result",
+            id: data.id,
+            result: result,
+          } as ControllerMessage);
         } catch (e: any) {
-          postMessage(
-            {
-              type: "result",
-              id: data.id,
-              error: e.message,
-            } as ControllerMessage,
-            "*"
-          );
+          workerPostMessage({
+            type: "result",
+            id: data.id,
+            error: e.message,
+          });
           throw e;
         }
 

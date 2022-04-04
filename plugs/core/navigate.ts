@@ -3,8 +3,7 @@ import {updateMaterializedQueriesCommand} from "./materialized_queries";
 import {getCursor, getText, navigate as navigateTo, openUrl,} from "plugos-silverbullet-syscall/editor";
 import {taskToggleAtPos} from "../tasks/task";
 import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {nodeAtPos} from "../lib/tree";
-import type {MarkdownTree} from "../../common/tree";
+import {MarkdownTree, nodeAtPos} from "../lib/tree";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 
@@ -34,14 +33,14 @@ async function actionClickOrActionEnter(mdTree: MarkdownTree | null) {
       await openUrl(mdTree.children![4].children![0].text!);
       break;
     case "TaskMarker":
-      await taskToggleAtPos(mdTree.from + 1);
+      await taskToggleAtPos(mdTree.from! + 1);
       break;
   }
 }
 
 export async function linkNavigate() {
   let mdTree = await parseMarkdown(await getText());
-  let newNode = await nodeAtPos(mdTree, await getCursor());
+  let newNode = nodeAtPos(mdTree, await getCursor());
   await actionClickOrActionEnter(newNode);
 }
 

@@ -1,4 +1,4 @@
-import { syscall } from "./syscall";
+import {syscall} from "./syscall";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");
@@ -36,6 +36,10 @@ export function showRhs(html: string): Promise<void> {
   return syscall("editor.showRhs", html);
 }
 
+export function hideRhs(): Promise<void> {
+  return syscall("editor.hideRhs");
+}
+
 export function insertAtPos(text: string, pos: number): Promise<void> {
   return syscall("editor.insertAtPos", text, pos);
 }
@@ -56,29 +60,10 @@ export function insertAtCursor(text: string): Promise<void> {
   return syscall("editor.insertAtCursor", text);
 }
 
-export type SyntaxNode = {
-  name: string;
-  text: string;
-  from: number;
-  to: number;
-};
-
-export function getSyntaxNodeUnderCursor(): Promise<SyntaxNode> {
-  return syscall("editor.getSyntaxNodeUnderCursor");
-}
-
-export function getLineUnderCursor(): Promise<string> {
-  return syscall("editor.getLineUnderCursor");
-}
-
 export function matchBefore(
   re: string
 ): Promise<{ from: number; to: number; text: string } | null> {
   return syscall("editor.matchBefore", re);
-}
-
-export function getSyntaxNodeAtPos(pos: number): Promise<SyntaxNode> {
-  return syscall("editor.getSyntaxNodeAtPos", pos);
 }
 
 export function dispatch(change: any): Promise<void> {

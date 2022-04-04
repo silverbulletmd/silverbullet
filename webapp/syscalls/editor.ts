@@ -1,5 +1,4 @@
 import {Editor} from "../editor";
-import {syntaxTree} from "@codemirror/language";
 import {Transaction} from "@codemirror/state";
 import {SysCallMapping} from "../../plugos/system";
 
@@ -58,6 +57,11 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         html: html,
       });
     },
+    "editor.hideRhs": (ctx, html: string) => {
+      editor.viewDispatch({
+        type: "hide-rhs",
+      });
+    },
     "editor.insertAtPos": (ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({
         changes: {
@@ -95,27 +99,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    "editor.getSyntaxNodeUnderCursor": (): SyntaxNode | undefined => {
-      const editorState = editor.editorView!.state;
-      let selection = editorState.selection.main;
-      if (selection.empty) {
-        let node = syntaxTree(editorState).resolveInner(selection.from);
-        if (node) {
-          return {
-            name: node.name,
-            text: editorState.sliceDoc(node.from, node.to),
-            from: node.from,
-            to: node.to,
-          };
-        }
-      }
-    },
-    "editor.getLineUnderCursor": (): string => {
-      const editorState = editor.editorView!.state;
-      let selection = editorState.selection.main;
-      let line = editorState.doc.lineAt(selection.from);
-      return editorState.sliceDoc(line.from, line.to);
-    },
+
     "editor.matchBefore": (
       ctx,
       regexp: string
@@ -134,18 +118,6 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
           : { from: start + found, to: from, text: str.slice(found) };
       }
       return null;
-    },
-    "editor.getSyntaxNodeAtPos": (ctx, pos: number): SyntaxNode | undefined => {
-      const editorState = editor.editorView!.state;
-      let node = syntaxTree(editorState).resolveInner(pos);
-      if (node) {
-        return {
-          name: node.name,
-          text: editorState.sliceDoc(node.from, node.to),
-          from: node.from,
-          to: node.to,
-        };
-      }
     },
     "editor.dispatch": (ctx, change: Transaction) => {
       editor.editorView!.dispatch(change);

@@ -1,3 +1,9 @@
+@import "constants.scss";
+
+div.rhs-open #editor .cm-editor .cm-content {
+  max-width: 550px;
+}
+
 .cm-editor {
   width: 100%;
   height: 100%;
@@ -6,7 +12,7 @@
   .cm-content {
     font-family: var(--editor-font);
     margin: auto;
-    max-width: 800px;
+    max-width: $max-editor-width;
   }
 
   .other-cursor {

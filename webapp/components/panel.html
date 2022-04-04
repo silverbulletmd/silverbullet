@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="panel.scss" rel="stylesheet" />
+    <base target="_top">
+    <script type="module">
+        window.addEventListener("message", (message) => {
+            const data = message.data;
+            switch(data.type) {
+                case "html":
+                    document.body.innerHTML = data.html;
+                    break;
+            }
+        })
+    </script>
+</head>
+<body>
+Send me HTML
+</body>
+</html>

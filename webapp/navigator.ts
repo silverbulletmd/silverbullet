@@ -1,4 +1,4 @@
-import { safeRun } from "./util";
+import {safeRun} from "./util";
 
 function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");
@@ -33,7 +33,10 @@ export class PathPageNavigator {
         return;
       }
       safeRun(async () => {
-        await pageLoadCallback(this.getCurrentPage(), event && event.state.pos);
+        await pageLoadCallback(
+          this.getCurrentPage(),
+          event?.state && event.state.pos
+        );
         if (this.navigationResolve) {
           this.navigationResolve();
         }

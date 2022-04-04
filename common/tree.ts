@@ -3,8 +3,8 @@ import wikiMarkdownLang from "../webapp/parser";
 
 export type MarkdownTree = {
   type?: string; // undefined === text node
-  from: number;
-  to: number;
+  from?: number;
+  to?: number;
   text?: string;
   children?: MarkdownTree[];
 };
@@ -39,7 +39,7 @@ function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
         });
       }
       newChildren.push(child);
-      index = child.to;
+      index = child.to!;
     }
     let s = text.substring(index, n.to);
     if (s) {

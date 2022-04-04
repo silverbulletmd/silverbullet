@@ -1,7 +1,7 @@
 export type MarkdownTree = {
   type?: string; // undefined === text node
-  from: number;
-  to: number;
+  from?: number;
+  to?: number;
   text?: string;
   children?: MarkdownTree[];
   parent?: MarkdownTree;
@@ -57,6 +57,30 @@ export function collectNodesMatching(
   return results;
 }
 
+export function replaceNodesMatching(
+  mdTree: MarkdownTree,
+  substituteFn: (mdTree: MarkdownTree) => MarkdownTree | null | undefined
+) {
+  let subst = substituteFn(mdTree);
+  if (subst !== undefined) {
+    if (!mdTree.parent) {
+      throw Error("Need parent pointers for this");
+    }
+    let parentChildren = mdTree.parent.children!;
+    let pos = parentChildren.indexOf(mdTree);
+    if (subst) {
+      parentChildren.splice(pos, 1, subst);
+    } else {
+      // null = delete
+      parentChildren.splice(pos, 1);
+    }
+  } else if (mdTree.children) {
+    for (let child of mdTree.children) {
+      replaceNodesMatching(child, substituteFn);
+    }
+  }
+}
+
 export function findNodeMatching(
   mdTree: MarkdownTree,
   matchFn: (mdTree: MarkdownTree) => boolean
@@ -69,7 +93,7 @@ export function nodeAtPos(
   mdTree: MarkdownTree,
   pos: number
 ): MarkdownTree | null {
-  if (pos < mdTree.from || pos > mdTree.to) {
+  if (pos < mdTree.from! || pos > mdTree.to!) {
     return null;
   }
   if (!mdTree.children) {
@@ -89,13 +113,13 @@ export function nodeAtPos(
 }
 
 // Turn MarkdownTree back into regular markdown text
-export function render(mdTree: MarkdownTree): string {
+export function renderMarkdown(mdTree: MarkdownTree): string {
   let pieces: string[] = [];
   if (mdTree.text !== undefined) {
     return mdTree.text;
   }
   for (let child of mdTree.children!) {
-    pieces.push(render(child));
+    pieces.push(renderMarkdown(child));
   }
   return pieces.join("");
 }

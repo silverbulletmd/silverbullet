@@ -1,4 +1,4 @@
-import { EditorView } from "@codemirror/view";
+import {EditorView} from "@codemirror/view";
 import * as util from "../util";
 
 export function StatusBar({ editorView }: { editorView?: EditorView }) {
@@ -11,7 +11,9 @@ export function StatusBar({ editorView }: { editorView?: EditorView }) {
   }
   return (
     <div id="bottom">
-      {wordCount} words | {readingTime} min
+      <div className="inner">
+        {wordCount} words | {readingTime} min
+      </div>
     </div>
   );
 }

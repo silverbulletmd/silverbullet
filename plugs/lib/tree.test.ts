@@ -1,6 +1,6 @@
 import {expect, test} from "@jest/globals";
 import {parse} from "../../common/tree";
-import {addParentPointers, collectNodesMatching, findParentMatching, nodeAtPos, render,} from "./tree";
+import {addParentPointers, collectNodesMatching, findParentMatching, nodeAtPos, renderMarkdown,} from "./tree";
 
 const mdTest1 = `
 # Heading
@@ -45,7 +45,7 @@ test("Run a Node sandbox", async () => {
   expect(allTodos.length).toBe(2);
 
   // Render back into markdown should be equivalent
-  expect(render(mdTree)).toBe(mdTest1);
+  expect(renderMarkdown(mdTree)).toBe(mdTest1);
 
   let mdTree2 = parse(mdTest2);
   console.log(JSON.stringify(mdTree2, null, 2));

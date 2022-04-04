@@ -1,6 +1,12 @@
 functions:
-  mdTest:
-    path: "./markdown.ts:renderMarkdown"
-    env: client
+  toggle:
+    path: "./markdown.ts:togglePreview"
     command:
-      name: "Markdown: Render"
+      name: "Toggle Markdown Preview"
+  preview:
+    path: "./markdown.ts:updateMarkdownPreview"
+    env: client
+    events:
+      - plug:load
+      - editor:updated
+      - editor:pageSwitched

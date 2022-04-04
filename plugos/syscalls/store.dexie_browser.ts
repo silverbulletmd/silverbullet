@@ -12,7 +12,7 @@ export function storeSyscalls(
 ): SysCallMapping {
   const db = new Dexie(dbName);
   db.version(1).stores({
-    test: "key",
+    [tableName]: "key",
   });
   const items = db.table(tableName);
 

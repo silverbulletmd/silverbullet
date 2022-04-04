@@ -1,11 +1,11 @@
 import {flashNotification, getCurrentPage, reloadPage, save,} from "plugos-silverbullet-syscall/editor";
 
-import {readPage, writePage} from "plugos-silverbullet-syscall/space";
+import {listPages, readPage, writePage,} from "plugos-silverbullet-syscall/space";
 import {invokeFunctionOnServer} from "plugos-silverbullet-syscall/system";
 import {scanPrefixGlobal} from "plugos-silverbullet-syscall";
 
 export const queryRegex =
-  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*(group by\s+(?<groupBy>\w+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
+  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*\s*(order by\s+(?<orderBy>\w+)(?<orderDesc>\s+desc)?)?(group by\s+(?<groupBy>\w+))?\s*(limit\s+(?<limit>\d+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
 
 export function whiteOutQueries(text: string): string {
   return text.replaceAll(queryRegex, (match) =>
@@ -40,11 +40,38 @@ export async function updateMaterializedQueriesCommand() {
 export async function updateMaterializedQueriesOnPage(pageName: string) {
   let { text } = await readPage(pageName);
   text = await replaceAsync(text, queryRegex, async (match, ...args) => {
-    let { table, filter, groupBy } = args[args.length - 1];
+    let { table, filter, groupBy, limit, orderBy, orderDesc } =
+      args[args.length - 1];
     const startQuery = args[0];
     const endQuery = args[args.length - 4];
     let results = [];
     switch (table) {
+      case "page":
+        let pages = await listPages();
+        if (orderBy) {
+          pages = pages.sort((a: any, b: any) => {
+            console.log(a, orderBy, a[orderBy]);
+            if (a[orderBy] === b[orderBy]) {
+              return 0;
+            }
+            if (a[orderBy] < b[orderBy]) {
+              return !!orderDesc ? 1 : -1;
+            } else {
+              return !!orderDesc ? -1 : 1;
+            }
+          });
+        }
+        let matchCount = 0;
+        for (let pageMeta of pages) {
+          if (!filter || (filter && pageMeta.name.includes(filter))) {
+            matchCount++;
+            results.push(`* [[${pageMeta.name}]]`);
+            if (limit && matchCount === +limit) {
+              break;
+            }
+          }
+        }
+        return `${startQuery}\n${results.join("\n")}\n${endQuery}`;
       case "task":
         for (let {
           key,

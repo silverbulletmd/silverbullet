@@ -5,8 +5,8 @@ import {whiteOutQueries} from "../core/materialized_queries";
 import {batchSet} from "plugos-silverbullet-syscall/index";
 import {readPage, writePage} from "plugos-silverbullet-syscall/space";
 import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {dispatch, getText,} from "plugos-silverbullet-syscall/editor";
-import {addParentPointers, collectNodesMatching, nodeAtPos, render,} from "../lib/tree";
+import {dispatch, getText} from "plugos-silverbullet-syscall/editor";
+import {addParentPointers, collectNodesMatching, nodeAtPos, renderMarkdown,} from "../lib/tree";
 
 type Task = {
   task: string;
@@ -22,7 +22,7 @@ export async function indexTasks({ name, text }: IndexEvent) {
   let mdTree = await parseMarkdown(text);
   addParentPointers(mdTree);
   collectNodesMatching(mdTree, (n) => n.type === "Task").forEach((n) => {
-    let task = n.children!.slice(1).map(render).join("").trim();
+    let task = n.children!.slice(1).map(renderMarkdown).join("").trim();
     let complete = n.children![0].children![0].text! !== "[ ]";
 
     let value: Task = {
@@ -32,7 +32,7 @@ export async function indexTasks({ name, text }: IndexEvent) {
     let taskIndex = n.parent!.children!.indexOf(n);
     let nestedItems = n.parent!.children!.slice(taskIndex + 1);
     if (nestedItems.length > 0) {
-      value.nested = nestedItems.map(render).join("").trim();
+      value.nested = nestedItems.map(renderMarkdown).join("").trim();
     }
     tasks.push({
       key: `task:${n.from}`,
@@ -93,8 +93,11 @@ export async function taskToggleAtPos(pos: number) {
           return;
         }
         taskMarkerNode.children![0].text = changeTo;
-        console.log("This will be the new marker", render(taskMarkerNode));
-        text = render(referenceMdTree);
+        console.log(
+          "This will be the new marker",
+          renderMarkdown(taskMarkerNode)
+        );
+        text = renderMarkdown(referenceMdTree);
         console.log("Updated reference paged text", text);
         await writePage(page, text);
       }

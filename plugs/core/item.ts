@@ -3,7 +3,7 @@ import {whiteOutQueries} from "./materialized_queries";
 
 import {batchSet} from "plugos-silverbullet-syscall/index";
 import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {collectNodesMatching, MarkdownTree, render} from "../lib/tree";
+import {collectNodesMatching, MarkdownTree, renderMarkdown,} from "../lib/tree";
 
 type Item = {
   item: string;
@@ -27,12 +27,12 @@ export async function indexItems({ name, text }: IndexEvent) {
     let nested: string | undefined;
     for (let child of n.children!.slice(1)) {
       if (child.type === "OrderedList" || child.type === "BulletList") {
-        nested = render(child);
+        nested = renderMarkdown(child);
         break;
       }
       textNodes.push(child);
     }
-    let item = textNodes.map(render).join("").trim();
+    let item = textNodes.map(renderMarkdown).join("").trim();
     let value: Item = {
       item,
     };
