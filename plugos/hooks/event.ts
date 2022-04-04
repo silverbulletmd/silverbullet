@@ -1,6 +1,6 @@
-import { Hook, Manifest } from "../types";
-import { System } from "../system";
-import { safeRun } from "../util";
+import {Hook, Manifest} from "../types";
+import {System} from "../system";
+import {safeRun} from "../util";
 
 // System events:
 // - plug:load (plugName: string)
@@ -16,7 +16,6 @@ export class EventHook implements Hook<EventHookT> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    let promises: Promise<void>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions
@@ -24,12 +23,11 @@ export class EventHook implements Hook<EventHookT> {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
           if (plug.canInvoke(name)) {
-            promises.push(plug.invoke(name, [data]));
+            await plug.invoke(name, [data]);
           }
         }
       }
     }
-    await Promise.all(promises);
   }
 
   apply(system: System<EventHookT>): void {

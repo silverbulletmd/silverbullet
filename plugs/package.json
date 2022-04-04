@@ -2,6 +2,7 @@
   "name": "plugs",
   "version": "1.0.0",
   "dependencies": {
+    "@jest/globals": "^27.5.1",
     "plugos-silverbullet-syscall": "file:../plugos-silverbullet-syscall",
     "plugos-syscall": "file:../plugos-syscall"
   }

@@ -7,7 +7,7 @@ export function fetchSyscalls(): SysCallMapping {
       let resp = await fetch(url, init);
       return resp.json();
     },
-    "fetch.text": async(ctx, url: RequestInfo, init: RequestInit) => {
+    "fetch.text": async (ctx, url: RequestInfo, init: RequestInit) => {
       let resp = await fetch(url, init);
       return resp.text();
     },

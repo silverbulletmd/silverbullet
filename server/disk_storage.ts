@@ -1,7 +1,7 @@
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import {mkdir, readdir, readFile, stat, unlink, writeFile} from "fs/promises";
 import * as path from "path";
-import { PageMeta } from "../common/types";
-import { EventHook } from "../plugos/hooks/event";
+import {PageMeta} from "../common/types";
+import {EventHook} from "../plugos/hooks/event";
 
 export interface Storage {
   listPages(): Promise<PageMeta[]>;
@@ -29,12 +29,17 @@ export class EventedStorage implements Storage {
   async writePage(pageName: string, text: string): Promise<PageMeta> {
     const newPageMeta = this.wrapped.writePage(pageName, text);
     // This can happen async
-    this.eventHook.dispatchEvent("page:saved", pageName).then(() => {
-      return this.eventHook.dispatchEvent("page:index", {
-        name: pageName,
-        text: text,
+    this.eventHook
+      .dispatchEvent("page:saved", pageName)
+      .then(() => {
+        return this.eventHook.dispatchEvent("page:index", {
+          name: pageName,
+          text: text,
+        });
+      })
+      .catch((e) => {
+        console.error("Error dispatching page:saved event", e);
       });
-    });
     return newPageMeta;
   }
 

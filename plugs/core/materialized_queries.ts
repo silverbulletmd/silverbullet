@@ -49,13 +49,13 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         for (let {
           key,
           page,
-          value: { task, complete, children },
+          value: { task, complete, nested },
         } of await scanPrefixGlobal("task:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && task.includes(filter))) {
             results.push(
               `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}` +
-                (children ? "\n" + children.join("\n") : "")
+                (nested ? "\n  " + nested : "")
             );
           }
         }
@@ -78,13 +78,12 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         for (let {
           key,
           page,
-          value: { item, children },
+          value: { item, nested },
         } of await scanPrefixGlobal("it:")) {
           let [, pos] = key.split(":");
           if (!filter || (filter && item.includes(filter))) {
             results.push(
-              `* [[${page}@${pos}]] ${item}` +
-                (children ? "\n" + children.join("\n") : "")
+              `* [[${page}@${pos}]] ${item}` + (nested ? "\n  " + nested : "")
             );
           }
         }

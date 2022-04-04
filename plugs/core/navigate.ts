@@ -2,7 +2,8 @@ import {ClickEvent} from "../../webapp/app_event";
 import {updateMaterializedQueriesCommand} from "./materialized_queries";
 import {getCursor, getText, navigate as navigateTo, openUrl,} from "plugos-silverbullet-syscall/editor";
 import {taskToggleAtPos} from "../tasks/task";
-import {nodeAtPos, parse} from "plugos-silverbullet-syscall/markdown";
+import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
+import {nodeAtPos} from "../lib/tree";
 import type {MarkdownTree} from "../../common/tree";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
@@ -39,16 +40,15 @@ async function actionClickOrActionEnter(mdTree: MarkdownTree | null) {
 }
 
 export async function linkNavigate() {
-  let mdTree = await parse(await getText());
+  let mdTree = await parseMarkdown(await getText());
   let newNode = await nodeAtPos(mdTree, await getCursor());
   await actionClickOrActionEnter(newNode);
 }
 
 export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
-    let mdTree = await parse(await getText());
-    let newNode = await nodeAtPos(mdTree, event.pos);
-    console.log("New node", newNode);
+    let mdTree = await parseMarkdown(await getText());
+    let newNode = nodeAtPos(mdTree, event.pos);
     await actionClickOrActionEnter(newNode);
   }
 }
