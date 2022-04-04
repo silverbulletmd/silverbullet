@@ -314,20 +314,19 @@ export class Editor implements AppEventDispatcher {
             mac: "Cmd-i",
             run: commands.insertMarker("_"),
           },
-          {
-            key: "Ctrl-p",
-            mac: "Cmd-p",
-            run: (): boolean => {
-              window.open(location.href, "_blank")!.focus();
-              return true;
-            },
-          },
+          // {
+          //   key: "Ctrl-p",
+          //   mac: "Cmd-p",
+          //   run: (): boolean => {
+          //     window.open(location.href, "_blank")!.focus();
+          //     return true;
+          //   },
+          // },
           {
             key: "Ctrl-k",
             mac: "Cmd-k",
             run: (): boolean => {
               this.viewDispatch({ type: "start-navigate" });
-              // asynchornously will dispatch pageListUpdate event
               this.space.updatePageListAsync();
               return true;
             },
@@ -463,7 +462,7 @@ export class Editor implements AppEventDispatcher {
     }, [viewState.currentPage]);
 
     return (
-      <div className={viewState.showRHS ? "rhs-open" : ""}>
+      <>
         {viewState.showPageNavigator && (
           <PageNavigator
             allPages={viewState.allPages}
@@ -493,7 +492,6 @@ export class Editor implements AppEventDispatcher {
             commands={viewState.commands}
           />
         )}
-        {viewState.showRHS && <Panel html={viewState.rhsHTML} />}
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
@@ -501,10 +499,28 @@ export class Editor implements AppEventDispatcher {
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}
+          rhs={
+            !!viewState.showRHS && (
+              <div className="panel" style={{ flex: viewState.showRHS }} />
+            )
+          }
+          lhs={
+            !!viewState.showLHS && (
+              <div className="panel" style={{ flex: viewState.showLHS }} />
+            )
+          }
         />
-        <div id="editor" />
+        <div id="main">
+          {!!viewState.showLHS && (
+            <Panel html={viewState.lhsHTML} flex={viewState.showLHS} />
+          )}
+          <div id="editor" />
+          {!!viewState.showRHS && (
+            <Panel html={viewState.rhsHTML} flex={viewState.showRHS} />
+          )}
+        </div>
         <StatusBar editorView={editor.editorView} />
-      </div>
+      </>
     );
   }
 

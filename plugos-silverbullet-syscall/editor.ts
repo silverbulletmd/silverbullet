@@ -32,12 +32,20 @@ export function flashNotification(message: string): Promise<void> {
   return syscall("editor.flashNotification", message);
 }
 
-export function showRhs(html: string): Promise<void> {
-  return syscall("editor.showRhs", html);
+export function showRhs(html: string, flex = 1): Promise<void> {
+  return syscall("editor.showRhs", html, flex);
 }
 
 export function hideRhs(): Promise<void> {
   return syscall("editor.hideRhs");
+}
+
+export function showLhs(html: string, flex = 1): Promise<void> {
+  return syscall("editor.showLhs", html, flex);
+}
+
+export function hideLhs(): Promise<void> {
+  return syscall("editor.hideLhs");
 }
 
 export function insertAtPos(text: string, pos: number): Promise<void> {

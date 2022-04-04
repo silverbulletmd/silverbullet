@@ -1,9 +1,8 @@
 import {useEffect, useRef} from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
-import {Simulate} from "react-dom/test-utils";
 
-export function Panel({ html }: { html: string }) {
+export function Panel({ html, flex }: { html: string; flex: number }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
     function loadContent() {
@@ -25,7 +24,7 @@ export function Panel({ html }: { html: string }) {
     };
   }, [html]);
   return (
-    <div className="panel">
+    <div className="panel" style={{ flex }}>
       <iframe srcDoc={iframeHtml} ref={iFrameRef} />
     </div>
   );

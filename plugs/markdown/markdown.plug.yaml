@@ -3,6 +3,8 @@ functions:
     path: "./markdown.ts:togglePreview"
     command:
       name: "Toggle Markdown Preview"
+      key: Ctrl-p
+      mac: Cmd-p
   preview:
     path: "./markdown.ts:updateMarkdownPreview"
     env: client

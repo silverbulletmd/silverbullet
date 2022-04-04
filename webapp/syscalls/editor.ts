@@ -51,15 +51,28 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.flashNotification": (ctx, message: string) => {
       editor.flashNotification(message);
     },
-    "editor.showRhs": (ctx, html: string) => {
+    "editor.showRhs": (ctx, html: string, flex: number) => {
       editor.viewDispatch({
         type: "show-rhs",
-        html: html,
+        flex,
+        html,
       });
     },
-    "editor.hideRhs": (ctx, html: string) => {
+    "editor.hideRhs": (ctx) => {
       editor.viewDispatch({
         type: "hide-rhs",
+      });
+    },
+    "editor.showLhs": (ctx, html: string, flex: number) => {
+      editor.viewDispatch({
+        type: "show-lhs",
+        flex,
+        html,
+      });
+    },
+    "editor.hideLhs": (ctx) => {
+      editor.viewDispatch({
+        type: "hide-lhs",
       });
     },
     "editor.insertAtPos": (ctx, text: string, pos: number) => {

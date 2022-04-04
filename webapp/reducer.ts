@@ -1,4 +1,4 @@
-import { Action, AppViewState } from "./types";
+import {Action, AppViewState} from "./types";
 
 export default function reducer(
   state: AppViewState,
@@ -71,14 +71,26 @@ export default function reducer(
     case "show-rhs":
       return {
         ...state,
-        showRHS: true,
+        showRHS: action.flex,
         rhsHTML: action.html,
       };
     case "hide-rhs":
       return {
         ...state,
-        showRHS: false,
+        showRHS: 0,
         rhsHTML: "",
+      };
+    case "show-lhs":
+      return {
+        ...state,
+        showLHS: action.flex,
+        lhsHTML: action.html,
+      };
+    case "hide-lhs":
+      return {
+        ...state,
+        showLHS: 0,
+        lhsHTML: "",
       };
   }
   return state;
