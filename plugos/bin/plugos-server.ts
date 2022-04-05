@@ -2,18 +2,18 @@
 
 import express from "express";
 import yargs from "yargs";
-import {hideBin} from "yargs/helpers";
-import {DiskPlugLoader} from "../plug_loader";
-import {CronHookT, NodeCronHook} from "../hooks/node_cron";
+import { hideBin } from "yargs/helpers";
+import { DiskPlugLoader } from "../plug_loader";
+import { CronHookT, NodeCronHook } from "../hooks/node_cron";
 import shellSyscalls from "../syscalls/shell.node";
-import {System} from "../system";
-import {EndpointHook, EndpointHookT} from "../hooks/endpoint";
-import {safeRun} from "../util";
+import { System } from "../system";
+import { EndpointHook, EndpointHookT } from "../hooks/endpoint";
+import { safeRun } from "../util";
 import knex from "knex";
-import {ensureTable, storeSyscalls} from "../syscalls/store.knex_node";
-import {fetchSyscalls} from "../syscalls/fetch.node";
-import {EventHook, EventHookT} from "../hooks/event";
-import {eventSyscalls} from "../syscalls/event";
+import { ensureTable, storeSyscalls } from "../syscalls/store.knex_node";
+import { fetchSyscalls } from "../syscalls/fetch.node";
+import { EventHook, EventHookT } from "../hooks/event";
+import { eventSyscalls } from "../syscalls/event";
 
 let args = yargs(hideBin(process.argv))
   .option("port", {

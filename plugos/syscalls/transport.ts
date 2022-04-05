@@ -1,6 +1,6 @@
 import { SyscallContext, SysCallMapping } from "../system";
 
-export function transportSyscalls(
+export function proxySyscalls(
   names: string[],
   transportCall: (
     ctx: SyscallContext,

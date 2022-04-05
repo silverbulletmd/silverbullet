@@ -1,6 +1,6 @@
-import {Editor} from "../editor";
-import {Transaction} from "@codemirror/state";
-import {SysCallMapping} from "../../plugos/system";
+import { Editor } from "../editor";
+import { Transaction } from "@codemirror/state";
+import { SysCallMapping } from "../../plugos/system";
 
 type SyntaxNode = {
   name: string;

@@ -1,9 +1,9 @@
-import {ClickEvent} from "../../webapp/app_event";
-import {updateMaterializedQueriesCommand} from "./materialized_queries";
-import {getCursor, getText, navigate as navigateTo, openUrl,} from "plugos-silverbullet-syscall/editor";
-import {taskToggleAtPos} from "../tasks/task";
-import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {MarkdownTree, nodeAtPos} from "../lib/tree";
+import { ClickEvent } from "../../webapp/app_event";
+import { updateMaterializedQueriesCommand } from "./materialized_queries";
+import { getCursor, getText, navigate as navigateTo, openUrl } from "plugos-silverbullet-syscall/editor";
+import { taskToggleAtPos } from "../tasks/task";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import { MarkdownTree, nodeAtPos } from "../lib/tree";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 

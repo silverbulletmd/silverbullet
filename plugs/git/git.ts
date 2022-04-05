@@ -1,6 +1,6 @@
 import { run } from "plugos-syscall/shell";
 import { flashNotification, prompt } from "plugos-silverbullet-syscall/editor";
-import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
+import { invokeFunction } from "plugos-silverbullet-syscall/system";
 
 export async function commit(message?: string) {
   if (!message) {
@@ -25,12 +25,12 @@ export async function snapshotCommand() {
     revName = "Snapshot";
   }
   console.log("Revision name", revName);
-  await invokeFunctionOnServer("commit", revName);
+  await invokeFunction("server", "commit", revName);
 }
 
 export async function syncCommand() {
   await flashNotification("Syncing with git");
-  await invokeFunctionOnServer("sync");
+  await invokeFunction("server", "sync");
   await flashNotification("Git sync complete!");
 }
 

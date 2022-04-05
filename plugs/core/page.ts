@@ -4,24 +4,13 @@ import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
-  scanPrefixGlobal,
+  scanPrefixGlobal
 } from "plugos-silverbullet-syscall/index";
-import {
-  flashNotification,
-  getCurrentPage,
-  getText,
-  matchBefore,
-  navigate,
-} from "plugos-silverbullet-syscall/editor";
+import { flashNotification, getCurrentPage, getText, matchBefore, navigate } from "plugos-silverbullet-syscall/editor";
 
 import { dispatch } from "plugos-syscall/event";
-import {
-  deletePage as deletePageSyscall,
-  listPages,
-  readPage,
-  writePage,
-} from "plugos-silverbullet-syscall/space";
-import { invokeFunctionOnServer } from "plugos-silverbullet-syscall/system";
+import { deletePage as deletePageSyscall, listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
+import { invokeFunction } from "plugos-silverbullet-syscall/system";
 
 const wikilinkRegex = new RegExp(pageLinkRegex, "g");
 
@@ -120,7 +109,7 @@ export async function showBackLinks() {
 
 export async function reindexCommand() {
   await flashNotification("Reindexing...");
-  await invokeFunctionOnServer("reindexSpace");
+  await invokeFunction("server", "reindexSpace");
   await flashNotification("Reindexing done");
 }
 

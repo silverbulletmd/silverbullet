@@ -1,4 +1,4 @@
-import {Action, AppViewState} from "./types";
+import { Action, AppViewState } from "./types";
 
 export default function reducer(
   state: AppViewState,

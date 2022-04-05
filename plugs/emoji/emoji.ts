@@ -1,6 +1,6 @@
 // @ts-ignore
 import emojis from "./emoji.json";
-import {matchBefore} from "plugos-silverbullet-syscall/editor";
+import { matchBefore } from "plugos-silverbullet-syscall/editor";
 
 const emojiMatcher = /\(([^\)]+)\)\s+(.+)$/;
 

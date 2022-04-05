@@ -1,12 +1,12 @@
-import type {ClickEvent} from "../../webapp/app_event";
-import {IndexEvent} from "../../webapp/app_event";
+import type { ClickEvent } from "../../webapp/app_event";
+import { IndexEvent } from "../../webapp/app_event";
 
-import {whiteOutQueries} from "../core/materialized_queries";
-import {batchSet} from "plugos-silverbullet-syscall/index";
-import {readPage, writePage} from "plugos-silverbullet-syscall/space";
-import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {dispatch, getText} from "plugos-silverbullet-syscall/editor";
-import {addParentPointers, collectNodesMatching, nodeAtPos, renderMarkdown,} from "../lib/tree";
+import { whiteOutQueries } from "../core/materialized_queries";
+import { batchSet } from "plugos-silverbullet-syscall/index";
+import { readPage, writePage } from "plugos-silverbullet-syscall/space";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import { dispatch, getText } from "plugos-silverbullet-syscall/editor";
+import { addParentPointers, collectNodesMatching, nodeAtPos, renderMarkdown } from "../lib/tree";
 
 type Task = {
   task: string;

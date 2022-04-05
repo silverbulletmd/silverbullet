@@ -1,4 +1,4 @@
-import {useEffect, useRef} from "react";
+import { useEffect, useRef } from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
 
@@ -23,6 +23,22 @@ export function Panel({ html, flex }: { html: string; flex: number }) {
       iframe.onload = null;
     };
   }, [html]);
+
+  useEffect(() => {
+    let messageListener = (evt: any) => {
+      if (evt.source !== iFrameRef.current!.contentWindow) {
+        return;
+      }
+      let data = evt.data;
+      if (!data) return;
+      console.log("Got message from panel", data);
+    };
+    window.addEventListener("message", messageListener);
+    return () => {
+      window.removeEventListener("message", messageListener);
+    };
+  }, []);
+
   return (
     <div className="panel" style={{ flex }}>
       <iframe srcDoc={iframeHtml} ref={iFrameRef} />

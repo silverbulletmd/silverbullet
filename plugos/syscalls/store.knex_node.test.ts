@@ -1,7 +1,7 @@
-import {createSandbox} from "../environments/node_sandbox";
-import {expect, test} from "@jest/globals";
-import {System} from "../system";
-import {ensureTable, storeSyscalls} from "./store.knex_node";
+import { createSandbox } from "../environments/node_sandbox";
+import { expect, test } from "@jest/globals";
+import { System } from "../system";
+import { ensureTable, storeSyscalls } from "./store.knex_node";
 import knex from "knex";
 import fs from "fs/promises";
 

@@ -1,6 +1,6 @@
-import {Editor} from "../editor";
-import {SysCallMapping} from "../../plugos/system";
-import {PageMeta} from "../../common/types";
+import { Editor } from "../editor";
+import { SysCallMapping } from "../../plugos/system";
+import { PageMeta } from "../../common/types";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {

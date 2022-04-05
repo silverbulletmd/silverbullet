@@ -1,6 +1,6 @@
-import {PageMeta} from "../../common/types";
-import {SysCallMapping} from "../../plugos/system";
-import {Storage} from "../disk_storage";
+import { PageMeta } from "../../common/types";
+import { SysCallMapping } from "../../plugos/system";
+import { Storage } from "../disk_storage";
 
 export default (storage: Storage): SysCallMapping => {
   return {

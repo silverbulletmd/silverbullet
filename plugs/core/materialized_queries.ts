@@ -1,8 +1,8 @@
-import {flashNotification, getCurrentPage, reloadPage, save,} from "plugos-silverbullet-syscall/editor";
+import { flashNotification, getCurrentPage, reloadPage, save } from "plugos-silverbullet-syscall/editor";
 
-import {listPages, readPage, writePage,} from "plugos-silverbullet-syscall/space";
-import {invokeFunctionOnServer} from "plugos-silverbullet-syscall/system";
-import {scanPrefixGlobal} from "plugos-silverbullet-syscall";
+import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
+import { invokeFunction } from "plugos-silverbullet-syscall/system";
+import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
 
 export const queryRegex =
   /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*\s*(order by\s+(?<orderBy>\w+)(?<orderDesc>\s+desc)?)?(group by\s+(?<groupBy>\w+))?\s*(limit\s+(?<limit>\d+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
@@ -31,7 +31,11 @@ async function replaceAsync(
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
   await save();
-  await invokeFunctionOnServer("updateMaterializedQueriesOnPage", currentPage);
+  await invokeFunction(
+    "server",
+    "updateMaterializedQueriesOnPage",
+    currentPage
+  );
   await reloadPage();
   await flashNotification("Updated materialized queries");
 }

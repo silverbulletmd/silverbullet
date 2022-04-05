@@ -1,27 +1,14 @@
-import { EventEmitter } from "../common/event";
-import { Manifest } from "../common/manifest";
-import { safeRun } from "./util";
-import { Plug } from "../plugos/plug";
-import { PageMeta } from "../common/types";
-
-export type SpaceEvents = {
-  pageCreated: (meta: PageMeta) => void;
-  pageChanged: (meta: PageMeta) => void;
-  pageDeleted: (name: string) => void;
-  pageListUpdated: (pages: Set<PageMeta>) => void;
-  plugLoaded: (plugName: string, plug: Manifest) => void;
-  plugUnloaded: (plugName: string) => void;
-};
-
-type PlugMeta = {
-  name: string;
-  version: number;
-};
+import { EventEmitter } from "../../common/event";
+import { PageMeta } from "../../common/types";
+import { safeRun } from "../util";
+import { Plug } from "../../plugos/plug";
+import { Manifest } from "../../common/manifest";
+import { PlugMeta, Space, SpaceEvents } from "./space";
 
 const pageWatchInterval = 2000;
 const plugWatchInterval = 5000;
 
-export class Space extends EventEmitter<SpaceEvents> {
+export class HttpRestSpace extends EventEmitter<SpaceEvents> implements Space {
   pageUrl: string;
   pageMetaCache = new Map<string, PageMeta>();
   plugMetaCache = new Map<string, PlugMeta>();
@@ -29,7 +16,6 @@ export class Space extends EventEmitter<SpaceEvents> {
   saving = false;
   private plugUrl: string;
   private initialPageListLoad = true;
-  private initialPlugListLoad = true;
 
   constructor(url: string) {
     super();
@@ -40,11 +26,11 @@ export class Space extends EventEmitter<SpaceEvents> {
     this.updatePageListAsync();
   }
 
-  public watchPage(pageName: string) {
+  watchPage(pageName: string) {
     this.watchedPages.add(pageName);
   }
 
-  public unwatchPage(pageName: string) {
+  unwatchPage(pageName: string) {
     this.watchedPages.delete(pageName);
   }
 
@@ -114,23 +100,11 @@ export class Space extends EventEmitter<SpaceEvents> {
     });
   }
 
-  public async listPages(): Promise<Set<PageMeta>> {
-    // this.updatePageListAsync();
+  async listPages(): Promise<Set<PageMeta>> {
     return new Set([...this.pageMetaCache.values()]);
   }
 
-  private responseToMetaCacher(name: string, res: Response): PageMeta {
-    const meta = {
-      name,
-      lastModified: +(res.headers.get("Last-Modified") || "0"),
-    };
-    this.pageMetaCache.set(name, meta);
-    return meta;
-  }
-
-  public async readPage(
-    name: string
-  ): Promise<{ text: string; meta: PageMeta }> {
+  async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     let res = await fetch(`${this.pageUrl}/${name}`, {
       method: "GET",
     });
@@ -140,11 +114,13 @@ export class Space extends EventEmitter<SpaceEvents> {
     };
   }
 
-  public async writePage(
+  async writePage(
     name: string,
     text: string,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
+    withMeta?: PageMeta
   ): Promise<PageMeta> {
+    // TODO: withMeta ignored for now
     try {
       this.saving = true;
       let res = await fetch(`${this.pageUrl}/${name}`, {
@@ -161,7 +137,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     }
   }
 
-  public async deletePage(name: string): Promise<void> {
+  async deletePage(name: string): Promise<void> {
     let req = await fetch(`${this.pageUrl}/${name}`, {
       method: "DELETE",
     });
@@ -173,18 +149,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
   }
 
-  private async getPageMeta(name: string): Promise<PageMeta> {
-    let res = await fetch(`${this.pageUrl}/${name}`, {
-      method: "OPTIONS",
-    });
-    return this.responseToMetaCacher(name, res);
-  }
-
-  async remoteSyscall(
-    plug: Plug<any>,
-    name: string,
-    args: any[]
-  ): Promise<any> {
+  async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
     let req = await fetch(`${this.plugUrl}/${plug.name}/syscall/${name}`, {
       method: "POST",
       headers: {
@@ -202,7 +167,17 @@ export class Space extends EventEmitter<SpaceEvents> {
     return await req.json();
   }
 
-  async remoteInvoke(plug: Plug<any>, name: string, args: any[]): Promise<any> {
+  async invokeFunction(
+    plug: Plug<any>,
+    env: string,
+    name: string,
+    args: any[]
+  ): Promise<any> {
+    // Invoke locally
+    if (!env || env === "client") {
+      return plug.invoke(name, args);
+    }
+    // Or dispatch to server
     let req = await fetch(`${this.plugUrl}/${plug.name}/function/${name}`, {
       method: "POST",
       headers: {
@@ -220,8 +195,38 @@ export class Space extends EventEmitter<SpaceEvents> {
     return await req.json();
   }
 
+  async getPageMeta(name: string): Promise<PageMeta> {
+    let res = await fetch(`${this.pageUrl}/${name}`, {
+      method: "OPTIONS",
+    });
+    return this.responseToMetaCacher(name, res);
+  }
+
+  public async listPlugs(): Promise<PlugMeta[]> {
+    let res = await fetch(`${this.plugUrl}`, {
+      method: "GET",
+    });
+    return (await res.json()) as PlugMeta[];
+  }
+
+  public async loadPlug(name: string): Promise<Manifest> {
+    let res = await fetch(`${this.plugUrl}/${name}`, {
+      method: "GET",
+    });
+    return (await res.json()) as Manifest;
+  }
+
+  private responseToMetaCacher(name: string, res: Response): PageMeta {
+    const meta = {
+      name,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+    };
+    this.pageMetaCache.set(name, meta);
+    return meta;
+  }
+
   private async pollPlugs(): Promise<void> {
-    const newPlugs = await this.loadPlugs();
+    const newPlugs = await this.listPlugs();
     let deletedPlugs = new Set<string>(this.plugMetaCache.keys());
     for (const newPlugMeta of newPlugs) {
       const oldPlugMeta = this.plugMetaCache.get(newPlugMeta.name);
@@ -246,19 +251,5 @@ export class Space extends EventEmitter<SpaceEvents> {
       this.plugMetaCache.delete(deletedPlug);
       this.emit("plugUnloaded", deletedPlug);
     }
-  }
-
-  private async loadPlugs(): Promise<PlugMeta[]> {
-    let res = await fetch(`${this.plugUrl}`, {
-      method: "GET",
-    });
-    return (await res.json()) as PlugMeta[];
-  }
-
-  private async loadPlug(name: string): Promise<Manifest> {
-    let res = await fetch(`${this.plugUrl}/${name}`, {
-      method: "GET",
-    });
-    return (await res.json()) as Manifest;
   }
 }

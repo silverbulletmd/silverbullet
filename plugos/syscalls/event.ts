@@ -1,5 +1,5 @@
-import {SysCallMapping} from "../system";
-import {EventHook} from "../hooks/event";
+import { SysCallMapping } from "../system";
+import { EventHook } from "../hooks/event";
 
 export function eventSyscalls(eventHook: EventHook): SysCallMapping {
   return {

@@ -1,5 +1,5 @@
-import {Knex} from "knex";
-import {SysCallMapping} from "../system";
+import { Knex } from "knex";
+import { SysCallMapping } from "../system";
 
 type Item = {
   page: string;

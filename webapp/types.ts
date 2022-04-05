@@ -1,5 +1,5 @@
-import {AppCommand} from "./hooks/command";
-import {PageMeta} from "../common/types";
+import { AppCommand } from "./hooks/command";
+import { PageMeta } from "../common/types";
 
 export const slashCommandRegexp = /\/[\w\-]*/;
 

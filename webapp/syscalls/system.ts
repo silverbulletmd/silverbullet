@@ -1,17 +1,19 @@
-import {SysCallMapping} from "../../plugos/system";
-import {Space} from "../space";
+import { SysCallMapping } from "../../plugos/system";
+import { Space } from "../spaces/space";
 
 export function systemSyscalls(space: Space): SysCallMapping {
   return {
-    "system.invokeFunctionOnServer": async (
+    "system.invokeFunction": async (
       ctx,
+      env: string,
       name: string,
       ...args: any[]
     ) => {
       if (!ctx.plug) {
         throw Error("No plug associated with context");
       }
-      return space.remoteInvoke(ctx.plug, name, args);
+
+      return space.invokeFunction(ctx.plug, env, name, args);
     },
   };
 }

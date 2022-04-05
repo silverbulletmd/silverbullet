@@ -1,8 +1,12 @@
 import { Editor } from "./editor";
-import { Space } from "./space";
 import { safeRun } from "./util";
+import { IndexedDBSpace } from "./spaces/indexeddb_space";
 
-let editor = new Editor(new Space(""), document.getElementById("root")!);
+let editor = new Editor(
+  // new HttpRestSpace(""),
+  new IndexedDBSpace("pages"),
+  document.getElementById("root")!
+);
 
 safeRun(async () => {
   await editor.init();

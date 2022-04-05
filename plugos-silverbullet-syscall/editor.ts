@@ -1,4 +1,4 @@
-import {syscall} from "./syscall";
+import { syscall } from "./syscall";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");

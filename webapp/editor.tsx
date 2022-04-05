@@ -1,10 +1,10 @@
-import {autocompletion, completionKeymap} from "@codemirror/autocomplete";
-import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets";
-import {indentWithTab, standardKeymap} from "@codemirror/commands";
-import {history, historyKeymap} from "@codemirror/history";
-import {bracketMatching} from "@codemirror/matchbrackets";
-import {searchKeymap} from "@codemirror/search";
-import {EditorSelection, EditorState} from "@codemirror/state";
+import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
+import { indentWithTab, standardKeymap } from "@codemirror/commands";
+import { history, historyKeymap } from "@codemirror/history";
+import { bracketMatching } from "@codemirror/matchbrackets";
+import { searchKeymap } from "@codemirror/search";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -13,41 +13,41 @@ import {
   KeyBinding,
   keymap,
   ViewPlugin,
-  ViewUpdate,
+  ViewUpdate
 } from "@codemirror/view";
-import React, {useEffect, useReducer} from "react";
+import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
-import {createSandbox as createIFrameSandbox} from "../plugos/environments/webworker_sandbox";
-import {AppEvent, AppEventDispatcher, ClickEvent} from "./app_event";
+import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox";
+import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
 import * as commands from "./commands";
-import {CommandPalette} from "./components/command_palette";
-import {PageNavigator} from "./components/page_navigator";
-import {TopBar} from "./components/top_bar";
-import {lineWrapper} from "./line_wrapper";
-import {markdown} from "./markdown";
-import {PathPageNavigator} from "./navigator";
+import { CommandPalette } from "./components/command_palette";
+import { PageNavigator } from "./components/page_navigator";
+import { TopBar } from "./components/top_bar";
+import { lineWrapper } from "./line_wrapper";
+import { markdown } from "./markdown";
+import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
-import {smartQuoteKeymap} from "./smart_quotes";
-import {Space} from "./space";
+import { smartQuoteKeymap } from "./smart_quotes";
+import { Space } from "./spaces/space";
 import customMarkdownStyle from "./style";
-import {editorSyscalls} from "./syscalls/editor";
-import {indexerSyscalls} from "./syscalls/indexer";
-import {spaceSyscalls} from "./syscalls/space";
-import {Action, AppViewState, initialViewState} from "./types";
-import {SilverBulletHooks} from "../common/manifest";
-import {safeRun, throttle} from "./util";
-import {System} from "../plugos/system";
-import {EventHook} from "../plugos/hooks/event";
-import {systemSyscalls} from "./syscalls/system";
-import {Panel} from "./components/panel";
-import {CommandHook} from "./hooks/command";
-import {SlashCommandHook} from "./hooks/slash_command";
-import {CompleterHook} from "./hooks/completer";
-import {pasteLinkExtension} from "./editor_paste";
-import {markdownSyscalls} from "../common/syscalls/markdown";
-import {clientStoreSyscalls} from "./syscalls/clientStore";
-import {StatusBar} from "./components/status_bar";
+import { editorSyscalls } from "./syscalls/editor";
+import { indexerSyscalls } from "./syscalls/indexer";
+import { spaceSyscalls } from "./syscalls/space";
+import { Action, AppViewState, initialViewState } from "./types";
+import { SilverBulletHooks } from "../common/manifest";
+import { safeRun, throttle } from "./util";
+import { System } from "../plugos/system";
+import { EventHook } from "../plugos/hooks/event";
+import { systemSyscalls } from "./syscalls/system";
+import { Panel } from "./components/panel";
+import { CommandHook } from "./hooks/command";
+import { SlashCommandHook } from "./hooks/slash_command";
+import { CompleterHook } from "./hooks/completer";
+import { pasteLinkExtension } from "./editor_paste";
+import { markdownSyscalls } from "../common/syscalls/markdown";
+import { clientStoreSyscalls } from "./syscalls/clientStore";
+import { StatusBar } from "./components/status_bar";
 
 class PageState {
   scrollTop: number;
@@ -341,6 +341,23 @@ export class Editor implements AppEventDispatcher {
               return true;
             },
           },
+          {
+            key: "Ctrl-l",
+            mac: "Cmd-l",
+            run: (): boolean => {
+              this.editorView?.dispatch({
+                effects: [
+                  EditorView.scrollIntoView(
+                    this.editorView.state.selection.main.anchor,
+                    {
+                      y: "center",
+                    }
+                  ),
+                ],
+              });
+              return true;
+            },
+          },
         ]),
 
         EditorView.domEventHandlers({
@@ -409,10 +426,13 @@ export class Editor implements AppEventDispatcher {
 
     // Persist current page state and nicely close page
     if (this.currentPage) {
-      let pageState = this.openPages.get(this.currentPage)!;
+      let pageState = this.openPages.get(this.currentPage);
       if (pageState) {
         pageState.selection = this.editorView!.state.selection;
-        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+        pageState.scrollTop =
+          this.editorView!.scrollDOM.parentElement!.parentElement!.scrollTop;
+        // pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+        // console.log("Saved pageState", this.currentPage, pageState);
       }
       this.space.unwatchPage(this.currentPage);
       await this.save(true);
@@ -431,11 +451,12 @@ export class Editor implements AppEventDispatcher {
       });
     } else {
       // Restore state
-      console.log("Restoring selection state", pageState.selection);
+      // console.log("Restoring selection state", pageState);
       editorView.dispatch({
         selection: pageState.selection,
       });
-      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
+      editorView.scrollDOM.parentElement!.parentElement!.scrollTop =
+        pageState!.scrollTop;
     }
 
     this.space.watchPage(pageName);

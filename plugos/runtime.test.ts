@@ -1,6 +1,6 @@
-import {createSandbox} from "./environments/node_sandbox";
-import {expect, test} from "@jest/globals";
-import {System} from "./system";
+import { createSandbox } from "./environments/node_sandbox";
+import { expect, test } from "@jest/globals";
+import { System } from "./system";
 
 test("Run a Node sandbox", async () => {
   let system = new System("server");

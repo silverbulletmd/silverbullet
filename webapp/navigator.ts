@@ -1,4 +1,4 @@
-import {safeRun} from "./util";
+import { safeRun } from "./util";
 
 function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");

@@ -1,9 +1,9 @@
-import {IndexEvent} from "../../webapp/app_event";
-import {whiteOutQueries} from "./materialized_queries";
+import { IndexEvent } from "../../webapp/app_event";
+import { whiteOutQueries } from "./materialized_queries";
 
-import {batchSet} from "plugos-silverbullet-syscall/index";
-import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {collectNodesMatching, MarkdownTree, renderMarkdown,} from "../lib/tree";
+import { batchSet } from "plugos-silverbullet-syscall/index";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import { collectNodesMatching, MarkdownTree, renderMarkdown } from "../lib/tree";
 
 type Item = {
   item: string;

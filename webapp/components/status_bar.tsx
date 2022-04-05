@@ -1,4 +1,4 @@
-import {EditorView} from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import * as util from "../util";
 
 export function StatusBar({ editorView }: { editorView?: EditorView }) {

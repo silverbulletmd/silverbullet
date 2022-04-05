@@ -1,8 +1,8 @@
 import MarkdownIt from "markdown-it";
-import {getText, hideRhs, showRhs} from "plugos-silverbullet-syscall/editor";
+import { getText, hideRhs, showRhs } from "plugos-silverbullet-syscall/editor";
 import * as clientStore from "plugos-silverbullet-syscall/clientStore";
-import {parseMarkdown} from "plugos-silverbullet-syscall/markdown";
-import {addParentPointers, renderMarkdown, replaceNodesMatching,} from "../lib/tree";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import { addParentPointers, renderMarkdown, replaceNodesMatching } from "../lib/tree";
 
 var taskLists = require("markdown-it-task-lists");
 

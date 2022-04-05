@@ -35,7 +35,7 @@
       "context": "node"
     },
     "test": {
-      "source": ["plugs/lib/tree.test.ts"],
+      "source": ["plugs/lib/tree.test.ts", "webapp/spaces/sync.test.ts"],
       "outputFormat": "commonjs",
       "isLibrary": true,
       "context": "node"
@@ -64,6 +64,7 @@
     "cors": "^2.8.5",
     "events": "^3.3.0",
     "express": "^4.17.3",
+    "dexie": "^3.2.1",
     "jest": "^27.5.1",
     "knex": "^1.0.4",
     "node-cron": "^3.0.0",
@@ -75,6 +76,8 @@
     "supertest": "^6.2.2",
     "vm2": "^3.9.9",
     "yaml": "^1.10.2",
+    "fake-indexeddb": "^3.1.7",
+
     "yargs": "^17.3.1"
   },
   "devDependencies": {

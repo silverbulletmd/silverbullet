@@ -1,6 +1,6 @@
-import {expect, test} from "@jest/globals";
-import {parse} from "../../common/tree";
-import {addParentPointers, collectNodesMatching, findParentMatching, nodeAtPos, renderMarkdown,} from "./tree";
+import { expect, test } from "@jest/globals";
+import { parse } from "../../common/tree";
+import { addParentPointers, collectNodesMatching, findParentMatching, nodeAtPos, renderMarkdown } from "./tree";
 
 const mdTest1 = `
 # Heading

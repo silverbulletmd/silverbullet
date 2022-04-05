@@ -1,7 +1,7 @@
-import {Knex} from "knex";
-import {SysCallMapping} from "../../plugos/system";
+import { Knex } from "knex";
+import { SysCallMapping } from "../../plugos/system";
 
-import {ensureTable, storeSyscalls,} from "../../plugos/syscalls/store.knex_node";
+import { ensureTable, storeSyscalls } from "../../plugos/syscalls/store.knex_node";
 
 type IndexItem = {
   page: string;

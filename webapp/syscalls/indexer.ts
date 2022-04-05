@@ -1,9 +1,9 @@
-import {Space} from "../space";
-import {SysCallMapping} from "../../plugos/system";
-import {transportSyscalls} from "../../plugos/syscalls/transport";
+import { Space } from "../spaces/space";
+import { SysCallMapping } from "../../plugos/system";
+import { proxySyscalls } from "../../plugos/syscalls/transport";
 
 export function indexerSyscalls(space: Space): SysCallMapping {
-  return transportSyscalls(
+  return proxySyscalls(
     [
       "index.scanPrefixForPage",
       "index.scanPrefixGlobal",
@@ -12,6 +12,6 @@ export function indexerSyscalls(space: Space): SysCallMapping {
       "index.batchSet",
       "index.delete",
     ],
-    (ctx, name, ...args) => space.remoteSyscall(ctx.plug, name, args)
+    (ctx, name, ...args) => space.proxySyscall(ctx.plug, name, args)
   );
 }

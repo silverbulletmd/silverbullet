@@ -1,7 +1,7 @@
-import {createSandbox} from "../environments/node_sandbox";
-import {expect, test} from "@jest/globals";
-import {System} from "../system";
-import {storeSyscalls} from "./store.dexie_browser";
+import { createSandbox } from "../environments/node_sandbox";
+import { expect, test } from "@jest/globals";
+import { System } from "../system";
+import { storeSyscalls } from "./store.dexie_browser";
 
 // For testing in node.js
 require("fake-indexeddb/auto");

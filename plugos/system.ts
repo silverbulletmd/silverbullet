@@ -1,7 +1,7 @@
-import {Hook, Manifest, RuntimeEnvironment} from "./types";
-import {EventEmitter} from "../common/event";
-import {SandboxFactory} from "./sandbox";
-import {Plug} from "./plug";
+import { Hook, Manifest, RuntimeEnvironment } from "./types";
+import { EventEmitter } from "../common/event";
+import { SandboxFactory } from "./sandbox";
+import { Plug } from "./plug";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;

@@ -1,5 +1,5 @@
 import Dexie from "dexie";
-import {SysCallMapping} from "../system";
+import { SysCallMapping } from "../system";
 
 export type KV = {
   key: string;

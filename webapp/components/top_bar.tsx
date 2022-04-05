@@ -1,6 +1,6 @@
-import {Notification} from "../types";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faFileLines} from "@fortawesome/free-solid-svg-icons";
+import { Notification } from "../types";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileLines } from "@fortawesome/free-solid-svg-icons";
 
 function prettyName(s: string | undefined): string {
   if (!s) {

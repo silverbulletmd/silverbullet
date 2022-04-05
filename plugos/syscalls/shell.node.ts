@@ -1,6 +1,6 @@
-import {promisify} from "util";
-import {execFile} from "child_process";
-import type {SysCallMapping} from "../system";
+import { promisify } from "util";
+import { execFile } from "child_process";
+import type { SysCallMapping } from "../system";
 
 const execFilePromise = promisify(execFile);
 

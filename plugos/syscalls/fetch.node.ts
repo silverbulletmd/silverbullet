@@ -1,5 +1,5 @@
-import fetch, {RequestInfo, RequestInit} from "node-fetch";
-import {SysCallMapping} from "../system";
+import fetch, { RequestInfo, RequestInit } from "node-fetch";
+import { SysCallMapping } from "../system";
 
 export function fetchSyscalls(): SysCallMapping {
   return {

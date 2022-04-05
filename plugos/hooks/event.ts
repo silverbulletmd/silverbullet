@@ -1,6 +1,6 @@
-import {Hook, Manifest} from "../types";
-import {System} from "../system";
-import {safeRun} from "../util";
+import { Hook, Manifest } from "../types";
+import { System } from "../system";
+import { safeRun } from "../util";
 
 // System events:
 // - plug:load (plugName: string)
