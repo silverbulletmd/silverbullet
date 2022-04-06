@@ -5,5 +5,5 @@ export async function invokeFunction(
   name: string,
   ...args: any[]
 ): Promise<any> {
-  return syscall("system.invokeFunctionOnServer", name, ...args);
+  return syscall("system.invokeFunction", env, name, ...args);
 }

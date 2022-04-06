@@ -1,5 +1,5 @@
-import {SysCallMapping} from "../../plugos/system";
-import {MarkdownTree, parse} from "../tree";
+import { SysCallMapping } from "../../plugos/system";
+import { MarkdownTree, parse } from "../tree";
 
 export function markdownSyscalls(): SysCallMapping {
   return {

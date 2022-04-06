@@ -1,4 +1,4 @@
-import {syscall} from "./syscall";
+import { syscall } from "./syscall";
 
 export async function set(key: string, value: any): Promise<void> {
   return syscall("clientStore.set", key, value);

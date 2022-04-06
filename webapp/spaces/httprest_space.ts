@@ -1,116 +1,43 @@
-import { EventEmitter } from "../../common/event";
 import { PageMeta } from "../../common/types";
-import { safeRun } from "../util";
 import { Plug } from "../../plugos/plug";
-import { Manifest } from "../../common/manifest";
-import { PlugMeta, Space, SpaceEvents } from "./space";
+import { Space } from "./space";
 
-const pageWatchInterval = 2000;
-const plugWatchInterval = 5000;
-
-export class HttpRestSpace extends EventEmitter<SpaceEvents> implements Space {
+export class HttpRestSpace implements Space {
   pageUrl: string;
-  pageMetaCache = new Map<string, PageMeta>();
-  plugMetaCache = new Map<string, PlugMeta>();
-  watchedPages = new Set<string>();
-  saving = false;
   private plugUrl: string;
-  private initialPageListLoad = true;
 
   constructor(url: string) {
-    super();
     this.pageUrl = url + "/fs";
     this.plugUrl = url + "/plug";
-    this.watch();
-    this.pollPlugs();
-    this.updatePageListAsync();
   }
 
-  watchPage(pageName: string) {
-    this.watchedPages.add(pageName);
-  }
-
-  unwatchPage(pageName: string) {
-    this.watchedPages.delete(pageName);
-  }
-
-  watch() {
-    setInterval(() => {
-      safeRun(async () => {
-        if (this.saving) {
-          return;
-        }
-        for (const pageName of this.watchedPages) {
-          const oldMeta = this.pageMetaCache.get(pageName);
-          if (!oldMeta) {
-            // No longer in cache, meaning probably deleted let's unwatch
-            this.watchedPages.delete(pageName);
-            continue;
-          }
-          const newMeta = await this.getPageMeta(pageName);
-          if (oldMeta.lastModified !== newMeta.lastModified) {
-            console.log("Page", pageName, "changed on disk, emitting event");
-            this.emit("pageChanged", newMeta);
-          }
-        }
-      });
-    }, pageWatchInterval);
-
-    setInterval(() => {
-      safeRun(this.pollPlugs.bind(this));
-    }, plugWatchInterval);
-  }
-
-  public updatePageListAsync() {
-    safeRun(async () => {
-      let req = await fetch(this.pageUrl, {
-        method: "GET",
-      });
-
-      let deletedPages = new Set<string>(this.pageMetaCache.keys());
-      ((await req.json()) as any[]).forEach((meta: any) => {
-        const pageName = meta.name;
-        const oldPageMeta = this.pageMetaCache.get(pageName);
-        const newPageMeta = {
-          name: pageName,
-          lastModified: meta.lastModified,
-        };
-        if (!oldPageMeta && !this.initialPageListLoad) {
-          this.emit("pageCreated", newPageMeta);
-        } else if (
-          oldPageMeta &&
-          oldPageMeta.lastModified !== newPageMeta.lastModified
-        ) {
-          this.emit("pageChanged", newPageMeta);
-        }
-        // Page found, not deleted
-        deletedPages.delete(pageName);
-
-        // Update in cache
-        this.pageMetaCache.set(pageName, newPageMeta);
-      });
-
-      for (const deletedPage of deletedPages) {
-        this.pageMetaCache.delete(deletedPage);
-        this.emit("pageDeleted", deletedPage);
-      }
-
-      this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
-      this.initialPageListLoad = false;
+  public async fetchPageList(): Promise<Set<PageMeta>> {
+    let req = await fetch(this.pageUrl, {
+      method: "GET",
     });
-  }
 
-  async listPages(): Promise<Set<PageMeta>> {
-    return new Set([...this.pageMetaCache.values()]);
+    let result = new Set<PageMeta>();
+    ((await req.json()) as any[]).forEach((meta: any) => {
+      const pageName = meta.name;
+      result.add({
+        name: pageName,
+        lastModified: meta.lastModified,
+      });
+    });
+
+    return result;
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     let res = await fetch(`${this.pageUrl}/${name}`, {
       method: "GET",
     });
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
     return {
       text: await res.text(),
-      meta: this.responseToMetaCacher(name, res),
+      meta: this.responseToMeta(name, res),
     };
   }
 
@@ -118,23 +45,20 @@ export class HttpRestSpace extends EventEmitter<SpaceEvents> implements Space {
     name: string,
     text: string,
     selfUpdate?: boolean,
-    withMeta?: PageMeta
+    lastModified?: number
   ): Promise<PageMeta> {
-    // TODO: withMeta ignored for now
-    try {
-      this.saving = true;
-      let res = await fetch(`${this.pageUrl}/${name}`, {
-        method: "PUT",
-        body: text,
-      });
-      const newMeta = this.responseToMetaCacher(name, res);
-      if (!selfUpdate) {
-        this.emit("pageChanged", newMeta);
-      }
-      return newMeta;
-    } finally {
-      this.saving = false;
-    }
+    // TODO: lastModified ignored for now
+    let res = await fetch(`${this.pageUrl}/${name}`, {
+      method: "PUT",
+      body: text,
+      headers: lastModified
+        ? {
+            "Last-Modified": "" + lastModified,
+          }
+        : undefined,
+    });
+    const newMeta = this.responseToMeta(name, res);
+    return newMeta;
   }
 
   async deletePage(name: string): Promise<void> {
@@ -144,9 +68,6 @@ export class HttpRestSpace extends EventEmitter<SpaceEvents> implements Space {
     if (req.status !== 200) {
       throw Error(`Failed to delete page: ${req.statusText}`);
     }
-    this.pageMetaCache.delete(name);
-    this.emit("pageDeleted", name);
-    this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
   }
 
   async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
@@ -199,57 +120,17 @@ export class HttpRestSpace extends EventEmitter<SpaceEvents> implements Space {
     let res = await fetch(`${this.pageUrl}/${name}`, {
       method: "OPTIONS",
     });
-    return this.responseToMetaCacher(name, res);
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
+    return this.responseToMeta(name, res);
   }
 
-  public async listPlugs(): Promise<PlugMeta[]> {
-    let res = await fetch(`${this.plugUrl}`, {
-      method: "GET",
-    });
-    return (await res.json()) as PlugMeta[];
-  }
-
-  public async loadPlug(name: string): Promise<Manifest> {
-    let res = await fetch(`${this.plugUrl}/${name}`, {
-      method: "GET",
-    });
-    return (await res.json()) as Manifest;
-  }
-
-  private responseToMetaCacher(name: string, res: Response): PageMeta {
+  private responseToMeta(name: string, res: Response): PageMeta {
     const meta = {
       name,
       lastModified: +(res.headers.get("Last-Modified") || "0"),
     };
-    this.pageMetaCache.set(name, meta);
     return meta;
-  }
-
-  private async pollPlugs(): Promise<void> {
-    const newPlugs = await this.listPlugs();
-    let deletedPlugs = new Set<string>(this.plugMetaCache.keys());
-    for (const newPlugMeta of newPlugs) {
-      const oldPlugMeta = this.plugMetaCache.get(newPlugMeta.name);
-      if (
-        !oldPlugMeta ||
-        (oldPlugMeta && oldPlugMeta.version !== newPlugMeta.version)
-      ) {
-        this.emit(
-          "plugLoaded",
-          newPlugMeta.name,
-          await this.loadPlug(newPlugMeta.name)
-        );
-      }
-      // Page found, not deleted
-      deletedPlugs.delete(newPlugMeta.name);
-
-      // Update in cache
-      this.plugMetaCache.set(newPlugMeta.name, newPlugMeta);
-    }
-
-    for (const deletedPlug of deletedPlugs) {
-      this.plugMetaCache.delete(deletedPlug);
-      this.emit("plugUnloaded", deletedPlug);
-    }
   }
 }

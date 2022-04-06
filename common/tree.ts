@@ -1,4 +1,4 @@
-import {SyntaxNode} from "@lezer/common";
+import { SyntaxNode } from "@lezer/common";
 import wikiMarkdownLang from "../webapp/parser";
 
 export type MarkdownTree = {

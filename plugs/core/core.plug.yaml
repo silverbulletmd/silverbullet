@@ -56,7 +56,6 @@ functions:
     env: server
   updateMaterializedQueriesOnPage:
     path: ./materialized_queries.ts:updateMaterializedQueriesOnPage
-    env: server
   updateMaterializedQueriesCommand:
     path: ./materialized_queries.ts:updateMaterializedQueriesCommand
     command:

@@ -54,10 +54,10 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         let pages = await listPages();
         if (orderBy) {
           pages = pages.sort((a: any, b: any) => {
-            console.log(a, orderBy, a[orderBy]);
             if (a[orderBy] === b[orderBy]) {
               return 0;
             }
+
             if (a[orderBy] < b[orderBy]) {
               return !!orderDesc ? 1 : -1;
             } else {

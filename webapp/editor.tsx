@@ -29,7 +29,7 @@ import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { Space } from "./spaces/space";
+import { WatchableSpace } from "./spaces/cache_space";
 import customMarkdownStyle from "./style";
 import { editorSyscalls } from "./syscalls/editor";
 import { indexerSyscalls } from "./syscalls/indexer";
@@ -69,7 +69,7 @@ export class Editor implements AppEventDispatcher {
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
-  space: Space;
+  space: WatchableSpace;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
   saveTimeout: any;
@@ -78,7 +78,7 @@ export class Editor implements AppEventDispatcher {
   }, 1000);
   private system = new System<SilverBulletHooks>("client");
 
-  constructor(space: Space, parent: Element) {
+  constructor(space: WatchableSpace, parent: Element) {
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -439,7 +439,18 @@ export class Editor implements AppEventDispatcher {
     }
 
     // Fetch next page to open
-    let doc = await this.space.readPage(pageName);
+    let doc;
+    try {
+      doc = await this.space.readPage(pageName);
+    } catch (e: any) {
+      // Not found, new page
+      console.log("Creating new page", pageName);
+      doc = {
+        text: "",
+        meta: { name: pageName, lastModified: 0 },
+      };
+    }
+
     let editorState = this.createEditorState(pageName, doc.text);
     let pageState = this.openPages.get(pageName);
     editorView.setState(editorState);

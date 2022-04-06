@@ -1,17 +1,17 @@
-import {mkdir, readdir, readFile, stat, unlink, writeFile} from "fs/promises";
+import { mkdir, readdir, readFile, stat, unlink, utimes, writeFile } from "fs/promises";
 import * as path from "path";
-import {PageMeta} from "../common/types";
-import {EventHook} from "../plugos/hooks/event";
+import { PageMeta } from "../common/types";
+import { EventHook } from "../plugos/hooks/event";
 
 export interface Storage {
   listPages(): Promise<PageMeta[]>;
-
   readPage(pageName: string): Promise<{ text: string; meta: PageMeta }>;
-
-  writePage(pageName: string, text: string): Promise<PageMeta>;
-
+  writePage(
+    pageName: string,
+    text: string,
+    lastModified?: number
+  ): Promise<PageMeta>;
   getPageMeta(pageName: string): Promise<PageMeta>;
-
   deletePage(pageName: string): Promise<void>;
 }
 
@@ -26,8 +26,12 @@ export class EventedStorage implements Storage {
     return this.wrapped.readPage(pageName);
   }
 
-  async writePage(pageName: string, text: string): Promise<PageMeta> {
-    const newPageMeta = this.wrapped.writePage(pageName, text);
+  async writePage(
+    pageName: string,
+    text: string,
+    lastModified?: number
+  ): Promise<PageMeta> {
+    const newPageMeta = this.wrapped.writePage(pageName, text, lastModified);
     // This can happen async
     this.eventHook
       .dispatchEvent("page:saved", pageName)
@@ -55,9 +59,28 @@ export class EventedStorage implements Storage {
 
 export class DiskStorage implements Storage {
   rootPath: string;
+  plugPrefix: string;
 
-  constructor(rootPath: string) {
+  constructor(rootPath: string, plugPrefix: string = "_plug/") {
     this.rootPath = rootPath;
+    this.plugPrefix = plugPrefix;
+  }
+
+  pageNameToPath(pageName: string) {
+    if (pageName.startsWith(this.plugPrefix)) {
+      return path.join(this.rootPath, pageName + ".plug.json");
+    }
+    return path.join(this.rootPath, pageName + ".md");
+  }
+
+  pathToPageName(fullPath: string): string {
+    let extLength = fullPath.endsWith(".plug.json")
+      ? ".plug.json".length
+      : ".md".length;
+    return fullPath.substring(
+      this.rootPath.length + 1,
+      fullPath.length - extLength
+    );
   }
 
   async listPages(): Promise<PageMeta[]> {
@@ -68,15 +91,13 @@ export class DiskStorage implements Storage {
       for (let file of files) {
         const fullPath = path.join(dir, file);
         let s = await stat(fullPath);
+        // console.log("Encountering", fullPath, s);
         if (s.isDirectory()) {
           await walkPath(fullPath);
         } else {
-          if (path.extname(file) === ".md") {
+          if (file.endsWith(".md") || file.endsWith(".json")) {
             fileNames.push({
-              name: fullPath.substring(
-                this.rootPath.length + 1,
-                fullPath.length - 3
-              ),
+              name: this.pathToPageName(fullPath),
               lastModified: s.mtime.getTime(),
             });
           }
@@ -88,7 +109,7 @@ export class DiskStorage implements Storage {
   }
 
   async readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
-    const localPath = path.join(this.rootPath, pageName + ".md");
+    const localPath = this.pageNameToPath(pageName);
     try {
       const s = await stat(localPath);
       return {
@@ -104,8 +125,12 @@ export class DiskStorage implements Storage {
     }
   }
 
-  async writePage(pageName: string, text: string): Promise<PageMeta> {
-    let localPath = path.join(this.rootPath, pageName + ".md");
+  async writePage(
+    pageName: string,
+    text: string,
+    lastModified?: number
+  ): Promise<PageMeta> {
+    let localPath = this.pageNameToPath(pageName);
     try {
       // Ensure parent folder exists
       await mkdir(path.dirname(localPath), { recursive: true });
@@ -113,6 +138,11 @@ export class DiskStorage implements Storage {
       // Actually write the file
       await writeFile(localPath, text);
 
+      if (lastModified) {
+        let d = new Date(lastModified);
+        console.log("Going to set the modified time", d);
+        await utimes(localPath, lastModified, lastModified);
+      }
       // Fetch new metadata
       const s = await stat(localPath);
       return {
@@ -126,7 +156,7 @@ export class DiskStorage implements Storage {
   }
 
   async getPageMeta(pageName: string): Promise<PageMeta> {
-    let localPath = path.join(this.rootPath, pageName + ".md");
+    let localPath = this.pageNameToPath(pageName);
     try {
       const s = await stat(localPath);
       return {
@@ -140,7 +170,7 @@ export class DiskStorage implements Storage {
   }
 
   async deletePage(pageName: string): Promise<void> {
-    let localPath = path.join(this.rootPath, pageName + ".md");
+    let localPath = this.pageNameToPath(pageName);
     await unlink(localPath);
   }
 }
