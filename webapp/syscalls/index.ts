@@ -1,8 +1,8 @@
-import { Space } from "../spaces/space";
 import { SysCallMapping } from "../../plugos/system";
 import { proxySyscalls } from "../../plugos/syscalls/transport";
+import { WatchableSpace } from "../spaces/cache_space";
 
-export function indexerSyscalls(space: Space): SysCallMapping {
+export function indexerSyscalls(space: WatchableSpace): SysCallMapping {
   return proxySyscalls(
     [
       "index.scanPrefixForPage",

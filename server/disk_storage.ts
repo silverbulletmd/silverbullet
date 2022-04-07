@@ -141,7 +141,7 @@ export class DiskStorage implements Storage {
       if (lastModified) {
         let d = new Date(lastModified);
         console.log("Going to set the modified time", d);
-        await utimes(localPath, lastModified, lastModified);
+        await utimes(localPath, d, d);
       }
       // Fetch new metadata
       const s = await stat(localPath);

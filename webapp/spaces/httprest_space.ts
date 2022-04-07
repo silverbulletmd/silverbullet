@@ -11,7 +11,10 @@ export class HttpRestSpace implements Space {
     this.plugUrl = url + "/plug";
   }
 
-  public async fetchPageList(): Promise<Set<PageMeta>> {
+  public async fetchPageList(): Promise<{
+    pages: Set<PageMeta>;
+    nowTimestamp: number;
+  }> {
     let req = await fetch(this.pageUrl, {
       method: "GET",
     });
@@ -25,7 +28,10 @@ export class HttpRestSpace implements Space {
       });
     });
 
-    return result;
+    return {
+      pages: result,
+      nowTimestamp: +req.headers.get("Now-Timestamp")!,
+    };
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

@@ -93,17 +93,21 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "link":
         let uniqueLinks = new Set<string>();
+        console.log("Here!!");
         for (let { key, page, value: name } of await scanPrefixGlobal(
           `pl:${pageName}:`
         )) {
+          console.log("Here!!");
           let [, pos] = key.split(":");
           if (!filter || (filter && name.includes(filter))) {
             uniqueLinks.add(name);
           }
         }
+        console.log("Here!!");
         for (const uniqueResult of uniqueLinks) {
           results.push(`* [[${uniqueResult}]]`);
         }
+        console.log("Here!!");
         return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "item":
         for (let {

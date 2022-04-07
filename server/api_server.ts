@@ -68,6 +68,7 @@ export class ExpressServer {
 
     // Page list
     fsRouter.route("/").get(async (req, res) => {
+      res.header("Now-Timestamp", "" + Date.now());
       res.json(await this.storage.listPages());
     });
 

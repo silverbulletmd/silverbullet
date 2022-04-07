@@ -32,7 +32,7 @@ import { smartQuoteKeymap } from "./smart_quotes";
 import { WatchableSpace } from "./spaces/cache_space";
 import customMarkdownStyle from "./style";
 import { editorSyscalls } from "./syscalls/editor";
-import { indexerSyscalls } from "./syscalls/indexer";
+import { indexerSyscalls } from "./syscalls";
 import { spaceSyscalls } from "./syscalls/space";
 import { Action, AppViewState, initialViewState } from "./types";
 import { SilverBulletHooks } from "../common/manifest";

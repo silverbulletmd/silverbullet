@@ -12,7 +12,7 @@ type Page = {
 export class IndexedDBSpace implements Space {
   private pageTable: Table<Page, string>;
 
-  constructor(dbName: string) {
+  constructor(dbName: string, readonly timeSkew: number = 0) {
     const db = new Dexie(dbName);
     db.version(1).stores({
       page: "name",
@@ -42,13 +42,19 @@ export class IndexedDBSpace implements Space {
     return plug.invoke(name, args);
   }
 
-  async fetchPageList(): Promise<Set<PageMeta>> {
+  async fetchPageList(): Promise<{
+    pages: Set<PageMeta>;
+    nowTimestamp: number;
+  }> {
     let allPages = await this.pageTable.toArray();
-    let set = new Set(allPages.map((p) => p.meta));
-    return set;
+    return {
+      pages: new Set(allPages.map((p) => p.meta)),
+      nowTimestamp: Date.now() + this.timeSkew,
+    };
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
+    console.log("Going this", name);
     return plug.syscall(name, args);
   }
 
@@ -69,7 +75,7 @@ export class IndexedDBSpace implements Space {
   ): Promise<PageMeta> {
     let meta = {
       name,
-      lastModified: lastModified ? lastModified : new Date().getTime(),
+      lastModified: lastModified ? lastModified : Date.now() + this.timeSkew,
     };
     await this.pageTable.put({
       name,

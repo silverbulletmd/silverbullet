@@ -33,6 +33,15 @@ export function TopBar({
             <FontAwesomeIcon icon={faFileLines} />
           </span>
           <span className="current-page">{prettyName(pageName)}</span>
+          <button
+            onClick={(e) => {
+              // @ts-ignore
+              window.syncer();
+              e.stopPropagation();
+            }}
+          >
+            Sync
+          </button>
           {notifications.length > 0 && (
             <div className="status">
               {notifications.map((notification) => (

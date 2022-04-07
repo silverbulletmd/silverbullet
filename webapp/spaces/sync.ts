@@ -6,7 +6,8 @@ export class SpaceSync {
   constructor(
     private primary: WatchableSpace,
     private secondary: WatchableSpace,
-    public lastSync: number,
+    public primaryLastSync: number,
+    public secondaryLastSync: number,
     private trashPrefix: string
   ) {}
 
@@ -33,14 +34,20 @@ export class SpaceSync {
     };
   }
 
-  async syncablePages(space: Space): Promise<PageMeta[]> {
-    return [...(await space.fetchPageList())].filter(
-      (pageMeta) => !pageMeta.name.startsWith(this.trashPrefix)
-    );
+  async syncablePages(
+    space: WatchableSpace
+  ): Promise<{ pages: PageMeta[]; nowTimestamp: number }> {
+    let fetchResult = await space.fetchPageList();
+    return {
+      pages: [...fetchResult.pages].filter(
+        (pageMeta) => !pageMeta.name.startsWith(this.trashPrefix)
+      ),
+      nowTimestamp: fetchResult.nowTimestamp,
+    };
   }
 
   async trashPages(space: Space): Promise<PageMeta[]> {
-    return [...(await space.fetchPageList())]
+    return [...(await space.fetchPageList()).pages]
       .filter((pageMeta) => pageMeta.name.startsWith(this.trashPrefix))
       .map((pageMeta) => ({
         ...pageMeta,
@@ -56,26 +63,27 @@ export class SpaceSync {
   ): Promise<number> {
     let syncOps = 0;
 
-    let allPagesPrimary = new Map(
-      (await this.syncablePages(this.primary)).map((p) => [p.name, p])
-    );
+    let { pages: primaryAllPagesSet, nowTimestamp: primarySyncTimestamp } =
+      await this.syncablePages(this.primary);
+    let allPagesPrimary = new Map(primaryAllPagesSet.map((p) => [p.name, p]));
+    let { pages: secondaryAllPagesSet, nowTimestamp: secondarySyncTimestamp } =
+      await this.syncablePages(this.secondary);
     let allPagesSecondary = new Map(
-      (await this.syncablePages(this.secondary)).map((p) => [p.name, p])
+      secondaryAllPagesSet.map((p) => [p.name, p])
     );
+
     let allTrashPrimary = new Map(
       (await this.trashPages(this.primary))
         // Filter out old trash
-        .filter((p) => p.lastModified > this.lastSync)
+        .filter((p) => p.lastModified > this.primaryLastSync)
         .map((p) => [p.name, p])
     );
     let allTrashSecondary = new Map(
       (await this.trashPages(this.secondary))
         // Filter out old trash
-        .filter((p) => p.lastModified > this.lastSync)
+        .filter((p) => p.lastModified > this.secondaryLastSync)
         .map((p) => [p.name, p])
     );
-
-    let createdPagesOnSecondary = new Set<string>();
 
     // Iterate over all pages on the primary first
     for (let [name, pageMetaPrimary] of allPagesPrimary.entries()) {
@@ -95,15 +103,14 @@ export class SpaceSync {
           name,
           pageData.text,
           true,
-          pageData.meta.lastModified
+          secondarySyncTimestamp // The reason for this is to not include it in the next sync cycle, we cannot blindly use the lastModified date due to time skew
         );
         syncOps++;
-        createdPagesOnSecondary.add(name);
       } else {
         // Existing page
-        if (pageMetaPrimary.lastModified > this.lastSync) {
+        if (pageMetaPrimary.lastModified > this.primaryLastSync) {
           // Primary updated since last sync
-          if (pageMetaSecondary.lastModified > this.lastSync) {
+          if (pageMetaSecondary.lastModified > this.secondaryLastSync) {
             // Secondary also updated! CONFLICT
             if (conflictResolver) {
               await conflictResolver(pageMetaPrimary, pageMetaSecondary);
@@ -124,11 +131,11 @@ export class SpaceSync {
               name,
               pageData.text,
               false,
-              pageData.meta.lastModified
+              secondarySyncTimestamp
             );
             syncOps++;
           }
-        } else if (pageMetaSecondary.lastModified > this.lastSync) {
+        } else if (pageMetaSecondary.lastModified > this.secondaryLastSync) {
           // Secondary updated, but not primary (checked above)
           // Push from secondary to primary
           console.log("Changed page on secondary", name, "syncing to primary");
@@ -137,7 +144,7 @@ export class SpaceSync {
             name,
             pageData.text,
             false,
-            pageData.meta.lastModified
+            primarySyncTimestamp
           );
           syncOps++;
         } else {
@@ -161,8 +168,8 @@ export class SpaceSync {
         await this.primary.writePage(
           name,
           pageData.text,
-          true,
-          pageData.meta.lastModified
+          false,
+          primarySyncTimestamp
         );
         syncOps++;
       }
@@ -170,50 +177,45 @@ export class SpaceSync {
 
     // And finally, let's trash some pages
     for (let pageToDelete of allTrashPrimary.values()) {
-      if (pageToDelete.lastModified > this.lastSync) {
-        // New deletion
-        console.log("Deleting", pageToDelete.name, "on secondary");
-        try {
-          await this.secondary.deletePage(
-            pageToDelete.name,
-            pageToDelete.lastModified
-          );
-          syncOps++;
-        } catch (e: any) {
-          console.log("Page already gone", e.message);
-        }
+      console.log("Deleting", pageToDelete.name, "on secondary");
+      try {
+        await this.secondary.deletePage(
+          pageToDelete.name,
+          secondarySyncTimestamp
+        );
+        syncOps++;
+      } catch (e: any) {
+        console.log("Page already gone", e.message);
       }
     }
 
     for (let pageToDelete of allTrashSecondary.values()) {
-      if (pageToDelete.lastModified > this.lastSync) {
-        // New deletion
-        console.log("Deleting", pageToDelete.name, "on primary");
-        try {
-          await this.primary.deletePage(
-            pageToDelete.name,
-            pageToDelete.lastModified
-          );
-          syncOps++;
-        } catch (e: any) {
-          console.log("Page already gone", e.message);
-        }
+      console.log("Deleting", pageToDelete.name, "on primary");
+      try {
+        await this.primary.deletePage(pageToDelete.name, primarySyncTimestamp);
+        syncOps++;
+      } catch (e: any) {
+        console.log("Page already gone", e.message);
       }
     }
 
+    // Setting last sync time to the timestamps we got back when fetching the page lists on each end
+    this.primaryLastSync = primarySyncTimestamp;
+    this.secondaryLastSync = secondarySyncTimestamp;
+
     // Find the latest timestamp and set it as lastSync
-    allPagesPrimary.forEach((pageMeta) => {
-      this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    });
-    allPagesSecondary.forEach((pageMeta) => {
-      this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    });
-    allTrashPrimary.forEach((pageMeta) => {
-      this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    });
-    allTrashSecondary.forEach((pageMeta) => {
-      this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    });
+    // allPagesPrimary.forEach((pageMeta) => {
+    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
+    // });
+    // allPagesSecondary.forEach((pageMeta) => {
+    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
+    // });
+    // allTrashPrimary.forEach((pageMeta) => {
+    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
+    // });
+    // allTrashSecondary.forEach((pageMeta) => {
+    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
+    // });
 
     return syncOps;
   }

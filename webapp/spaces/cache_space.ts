@@ -8,7 +8,7 @@ const pageWatchInterval = 2000;
 const trashPrefix = "_trash/";
 const plugPrefix = "_plug/";
 
-export class WatchableSpace extends EventEmitter<SpaceEvents> implements Space {
+export class WatchableSpace extends EventEmitter<SpaceEvents> {
   pageMetaCache = new Map<string, PageMeta>();
   watchedPages = new Set<string>();
   private initialPageListLoad = true;
@@ -46,7 +46,7 @@ export class WatchableSpace extends EventEmitter<SpaceEvents> implements Space {
     safeRun(async () => {
       let newPageList = await this.space.fetchPageList();
       let deletedPages = new Set<string>(this.pageMetaCache.keys());
-      newPageList.forEach((meta) => {
+      newPageList.pages.forEach((meta) => {
         const pageName = meta.name;
         const oldPageMeta = this.pageMetaCache.get(pageName);
         const newPageMeta = {
@@ -112,11 +112,11 @@ export class WatchableSpace extends EventEmitter<SpaceEvents> implements Space {
       await this.writePage(
         `${trashPrefix}${name}`,
         pageData.text,
-        true,
+        false,
         deleteDate
       );
     }
-    await this.space.deletePage(name, deleteDate);
+    await this.space.deletePage(name);
 
     this.pageMetaCache.delete(name);
     this.emit("pageDeleted", name);
@@ -210,7 +210,7 @@ export class WatchableSpace extends EventEmitter<SpaceEvents> implements Space {
     }
   }
 
-  fetchPageList(): Promise<Set<PageMeta>> {
+  fetchPageList(): Promise<{ pages: Set<PageMeta>; nowTimestamp: number }> {
     return this.space.fetchPageList();
   }
 
