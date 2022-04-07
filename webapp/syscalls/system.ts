@@ -1,7 +1,7 @@
 import { SysCallMapping } from "../../plugos/system";
-import { WatchableSpace } from "../spaces/cache_space";
+import { Space } from "../spaces/space";
 
-export function systemSyscalls(space: WatchableSpace): SysCallMapping {
+export function systemSyscalls(space: Space): SysCallMapping {
   return {
     "system.invokeFunction": async (
       ctx,

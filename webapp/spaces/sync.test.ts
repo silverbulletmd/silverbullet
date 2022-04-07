@@ -1,16 +1,16 @@
 import { expect, test } from "@jest/globals";
-import { IndexedDBSpace } from "./indexeddb_space";
+import { IndexedDBSpacePrimitives } from "./indexeddb_space_primitives";
 import { SpaceSync } from "./sync";
 import { PageMeta } from "../../common/types";
-import { WatchableSpace } from "./cache_space";
+import { Space } from "./space";
 
 // For testing in node.js
 require("fake-indexeddb/auto");
 
 test("Test store", async () => {
-  let primary = new WatchableSpace(new IndexedDBSpace("primary"), true);
-  let secondary = new WatchableSpace(
-    new IndexedDBSpace("secondary", -5000),
+  let primary = new Space(new IndexedDBSpacePrimitives("primary"), true);
+  let secondary = new Space(
+    new IndexedDBSpacePrimitives("secondary", -5000),
     true
   );
   let sync = new SpaceSync(primary, secondary, 0, 0, "_trash/");

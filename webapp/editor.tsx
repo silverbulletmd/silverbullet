@@ -29,7 +29,7 @@ import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { WatchableSpace } from "./spaces/cache_space";
+import { Space } from "./spaces/space";
 import customMarkdownStyle from "./style";
 import { editorSyscalls } from "./syscalls/editor";
 import { indexerSyscalls } from "./syscalls";
@@ -59,7 +59,7 @@ class PageState {
   }
 }
 
-const saveInterval = 2000;
+const saveInterval = 1000;
 
 export class Editor implements AppEventDispatcher {
   readonly commandHook: CommandHook;
@@ -69,7 +69,7 @@ export class Editor implements AppEventDispatcher {
   editorView?: EditorView;
   viewState: AppViewState;
   viewDispatch: React.Dispatch<Action>;
-  space: WatchableSpace;
+  space: Space;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
   saveTimeout: any;
@@ -78,7 +78,7 @@ export class Editor implements AppEventDispatcher {
   }, 1000);
   private system = new System<SilverBulletHooks>("client");
 
-  constructor(space: WatchableSpace, parent: Element) {
+  constructor(space: Space, parent: Element) {
     this.space = space;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};

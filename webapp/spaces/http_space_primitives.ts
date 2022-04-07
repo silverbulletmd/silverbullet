@@ -1,8 +1,8 @@
 import { PageMeta } from "../../common/types";
 import { Plug } from "../../plugos/plug";
-import { Space } from "./space";
+import { SpacePrimitives } from "./space_primitives";
 
-export class HttpRestSpace implements Space {
+export class HttpSpacePrimitives implements SpacePrimitives {
   pageUrl: string;
   private plugUrl: string;
 

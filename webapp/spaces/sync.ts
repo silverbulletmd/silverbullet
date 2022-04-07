@@ -1,11 +1,11 @@
-import { WatchableSpace } from "./cache_space";
-import { PageMeta } from "../../common/types";
 import { Space } from "./space";
+import { PageMeta } from "../../common/types";
+import { SpacePrimitives } from "./space_primitives";
 
 export class SpaceSync {
   constructor(
-    private primary: WatchableSpace,
-    private secondary: WatchableSpace,
+    private primary: Space,
+    private secondary: Space,
     public primaryLastSync: number,
     public secondaryLastSync: number,
     private trashPrefix: string
@@ -13,8 +13,8 @@ export class SpaceSync {
 
   // Strategy: Primary wins
   public static primaryConflictResolver(
-    primary: WatchableSpace,
-    secondary: WatchableSpace
+    primary: Space,
+    secondary: Space
   ): (pageMeta1: PageMeta, pageMeta2: PageMeta) => Promise<void> {
     return async (pageMeta1, pageMeta2) => {
       const pageName = pageMeta1.name;
@@ -35,7 +35,7 @@ export class SpaceSync {
   }
 
   async syncablePages(
-    space: WatchableSpace
+    space: Space
   ): Promise<{ pages: PageMeta[]; nowTimestamp: number }> {
     let fetchResult = await space.fetchPageList();
     return {
@@ -46,7 +46,7 @@ export class SpaceSync {
     };
   }
 
-  async trashPages(space: Space): Promise<PageMeta[]> {
+  async trashPages(space: SpacePrimitives): Promise<PageMeta[]> {
     return [...(await space.fetchPageList()).pages]
       .filter((pageMeta) => pageMeta.name.startsWith(this.trashPrefix))
       .map((pageMeta) => ({
@@ -202,20 +202,6 @@ export class SpaceSync {
     // Setting last sync time to the timestamps we got back when fetching the page lists on each end
     this.primaryLastSync = primarySyncTimestamp;
     this.secondaryLastSync = secondarySyncTimestamp;
-
-    // Find the latest timestamp and set it as lastSync
-    // allPagesPrimary.forEach((pageMeta) => {
-    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    // });
-    // allPagesSecondary.forEach((pageMeta) => {
-    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    // });
-    // allTrashPrimary.forEach((pageMeta) => {
-    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    // });
-    // allTrashSecondary.forEach((pageMeta) => {
-    //   this.lastSync = Math.max(this.lastSync, pageMeta.lastModified);
-    // });
 
     return syncOps;
   }

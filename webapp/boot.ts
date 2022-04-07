@@ -1,14 +1,14 @@
 import { Editor } from "./editor";
 import { safeRun } from "./util";
-import { WatchableSpace } from "./spaces/cache_space";
-import { HttpRestSpace } from "./spaces/httprest_space";
-import { IndexedDBSpace } from "./spaces/indexeddb_space";
+import { Space } from "./spaces/space";
+import { HttpSpacePrimitives } from "./spaces/http_space_primitives";
+import { IndexedDBSpacePrimitives } from "./spaces/indexeddb_space_primitives";
 import { SpaceSync } from "./spaces/sync";
 
-let localSpace = new WatchableSpace(new IndexedDBSpace("pages"), true);
+let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
 localSpace.watch();
-let serverSpace = new WatchableSpace(new HttpRestSpace(""), true);
-// serverSpace.watch();
+let serverSpace = new Space(new HttpSpacePrimitives(""), true);
+serverSpace.watch();
 
 // @ts-ignore
 window.syncer = async () => {
@@ -28,7 +28,7 @@ window.syncer = async () => {
   localStorage.setItem("lastRemoteSync", "" + syncer.primaryLastSync);
   console.log("Done!");
 };
-let editor = new Editor(localSpace, document.getElementById("root")!);
+let editor = new Editor(serverSpace, document.getElementById("root")!);
 
 safeRun(async () => {
   await editor.init();

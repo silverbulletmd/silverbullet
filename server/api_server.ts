@@ -152,27 +152,6 @@ export class ExpressServer {
 
     let plugRouter = express.Router();
 
-    // Plug list
-    plugRouter.get("/", async (req, res) => {
-      res.json(
-        [...this.system.loadedPlugs.values()].map(({ name, version }) => ({
-          name,
-          version,
-        }))
-      );
-    });
-
-    plugRouter.get("/:name", async (req, res) => {
-      const plugName = req.params.name;
-      const plug = this.system.loadedPlugs.get(plugName);
-      if (!plug) {
-        res.status(404);
-        res.send("Not found");
-      } else {
-        res.header("Last-Modified", "" + plug.version);
-        res.send(plug.manifest);
-      }
-    });
     plugRouter.post(
       "/:plug/syscall/:name",
       bodyParser.json(),

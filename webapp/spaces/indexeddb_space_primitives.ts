@@ -1,4 +1,4 @@
-import { Space } from "./space";
+import { SpacePrimitives } from "./space_primitives";
 import { PageMeta } from "../../common/types";
 import Dexie, { Table } from "dexie";
 import { Plug } from "../../plugos/plug";
@@ -9,7 +9,7 @@ type Page = {
   meta: PageMeta;
 };
 
-export class IndexedDBSpace implements Space {
+export class IndexedDBSpacePrimitives implements SpacePrimitives {
   private pageTable: Table<Page, string>;
 
   constructor(dbName: string, readonly timeSkew: number = 0) {
@@ -54,7 +54,6 @@ export class IndexedDBSpace implements Space {
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    console.log("Going this", name);
     return plug.syscall(name, args);
   }
 
