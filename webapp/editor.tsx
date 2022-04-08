@@ -29,7 +29,7 @@ import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
-import { Space } from "./spaces/space";
+import { Space } from "../common/spaces/space";
 import customMarkdownStyle from "./style";
 import { editorSyscalls } from "./syscalls/editor";
 import { indexerSyscalls } from "./syscalls";
@@ -429,9 +429,7 @@ export class Editor implements AppEventDispatcher {
       let pageState = this.openPages.get(this.currentPage);
       if (pageState) {
         pageState.selection = this.editorView!.state.selection;
-        pageState.scrollTop =
-          this.editorView!.scrollDOM.parentElement!.parentElement!.scrollTop;
-        // pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
+        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
         // console.log("Saved pageState", this.currentPage, pageState);
       }
       this.space.unwatchPage(this.currentPage);
@@ -466,8 +464,7 @@ export class Editor implements AppEventDispatcher {
       editorView.dispatch({
         selection: pageState.selection,
       });
-      editorView.scrollDOM.parentElement!.parentElement!.scrollTop =
-        pageState!.scrollTop;
+      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
     }
 
     this.space.watchPage(pageName);

@@ -4,7 +4,7 @@ import { EndpointHook } from "../plugos/hooks/endpoint";
 import { readFile } from "fs/promises";
 import { System } from "../plugos/system";
 import cors from "cors";
-import { DiskStorage, EventedStorage, Storage } from "./disk_storage";
+import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives";
 import path from "path";
 import bodyParser from "body-parser";
 import { EventHook } from "../plugos/hooks/event";
@@ -15,12 +15,16 @@ import knex, { Knex } from "knex";
 import shellSyscalls from "../plugos/syscalls/shell.node";
 import { NodeCronHook } from "../plugos/hooks/node_cron";
 import { markdownSyscalls } from "../common/syscalls/markdown";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives";
+import { Space } from "../common/spaces/space";
+import { safeRun } from "../webapp/util";
+import { createSandbox } from "../plugos/environments/node_sandbox";
 
 export class ExpressServer {
   app: Express;
   system: System<SilverBulletHooks>;
   private rootPath: string;
-  private storage: Storage;
+  private space: Space;
   private distDir: string;
   private eventHook: EventHook;
   private db: Knex<any, unknown[]>;
@@ -39,9 +43,12 @@ export class ExpressServer {
     // Setup system
     this.eventHook = new EventHook();
     system.addHook(this.eventHook);
-    this.storage = new EventedStorage(
-      new DiskStorage(rootPath),
-      this.eventHook
+    this.space = new Space(
+      new EventedSpacePrimitives(
+        new DiskSpacePrimitives(rootPath),
+        this.eventHook
+      ),
+      true
     );
     this.db = knex({
       client: "better-sqlite3",
@@ -55,10 +62,30 @@ export class ExpressServer {
     system.addHook(new NodeCronHook());
 
     system.registerSyscalls([], pageIndexSyscalls(this.db));
-    system.registerSyscalls([], spaceSyscalls(this.storage));
+    system.registerSyscalls([], spaceSyscalls(this.space));
     system.registerSyscalls([], eventSyscalls(this.eventHook));
     system.registerSyscalls([], markdownSyscalls());
     system.addHook(new EndpointHook(app, "/_/"));
+
+    this.space.on({
+      plugLoaded: (plugName, plug) => {
+        safeRun(async () => {
+          console.log("Plug load", plugName);
+          await system.load(plugName, plug, createSandbox);
+        });
+      },
+      plugUnloaded: (plugName) => {
+        safeRun(async () => {
+          console.log("Plug unload", plugName);
+          await system.unload(plugName);
+        });
+      },
+    });
+
+    setInterval(() => {
+      this.space.updatePageListAsync();
+    }, 5000);
+    this.space.updatePageListAsync();
   }
 
   async init() {
@@ -68,8 +95,9 @@ export class ExpressServer {
 
     // Page list
     fsRouter.route("/").get(async (req, res) => {
-      res.header("Now-Timestamp", "" + Date.now());
-      res.json(await this.storage.listPages());
+      let { nowTimestamp, pages } = await this.space.fetchPageList();
+      res.header("Now-Timestamp", "" + nowTimestamp);
+      res.json([...pages]);
     });
 
     fsRouter.route("/").post(bodyParser.json(), async (req, res) => {});
@@ -80,7 +108,7 @@ export class ExpressServer {
         let pageName = req.params[0];
         // console.log("Getting", pageName);
         try {
-          let pageData = await this.storage.readPage(pageName);
+          let pageData = await this.space.readPage(pageName);
           res.status(200);
           res.header("Last-Modified", "" + pageData.meta.lastModified);
           res.header("Content-Type", "text/markdown");
@@ -97,9 +125,10 @@ export class ExpressServer {
         console.log("Saving", pageName);
 
         try {
-          let meta = await this.storage.writePage(
+          let meta = await this.space.writePage(
             pageName,
             req.body,
+            false,
             req.header("Last-Modified")
               ? +req.header("Last-Modified")!
               : undefined
@@ -116,7 +145,7 @@ export class ExpressServer {
       .options(async (req, res) => {
         let pageName = req.params[0];
         try {
-          const meta = await this.storage.getPageMeta(pageName);
+          const meta = await this.space.getPageMeta(pageName);
           res.status(200);
           res.header("Last-Modified", "" + meta.lastModified);
           res.header("Content-Type", "text/markdown");
@@ -131,7 +160,7 @@ export class ExpressServer {
       .delete(async (req, res) => {
         let pageName = req.params[0];
         try {
-          await this.storage.deletePage(pageName);
+          await this.space.deletePage(pageName);
           res.status(200);
           res.send("OK");
         } catch (e) {

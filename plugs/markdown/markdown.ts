@@ -48,7 +48,7 @@ export async function updateMarkdownPreview() {
     }
   });
   let html = md.render(renderMarkdown(mdTree));
-  await showRhs(`<html><body>${html}</body></html>`, 1);
+  await showRhs(`<html><body>${html}</body></html>`, 2);
 }
 
 async function hideMarkdownPreview() {

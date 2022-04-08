@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../../plugos/system";
-import { Space } from "../spaces/space";
+import { Space } from "../../common/spaces/space";
 
 export function systemSyscalls(space: Space): SysCallMapping {
   return {

@@ -1,9 +1,9 @@
 import { SpacePrimitives } from "./space_primitives";
-import { safeRun } from "../util";
-import { PageMeta } from "../../common/types";
-import { EventEmitter } from "../../common/event";
+import { safeRun } from "../../webapp/util";
+import { PageMeta } from "../types";
+import { EventEmitter } from "../event";
 import { Plug } from "../../plugos/plug";
-import { Manifest } from "../../common/manifest";
+import { Manifest } from "../manifest";
 
 const pageWatchInterval = 2000;
 const trashPrefix = "_trash/";
@@ -46,7 +46,6 @@ export class Space extends EventEmitter<SpaceEvents> {
             pageMeta.name.substring(plugPrefix.length),
             JSON.parse(pageData.text)
           );
-          this.watchPage(pageMeta.name);
         }
       },
     });
@@ -104,10 +103,8 @@ export class Space extends EventEmitter<SpaceEvents> {
             this.watchedPages.delete(pageName);
             continue;
           }
-          const newMeta = await this.space.getPageMeta(pageName);
-          if (oldMeta.lastModified !== newMeta.lastModified) {
-            this.emit("pageChanged", newMeta);
-          }
+          // This seems weird, but simply fetching it will compare to local cache and trigger an event if necessary
+          await this.getPageMeta(pageName);
         }
       });
     }, pageWatchInterval);
@@ -134,7 +131,15 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    return this.metaCacher(name, await this.space.getPageMeta(name));
+    let oldMeta = this.pageMetaCache.get(name);
+    let newMeta = await this.space.getPageMeta(name);
+    if (oldMeta) {
+      if (oldMeta.lastModified !== newMeta.lastModified) {
+        // Changed on disk, trigger event
+        this.emit("pageChanged", newMeta);
+      }
+    }
+    return this.metaCacher(name, newMeta);
   }
 
   invokeFunction(
@@ -185,6 +190,13 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     let pageData = await this.space.readPage(name);
+    let previousMeta = this.pageMetaCache.get(name);
+    if (previousMeta) {
+      if (previousMeta.lastModified !== pageData.meta.lastModified) {
+        // Page changed since last cached metadata, trigger event
+        this.emit("pageChanged", pageData.meta);
+      }
+    }
     this.pageMetaCache.set(name, pageData.meta);
     return pageData;
   }

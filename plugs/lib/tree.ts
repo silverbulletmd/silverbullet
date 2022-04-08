@@ -57,6 +57,7 @@ export function collectNodesMatching(
   return results;
 }
 
+// return value: returning undefined = not matched, continue, null = delete, new node = replace
 export function replaceNodesMatching(
   mdTree: MarkdownTree,
   substituteFn: (mdTree: MarkdownTree) => MarkdownTree | null | undefined

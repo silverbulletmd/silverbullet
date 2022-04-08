@@ -1,5 +1,5 @@
 import { Space } from "./space";
-import { PageMeta } from "../../common/types";
+import { PageMeta } from "../types";
 import { SpacePrimitives } from "./space_primitives";
 
 export class SpaceSync {

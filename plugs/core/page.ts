@@ -1,34 +1,48 @@
 import { IndexEvent } from "../../webapp/app_event";
-import { pageLinkRegex } from "../../webapp/constant";
 import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
   scanPrefixGlobal
 } from "plugos-silverbullet-syscall/index";
-import { flashNotification, getCurrentPage, getText, matchBefore, navigate } from "plugos-silverbullet-syscall/editor";
+import {
+  flashNotification,
+  getCurrentPage,
+  getText,
+  matchBefore,
+  navigate,
+  prompt
+} from "plugos-silverbullet-syscall/editor";
 
 import { dispatch } from "plugos-syscall/event";
 import { deletePage as deletePageSyscall, listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
-
-const wikilinkRegex = new RegExp(pageLinkRegex, "g");
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import {
+  addParentPointers,
+  collectNodesMatching,
+  MarkdownTree,
+  renderMarkdown,
+  replaceNodesMatching
+} from "../lib/tree";
 
 export async function indexLinks({ name, text }: IndexEvent) {
   let backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   console.log("Now indexing", name);
-  for (let match of text.matchAll(wikilinkRegex)) {
-    let toPage = match[1];
-    if (toPage.includes("@")) {
-      toPage = toPage.split("@")[0];
+  let mdTree = await parseMarkdown(text);
+  collectNodesMatching(mdTree, (n) => n.type === "WikiLinkPage").forEach(
+    (n) => {
+      let toPage = n.children![0].text!;
+      if (toPage.includes("@")) {
+        toPage = toPage.split("@")[0];
+      }
+      backLinks.push({
+        key: `pl:${toPage}:${n.from}`,
+        value: name,
+      });
     }
-    let pos = match.index!;
-    backLinks.push({
-      key: `pl:${toPage}:${pos}`,
-      value: name,
-    });
-  }
+  );
   console.log("Found", backLinks.length, "wiki link(s)");
   await batchSet(name, backLinks);
 }
@@ -69,12 +83,31 @@ export async function renamePage() {
   for (let pageToUpdate of pageToUpdateSet) {
     console.log("Now going to update links in", pageToUpdate);
     let { text } = await readPage(pageToUpdate);
-    console.log("Received text", text);
+    // console.log("Received text", text);
     if (!text) {
       // Page likely does not exist, but at least we can skip it
       continue;
     }
-    let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
+    let mdTree = await parseMarkdown(text);
+    addParentPointers(mdTree);
+    replaceNodesMatching(mdTree, (n): MarkdownTree | undefined | null => {
+      if (n.type === "WikiLinkPage") {
+        let pageName = n.children![0].text!;
+        if (pageName === oldName) {
+          n.children![0].text = newName;
+          return n;
+        }
+        // page name with @pos position
+        if (pageName.startsWith(`${oldName}@`)) {
+          let [, pos] = pageName.split("@");
+          n.children![0].text = `${newName}@${pos}`;
+          return n;
+        }
+      }
+      return;
+    });
+    // let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
+    let newText = renderMarkdown(mdTree);
     if (text !== newText) {
       console.log("Changes made, saving...");
       await writePage(pageToUpdate, newText);

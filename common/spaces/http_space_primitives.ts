@@ -1,4 +1,4 @@
-import { PageMeta } from "../../common/types";
+import { PageMeta } from "../types";
 import { Plug } from "../../plugos/plug";
 import { SpacePrimitives } from "./space_primitives";
 

@@ -1,63 +1,10 @@
 import { mkdir, readdir, readFile, stat, unlink, utimes, writeFile } from "fs/promises";
 import * as path from "path";
-import { PageMeta } from "../common/types";
-import { EventHook } from "../plugos/hooks/event";
+import { PageMeta } from "../types";
+import { SpacePrimitives } from "./space_primitives";
+import { Plug } from "../../plugos/plug";
 
-export interface Storage {
-  listPages(): Promise<PageMeta[]>;
-  readPage(pageName: string): Promise<{ text: string; meta: PageMeta }>;
-  writePage(
-    pageName: string,
-    text: string,
-    lastModified?: number
-  ): Promise<PageMeta>;
-  getPageMeta(pageName: string): Promise<PageMeta>;
-  deletePage(pageName: string): Promise<void>;
-}
-
-export class EventedStorage implements Storage {
-  constructor(private wrapped: Storage, private eventHook: EventHook) {}
-
-  listPages(): Promise<PageMeta[]> {
-    return this.wrapped.listPages();
-  }
-
-  readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
-    return this.wrapped.readPage(pageName);
-  }
-
-  async writePage(
-    pageName: string,
-    text: string,
-    lastModified?: number
-  ): Promise<PageMeta> {
-    const newPageMeta = this.wrapped.writePage(pageName, text, lastModified);
-    // This can happen async
-    this.eventHook
-      .dispatchEvent("page:saved", pageName)
-      .then(() => {
-        return this.eventHook.dispatchEvent("page:index", {
-          name: pageName,
-          text: text,
-        });
-      })
-      .catch((e) => {
-        console.error("Error dispatching page:saved event", e);
-      });
-    return newPageMeta;
-  }
-
-  getPageMeta(pageName: string): Promise<PageMeta> {
-    return this.wrapped.getPageMeta(pageName);
-  }
-
-  async deletePage(pageName: string): Promise<void> {
-    await this.eventHook.dispatchEvent("page:deleted", pageName);
-    return this.wrapped.deletePage(pageName);
-  }
-}
-
-export class DiskStorage implements Storage {
+export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
   plugPrefix: string;
 
@@ -83,31 +30,6 @@ export class DiskStorage implements Storage {
     );
   }
 
-  async listPages(): Promise<PageMeta[]> {
-    let fileNames: PageMeta[] = [];
-
-    const walkPath = async (dir: string) => {
-      let files = await readdir(dir);
-      for (let file of files) {
-        const fullPath = path.join(dir, file);
-        let s = await stat(fullPath);
-        // console.log("Encountering", fullPath, s);
-        if (s.isDirectory()) {
-          await walkPath(fullPath);
-        } else {
-          if (file.endsWith(".md") || file.endsWith(".json")) {
-            fileNames.push({
-              name: this.pathToPageName(fullPath),
-              lastModified: s.mtime.getTime(),
-            });
-          }
-        }
-      }
-    };
-    await walkPath(this.rootPath);
-    return fileNames;
-  }
-
   async readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
     const localPath = this.pageNameToPath(pageName);
     try {
@@ -128,6 +50,7 @@ export class DiskStorage implements Storage {
   async writePage(
     pageName: string,
     text: string,
+    selfUpdate: boolean,
     lastModified?: number
   ): Promise<PageMeta> {
     let localPath = this.pageNameToPath(pageName);
@@ -172,5 +95,48 @@ export class DiskStorage implements Storage {
   async deletePage(pageName: string): Promise<void> {
     let localPath = this.pageNameToPath(pageName);
     await unlink(localPath);
+  }
+
+  async fetchPageList(): Promise<{
+    pages: Set<PageMeta>;
+    nowTimestamp: number;
+  }> {
+    let pages = new Set<PageMeta>();
+
+    const walkPath = async (dir: string) => {
+      let files = await readdir(dir);
+      for (let file of files) {
+        const fullPath = path.join(dir, file);
+        let s = await stat(fullPath);
+        if (s.isDirectory()) {
+          await walkPath(fullPath);
+        } else {
+          if (file.endsWith(".md") || file.endsWith(".json")) {
+            pages.add({
+              name: this.pathToPageName(fullPath),
+              lastModified: s.mtime.getTime(),
+            });
+          }
+        }
+      }
+    };
+    await walkPath(this.rootPath);
+    return {
+      pages: pages,
+      nowTimestamp: Date.now(),
+    };
+  }
+
+  invokeFunction(
+    plug: Plug<any>,
+    env: string,
+    name: string,
+    args: any[]
+  ): Promise<any> {
+    return plug.invoke(name, args);
+  }
+
+  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
+    return plug.syscall(name, args);
   }
 }

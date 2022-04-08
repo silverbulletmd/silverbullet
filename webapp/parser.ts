@@ -2,11 +2,12 @@ import { styleTags, tags as t } from "@codemirror/highlight";
 import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, TaskList } from "@lezer/markdown";
 import { commonmark, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
-import { pageLinkRegex } from "./constant";
 
-const pageLinkRegexPrefix = new RegExp(
-  "^" + pageLinkRegex.toString().slice(1, -1)
-);
+export const pageLinkRegexPrefix = /^\[\[([\w\s\/:,\.@\-]+)\]\]/;
+
+// const pageLinkRegexPrefix = new RegExp(
+//   "^" + pageLinkRegex.toString().slice(1, -1)
+// );
 
 const WikiLink: MarkdownConfig = {
   defineNodes: ["WikiLink", "WikiLinkPage"],

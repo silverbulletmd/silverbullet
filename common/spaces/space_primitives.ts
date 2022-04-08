@@ -1,5 +1,5 @@
 import { Plug } from "../../plugos/plug";
-import { PageMeta } from "../../common/types";
+import { PageMeta } from "../types";
 
 export interface SpacePrimitives {
   // Pages

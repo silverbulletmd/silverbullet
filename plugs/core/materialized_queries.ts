@@ -43,6 +43,7 @@ export async function updateMaterializedQueriesCommand() {
 // Called from client, running on server
 export async function updateMaterializedQueriesOnPage(pageName: string) {
   let { text } = await readPage(pageName);
+
   text = await replaceAsync(text, queryRegex, async (match, ...args) => {
     let { table, filter, groupBy, limit, orderBy, orderDesc } =
       args[args.length - 1];

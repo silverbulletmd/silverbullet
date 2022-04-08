@@ -35,7 +35,7 @@
       "context": "node"
     },
     "test": {
-      "source": ["plugs/lib/tree.test.ts", "webapp/spaces/sync.test.ts"],
+      "source": ["plugs/lib/tree.test.ts", "common/spaces/sync.test.ts"],
       "outputFormat": "commonjs",
       "isLibrary": true,
       "context": "node"

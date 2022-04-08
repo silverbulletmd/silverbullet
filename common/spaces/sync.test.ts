@@ -1,7 +1,7 @@
 import { expect, test } from "@jest/globals";
 import { IndexedDBSpacePrimitives } from "./indexeddb_space_primitives";
 import { SpaceSync } from "./sync";
-import { PageMeta } from "../../common/types";
+import { PageMeta } from "../types";
 import { Space } from "./space";
 
 // For testing in node.js

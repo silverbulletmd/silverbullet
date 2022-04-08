@@ -1,5 +1,5 @@
 import { SpacePrimitives } from "./space_primitives";
-import { PageMeta } from "../../common/types";
+import { PageMeta } from "../types";
 import Dexie, { Table } from "dexie";
 import { Plug } from "../../plugos/plug";
 

@@ -1,9 +1,9 @@
 import { Editor } from "./editor";
 import { safeRun } from "./util";
-import { Space } from "./spaces/space";
-import { HttpSpacePrimitives } from "./spaces/http_space_primitives";
-import { IndexedDBSpacePrimitives } from "./spaces/indexeddb_space_primitives";
-import { SpaceSync } from "./spaces/sync";
+import { Space } from "../common/spaces/space";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives";
+import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives";
+import { SpaceSync } from "../common/spaces/sync";
 
 let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
 localSpace.watch();
