@@ -6,10 +6,10 @@ functions:
   downloadAllPosts:
     path: "./ghost.ts:downloadAllPosts"
     env: server
-  publishPostCommand:
-    path: "./ghost.ts:publishPostCommand"
+  publishCommand:
+    path: "./ghost.ts:publishCommand"
     command:
-      name: "Ghost: Publish Post"
-  publishPost:
-    path: "./ghost.ts:publishPost"
+      name: "Ghost: Publish"
+  publish:
+    path: "./ghost.ts:publish"
     env: server

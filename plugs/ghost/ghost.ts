@@ -5,6 +5,13 @@ import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { getCurrentPage, getText } from "plugos-silverbullet-syscall/editor";
 import { cleanMarkdown } from "../markdown/markdown";
 
+type GhostConfig = {
+  url: string;
+  adminKey: string;
+  postPrefix: string;
+  pagePrefix: string;
+};
+
 type Post = {
   id: string;
   uuid: string;
@@ -100,23 +107,17 @@ class GhostAdmin {
     return markdownPosts;
   }
 
-  async createPost(post: Partial<Post>): Promise<Post> {
-    let result = await json(`${this.url}/ghost/api/v3/admin/posts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Ghost ${this.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        posts: [post],
-      }),
-    });
-    return result.posts[0];
+  publishPost(post: Partial<Post>): Promise<any> {
+    return this.publish("posts", post);
   }
 
-  async updatePost(post: Partial<Post>): Promise<any> {
-    let oldPost = await json(
-      `${this.url}/ghost/api/v3/admin/posts/${post.id}`,
+  publishPage(post: Partial<Post>): Promise<any> {
+    return this.publish("pages", post);
+  }
+
+  async publish(what: "pages" | "posts", post: Partial<Post>): Promise<any> {
+    let oldPostQuery = await json(
+      `${this.url}/ghost/api/v3/admin/${what}/slug/${post.slug}`,
       {
         headers: {
           Authorization: `Ghost ${this.token}`,
@@ -124,56 +125,60 @@ class GhostAdmin {
         },
       }
     );
-    post.updated_at = oldPost.posts[0].updated_at;
-    let result = await json(`${this.url}/ghost/api/v3/admin/posts/${post.id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Ghost ${this.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        posts: [post],
-      }),
-    });
-    return result.posts[0];
+    if (!oldPostQuery[what]) {
+      // New!
+      if (!post.status) {
+        post.status = "draft";
+      }
+      let result = await json(`${this.url}/ghost/api/v3/admin/${what}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Ghost ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          [what]: [post],
+        }),
+      });
+      return result[what][0];
+    } else {
+      let oldPost: Post = oldPostQuery[what][0];
+      post.updated_at = oldPost.updated_at;
+      let result = await json(
+        `${this.url}/ghost/api/v3/admin/${what}/${oldPost.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Ghost ${this.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            [what]: [post],
+          }),
+        }
+      );
+      return result[what][0];
+    }
   }
 }
-
-type GhostConfig = {
-  url: string;
-  adminKey: string;
-  pagePrefix: string;
-};
 
 function postToMarkdown(post: Post): string {
   let text = mobileDocToMarkdown(post.mobiledoc);
-  return `<!-- #ghost-id: ${post.id} -->\n# ${post.title}\n${text}`;
+  return `# ${post.title}\n${text}`;
 }
 
-const publishedPostRegex =
-  /<!-- #ghost-id:\s*(\w+)\s*-->\n#\s*([^\n]+)\n([^$]+)$/;
-const newPostRegex = /#\s*([^\n]+)\n([^$]+)$/;
+const postRegex = /#\s*([^\n]+)\n([^$]+)$/;
 
 async function markdownToPost(text: string): Promise<Partial<Post>> {
-  let match = publishedPostRegex.exec(text);
-  if (match) {
-    let [, id, title, content] = match;
-    return {
-      id,
-      title,
-      mobiledoc: markdownToMobileDoc(await cleanMarkdown(content)),
-    };
-  }
-  match = newPostRegex.exec(text);
+  let match = postRegex.exec(text);
   if (match) {
     let [, title, content] = match;
     return {
       title,
-      status: "draft",
       mobiledoc: markdownToMobileDoc(await cleanMarkdown(content)),
     };
   }
-  throw Error("Not a valid ghost post");
+  throw Error("Post should stat with a # header");
 }
 
 async function getConfig(): Promise<GhostConfig> {
@@ -184,6 +189,7 @@ async function getConfig(): Promise<GhostConfig> {
 export async function downloadAllPostsCommand() {
   await invokeFunction("server", "downloadAllPosts");
 }
+
 export async function downloadAllPosts() {
   let config = await getConfig();
   let admin = new GhostAdmin(config.url, config.adminKey);
@@ -191,30 +197,33 @@ export async function downloadAllPosts() {
   let allPosts = await admin.listMarkdownPosts();
   for (let post of allPosts) {
     let text = mobileDocToMarkdown(post.mobiledoc);
-    text = `<!-- #ghost-id: ${post.id} -->\n# ${post.title}\n${text}`;
-    await writePage(`${config.pagePrefix}${post.slug}`, text);
+    text = `# ${post.title}\n${text}`;
+    await writePage(`${config.postPrefix}/${post.slug}`, text);
   }
 }
-export async function publishPostCommand() {
+export async function publishCommand() {
   await invokeFunction(
     "server",
-    "publishPost",
+    "publish",
     await getCurrentPage(),
     await getText()
   );
 }
 
-export async function publishPost(name: string, text: string) {
+export async function publish(name: string, text: string) {
   let config = await getConfig();
   let admin = new GhostAdmin(config.url, config.adminKey);
   await admin.init();
   let post = await markdownToPost(text);
-  post.slug = name.substring(config.pagePrefix.length);
-  if (post.id) {
-    await admin.updatePost(post);
+  if (name.startsWith(config.postPrefix)) {
+    post.slug = name.substring(config.postPrefix.length + 1);
+    await admin.publishPost(post);
+    console.log("Done!");
+  } else if (name.startsWith(config.pagePrefix)) {
+    post.slug = name.substring(config.pagePrefix.length + 1);
+    await admin.publishPage(post);
+    console.log("Done!");
   } else {
-    let newPost = await admin.createPost(post);
-    text = `<!-- #ghost-id: ${newPost.id} -->\n${text}`;
-    await writePage(name, text);
+    console.error("Not in either the post or page prefix");
   }
 }
