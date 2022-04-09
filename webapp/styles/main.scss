@@ -43,8 +43,9 @@ body {
     .inner {
       max-width: $max-editor-width;
       margin: auto;
-      padding-top: 12px;
       font-size: 28px;
+      padding: 10px 20px;
+
 
       .status {
         float: right;
@@ -118,12 +119,12 @@ body {
 //}
 
 #bottom {
-  height: 25px;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 10px;
   text-align: right;
   background-color: rgb(213, 213, 213);
   border-top: rgb(193, 193, 193) 1px solid;
-
   .inner {
-    padding: 5px;
   }
 }
