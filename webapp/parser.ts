@@ -1,7 +1,11 @@
 import { styleTags, tags as t } from "@codemirror/highlight";
-import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, TaskList } from "@lezer/markdown";
-import { commonmark, mkLang } from "./markdown/markdown";
+import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, parseCode, TaskList } from "@lezer/markdown";
+import { commonmark, getCodeParser, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
+import { LanguageDescription, LanguageSupport } from "@codemirror/language";
+import { StreamLanguage } from "@codemirror/stream-parser";
+import { yaml } from "@codemirror/legacy-modes/mode/yaml";
+import { javascriptLanguage } from "@codemirror/lang-javascript";
 
 export const pageLinkRegexPrefix = /^\[\[([\w\s\/:,\.@\-]+)\]\]/;
 
@@ -126,6 +130,7 @@ const TagLink: MarkdownConfig = {
     },
   ],
 };
+
 const WikiMarkdown = commonmark.configure([
   WikiLink,
   AtMention,
@@ -133,6 +138,19 @@ const WikiMarkdown = commonmark.configure([
   TaskList,
   UnmarkedUrl,
   Comment,
+  parseCode({
+    codeParser: getCodeParser([
+      LanguageDescription.of({
+        name: "yaml",
+        support: new LanguageSupport(StreamLanguage.define(yaml)),
+      }),
+      LanguageDescription.of({
+        name: "javascript",
+        alias: ["js"],
+        support: new LanguageSupport(javascriptLanguage),
+      }),
+    ]),
+  }),
   {
     props: [
       styleTags({

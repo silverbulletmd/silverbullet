@@ -60,3 +60,8 @@ functions:
     path: ./materialized_queries.ts:updateMaterializedQueriesCommand
     command:
       name: "Materialized Queries: Update"
+
+  parseCommand:
+    path: ./page.ts:parsePage
+    command:
+      name: Parse Document

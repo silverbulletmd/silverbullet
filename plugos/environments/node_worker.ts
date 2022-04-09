@@ -1,4 +1,5 @@
 const { parentPort, workerData } = require("worker_threads");
+// @ts-ignore
 let vm2 = `${workerData}/vm2`;
 const { VM, VMScript } = require(vm2);
 
@@ -15,9 +16,11 @@ let pendingRequests = new Map<
 
 let syscallReqId = 0;
 
+// console.log("Here's crypto", crypto);
+
 let vm = new VM({
   sandbox: {
-    console: console,
+    console,
     self: {
       syscall: (name: string, ...args: any[]) => {
         return new Promise((resolve, reject) => {

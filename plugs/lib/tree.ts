@@ -62,22 +62,20 @@ export function replaceNodesMatching(
   mdTree: MarkdownTree,
   substituteFn: (mdTree: MarkdownTree) => MarkdownTree | null | undefined
 ) {
-  let subst = substituteFn(mdTree);
-  if (subst !== undefined) {
-    if (!mdTree.parent) {
-      throw Error("Need parent pointers for this");
-    }
-    let parentChildren = mdTree.parent.children!;
-    let pos = parentChildren.indexOf(mdTree);
-    if (subst) {
-      parentChildren.splice(pos, 1, subst);
-    } else {
-      // null = delete
-      parentChildren.splice(pos, 1);
-    }
-  } else if (mdTree.children) {
+  if (mdTree.children) {
     for (let child of mdTree.children) {
-      replaceNodesMatching(child, substituteFn);
+      let subst = substituteFn(child);
+      if (subst !== undefined) {
+        let pos = mdTree.children.indexOf(child);
+        if (subst) {
+          mdTree.children.splice(pos, 1, subst);
+        } else {
+          // null = delete
+          mdTree.children.splice(pos, 1);
+        }
+      } else {
+        replaceNodesMatching(child, substituteFn);
+      }
     }
   }
 }

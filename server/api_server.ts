@@ -19,6 +19,8 @@ import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitive
 import { Space } from "../common/spaces/space";
 import { safeRun } from "../webapp/util";
 import { createSandbox } from "../plugos/environments/node_sandbox";
+import { jwtSyscalls } from "../plugos/syscalls/jwt";
+import { fetchSyscalls } from "../plugos/syscalls/fetch.node";
 
 export class ExpressServer {
   app: Express;
@@ -65,6 +67,8 @@ export class ExpressServer {
     system.registerSyscalls([], spaceSyscalls(this.space));
     system.registerSyscalls([], eventSyscalls(this.eventHook));
     system.registerSyscalls([], markdownSyscalls());
+    system.registerSyscalls([], fetchSyscalls());
+    system.registerSyscalls([], jwtSyscalls());
     system.addHook(new EndpointHook(app, "/_/"));
 
     this.space.on({
@@ -220,7 +224,7 @@ export class ExpressServer {
           return res.send(`Plug ${plugName} not found`);
         }
         try {
-          console.log("Invoking", name, "with args", args);
+          console.log("Invoking", name);
           const result = await plug.invoke(name, args);
           res.status(200);
           res.send(result);

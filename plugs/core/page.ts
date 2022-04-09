@@ -182,3 +182,7 @@ export async function clearPageIndex(page: string) {
   console.log("Clearing page index for page", page);
   await clearPageIndexForPage(page);
 }
+
+export async function parsePage() {
+  console.log(await parseMarkdown(await getText()));
+}

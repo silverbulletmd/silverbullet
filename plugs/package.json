@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "dependencies": {
     "@jest/globals": "^27.5.1",
+    "@types/yaml": "^1.9.7",
     "plugos-silverbullet-syscall": "file:../plugos-silverbullet-syscall",
-    "plugos-syscall": "file:../plugos-syscall"
+    "plugos-syscall": "file:../plugos-syscall",
+    "yaml": "^2.0.0"
   }
 }

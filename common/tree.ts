@@ -9,7 +9,7 @@ export type MarkdownTree = {
   children?: MarkdownTree[];
 };
 
-function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
+function treeToAST(text: string, n: SyntaxNode, offset = 0): MarkdownTree {
   let children: MarkdownTree[] = [];
   let nodeText: string | undefined;
   let child = n.firstChild;
@@ -21,8 +21,8 @@ function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
   if (children.length === 0) {
     children = [
       {
-        from: n.from,
-        to: n.to,
+        from: n.from + offset,
+        to: n.to + offset,
         text: text.substring(n.from, n.to),
       },
     ];
@@ -33,8 +33,8 @@ function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
       let s = text.substring(index, child.from);
       if (s) {
         newChildren.push({
-          from: index,
-          to: child.from,
+          from: index + offset,
+          to: child.from! + offset,
           text: s,
         });
       }
@@ -43,15 +43,15 @@ function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
     }
     let s = text.substring(index, n.to);
     if (s) {
-      newChildren.push({ from: index, to: n.to, text: s });
+      newChildren.push({ from: index + offset, to: n.to + offset, text: s });
     }
     children = newChildren;
   }
 
   let result: MarkdownTree = {
     type: n.name,
-    from: n.from,
-    to: n.to,
+    from: n.from + offset,
+    to: n.to + offset,
   };
   if (children.length > 0) {
     result.children = children;
@@ -63,5 +63,25 @@ function treeToAST(text: string, n: SyntaxNode): MarkdownTree {
 }
 
 export function parse(text: string): MarkdownTree {
-  return treeToAST(text, wikiMarkdownLang.parser.parse(text).topNode);
+  let tree = treeToAST(text, wikiMarkdownLang.parser.parse(text).topNode);
+  // replaceNodesMatching(tree, (n): MarkdownTree | undefined | null => {
+  //   if (n.type === "FencedCode") {
+  //     let infoN = findNodeMatching(n, (n) => n.type === "CodeInfo");
+  //     let language = infoN!.children![0].text;
+  //     let textN = findNodeMatching(n, (n) => n.type === "CodeText");
+  //     let text = textN!.children![0].text!;
+  //
+  //     console.log(language, text);
+  //     switch (language) {
+  //       case "yaml":
+  //         let parsed = StreamLanguage.define(yaml).parser.parse(text);
+  //         let subTree = treeToAST(text, parsed.topNode, n.from);
+  //         // console.log(JSON.stringify(subTree, null, 2));
+  //         subTree.type = "yaml";
+  //         return subTree;
+  //     }
+  //   }
+  //   return;
+  // });
+  return tree;
 }

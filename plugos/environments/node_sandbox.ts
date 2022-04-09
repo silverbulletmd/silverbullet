@@ -11,8 +11,8 @@ import fs from "fs";
 
 class NodeWorkerWrapper implements WorkerLike {
   onMessage?: (message: any) => Promise<void>;
-  private worker: Worker;
   ready: Promise<void>;
+  private worker: Worker;
 
   constructor(worker: Worker) {
     this.worker = worker;
