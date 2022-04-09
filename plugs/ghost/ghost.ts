@@ -3,6 +3,7 @@ import { json } from "plugos-syscall/fetch";
 import YAML from "yaml";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { getCurrentPage, getText } from "plugos-silverbullet-syscall/editor";
+import { cleanMarkdown } from "../markdown/markdown";
 
 type Post = {
   id: string;
@@ -153,14 +154,14 @@ const publishedPostRegex =
   /<!-- #ghost-id:\s*(\w+)\s*-->\n#\s*([^\n]+)\n([^$]+)$/;
 const newPostRegex = /#\s*([^\n]+)\n([^$]+)$/;
 
-function markdownToPost(text: string): Partial<Post> {
+async function markdownToPost(text: string): Promise<Partial<Post>> {
   let match = publishedPostRegex.exec(text);
   if (match) {
     let [, id, title, content] = match;
     return {
       id,
       title,
-      mobiledoc: markdownToMobileDoc(content),
+      mobiledoc: markdownToMobileDoc(await cleanMarkdown(content)),
     };
   }
   match = newPostRegex.exec(text);
@@ -169,7 +170,7 @@ function markdownToPost(text: string): Partial<Post> {
     return {
       title,
       status: "draft",
-      mobiledoc: markdownToMobileDoc(content),
+      mobiledoc: markdownToMobileDoc(await cleanMarkdown(content)),
     };
   }
   throw Error("Not a valid ghost post");
@@ -207,7 +208,7 @@ export async function publishPost(name: string, text: string) {
   let config = await getConfig();
   let admin = new GhostAdmin(config.url, config.adminKey);
   await admin.init();
-  let post = markdownToPost(text);
+  let post = await markdownToPost(text);
   post.slug = name.substring(config.pagePrefix.length);
   if (post.id) {
     await admin.updatePost(post);
