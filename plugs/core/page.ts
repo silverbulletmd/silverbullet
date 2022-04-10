@@ -81,6 +81,9 @@ export async function renamePage() {
   }
 
   for (let pageToUpdate of pageToUpdateSet) {
+    if (pageToUpdate === oldName) {
+      continue;
+    }
     console.log("Now going to update links in", pageToUpdate);
     let { text } = await readPage(pageToUpdate);
     // console.log("Received text", text);
@@ -131,13 +134,6 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
     });
   }
   return pagesToUpdate;
-}
-
-export async function showBackLinks() {
-  const pageName = await getCurrentPage();
-  let backLinks = await getBackLinks(pageName);
-
-  console.log("Backlinks", backLinks);
 }
 
 export async function reindexCommand() {

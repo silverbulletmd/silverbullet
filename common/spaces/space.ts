@@ -119,7 +119,7 @@ export class Space extends EventEmitter<SpaceEvents> {
       await this.writePage(
         `${trashPrefix}${name}`,
         pageData.text,
-        false,
+        true,
         deleteDate
       );
     }

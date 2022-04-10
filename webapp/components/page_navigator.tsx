@@ -1,5 +1,4 @@
 import { FilterList, Option } from "./filter";
-import { faFileLines } from "@fortawesome/free-solid-svg-icons";
 import { PageMeta } from "../../common/types";
 
 export function PageNavigator({
@@ -18,7 +17,7 @@ export function PageNavigator({
     }
     // Order by last modified date in descending order
     let orderId = -pageMeta.lastModified;
-    // Unless it was opened and is still in memory
+    // Unless it was opened in this session
     if (pageMeta.lastOpened) {
       orderId = -pageMeta.lastOpened;
     }
@@ -37,7 +36,7 @@ export function PageNavigator({
       placeholder="Page"
       label="Open"
       options={options}
-      icon={faFileLines}
+      // icon={faFileLines}
       allowNew={true}
       helpText="Start typing the page name to filter results, press <code>Return</code> to open."
       newHint="Create page"

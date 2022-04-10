@@ -15,6 +15,11 @@ body {
   padding-left: 20px;
   padding-right: 20px;
 }
+
+a[href] {
+  text-decoration: none;
+}
+
 blockquote {
   border-left: 1px solid #333;
   margin-left: 2px;

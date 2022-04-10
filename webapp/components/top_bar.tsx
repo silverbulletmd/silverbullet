@@ -1,6 +1,4 @@
 import { Notification } from "../types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileLines } from "@fortawesome/free-solid-svg-icons";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -29,10 +27,15 @@ export function TopBar({
       {lhs}
       <div className="main">
         <div className="inner">
-          <span className={`icon ${unsavedChanges ? "unsaved" : "saved"}`}>
-            <FontAwesomeIcon icon={faFileLines} />
+          {/*<span className={`icon ${unsavedChanges ? "unsaved" : "saved"}`}>*/}
+          {/*  <FontAwesomeIcon icon={faFileLines} />*/}
+          {/*</span>*/}
+
+          <span
+            className={`current-page ${unsavedChanges ? "unsaved" : "saved"}`}
+          >
+            {prettyName(pageName)}
           </span>
-          <span className="current-page">{prettyName(pageName)}</span>
           {/*<button*/}
           {/*  onClick={(e) => {*/}
           {/*    // @ts-ignore*/}

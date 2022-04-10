@@ -24,14 +24,12 @@ functions:
   reindexSpace:
     path: "./page.ts:reindexSpace"
     env: server
-  showBackLinks:
-    path: "./page.ts:showBackLinks"
-    command:
-      name: "Page: Back Links"
   renamePage:
     path: "./page.ts:renamePage"
     command:
       name: "Page: Rename"
+      mac: Cmd-Alt-r
+      key: Ctrl-Alt-r
   pageComplete:
     path: "./page.ts:pageComplete"
     isCompleter: true
@@ -49,18 +47,20 @@ functions:
     path: "./dates.ts:insertToday"
     slashCommand:
       name: today
-  welcome:
-    path: "./server.ts:welcome"
+  insertTomorrow:
+    path: "./dates.ts:insertTomorrow"
+    slashCommand:
+      name: tomorrow
+  indexDates:
+    path: "./dates.ts:indexDates"
     events:
-      - plug:load
-    env: server
+      - page:index
   updateMaterializedQueriesOnPage:
     path: ./materialized_queries.ts:updateMaterializedQueriesOnPage
   updateMaterializedQueriesCommand:
     path: ./materialized_queries.ts:updateMaterializedQueriesCommand
     command:
       name: "Materialized Queries: Update"
-
   parseCommand:
     path: ./page.ts:parsePage
     command:

@@ -47,12 +47,12 @@ export class PathPageNavigator {
   }
 
   getCurrentPage(): string {
-    let [page] = location.pathname.substring(1).split("@");
+    let [page] = decodeURI(location.pathname).substring(1).split("@");
     return decodePageUrl(page);
   }
 
   getCurrentPos(): number {
-    let [, pos] = location.pathname.substring(1).split("@");
+    let [, pos] = decodeURI(location.pathname).substring(1).split("@");
     return +pos || 0;
   }
 }

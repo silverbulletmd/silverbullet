@@ -7,11 +7,3 @@ export function endpointTest(req: EndpointRequest): EndpointResponse {
     body: "Hello world!",
   };
 }
-
-export function welcome(plugName: string) {
-  if (plugName !== "core") {
-    return;
-  }
-  console.log("Hello world!!", plugName);
-  return "hi";
-}

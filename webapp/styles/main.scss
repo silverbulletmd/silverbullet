@@ -65,12 +65,12 @@ body {
         padding-right: 10px;
       }
 
-      .icon.saved {
-        color: #015701;
+      .saved {
+        color: #111;
       }
 
-      .icon.unsaved {
-        color: #e19502;
+      .unsaved {
+        color: #5e5e5e;
       }
     }
   }
@@ -109,14 +109,6 @@ body {
   flex: 2;
   height: 100%;
 }
-
-
-//
-//@media only screen and (max-width: $max-editor-width) {
-//  .cm-editor .cm-content {
-//    margin: 0 10px !important;
-//  }
-//}
 
 #bottom {
   height: 40px;

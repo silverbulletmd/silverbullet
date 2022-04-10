@@ -101,10 +101,14 @@
 
   .wiki-link-page {
     color: #0330cb;
-    text-decoration: underline;
+    background-color: rgba(77,141,255,0.07);
+    border-radius: 5px;
+    padding: 0 5px;
+    //text-decoration: underline;
   }
   .wiki-link {
-    color: #808080;
+    color: #a8abbd;
+    //background-color: rgba(77,141,255,0.07);
   }
 
   .mention {
@@ -194,5 +198,8 @@
 
   .comment {
     color: gray;
+    background-color: rgba(210, 210, 210, 0.3);
+    border-radius: 5px;
+    padding: 0 2px;
   }
 }

@@ -7,7 +7,7 @@ import { StreamLanguage } from "@codemirror/stream-parser";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import { javascriptLanguage } from "@codemirror/lang-javascript";
 
-export const pageLinkRegexPrefix = /^\[\[([\w\s\/:,\.@\-]+)\]\]/;
+export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
 // const pageLinkRegexPrefix = new RegExp(
 //   "^" + pageLinkRegex.toString().slice(1, -1)
@@ -22,7 +22,7 @@ const WikiLink: MarkdownConfig = {
         let match: RegExpMatchArray | null;
         if (
           next != 91 /* '[' */ ||
-          !(match = pageLinkRegexPrefix.exec(cx.slice(pos, cx.end)))
+          !(match = pageLinkRegex.exec(cx.slice(pos, cx.end)))
         ) {
           return -1;
         }

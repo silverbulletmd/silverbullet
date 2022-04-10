@@ -102,6 +102,7 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
       );
       // Delete all page keys
       await storeCalls["store.deletePrefix"](ctx, pageKey(page, prefix));
+      // console.log("Deleting keys", keysToDelete);
       await storeCalls["store.batchDelete"](ctx, keysToDelete);
     },
     "index.clearPageIndex": async (ctx) => {
