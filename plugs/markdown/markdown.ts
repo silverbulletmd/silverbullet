@@ -2,7 +2,7 @@ import MarkdownIt from "markdown-it";
 import { getText, hideRhs, showRhs } from "plugos-silverbullet-syscall/editor";
 import * as clientStore from "plugos-silverbullet-syscall/clientStore";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
-import { renderMarkdown, replaceNodesMatching } from "../lib/tree";
+import { renderToText, replaceNodesMatching } from "../../common/tree";
 
 const css = `
 <style>
@@ -79,7 +79,7 @@ export async function cleanMarkdown(text: string) {
       return null;
     }
   });
-  let html = md.render(renderMarkdown(mdTree));
+  let html = md.render(renderToText(mdTree));
   return html;
 }
 

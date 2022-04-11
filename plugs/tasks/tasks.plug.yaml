@@ -1,3 +1,22 @@
+syntax:
+  DeadlineDate:
+    firstCharacters:
+      - "📅"
+    regex: "📅\\s*\\d{4}\\-\\d{2}\\-\\d{2}"
+    styles:
+      backgroundColor: "rgba(22,22,22,0.07)"
+  CompletedDate:
+    firstCharacters:
+      - "✅"
+    regex: "✅\\s*\\d{4}\\-\\d{2}\\-\\d{2}"
+    styles:
+      backgroundColor: "rgba(22,22,22,0.07)"
+  RepeatInterval:
+    firstCharacters:
+      - "🔁"
+    regex: "🔁\\s*every\\s+\\w+"
+    styles:
+      backgroundColor: "rgba(22,22,22,0.07)"
 functions:
   indexTasks:
     path: "./task.ts:indexTasks"

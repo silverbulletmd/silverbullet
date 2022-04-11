@@ -1,9 +1,9 @@
 import { IndexEvent } from "../../webapp/app_event";
-import { whiteOutQueries } from "./materialized_queries";
+import { whiteOutQueries } from "../query/materialized_queries";
 
 import { batchSet } from "plugos-silverbullet-syscall/index";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
-import { collectNodesMatching, MarkdownTree, renderMarkdown } from "../lib/tree";
+import { collectNodesMatching, ParseTree, renderToText } from "../../common/tree";
 
 type Item = {
   item: string;
@@ -23,16 +23,16 @@ export async function indexItems({ name, text }: IndexEvent) {
     if (!n.children) {
       return;
     }
-    let textNodes: MarkdownTree[] = [];
+    let textNodes: ParseTree[] = [];
     let nested: string | undefined;
     for (let child of n.children!.slice(1)) {
       if (child.type === "OrderedList" || child.type === "BulletList") {
-        nested = renderMarkdown(child);
+        nested = renderToText(child);
         break;
       }
       textNodes.push(child);
     }
-    let item = textNodes.map(renderMarkdown).join("").trim();
+    let item = textNodes.map(renderToText).join("").trim();
     let value: Item = {
       item,
     };

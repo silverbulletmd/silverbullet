@@ -1,0 +1,7 @@
+functions:
+  updateMaterializedQueriesOnPage:
+    path: ./materialized_queries.ts:updateMaterializedQueriesOnPage
+  updateMaterializedQueriesCommand:
+    path: ./materialized_queries.ts:updateMaterializedQueriesCommand
+    command:
+      name: "Materialized Queries: Update"

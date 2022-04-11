@@ -3,12 +3,16 @@ import { flashNotification, getCurrentPage, reloadPage, save } from "plugos-silv
 import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
+import { niceDate } from "../core/dates";
 
 export const queryRegex =
   /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*\s*(order by\s+(?<orderBy>\w+)(?<orderDesc>\s+desc)?)?(group by\s+(?<groupBy>\w+))?\s*(limit\s+(?<limit>\d+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
 
+export const newQueryRegex =
+  /<!--\s*#query\s+(.+?)(?=\s*-->)-->(.+?)<!--\s*#end\s*-->/gs;
+
 export function whiteOutQueries(text: string): string {
-  return text.replaceAll(queryRegex, (match) =>
+  return text.replaceAll(newQueryRegex, (match) =>
     new Array(match.length + 1).join(" ")
   );
 }
@@ -40,6 +44,17 @@ export async function updateMaterializedQueriesCommand() {
   await flashNotification("Updated materialized queries");
 }
 
+function replaceTemplateVars(s: string): string {
+  return s.replaceAll(/\{\{(\w+)\}\}/g, (match, v) => {
+    switch (v) {
+      case "today":
+        return niceDate(new Date());
+        break;
+    }
+    return match;
+  });
+}
+
 // Called from client, running on server
 export async function updateMaterializedQueriesOnPage(pageName: string) {
   let { text } = await readPage(pageName);
@@ -50,6 +65,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
     const startQuery = args[0];
     const endQuery = args[args.length - 4];
     let results = [];
+    filter = filter && replaceTemplateVars(filter);
     switch (table) {
       case "page":
         let pages = await listPages();
@@ -94,21 +110,17 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "link":
         let uniqueLinks = new Set<string>();
-        console.log("Here!!");
         for (let { key, page, value: name } of await scanPrefixGlobal(
           `pl:${pageName}:`
         )) {
-          console.log("Here!!");
           let [, pos] = key.split(":");
           if (!filter || (filter && name.includes(filter))) {
             uniqueLinks.add(name);
           }
         }
-        console.log("Here!!");
         for (const uniqueResult of uniqueLinks) {
           results.push(`* [[${uniqueResult}]]`);
         }
-        console.log("Here!!");
         return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
       case "item":
         for (let {

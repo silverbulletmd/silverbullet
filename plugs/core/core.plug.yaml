@@ -1,3 +1,23 @@
+syntax:
+  HashTag:
+    firstCharacters:
+      - "#"
+    regex: "#[A-Za-z\\.]+"
+    styles:
+      color: blue
+  AtMention:
+    firstCharacters:
+      - "@"
+    regex: "@[A-Za-z\\.]+"
+    styles:
+      color: blue
+  URL:
+    firstCharacters:
+      - "h"
+    regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
+    styles:
+      color: "#0330cb"
+      textDecoration: underline
 functions:
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
@@ -55,13 +75,13 @@ functions:
     path: "./dates.ts:indexDates"
     events:
       - page:index
-  updateMaterializedQueriesOnPage:
-    path: ./materialized_queries.ts:updateMaterializedQueriesOnPage
-  updateMaterializedQueriesCommand:
-    path: ./materialized_queries.ts:updateMaterializedQueriesCommand
+  parseServerCommand:
+    path: ./page.ts:parseServerPageCommand
     command:
-      name: "Materialized Queries: Update"
-  parseCommand:
+      name: "Debug: Parse Document on Server"
+  parsePage:
     path: ./page.ts:parsePage
+  parseCommand:
+    path: ./page.ts:parsePageCommand
     command:
-      name: Parse Document
+      name: "Debug: Parse Document"

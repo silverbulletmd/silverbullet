@@ -1,6 +1,7 @@
 import { syscall } from "./syscall";
-import type { MarkdownTree } from "../common/tree";
 
-export async function parseMarkdown(text: string): Promise<MarkdownTree> {
+import type { ParseTree } from "../common/tree";
+
+export async function parseMarkdown(text: string): Promise<ParseTree> {
   return syscall("markdown.parseMarkdown", text);
 }

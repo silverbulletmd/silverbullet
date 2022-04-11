@@ -27,6 +27,7 @@ import { lineWrapper } from "./line_wrapper";
 import { markdown } from "./markdown";
 import { PathPageNavigator } from "./navigator";
 import customMarkDown from "./parser";
+import buildMarkdown from "./parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { Space } from "../common/spaces/space";
@@ -48,6 +49,7 @@ import { pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "../common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
 import { StatusBar } from "./components/status_bar";
+import { loadMarkdownExtensions, MDExt } from "./markdown_ext";
 
 class PageState {
   scrollTop: number;
@@ -77,6 +79,7 @@ export class Editor implements AppEventDispatcher {
     this.eventHook.dispatchEvent("editor:updated");
   }, 1000);
   private system = new System<SilverBulletHooks>("client");
+  private mdExtensions: MDExt[] = [];
 
   constructor(space: Space, parent: Element) {
     this.space = space;
@@ -118,7 +121,10 @@ export class Editor implements AppEventDispatcher {
     this.system.registerSyscalls([], spaceSyscalls(this));
     this.system.registerSyscalls([], indexerSyscalls(this.space));
     this.system.registerSyscalls([], systemSyscalls(this.space));
-    this.system.registerSyscalls([], markdownSyscalls());
+    this.system.registerSyscalls(
+      [],
+      markdownSyscalls(buildMarkdown(this.mdExtensions))
+    );
     this.system.registerSyscalls([], clientStoreSyscalls());
   }
 
@@ -270,7 +276,7 @@ export class Editor implements AppEventDispatcher {
         history(),
         drawSelection(),
         dropCursor(),
-        customMarkdownStyle,
+        customMarkdownStyle(this.mdExtensions),
         bracketMatching(),
         closeBrackets(),
         autocompletion({
@@ -387,7 +393,7 @@ export class Editor implements AppEventDispatcher {
         ),
         pasteLinkExtension,
         markdown({
-          base: customMarkDown,
+          base: customMarkDown(this.mdExtensions),
         }),
       ],
     });
@@ -396,6 +402,14 @@ export class Editor implements AppEventDispatcher {
   rebuildEditorState() {
     const editorView = this.editorView;
     if (editorView && this.currentPage) {
+      this.mdExtensions = loadMarkdownExtensions(this.system);
+
+      // And reload the syscalls to use the new syntax extensions
+      this.system.registerSyscalls(
+        [],
+        markdownSyscalls(buildMarkdown(this.mdExtensions))
+      );
+
       editorView.setState(
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );

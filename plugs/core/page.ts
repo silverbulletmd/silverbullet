@@ -21,10 +21,10 @@ import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import {
   addParentPointers,
   collectNodesMatching,
-  MarkdownTree,
-  renderMarkdown,
+  ParseTree,
+  renderToText,
   replaceNodesMatching
-} from "../lib/tree";
+} from "../../common/tree";
 
 export async function indexLinks({ name, text }: IndexEvent) {
   let backLinks: { key: string; value: string }[] = [];
@@ -93,7 +93,7 @@ export async function renamePage() {
     }
     let mdTree = await parseMarkdown(text);
     addParentPointers(mdTree);
-    replaceNodesMatching(mdTree, (n): MarkdownTree | undefined | null => {
+    replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
         let pageName = n.children![0].text!;
         if (pageName === oldName) {
@@ -110,7 +110,7 @@ export async function renamePage() {
       return;
     });
     // let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
-    let newText = renderMarkdown(mdTree);
+    let newText = renderToText(mdTree);
     if (text !== newText) {
       console.log("Changes made, saving...");
       await writePage(pageToUpdate, newText);
@@ -179,6 +179,14 @@ export async function clearPageIndex(page: string) {
   await clearPageIndexForPage(page);
 }
 
-export async function parsePage() {
-  console.log(await parseMarkdown(await getText()));
+export async function parseServerPageCommand() {
+  console.log(await invokeFunction("server", "parsePage", await getText()));
+}
+
+export async function parsePageCommand() {
+  parsePage(await getText());
+}
+
+export async function parsePage(text: string) {
+  console.log("AST", JSON.stringify(await parseMarkdown(text), null, 2));
 }

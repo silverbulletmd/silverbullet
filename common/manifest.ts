@@ -13,4 +13,14 @@ export type SilverBulletHooks = CommandHookT &
   CronHookT &
   EventHookT;
 
-export type Manifest = plugos.Manifest<SilverBulletHooks>;
+export type SyntaxExtensions = {
+  syntax?: { [key: string]: NodeDef };
+};
+
+export type NodeDef = {
+  firstCharacters: string[];
+  regex: string;
+  styles: { [key: string]: string };
+};
+
+export type Manifest = plugos.Manifest<SilverBulletHooks> & SyntaxExtensions;

@@ -1,14 +1,15 @@
 import { expect, test } from "@jest/globals";
-import { parse } from "../../common/tree";
+import { parse } from "./parse_tree";
 import {
   addParentPointers,
   collectNodesMatching,
   findParentMatching,
   nodeAtPos,
   removeParentPointers,
-  renderMarkdown,
+  renderToText,
   replaceNodesMatching
 } from "./tree";
+import wikiMarkdownLang from "../webapp/parser";
 
 const mdTest1 = `
 # Heading
@@ -46,7 +47,8 @@ name: something
 `;
 
 test("Run a Node sandbox", async () => {
-  let mdTree = parse(mdTest1);
+  const lang = wikiMarkdownLang([]);
+  let mdTree = parse(lang, mdTest1);
   addParentPointers(mdTree);
   // console.log(JSON.stringify(mdTree, null, 2));
   let wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
@@ -59,7 +61,7 @@ test("Run a Node sandbox", async () => {
   expect(allTodos.length).toBe(2);
 
   // Render back into markdown should be equivalent
-  expect(renderMarkdown(mdTree)).toBe(mdTest1);
+  expect(renderToText(mdTree)).toBe(mdTest1);
 
   removeParentPointers(mdTree);
   replaceNodesMatching(mdTree, (n) => {
@@ -70,6 +72,6 @@ test("Run a Node sandbox", async () => {
     }
   });
   console.log(JSON.stringify(mdTree, null, 2));
-  let mdTree3 = parse(mdTest3);
+  let mdTree3 = parse(lang, mdTest3);
   console.log(JSON.stringify(mdTree3, null, 2));
 });

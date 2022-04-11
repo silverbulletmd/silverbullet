@@ -1,0 +1,44 @@
+@precedence { logic @left }
+
+@top Program { Query }
+
+Query {
+    Name (WhereClause | OrderClause  | LimitClause)*
+}
+
+WhereClause { "where" LogicalExpr }
+OrderClause { "order" "by" Name Order? }
+LimitClause { "limit" Number }
+
+Order {
+  "desc" | "asc"
+}
+
+Value { Number | String | Bool }
+
+LogicalExpr { AndExpr | FilterExpr }
+
+AndExpr { FilterExpr !logic "and" FilterExpr }
+
+FilterExpr {
+  Name "<" Value
+| Name "<=" Value
+| Name "=" Value
+| Name "!=" Value
+| Name ">=" Value
+| Name ">" Value
+| Name "like" Value
+}
+
+@skip { space }
+
+Bool {
+  "true" | "false"
+}
+
+@tokens {
+  space { std.whitespace+ }
+  Name { std.asciiLetter+ }
+  String { "\"" ![\"]* "\"" }
+  Number { std.digit+ }
+}

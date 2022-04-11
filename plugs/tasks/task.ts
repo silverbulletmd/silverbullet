@@ -1,16 +1,23 @@
 import type { ClickEvent } from "../../webapp/app_event";
 import { IndexEvent } from "../../webapp/app_event";
 
-import { whiteOutQueries } from "../core/materialized_queries";
+import { whiteOutQueries } from "../query/materialized_queries";
 import { batchSet } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { dispatch, getText } from "plugos-silverbullet-syscall/editor";
-import { addParentPointers, collectNodesMatching, nodeAtPos, renderMarkdown } from "../lib/tree";
+import {
+  addParentPointers,
+  collectNodesMatching,
+  collectNodesOfType,
+  nodeAtPos,
+  renderToText
+} from "../../common/tree";
 
 type Task = {
   task: string;
   complete: boolean;
+  deadline?: string;
   pos?: number;
   nested?: string;
 };
@@ -21,23 +28,29 @@ export async function indexTasks({ name, text }: IndexEvent) {
   text = whiteOutQueries(text);
   let mdTree = await parseMarkdown(text);
   addParentPointers(mdTree);
-  collectNodesMatching(mdTree, (n) => n.type === "Task").forEach((n) => {
-    let task = n.children!.slice(1).map(renderMarkdown).join("").trim();
+  collectNodesOfType(mdTree, "Task").forEach((n) => {
+    let task = n.children!.slice(1).map(renderToText).join("").trim();
     let complete = n.children![0].children![0].text! !== "[ ]";
-
     let value: Task = {
       task,
       complete,
     };
+
+    let deadlineNodes = collectNodesOfType(n, "DeadlineDate");
+    if (deadlineNodes.length > 0) {
+      value.deadline = deadlineNodes[0].children![0].text!.replace(/📅\s*/, "");
+    }
+
     let taskIndex = n.parent!.children!.indexOf(n);
     let nestedItems = n.parent!.children!.slice(taskIndex + 1);
     if (nestedItems.length > 0) {
-      value.nested = nestedItems.map(renderMarkdown).join("").trim();
+      value.nested = nestedItems.map(renderToText).join("").trim();
     }
     tasks.push({
       key: `task:${n.from}`,
       value,
     });
+    // console.log("Task", value);
   });
 
   console.log("Found", tasks.length, "task(s)");
@@ -95,9 +108,9 @@ export async function taskToggleAtPos(pos: number) {
         taskMarkerNode.children![0].text = changeTo;
         console.log(
           "This will be the new marker",
-          renderMarkdown(taskMarkerNode)
+          renderToText(taskMarkerNode)
         );
-        text = renderMarkdown(referenceMdTree);
+        text = renderToText(referenceMdTree);
         console.log("Updated reference paged text", text);
         await writePage(page, text);
       }

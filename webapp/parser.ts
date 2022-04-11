@@ -1,11 +1,12 @@
-import { styleTags, tags as t } from "@codemirror/highlight";
+import { styleTags } from "@codemirror/highlight";
 import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, parseCode, TaskList } from "@lezer/markdown";
 import { commonmark, getCodeParser, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
-import { LanguageDescription, LanguageSupport } from "@codemirror/language";
+import { Language, LanguageDescription, LanguageSupport } from "@codemirror/language";
 import { StreamLanguage } from "@codemirror/stream-parser";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import { javascriptLanguage } from "@codemirror/lang-javascript";
+import { MDExt, mdExtensionStyleTags, mdExtensionSyntaxConfig } from "./markdown_ext";
 
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
@@ -31,51 +32,6 @@ const WikiLink: MarkdownConfig = {
             cx.elt("WikiLinkPage", pos + 2, pos + match[0].length - 2),
           ])
         );
-      },
-      after: "Emphasis",
-    },
-  ],
-};
-
-const AtMention: MarkdownConfig = {
-  defineNodes: ["AtMention"],
-  parseInline: [
-    {
-      name: "AtMention",
-      parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 64 /* '@' */ ||
-          !(match = /^[A-Za-z\.]+/.exec(cx.slice(pos + 1, cx.end)))
-        ) {
-          return -1;
-        }
-        return cx.addElement(
-          cx.elt("AtMention", pos, pos + 1 + match[0].length)
-        );
-      },
-      after: "Emphasis",
-    },
-  ],
-};
-
-export const urlRegexp =
-  /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-
-const UnmarkedUrl: MarkdownConfig = {
-  defineNodes: ["URL"],
-  parseInline: [
-    {
-      name: "URL",
-      parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 104 /* 'h' */ ||
-          !(match = urlRegexp.exec(cx.slice(pos, cx.end)))
-        ) {
-          return -1;
-        }
-        return cx.addElement(cx.elt("URL", pos, pos + match[0].length));
       },
       after: "Emphasis",
     },
@@ -111,60 +67,40 @@ export const Comment: MarkdownConfig = {
   ],
 };
 
-const TagLink: MarkdownConfig = {
-  defineNodes: ["TagLink"],
-  parseInline: [
-    {
-      name: "TagLink",
-      parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 35 /* '#' */ ||
-          !(match = /^[A-Za-z\.]+/.exec(cx.slice(pos + 1, cx.end)))
-        ) {
-          return -1;
-        }
-        return cx.addElement(cx.elt("TagLink", pos, pos + 1 + match[0].length));
+export default function buildMarkdown(mdExtensions: MDExt[]): Language {
+  return mkLang(
+    commonmark.configure([
+      WikiLink,
+      TaskList,
+      Comment,
+      ...mdExtensions.map(mdExtensionSyntaxConfig),
+      parseCode({
+        codeParser: getCodeParser([
+          LanguageDescription.of({
+            name: "yaml",
+            support: new LanguageSupport(StreamLanguage.define(yaml)),
+          }),
+          LanguageDescription.of({
+            name: "javascript",
+            alias: ["js"],
+            support: new LanguageSupport(javascriptLanguage),
+          }),
+        ]),
+      }),
+      {
+        props: [
+          styleTags({
+            WikiLink: ct.WikiLinkTag,
+            WikiLinkPage: ct.WikiLinkPageTag,
+            Task: ct.TaskTag,
+            TaskMarker: ct.TaskMarkerTag,
+            Comment: ct.CommentTag,
+          }),
+          ...mdExtensions.map((mdExt) =>
+            styleTags(mdExtensionStyleTags(mdExt))
+          ),
+        ],
       },
-      after: "Emphasis",
-    },
-  ],
-};
-
-const WikiMarkdown = commonmark.configure([
-  WikiLink,
-  AtMention,
-  // TagLink,
-  TaskList,
-  UnmarkedUrl,
-  Comment,
-  parseCode({
-    codeParser: getCodeParser([
-      LanguageDescription.of({
-        name: "yaml",
-        support: new LanguageSupport(StreamLanguage.define(yaml)),
-      }),
-      LanguageDescription.of({
-        name: "javascript",
-        alias: ["js"],
-        support: new LanguageSupport(javascriptLanguage),
-      }),
-    ]),
-  }),
-  {
-    props: [
-      styleTags({
-        WikiLink: ct.WikiLinkTag,
-        WikiLinkPage: ct.WikiLinkPageTag,
-        AtMention: ct.MentionTag,
-        TagLink: ct.TagTag,
-        Task: ct.TaskTag,
-        TaskMarker: ct.TaskMarkerTag,
-        Url: t.url,
-        Comment: ct.CommentTag,
-      }),
-    ],
-  },
-]);
-
-export default mkLang(WikiMarkdown);
+    ])
+  );
+}

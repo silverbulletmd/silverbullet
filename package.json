@@ -36,7 +36,8 @@
     },
     "test": {
       "source": [
-        "plugs/lib/tree.test.ts",
+        "common/tree.test.ts",
+        "plugs/query/engine.test.ts",
         "common/spaces/sync.test.ts"
       ],
       "includeNodeModules": ["@codemirror/legacy-modes"],

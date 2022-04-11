@@ -19,7 +19,6 @@ async function activate() {
 self.addEventListener("activate", (e) => e.waitUntil(activate()));
 
 self.addEventListener("fetch", (event: any) => {
-  return;
   event.respondWith(
     caches.open(version).then(async (cache) => {
       let parsedUrl = new URL(event.request.url);

@@ -17,10 +17,12 @@ import { NodeCronHook } from "../plugos/hooks/node_cron";
 import { markdownSyscalls } from "../common/syscalls/markdown";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives";
 import { Space } from "../common/spaces/space";
-import { safeRun } from "../webapp/util";
+import { safeRun, throttle } from "../webapp/util";
 import { createSandbox } from "../plugos/environments/node_sandbox";
 import { jwtSyscalls } from "../plugos/syscalls/jwt";
 import { fetchSyscalls } from "../plugos/syscalls/fetch.node";
+import buildMarkdown from "../webapp/parser";
+import { loadMarkdownExtensions } from "../webapp/markdown_ext";
 
 export class ExpressServer {
   app: Express;
@@ -66,10 +68,14 @@ export class ExpressServer {
     system.registerSyscalls([], pageIndexSyscalls(this.db));
     system.registerSyscalls([], spaceSyscalls(this.space));
     system.registerSyscalls([], eventSyscalls(this.eventHook));
-    system.registerSyscalls([], markdownSyscalls());
+    system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
     system.registerSyscalls([], fetchSyscalls());
     system.registerSyscalls([], jwtSyscalls());
     system.addHook(new EndpointHook(app, "/_/"));
+
+    let throttledRebuildMdExtensions = throttle(() => {
+      this.rebuildMdExtensions();
+    }, 100);
 
     this.space.on({
       plugLoaded: (plugName, plug) => {
@@ -77,12 +83,14 @@ export class ExpressServer {
           console.log("Plug load", plugName);
           await system.load(plugName, plug, createSandbox);
         });
+        throttledRebuildMdExtensions();
       },
       plugUnloaded: (plugName) => {
         safeRun(async () => {
           console.log("Plug unload", plugName);
           await system.unload(plugName);
         });
+        throttledRebuildMdExtensions();
       },
     });
 
@@ -90,6 +98,13 @@ export class ExpressServer {
       this.space.updatePageListAsync();
     }, 5000);
     this.space.updatePageListAsync();
+  }
+
+  rebuildMdExtensions() {
+    this.system.registerSyscalls(
+      [],
+      markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system)))
+    );
   }
 
   async init() {

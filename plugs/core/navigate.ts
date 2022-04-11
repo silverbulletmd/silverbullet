@@ -1,13 +1,11 @@
 import { ClickEvent } from "../../webapp/app_event";
-import { updateMaterializedQueriesCommand } from "./materialized_queries";
 import { getCursor, getText, navigate as navigateTo, openUrl } from "plugos-silverbullet-syscall/editor";
-import { taskToggleAtPos } from "../tasks/task";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
-import { MarkdownTree, nodeAtPos } from "../lib/tree";
+import { nodeAtPos, ParseTree } from "../../common/tree";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;
 
-async function actionClickOrActionEnter(mdTree: MarkdownTree | null) {
+async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   if (!mdTree) {
     return;
   }
@@ -24,16 +22,8 @@ async function actionClickOrActionEnter(mdTree: MarkdownTree | null) {
     case "URL":
       await openUrl(mdTree.children![0].text!);
       break;
-    case "CommentBlock":
-      if (mdTree.children![0].text!.match(materializedQueryPrefix)) {
-        await updateMaterializedQueriesCommand();
-      }
-      break;
     case "Link":
       await openUrl(mdTree.children![4].children![0].text!);
-      break;
-    case "TaskMarker":
-      await taskToggleAtPos(mdTree.from! + 1);
       break;
   }
 }
@@ -45,9 +35,11 @@ export async function linkNavigate() {
 }
 
 export async function clickNavigate(event: ClickEvent) {
+  // Navigate by default, don't navigate when Ctrl or Cmd is held
   if (event.ctrlKey || event.metaKey) {
-    let mdTree = await parseMarkdown(await getText());
-    let newNode = nodeAtPos(mdTree, event.pos);
-    await actionClickOrActionEnter(newNode);
+    return;
   }
+  let mdTree = await parseMarkdown(await getText());
+  let newNode = nodeAtPos(mdTree, event.pos);
+  await actionClickOrActionEnter(newNode);
 }

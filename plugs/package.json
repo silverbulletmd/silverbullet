@@ -1,8 +1,13 @@
 {
   "name": "plugs",
   "version": "1.0.0",
+  "scripts": {
+    "generate": "lezer-generator query/query.grammar -o query/parse-query.js"
+  },
   "dependencies": {
     "@jest/globals": "^27.5.1",
+    "@lezer/generator": "^0.15.4",
+    "@lezer/lr": "^0.15.8",
     "@types/yaml": "^1.9.7",
     "plugos-silverbullet-syscall": "file:../plugos-silverbullet-syscall",
     "plugos-syscall": "file:../plugos-syscall",

@@ -1,87 +1,137 @@
-import { SyntaxNode } from "@lezer/common";
-import wikiMarkdownLang from "../webapp/parser";
-
-export type MarkdownTree = {
+export type ParseTree = {
   type?: string; // undefined === text node
   from?: number;
   to?: number;
   text?: string;
-  children?: MarkdownTree[];
+  children?: ParseTree[];
+  // Only present after running addParentPointers
+  parent?: ParseTree;
 };
 
-function treeToAST(text: string, n: SyntaxNode, offset = 0): MarkdownTree {
-  let children: MarkdownTree[] = [];
-  let nodeText: string | undefined;
-  let child = n.firstChild;
-  while (child) {
-    children.push(treeToAST(text, child));
-    child = child.nextSibling;
+export function addParentPointers(tree: ParseTree) {
+  if (!tree.children) {
+    return;
   }
-
-  if (children.length === 0) {
-    children = [
-      {
-        from: n.from + offset,
-        to: n.to + offset,
-        text: text.substring(n.from, n.to),
-      },
-    ];
-  } else {
-    let newChildren: MarkdownTree[] | string = [];
-    let index = n.from;
-    for (let child of children) {
-      let s = text.substring(index, child.from);
-      if (s) {
-        newChildren.push({
-          from: index + offset,
-          to: child.from! + offset,
-          text: s,
-        });
-      }
-      newChildren.push(child);
-      index = child.to!;
-    }
-    let s = text.substring(index, n.to);
-    if (s) {
-      newChildren.push({ from: index + offset, to: n.to + offset, text: s });
-    }
-    children = newChildren;
+  for (let child of tree.children) {
+    child.parent = tree;
+    addParentPointers(child);
   }
-
-  let result: MarkdownTree = {
-    type: n.name,
-    from: n.from + offset,
-    to: n.to + offset,
-  };
-  if (children.length > 0) {
-    result.children = children;
-  }
-  if (nodeText) {
-    result.text = nodeText;
-  }
-  return result;
 }
 
-export function parse(text: string): MarkdownTree {
-  let tree = treeToAST(text, wikiMarkdownLang.parser.parse(text).topNode);
-  // replaceNodesMatching(tree, (n): MarkdownTree | undefined | null => {
-  //   if (n.type === "FencedCode") {
-  //     let infoN = findNodeMatching(n, (n) => n.type === "CodeInfo");
-  //     let language = infoN!.children![0].text;
-  //     let textN = findNodeMatching(n, (n) => n.type === "CodeText");
-  //     let text = textN!.children![0].text!;
-  //
-  //     console.log(language, text);
-  //     switch (language) {
-  //       case "yaml":
-  //         let parsed = StreamLanguage.define(yaml).parser.parse(text);
-  //         let subTree = treeToAST(text, parsed.topNode, n.from);
-  //         // console.log(JSON.stringify(subTree, null, 2));
-  //         subTree.type = "yaml";
-  //         return subTree;
-  //     }
-  //   }
-  //   return;
-  // });
-  return tree;
+export function removeParentPointers(tree: ParseTree) {
+  delete tree.parent;
+  if (!tree.children) {
+    return;
+  }
+  for (let child of tree.children) {
+    removeParentPointers(child);
+  }
+}
+
+export function findParentMatching(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => boolean
+): ParseTree | null {
+  let node = tree.parent;
+  while (node) {
+    if (matchFn(node)) {
+      return node;
+    }
+    node = node.parent;
+  }
+  return null;
+}
+
+export function collectNodesOfType(
+  tree: ParseTree,
+  nodeType: string
+): ParseTree[] {
+  return collectNodesMatching(tree, (n) => n.type === nodeType);
+}
+
+export function collectNodesMatching(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => boolean
+): ParseTree[] {
+  if (matchFn(tree)) {
+    return [tree];
+  }
+  let results: ParseTree[] = [];
+  if (tree.children) {
+    for (let child of tree.children) {
+      results = [...results, ...collectNodesMatching(child, matchFn)];
+    }
+  }
+  return results;
+}
+
+// return value: returning undefined = not matched, continue, null = delete, new node = replace
+export function replaceNodesMatching(
+  tree: ParseTree,
+  substituteFn: (tree: ParseTree) => ParseTree | null | undefined
+) {
+  if (tree.children) {
+    let children = tree.children.slice();
+    for (let child of children) {
+      let subst = substituteFn(child);
+      if (subst !== undefined) {
+        let pos = tree.children.indexOf(child);
+        if (subst) {
+          tree.children.splice(pos, 1, subst);
+        } else {
+          // null = delete
+          tree.children.splice(pos, 1);
+        }
+      } else {
+        replaceNodesMatching(child, substituteFn);
+      }
+    }
+  }
+}
+
+export function findNodeMatching(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => boolean
+): ParseTree | null {
+  return collectNodesMatching(tree, matchFn)[0];
+}
+
+export function findNodeOfType(
+  tree: ParseTree,
+  nodeType: string
+): ParseTree | null {
+  return collectNodesMatching(tree, (n) => n.type === nodeType)[0];
+}
+
+// Finds non-text node at position
+export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
+  if (pos < tree.from! || pos > tree.to!) {
+    return null;
+  }
+  if (!tree.children) {
+    return tree;
+  }
+  for (let child of tree.children) {
+    let n = nodeAtPos(child, pos);
+    if (n && n.text !== undefined) {
+      // Got a text node, let's return its parent
+      return tree;
+    } else if (n) {
+      // Got it
+      return n;
+    }
+  }
+  return null;
+}
+
+// Turn ParseTree back into text
+export function renderToText(tree: ParseTree): string {
+  let pieces: string[] = [];
+  if (tree.text !== undefined) {
+    return tree.text;
+  }
+  for (let child of tree.children!) {
+    pieces.push(renderToText(child));
+  }
+  return pieces.join("");
 }

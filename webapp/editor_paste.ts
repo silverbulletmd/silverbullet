@@ -1,5 +1,7 @@
 import { ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { urlRegexp } from "./parser";
+
+const urlRegexp =
+  /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
 export const pasteLinkExtension = ViewPlugin.fromClass(
   class {
