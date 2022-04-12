@@ -32,7 +32,7 @@ export function mdExtensionSyntaxConfig({
           }
           return cx.addElement(cx.elt(nodeType, pos, pos + match[0].length));
         },
-        after: "Emphasis",
+        // after: "Emphasis",
       },
     ],
   };

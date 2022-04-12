@@ -5,3 +5,8 @@ functions:
     path: ./materialized_queries.ts:updateMaterializedQueriesCommand
     command:
       name: "Materialized Queries: Update"
+      key: "Alt-q"
+  indexData:
+    path: ./data.ts:indexData
+    events:
+      - page:index

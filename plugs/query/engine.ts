@@ -31,6 +31,8 @@ export function parseQuery(query: string): ParsedQuery {
     }
   });
 
+  // console.log("Parsed", JSON.stringify(n, null, 2));
+
   let queryNode = n.children![0];
   let parsedQuery: ParsedQuery = {
     table: queryNode.children![0].children![0].text!,
@@ -64,6 +66,10 @@ export function parseQuery(query: string): ParsedQuery {
       case "Name":
         val = valNode.children![0].text!;
         break;
+      case "Regex":
+        val = valNode.children![0].text!;
+        val = new RegExp(val.substring(1, val.length - 1));
+        break;
       case "String":
         val = valNode.children![0].text!;
         val = val.substring(1, val.length - 1);
@@ -80,55 +86,53 @@ export function parseQuery(query: string): ParsedQuery {
   return parsedQuery;
 }
 
-export function applyQuery(query: string, records: any[]): any {
-  const parsedQuery = parseQuery(query);
-
+export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
   let resultRecords: any[] = [];
   if (parsedQuery.filter.length === 0) {
     resultRecords = records.slice();
   } else {
     recordLoop: for (let record of records) {
+      const recordAny: any = record;
       for (let { op, prop, value } of parsedQuery.filter) {
         switch (op) {
           case "=":
-            if (!(record[prop] === value)) {
+            if (!(recordAny[prop] === value)) {
               continue recordLoop;
             }
             break;
           case "!=":
-            if (!(record[prop] !== value)) {
+            if (!(recordAny[prop] !== value)) {
               continue recordLoop;
             }
             break;
           case "<":
-            if (!(record[prop] < value)) {
+            if (!(recordAny[prop] < value)) {
               continue recordLoop;
             }
             break;
           case "<=":
-            if (!(record[prop] <= value)) {
+            if (!(recordAny[prop] <= value)) {
               continue recordLoop;
             }
             break;
           case ">":
-            if (!(record[prop] > value)) {
+            if (!(recordAny[prop] > value)) {
               continue recordLoop;
             }
             break;
           case ">=":
-            if (!(record[prop] >= value)) {
+            if (!(recordAny[prop] >= value)) {
               continue recordLoop;
             }
             break;
-          case "like":
-            let re = new RegExp(value.replaceAll("%", ".*"));
-            if (!re.exec(record[prop])) {
+          case "=~":
+            if (!value.exec(recordAny[prop])) {
               continue recordLoop;
             }
             break;
         }
       }
-      resultRecords.push(record);
+      resultRecords.push(recordAny);
     }
   }
   // Now the sorting

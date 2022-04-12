@@ -63,7 +63,7 @@
   }
 
   .line-fenced-code {
-    background-color: #efefef;
+    background-color: rgba(72, 72, 72, 0.1);
   }
 
   .meta {
@@ -99,6 +99,10 @@
     text-decoration: underline;
   }
 
+  .atom {
+    color: darkred;
+  }
+
   .wiki-link-page {
     color: #0330cb;
     background-color: rgba(77,141,255,0.07);
@@ -111,13 +115,7 @@
     //background-color: rgba(77,141,255,0.07);
   }
 
-  .mention {
-    color: #0330cb;
-  }
 
-  .tag {
-    color: #8d8d8d;
-  }
 
   .code {
     background-color: #efefef;

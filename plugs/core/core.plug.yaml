@@ -11,7 +11,7 @@ syntax:
     regex: "@[A-Za-z\\.]+"
     styles:
       color: blue
-  URL:
+  NakedURL:
     firstCharacters:
       - "h"
     regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"

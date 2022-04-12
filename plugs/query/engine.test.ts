@@ -24,13 +24,13 @@ test("Test parser", () => {
     value: "{{today}}",
   });
 
-  let parsedQuery2 = parseQuery(`page where name like "interview/%"`);
+  let parsedQuery2 = parseQuery(`page where name =~ /interview\\/.*/"`);
   expect(parsedQuery2.table).toBe("page");
   expect(parsedQuery2.filter.length).toBe(1);
   expect(parsedQuery2.filter[0]).toStrictEqual({
-    op: "like",
+    op: "=~",
     prop: "name",
-    value: "interview/%",
+    value: /interview\/.*/,
   });
 });
 
@@ -42,29 +42,36 @@ test("Test performing the queries", () => {
     { name: "Angie", age: 28 },
   ];
 
-  expect(applyQuery(`page where name like "interview/%"`, data)).toStrictEqual([
-    { name: "interview/My Interview", lastModified: 1 },
-    { name: "interview/My Interview 2", lastModified: 2 },
-  ]);
   expect(
-    applyQuery(`page where name like "interview/%" order by lastModified`, data)
+    applyQuery(parseQuery(`page where name =~ /interview\\/.*/`), data)
   ).toStrictEqual([
     { name: "interview/My Interview", lastModified: 1 },
     { name: "interview/My Interview 2", lastModified: 2 },
   ]);
   expect(
     applyQuery(
-      `page where name like "interview/%" order by lastModified desc`,
+      parseQuery(`page where name =~ /interview\\/.*/ order by lastModified`),
+      data
+    )
+  ).toStrictEqual([
+    { name: "interview/My Interview", lastModified: 1 },
+    { name: "interview/My Interview 2", lastModified: 2 },
+  ]);
+  expect(
+    applyQuery(
+      parseQuery(
+        `page where name  =~ /interview\\/.*/ order by lastModified desc`
+      ),
       data
     )
   ).toStrictEqual([
     { name: "interview/My Interview 2", lastModified: 2 },
     { name: "interview/My Interview", lastModified: 1 },
   ]);
-  expect(applyQuery(`page where age > 30`, data)).toStrictEqual([
+  expect(applyQuery(parseQuery(`page where age > 30`), data)).toStrictEqual([
     { name: "Pete", age: 38 },
   ]);
-  expect(applyQuery(`page where age > 28 and age < 38`, data)).toStrictEqual(
-    []
-  );
+  expect(
+    applyQuery(parseQuery(`page where age > 28 and age < 38`), data)
+  ).toStrictEqual([]);
 });

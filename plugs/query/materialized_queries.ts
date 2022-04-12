@@ -4,15 +4,17 @@ import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/spac
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
 import { niceDate } from "../core/dates";
+import { applyQuery, parseQuery } from "./engine";
+import { PageMeta } from "../../common/types";
+import type { Task } from "../tasks/task";
+import { Item } from "../core/item";
+import YAML from "yaml";
 
 export const queryRegex =
-  /(<!--\s*#query\s+(?<table>\w+)\s*(filter\s+["'“”‘’](?<filter>[^"'“”‘’]+)["'“”‘’])?\s*\s*(order by\s+(?<orderBy>\w+)(?<orderDesc>\s+desc)?)?(group by\s+(?<groupBy>\w+))?\s*(limit\s+(?<limit>\d+))?\s*-->)(.+?)(<!--\s*#end\s*-->)/gs;
-
-export const newQueryRegex =
-  /<!--\s*#query\s+(.+?)(?=\s*-->)-->(.+?)<!--\s*#end\s*-->/gs;
+  /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*#end\s*-->)/gs;
 
 export function whiteOutQueries(text: string): string {
-  return text.replaceAll(newQueryRegex, (match) =>
+  return text.replaceAll(queryRegex, (match) =>
     new Array(match.length + 1).join(" ")
   );
 }
@@ -59,87 +61,86 @@ function replaceTemplateVars(s: string): string {
 export async function updateMaterializedQueriesOnPage(pageName: string) {
   let { text } = await readPage(pageName);
 
-  text = await replaceAsync(text, queryRegex, async (match, ...args) => {
-    let { table, filter, groupBy, limit, orderBy, orderDesc } =
-      args[args.length - 1];
-    const startQuery = args[0];
-    const endQuery = args[args.length - 4];
-    let results = [];
-    filter = filter && replaceTemplateVars(filter);
-    switch (table) {
-      case "page":
-        let pages = await listPages();
-        if (orderBy) {
-          pages = pages.sort((a: any, b: any) => {
-            if (a[orderBy] === b[orderBy]) {
-              return 0;
-            }
+  text = await replaceAsync(
+    text,
+    queryRegex,
+    async (fullMatch, startQuery, query, body, endQuery) => {
+      let parsedQuery = parseQuery(replaceTemplateVars(query));
 
-            if (a[orderBy] < b[orderBy]) {
-              return !!orderDesc ? 1 : -1;
-            } else {
-              return !!orderDesc ? -1 : 1;
-            }
-          });
-        }
-        let matchCount = 0;
-        for (let pageMeta of pages) {
-          if (!filter || (filter && pageMeta.name.includes(filter))) {
-            matchCount++;
-            results.push(`* [[${pageMeta.name}]]`);
-            if (limit && matchCount === +limit) {
-              break;
-            }
+      console.log("Parsed query", parsedQuery);
+
+      switch (parsedQuery.table) {
+        case "page":
+          let allPages = await listPages();
+          let markdownPages = applyQuery(parsedQuery, allPages).map(
+            (pageMeta: PageMeta) => `* [[${pageMeta.name}]]`
+          );
+          return `${startQuery}\n${markdownPages.join("\n")}\n${endQuery}`;
+        case "task":
+          let allTasks: Task[] = [];
+          for (let { key, page, value } of await scanPrefixGlobal("task:")) {
+            let [, pos] = key.split(":");
+            allTasks.push({
+              ...value,
+              page: page,
+              pos: pos,
+            });
           }
-        }
-        return `${startQuery}\n${results.join("\n")}\n${endQuery}`;
-      case "task":
-        for (let {
-          key,
-          page,
-          value: { task, complete, nested },
-        } of await scanPrefixGlobal("task:")) {
-          let [, pos] = key.split(":");
-          if (!filter || (filter && task.includes(filter))) {
-            results.push(
-              `* [${complete ? "x" : " "}] [[${page}@${pos}]] ${task}` +
-                (nested ? "\n  " + nested : "")
-            );
-          }
-        }
-        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
-      case "link":
-        let uniqueLinks = new Set<string>();
-        for (let { key, page, value: name } of await scanPrefixGlobal(
-          `pl:${pageName}:`
-        )) {
-          let [, pos] = key.split(":");
-          if (!filter || (filter && name.includes(filter))) {
+          let markdownTasks = applyQuery(parsedQuery, allTasks).map(
+            (t) =>
+              `* [${t.done ? "x" : " "}] [[${t.page}@${t.pos}]] ${t.name}` +
+              (t.nested ? "\n  " + t.nested : "")
+          );
+          return `${startQuery}\n${markdownTasks.join("\n")}\n${endQuery}`;
+        case "link":
+          let uniqueLinks = new Set<string>();
+          for (let { value: name } of await scanPrefixGlobal(
+            `pl:${pageName}:`
+          )) {
             uniqueLinks.add(name);
           }
-        }
-        for (const uniqueResult of uniqueLinks) {
-          results.push(`* [[${uniqueResult}]]`);
-        }
-        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
-      case "item":
-        for (let {
-          key,
-          page,
-          value: { item, nested },
-        } of await scanPrefixGlobal("it:")) {
-          let [, pos] = key.split(":");
-          if (!filter || (filter && item.includes(filter))) {
-            results.push(
-              `* [[${page}@${pos}]] ${item}` + (nested ? "\n  " + nested : "")
-            );
+          let markdownLinks = applyQuery(
+            parsedQuery,
+            [...uniqueLinks].map((l) => ({ name: l }))
+          ).map((pageMeta) => `* [[${pageMeta.name}]]`);
+          return `${startQuery}\n${markdownLinks.join("\n")}\n${endQuery}`;
+        case "item":
+          let allItems: Item[] = [];
+          for (let { key, page, value } of await scanPrefixGlobal("it:")) {
+            let [, pos] = key.split("@");
+            allItems.push({
+              ...value,
+              page: page,
+              pos: +pos,
+            });
           }
-        }
-        return `${startQuery}\n${results.sort().join("\n")}\n${endQuery}`;
-      default:
-        return match;
+          let markdownItems = applyQuery(parsedQuery, allItems).map(
+            (item) =>
+              `* [[${item.page}@${item.pos}]] ${item.name}` +
+              (item.nested ? "\n  " + item.nested : "")
+          );
+          return `${startQuery}\n${markdownItems.join("\n")}\n${endQuery}`;
+        case "data":
+          let allData: Object[] = [];
+          for (let { key, page, value } of await scanPrefixGlobal("data:")) {
+            let [, pos] = key.split("@");
+            allData.push({
+              ...value,
+              page: page,
+              pos: +pos,
+            });
+          }
+          let markdownData = applyQuery(parsedQuery, allData).map((item) =>
+            YAML.stringify(item)
+          );
+          return `${startQuery}\n\`\`\`data\n${markdownData.join(
+            "---\n"
+          )}\`\`\`\n${endQuery}`;
+        default:
+          return fullMatch;
+      }
     }
-  });
+  );
   // console.log("New text", text);
   await writePage(pageName, text);
 }

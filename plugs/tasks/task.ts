@@ -5,7 +5,7 @@ import { whiteOutQueries } from "../query/materialized_queries";
 import { batchSet } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
-import { dispatch, getText } from "plugos-silverbullet-syscall/editor";
+import { dispatch, getCurrentPage, getText } from "plugos-silverbullet-syscall/editor";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -14,12 +14,14 @@ import {
   renderToText
 } from "../../common/tree";
 
-type Task = {
-  task: string;
-  complete: boolean;
+export type Task = {
+  name: string;
+  done: boolean;
   deadline?: string;
-  pos?: number;
   nested?: string;
+  // Not saved in DB, just added when pulled out (from key)
+  pos?: number;
+  page?: string;
 };
 
 export async function indexTasks({ name, text }: IndexEvent) {
@@ -32,8 +34,8 @@ export async function indexTasks({ name, text }: IndexEvent) {
     let task = n.children!.slice(1).map(renderToText).join("").trim();
     let complete = n.children![0].children![0].text! !== "[ ]";
     let value: Task = {
-      task,
-      complete,
+      name: task,
+      done: complete,
     };
 
     let deadlineNodes = collectNodesOfType(n, "DeadlineDate");
@@ -62,6 +64,7 @@ export async function taskToggle(event: ClickEvent) {
 }
 
 export async function taskToggleAtPos(pos: number) {
+  let currentpage = await getCurrentPage();
   let text = await getText();
   let mdTree = await parseMarkdown(text);
   addParentPointers(mdTree);
@@ -91,8 +94,9 @@ export async function taskToggleAtPos(pos: number) {
       let ref = wikiLink.children![0].text!;
       if (ref.includes("@")) {
         let [page, pos] = ref.split("@");
-        let pageData = await readPage(page);
-        let text = pageData.text;
+        if (page !== currentpage) {
+          text = (await readPage(page)).text;
+        }
 
         let referenceMdTree = await parseMarkdown(text);
         // Adding +1 to immediately hit the task marker

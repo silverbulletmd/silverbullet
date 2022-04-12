@@ -78,6 +78,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
         codeParser: getCodeParser([
           LanguageDescription.of({
             name: "yaml",
+            alias: ["meta", "data"],
             support: new LanguageSupport(StreamLanguage.define(yaml)),
           }),
           LanguageDescription.of({

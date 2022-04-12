@@ -20,6 +20,7 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       await navigateTo(pageLink, +pos);
       break;
     case "URL":
+    case "NakedURL":
       await openUrl(mdTree.children![0].text!);
       break;
     case "Link":

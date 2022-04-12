@@ -14,7 +14,7 @@ Order {
   "desc" | "asc"
 }
 
-Value { Number | String | Bool }
+Value { Number | String | Bool | Regex }
 
 LogicalExpr { AndExpr | FilterExpr }
 
@@ -27,7 +27,7 @@ FilterExpr {
 | Name "!=" Value
 | Name ">=" Value
 | Name ">" Value
-| Name "like" Value
+| Name "=~" Value
 }
 
 @skip { space }
@@ -39,6 +39,10 @@ Bool {
 @tokens {
   space { std.whitespace+ }
   Name { std.asciiLetter+ }
-  String { "\"" ![\"]* "\"" }
+  String {
+    ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
+  }
+  Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
+
   Number { std.digit+ }
 }
