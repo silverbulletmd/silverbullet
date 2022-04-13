@@ -71,10 +71,6 @@ functions:
     path: "./dates.ts:insertTomorrow"
     slashCommand:
       name: tomorrow
-  indexDates:
-    path: "./dates.ts:indexDates"
-    events:
-      - page:index
   parseServerCommand:
     path: ./page.ts:parseServerPageCommand
     command:
@@ -85,3 +81,8 @@ functions:
     path: ./page.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
+
+  instantiateTemplateCommand:
+    path: ./template.ts:instantiateTemplateCommand
+    command:
+      name: "Template: Instantiate for Page"

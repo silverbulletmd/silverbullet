@@ -2,17 +2,16 @@
 // data:page@pos
 
 import { IndexEvent } from "../../webapp/app_event";
-import { whiteOutQueries } from "./materialized_queries";
 import { batchSet } from "plugos-silverbullet-syscall";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
-import { collectNodesOfType, findNodeOfType } from "../../common/tree";
-import YAML from "yaml";
+import { collectNodesOfType, findNodeOfType, ParseTree, replaceNodesMatching } from "../../common/tree";
+import { parse as parseYaml, parseAllDocuments } from "yaml";
+import { whiteOutQueries } from "./util";
 
 export async function indexData({ name, text }: IndexEvent) {
   let e;
   text = whiteOutQueries(text);
-  console.log("Now data indexing", name);
-  console.log("Indexing items", name);
+  // console.log("Now data indexing", name);
   let mdTree = await parseMarkdown(text);
 
   let dataObjects: { key: string; value: Object }[] = [];
@@ -33,7 +32,7 @@ export async function indexData({ name, text }: IndexEvent) {
     let codeText = codeTextNode.children![0].text!;
     try {
       // We support multiple YAML documents in one block
-      for (let doc of YAML.parseAllDocuments(codeText)) {
+      for (let doc of parseAllDocuments(codeText)) {
         if (!doc.contents) {
           continue;
         }
@@ -49,6 +48,32 @@ export async function indexData({ name, text }: IndexEvent) {
       return;
     }
   });
-  console.log("Found", dataObjects, "data objects");
+  console.log("Found", dataObjects.length, "data objects");
   await batchSet(name, dataObjects);
+}
+
+export function extractMeta(parseTree: ParseTree, remove = false): any {
+  let data = {};
+  replaceNodesMatching(parseTree, (t) => {
+    if (t.type !== "FencedCode") {
+      return;
+    }
+    let codeInfoNode = findNodeOfType(t, "CodeInfo");
+    if (!codeInfoNode) {
+      return;
+    }
+    if (codeInfoNode.children![0].text !== "meta") {
+      return;
+    }
+    let codeTextNode = findNodeOfType(t, "CodeText");
+    if (!codeTextNode) {
+      // Honestly, this shouldn't happen
+      return;
+    }
+    let codeText = codeTextNode.children![0].text!;
+    data = parseYaml(codeText);
+    return remove ? null : undefined;
+  });
+
+  return data;
 }

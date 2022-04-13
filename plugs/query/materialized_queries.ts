@@ -3,21 +3,13 @@ import { flashNotification, getCurrentPage, reloadPage, save } from "plugos-silv
 import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
-import { niceDate } from "../core/dates";
 import { applyQuery, parseQuery } from "./engine";
 import { PageMeta } from "../../common/types";
 import type { Task } from "../tasks/task";
 import { Item } from "../core/item";
 import YAML from "yaml";
-
-export const queryRegex =
-  /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*#end\s*-->)/gs;
-
-export function whiteOutQueries(text: string): string {
-  return text.replaceAll(queryRegex, (match) =>
-    new Array(match.length + 1).join(" ")
-  );
-}
+import { replaceTemplateVars } from "../core/template";
+import { queryRegex } from "./util";
 
 async function replaceAsync(
   str: string,
@@ -44,17 +36,6 @@ export async function updateMaterializedQueriesCommand() {
   );
   await reloadPage();
   await flashNotification("Updated materialized queries");
-}
-
-function replaceTemplateVars(s: string): string {
-  return s.replaceAll(/\{\{(\w+)\}\}/g, (match, v) => {
-    switch (v) {
-      case "today":
-        return niceDate(new Date());
-        break;
-    }
-    return match;
-  });
 }
 
 // Called from client, running on server
@@ -107,7 +88,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
         case "item":
           let allItems: Item[] = [];
           for (let { key, page, value } of await scanPrefixGlobal("it:")) {
-            let [, pos] = key.split("@");
+            let [, pos] = key.split(":");
             allItems.push({
               ...value,
               page: page,

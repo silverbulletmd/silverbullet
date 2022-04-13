@@ -50,6 +50,8 @@ import { markdownSyscalls } from "../common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
 import { StatusBar } from "./components/status_bar";
 import { loadMarkdownExtensions, MDExt } from "./markdown_ext";
+import { FilterList } from "./components/filter";
+import { FilterOption } from "../common/types";
 
 class PageState {
   scrollTop: number;
@@ -243,6 +245,26 @@ export class Editor implements AppEventDispatcher {
         id: id,
       });
     }, 2000);
+  }
+
+  filterBox(
+    label: string,
+    options: FilterOption[],
+    helpText: string = "",
+    placeHolder: string = ""
+  ): Promise<FilterOption | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-filterbox",
+        options,
+        placeHolder,
+        helpText,
+        onSelect: (option) => {
+          this.viewDispatch({ type: "hide-filterbox" });
+          resolve(option);
+        },
+      });
+    });
   }
 
   async dispatchAppEvent(name: AppEvent, data?: any): Promise<void> {
@@ -533,6 +555,17 @@ export class Editor implements AppEventDispatcher {
               }
             }}
             commands={viewState.commands}
+          />
+        )}
+        {viewState.showFilterBox && (
+          <FilterList
+            label={viewState.filterBoxPlaceHolder}
+            placeholder={viewState.filterBoxPlaceHolder}
+            options={viewState.filterBoxOptions}
+            allowNew={false}
+            // icon={faPersonRunning}
+            helpText={viewState.filterBoxHelpText}
+            onSelect={viewState.filterBoxOnSelect}
           />
         )}
         <TopBar

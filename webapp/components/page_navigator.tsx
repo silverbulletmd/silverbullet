@@ -1,5 +1,5 @@
-import { FilterList, Option } from "./filter";
-import { PageMeta } from "../../common/types";
+import { FilterList } from "./filter";
+import { FilterOption, PageMeta } from "../../common/types";
 
 export function PageNavigator({
   allPages,
@@ -10,7 +10,7 @@ export function PageNavigator({
   onNavigate: (page: string | undefined) => void;
   currentPage?: string;
 }) {
-  let options: Option[] = [];
+  let options: FilterOption[] = [];
   for (let pageMeta of allPages) {
     if (currentPage && currentPage === pageMeta.name) {
       continue;

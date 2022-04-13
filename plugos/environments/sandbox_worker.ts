@@ -20,6 +20,7 @@ function workerPostMessage(msg: ControllerMessage) {
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
+  // function require(moduleName: string): any;
 }
 
 let syscallReqId = 0;
@@ -35,6 +36,20 @@ self.syscall = async (name: string, ...args: any[]) => {
       args,
     });
   });
+};
+
+const preloadedModules: { [key: string]: any } = {
+  "@lezer/lr": require("@lezer/lr"),
+  yaml: require("yaml"),
+};
+// for (const moduleName of preloadModules) {
+//   preloadedModules[moduleName] = require(moduleName);
+// }
+
+// @ts-ignore
+self.require = (moduleName: string): any => {
+  console.log("Loading", moduleName, preloadedModules[moduleName]);
+  return preloadedModules[moduleName];
 };
 
 function wrapScript(code: string) {

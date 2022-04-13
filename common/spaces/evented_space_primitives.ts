@@ -2,6 +2,7 @@ import { SpacePrimitives } from "./space_primitives";
 import { EventHook } from "../../plugos/hooks/event";
 import { PageMeta } from "../types";
 import { Plug } from "../../plugos/plug";
+import { trashPrefix } from "./constants";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
@@ -40,17 +41,19 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       lastModified
     );
     // This can happen async
-    this.eventHook
-      .dispatchEvent("page:saved", pageName)
-      .then(() => {
-        return this.eventHook.dispatchEvent("page:index", {
-          name: pageName,
-          text: text,
+    if (!pageName.startsWith(trashPrefix)) {
+      this.eventHook
+        .dispatchEvent("page:saved", pageName)
+        .then(() => {
+          return this.eventHook.dispatchEvent("page:index", {
+            name: pageName,
+            text: text,
+          });
+        })
+        .catch((e) => {
+          console.error("Error dispatching page:saved event", e);
         });
-      })
-      .catch((e) => {
-        console.error("Error dispatching page:saved event", e);
-      });
+    }
     return newPageMeta;
   }
 

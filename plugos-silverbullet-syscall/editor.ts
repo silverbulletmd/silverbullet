@@ -1,4 +1,5 @@
 import { syscall } from "./syscall";
+import { FilterOption } from "../common/types";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");
@@ -30,6 +31,15 @@ export function openUrl(url: string): Promise<void> {
 
 export function flashNotification(message: string): Promise<void> {
   return syscall("editor.flashNotification", message);
+}
+
+export function filterBox(
+  label: string,
+  options: FilterOption[],
+  helpText: string = "",
+  placeHolder: string = ""
+): Promise<FilterOption | undefined> {
+  return syscall("editor.filterBox", label, options, helpText, placeHolder);
 }
 
 export function showRhs(html: string, flex = 1): Promise<void> {

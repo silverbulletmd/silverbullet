@@ -1,7 +1,5 @@
-import type { ClickEvent } from "../../webapp/app_event";
-import { IndexEvent } from "../../webapp/app_event";
+import type { ClickEvent, IndexEvent } from "../../webapp/app_event";
 
-import { whiteOutQueries } from "../query/materialized_queries";
 import { batchSet } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
@@ -13,6 +11,7 @@ import {
   nodeAtPos,
   renderToText
 } from "../../common/tree";
+import { whiteOutQueries } from "../query/util";
 
 export type Task = {
   name: string;
@@ -25,7 +24,7 @@ export type Task = {
 };
 
 export async function indexTasks({ name, text }: IndexEvent) {
-  console.log("Indexing tasks");
+  // console.log("Indexing tasks");
   let tasks: { key: string; value: Task }[] = [];
   text = whiteOutQueries(text);
   let mdTree = await parseMarkdown(text);

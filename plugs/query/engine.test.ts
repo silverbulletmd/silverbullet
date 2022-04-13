@@ -32,6 +32,15 @@ test("Test parser", () => {
     prop: "name",
     value: /interview\/.*/,
   });
+
+  let parsedQuery3 = parseQuery(`page where something != null`);
+  expect(parsedQuery3.table).toBe("page");
+  expect(parsedQuery3.filter.length).toBe(1);
+  expect(parsedQuery3.filter[0]).toStrictEqual({
+    op: "!=",
+    prop: "something",
+    value: null,
+  });
 });
 
 test("Test performing the queries", () => {

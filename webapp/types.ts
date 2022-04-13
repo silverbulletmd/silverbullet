@@ -1,5 +1,5 @@
 import { AppCommand } from "./hooks/command";
-import { PageMeta } from "../common/types";
+import { FilterOption, PageMeta } from "../common/types";
 
 export const slashCommandRegexp = /\/[\w\-]*/;
 
@@ -21,6 +21,12 @@ export type AppViewState = {
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
+
+  showFilterBox: boolean;
+  filterBoxPlaceHolder: string;
+  filterBoxOptions: FilterOption[];
+  filterBoxHelpText: string;
+  filterBoxOnSelect: (option: FilterOption | undefined) => void;
 };
 
 export const initialViewState: AppViewState = {
@@ -34,6 +40,11 @@ export const initialViewState: AppViewState = {
   allPages: new Set(),
   commands: new Map(),
   notifications: [],
+  showFilterBox: false,
+  filterBoxHelpText: "",
+  filterBoxOnSelect: () => {},
+  filterBoxOptions: [],
+  filterBoxPlaceHolder: "",
 };
 
 export type Action =
@@ -51,4 +62,12 @@ export type Action =
   | { type: "show-rhs"; html: string; flex: number }
   | { type: "hide-rhs" }
   | { type: "show-lhs"; html: string; flex: number }
-  | { type: "hide-lhs" };
+  | { type: "hide-lhs" }
+  | {
+      type: "show-filterbox";
+      options: FilterOption[];
+      placeHolder: string;
+      helpText: string;
+      onSelect: (option: FilterOption | undefined) => void;
+    }
+  | { type: "hide-filterbox" };

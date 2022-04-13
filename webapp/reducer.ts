@@ -92,6 +92,24 @@ export default function reducer(
         showLHS: 0,
         lhsHTML: "",
       };
+    case "show-filterbox":
+      return {
+        ...state,
+        showFilterBox: true,
+        filterBoxOnSelect: action.onSelect,
+        filterBoxPlaceHolder: action.placeHolder,
+        filterBoxOptions: action.options,
+        filterBoxHelpText: action.helpText,
+      };
+    case "hide-filterbox":
+      return {
+        ...state,
+        showFilterBox: false,
+        filterBoxOnSelect: () => {},
+        filterBoxPlaceHolder: "",
+        filterBoxOptions: [],
+        filterBoxHelpText: "",
+      };
   }
   return state;
 }

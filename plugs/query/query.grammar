@@ -14,7 +14,7 @@ Order {
   "desc" | "asc"
 }
 
-Value { Number | String | Bool | Regex }
+Value { Number | String | Bool | Regex | Null }
 
 LogicalExpr { AndExpr | FilterExpr }
 
@@ -28,12 +28,17 @@ FilterExpr {
 | Name ">=" Value
 | Name ">" Value
 | Name "=~" Value
+| Name "!=~" Value
 }
 
 @skip { space }
 
 Bool {
   "true" | "false"
+}
+
+Null {
+  "null"
 }
 
 @tokens {

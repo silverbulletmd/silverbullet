@@ -1,3 +1,5 @@
+import { preloadModules } from "../../common/preload_modules";
+
 const { parentPort, workerData } = require("worker_threads");
 // @ts-ignore
 let vm2 = `${workerData}/vm2`;
@@ -16,11 +18,17 @@ let pendingRequests = new Map<
 
 let syscallReqId = 0;
 
-// console.log("Here's crypto", crypto);
-
 let vm = new VM({
   sandbox: {
     console,
+    require: (moduleName: string): any => {
+      console.log("Loading", moduleName);
+      if (preloadModules.includes(moduleName)) {
+        return require(`${workerData}/${moduleName}`);
+      } else {
+        throw Error("Cannot import arbitrary modules");
+      }
+    },
     self: {
       syscall: (name: string, ...args: any[]) => {
         return new Promise((resolve, reject) => {

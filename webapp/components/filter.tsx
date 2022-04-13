@@ -1,14 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { FilterOption } from "../../common/types";
 
-export type Option = {
-  name: string;
-  orderId?: number;
-  hint?: string;
-};
-
-function magicSorter(a: Option, b: Option): number {
+function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
     return a.orderId < b.orderId ? -1 : 1;
   }
@@ -19,7 +14,7 @@ function escapeRegExp(str: string): string {
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 }
 
-function fuzzyFilter(pattern: string, options: Option[]): Option[] {
+function fuzzyFilter(pattern: string, options: FilterOption[]): FilterOption[] {
   let closeMatchRegex = escapeRegExp(pattern);
   closeMatchRegex = closeMatchRegex.split(/\s+/).join(".*?");
   closeMatchRegex = closeMatchRegex.replace(/\\\//g, ".*?\\/.*?");
@@ -51,7 +46,10 @@ function fuzzyFilter(pattern: string, options: Option[]): Option[] {
   return matches;
 }
 
-function simpleFilter(pattern: string, options: Option[]): Option[] {
+function simpleFilter(
+  pattern: string,
+  options: FilterOption[]
+): FilterOption[] {
   const lowerPattern = pattern.toLowerCase();
   return options.filter((option) => {
     return option.name.toLowerCase().includes(lowerPattern);
@@ -71,10 +69,10 @@ export function FilterList({
   newHint,
 }: {
   placeholder: string;
-  options: Option[];
+  options: FilterOption[];
   label: string;
   onKeyPress?: (key: string, currentText: string) => void;
-  onSelect: (option: Option | undefined) => void;
+  onSelect: (option: FilterOption | undefined) => void;
   allowNew?: boolean;
   completePrefix?: string;
   helpText: string;
@@ -169,7 +167,7 @@ export function FilterList({
                 onSelect(undefined);
                 break;
               case " ":
-                if (completePrefix) {
+                if (completePrefix && !text) {
                   setText(completePrefix);
                   e.preventDefault();
                 }

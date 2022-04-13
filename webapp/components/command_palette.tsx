@@ -1,7 +1,8 @@
 import { isMacLike } from "../util";
-import { FilterList, Option } from "./filter";
+import { FilterList } from "./filter";
 import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
 import { AppCommand } from "../hooks/command";
+import { FilterOption } from "../../common/types";
 
 export function CommandPalette({
   commands,
@@ -10,7 +11,7 @@ export function CommandPalette({
   commands: Map<string, AppCommand>;
   onTrigger: (command: AppCommand | undefined) => void;
 }) {
-  let options: Option[] = [];
+  let options: FilterOption[] = [];
   const isMac = isMacLike();
   for (let [name, def] of commands.entries()) {
     options.push({

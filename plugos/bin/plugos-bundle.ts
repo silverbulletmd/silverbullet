@@ -8,8 +8,14 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
 import YAML from "yaml";
+import { preloadModules } from "../../common/preload_modules";
 
-async function compile(filePath: string, functionName: string, debug: boolean) {
+async function compile(
+  filePath: string,
+  functionName: string,
+  debug: boolean,
+  meta = true
+) {
   let outFile = "_out.tmp";
   let inFile = filePath;
 
@@ -23,7 +29,7 @@ async function compile(filePath: string, functionName: string, debug: boolean) {
   }
 
   // TODO: Figure out how to make source maps work correctly with eval() code
-  let js = await esbuild.build({
+  let result = await esbuild.build({
     entryPoints: [inFile],
     bundle: true,
     format: "iife",
@@ -32,7 +38,14 @@ async function compile(filePath: string, functionName: string, debug: boolean) {
     sourcemap: false, //sourceMap ? "inline" : false,
     minify: !debug,
     outfile: outFile,
+    metafile: true,
+    external: preloadModules,
   });
+
+  if (meta) {
+    let text = await esbuild.analyzeMetafile(result.metafile);
+    console.log("Bundle info for", functionName, text);
+  }
 
   let jsCode = (await readFile(outFile)).toString();
   await unlink(outFile);

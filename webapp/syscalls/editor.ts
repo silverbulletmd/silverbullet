@@ -1,6 +1,7 @@
 import { Editor } from "../editor";
 import { Transaction } from "@codemirror/state";
 import { SysCallMapping } from "../../plugos/system";
+import { FilterOption } from "../../common/types";
 
 type SyntaxNode = {
   name: string;
@@ -50,6 +51,15 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     },
     "editor.flashNotification": (ctx, message: string) => {
       editor.flashNotification(message);
+    },
+    "editor.filterBox": (
+      ctx,
+      label: string,
+      options: FilterOption[],
+      helpText: string = "",
+      placeHolder: string = ""
+    ): Promise<FilterOption | undefined> => {
+      return editor.filterBox(label, options, helpText, placeHolder);
     },
     "editor.showRhs": (ctx, html: string, flex: number) => {
       editor.viewDispatch({

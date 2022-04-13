@@ -63,6 +63,9 @@ export function parseQuery(query: string): ParsedQuery {
       case "Bool":
         val = valNode.children![0].text! === "true";
         break;
+      case "Null":
+        val = null;
+        break;
       case "Name":
         val = valNode.children![0].text!;
         break;
@@ -96,12 +99,12 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
       for (let { op, prop, value } of parsedQuery.filter) {
         switch (op) {
           case "=":
-            if (!(recordAny[prop] === value)) {
+            if (!(recordAny[prop] == value)) {
               continue recordLoop;
             }
             break;
           case "!=":
-            if (!(recordAny[prop] !== value)) {
+            if (!(recordAny[prop] != value)) {
               continue recordLoop;
             }
             break;
@@ -127,6 +130,11 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
             break;
           case "=~":
             if (!value.exec(recordAny[prop])) {
+              continue recordLoop;
+            }
+            break;
+          case "!=~":
+            if (value.exec(recordAny[prop])) {
               continue recordLoop;
             }
             break;

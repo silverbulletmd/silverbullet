@@ -4,10 +4,9 @@ import { PageMeta } from "../types";
 import { EventEmitter } from "../event";
 import { Plug } from "../../plugos/plug";
 import { Manifest } from "../manifest";
+import { plugPrefix, trashPrefix } from "./constants";
 
 const pageWatchInterval = 2000;
-const trashPrefix = "_trash/";
-const plugPrefix = "_plug/";
 
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;
@@ -69,7 +68,9 @@ export class Space extends EventEmitter<SpaceEvents> {
           this.emit("pageCreated", newPageMeta);
         } else if (
           oldPageMeta &&
-          oldPageMeta.lastModified !== newPageMeta.lastModified
+          oldPageMeta.lastModified !== newPageMeta.lastModified &&
+          (!this.trashEnabled ||
+            (this.trashEnabled && !pageName.startsWith(trashPrefix)))
         ) {
           this.emit("pageChanged", newPageMeta);
         }

@@ -26,7 +26,7 @@
   .line-h1,
   .line-h2,
   .line-h3 {
-    background-color: rgba(0, 15, 52, 0.6);
+    background-color: rgba(0, 30, 77, 0.5);
     color: #fff;
     font-weight: bold;
     padding: 2px 2px;
@@ -195,9 +195,11 @@
   }
 
   .comment {
-    color: gray;
-    background-color: rgba(210, 210, 210, 0.3);
+    color: #989797;
+    background-color: rgba(210, 210, 210, 0.2);
     border-radius: 5px;
-    padding: 0 2px;
+    font-style: italic;
+    font-size: 75%;
+    line-height: 75%;
   }
 }

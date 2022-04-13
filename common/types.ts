@@ -4,3 +4,10 @@ export type PageMeta = {
   lastOpened?: number;
   created?: boolean;
 };
+
+// Used by FilterBox
+export type FilterOption = {
+  name: string;
+  orderId?: number;
+  hint?: string;
+};

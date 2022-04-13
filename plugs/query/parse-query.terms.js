@@ -12,6 +12,7 @@ export const
   String = 10,
   Bool = 11,
   Regex = 12,
-  OrderClause = 13,
-  Order = 14,
-  LimitClause = 15
+  Null = 13,
+  OrderClause = 14,
+  Order = 15,
+  LimitClause = 16

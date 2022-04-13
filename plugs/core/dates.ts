@@ -1,7 +1,7 @@
 import { insertAtCursor } from "plugos-silverbullet-syscall/editor";
 import { IndexEvent } from "../../webapp/app_event";
 import { batchSet } from "plugos-silverbullet-syscall";
-import { whiteOutQueries } from "../query/materialized_queries";
+import { whiteOutQueries } from "../query/util";
 
 const dateMatchRegex = /(\d{4}\-\d{2}\-\d{2})/g;
 

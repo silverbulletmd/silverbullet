@@ -6,7 +6,7 @@ functions:
       key: Ctrl-p
       mac: Cmd-p
   preview:
-    path: "./markdown.ts:updateMarkdownPreview"
+    path: "./preview.ts:updateMarkdownPreview"
     env: client
     events:
       - plug:load

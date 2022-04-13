@@ -13,6 +13,10 @@ export function systemSyscalls(space: Space): SysCallMapping {
         throw Error("No plug associated with context");
       }
 
+      if (env === "client") {
+        return ctx.plug.invoke(name, args);
+      }
+
       return space.invokeFunction(ctx.plug, env, name, args);
     },
   };
