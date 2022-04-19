@@ -1,4 +1,4 @@
-import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import { autocompletion, completionKeymap, CompletionResult } from "@codemirror/autocomplete";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/history";
@@ -18,7 +18,7 @@ import {
 import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox";
-import { AppEvent, AppEventDispatcher, ClickEvent } from "./app_event";
+import { AppEvent, ClickEvent } from "./app_event";
 import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
@@ -44,7 +44,6 @@ import { systemSyscalls } from "./syscalls/system";
 import { Panel } from "./components/panel";
 import { CommandHook } from "./hooks/command";
 import { SlashCommandHook } from "./hooks/slash_command";
-import { CompleterHook } from "./hooks/completer";
 import { pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "../common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
@@ -65,10 +64,9 @@ class PageState {
 
 const saveInterval = 1000;
 
-export class Editor implements AppEventDispatcher {
+export class Editor {
   readonly commandHook: CommandHook;
   readonly slashCommandHook: SlashCommandHook;
-  readonly completerHook: CompleterHook;
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState;
@@ -78,7 +76,9 @@ export class Editor implements AppEventDispatcher {
   eventHook: EventHook;
   saveTimeout: any;
   debouncedUpdateEvent = throttle(() => {
-    this.eventHook.dispatchEvent("editor:updated");
+    this.eventHook
+      .dispatchEvent("editor:updated")
+      .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
   private system = new System<SilverBulletHooks>("client");
   private mdExtensions: MDExt[] = [];
@@ -107,10 +107,6 @@ export class Editor implements AppEventDispatcher {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this);
     this.system.addHook(this.slashCommandHook);
-
-    // Completer hook
-    this.completerHook = new CompleterHook();
-    this.system.addHook(this.completerHook);
 
     this.render(parent);
     this.editorView = new EditorView({
@@ -261,13 +257,14 @@ export class Editor implements AppEventDispatcher {
         helpText,
         onSelect: (option) => {
           this.viewDispatch({ type: "hide-filterbox" });
+          this.focus();
           resolve(option);
         },
       });
     });
   }
 
-  async dispatchAppEvent(name: AppEvent, data?: any): Promise<void> {
+  async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, data);
   }
 
@@ -303,7 +300,8 @@ export class Editor implements AppEventDispatcher {
         closeBrackets(),
         autocompletion({
           override: [
-            this.completerHook.plugCompleter.bind(this.completerHook),
+            // this.completerHook.plugCompleter.bind(this.completerHook),
+            this.completer.bind(this),
             this.slashCommandHook.slashCommandCompleter.bind(
               this.slashCommandHook
             ),
@@ -408,7 +406,7 @@ export class Editor implements AppEventDispatcher {
               if (update.docChanged) {
                 editor.viewDispatch({ type: "page-changed" });
                 editor.debouncedUpdateEvent();
-                editor.save();
+                editor.save().catch((e) => console.error("Error saving", e));
               }
             }
           }
@@ -436,6 +434,23 @@ export class Editor implements AppEventDispatcher {
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );
     }
+  }
+
+  async completer(): Promise<CompletionResult | null> {
+    let results = await this.dispatchAppEvent("page:complete");
+    let actualResult = null;
+    for (const result of results) {
+      if (result) {
+        if (actualResult) {
+          console.error(
+            "Got completion results from multiple sources, cannot deal with that"
+          );
+          return null;
+        }
+        actualResult = result;
+      }
+    }
+    return actualResult;
   }
 
   reloadPage() {

@@ -26,4 +26,8 @@ functions:
     path: "./task.ts:taskToggle"
     events:
       - page:click
+  itemQueryProvider:
+    path: ./task.ts:queryProvider
+    events:
+      - query:task
 

@@ -1,9 +1,10 @@
 import { IndexEvent } from "../../webapp/app_event";
 
-import { batchSet } from "plugos-silverbullet-syscall/index";
+import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall/index";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { collectNodesOfType, ParseTree, renderToText } from "../../common/tree";
 import { whiteOutQueries } from "../query/util";
+import { applyQuery, QueryProviderEvent } from "../query/engine";
 
 export type Item = {
   name: string;
@@ -49,4 +50,24 @@ export async function indexItems({ name, text }: IndexEvent) {
   });
   console.log("Found", items.length, "item(s)");
   await batchSet(name, items);
+}
+
+export async function queryProvider({
+  query,
+}: QueryProviderEvent): Promise<string> {
+  let allItems: Item[] = [];
+  for (let { key, page, value } of await scanPrefixGlobal("it:")) {
+    let [, pos] = key.split(":");
+    allItems.push({
+      ...value,
+      page: page,
+      pos: +pos,
+    });
+  }
+  let markdownItems = applyQuery(query, allItems).map(
+    (item) =>
+      `* [[${item.page}@${item.pos}]] ${item.name}` +
+      (item.nested ? "\n  " + item.nested : "")
+  );
+  return markdownItems.join("\n");
 }

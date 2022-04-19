@@ -6,7 +6,7 @@ export async function json(url: RequestInfo, init: RequestInit): Promise<any> {
 
 export async function text(
   url: RequestInfo,
-  init: RequestInit
+  init: RequestInit = {}
 ): Promise<string> {
   return syscall("fetch.text", url, init);
 }

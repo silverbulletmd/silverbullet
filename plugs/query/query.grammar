@@ -43,7 +43,7 @@ Null {
 
 @tokens {
   space { std.whitespace+ }
-  Name { std.asciiLetter+ }
+  Name { (std.asciiLetter | "-" | "_")+ }
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
   }

@@ -25,6 +25,8 @@ import {
   renderToText,
   replaceNodesMatching
 } from "../../common/tree";
+import { applyQuery, QueryProviderEvent } from "../query/engine";
+import { PageMeta } from "../../common/types";
 
 export async function indexLinks({ name, text }: IndexEvent) {
   let backLinks: { key: string; value: string }[] = [];
@@ -45,6 +47,31 @@ export async function indexLinks({ name, text }: IndexEvent) {
   );
   console.log("Found", backLinks.length, "wiki link(s)");
   await batchSet(name, backLinks);
+}
+
+export async function pageQueryProvider({
+  query,
+}: QueryProviderEvent): Promise<string> {
+  let allPages = await listPages();
+  let markdownPages = applyQuery(query, allPages).map(
+    (pageMeta: PageMeta) => `* [[${pageMeta.name}]]`
+  );
+  return markdownPages.join("\n");
+}
+
+export async function linkQueryProvider({
+  query,
+  pageName,
+}: QueryProviderEvent): Promise<string> {
+  let uniqueLinks = new Set<string>();
+  for (let { value: name } of await scanPrefixGlobal(`pl:${pageName}:`)) {
+    uniqueLinks.add(name);
+  }
+  let markdownLinks = applyQuery(
+    query,
+    [...uniqueLinks].map((l) => ({ name: l }))
+  ).map((pageMeta) => `* [[${pageMeta.name}]]`);
+  return markdownLinks.join("\n");
 }
 
 export async function deletePage() {

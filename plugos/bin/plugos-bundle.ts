@@ -14,7 +14,7 @@ async function compile(
   filePath: string,
   functionName: string,
   debug: boolean,
-  meta = true
+  meta = false
 ) {
   let outFile = "_out.tmp";
   let inFile = filePath;

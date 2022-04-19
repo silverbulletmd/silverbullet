@@ -1,4 +1,4 @@
-export type AppEvent = "page:click" | "editor:complete";
+export type AppEvent = "page:click" | "page:complete";
 
 export type ClickEvent = {
   page: string;
@@ -12,7 +12,3 @@ export type IndexEvent = {
   name: string;
   text: string;
 };
-
-export interface AppEventDispatcher {
-  dispatchAppEvent(name: AppEvent, data?: any): Promise<void>;
-}

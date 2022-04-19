@@ -1,9 +1,10 @@
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { json } from "plugos-syscall/fetch";
-import { parse as parseYaml } from "yaml";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { getCurrentPage, getText } from "plugos-silverbullet-syscall/editor";
 import { cleanMarkdown } from "../markdown/util";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
+import { extractMeta } from "../query/data";
 
 type GhostConfig = {
   url: string;
@@ -182,14 +183,10 @@ async function markdownToPost(text: string): Promise<Partial<Post>> {
 }
 
 async function getConfig(): Promise<GhostConfig> {
-  let configPage = await readPage("ghost-config");
-  return parseYaml(configPage.text) as GhostConfig;
-  // return {
-  //   adminKey: "",
-  //   pagePrefix: "",
-  //   postPrefix: "",
-  //   url: "",
-  // };
+  let { text } = await readPage("ghost-config");
+  let parsedContent = await parseMarkdown(text);
+  let pageMeta = await extractMeta(parsedContent);
+  return pageMeta as GhostConfig;
 }
 
 export async function downloadAllPostsCommand() {

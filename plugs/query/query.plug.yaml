@@ -10,3 +10,7 @@ functions:
     path: ./data.ts:indexData
     events:
       - page:index
+  dataQueryProvider:
+    path: ./data.ts:queryProvider
+    events:
+      - query:data

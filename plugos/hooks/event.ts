@@ -12,10 +12,11 @@ export type EventHookT = {
 export class EventHook implements Hook<EventHookT> {
   private system?: System<EventHookT>;
 
-  async dispatchEvent(eventName: string, data?: any): Promise<void> {
+  async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
+    let responses: any[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions
@@ -23,11 +24,15 @@ export class EventHook implements Hook<EventHookT> {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
           if (plug.canInvoke(name)) {
-            await plug.invoke(name, [data]);
+            let result = await plug.invoke(name, [data]);
+            if (result !== undefined) {
+              responses.push(result);
+            }
           }
         }
       }
     }
+    return responses;
   }
 
   apply(system: System<EventHookT>): void {

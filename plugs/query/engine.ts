@@ -4,13 +4,18 @@ import { lezerToParseTree } from "../../common/parse_tree";
 // @ts-ignore
 import { parser } from "./parse-query";
 
-type Filter = {
+export type QueryProviderEvent = {
+  query: ParsedQuery;
+  pageName: string;
+};
+
+export type Filter = {
   op: string;
   prop: string;
   value: any;
 };
 
-type ParsedQuery = {
+export type ParsedQuery = {
   table: string;
   orderBy?: string;
   orderDesc?: boolean;
@@ -71,7 +76,7 @@ export function parseQuery(query: string): ParsedQuery {
         break;
       case "Regex":
         val = valNode.children![0].text!;
-        val = new RegExp(val.substring(1, val.length - 1));
+        val = val.substring(1, val.length - 1);
         break;
       case "String":
         val = valNode.children![0].text!;
@@ -129,12 +134,13 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
             }
             break;
           case "=~":
-            if (!value.exec(recordAny[prop])) {
+            // TODO: Cache regexps somehow
+            if (!new RegExp(value).exec(recordAny[prop])) {
               continue recordLoop;
             }
             break;
           case "!=~":
-            if (value.exec(recordAny[prop])) {
+            if (new RegExp(value).exec(recordAny[prop])) {
               continue recordLoop;
             }
             break;

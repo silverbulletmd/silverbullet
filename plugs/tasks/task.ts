@@ -1,6 +1,6 @@
 import type { ClickEvent, IndexEvent } from "../../webapp/app_event";
 
-import { batchSet } from "plugos-silverbullet-syscall/index";
+import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { dispatch, getCurrentPage, getText } from "plugos-silverbullet-syscall/editor";
@@ -12,6 +12,7 @@ import {
   renderToText
 } from "../../common/tree";
 import { whiteOutQueries } from "../query/util";
+import { applyQuery, QueryProviderEvent } from "../query/engine";
 
 export type Task = {
   name: string;
@@ -119,4 +120,24 @@ export async function taskToggleAtPos(pos: number) {
       }
     }
   }
+}
+
+export async function queryProvider({
+  query,
+}: QueryProviderEvent): Promise<string> {
+  let allTasks: Task[] = [];
+  for (let { key, page, value } of await scanPrefixGlobal("task:")) {
+    let [, pos] = key.split(":");
+    allTasks.push({
+      ...value,
+      page: page,
+      pos: pos,
+    });
+  }
+  let markdownTasks = applyQuery(query, allTasks).map(
+    (t) =>
+      `* [${t.done ? "x" : " "}] [[${t.page}@${t.pos}]] ${t.name}` +
+      (t.nested ? "\n  " + t.nested : "")
+  );
+  return markdownTasks.join("\n");
 }

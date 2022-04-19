@@ -30,7 +30,7 @@ test("Test parser", () => {
   expect(parsedQuery2.filter[0]).toStrictEqual({
     op: "=~",
     prop: "name",
-    value: /interview\/.*/,
+    value: "interview\\/.*",
   });
 
   let parsedQuery3 = parseQuery(`page where something != null`);

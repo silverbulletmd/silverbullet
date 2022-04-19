@@ -1,9 +1,11 @@
 import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
-import { filterBox, navigate, prompt } from "plugos-silverbullet-syscall/editor";
+import { filterBox, getCurrentPage, getText, navigate, prompt } from "plugos-silverbullet-syscall/editor";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 import { renderToText } from "../../common/tree";
 import { niceDate } from "./dates";
+import { dispatch } from "plugos-syscall/event";
+import { invokeFunction } from "plugos-silverbullet-syscall/system";
 
 const pageTemplatePrefix = `template/page/`;
 
@@ -34,17 +36,41 @@ export async function instantiateTemplateCommand() {
   if (!pageName) {
     return;
   }
-  let pageText = replaceTemplateVars(renderToText(parseTree));
-  await writePage(pageName, pageText);
+  await invokeFunction(
+    "server",
+    "instantiateTemplate",
+    pageName,
+    renderToText(parseTree)
+  );
+  // let pageText = replaceTemplateVars(, pageName);
+  // await writePage(pageName, pageText);
   await navigate(pageName);
 }
 
-export function replaceTemplateVars(s: string): string {
-  return s.replaceAll(/\{\{(\w+)\}\}/g, (match, v) => {
-    switch (v) {
-      case "today":
-        return niceDate(new Date());
-        break;
+export async function instantiateTemplate(pageName: string, text: string) {
+  let pageText = replaceTemplateVars(text, pageName);
+  await writePage(pageName, pageText);
+}
+
+export async function replaceTemplateVarsCommand() {
+  let currentPage = await getCurrentPage();
+  let text = await getText();
+  await invokeFunction("server", "instantiateTemplate", currentPage, text);
+}
+
+export function replaceTemplateVars(s: string, pageName: string): string {
+  return s.replaceAll(/\{\{([^\}]+)\}\}/g, (match, v) => {
+    if (v === "today") {
+      return niceDate(new Date());
+    }
+    if (v.startsWith("placeholder:")) {
+      // Dispatch event, to be replaced in the file async later
+      dispatch(v, {
+        pageName: pageName,
+        placeholder: v,
+      }).catch((e) => {
+        console.error("Failed to dispatch placeholder event", e);
+      });
     }
     return match;
   });

@@ -2,14 +2,15 @@
 // data:page@pos
 
 import { IndexEvent } from "../../webapp/app_event";
-import { batchSet } from "plugos-silverbullet-syscall";
+import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { collectNodesOfType, findNodeOfType, ParseTree, replaceNodesMatching } from "../../common/tree";
-import { parse as parseYaml, parseAllDocuments } from "yaml";
+import YAML, { parse as parseYaml, parseAllDocuments } from "yaml";
 import { whiteOutQueries } from "./util";
+import type { QueryProviderEvent } from "./engine";
+import { applyQuery } from "./engine";
 
 export async function indexData({ name, text }: IndexEvent) {
-  let e;
   text = whiteOutQueries(text);
   // console.log("Now data indexing", name);
   let mdTree = await parseMarkdown(text);
@@ -76,4 +77,22 @@ export function extractMeta(parseTree: ParseTree, remove = false): any {
   });
 
   return data;
+}
+
+export async function queryProvider({
+  query,
+}: QueryProviderEvent): Promise<string> {
+  let allData: any[] = [];
+  for (let { key, page, value } of await scanPrefixGlobal("data:")) {
+    let [, pos] = key.split("@");
+    allData.push({
+      ...value,
+      page: page,
+      pos: +pos,
+    });
+  }
+  let markdownData = applyQuery(query, allData).map((item) =>
+    YAML.stringify(item)
+  );
+  return `\`\`\`data\n${markdownData.join("---\n")}\`\`\``;
 }

@@ -23,6 +23,11 @@
     "chalk" "^2.0.0"
     "js-tokens" "^4.0.0"
 
+"@hmhealey/types@^6.6.0-4":
+  "integrity" "sha512-71IxVaXhrUesmLnvQQh4RtUqqhmVL+ejci4qo4R6rTWTdY77BniRtBx269uAz34wzTlAgITysN8x7MBTdt/XBg=="
+  "resolved" "https://registry.npmjs.org/@hmhealey/types/-/types-6.6.0-4.tgz"
+  "version" "6.6.0-4"
+
 "@jest/environment@^27.5.1":
   "integrity" "sha512-/WQjhPJe3/ghaol/4Bq480JKXV/Rfw8nQdN7f41fM8VDHLcxKXou6QyXAh3EFr9/bVG3x74z1NWDkP87EiY8gA=="
   "resolved" "https://registry.npmjs.org/@jest/environment/-/environment-27.5.1.tgz"

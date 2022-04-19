@@ -21,8 +21,12 @@ let syscallReqId = 0;
 let vm = new VM({
   sandbox: {
     console,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
     require: (moduleName: string): any => {
-      console.log("Loading", moduleName);
+      // console.log("Loading", moduleName);
       if (preloadModules.includes(moduleName)) {
         return require(`${workerData}/${moduleName}`);
       } else {

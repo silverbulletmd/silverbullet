@@ -1,4 +1,5 @@
 functions:
   emojiCompleter:
     path: "./emoji.ts:emojiCompleter"
-    isCompleter: true
+    events:
+      - page:complete

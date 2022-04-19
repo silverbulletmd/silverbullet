@@ -1,15 +1,11 @@
 import { flashNotification, getCurrentPage, reloadPage, save } from "plugos-silverbullet-syscall/editor";
 
-import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
+import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
-import { scanPrefixGlobal } from "plugos-silverbullet-syscall";
-import { applyQuery, parseQuery } from "./engine";
-import { PageMeta } from "../../common/types";
-import type { Task } from "../tasks/task";
-import { Item } from "../core/item";
-import YAML from "yaml";
+import { parseQuery } from "./engine";
 import { replaceTemplateVars } from "../core/template";
 import { queryRegex } from "./util";
+import { dispatch } from "plugos-syscall/event";
 
 async function replaceAsync(
   str: string,
@@ -46,79 +42,22 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
     text,
     queryRegex,
     async (fullMatch, startQuery, query, body, endQuery) => {
-      let parsedQuery = parseQuery(replaceTemplateVars(query));
+      let parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
       console.log("Parsed query", parsedQuery);
-
-      switch (parsedQuery.table) {
-        case "page":
-          let allPages = await listPages();
-          let markdownPages = applyQuery(parsedQuery, allPages).map(
-            (pageMeta: PageMeta) => `* [[${pageMeta.name}]]`
-          );
-          return `${startQuery}\n${markdownPages.join("\n")}\n${endQuery}`;
-        case "task":
-          let allTasks: Task[] = [];
-          for (let { key, page, value } of await scanPrefixGlobal("task:")) {
-            let [, pos] = key.split(":");
-            allTasks.push({
-              ...value,
-              page: page,
-              pos: pos,
-            });
-          }
-          let markdownTasks = applyQuery(parsedQuery, allTasks).map(
-            (t) =>
-              `* [${t.done ? "x" : " "}] [[${t.page}@${t.pos}]] ${t.name}` +
-              (t.nested ? "\n  " + t.nested : "")
-          );
-          return `${startQuery}\n${markdownTasks.join("\n")}\n${endQuery}`;
-        case "link":
-          let uniqueLinks = new Set<string>();
-          for (let { value: name } of await scanPrefixGlobal(
-            `pl:${pageName}:`
-          )) {
-            uniqueLinks.add(name);
-          }
-          let markdownLinks = applyQuery(
-            parsedQuery,
-            [...uniqueLinks].map((l) => ({ name: l }))
-          ).map((pageMeta) => `* [[${pageMeta.name}]]`);
-          return `${startQuery}\n${markdownLinks.join("\n")}\n${endQuery}`;
-        case "item":
-          let allItems: Item[] = [];
-          for (let { key, page, value } of await scanPrefixGlobal("it:")) {
-            let [, pos] = key.split(":");
-            allItems.push({
-              ...value,
-              page: page,
-              pos: +pos,
-            });
-          }
-          let markdownItems = applyQuery(parsedQuery, allItems).map(
-            (item) =>
-              `* [[${item.page}@${item.pos}]] ${item.name}` +
-              (item.nested ? "\n  " + item.nested : "")
-          );
-          return `${startQuery}\n${markdownItems.join("\n")}\n${endQuery}`;
-        case "data":
-          let allData: Object[] = [];
-          for (let { key, page, value } of await scanPrefixGlobal("data:")) {
-            let [, pos] = key.split("@");
-            allData.push({
-              ...value,
-              page: page,
-              pos: +pos,
-            });
-          }
-          let markdownData = applyQuery(parsedQuery, allData).map((item) =>
-            YAML.stringify(item)
-          );
-          return `${startQuery}\n\`\`\`data\n${markdownData.join(
-            "---\n"
-          )}\`\`\`\n${endQuery}`;
-        default:
-          return fullMatch;
+      // Let's dispatch an event and see what happens
+      let results = await dispatch(
+        `query:${parsedQuery.table}`,
+        { query: parsedQuery, pageName: pageName },
+        5000
+      );
+      if (results.length === 0) {
+        return `${startQuery}\n${endQuery}`;
+      } else if (results.length === 1) {
+        return `${startQuery}\n${results[0]}\n${endQuery}`;
+      } else {
+        console.error("Too many query results", results);
+        return fullMatch;
       }
     }
   );
