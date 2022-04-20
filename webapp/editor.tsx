@@ -300,7 +300,6 @@ export class Editor {
         closeBrackets(),
         autocompletion({
           override: [
-            // this.completerHook.plugCompleter.bind(this.completerHook),
             this.completer.bind(this),
             this.slashCommandHook.slashCommandCompleter.bind(
               this.slashCommandHook
@@ -320,6 +319,7 @@ export class Editor {
           { selector: "Comment", class: "line-comment" },
           { selector: "BulletList", class: "line-ul" },
           { selector: "OrderedList", class: "line-ol" },
+          { selector: "TableHeader", class: "line-tbl-header" },
         ]),
         keymap.of([
           ...smartQuoteKeymap,
@@ -433,6 +433,9 @@ export class Editor {
       editorView.setState(
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );
+      if (editorView.contentDOM) {
+        editorView.contentDOM.spellcheck = true;
+      }
     }
   }
 
@@ -503,6 +506,9 @@ export class Editor {
     let editorState = this.createEditorState(pageName, doc.text);
     let pageState = this.openPages.get(pageName);
     editorView.setState(editorState);
+    if (editorView.contentDOM) {
+      editorView.contentDOM.spellcheck = true;
+    }
     if (!pageState) {
       pageState = new PageState(0, editorState.selection);
       this.openPages.set(pageName, pageState!);

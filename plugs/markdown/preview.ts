@@ -15,6 +15,24 @@ body {
   padding-right: 20px;
 }
 
+table {
+  width: 100%;
+  border-spacing: 0;
+}
+
+thead tr {
+    background-color: #333;
+    color: #eee;
+}
+
+th, td {
+    padding: 8px;
+}
+
+tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
 a[href] {
   text-decoration: none;
 }

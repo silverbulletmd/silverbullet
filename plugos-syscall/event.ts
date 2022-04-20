@@ -6,13 +6,18 @@ export async function dispatch(
   timeout?: number
 ): Promise<any[]> {
   return new Promise((resolve, reject) => {
-    let timeOut = setTimeout(() => {
-      console.log("Timeout!");
-      reject("timeout");
-    }, timeout);
+    let timeouter: any = -1;
+    if (timeout) {
+      timeouter = setTimeout(() => {
+        console.log("Timeout!");
+        reject("timeout");
+      }, timeout);
+    }
     syscall("event.dispatch", eventName, data)
       .then((r) => {
-        clearTimeout(timeOut);
+        if (timeouter !== -1) {
+          clearTimeout(timeouter);
+        }
         resolve(r);
       })
       .catch(reject);

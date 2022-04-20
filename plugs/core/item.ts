@@ -1,9 +1,8 @@
-import { IndexEvent } from "../../webapp/app_event";
+import { IndexTreeEvent } from "../../webapp/app_event";
 
 import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall/index";
-import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { collectNodesOfType, ParseTree, renderToText } from "../../common/tree";
-import { whiteOutQueries } from "../query/util";
+import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 
 export type Item = {
@@ -14,14 +13,13 @@ export type Item = {
   pos?: number;
 };
 
-export async function indexItems({ name, text }: IndexEvent) {
+export async function indexItems({ name, tree }: IndexTreeEvent) {
   let items: { key: string; value: Item }[] = [];
-  text = whiteOutQueries(text);
+  removeQueries(tree);
 
   console.log("Indexing items", name);
-  let mdTree = await parseMarkdown(text);
 
-  let coll = collectNodesOfType(mdTree, "ListItem");
+  let coll = collectNodesOfType(tree, "ListItem");
 
   coll.forEach((n) => {
     if (!n.children) {

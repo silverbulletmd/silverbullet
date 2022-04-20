@@ -20,17 +20,16 @@ export async function savedPostsQueryProvider({
   let savedPostsMd = [];
   savedPosts = applyQuery(query, savedPosts);
   for (let savedPost of savedPosts) {
-    // savedPost.
     let channel = await client.getChannel(savedPost.channel_id);
     let team = await client.getTeam(channel.team_id);
     savedPostsMd.push(
-      `@${
-        (await client.getUser(savedPost.user_id)).username
-      } [link](${mattermostDesktopUrlForPost(
+      `@${(await client.getUser(savedPost.user_id)).username} [${
+        savedPost.createdAt
+      }](${mattermostDesktopUrlForPost(
         client.url,
         team.name,
         savedPost.id
-      )}):\n> ${savedPost.message.replaceAll(/\n/g, "\n> ")}`
+      )}):\n> ${savedPost.message.substring(0, 1000).replaceAll(/\n/g, "\n> ")}`
     );
   }
   return savedPostsMd.join("\n\n");

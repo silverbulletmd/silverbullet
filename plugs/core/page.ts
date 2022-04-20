@@ -1,4 +1,4 @@
-import { IndexEvent } from "../../webapp/app_event";
+import { IndexEvent, IndexTreeEvent } from "../../webapp/app_event";
 import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
@@ -28,23 +28,20 @@ import {
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { PageMeta } from "../../common/types";
 
-export async function indexLinks({ name, text }: IndexEvent) {
+export async function indexLinks({ name, tree }: IndexTreeEvent) {
   let backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   console.log("Now indexing", name);
-  let mdTree = await parseMarkdown(text);
-  collectNodesMatching(mdTree, (n) => n.type === "WikiLinkPage").forEach(
-    (n) => {
-      let toPage = n.children![0].text!;
-      if (toPage.includes("@")) {
-        toPage = toPage.split("@")[0];
-      }
-      backLinks.push({
-        key: `pl:${toPage}:${n.from}`,
-        value: name,
-      });
+  collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
+    let toPage = n.children![0].text!;
+    if (toPage.includes("@")) {
+      toPage = toPage.split("@")[0];
     }
-  );
+    backLinks.push({
+      key: `pl:${toPage}:${n.from}`,
+      value: name,
+    });
+  });
   console.log("Found", backLinks.length, "wiki link(s)");
   await batchSet(name, backLinks);
 }
@@ -193,10 +190,11 @@ export async function reindexSpace() {
   let pages = await listPages();
   for (let { name } of pages) {
     console.log("Indexing", name);
-    const pageObj = await readPage(name);
+    const { text } = await readPage(name);
+    let parsed = await parseMarkdown(text);
     await dispatch("page:index", {
       name,
-      text: pageObj.text,
+      tree: parsed,
     });
   }
 }
@@ -204,6 +202,13 @@ export async function reindexSpace() {
 export async function clearPageIndex(page: string) {
   console.log("Clearing page index for page", page);
   await clearPageIndexForPage(page);
+}
+
+export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
+  await dispatch("page:index", {
+    name,
+    tree: await parseMarkdown(text),
+  });
 }
 
 export async function parseServerPageCommand() {

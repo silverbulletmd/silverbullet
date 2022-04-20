@@ -13,6 +13,10 @@ export function addParentPointers(tree: ParseTree) {
     return;
   }
   for (let child of tree.children) {
+    if (child.parent) {
+      // Already added parent pointers before
+      return;
+    }
     child.parent = tree;
     addParentPointers(child);
   }

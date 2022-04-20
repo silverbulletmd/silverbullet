@@ -1,30 +1,9 @@
 import { insertAtCursor } from "plugos-silverbullet-syscall/editor";
-import { IndexEvent } from "../../webapp/app_event";
-import { batchSet } from "plugos-silverbullet-syscall";
-import { whiteOutQueries } from "../query/util";
 
 const dateMatchRegex = /(\d{4}\-\d{2}\-\d{2})/g;
 
-// Index key space:
-// d:[date]:page@pos
-
-export async function indexDates({ name, text }: IndexEvent) {
-  let dates: { key: string; value: boolean }[] = [];
-  text = whiteOutQueries(text);
-  console.log("Now date indexing", name);
-  for (let match of text.matchAll(dateMatchRegex)) {
-    // console.log("Date match", match[0]);
-    dates.push({
-      key: `d:${match[0]}:${name}@${match.index}`,
-      value: true,
-    });
-  }
-  console.log("Found", dates.length, "dates");
-  await batchSet(name, dates);
-}
-
 export function niceDate(d: Date): string {
-  return new Date().toISOString().split("T")[0];
+  return d.toISOString().split("T")[0];
 }
 
 export async function insertToday() {

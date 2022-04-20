@@ -58,12 +58,35 @@
   }
 
   .line-code {
-    background-color: #efefef;
-    margin-left: 30px;
+    background-color: rgba(72, 72, 72, 0.1);
+
+    .code {
+      background-color: transparent;
+    }
+  }
+
+  .line-tbl-header {
+    font-weight: bold;
+
+    .meta {
+      font-weight: normal;
+    }
+  }
+
+  .struct {
+    color: darkred;
+  }
+
+  .code {
+    background-color: rgba(72, 72, 72, 0.1);
   }
 
   .line-fenced-code {
     background-color: rgba(72, 72, 72, 0.1);
+
+    .code {
+      background-color: transparent;
+    }
   }
 
   .meta {
@@ -116,10 +139,6 @@
   }
 
 
-
-  .code {
-    background-color: #efefef;
-  }
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent) {

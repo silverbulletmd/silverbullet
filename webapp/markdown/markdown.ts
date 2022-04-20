@@ -5,17 +5,10 @@ import {
   Language,
   languageDataProp,
   LanguageDescription,
-  ParseContext,
+  ParseContext
 } from "@codemirror/language";
 import { styleTags, tags as t } from "@codemirror/highlight";
-import {
-  Emoji,
-  GFM,
-  MarkdownParser,
-  parser as baseParser,
-  Subscript,
-  Superscript,
-} from "@lezer/markdown";
+import { Emoji, GFM, MarkdownParser, parser as baseParser, Subscript, Superscript } from "@lezer/markdown";
 
 const data = defineLanguageFacet({ block: { open: "<!--", close: "-->" } });
 
@@ -37,8 +30,6 @@ export const commonmark = baseParser.configure({
       "StrongEmphasis/...": t.strong,
       "Link/... Image/...": t.link,
       "OrderedList/... BulletList/...": t.list,
-
-      // "CodeBlock/... FencedCode/...": t.blockComment,
       "InlineCode CodeText": t.monospace,
       URL: t.url,
       "HeaderMark HardBreak QuoteMark ListMark LinkMark EmphasisMark CodeMark":

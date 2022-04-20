@@ -1,23 +1,17 @@
 // Index key space:
 // data:page@pos
 
-import { IndexEvent } from "../../webapp/app_event";
+import { IndexTreeEvent } from "../../webapp/app_event";
 import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall";
-import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { collectNodesOfType, findNodeOfType, ParseTree, replaceNodesMatching } from "../../common/tree";
 import YAML, { parse as parseYaml, parseAllDocuments } from "yaml";
-import { whiteOutQueries } from "./util";
 import type { QueryProviderEvent } from "./engine";
 import { applyQuery } from "./engine";
 
-export async function indexData({ name, text }: IndexEvent) {
-  text = whiteOutQueries(text);
-  // console.log("Now data indexing", name);
-  let mdTree = await parseMarkdown(text);
-
+export async function indexData({ name, tree }: IndexTreeEvent) {
   let dataObjects: { key: string; value: Object }[] = [];
 
-  collectNodesOfType(mdTree, "FencedCode").forEach((t) => {
+  collectNodesOfType(tree, "FencedCode").forEach((t) => {
     let codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
       return;

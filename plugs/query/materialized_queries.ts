@@ -1,30 +1,18 @@
-import { flashNotification, getCurrentPage, reloadPage, save } from "plugos-silverbullet-syscall/editor";
+import { flashNotification, getCurrentPage, getText, reloadPage, save } from "plugos-silverbullet-syscall/editor";
 
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 import { parseQuery } from "./engine";
 import { replaceTemplateVars } from "../core/template";
-import { queryRegex } from "./util";
+import { queryRegex, removeQueries } from "./util";
 import { dispatch } from "plugos-syscall/event";
-
-async function replaceAsync(
-  str: string,
-  regex: RegExp,
-  asyncFn: (match: string, ...args: any[]) => Promise<string>
-) {
-  const promises: Promise<string>[] = [];
-  str.replace(regex, (match: string, ...args: any[]): string => {
-    const promise = asyncFn(match, ...args);
-    promises.push(promise);
-    return "";
-  });
-  const data = await Promise.all(promises);
-  return str.replace(regex, () => data.shift()!);
-}
+import { replaceAsync } from "../lib/util";
+import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
   await save();
+  await flashNotification("Updating materialized queries...");
   await invokeFunction(
     "server",
     "updateMaterializedQueriesOnPage",
@@ -32,6 +20,12 @@ export async function updateMaterializedQueriesCommand() {
   );
   await reloadPage();
   await flashNotification("Updated materialized queries");
+}
+
+export async function whiteOutQueriesCommand() {
+  const text = await getText();
+  const parsed = await parseMarkdown(text);
+  console.log(removeQueries(parsed));
 }
 
 // Called from client, running on server
@@ -49,7 +43,7 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
       let results = await dispatch(
         `query:${parsedQuery.table}`,
         { query: parsedQuery, pageName: pageName },
-        5000
+        10 * 1000
       );
       if (results.length === 0) {
         return `${startQuery}\n${endQuery}`;

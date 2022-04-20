@@ -29,6 +29,10 @@ functions:
     path: ./page.ts:pageQueryProvider
     events:
       - query:page
+  parseIndexTextRepublish:
+    path: "./page.ts:parseIndexTextRepublish"
+    events:
+      - page:index_text
   indexLinks:
     path: "./page.ts:indexLinks"
     events:

@@ -1,4 +1,4 @@
-import type { ClickEvent, IndexEvent } from "../../webapp/app_event";
+import type { ClickEvent, IndexTreeEvent } from "../../webapp/app_event";
 
 import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall/index";
 import { readPage, writePage } from "plugos-silverbullet-syscall/space";
@@ -11,7 +11,7 @@ import {
   nodeAtPos,
   renderToText
 } from "../../common/tree";
-import { whiteOutQueries } from "../query/util";
+import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 
 export type Task = {
@@ -24,13 +24,11 @@ export type Task = {
   page?: string;
 };
 
-export async function indexTasks({ name, text }: IndexEvent) {
+export async function indexTasks({ name, tree }: IndexTreeEvent) {
   // console.log("Indexing tasks");
   let tasks: { key: string; value: Task }[] = [];
-  text = whiteOutQueries(text);
-  let mdTree = await parseMarkdown(text);
-  addParentPointers(mdTree);
-  collectNodesOfType(mdTree, "Task").forEach((n) => {
+  removeQueries(tree);
+  collectNodesOfType(tree, "Task").forEach((n) => {
     let task = n.children!.slice(1).map(renderToText).join("").trim();
     let complete = n.children![0].children![0].text! !== "[ ]";
     let value: Task = {

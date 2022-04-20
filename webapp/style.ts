@@ -36,6 +36,8 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.variableName, class: "variableName" },
     { tag: t.comment, class: "comment" },
     { tag: t.invalid, class: "invalid" },
+    { tag: t.processingInstruction, class: "meta" },
+    // { tag: t.content, class: "tbl-content" },
     { tag: t.punctuation, class: "punctuation" },
     ...mdExtension.map((mdExt) => {
       return { tag: mdExt.tag, ...mdExt.styles };

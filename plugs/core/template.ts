@@ -4,7 +4,6 @@ import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 import { renderToText } from "../../common/tree";
 import { niceDate } from "./dates";
-import { dispatch } from "plugos-syscall/event";
 import { invokeFunction } from "plugos-silverbullet-syscall/system";
 
 const pageTemplatePrefix = `template/page/`;
@@ -60,17 +59,17 @@ export async function replaceTemplateVarsCommand() {
 
 export function replaceTemplateVars(s: string, pageName: string): string {
   return s.replaceAll(/\{\{([^\}]+)\}\}/g, (match, v) => {
-    if (v === "today") {
-      return niceDate(new Date());
-    }
-    if (v.startsWith("placeholder:")) {
-      // Dispatch event, to be replaced in the file async later
-      dispatch(v, {
-        pageName: pageName,
-        placeholder: v,
-      }).catch((e) => {
-        console.error("Failed to dispatch placeholder event", e);
-      });
+    switch (v) {
+      case "today":
+        return niceDate(new Date());
+      case "yesterday":
+        let yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return niceDate(yesterday);
+      case "lastWeek":
+        let lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        return niceDate(lastWeek);
     }
     return match;
   });

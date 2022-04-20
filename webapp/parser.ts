@@ -1,5 +1,5 @@
-import { styleTags } from "@codemirror/highlight";
-import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, parseCode, TaskList } from "@lezer/markdown";
+import { styleTags, tags as t } from "@codemirror/highlight";
+import { BlockContext, LeafBlock, LeafBlockParser, MarkdownConfig, parseCode, Table, TaskList } from "@lezer/markdown";
 import { commonmark, getCodeParser, mkLang } from "./markdown/markdown";
 import * as ct from "./customtags";
 import { Language, LanguageDescription, LanguageSupport } from "@codemirror/language";
@@ -73,6 +73,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       WikiLink,
       TaskList,
       Comment,
+      Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
       parseCode({
         codeParser: getCodeParser([
@@ -96,6 +97,10 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
             Task: ct.TaskTag,
             TaskMarker: ct.TaskMarkerTag,
             Comment: ct.CommentTag,
+            "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
+              t.processingInstruction,
+            "TableHeader/...": t.heading,
+            TableCell: t.content,
           }),
           ...mdExtensions.map((mdExt) =>
             styleTags(mdExtensionStyleTags(mdExt))

@@ -23,11 +23,6 @@
     "chalk" "^2.0.0"
     "js-tokens" "^4.0.0"
 
-"@hmhealey/types@^6.6.0-4":
-  "integrity" "sha512-71IxVaXhrUesmLnvQQh4RtUqqhmVL+ejci4qo4R6rTWTdY77BniRtBx269uAz34wzTlAgITysN8x7MBTdt/XBg=="
-  "resolved" "https://registry.npmjs.org/@hmhealey/types/-/types-6.6.0-4.tgz"
-  "version" "6.6.0-4"
-
 "@jest/environment@^27.5.1":
   "integrity" "sha512-/WQjhPJe3/ghaol/4Bq480JKXV/Rfw8nQdN7f41fM8VDHLcxKXou6QyXAh3EFr9/bVG3x74z1NWDkP87EiY8gA=="
   "resolved" "https://registry.npmjs.org/@jest/environment/-/environment-27.5.1.tgz"
@@ -89,6 +84,11 @@
   "version" "0.15.8"
   dependencies:
     "@lezer/common" "^0.15.0"
+
+"@mattermost/types@^6.7.0-0":
+  "integrity" "sha512-mT8wJwWEp20KPo9D12y7bW7EdUHO7VhUHxr3gH8nPGapWooGcl0Ra0H3u1iCjPpqPWvp7LiodcneU0IysunYKQ=="
+  "resolved" "https://registry.npmjs.org/@mattermost/types/-/types-6.7.0-0.tgz"
+  "version" "6.7.0-0"
 
 "@sinonjs/commons@^1.7.0":
   "integrity" "sha512-xkNcLAn/wZaX14RPlwizcKicDk9G3F8m2nU3L7Ukm5zBgTwiT0wsoFAHx9Jq56fJA1z/7uKGtCRu16sOUCLIHQ=="

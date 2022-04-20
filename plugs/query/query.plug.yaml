@@ -6,6 +6,10 @@ functions:
     command:
       name: "Materialized Queries: Update"
       key: "Alt-q"
+  whiteOutQueriesCommand:
+    path: ./materialized_queries.ts:whiteOutQueriesCommand
+    command:
+      name: "Debug: Whiteout Queries"
   indexData:
     path: ./data.ts:indexData
     events:

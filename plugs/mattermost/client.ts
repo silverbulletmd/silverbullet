@@ -1,11 +1,12 @@
 import { readPage } from "plugos-silverbullet-syscall/space";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
-import { UserProfile } from "@hmhealey/types/lib/users";
 import { json } from "plugos-syscall/fetch";
-import { Post } from "@hmhealey/types/lib/posts";
-import { Channel } from "@hmhealey/types/lib/channels";
-import { Team } from "@hmhealey/types/lib/teams";
+import type { UserProfile } from "@mattermost/types/lib/users";
+import type { Post } from "@mattermost/types/lib/posts";
+import type { Channel } from "@mattermost/types/lib/channels";
+import type { Team } from "@mattermost/types/lib/teams";
+import { niceDate } from "../core/dates";
 
 type MattermostConfig = {
   url: string;
@@ -18,6 +19,13 @@ async function getConfig(): Promise<MattermostConfig> {
   let pageMeta = await extractMeta(parsedContent);
   return pageMeta as MattermostConfig;
 }
+
+type AugmentedPost = Post & {
+  // Dates we can use to filter
+  createdAt: string;
+  updatedAt: string;
+  editedAt: string;
+};
 
 export class MattermostClient {
   userCache = new Map<string, UserProfile>();
@@ -77,7 +85,10 @@ export class MattermostClient {
     return team!;
   }
 
-  async getFlaggedPosts(userId: string, perPage: number = 10): Promise<Post[]> {
+  async getFlaggedPosts(
+    userId: string,
+    perPage: number = 10
+  ): Promise<AugmentedPost[]> {
     let postCollection = await json(
       `${this.url}/api/v4/users/${userId}/posts/flagged?per_page=${perPage}`,
       {
@@ -86,10 +97,24 @@ export class MattermostClient {
         },
       }
     );
-    let posts: Post[] = [];
+    let posts: AugmentedPost[] = [];
     for (let order of postCollection.order) {
-      posts.push(postCollection.posts[order]);
+      let post = postCollection.posts[order];
+      augmentPost(post);
+      posts.push(post);
     }
     return posts;
+  }
+}
+
+function augmentPost(post: AugmentedPost) {
+  if (post.create_at) {
+    post.createdAt = niceDate(new Date(post.create_at));
+  }
+  if (post.update_at) {
+    post.updatedAt = niceDate(new Date(post.update_at));
+  }
+  if (post.edit_at) {
+    post.editedAt = niceDate(new Date(post.edit_at));
   }
 }
