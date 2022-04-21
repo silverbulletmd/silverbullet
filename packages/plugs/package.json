@@ -1,0 +1,26 @@
+{
+  "name": "@silverbulletmd/plugs",
+  "version": "1.0.0",
+  "scripts": {
+    "generate": "lezer-generator query/query.grammar -o query/parse-query.js",
+    "watch": "plugos-bundle -w --dist dist */*.plug.yaml",
+    "build": "plugos-bundle --dist dist */*.plug.yaml"
+  },
+  "dependencies": {
+    "@jest/globals": "^27.5.1",
+    "@lezer/generator": "^0.15.4",
+    "@lezer/lr": "^0.15.8",
+    "@mattermost/client": "^6.7.0-0",
+    "@mattermost/types": "^6.7.0-0",
+    "@silverbulletmd/plugos": "workspace:*",
+    "@silverbulletmd/plugos-silverbullet-syscall": "workspace:*",
+    "@silverbulletmd/plugos-syscall": "workspace:*",
+    "@types/yaml": "^1.9.7",
+    "markdown-it": "^12.3.2",
+    "markdown-it-task-lists": "^2.1.1",
+    "yaml": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^12.2.3"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "silverbullet-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^18.0.4"
+  }
+}
