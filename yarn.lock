@@ -1859,6 +1859,7 @@ __metadata:
   resolution: "@silverbulletmd/plugos@workspace:packages/plugos"
   dependencies:
     "@jest/globals": ^27.5.1
+    "@lezer/lr": ^0.15.0
     "@parcel/optimizer-data-url": 2.3.2
     "@parcel/packager-raw-url": 2.3.2
     "@parcel/service-worker": 2.3.2
