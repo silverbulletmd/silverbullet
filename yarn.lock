@@ -1970,7 +1970,7 @@ __metadata:
     yaml: ^1.10.2
     yargs: ^17.3.1
   bin:
-    server: ./dist/server/server.js
+    silverbullet: ./dist/server.js
   languageName: unknown
   linkType: soft
 
