@@ -9,7 +9,7 @@ import {
   renderToText,
   replaceNodesMatching
 } from "./tree";
-import wikiMarkdownLang from "../silverbullet-webapp/parser";
+import wikiMarkdownLang from "@silverbulletmd/web/parser";
 
 const mdTest1 = `
 # Heading

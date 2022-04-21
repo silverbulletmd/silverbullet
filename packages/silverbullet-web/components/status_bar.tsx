@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import * as util from "../util";
+import * as util from "../../silverbullet-common/util";
 
 export function StatusBar({ editorView }: { editorView?: EditorView }) {
   let wordCount = 0,

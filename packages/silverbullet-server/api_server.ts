@@ -17,7 +17,7 @@ import { NodeCronHook } from "@silverbulletmd/plugos/hooks/node_cron";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { EventedSpacePrimitives } from "@silverbulletmd/common/spaces/evented_space_primitives";
 import { Space } from "@silverbulletmd/common/spaces/space";
-import { safeRun, throttle } from "@silverbulletmd/web/util";
+import { safeRun, throttle } from "@silverbulletmd/common/util";
 import { createSandbox } from "@silverbulletmd/plugos/environments/node_sandbox";
 import { jwtSyscalls } from "@silverbulletmd/plugos/syscalls/jwt";
 import { fetchSyscalls } from "@silverbulletmd/plugos/syscalls/fetch.node";

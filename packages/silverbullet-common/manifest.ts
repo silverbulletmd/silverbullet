@@ -2,8 +2,8 @@ import * as plugos from "../plugos/types";
 import { EndpointHookT } from "../plugos/hooks/endpoint";
 import { CronHookT } from "../plugos/hooks/node_cron";
 import { EventHookT } from "../plugos/hooks/event";
-import { CommandHookT } from "../silverbullet-webapp/hooks/command";
-import { SlashCommandHookT } from "../silverbullet-webapp/hooks/slash_command";
+import { CommandHookT } from "@silverbulletmd/web/hooks/command";
+import { SlashCommandHookT } from "@silverbulletmd/web/hooks/slash_command";
 
 export type SilverBulletHooks = CommandHookT &
   SlashCommandHookT &

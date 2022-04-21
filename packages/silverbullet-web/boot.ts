@@ -1,5 +1,5 @@
 import { Editor } from "./editor";
-import { safeRun } from "./util";
+import { safeRun } from "../silverbullet-common/util";
 import { Space } from "@silverbulletmd/common/spaces/space";
 import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
 

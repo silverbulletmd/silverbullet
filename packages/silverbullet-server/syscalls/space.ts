@@ -1,6 +1,6 @@
-import { PageMeta } from "../../common/types";
-import { SysCallMapping } from "../../plugos/system";
-import { Space } from "../../common/spaces/space";
+import { PageMeta } from "@silverbulletmd/common/types";
+import { SysCallMapping } from "@silverbulletmd/plugos/system";
+import { Space } from "@silverbulletmd/common/spaces/space";
 
 export default (space: Space): SysCallMapping => {
   return {

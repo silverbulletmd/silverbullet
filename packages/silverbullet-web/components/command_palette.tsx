@@ -1,4 +1,4 @@
-import { isMacLike } from "../util";
+import { isMacLike } from "../../silverbullet-common/util";
 import { FilterList } from "./filter";
 import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
 import { AppCommand } from "../hooks/command";

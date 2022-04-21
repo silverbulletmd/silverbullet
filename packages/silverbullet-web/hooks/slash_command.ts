@@ -2,7 +2,7 @@ import { Hook, Manifest } from "../../plugos/types";
 import { System } from "../../plugos/system";
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { slashCommandRegexp } from "../types";
-import { safeRun } from "../util";
+import { safeRun } from "../../silverbullet-common/util";
 import { Editor } from "../editor";
 
 export type SlashCommandDef = {

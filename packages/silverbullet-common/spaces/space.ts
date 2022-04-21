@@ -1,10 +1,10 @@
 import { SpacePrimitives } from "./space_primitives";
-import { safeRun } from "@silverbulletmd/web/util";
 import { PageMeta } from "../types";
 import { EventEmitter } from "../event";
 import { Plug } from "../../plugos/plug";
 import { Manifest } from "../manifest";
 import { plugPrefix, trashPrefix } from "./constants";
+import { safeRun } from "../util";
 
 const pageWatchInterval = 2000;
 

@@ -1,10 +1,11 @@
 {
-  "include": ["webapp/**/*", "server/**/*", "plugos/**/*", "plugs/**/*", "common/**/*"],
+  "include": ["packages/**/*"],
   "compilerOptions": {
     "target": "esnext",
     "strict": true,
     "moduleResolution": "node",
     "module": "esnext",
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,

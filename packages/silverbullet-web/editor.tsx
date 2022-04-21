@@ -37,7 +37,7 @@ import { indexerSyscalls } from "./syscalls";
 import { spaceSyscalls } from "./syscalls/space";
 import { Action, AppViewState, initialViewState } from "./types";
 import { SilverBulletHooks } from "@silverbulletmd/common/manifest";
-import { safeRun, throttle } from "./util";
+import { safeRun, throttle } from "../silverbullet-common/util";
 import { System } from "../plugos/system";
 import { EventHook } from "../plugos/hooks/event";
 import { systemSyscalls } from "./syscalls/system";
