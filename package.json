@@ -10,11 +10,12 @@
     "watch": "rm -rf .parcel-cache && parcel watch packages/{silverbullet-web,silverbullet-server,plugos}",
     "clean": "rm -rf .parcel-cache packages/*/dist",
     "build": "parcel build packages/{silverbullet-web,silverbullet-server,plugos}",
-    "plugs": "cd packages/plugs && yarn watch",
-    "server": "cd packages/silverbullet-server && yarn start",
+    "plugs": "cd packages/plugs && npm run watch",
+    "server": "cd packages/silverbullet-server && npm start",
     "test": "jest packages/*/dist/test"
   },
   "devDependencies": {
+    "@parcel/core": "2.3.2",
     "@parcel/packager-raw-url": "2.3.2",
     "@parcel/service-worker": "2.3.2",
     "@parcel/transformer-inline-string": "2.3.2",
@@ -27,6 +28,5 @@
   },
   "workspaces": [
     "packages/*"
-  ],
-  "packageManager": "yarn@3.2.0"
+  ]
 }
