@@ -20,7 +20,6 @@ import { Space } from "@silverbulletmd/common/spaces/space";
 import { safeRun, throttle } from "@silverbulletmd/common/util";
 import { createSandbox } from "@silverbulletmd/plugos/environments/node_sandbox";
 import { jwtSyscalls } from "@silverbulletmd/plugos/syscalls/jwt";
-import { fetchSyscalls } from "@silverbulletmd/plugos/syscalls/fetch.node";
 import buildMarkdown from "@silverbulletmd/web/parser";
 import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
 
@@ -69,7 +68,6 @@ export class ExpressServer {
     system.registerSyscalls([], spaceSyscalls(this.space));
     system.registerSyscalls([], eventSyscalls(this.eventHook));
     system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
-    system.registerSyscalls([], fetchSyscalls());
     system.registerSyscalls([], jwtSyscalls());
     system.addHook(new EndpointHook(app, "/_/"));
 

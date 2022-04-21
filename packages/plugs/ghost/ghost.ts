@@ -1,5 +1,4 @@
 import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { json } from "@silverbulletmd/plugos-syscall/fetch";
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 import { getCurrentPage, getText } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { cleanMarkdown } from "../markdown/util";
@@ -85,7 +84,7 @@ class GhostAdmin {
   }
 
   async listPosts(): Promise<Post[]> {
-    let result = await json(
+    let result = await fetch(
       `${this.url}/ghost/api/v3/admin/posts?order=published_at+DESC`,
       {
         headers: {
@@ -94,7 +93,7 @@ class GhostAdmin {
       }
     );
 
-    return result.posts;
+    return (await result.json()).posts;
   }
 
   async listMarkdownPosts(): Promise<Post[]> {
@@ -117,7 +116,7 @@ class GhostAdmin {
   }
 
   async publish(what: "pages" | "posts", post: Partial<Post>): Promise<any> {
-    let oldPostQuery = await json(
+    let oldPostQueryR = await fetch(
       `${this.url}/ghost/api/v3/admin/${what}/slug/${post.slug}`,
       {
         headers: {
@@ -126,12 +125,13 @@ class GhostAdmin {
         },
       }
     );
+    let oldPostQuery = await oldPostQueryR.json();
     if (!oldPostQuery[what]) {
       // New!
       if (!post.status) {
         post.status = "draft";
       }
-      let result = await json(`${this.url}/ghost/api/v3/admin/${what}`, {
+      let result = await fetch(`${this.url}/ghost/api/v3/admin/${what}`, {
         method: "POST",
         headers: {
           Authorization: `Ghost ${this.token}`,
@@ -141,11 +141,11 @@ class GhostAdmin {
           [what]: [post],
         }),
       });
-      return result[what][0];
+      return (await result.json())[what][0];
     } else {
       let oldPost: Post = oldPostQuery[what][0];
       post.updated_at = oldPost.updated_at;
-      let result = await json(
+      let result = await fetch(
         `${this.url}/ghost/api/v3/admin/${what}/${oldPost.id}`,
         {
           method: "PUT",
@@ -158,7 +158,7 @@ class GhostAdmin {
           }),
         }
       );
-      return result[what][0];
+      return (await result.json())[what][0];
     }
   }
 }

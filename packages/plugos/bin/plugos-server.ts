@@ -11,7 +11,6 @@ import { EndpointHook, EndpointHookT } from "../hooks/endpoint";
 import { safeRun } from "../util";
 import knex from "knex";
 import { ensureTable, storeSyscalls } from "../syscalls/store.knex_node";
-import { fetchSyscalls } from "../syscalls/fetch.node";
 import { EventHook, EventHookT } from "../hooks/event";
 import { eventSyscalls } from "../syscalls/event";
 
@@ -54,7 +53,6 @@ safeRun(async () => {
   system.registerSyscalls([], eventSyscalls(eventHook));
   system.addHook(new EndpointHook(app, ""));
   system.registerSyscalls([], shellSyscalls("."));
-  system.registerSyscalls([], fetchSyscalls());
   system.registerSyscalls([], storeSyscalls(db, "item"));
   app.listen(args.port, () => {
     console.log(`Plugbox server listening on port ${args.port}`);
