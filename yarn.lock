@@ -2003,6 +2003,7 @@ __metadata:
     "@parcel/transformer-sass": 2.3.2
     "@parcel/transformer-webmanifest": 2.3.2
     "@parcel/validator-typescript": 2.3.2
+    "@silverbulletmd/common": "workspace:*"
     "@types/cors": ^2.8.12
     "@types/events": ^3.0.0
     "@types/jest": ^27.4.1
