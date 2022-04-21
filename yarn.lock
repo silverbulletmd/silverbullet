@@ -503,7 +503,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/lang-html@npm:^0.19.0":
+"@codemirror/lang-html@npm:^0.19.0, @codemirror/lang-html@npm:^0.19.4":
   version: 0.19.4
   resolution: "@codemirror/lang-html@npm:0.19.4"
   dependencies:
@@ -1988,6 +1988,7 @@ __metadata:
     "@codemirror/commands": ^0.19.8
     "@codemirror/highlight": ^0.19.0
     "@codemirror/history": ^0.19.2
+    "@codemirror/lang-html": ^0.19.4
     "@codemirror/lang-javascript": ^0.19.7
     "@codemirror/lang-markdown": ^0.19.6
     "@codemirror/language": ^0.19.0
@@ -2010,6 +2011,7 @@ __metadata:
     "@parcel/transformer-webmanifest": 2.3.2
     "@parcel/validator-typescript": 2.3.2
     "@silverbulletmd/common": "workspace:*"
+    "@silverbulletmd/plugos": "workspace:*"
     "@types/cors": ^2.8.12
     "@types/events": ^3.0.0
     "@types/jest": ^27.4.1

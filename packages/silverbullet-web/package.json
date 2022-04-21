@@ -24,6 +24,7 @@
     "@codemirror/commands": "^0.19.8",
     "@codemirror/highlight": "^0.19.0",
     "@codemirror/history": "^0.19.2",
+    "@codemirror/lang-html": "^0.19.4",
     "@codemirror/lang-javascript": "^0.19.7",
     "@codemirror/lang-markdown": "^0.19.6",
     "@codemirror/language": "^0.19.0",
