@@ -10,7 +10,7 @@ import bodyParser from "body-parser";
 import { EventHook } from "@silverbulletmd/plugos/hooks/event";
 import spaceSyscalls from "./syscalls/space";
 import { eventSyscalls } from "@silverbulletmd/plugos/syscalls/event";
-import { pageIndexSyscalls } from "./syscalls";
+import { ensurePageIndexTable, pageIndexSyscalls } from "./syscalls";
 import knex, { Knex } from "knex";
 import shellSyscalls from "@silverbulletmd/plugos/syscalls/shell.node";
 import { NodeCronHook } from "@silverbulletmd/plugos/hooks/node_cron";
@@ -108,6 +108,7 @@ export class ExpressServer {
   }
 
   async init() {
+    await ensurePageIndexTable(this.db);
     console.log("Setting up router");
 
     let fsRouter = express.Router();
