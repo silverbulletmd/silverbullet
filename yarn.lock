@@ -414,6 +414,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/autocomplete@npm:^0.19.1":
+  version: 0.19.15
+  resolution: "@codemirror/autocomplete@npm:0.19.15"
+  dependencies:
+    "@codemirror/language": ^0.19.0
+    "@codemirror/state": ^0.19.4
+    "@codemirror/text": ^0.19.2
+    "@codemirror/tooltip": ^0.19.12
+    "@codemirror/view": ^0.19.0
+    "@lezer/common": ^0.15.0
+  checksum: 9c64df9f76095fed28a1cb6ee4b012d67aa21af9a00235a23825307895a85ffaa78905b2072c6ca12e2355b073cb52c1bf2355ea7419fdf2906b80e8706c6d1e
+  languageName: node
+  linkType: hard
+
 "@codemirror/closebrackets@npm:^0.19.1":
   version: 0.19.1
   resolution: "@codemirror/closebrackets@npm:0.19.1"
@@ -424,15 +438,6 @@ __metadata:
     "@codemirror/text": ^0.19.0
     "@codemirror/view": ^0.19.44
   checksum: 2c1545b73eda2748dae9cbf8a60aaff20d17fae3f17edc529d4db60c51de02e182d283d4aa8836f497ef2c06cc9da0d9373ee03d3653e1cd292bcbed13aaba5d
-  languageName: node
-  linkType: hard
-
-"@codemirror/collab@npm:^0.19.0":
-  version: 0.19.0
-  resolution: "@codemirror/collab@npm:0.19.0"
-  dependencies:
-    "@codemirror/state": ^0.19.0
-  checksum: 6fbcb46640cc117602f808af2c7dbf091443d8d9a20e80dab52563740fdb56feff10423fe4a1fe6862e91b529901dc74c37d54f32937dd257d0da167cc180156
   languageName: node
   linkType: hard
 
@@ -1978,8 +1983,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@silverbulletmd/web@workspace:packages/silverbullet-web"
   dependencies:
+    "@codemirror/autocomplete": ^0.19.1
     "@codemirror/closebrackets": ^0.19.1
-    "@codemirror/collab": ^0.19.0
     "@codemirror/commands": ^0.19.8
     "@codemirror/highlight": ^0.19.0
     "@codemirror/history": ^0.19.2
