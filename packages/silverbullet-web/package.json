@@ -40,6 +40,7 @@
     "@jest/globals": "^27.5.1",
     "@lezer/markdown": "^0.15.0",
     "@silverbulletmd/common": "workspace:*",
+    "@silverbulletmd/plugos": "workspace:*",
     "fake-indexeddb": "^3.1.7",
     "jest": "^27.5.1",
     "knex": "^1.0.4",

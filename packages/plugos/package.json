@@ -12,9 +12,6 @@
     "clean": "rm -rf dist",
     "test": "jest dist/test"
   },
-  "files": [
-    "dist"
-  ],
   "targets": {
     "plugos": {
       "source": [
