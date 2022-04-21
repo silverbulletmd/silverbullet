@@ -43,3 +43,28 @@ export function removeQueries(pt: ParseTree) {
     return true;
   });
 }
+
+// Nicely format an array of JSON objects as a Markdown table
+export function jsonToMDTable(
+  jsonArray: any[],
+  valueTransformer?: (k: string, v: any) => string | undefined
+): string {
+  let headers = new Set<string>();
+  for (let entry of jsonArray) {
+    for (let k of Object.keys(entry)) {
+      headers.add(k);
+    }
+  }
+  let headerList = [...headers];
+  let lines = [];
+  lines.push("|" + headerList.join("|") + "|");
+  lines.push("|" + headerList.map((title) => "----").join("|") + "|");
+  for (const val of jsonArray) {
+    let el = [];
+    for (let prop of headerList) {
+      el.push(valueTransformer ? valueTransformer(prop, val[prop]) : val[prop]);
+    }
+    lines.push("|" + el.join("|") + "|");
+  }
+  return lines.join("\n");
+}

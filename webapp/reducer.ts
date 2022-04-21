@@ -44,8 +44,18 @@ export default function reducer(
         allPages: action.pages,
       };
     case "show-palette":
+      let commands = new Map(state.commands);
+      for (let [k, v] of state.commands.entries()) {
+        if (
+          v.command.contexts &&
+          (!action.context || !v.command.contexts.includes(action.context))
+        ) {
+          commands.delete(k);
+        }
+      }
       return {
         ...state,
+        commands,
         showCommandPalette: true,
       };
     case "hide-palette":
@@ -99,6 +109,7 @@ export default function reducer(
         filterBoxOnSelect: action.onSelect,
         filterBoxPlaceHolder: action.placeHolder,
         filterBoxOptions: action.options,
+        filterBoxLabel: action.label,
         filterBoxHelpText: action.helpText,
       };
     case "hide-filterbox":

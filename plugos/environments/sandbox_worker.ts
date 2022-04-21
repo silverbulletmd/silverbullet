@@ -48,7 +48,7 @@ const preloadedModules: { [key: string]: any } = {
 
 // @ts-ignore
 self.require = (moduleName: string): any => {
-  console.log("Loading", moduleName, preloadedModules[moduleName]);
+  // console.log("Loading", moduleName, preloadedModules[moduleName]);
   return preloadedModules[moduleName];
 };
 

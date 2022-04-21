@@ -3,7 +3,8 @@ import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
-  scanPrefixGlobal
+  scanPrefixGlobal,
+  set
 } from "plugos-silverbullet-syscall/index";
 import {
   flashNotification,
@@ -27,11 +28,22 @@ import {
 } from "../../common/tree";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { PageMeta } from "../../common/types";
+import { extractMeta } from "../query/data";
+import { jsonToMDTable } from "../query/util";
+
+// Key space:
+//   pl:toPage:pos => pageName
+//   meta => metaJson
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   let backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   console.log("Now indexing", name);
+  let pageMeta = extractMeta(tree);
+  if (Object.keys(pageMeta).length > 0) {
+    await set(name, "meta:", pageMeta);
+  }
+
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
     if (toPage.includes("@")) {
@@ -50,10 +62,27 @@ export async function pageQueryProvider({
   query,
 }: QueryProviderEvent): Promise<string> {
   let allPages = await listPages();
-  let markdownPages = applyQuery(query, allPages).map(
-    (pageMeta: PageMeta) => `* [[${pageMeta.name}]]`
-  );
-  return markdownPages.join("\n");
+  if (query.select) {
+    let allPageMap: Map<string, any> = new Map(
+      allPages.map((pm) => [pm.name, pm])
+    );
+    for (let { page, value } of await scanPrefixGlobal("meta:")) {
+      let p = allPageMap.get(page);
+      if (p) {
+        for (let [k, v] of Object.entries(value)) {
+          p[k] = v;
+        }
+      }
+    }
+    allPages = [...allPageMap.values()];
+    return jsonToMDTable(applyQuery(query, allPages), (k, v) =>
+      k === "name" ? `[[${v}]]` : v
+    );
+  } else {
+    return applyQuery(query, allPages)
+      .map((pageMeta: PageMeta) => `* [[${pageMeta.name}]]`)
+      .join("\n");
+  }
 }
 
 export async function linkQueryProvider({

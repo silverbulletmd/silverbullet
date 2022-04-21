@@ -1,10 +1,9 @@
 import { listPages, readPage, writePage } from "plugos-silverbullet-syscall/space";
-import { filterBox, getCurrentPage, getText, navigate, prompt } from "plugos-silverbullet-syscall/editor";
+import { filterBox, navigate, prompt } from "plugos-silverbullet-syscall/editor";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 import { renderToText } from "../../common/tree";
 import { niceDate } from "./dates";
-import { invokeFunction } from "plugos-silverbullet-syscall/system";
 
 const pageTemplatePrefix = `template/page/`;
 
@@ -35,26 +34,9 @@ export async function instantiateTemplateCommand() {
   if (!pageName) {
     return;
   }
-  await invokeFunction(
-    "server",
-    "instantiateTemplate",
-    pageName,
-    renderToText(parseTree)
-  );
-  // let pageText = replaceTemplateVars(, pageName);
-  // await writePage(pageName, pageText);
-  await navigate(pageName);
-}
-
-export async function instantiateTemplate(pageName: string, text: string) {
-  let pageText = replaceTemplateVars(text, pageName);
+  let pageText = replaceTemplateVars(renderToText(parseTree), pageName);
   await writePage(pageName, pageText);
-}
-
-export async function replaceTemplateVarsCommand() {
-  let currentPage = await getCurrentPage();
-  let text = await getText();
-  await invokeFunction("server", "instantiateTemplate", currentPage, text);
+  await navigate(pageName);
 }
 
 export function replaceTemplateVars(s: string, pageName: string): string {

@@ -5,6 +5,8 @@ import { EventEmitter } from "../../common/event";
 export type CommandDef = {
   name: string;
 
+  contexts?: string[];
+
   // Bind to keyboard shortcut
   key?: string;
   mac?: string;

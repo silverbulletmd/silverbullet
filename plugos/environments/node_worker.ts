@@ -1,9 +1,9 @@
 import { preloadModules } from "../../common/preload_modules";
 
 const { parentPort, workerData } = require("worker_threads");
-// @ts-ignore
-let vm2 = `${workerData}/vm2`;
-const { VM, VMScript } = require(vm2);
+const { VM, VMScript } = require(`${workerData}/vm2`);
+const fetch = require(`${workerData}/node-fetch`);
+const WebSocket = require(`${workerData}/ws`);
 
 // console.log("Process env", process.env);
 
@@ -20,11 +20,16 @@ let syscallReqId = 0;
 
 let vm = new VM({
   sandbox: {
+    // Exposing some "safe" APIs
     console,
     setTimeout,
     clearTimeout,
     setInterval,
     clearInterval,
+    fetch,
+    WebSocket,
+    // This is only going to be called for pre-bundled modules, we won't allow
+    // arbitrary requiring of modules
     require: (moduleName: string): any => {
       // console.log("Loading", moduleName);
       if (preloadModules.includes(moduleName)) {
@@ -97,12 +102,6 @@ parentPort.on("message", (data: any) => {
         let syscallId = data.id;
         const lookup = pendingRequests.get(syscallId);
         if (!lookup) {
-          console.log(
-            "Current outstanding requests",
-            pendingRequests,
-            "looking up",
-            syscallId
-          );
           throw Error("Invalid request id");
         }
         pendingRequests.delete(syscallId);

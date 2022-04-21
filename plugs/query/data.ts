@@ -4,12 +4,15 @@
 import { IndexTreeEvent } from "../../webapp/app_event";
 import { batchSet, scanPrefixGlobal } from "plugos-silverbullet-syscall";
 import { collectNodesOfType, findNodeOfType, ParseTree, replaceNodesMatching } from "../../common/tree";
-import YAML, { parse as parseYaml, parseAllDocuments } from "yaml";
+import { parse as parseYaml, parseAllDocuments } from "yaml";
 import type { QueryProviderEvent } from "./engine";
 import { applyQuery } from "./engine";
+import { jsonToMDTable, removeQueries } from "./util";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   let dataObjects: { key: string; value: Object }[] = [];
+
+  removeQueries(tree);
 
   collectNodesOfType(tree, "FencedCode").forEach((t) => {
     let codeInfoNode = findNodeOfType(t, "CodeInfo");
@@ -85,8 +88,6 @@ export async function queryProvider({
       pos: +pos,
     });
   }
-  let markdownData = applyQuery(query, allData).map((item) =>
-    YAML.stringify(item)
-  );
-  return `\`\`\`data\n${markdownData.join("---\n")}\`\`\``;
+  let resultData = applyQuery(query, allData);
+  return jsonToMDTable(resultData);
 }

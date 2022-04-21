@@ -15,4 +15,5 @@ export const
   Null = 13,
   OrderClause = 14,
   Order = 15,
-  LimitClause = 16
+  LimitClause = 16,
+  SelectClause = 17

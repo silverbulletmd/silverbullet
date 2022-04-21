@@ -41,6 +41,12 @@ test("Test parser", () => {
     prop: "something",
     value: null,
   });
+
+  expect(parseQuery(`page select name`).select).toStrictEqual(["name"]);
+  expect(parseQuery(`page select name, age`).select).toStrictEqual([
+    "name",
+    "age",
+  ]);
 });
 
 test("Test performing the queries", () => {
@@ -83,4 +89,7 @@ test("Test performing the queries", () => {
   expect(
     applyQuery(parseQuery(`page where age > 28 and age < 38`), data)
   ).toStrictEqual([]);
+  expect(
+    applyQuery(parseQuery(`page where age > 30 select name`), data)
+  ).toStrictEqual([{ name: "Pete" }]);
 });

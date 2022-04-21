@@ -23,6 +23,7 @@ export type AppViewState = {
   notifications: Notification[];
 
   showFilterBox: boolean;
+  filterBoxLabel: string;
   filterBoxPlaceHolder: string;
   filterBoxOptions: FilterOption[];
   filterBoxHelpText: string;
@@ -42,6 +43,7 @@ export const initialViewState: AppViewState = {
   notifications: [],
   showFilterBox: false,
   filterBoxHelpText: "",
+  filterBoxLabel: "",
   filterBoxOnSelect: () => {},
   filterBoxOptions: [],
   filterBoxPlaceHolder: "",
@@ -55,7 +57,7 @@ export type Action =
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | { type: "update-commands"; commands: Map<string, AppCommand> }
-  | { type: "show-palette" }
+  | { type: "show-palette"; context?: string }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
@@ -68,6 +70,7 @@ export type Action =
       options: FilterOption[];
       placeHolder: string;
       helpText: string;
+      label: string;
       onSelect: (option: FilterOption | undefined) => void;
     }
   | { type: "hide-filterbox" };

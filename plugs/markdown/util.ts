@@ -1,4 +1,4 @@
-import { renderToText, replaceNodesMatching } from "../../common/tree";
+import { findNodeOfType, renderToText, replaceNodesMatching } from "../../common/tree";
 import { parseMarkdown } from "plugos-silverbullet-syscall/markdown";
 
 export function encodePageUrl(name: string): string {
@@ -18,6 +18,15 @@ export async function cleanMarkdown(text: string): Promise<string> {
     // Simply get rid of these
     if (n.type === "CommentBlock" || n.type === "Comment") {
       return null;
+    }
+    if (n.type === "FencedCode") {
+      let codeInfoNode = findNodeOfType(n, "CodeInfo");
+      if (!codeInfoNode) {
+        return;
+      }
+      if (codeInfoNode.children![0].text === "meta") {
+        return null;
+      }
     }
   });
   return renderToText(mdTree);

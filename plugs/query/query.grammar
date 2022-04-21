@@ -3,12 +3,15 @@
 @top Program { Query }
 
 Query {
-    Name (WhereClause | OrderClause  | LimitClause)*
+    Name ( WhereClause | OrderClause  | LimitClause | SelectClause )*
 }
+
+commaSep<content> { content ("," content)* }
 
 WhereClause { "where" LogicalExpr }
 OrderClause { "order" "by" Name Order? }
 LimitClause { "limit" Number }
+SelectClause { "select" commaSep<Name> }
 
 Order {
   "desc" | "asc"
@@ -32,6 +35,8 @@ FilterExpr {
 }
 
 @skip { space }
+
+
 
 Bool {
   "true" | "false"

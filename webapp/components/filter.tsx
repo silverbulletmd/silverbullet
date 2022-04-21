@@ -168,7 +168,7 @@ export function FilterList({
                 break;
               case " ":
                 if (completePrefix && !text) {
-                  setText(completePrefix);
+                  updateFilter(completePrefix);
                   e.preventDefault();
                 }
                 break;

@@ -30,4 +30,17 @@ functions:
     path: ./task.ts:queryProvider
     events:
       - query:task
-
+  taskToggleCommand:
+    path: ./task.ts:taskToggleCommand
+    command:
+      name: "Task: Toggle"
+      key: Alt-t
+      contexts:
+        - Task
+  taskPostponeCommand:
+    path: ./task.ts:postponeCommand
+    command:
+      name: "Task: Postpone by 1 day"
+      key: Alt-+
+      contexts:
+        - DeadlineDate

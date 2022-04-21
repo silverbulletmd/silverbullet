@@ -21,6 +21,7 @@ export type ParsedQuery = {
   orderDesc?: boolean;
   limit?: number;
   filter: Filter[];
+  select?: string[];
 };
 
 export function parseQuery(query: string): ParsedQuery {
@@ -90,6 +91,17 @@ export function parseQuery(query: string): ParsedQuery {
     };
     parsedQuery.filter.push(f);
   }
+  let selectNode = findNodeOfType(queryNode, "SelectClause");
+  if (selectNode) {
+    console.log("Select node", JSON.stringify(selectNode));
+    parsedQuery.select = [];
+    collectNodesOfType(selectNode, "Name").forEach((t) => {
+      parsedQuery.select!.push(t.children![0].text!);
+    });
+    // let nameNode = findNodeOfType(selectNode, "Number");
+    // parsedQuery.limit = +nameNode!.children![0].text!;
+  }
+
   // console.log(JSON.stringify(queryNode, null, 2));
   return parsedQuery;
 }
@@ -167,6 +179,15 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
   }
   if (parsedQuery.limit) {
     resultRecords = resultRecords.slice(0, parsedQuery.limit);
+  }
+  if (parsedQuery.select) {
+    resultRecords = resultRecords.map((rec) => {
+      let newRec: any = {};
+      for (let k of parsedQuery.select!) {
+        newRec[k] = rec[k];
+      }
+      return newRec;
+    });
   }
   return resultRecords;
 }

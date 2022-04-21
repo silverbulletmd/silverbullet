@@ -103,14 +103,3 @@ functions:
     path: ./template.ts:instantiateTemplateCommand
     command:
       name: "Template: Instantiate for Page"
-
-  instantiateTemplate:
-    path: ./template.ts:instantiateTemplate
-    env: server
-
-
-
-  replaceTemplateVarsCommand:
-    path: ./template.ts:replaceTemplateVarsCommand
-    command:
-      name: "Template: Replace Variables"

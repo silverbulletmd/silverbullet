@@ -51,6 +51,7 @@ import { StatusBar } from "./components/status_bar";
 import { loadMarkdownExtensions, MDExt } from "./markdown_ext";
 import { FilterList } from "./components/filter";
 import { FilterOption } from "../common/types";
+import { syntaxTree } from "@codemirror/language";
 
 class PageState {
   scrollTop: number;
@@ -252,6 +253,7 @@ export class Editor {
     return new Promise((resolve) => {
       this.viewDispatch({
         type: "show-filterbox",
+        label,
         options,
         placeHolder,
         helpText,
@@ -276,6 +278,12 @@ export class Editor {
           key: def.command.key,
           mac: def.command.mac,
           run: (): boolean => {
+            if (def.command.contexts) {
+              let context = this.getContext();
+              if (!context || !def.command.contexts.includes(context)) {
+                return false;
+              }
+            }
             Promise.resolve()
               .then(def.run)
               .catch((e: any) => {
@@ -361,8 +369,10 @@ export class Editor {
             key: "Ctrl-/",
             mac: "Cmd-/",
             run: (): boolean => {
+              let context = this.getContext();
               this.viewDispatch({
                 type: "show-palette",
+                context,
               });
               return true;
             },
@@ -436,6 +446,7 @@ export class Editor {
       if (editorView.contentDOM) {
         editorView.contentDOM.spellcheck = true;
       }
+      editorView.focus();
     }
   }
 
@@ -580,7 +591,7 @@ export class Editor {
         )}
         {viewState.showFilterBox && (
           <FilterList
-            label={viewState.filterBoxPlaceHolder}
+            label={viewState.filterBoxLabel}
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
             allowNew={false}
@@ -624,5 +635,14 @@ export class Editor {
   render(container: ReactDOM.Container) {
     const ViewComponent = this.ViewComponent.bind(this);
     ReactDOM.render(<ViewComponent />, container);
+  }
+
+  private getContext(): string | undefined {
+    let state = this.editorView!.state;
+    let selection = state.selection.main;
+    if (selection.empty) {
+      return syntaxTree(state).resolveInner(selection.from).name;
+    }
+    return;
   }
 }
