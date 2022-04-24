@@ -5,7 +5,7 @@ import * as ct from "./customtags";
 import { Language, LanguageDescription, LanguageSupport } from "@codemirror/language";
 import { StreamLanguage } from "@codemirror/stream-parser";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
-import { javascriptLanguage } from "@codemirror/lang-javascript";
+import { javascriptLanguage, typescriptLanguage } from "@codemirror/lang-javascript";
 import { MDExt, mdExtensionStyleTags, mdExtensionSyntaxConfig } from "./markdown_ext";
 
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
@@ -87,6 +87,11 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
             alias: ["js"],
             support: new LanguageSupport(javascriptLanguage),
           }),
+          LanguageDescription.of({
+            name: "typescript",
+            alias: ["ts"],
+            support: new LanguageSupport(typescriptLanguage),
+          }),
         ]),
       }),
       {
@@ -101,6 +106,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
               t.processingInstruction,
             "TableHeader/...": t.heading,
             TableCell: t.content,
+            CodeInfo: ct.CodeInfoTag,
           }),
           ...mdExtensions.map((mdExt) =>
             styleTags(mdExtensionStyleTags(mdExt))

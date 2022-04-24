@@ -31,6 +31,13 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.getCurrentPage": (): string => {
       return editor.currentPage!;
     },
+    // sets the current page name, without changing the content
+    "editor.setPage": (ctx, newName: string) => {
+      return editor.viewDispatch({
+        type: "page-loaded",
+        name: newName,
+      });
+    },
     "editor.getText": () => {
       return editor.editorView?.state.sliceDoc();
     },

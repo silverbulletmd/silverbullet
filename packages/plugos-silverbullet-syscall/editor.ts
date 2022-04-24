@@ -5,6 +5,10 @@ export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");
 }
 
+export function setPage(newName: string): Promise<void> {
+  return syscall("editor.setPage", newName);
+}
+
 export function getText(): Promise<string> {
   return syscall("editor.getText");
 }

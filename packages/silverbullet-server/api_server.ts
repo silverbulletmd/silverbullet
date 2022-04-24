@@ -22,6 +22,7 @@ import { createSandbox } from "@silverbulletmd/plugos/environments/node_sandbox"
 import { jwtSyscalls } from "@silverbulletmd/plugos/syscalls/jwt";
 import buildMarkdown from "@silverbulletmd/web/parser";
 import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
+import http, { Server } from "http";
 
 export class ExpressServer {
   app: Express;
@@ -31,21 +32,19 @@ export class ExpressServer {
   private distDir: string;
   private eventHook: EventHook;
   private db: Knex<any, unknown[]>;
+  private port: number;
+  private server?: Server;
 
-  constructor(
-    app: Express,
-    rootPath: string,
-    distDir: string,
-    system: System<SilverBulletHooks>
-  ) {
-    this.app = app;
+  constructor(port: number, rootPath: string, distDir: string) {
+    this.port = port;
+    this.app = express();
     this.rootPath = rootPath;
     this.distDir = distDir;
-    this.system = system;
+    this.system = new System<SilverBulletHooks>("server");
 
     // Setup system
     this.eventHook = new EventHook();
-    system.addHook(this.eventHook);
+    this.system.addHook(this.eventHook);
     this.space = new Space(
       new EventedSpacePrimitives(
         new DiskSpacePrimitives(rootPath),
@@ -61,15 +60,15 @@ export class ExpressServer {
       useNullAsDefault: true,
     });
 
-    system.registerSyscalls(["shell"], shellSyscalls(rootPath));
-    system.addHook(new NodeCronHook());
+    this.system.registerSyscalls(["shell"], shellSyscalls(rootPath));
+    this.system.addHook(new NodeCronHook());
 
-    system.registerSyscalls([], pageIndexSyscalls(this.db));
-    system.registerSyscalls([], spaceSyscalls(this.space));
-    system.registerSyscalls([], eventSyscalls(this.eventHook));
-    system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
-    system.registerSyscalls([], jwtSyscalls());
-    system.addHook(new EndpointHook(app, "/_/"));
+    this.system.registerSyscalls([], pageIndexSyscalls(this.db));
+    this.system.registerSyscalls([], spaceSyscalls(this.space));
+    this.system.registerSyscalls([], eventSyscalls(this.eventHook));
+    this.system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
+    this.system.registerSyscalls([], jwtSyscalls());
+    this.system.addHook(new EndpointHook(this.app, "/_/"));
 
     let throttledRebuildMdExtensions = throttle(() => {
       this.rebuildMdExtensions();
@@ -79,14 +78,14 @@ export class ExpressServer {
       plugLoaded: (plugName, plug) => {
         safeRun(async () => {
           console.log("Plug load", plugName);
-          await system.load(plugName, plug, createSandbox);
+          await this.system.load(plugName, plug, createSandbox);
         });
         throttledRebuildMdExtensions();
       },
       plugUnloaded: (plugName) => {
         safeRun(async () => {
           console.log("Plug unload", plugName);
-          await system.unload(plugName);
+          await this.system.unload(plugName);
         });
         throttledRebuildMdExtensions();
       },
@@ -105,9 +104,11 @@ export class ExpressServer {
     );
   }
 
-  async init() {
+  async start() {
     await ensurePageIndexTable(this.db);
     console.log("Setting up router");
+
+    this.app.use("/", express.static(this.distDir));
 
     let fsRouter = express.Router();
 
@@ -267,5 +268,29 @@ export class ExpressServer {
       }
       res.status(200).header("Content-Type", "text/html").send(cachedIndex);
     });
+
+    this.server = http.createServer(this.app);
+    this.server.listen(this.port, () => {
+      console.log(`Server listening on port ${this.port}`);
+    });
+  }
+
+  async stop() {
+    if (this.server) {
+      console.log("Stopping");
+      await this.system.unloadAll();
+      console.log("Stopped plugs");
+      return new Promise<void>((resolve, reject) => {
+        this.server!.close((err) => {
+          this.server = undefined;
+          console.log("stopped server");
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    }
   }
 }

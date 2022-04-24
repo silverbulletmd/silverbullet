@@ -87,6 +87,38 @@
     .code {
       background-color: transparent;
     }
+
+    // Set this to defaults
+    .comment {
+      color: #989797;
+      background-color: transparent;
+      border-radius: 0;
+      font-style: inherit;
+      font-size: inherit;
+      line-height: inherit;
+    }
+
+    .keyword {
+      color: #830000;
+    }
+
+    .variableName {
+      color: #036d9b;
+    }
+
+    .typeName {
+      color: #038138;
+    }
+
+    .string,.string2 {
+      color: #440377;
+    }
+
+    //.code-info {
+    //  background: black;
+    //  border-radius: 3px;
+    //}
+
   }
 
   .meta {

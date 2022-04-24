@@ -9,10 +9,7 @@ import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_pr
 // @ts-ignore
 let isDesktop = typeof window.desktop !== "undefined";
 
-// @ts-ignore
-let url = isDesktop ? window.desktop.url : "";
-
-let serverSpace = new Space(new HttpSpacePrimitives(url), true);
+let serverSpace = new Space(new HttpSpacePrimitives(""), true);
 serverSpace.watch();
 
 // // @ts-ignore
@@ -46,6 +43,6 @@ if (!isDesktop) {
   navigator.serviceWorker
     .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
     .then((r) => {
-      // console.log("Service worker registered", r);
+      console.log("Service worker registered", r);
     });
 }

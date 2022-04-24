@@ -7,6 +7,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   private plugUrl: string;
 
   constructor(url: string) {
+    console.log("UR", url);
     this.pageUrl = url + "/fs";
     this.plugUrl = url + "/plug";
   }

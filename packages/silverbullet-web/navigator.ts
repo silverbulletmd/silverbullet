@@ -46,13 +46,24 @@ export class PathPageNavigator {
     cb();
   }
 
+  decodeURI(): [string, number] {
+    let parts = decodeURI(location.pathname).substring(1).split("@");
+    let page =
+      parts.length > 1 ? parts.slice(0, parts.length - 1).join("@") : parts[0];
+    let pos = parts.length > 1 ? parts[parts.length - 1] : "0";
+    if (pos.match(/^\d+$/)) {
+      return [page, +pos];
+    } else {
+      return [`${page}@${pos}`, 0];
+    }
+  }
+
   getCurrentPage(): string {
-    let [page] = decodeURI(location.pathname).substring(1).split("@");
-    return decodePageUrl(page);
+    return decodePageUrl(this.decodeURI()[0]);
   }
 
   getCurrentPos(): number {
-    let [, pos] = decodeURI(location.pathname).substring(1).split("@");
-    return +pos || 0;
+    console.log("Pos", this.decodeURI()[1]);
+    return this.decodeURI()[1];
   }
 }
