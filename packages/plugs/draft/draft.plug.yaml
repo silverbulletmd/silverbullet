@@ -1,5 +1,0 @@
-functions:
-  toggleDraftMode:
-    path: "./draft.ts:toggleMode"
-    command:
-      name: "Draft: Toggle Mode"

@@ -1,16 +1,15 @@
 import { Editor } from "./editor";
-import { safeRun } from "../common/util";
+import { safeRun } from "@silverbulletmd/common/util";
 import { Space } from "@silverbulletmd/common/spaces/space";
 import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
 
 // let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
 // localSpace.watch();
 
-// @ts-ignore
-let isDesktop = typeof window.desktop !== "undefined";
-
 let serverSpace = new Space(new HttpSpacePrimitives(""), true);
 serverSpace.watch();
+
+console.log("Booting...");
 
 // // @ts-ignore
 // window.syncer = async () => {
@@ -39,10 +38,13 @@ safeRun(async () => {
 // @ts-ignore
 window.editor = editor;
 
-if (!isDesktop) {
-  navigator.serviceWorker
-    .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
-    .then((r) => {
-      console.log("Service worker registered", r);
-    });
-}
+// if (!isDesktop) {
+// if (localStorage.getItem("disable_sw") !== "true") {
+navigator.serviceWorker
+  .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
+  .then((r) => {
+    console.log("Service worker registered...");
+  });
+// }
+
+// }

@@ -2,19 +2,23 @@ import { manifest, version } from "@parcel/service-worker";
 
 async function install() {
   const cache = await caches.open(version);
-  // console.log("Installing", manifest);
+  console.log("Installing", manifest, "version", version);
   await cache.addAll(manifest);
-  // console.log("DOne");
+  // @ts-ignore
+  self.skipWaiting(); // This automatically enables the service worker, preventing from caching stuff forever if there's a page open
+  console.log("Installed");
 }
+
 //@ts-ignore
 self.addEventListener("install", (e) => e.waitUntil(install()));
 
 async function activate() {
   const keys = await caches.keys();
-  // console.log("Activating");
+  // console.log("Activating for ", keys, "new version", version);
   await Promise.all(keys.map((key) => key !== version && caches.delete(key)));
   // console.log("DOne activating");
 }
+
 //@ts-ignore
 self.addEventListener("activate", (e) => e.waitUntil(activate()));
 

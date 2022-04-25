@@ -119,7 +119,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (req.headers.get("Content-length") === "0") {
       return;
     }
-    return await req.json();
+    if (req.headers.get("Content-type") === "application/json") {
+      return await req.json();
+    } else {
+      return await req.text();
+    }
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {

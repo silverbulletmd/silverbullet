@@ -23,6 +23,7 @@ import { jwtSyscalls } from "@plugos/plugos/syscalls/jwt";
 import buildMarkdown from "@silverbulletmd/web/parser";
 import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
 import http, { Server } from "http";
+import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
 
 export class ExpressServer {
   app: Express;
@@ -72,6 +73,7 @@ export class ExpressServer {
     this.system.registerSyscalls([], spaceSyscalls(this.space));
     this.system.registerSyscalls([], eventSyscalls(this.eventHook));
     this.system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
+    this.system.registerSyscalls([], esbuildSyscalls());
     this.system.registerSyscalls([], jwtSyscalls());
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
@@ -268,12 +270,13 @@ export class ExpressServer {
     );
 
     // Fallback, serve index.html
-    let cachedIndex: string | undefined = undefined;
+    // let cachedIndex: string | undefined = undefined;
     this.app.get("/*", async (req, res) => {
-      if (!cachedIndex) {
-        cachedIndex = await readFile(`${this.distDir}/index.html`, "utf8");
-      }
-      res.status(200).header("Content-Type", "text/html").send(cachedIndex);
+      // if (!cachedIndex) {
+      // let cachedIndex = await readFile(`${this.distDir}/index.html`, "utf8");
+      // }
+      res.sendFile(`${this.distDir}/index.html`, {});
+      // res.status(200).header("Content-Type", "text/html").send(cachedIndex);
     });
 
     this.server = http.createServer(this.app);

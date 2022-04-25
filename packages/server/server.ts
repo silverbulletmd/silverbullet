@@ -5,6 +5,9 @@ import { hideBin } from "yargs/helpers";
 import { ExpressServer } from "./api_server";
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
 import { preloadModules } from "@silverbulletmd/common/preload_modules";
+import path from "path";
+import { realpath } from "fs/promises";
+import { realpathSync } from "fs";
 
 let args = yargs(hideBin(process.argv))
   .option("port", {
@@ -20,7 +23,11 @@ if (!args._.length) {
 
 const pagesPath = args._[0] as string;
 const port = args.port;
-const webappDistDir = `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`;
+
+const webappDistDir = realpathSync(
+  `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`
+);
+console.log("Webapp dist dir", webappDistDir);
 
 const expressServer = new ExpressServer(
   port,

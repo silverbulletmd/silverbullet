@@ -158,12 +158,6 @@ export class Editor {
     }, 100);
 
     this.space.on({
-      pageCreated: (meta) => {
-        console.log("Page created", meta);
-      },
-      pageDeleted: (meta) => {
-        console.log("Page delete", meta);
-      },
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
           console.log("Page changed on disk, reloading");

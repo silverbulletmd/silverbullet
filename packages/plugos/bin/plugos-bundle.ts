@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import esbuild from "esbuild";
 import { readFile, unlink, watch, writeFile } from "fs/promises";
 import path from "path";
 
@@ -9,53 +8,7 @@ import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
 import YAML from "yaml";
 import { mkdirSync } from "fs";
-
-async function compile(
-  filePath: string,
-  functionName: string,
-  debug: boolean,
-  excludeModules: string[],
-  meta = false
-) {
-  let outFile = "_out.tmp";
-  let inFile = filePath;
-
-  if (functionName) {
-    // Generate a new file importing just this one function and exporting it
-    inFile = "_in.js";
-    await writeFile(
-      inFile,
-      `import {${functionName}} from "./${filePath}";export default ${functionName};`
-    );
-  }
-
-  // TODO: Figure out how to make source maps work correctly with eval() code
-  let result = await esbuild.build({
-    entryPoints: [inFile],
-    bundle: true,
-    format: "iife",
-    globalName: "mod",
-    platform: "browser",
-    sourcemap: false, //sourceMap ? "inline" : false,
-    minify: !debug,
-    outfile: outFile,
-    metafile: true,
-    external: excludeModules,
-  });
-
-  if (meta) {
-    let text = await esbuild.analyzeMetafile(result.metafile);
-    console.log("Bundle info for", functionName, text);
-  }
-
-  let jsCode = (await readFile(outFile)).toString();
-  await unlink(outFile);
-  if (inFile !== filePath) {
-    await unlink(inFile);
-  }
-  return `(() => { ${jsCode}
-  return mod;})()`;
-}
+import { compile } from "../compile";
 
 async function bundle(
   manifestPath: string,
@@ -155,8 +108,8 @@ async function run() {
     })) {
       if (
         filename.endsWith(".plug.yaml") ||
-        filename.endsWith(".ts") ||
-        (filename.endsWith(".js") && !filename.endsWith("_in.js"))
+        filename.endsWith(".js") ||
+        (filename.endsWith(".ts") && !filename.endsWith("_in.ts"))
       ) {
         console.log("Change detected", eventType, filename);
         await buildAll();
