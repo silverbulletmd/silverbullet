@@ -1,6 +1,9 @@
-import { run } from "@silverbulletmd/plugos-syscall/shell";
-import { flashNotification, prompt } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+import { run } from "@plugos/plugos-syscall/shell";
+import {
+  flashNotification,
+  prompt,
+} from "@plugos/plugos-silverbullet-syscall/editor";
+import { invokeFunction } from "@plugos/plugos-silverbullet-syscall/system";
 
 export async function commit(message?: string) {
   if (!message) {

@@ -1,11 +1,9 @@
-import { preloadModules } from "../../silverbullet-common/preload_modules";
+const {
+  parentPort,
+  workerData: { preloadedModules, nodeModulesPath },
+} = require("worker_threads");
 
-const { parentPort, workerData } = require("worker_threads");
-const { VM, VMScript } = require(`${workerData}/vm2`);
-const fetch = require(`${workerData}/node-fetch`);
-const WebSocket = require(`${workerData}/ws`);
-
-// console.log("Process env", process.env);
+const { VM, VMScript } = require(`${nodeModulesPath}/vm2`);
 
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<
@@ -26,14 +24,14 @@ let vm = new VM({
     clearTimeout,
     setInterval,
     clearInterval,
-    fetch,
-    WebSocket,
+    fetch: require(`${nodeModulesPath}/node-fetch`),
+    WebSocket: require(`${nodeModulesPath}/ws`),
     // This is only going to be called for pre-bundled modules, we won't allow
     // arbitrary requiring of modules
     require: (moduleName: string): any => {
       // console.log("Loading", moduleName);
-      if (preloadModules.includes(moduleName)) {
-        return require(`${workerData}/${moduleName}`);
+      if (preloadedModules.includes(moduleName)) {
+        return require(`${nodeModulesPath}/${moduleName}`);
       } else {
         throw Error("Cannot import arbitrary modules");
       }

@@ -1,5 +1,5 @@
 import { syscall } from "./syscall";
-import { FilterOption } from "../silverbullet-common/types";
+import { FilterOption } from "../common/types";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");

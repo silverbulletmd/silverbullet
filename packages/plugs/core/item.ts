@@ -1,7 +1,14 @@
 import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 
-import { batchSet, scanPrefixGlobal } from "@silverbulletmd/plugos-silverbullet-syscall/index";
-import { collectNodesOfType, ParseTree, renderToText } from "@silverbulletmd/common/tree";
+import {
+  batchSet,
+  scanPrefixGlobal,
+} from "@plugos/plugos-silverbullet-syscall/index";
+import {
+  collectNodesOfType,
+  ParseTree,
+  renderToText,
+} from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 

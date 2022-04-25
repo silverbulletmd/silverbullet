@@ -1,8 +1,11 @@
-import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { getCurrentPage, getText } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { readPage, writePage } from "@plugos/plugos-silverbullet-syscall/space";
+import { invokeFunction } from "@plugos/plugos-silverbullet-syscall/system";
+import {
+  getCurrentPage,
+  getText,
+} from "@plugos/plugos-silverbullet-syscall/editor";
 import { cleanMarkdown } from "../markdown/util";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 
 type GhostConfig = {

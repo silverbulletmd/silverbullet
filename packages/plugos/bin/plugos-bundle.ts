@@ -8,13 +8,13 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
 import YAML from "yaml";
-import { preloadModules } from "../../silverbullet-common/preload_modules";
 import { mkdirSync } from "fs";
 
 async function compile(
   filePath: string,
   functionName: string,
   debug: boolean,
+  excludeModules: string[],
   meta = false
 ) {
   let outFile = "_out.tmp";
@@ -40,7 +40,7 @@ async function compile(
     minify: !debug,
     outfile: outFile,
     metafile: true,
-    external: preloadModules,
+    external: excludeModules,
   });
 
   if (meta) {
@@ -57,7 +57,11 @@ async function compile(
   return mod;})()`;
 }
 
-async function bundle(manifestPath: string, sourceMaps: boolean) {
+async function bundle(
+  manifestPath: string,
+  sourceMaps: boolean,
+  excludeModules: string[]
+) {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
     (await readFile(manifestPath)).toString()
@@ -70,7 +74,12 @@ async function bundle(manifestPath: string, sourceMaps: boolean) {
       [filePath, jsFunctionName] = filePath.split(":");
     }
 
-    def.code = await compile(filePath, jsFunctionName, sourceMaps);
+    def.code = await compile(
+      filePath,
+      jsFunctionName,
+      sourceMaps,
+      excludeModules
+    );
     delete def.path;
   }
   return manifest;
@@ -79,9 +88,10 @@ async function bundle(manifestPath: string, sourceMaps: boolean) {
 async function buildManifest(
   manifestPath: string,
   distPath: string,
-  debug: boolean
+  debug: boolean,
+  excludeModules: string[]
 ) {
-  let generatedManifest = await bundle(manifestPath, debug);
+  let generatedManifest = await bundle(manifestPath, debug, excludeModules);
   const outFile =
     manifestPath.substring(
       0,
@@ -106,20 +116,31 @@ async function run() {
       type: "string",
       default: ".",
     })
+    .option("exclude", {
+      type: "array",
+      default: [],
+    })
     .parse();
   if (args._.length === 0) {
     console.log(
-      "Usage: plugos-bundle [--debug] [--dist <path>] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
+      "Usage: plugos-bundle [--debug] [--dist <path>] [--exclude package1 package2] -- <manifest.plug.yaml> <manifest2.plug.yaml> ..."
     );
     process.exit(1);
   }
+
+  console.log("Args", args);
 
   async function buildAll() {
     mkdirSync(args.dist, { recursive: true });
     for (const plugManifestPath of args._) {
       let manifestPath = plugManifestPath as string;
       try {
-        await buildManifest(manifestPath, args.dist, !!args.debug);
+        await buildManifest(
+          manifestPath,
+          args.dist,
+          !!args.debug,
+          args.exclude
+        );
       } catch (e) {
         console.error(`Error building ${manifestPath}:`, e);
       }

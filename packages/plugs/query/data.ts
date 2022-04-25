@@ -2,8 +2,16 @@
 // data:page@pos
 
 import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
-import { batchSet, scanPrefixGlobal } from "@silverbulletmd/plugos-silverbullet-syscall";
-import { collectNodesOfType, findNodeOfType, ParseTree, replaceNodesMatching } from "@silverbulletmd/common/tree";
+import {
+  batchSet,
+  scanPrefixGlobal,
+} from "@plugos/plugos-silverbullet-syscall";
+import {
+  collectNodesOfType,
+  findNodeOfType,
+  ParseTree,
+  replaceNodesMatching,
+} from "@silverbulletmd/common/tree";
 import { parse as parseYaml, parseAllDocuments } from "yaml";
 import type { QueryProviderEvent } from "./engine";
 import { applyQuery } from "./engine";

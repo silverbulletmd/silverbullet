@@ -1,5 +1,5 @@
 {
-  "name": "@silverbulletmd/plugos",
+  "name": "@plugos/plugos",
   "version": "0.0.1",
   "license": "MIT",
   "bin": {

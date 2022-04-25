@@ -1,5 +1,5 @@
 import { Hook, Manifest, RuntimeEnvironment } from "./types";
-import { EventEmitter } from "../silverbullet-common/event";
+import { EventEmitter } from "./event";
 import { SandboxFactory } from "./sandbox";
 import { Plug } from "./plug";
 

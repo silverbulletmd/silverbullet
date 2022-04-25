@@ -1,4 +1,9 @@
-import { getCursor, getText, insertAtPos, replaceRange } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import {
+  getCursor,
+  getText,
+  insertAtPos,
+  replaceRange,
+} from "@plugos/plugos-silverbullet-syscall/editor";
 
 export async function toggleH1() {
   await togglePrefix("# ");

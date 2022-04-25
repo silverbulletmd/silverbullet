@@ -3,17 +3,17 @@ import {
   getCurrentPage,
   getText,
   reloadPage,
-  save
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+  save,
+} from "@plugos/plugos-silverbullet-syscall/editor";
 
-import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+import { readPage, writePage } from "@plugos/plugos-silverbullet-syscall/space";
+import { invokeFunction } from "@plugos/plugos-silverbullet-syscall/system";
 import { parseQuery } from "./engine";
 import { replaceTemplateVars } from "../core/template";
 import { queryRegex, removeQueries } from "./util";
-import { dispatch } from "@silverbulletmd/plugos-syscall/event";
+import { dispatch } from "@plugos/plugos-syscall/event";
 import { replaceAsync } from "../lib/util";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
 
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();

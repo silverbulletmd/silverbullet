@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "generate": "lezer-generator query/query.grammar -o query/parse-query.js",
-    "watch": "plugos-bundle -w --dist dist */*.plug.yaml",
-    "build": "plugos-bundle --dist dist */*.plug.yaml"
+    "watch": "plugos-bundle -w --dist dist --exclude @lezer/lr yaml -- */*.plug.yaml",
+    "build": "plugos-bundle --dist dist --exclude @lezer/lr yaml -- */*.plug.yaml"
   },
   "dependencies": {
     "@jest/globals": "^27.5.1",

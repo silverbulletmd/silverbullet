@@ -4,32 +4,32 @@ import {
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
   scanPrefixGlobal,
-  set
-} from "@silverbulletmd/plugos-silverbullet-syscall/index";
+  set,
+} from "@plugos/plugos-silverbullet-syscall/index";
 import {
   flashNotification,
   getCurrentPage,
   getText,
   matchBefore,
   navigate,
-  prompt
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+  prompt,
+} from "@plugos/plugos-silverbullet-syscall/editor";
 
-import { dispatch } from "@silverbulletmd/plugos-syscall/event";
+import { dispatch } from "@plugos/plugos-syscall/event";
 import {
   deletePage as deletePageSyscall,
   listPages,
   readPage,
-  writePage
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+  writePage,
+} from "@plugos/plugos-silverbullet-syscall/space";
+import { invokeFunction } from "@plugos/plugos-silverbullet-syscall/system";
+import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
 import {
   addParentPointers,
   collectNodesMatching,
   ParseTree,
   renderToText,
-  replaceNodesMatching
+  replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { PageMeta } from "@silverbulletmd/common/types";

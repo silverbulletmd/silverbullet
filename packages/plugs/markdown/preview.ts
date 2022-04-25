@@ -1,6 +1,6 @@
 import MarkdownIt from "markdown-it";
-import { getText, showRhs } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
+import { getText, showRhs } from "@plugos/plugos-silverbullet-syscall/editor";
+import * as clientStore from "@plugos/plugos-silverbullet-syscall/clientStore";
 import { cleanMarkdown } from "./util";
 
 const css = `

@@ -1,9 +1,17 @@
 import type { ClickEvent, IndexTreeEvent } from "@silverbulletmd/web/app_event";
 
-import { batchSet, scanPrefixGlobal } from "@silverbulletmd/plugos-silverbullet-syscall/index";
-import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { dispatch, filterBox, getCursor, getText } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import {
+  batchSet,
+  scanPrefixGlobal,
+} from "@plugos/plugos-silverbullet-syscall/index";
+import { readPage, writePage } from "@plugos/plugos-silverbullet-syscall/space";
+import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
+import {
+  dispatch,
+  filterBox,
+  getCursor,
+  getText,
+} from "@plugos/plugos-silverbullet-syscall/editor";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -11,7 +19,7 @@ import {
   findNodeOfType,
   nodeAtPos,
   ParseTree,
-  renderToText
+  renderToText,
 } from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent } from "../query/engine";

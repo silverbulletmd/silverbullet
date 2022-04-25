@@ -1,4 +1,4 @@
-import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
+import * as clientStore from "@plugos/plugos-silverbullet-syscall/clientStore";
 
 export async function toggleMode() {
   let currentValue = !!(await clientStore.get("enableDraftMode"));

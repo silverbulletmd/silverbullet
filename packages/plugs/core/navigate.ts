@@ -3,9 +3,9 @@ import {
   getCursor,
   getText,
   navigate as navigateTo,
-  openUrl
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+  openUrl,
+} from "@plugos/plugos-silverbullet-syscall/editor";
+import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
 import { nodeAtPos, ParseTree } from "@silverbulletmd/common/tree";
 
 const materializedQueryPrefix = /<!--\s*#query\s+/;

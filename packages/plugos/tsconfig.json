@@ -1,5 +1,5 @@
 {
-  "include": ["bin/*", "environments/*", "hooks/**", "syscalls/*", "*"],
+  "include": ["bin/*", "environments/*", "hooks/*", "syscalls/*", "*"],
   "compilerOptions": {
     "target": "esnext",
     "strict": true,

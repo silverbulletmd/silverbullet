@@ -7,22 +7,12 @@
     "@lezer/common": "https://github.com/zefhemel/common.git#046c880d1fcab713cadad327a5b7d8bb5de6522c"
   },
   "scripts": {
-    "watch": "rm -rf .parcel-cache && parcel watch packages/{silverbullet-web,silverbullet-server,plugos} desktop",
+    "watch": "rm -rf .parcel-cache && parcel watch packages/{web,server,plugos} desktop",
     "clean": "rm -rf .parcel-cache packages/*/dist",
-    "build": "parcel build packages/{silverbullet-web,silverbullet-server,plugos}",
+    "build": "parcel build packages/{web,server,plugos}",
     "plugs": "cd packages/plugs && npm run watch",
-    "server": "cd packages/silverbullet-server && npm start",
+    "server": "cd packages/server && npm start",
     "test": "jest packages/*/dist/test"
-  },
-  "targets": {
-    "test": {
-      "source": [
-        "src/index.js"
-      ],
-      "outputFormat": "commonjs",
-      "isLibrary": true,
-      "context": "electron-main"
-    }
   },
   "devDependencies": {
     "@parcel/core": "2.3.2",

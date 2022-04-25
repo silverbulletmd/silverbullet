@@ -1,5 +1,5 @@
 import { syscall } from "./syscall";
-import { PageMeta } from "../silverbullet-common/types";
+import { PageMeta } from "../common/types";
 
 export async function listPages(): Promise<PageMeta[]> {
   return syscall("space.listPages");

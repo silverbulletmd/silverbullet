@@ -1,4 +1,4 @@
-import { insertAtCursor } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { insertAtCursor } from "@plugos/plugos-silverbullet-syscall/editor";
 
 const dateMatchRegex = /(\d{4}\-\d{2}\-\d{2})/g;
 

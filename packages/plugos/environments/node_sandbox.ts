@@ -36,15 +36,21 @@ class NodeWorkerWrapper implements WorkerLike {
 }
 
 // Look for the node_modules directory, to be passed to the worker to find e.g. the vm2 module
-let nodeModulesDir = __dirname;
+export let nodeModulesDir = __dirname;
 while (!fs.existsSync(nodeModulesDir + "/node_modules/vm2")) {
   nodeModulesDir = path.dirname(nodeModulesDir);
 }
 
-export function createSandbox(plug: Plug<any>) {
+export function createSandbox(
+  plug: Plug<any>,
+  preloadedModules: string[] = []
+) {
   let worker = new Worker(workerCode, {
     eval: true,
-    workerData: path.join(nodeModulesDir, "node_modules"),
+    workerData: {
+      nodeModulesPath: path.join(nodeModulesDir, "node_modules"),
+      preloadedModules,
+    },
   });
   return new Sandbox(plug, new NodeWorkerWrapper(worker));
 }
