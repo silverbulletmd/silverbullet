@@ -1,7 +1,7 @@
 import { Client4 } from "@mattermost/client";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { readPage } from "@plugos/plugos-silverbullet-syscall/space";
-import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
+import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 import { niceDate } from "../core/dates";
 import { Post } from "@mattermost/types/lib/posts";

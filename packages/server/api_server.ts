@@ -35,7 +35,12 @@ export class ExpressServer {
   private port: number;
   private server?: Server;
 
-  constructor(port: number, rootPath: string, distDir: string) {
+  constructor(
+    port: number,
+    rootPath: string,
+    distDir: string,
+    preloadedModules: string[]
+  ) {
     this.port = port;
     this.app = express();
     this.rootPath = rootPath;
@@ -78,7 +83,9 @@ export class ExpressServer {
       plugLoaded: (plugName, plug) => {
         safeRun(async () => {
           console.log("Plug load", plugName);
-          await this.system.load(plugName, plug, createSandbox);
+          await this.system.load(plugName, plug, (p) =>
+            createSandbox(p, preloadedModules)
+          );
         });
         throttledRebuildMdExtensions();
       },

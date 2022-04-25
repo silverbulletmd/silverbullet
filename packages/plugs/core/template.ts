@@ -2,13 +2,13 @@ import {
   listPages,
   readPage,
   writePage,
-} from "@plugos/plugos-silverbullet-syscall/space";
+} from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import {
   filterBox,
   navigate,
   prompt,
-} from "@plugos/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import { extractMeta } from "../query/data";
 import { renderToText } from "@silverbulletmd/common/tree";
 import { niceDate } from "./dates";

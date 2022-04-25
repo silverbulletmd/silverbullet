@@ -1,5 +1,9 @@
 {
   "name": "@plugos/plugos",
+  "author": {
+    "name": "Zef Hemel",
+    "email": "zef@zef.me"
+  },
   "version": "0.0.1",
   "license": "MIT",
   "bin": {

@@ -33,7 +33,7 @@ let vm = new VM({
       if (preloadedModules.includes(moduleName)) {
         return require(`${nodeModulesPath}/${moduleName}`);
       } else {
-        throw Error("Cannot import arbitrary modules");
+        throw Error(`Cannot import arbitrary modules like ${moduleName}`);
       }
     },
     self: {

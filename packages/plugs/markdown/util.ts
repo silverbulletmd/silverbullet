@@ -3,7 +3,7 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
-import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
+import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 
 export function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");

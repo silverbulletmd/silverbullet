@@ -1,6 +1,10 @@
 {
   "name": "@silverbulletmd/web",
-  "version": "0.0.1",
+  "author": {
+    "name": "Zef Hemel",
+    "email": "zef@zef.me"
+  },
+  "version": "0.0.2",
   "license": "MIT",
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
@@ -18,6 +22,9 @@
       "context": "browser"
     }
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@codemirror/autocomplete": "^0.19.1",
     "@codemirror/closebrackets": "^0.19.1",

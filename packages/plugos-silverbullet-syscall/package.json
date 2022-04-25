@@ -1,4 +1,9 @@
 {
-  "name": "@plugos/plugos-silverbullet-syscall",
-  "version": "1.0.0"
+  "name": "@silverbulletmd/plugos-silverbullet-syscall",
+  "author": {
+    "name": "Zef Hemel",
+    "email": "zef@zef.me"
+  },
+  "version": "0.0.1",
+  "license": "MIT"
 }

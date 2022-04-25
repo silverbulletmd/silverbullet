@@ -3,7 +3,7 @@ import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 import {
   batchSet,
   scanPrefixGlobal,
-} from "@plugos/plugos-silverbullet-syscall/index";
+} from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
   collectNodesOfType,
   ParseTree,

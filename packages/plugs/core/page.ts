@@ -5,7 +5,7 @@ import {
   clearPageIndexForPage,
   scanPrefixGlobal,
   set,
-} from "@plugos/plugos-silverbullet-syscall/index";
+} from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
   flashNotification,
   getCurrentPage,
@@ -13,7 +13,7 @@ import {
   matchBefore,
   navigate,
   prompt,
-} from "@plugos/plugos-silverbullet-syscall/editor";
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 
 import { dispatch } from "@plugos/plugos-syscall/event";
 import {
@@ -21,9 +21,9 @@ import {
   listPages,
   readPage,
   writePage,
-} from "@plugos/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@plugos/plugos-silverbullet-syscall/system";
-import { parseMarkdown } from "@plugos/plugos-silverbullet-syscall/markdown";
+} from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import {
   addParentPointers,
   collectNodesMatching,

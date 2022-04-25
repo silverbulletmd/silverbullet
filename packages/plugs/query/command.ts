@@ -2,7 +2,7 @@ import {
   getCursor,
   insertAtCursor,
   moveCursor,
-} from "@plugos/plugos-silverbullet-syscall/editor";
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 
 export async function insertQuery() {
   let cursorPos = await getCursor();

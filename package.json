@@ -12,7 +12,8 @@
     "build": "parcel build packages/{web,server,plugos}",
     "plugs": "cd packages/plugs && npm run watch",
     "server": "cd packages/server && npm start",
-    "test": "jest packages/*/dist/test"
+    "test": "jest packages/*/dist/test",
+    "publish-all": "npm publish --access public --ws"
   },
   "devDependencies": {
     "@parcel/core": "2.3.2",

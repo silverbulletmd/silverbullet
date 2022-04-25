@@ -5,7 +5,7 @@ import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 import {
   batchSet,
   scanPrefixGlobal,
-} from "@plugos/plugos-silverbullet-syscall";
+} from "@silverbulletmd/plugos-silverbullet-syscall";
 import {
   collectNodesOfType,
   findNodeOfType,
