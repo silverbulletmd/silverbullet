@@ -58,13 +58,10 @@ import { FilterOption } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 
 class PageState {
-  scrollTop: number;
-  selection: EditorSelection;
-
-  constructor(scrollTop: number, selection: EditorSelection) {
-    this.scrollTop = scrollTop;
-    this.selection = selection;
-  }
+  constructor(
+    readonly scrollTop: number,
+    readonly selection: EditorSelection
+  ) {}
 }
 
 const saveInterval = 1000;
@@ -123,7 +120,7 @@ export class Editor {
     this.system.registerSyscalls([], editorSyscalls(this));
     this.system.registerSyscalls([], spaceSyscalls(this));
     this.system.registerSyscalls([], indexerSyscalls(this.space));
-    this.system.registerSyscalls([], systemSyscalls(this.space));
+    this.system.registerSyscalls([], systemSyscalls(this));
     this.system.registerSyscalls(
       [],
       markdownSyscalls(buildMarkdown(this.mdExtensions))
@@ -153,10 +150,6 @@ export class Editor {
       }
     });
 
-    let throttledRebuildEditorState = throttle(() => {
-      this.rebuildEditorState();
-    }, 100);
-
     this.space.on({
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
@@ -171,21 +164,9 @@ export class Editor {
           pages: pages,
         });
       },
-      plugLoaded: (plugName, plug) => {
-        safeRun(async () => {
-          console.log("Plug load", plugName);
-          await this.system.load(plugName, plug, createIFrameSandbox);
-          throttledRebuildEditorState();
-        });
-      },
-      plugUnloaded: (plugName) => {
-        safeRun(async () => {
-          console.log("Plug unload", plugName);
-          await this.system.unload(plugName);
-          throttledRebuildEditorState();
-        });
-      },
     });
+
+    await this.reloadPlugs();
 
     if (this.pageNavigator.getCurrentPage() === "") {
       await this.pageNavigator.navigate("start");
@@ -359,7 +340,7 @@ export class Editor {
             mac: "Cmd-k",
             run: (): boolean => {
               this.viewDispatch({ type: "start-navigate" });
-              this.space.updatePageListAsync();
+              this.space.updatePageList();
               return true;
             },
           },
@@ -427,6 +408,17 @@ export class Editor {
     });
   }
 
+  async reloadPlugs() {
+    await this.space.updatePageList();
+    await this.system.unloadAll();
+    console.log("(Re)loading plugs");
+    for (let pageInfo of this.space.listPlugs()) {
+      let { text } = await this.space.readPage(pageInfo.name);
+      await this.system.load(JSON.parse(text), createIFrameSandbox);
+    }
+    this.rebuildEditorState();
+  }
+
   rebuildEditorState() {
     const editorView = this.editorView;
     if (editorView && this.currentPage) {
@@ -438,13 +430,16 @@ export class Editor {
         markdownSyscalls(buildMarkdown(this.mdExtensions))
       );
 
+      this.saveState();
+
       editorView.setState(
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );
       if (editorView.contentDOM) {
         editorView.contentDOM.spellcheck = true;
       }
-      editorView.focus();
+
+      this.restoreState(this.currentPage);
     }
   }
 
@@ -489,12 +484,7 @@ export class Editor {
 
     // Persist current page state and nicely close page
     if (this.currentPage) {
-      let pageState = this.openPages.get(this.currentPage);
-      if (pageState) {
-        pageState.selection = this.editorView!.state.selection;
-        pageState.scrollTop = this.editorView!.scrollDOM.scrollTop;
-        // console.log("Saved pageState", this.currentPage, pageState);
-      }
+      this.saveState();
       this.space.unwatchPage(this.currentPage);
       await this.save(true);
     }
@@ -513,26 +503,11 @@ export class Editor {
     }
 
     let editorState = this.createEditorState(pageName, doc.text);
-    let pageState = this.openPages.get(pageName);
     editorView.setState(editorState);
     if (editorView.contentDOM) {
       editorView.contentDOM.spellcheck = true;
     }
-    if (!pageState) {
-      pageState = new PageState(0, editorState.selection);
-      this.openPages.set(pageName, pageState!);
-      editorView.dispatch({
-        selection: { anchor: 0 },
-      });
-    } else {
-      // Restore state
-      // console.log("Restoring selection state", pageState);
-      editorView.dispatch({
-        selection: pageState.selection,
-      });
-      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
-    }
-
+    this.restoreState(pageName);
     this.space.watchPage(pageName);
 
     this.viewDispatch({
@@ -541,6 +516,30 @@ export class Editor {
     });
 
     await this.eventHook.dispatchEvent("editor:pageSwitched");
+  }
+
+  private restoreState(pageName: string) {
+    let pageState = this.openPages.get(pageName);
+    const editorView = this.editorView!;
+    if (pageState) {
+      // Restore state
+      // console.log("Restoring selection state", pageState);
+      editorView.dispatch({
+        selection: pageState.selection,
+      });
+      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
+    }
+    editorView.focus();
+  }
+
+  private saveState() {
+    this.openPages.set(
+      this.currentPage!,
+      new PageState(
+        this.editorView!.scrollDOM.scrollTop,
+        this.editorView!.state.selection
+      )
+    );
   }
 
   ViewComponent(): React.ReactElement {
@@ -625,6 +624,11 @@ export class Editor {
             <Panel html={viewState.rhsHTML} flex={viewState.showRHS} />
           )}
         </div>
+        {!!viewState.showBHS && (
+          <div id="bhs">
+            <Panel html={viewState.bhsHTML} flex={1} />
+          </div>
+        )}
         <StatusBar editorView={editor.editorView} />
       </>
     );

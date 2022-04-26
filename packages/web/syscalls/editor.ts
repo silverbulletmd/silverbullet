@@ -92,6 +92,18 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         type: "hide-lhs",
       });
     },
+    "editor.showBhs": (ctx, html: string, flex: number) => {
+      editor.viewDispatch({
+        type: "show-bhs",
+        flex,
+        html,
+      });
+    },
+    "editor.hideBhs": (ctx) => {
+      editor.viewDispatch({
+        type: "hide-bhs",
+      });
+    },
     "editor.insertAtPos": (ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({
         changes: {

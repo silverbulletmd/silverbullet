@@ -7,3 +7,7 @@ export async function invokeFunction(
 ): Promise<any> {
   return syscall("system.invokeFunction", env, name, ...args);
 }
+
+export async function reloadPlugs() {
+  return syscall("system.reloadPlugs");
+}

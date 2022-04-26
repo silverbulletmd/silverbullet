@@ -1,3 +1,4 @@
+name: core
 syntax:
   HashTag:
     firstCharacters:

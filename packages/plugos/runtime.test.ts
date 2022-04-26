@@ -23,8 +23,8 @@ test("Run a Node sandbox", async () => {
     },
   });
   let plug = await system.load(
-    "test",
     {
+      name: "test",
       requiredPermissions: ["dangerous"],
       functions: {
         addTen: {

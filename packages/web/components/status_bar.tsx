@@ -10,7 +10,7 @@ export function StatusBar({ editorView }: { editorView?: EditorView }) {
     readingTime = util.readingTime(wordCount);
   }
   return (
-    <div id="bottom">
+    <div id="status-bar">
       <div className="inner">
         {wordCount} words | {readingTime} min
       </div>

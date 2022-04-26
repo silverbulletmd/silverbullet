@@ -34,9 +34,7 @@ export function esbuildSyscalls(): SysCallMapping {
       }
 
       await writeFile(`${tmpDir}/${filename}`, code);
-      console.log("Dir", tmpDir);
       let jsCode = await compile(`${tmpDir}/${filename}`, "", false, ["yaml"]);
-      // console.log("JS code", jsCode);
       await rm(tmpDir, { recursive: true });
       return jsCode;
     },

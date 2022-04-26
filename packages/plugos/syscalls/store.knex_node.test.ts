@@ -17,8 +17,8 @@ test("Test store", async () => {
   let system = new System("server");
   system.registerSyscalls([], storeSyscalls(db, "test_table"));
   let plug = await system.load(
-    "test",
     {
+      name: "test",
       functions: {
         test1: {
           code: `(() => {

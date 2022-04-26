@@ -1,3 +1,4 @@
+name: markdown
 functions:
   toggle:
     path: "./markdown.ts:togglePreview"

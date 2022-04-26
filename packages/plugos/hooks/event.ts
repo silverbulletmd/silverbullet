@@ -1,6 +1,7 @@
 import { Hook, Manifest } from "../types";
 import { System } from "../system";
 import { safeRun } from "../util";
+import { EventEmitter } from "events";
 
 // System events:
 // - plug:load (plugName: string)
@@ -11,6 +12,14 @@ export type EventHookT = {
 
 export class EventHook implements Hook<EventHookT> {
   private system?: System<EventHookT>;
+  public localListeners: Map<string, ((data: any) => any)[]> = new Map();
+
+  addLocalListener(eventName: string, callback: (data: any) => any) {
+    if (!this.localListeners.has(eventName)) {
+      this.localListeners.set(eventName, []);
+    }
+    this.localListeners.get(eventName)!.push(callback);
+  }
 
   async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
     if (!this.system) {
@@ -32,15 +41,25 @@ export class EventHook implements Hook<EventHookT> {
         }
       }
     }
+    let localListeners = this.localListeners.get(eventName);
+    if (localListeners) {
+      for (let localListener of localListeners) {
+        let result = await Promise.resolve(localListener(data));
+        if (result) {
+          responses.push(result);
+        }
+      }
+    }
+
     return responses;
   }
 
   apply(system: System<EventHookT>): void {
     this.system = system;
     this.system.on({
-      plugLoaded: (name) => {
+      plugLoaded: (plug) => {
         safeRun(async () => {
-          await this.dispatchEvent("plug:load", name);
+          await this.dispatchEvent("plug:load", plug.name);
         });
       },
     });

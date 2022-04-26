@@ -110,13 +110,26 @@ body {
   height: 100%;
 }
 
-#bottom {
+#bhs {
+  height: 200px;
+  width: 100%;
+
+ .panel {
+    iframe {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+  }
+}
+
+#status-bar {
   height: 40px;
   line-height: 40px;
   padding: 0 10px;
   text-align: right;
   background-color: rgb(213, 213, 213);
   border-top: rgb(193, 193, 193) 1px solid;
-  .inner {
-  }
 }

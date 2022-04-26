@@ -102,6 +102,18 @@ export default function reducer(
         showLHS: 0,
         lhsHTML: "",
       };
+    case "show-bhs":
+      return {
+        ...state,
+        showBHS: action.flex,
+        bhsHTML: action.html,
+      };
+    case "hide-bhs":
+      return {
+        ...state,
+        showBHS: 0,
+        bhsHTML: "",
+      };
     case "show-filterbox":
       return {
         ...state,

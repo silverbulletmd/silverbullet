@@ -1,3 +1,4 @@
+name: tasks
 syntax:
   DeadlineDate:
     firstCharacters:

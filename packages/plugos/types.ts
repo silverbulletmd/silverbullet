@@ -1,6 +1,7 @@
 import { System } from "./system";
 
 export interface Manifest<HookT> {
+  name: string;
   requiredPermissions?: string[];
   functions: {
     [key: string]: FunctionDef<HookT>;

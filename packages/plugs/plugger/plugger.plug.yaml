@@ -1,8 +1,0 @@
-functions:
-  compile:
-    path: "./plugger.ts:compileCommand"
-    command:
-      name: "Plugger: Compile"
-  compileJS:
-    path: "./plugger.ts:compileJS"
-    env: server

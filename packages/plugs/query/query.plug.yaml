@@ -1,3 +1,4 @@
+name: query
 functions:
   updateMaterializedQueriesOnPage:
     path: ./materialized_queries.ts:updateMaterializedQueriesOnPage

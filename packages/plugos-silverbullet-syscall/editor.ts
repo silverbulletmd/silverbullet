@@ -62,6 +62,14 @@ export function hideLhs(): Promise<void> {
   return syscall("editor.hideLhs");
 }
 
+export function showBhs(html: string, flex = 1): Promise<void> {
+  return syscall("editor.showBhs", html, flex);
+}
+
+export function hideBhs(): Promise<void> {
+  return syscall("editor.hideBhs");
+}
+
 export function insertAtPos(text: string, pos: number): Promise<void> {
   return syscall("editor.insertAtPos", text, pos);
 }

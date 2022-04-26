@@ -1,5 +1,5 @@
 import express, { Express } from "express";
-import { SilverBulletHooks } from "@silverbulletmd/common/manifest";
+import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
 import { readFile } from "fs/promises";
 import { System } from "@plugos/plugos/system";
@@ -24,36 +24,40 @@ import buildMarkdown from "@silverbulletmd/web/parser";
 import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
 import http, { Server } from "http";
 import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
+import { systemSyscalls } from "./syscalls/system";
 
 export class ExpressServer {
   app: Express;
   system: System<SilverBulletHooks>;
-  private rootPath: string;
   private space: Space;
   private distDir: string;
   private eventHook: EventHook;
   private db: Knex<any, unknown[]>;
   private port: number;
   private server?: Server;
+  builtinPlugDir: string;
+  preloadedModules: string[];
 
   constructor(
     port: number,
-    rootPath: string,
+    pagesPath: string,
     distDir: string,
+    builtinPlugDir: string,
     preloadedModules: string[]
   ) {
     this.port = port;
     this.app = express();
-    this.rootPath = rootPath;
+    this.builtinPlugDir = builtinPlugDir;
     this.distDir = distDir;
     this.system = new System<SilverBulletHooks>("server");
+    this.preloadedModules = preloadedModules;
 
     // Setup system
     this.eventHook = new EventHook();
     this.system.addHook(this.eventHook);
     this.space = new Space(
       new EventedSpacePrimitives(
-        new DiskSpacePrimitives(rootPath),
+        new DiskSpacePrimitives(pagesPath),
         this.eventHook
       ),
       true
@@ -61,12 +65,12 @@ export class ExpressServer {
     this.db = knex({
       client: "better-sqlite3",
       connection: {
-        filename: path.join(rootPath, "data.db"),
+        filename: path.join(pagesPath, "data.db"),
       },
       useNullAsDefault: true,
     });
 
-    this.system.registerSyscalls(["shell"], shellSyscalls(rootPath));
+    this.system.registerSyscalls(["shell"], shellSyscalls(pagesPath));
     this.system.addHook(new NodeCronHook());
 
     this.system.registerSyscalls([], pageIndexSyscalls(this.db));
@@ -74,6 +78,7 @@ export class ExpressServer {
     this.system.registerSyscalls([], eventSyscalls(this.eventHook));
     this.system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
     this.system.registerSyscalls([], esbuildSyscalls());
+    this.system.registerSyscalls([], systemSyscalls(this));
     this.system.registerSyscalls([], jwtSyscalls());
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
@@ -81,29 +86,26 @@ export class ExpressServer {
       this.rebuildMdExtensions();
     }, 100);
 
-    this.space.on({
-      plugLoaded: (plugName, plug) => {
-        safeRun(async () => {
-          console.log("Plug load", plugName);
-          await this.system.load(plugName, plug, (p) =>
-            createSandbox(p, preloadedModules)
+    this.eventHook.addLocalListener(
+      "get-plug:builtin",
+      async (plugName: string): Promise<Manifest> => {
+        // console.log("Ok, resovling a plugin", plugName);
+        try {
+          let manifestJson = await readFile(
+            path.join(this.builtinPlugDir, `${plugName}.plug.json`),
+            "utf8"
           );
-        });
-        throttledRebuildMdExtensions();
-      },
-      plugUnloaded: (plugName) => {
-        safeRun(async () => {
-          console.log("Plug unload", plugName);
-          await this.system.unload(plugName);
-        });
-        throttledRebuildMdExtensions();
-      },
-    });
+          return JSON.parse(manifestJson);
+        } catch (e) {
+          throw new Error(`No such builtin: ${plugName}`);
+        }
+      }
+    );
 
     setInterval(() => {
-      this.space.updatePageListAsync();
+      this.space.updatePageList().catch(console.error);
     }, 5000);
-    this.space.updatePageListAsync();
+    this.reloadPlugs().catch(console.error);
   }
 
   rebuildMdExtensions() {
@@ -111,6 +113,19 @@ export class ExpressServer {
       [],
       markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system)))
     );
+  }
+
+  async reloadPlugs() {
+    await this.space.updatePageList();
+    await this.system.unloadAll();
+    console.log("Reloading plugs");
+    for (let pageInfo of this.space.listPlugs()) {
+      let { text } = await this.space.readPage(pageInfo.name);
+      await this.system.load(JSON.parse(text), (p) =>
+        createSandbox(p, this.preloadedModules)
+      );
+    }
+    this.rebuildMdExtensions();
   }
 
   async start() {

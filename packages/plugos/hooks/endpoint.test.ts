@@ -9,8 +9,8 @@ import { System } from "../system";
 test("Run a plugos endpoint server", async () => {
   let system = new System<EndpointHookT>("server");
   let plug = await system.load(
-    "test",
     {
+      name: "test",
       functions: {
         testhandler: {
           http: {

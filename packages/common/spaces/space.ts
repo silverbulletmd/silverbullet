@@ -13,8 +13,6 @@ export type SpaceEvents = {
   pageChanged: (meta: PageMeta) => void;
   pageDeleted: (name: string) => void;
   pageListUpdated: (pages: Set<PageMeta>) => void;
-  plugLoaded: (plugName: string, plug: Manifest) => void;
-  plugUnloaded: (plugName: string) => void;
 };
 
 export class Space extends EventEmitter<SpaceEvents> {
@@ -25,70 +23,45 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   constructor(private space: SpacePrimitives, private trashEnabled = true) {
     super();
-    this.on({
-      pageCreated: async (pageMeta) => {
-        if (pageMeta.name.startsWith(plugPrefix)) {
-          let pageData = await this.readPage(pageMeta.name);
-          this.emit(
-            "plugLoaded",
-            pageMeta.name.substring(plugPrefix.length),
-            JSON.parse(pageData.text)
-          );
-          this.watchPage(pageMeta.name);
-        }
-      },
-      pageChanged: async (pageMeta) => {
-        if (pageMeta.name.startsWith(plugPrefix)) {
-          let pageData = await this.readPage(pageMeta.name);
-          this.emit(
-            "plugLoaded",
-            pageMeta.name.substring(plugPrefix.length),
-            JSON.parse(pageData.text)
-          );
-        }
-      },
-    });
   }
 
-  public updatePageListAsync() {
-    safeRun(async () => {
-      let newPageList = await this.space.fetchPageList();
-      let deletedPages = new Set<string>(this.pageMetaCache.keys());
-      newPageList.pages.forEach((meta) => {
-        const pageName = meta.name;
-        const oldPageMeta = this.pageMetaCache.get(pageName);
-        const newPageMeta = {
-          name: pageName,
-          lastModified: meta.lastModified,
-        };
-        if (
-          !oldPageMeta &&
-          (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)
-        ) {
-          this.emit("pageCreated", newPageMeta);
-        } else if (
-          oldPageMeta &&
-          oldPageMeta.lastModified !== newPageMeta.lastModified &&
-          (!this.trashEnabled ||
-            (this.trashEnabled && !pageName.startsWith(trashPrefix)))
-        ) {
-          this.emit("pageChanged", newPageMeta);
-        }
-        // Page found, not deleted
-        deletedPages.delete(pageName);
-
-        // Update in cache
-        this.pageMetaCache.set(pageName, newPageMeta);
-      });
-
-      for (const deletedPage of deletedPages) {
-        this.pageMetaCache.delete(deletedPage);
-        this.emit("pageDeleted", deletedPage);
+  public async updatePageList() {
+    let newPageList = await this.space.fetchPageList();
+    let deletedPages = new Set<string>(this.pageMetaCache.keys());
+    newPageList.pages.forEach((meta) => {
+      const pageName = meta.name;
+      const oldPageMeta = this.pageMetaCache.get(pageName);
+      const newPageMeta = {
+        name: pageName,
+        lastModified: meta.lastModified,
+      };
+      if (
+        !oldPageMeta &&
+        (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)
+      ) {
+        this.emit("pageCreated", newPageMeta);
+      } else if (
+        oldPageMeta &&
+        oldPageMeta.lastModified !== newPageMeta.lastModified &&
+        (!this.trashEnabled ||
+          (this.trashEnabled && !pageName.startsWith(trashPrefix)))
+      ) {
+        this.emit("pageChanged", newPageMeta);
       }
+      // Page found, not deleted
+      deletedPages.delete(pageName);
 
-      this.emit("pageListUpdated", this.listPages());
-      this.initialPageListLoad = false;
+      // Update in cache
+      this.pageMetaCache.set(pageName, newPageMeta);
     });
+
+    for (const deletedPage of deletedPages) {
+      this.pageMetaCache.delete(deletedPage);
+      this.emit("pageDeleted", deletedPage);
+    }
+
+    this.emit("pageListUpdated", this.listPages());
+    this.initialPageListLoad = false;
   }
 
   watch() {
@@ -109,7 +82,7 @@ export class Space extends EventEmitter<SpaceEvents> {
         }
       });
     }, pageWatchInterval);
-    this.updatePageListAsync();
+    this.updatePageList().catch(console.error);
   }
 
   async deletePage(name: string, deleteDate?: number): Promise<void> {
@@ -152,14 +125,18 @@ export class Space extends EventEmitter<SpaceEvents> {
     return this.space.invokeFunction(plug, env, name, args);
   }
 
-  listPages(): Set<PageMeta> {
-    return new Set(
-      [...this.pageMetaCache.values()].filter(
-        (pageMeta) =>
-          !pageMeta.name.startsWith(trashPrefix) &&
-          !pageMeta.name.startsWith(plugPrefix)
-      )
-    );
+  listPages(unfiltered = false): Set<PageMeta> {
+    if (unfiltered) {
+      return new Set(this.pageMetaCache.values());
+    } else {
+      return new Set(
+        [...this.pageMetaCache.values()].filter(
+          (pageMeta) =>
+            !pageMeta.name.startsWith(trashPrefix) &&
+            !pageMeta.name.startsWith(plugPrefix)
+        )
+      );
+    }
   }
 
   listTrash(): Set<PageMeta> {

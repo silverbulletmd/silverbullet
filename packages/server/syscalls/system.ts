@@ -1,7 +1,7 @@
 import { SysCallMapping } from "@plugos/plugos/system";
-import type { Editor } from "../editor";
+import type { ExpressServer } from "../api_server";
 
-export function systemSyscalls(editor: Editor): SysCallMapping {
+export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
   return {
     "system.invokeFunction": async (
       ctx,
@@ -12,15 +12,10 @@ export function systemSyscalls(editor: Editor): SysCallMapping {
       if (!ctx.plug) {
         throw Error("No plug associated with context");
       }
-
-      if (env === "client") {
-        return ctx.plug.invoke(name, args);
-      }
-
-      return editor.space.invokeFunction(ctx.plug, env, name, args);
+      return ctx.plug.invoke(name, args);
     },
     "system.reloadPlugs": async () => {
-      return editor.reloadPlugs();
+      return expressServer.reloadPlugs();
     },
   };
 }

@@ -16,8 +16,10 @@ export type AppViewState = {
   unsavedChanges: boolean;
   showLHS: number; // 0 = hide, > 0 = flex
   showRHS: number; // 0 = hide, > 0 = flex
+  showBHS: number;
   rhsHTML: string;
   lhsHTML: string;
+  bhsHTML: string;
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
@@ -36,8 +38,10 @@ export const initialViewState: AppViewState = {
   unsavedChanges: false,
   showLHS: 0,
   showRHS: 0,
+  showBHS: 0,
   rhsHTML: "",
   lhsHTML: "",
+  bhsHTML: "",
   allPages: new Set(),
   commands: new Map(),
   notifications: [],
@@ -65,6 +69,8 @@ export type Action =
   | { type: "hide-rhs" }
   | { type: "show-lhs"; html: string; flex: number }
   | { type: "hide-lhs" }
+  | { type: "show-bhs"; html: string; flex: number }
+  | { type: "hide-bhs" }
   | {
       type: "show-filterbox";
       options: FilterOption[];

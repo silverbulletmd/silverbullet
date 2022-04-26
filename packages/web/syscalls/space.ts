@@ -4,8 +4,8 @@ import { PageMeta } from "@silverbulletmd/common/types";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {
-    "space.listPages": async (): Promise<PageMeta[]> => {
-      return [...(await editor.space.listPages())];
+    "space.listPages": async (ctx, unfiltered = false): Promise<PageMeta[]> => {
+      return [...(await editor.space.listPages(unfiltered))];
     },
     "space.readPage": async (
       ctx,

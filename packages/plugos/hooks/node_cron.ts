@@ -11,10 +11,10 @@ export class NodeCronHook implements Hook<CronHookT> {
   apply(system: System<CronHookT>): void {
     let tasks: ScheduledTask[] = [];
     system.on({
-      plugLoaded: (name, plug) => {
+      plugLoaded: () => {
         reloadCrons();
       },
-      plugUnloaded(name, plug) {
+      plugUnloaded() {
         reloadCrons();
       },
     });

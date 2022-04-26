@@ -7,11 +7,11 @@ export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
 }
 
-export type SystemJSON<HookT> = { [key: string]: Manifest<HookT> };
+export type SystemJSON<HookT> = Manifest<HookT>[];
 
 export type SystemEvents<HookT> = {
-  plugLoaded: (name: string, plug: Plug<HookT>) => void;
-  plugUnloaded: (name: string, plug: Plug<HookT>) => void;
+  plugLoaded: (plug: Plug<HookT>) => void;
+  plugUnloaded: (name: string) => void;
 };
 
 export type SyscallContext = {
@@ -83,10 +83,10 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async load(
-    name: string,
     manifest: Manifest<HookT>,
     sandboxFactory: SandboxFactory<HookT>
   ): Promise<Plug<HookT>> {
+    const name = manifest.name;
     if (this.plugs.has(name)) {
       await this.unload(name);
     }
@@ -100,29 +100,31 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
     // Ok, let's load this thing!
     const plug = new Plug(this, name, sandboxFactory);
+    console.log("Loading", name);
     await plug.load(manifest);
     this.plugs.set(name, plug);
-    this.emit("plugLoaded", name, plug);
+    this.emit("plugLoaded", plug);
     return plug;
   }
 
   async unload(name: string) {
+    console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
       throw Error(`Plug ${name} not found`);
     }
     await plug.stop();
-    this.emit("plugUnloaded", name, plug);
+    this.emit("plugUnloaded", name);
     this.plugs.delete(name);
   }
 
   toJSON(): SystemJSON<HookT> {
-    let plugJSON: { [key: string]: Manifest<HookT> } = {};
+    let plugJSON: Manifest<HookT>[] = [];
     for (let [name, plug] of this.plugs) {
       if (!plug.manifest) {
         continue;
       }
-      plugJSON[name] = plug.manifest;
+      plugJSON.push(plug.manifest);
     }
     return plugJSON;
   }
@@ -132,9 +134,9 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     sandboxFactory: SandboxFactory<HookT>
   ) {
     await this.unloadAll();
-    for (let [name, manifest] of Object.entries(json)) {
-      console.log("Loading plug", name);
-      await this.load(name, manifest, sandboxFactory);
+    for (let manifest of json) {
+      console.log("Loading plug", manifest.name);
+      await this.load(manifest, sandboxFactory);
     }
   }
 

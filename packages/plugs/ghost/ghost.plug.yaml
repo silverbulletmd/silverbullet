@@ -1,3 +1,4 @@
+name: ghost
 functions:
   downloadAllPostsCommand:
     path: "./ghost.ts:downloadAllPostsCommand"

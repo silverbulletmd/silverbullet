@@ -20,6 +20,10 @@ async function bundle(
     (await readFile(manifestPath)).toString()
   ) as Manifest<any>;
 
+  if (!manifest.name) {
+    throw new Error(`Missing 'name' in ${manifestPath}`);
+  }
+
   for (let [name, def] of Object.entries(manifest.functions)) {
     let jsFunctionName = "default",
       filePath = path.join(rootPath, def.path!);

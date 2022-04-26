@@ -3,11 +3,7 @@ import watch from "node-watch";
 import path from "path";
 import { createSandbox } from "./environments/node_sandbox";
 import { System } from "./system";
-
-function extractPlugName(localPath: string): string {
-  const baseName = path.basename(localPath);
-  return baseName.substring(0, baseName.length - ".plug.json".length);
-}
+import { Manifest } from "./types";
 
 export class DiskPlugLoader<HookT> {
   private system: System<HookT>;
@@ -27,13 +23,13 @@ export class DiskPlugLoader<HookT> {
         .then(async () => {
           try {
             // let localPath = path.join(this.plugPath, filename);
-            const plugName = extractPlugName(localPath);
-            console.log("Change detected for", plugName);
+            console.log("Change detected for", localPath);
             try {
               await fs.stat(localPath);
             } catch (e) {
               // Likely removed
-              await this.system.unload(plugName);
+              console.log("Plug removed, TODO: Unload");
+              return;
             }
             const plugDef = await this.loadPlugFromFile(localPath);
           } catch (e) {
@@ -47,12 +43,11 @@ export class DiskPlugLoader<HookT> {
 
   private async loadPlugFromFile(localPath: string) {
     const plug = await fs.readFile(localPath, "utf8");
-    const plugName = extractPlugName(localPath);
 
-    console.log("Now loading plug", plugName);
     try {
-      const plugDef = JSON.parse(plug);
-      await this.system.load(plugName, plugDef, createSandbox);
+      const plugDef: Manifest<HookT> = JSON.parse(plug);
+      console.log("Now loading plug", plugDef.name);
+      await this.system.load(plugDef, createSandbox);
       return plugDef;
     } catch (e) {
       console.error("Could not parse plugin file", e);

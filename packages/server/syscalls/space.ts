@@ -4,8 +4,8 @@ import { Space } from "@silverbulletmd/common/spaces/space";
 
 export default (space: Space): SysCallMapping => {
   return {
-    "space.listPages": async (ctx): Promise<PageMeta[]> => {
-      return [...space.listPages()];
+    "space.listPages": async (ctx, unfiltered = false): Promise<PageMeta[]> => {
+      return [...space.listPages(unfiltered)];
     },
     "space.readPage": async (
       ctx,

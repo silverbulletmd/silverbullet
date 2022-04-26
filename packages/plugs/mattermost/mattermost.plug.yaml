@@ -1,3 +1,4 @@
+name: mattermost
 functions:
   test:
     path: mattermost.ts:savedPostsQueryProvider

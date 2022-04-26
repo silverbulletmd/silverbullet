@@ -2,7 +2,7 @@ import { SpacePrimitives } from "./space_primitives";
 import { EventHook } from "@plugos/plugos/hooks/event";
 import { PageMeta } from "../types";
 import { Plug } from "@plugos/plugos/plug";
-import { trashPrefix } from "./constants";
+import { plugPrefix, trashPrefix } from "./constants";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
@@ -41,7 +41,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       lastModified
     );
     // This can happen async
-    if (!pageName.startsWith(trashPrefix)) {
+    if (!pageName.startsWith(trashPrefix) && !pageName.startsWith(plugPrefix)) {
       this.eventHook
         .dispatchEvent("page:saved", pageName)
         .then(() => {

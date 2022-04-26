@@ -10,8 +10,8 @@ test("Test store", async () => {
   let system = new System("server");
   system.registerSyscalls([], storeSyscalls("test", "test"));
   let plug = await system.load(
-    "test",
     {
+      name: "test",
       functions: {
         test1: {
           code: `(() => {

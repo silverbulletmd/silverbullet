@@ -1,8 +1,8 @@
 import { syscall } from "./syscall";
 import { PageMeta } from "../common/types";
 
-export async function listPages(): Promise<PageMeta[]> {
-  return syscall("space.listPages");
+export async function listPages(unfiltered = false): Promise<PageMeta[]> {
+  return syscall("space.listPages", unfiltered);
 }
 
 export async function readPage(
