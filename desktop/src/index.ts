@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, Menu } from "electron";
 const path = require("path");
-import { ExpressServer } from "@silverbulletmd/server/api_server";
+import { ExpressServer } from "@silverbulletmd/server/express_server";
 import * as fs from "fs";
 
 let mainWindow: BrowserWindow | undefined;

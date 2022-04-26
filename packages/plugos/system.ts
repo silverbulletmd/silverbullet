@@ -108,7 +108,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async unload(name: string) {
-    console.log("Unloading", name);
+    // console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
       throw Error(`Plug ${name} not found`);

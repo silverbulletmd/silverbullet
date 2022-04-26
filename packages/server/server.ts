@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
-import { ExpressServer } from "./api_server";
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
 import { preloadModules } from "@silverbulletmd/common/preload_modules";
-import path from "path";
-import { realpath } from "fs/promises";
 import { realpathSync } from "fs";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+
+import { ExpressServer } from "./express_server";
 
 let args = yargs(hideBin(process.argv))
   .option("port", {

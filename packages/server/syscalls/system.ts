@@ -1,5 +1,5 @@
 import { SysCallMapping } from "@plugos/plugos/system";
-import type { ExpressServer } from "../api_server";
+import type { ExpressServer } from "../express_server";
 
 export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
   return {

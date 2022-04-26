@@ -9,5 +9,5 @@ export async function invokeFunction(
 }
 
 export async function reloadPlugs() {
-  return syscall("system.reloadPlugs");
+  syscall("system.reloadPlugs");
 }

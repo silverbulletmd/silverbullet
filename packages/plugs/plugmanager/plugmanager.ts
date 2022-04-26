@@ -1,12 +1,10 @@
 import { dispatch } from "@plugos/plugos-syscall/event";
-import type { Manifest } from "@silverbulletmd/common/manifest";
 import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
 } from "@silverbulletmd/common/tree";
 import {
-  getCurrentPage,
   getText,
   hideBhs,
   showBhs,
@@ -23,7 +21,10 @@ import {
   reloadPlugs,
 } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 import YAML from "yaml";
+
 import { extractMeta } from "../query/data";
+
+import type { Manifest } from "@silverbulletmd/common/manifest";
 
 export async function compileCommand() {
   let text = await getText();
@@ -139,7 +140,7 @@ export async function updatePlugs() {
   }
   let plugYaml = codeTextNode.children![0].text;
   let plugList = YAML.parse(plugYaml!);
-  console.log("Plug YAML", plugList);
+  // console.log("Plug YAML", plugList);
   let allPlugNames: string[] = [];
   for (let plugUri of plugList) {
     let [protocol, ...rest] = plugUri.split(":");
@@ -164,11 +165,11 @@ export async function updatePlugs() {
       await deletePage(`_plug/${existingPlug}`);
     }
   }
-  // Important not to await!
-  reloadPlugs();
+  await reloadPlugs();
 }
 
 export async function getPlugPlugMd(pageName: string): Promise<Manifest> {
   let { text } = await readPage(pageName);
+  console.log("Compiling", pageName);
   return compileDefinition(text);
 }

@@ -1,7 +1,7 @@
 import express, { Express } from "express";
 import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
-import { readFile } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
 import { System } from "@plugos/plugos/system";
 import cors from "cors";
 import { DiskSpacePrimitives } from "@silverbulletmd/common/spaces/disk_space_primitives";
@@ -17,7 +17,6 @@ import { NodeCronHook } from "@plugos/plugos/hooks/node_cron";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { EventedSpacePrimitives } from "@silverbulletmd/common/spaces/evented_space_primitives";
 import { Space } from "@silverbulletmd/common/spaces/space";
-import { safeRun, throttle } from "@silverbulletmd/common/util";
 import { createSandbox } from "@plugos/plugos/environments/node_sandbox";
 import { jwtSyscalls } from "@plugos/plugos/syscalls/jwt";
 import buildMarkdown from "@silverbulletmd/web/parser";
@@ -25,6 +24,7 @@ import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
 import http, { Server } from "http";
 import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
 import { systemSyscalls } from "./syscalls/system";
+import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 export class ExpressServer {
   app: Express;
@@ -82,10 +82,6 @@ export class ExpressServer {
     this.system.registerSyscalls([], jwtSyscalls());
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
-    let throttledRebuildMdExtensions = throttle(() => {
-      this.rebuildMdExtensions();
-    }, 100);
-
     this.eventHook.addLocalListener(
       "get-plug:builtin",
       async (plugName: string): Promise<Manifest> => {
@@ -115,11 +111,42 @@ export class ExpressServer {
     );
   }
 
+  private async bootstrapBuiltinPlugs() {
+    let allPlugFiles = await readdir(this.builtinPlugDir);
+    let pluginNames = [];
+    for (let file of allPlugFiles) {
+      if (file.endsWith(".plug.json")) {
+        let manifestJson = await readFile(
+          path.join(this.builtinPlugDir, file),
+          "utf8"
+        );
+        let manifest: Manifest = JSON.parse(manifestJson);
+        pluginNames.push(manifest.name);
+        await this.space.writePage(
+          `${plugPrefix}${manifest.name}`,
+          manifestJson
+        );
+      }
+    }
+
+    await this.space.writePage(
+      "PLUGS",
+      "This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` command to update and reload this list of plugs.\n\n```yaml\n- " +
+        pluginNames.map((name) => `builtin:${name}`).join("\n- ") +
+        "\n```"
+    );
+  }
+
   async reloadPlugs() {
     await this.space.updatePageList();
+    let allPlugs = this.space.listPlugs();
+    if (allPlugs.size === 0) {
+      await this.bootstrapBuiltinPlugs();
+      allPlugs = this.space.listPlugs();
+    }
     await this.system.unloadAll();
     console.log("Reloading plugs");
-    for (let pageInfo of this.space.listPlugs()) {
+    for (let pageInfo of allPlugs) {
       let { text } = await this.space.readPage(pageInfo.name);
       await this.system.load(JSON.parse(text), (p) =>
         createSandbox(p, this.preloadedModules)

@@ -1,25 +1,25 @@
-name: plugmd
+name: plugmanager
 functions:
   updatePlugsCommand:
-    path: ./plugmd.ts:updatePlugsCommand
+    path: ./plugmanager.ts:updatePlugsCommand
     command:
       name: "Plugs: Update"
       key: "Ctrl-Shift-p"
       mac: "Cmd-Shift-p"
   updatePlugs:
-    path: ./plugmd.ts:updatePlugs
+    path: ./plugmanager.ts:updatePlugs
     env: server
   compile:
-    path: "./plugmd.ts:compileCommand"
+    path: "./plugmanager.ts:compileCommand"
     command:
       name: "Plug: Compile"
       mac: "Cmd-Shift-c"
       key: "Ctrl-Shift-c"
   compileJS:
-    path: "./plugmd.ts:compileJS"
+    path: "./plugmanager.ts:compileJS"
     env: server
 
   getPlugPlugMd:
-    path: "./plugmd.ts:getPlugPlugMd"
+    path: "./plugmanager.ts:getPlugPlugMd"
     events:
     - get-plug:plugmd

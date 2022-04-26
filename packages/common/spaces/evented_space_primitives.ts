@@ -1,8 +1,9 @@
-import { SpacePrimitives } from "./space_primitives";
 import { EventHook } from "@plugos/plugos/hooks/event";
-import { PageMeta } from "../types";
 import { Plug } from "@plugos/plugos/plug";
+
+import { PageMeta } from "../types";
 import { plugPrefix, trashPrefix } from "./constants";
+import { SpacePrimitives } from "./space_primitives";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
