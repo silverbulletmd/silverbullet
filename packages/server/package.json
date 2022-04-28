@@ -10,7 +10,7 @@
     "silverbullet": "./dist/server.js"
   },
   "scripts": {
-    "start": "nodemon -w dist dist/server.js ../../pages"
+    "start": "nodemon  -w dist --exec 'node --enable-source-maps dist/server.js ../../pages'"
   },
   "targets": {
     "server": {

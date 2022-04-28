@@ -1,0 +1,6 @@
+name: github
+functions:
+  test:
+    path: ./github.ts:queryEvents
+    events:
+      - query:gh-events

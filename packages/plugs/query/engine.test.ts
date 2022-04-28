@@ -47,6 +47,25 @@ test("Test parser", () => {
     "name",
     "age",
   ]);
+
+  expect(
+    parseQuery(`gh-events where type in ["PushEvent", "somethingElse"]`)
+  ).toStrictEqual({
+    table: "gh-events",
+    filter: [
+      {
+        op: "in",
+        prop: "type",
+        value: ["PushEvent", "somethingElse"],
+      },
+    ],
+  });
+
+  expect(parseQuery(`something render "template/table"`)).toStrictEqual({
+    table: "something",
+    filter: [],
+    render: "template/table",
+  });
 });
 
 test("Test performing the queries", () => {
@@ -91,5 +110,9 @@ test("Test performing the queries", () => {
   ).toStrictEqual([]);
   expect(
     applyQuery(parseQuery(`page where age > 30 select name`), data)
+  ).toStrictEqual([{ name: "Pete" }]);
+
+  expect(
+    applyQuery(parseQuery(`page where name in ["Pete"] select name`), data)
   ).toStrictEqual([{ name: "Pete" }]);
 });

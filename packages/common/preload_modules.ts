@@ -4,4 +4,4 @@
 // Candidate modules for this are larger modules
 
 // When adding a module to this list, also manually add it to sandbox_worker.ts
-export const preloadModules = ["@lezer/lr", "yaml"];
+export const preloadModules = ["@lezer/lr", "yaml", "handlebars"];

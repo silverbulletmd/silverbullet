@@ -13,7 +13,9 @@ export const
   Bool = 11,
   Regex = 12,
   Null = 13,
-  OrderClause = 14,
-  Order = 15,
-  LimitClause = 16,
-  SelectClause = 17
+  List = 14,
+  OrderClause = 15,
+  Order = 16,
+  LimitClause = 17,
+  SelectClause = 18,
+  RenderClause = 19

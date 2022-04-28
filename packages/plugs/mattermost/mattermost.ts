@@ -5,6 +5,9 @@ import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markd
 import { extractMeta } from "../query/data";
 import { niceDate } from "../core/dates";
 import { Post } from "@mattermost/types/lib/posts";
+import { ServerChannel } from "@mattermost/types/lib/channels";
+import { UserProfile } from "@mattermost/types/lib/users";
+import { Team } from "@mattermost/types/lib/teams";
 
 type AugmentedPost = Post & {
   // Dates we can use to filter
@@ -25,6 +28,7 @@ function mattermostDesktopUrlForPost(
 type MattermostConfig = {
   url: string;
   token: string;
+  defaultTeam: string;
 };
 
 async function getConfig(): Promise<MattermostConfig> {
@@ -46,11 +50,49 @@ function augmentPost(post: AugmentedPost) {
   }
 }
 
+class CachingClient4 {
+  constructor(public client: Client4) {}
+
+  private channelCache = new Map<string, ServerChannel>();
+  async getChannelCached(channelId: string): Promise<ServerChannel> {
+    let channel = this.channelCache.get(channelId);
+    if (channel) {
+      return channel;
+    }
+    channel = await this.client.getChannel(channelId);
+    this.channelCache.set(channelId, channel!);
+    return channel!;
+  }
+
+  private teamCache = new Map<string, Team>();
+  async getTeamCached(teamId: string): Promise<Team> {
+    let team = this.teamCache.get(teamId);
+    if (team) {
+      return team;
+    }
+    team = await this.client.getTeam(teamId);
+    this.teamCache.set(teamId, team!);
+    return team!;
+  }
+
+  private userCache = new Map<string, UserProfile>();
+  async getUserCached(userId: string): Promise<UserProfile> {
+    let user = this.userCache.get(userId);
+    if (user) {
+      return user;
+    }
+    user = await this.client.getUser(userId);
+    this.userCache.set(userId, user!);
+    return user!;
+  }
+}
+
 export async function savedPostsQueryProvider({
   query,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<any[]> {
   let config = await getConfig();
   let client = new Client4();
+  let cachingClient = new CachingClient4(client);
   client.setUrl(config.url);
   client.setToken(config.token);
   let me = await client.getMe();
@@ -61,20 +103,22 @@ export async function savedPostsQueryProvider({
     augmentPost(post);
     savedPosts.push(post);
   }
-  let savedPostsMd = [];
+  let resultSavedPosts = [];
   savedPosts = applyQuery(query, savedPosts);
   for (let savedPost of savedPosts) {
-    let channel = await client.getChannel(savedPost.channel_id);
-    let team = await client.getTeam(channel.team_id);
-    savedPostsMd.push(
-      `@${(await client.getUser(savedPost.user_id)).username} [${
-        savedPost.createdAt
-      }](${mattermostDesktopUrlForPost(
-        client.url,
-        team.name,
-        savedPost.id
-      )}):\n> ${savedPost.message.substring(0, 1000).replaceAll(/\n/g, "\n> ")}`
-    );
+    let channel = await cachingClient.getChannelCached(savedPost.channel_id);
+    let teamName = config.defaultTeam;
+    if (channel.team_id) {
+      let team = await cachingClient.getTeamCached(channel.team_id);
+      teamName = team.name;
+    }
+    resultSavedPosts.push({
+      ...savedPost,
+      user: await cachingClient.getUserCached(savedPost.user_id),
+      channel: channel,
+      teamName: teamName,
+      url: mattermostDesktopUrlForPost(client.url, teamName, savedPost.id),
+    });
   }
-  return savedPostsMd.join("\n\n");
+  return resultSavedPosts;
 }

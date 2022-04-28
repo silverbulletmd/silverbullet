@@ -86,7 +86,7 @@ export function extractMeta(parseTree: ParseTree, remove = false): any {
 
 export async function queryProvider({
   query,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<any[]> {
   let allData: any[] = [];
   for (let { key, page, value } of await scanPrefixGlobal("data:")) {
     let [, pos] = key.split("@");
@@ -96,6 +96,5 @@ export async function queryProvider({
       pos: +pos,
     });
   }
-  let resultData = applyQuery(query, allData);
-  return jsonToMDTable(resultData);
+  return applyQuery(query, allData);
 }

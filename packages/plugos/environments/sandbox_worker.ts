@@ -41,6 +41,7 @@ self.syscall = async (name: string, ...args: any[]) => {
 const preloadedModules: { [key: string]: any } = {
   "@lezer/lr": require("@lezer/lr"),
   yaml: require("yaml"),
+  handlebars: require("handlebars/dist/handlebars"),
 };
 // for (const moduleName of preloadModules) {
 //   preloadedModules[moduleName] = require(moduleName);

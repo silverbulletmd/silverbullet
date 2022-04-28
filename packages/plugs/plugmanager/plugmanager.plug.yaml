@@ -9,6 +9,12 @@ functions:
   updatePlugs:
     path: ./plugmanager.ts:updatePlugs
     env: server
+  check:
+    path: "./plugmanager.ts:checkCommand"
+    command:
+      name: "Plug: Check"
+      mac: "Cmd-Alt-c"
+      key: "Ctrl-Alt-c"
   compile:
     path: "./plugmanager.ts:compileCommand"
     command:

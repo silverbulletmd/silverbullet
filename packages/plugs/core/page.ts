@@ -65,44 +65,35 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 
 export async function pageQueryProvider({
   query,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<any[]> {
   let allPages = await listPages();
-  if (query.select) {
-    let allPageMap: Map<string, any> = new Map(
-      allPages.map((pm) => [pm.name, pm])
-    );
-    for (let { page, value } of await scanPrefixGlobal("meta:")) {
-      let p = allPageMap.get(page);
-      if (p) {
-        for (let [k, v] of Object.entries(value)) {
-          p[k] = v;
-        }
+  let allPageMap: Map<string, any> = new Map(
+    allPages.map((pm) => [pm.name, pm])
+  );
+  for (let { page, value } of await scanPrefixGlobal("meta:")) {
+    let p = allPageMap.get(page);
+    if (p) {
+      for (let [k, v] of Object.entries(value)) {
+        p[k] = v;
       }
     }
-    allPages = [...allPageMap.values()];
-    return jsonToMDTable(applyQuery(query, allPages), (k, v) =>
-      k === "name" ? `[[${v}]]` : v
-    );
-  } else {
-    return applyQuery(query, allPages)
-      .map((pageMeta: PageMeta) => `* [[${pageMeta.name}]]`)
-      .join("\n");
   }
+  allPages = [...allPageMap.values()];
+  return applyQuery(query, allPages);
 }
 
 export async function linkQueryProvider({
   query,
   pageName,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<any[]> {
   let uniqueLinks = new Set<string>();
   for (let { value: name } of await scanPrefixGlobal(`pl:${pageName}:`)) {
     uniqueLinks.add(name);
   }
-  let markdownLinks = applyQuery(
+  return applyQuery(
     query,
     [...uniqueLinks].map((l) => ({ name: l }))
-  ).map((pageMeta) => `* [[${pageMeta.name}]]`);
-  return markdownLinks.join("\n");
+  );
 }
 
 export async function deletePage() {

@@ -25,7 +25,7 @@ import {
   renderToText,
 } from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
+import { applyQuery, QueryProviderEvent, renderQuery } from "../query/engine";
 import { niceDate } from "../core/dates";
 
 export type Task = {
@@ -195,7 +195,7 @@ export async function postponeCommand() {
 
 export async function queryProvider({
   query,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<Task[]> {
   let allTasks: Task[] = [];
   for (let { key, page, value } of await scanPrefixGlobal("task:")) {
     let [, pos] = key.split(":");
@@ -205,10 +205,5 @@ export async function queryProvider({
       pos: pos,
     });
   }
-  let markdownTasks = applyQuery(query, allTasks).map(
-    (t) =>
-      `* [${t.done ? "x" : " "}] [[${t.page}@${t.pos}]] ${t.name}` +
-      (t.nested ? "\n  " + t.nested : "")
-  );
-  return markdownTasks.join("\n");
+  return applyQuery(query, allTasks);
 }

@@ -1,8 +1,17 @@
-import { collectNodesOfType, findNodeOfType, replaceNodesMatching } from "@silverbulletmd/common/tree";
+import {
+  collectNodesOfType,
+  findNodeOfType,
+  ParseTree,
+  replaceNodesMatching,
+} from "@silverbulletmd/common/tree";
 import { lezerToParseTree } from "@silverbulletmd/common/parse_tree";
+import Handlebars from "handlebars";
+import YAML from "yaml";
 
 // @ts-ignore
 import { parser } from "./parse-query";
+import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { niceDate } from "../core/dates";
 
 export type QueryProviderEvent = {
   query: ParsedQuery;
@@ -22,6 +31,7 @@ export type ParsedQuery = {
   limit?: number;
   filter: Filter[];
   select?: string[];
+  render?: string;
 };
 
 export function parseQuery(query: string): ParsedQuery {
@@ -56,34 +66,14 @@ export function parseQuery(query: string): ParsedQuery {
   let limitNode = findNodeOfType(queryNode, "LimitClause");
   if (limitNode) {
     let nameNode = findNodeOfType(limitNode, "Number");
-    parsedQuery.limit = +nameNode!.children![0].text!;
+    parsedQuery.limit = valueNodeToVal(nameNode!);
   }
+
   let filterNodes = collectNodesOfType(queryNode, "FilterExpr");
   for (let filterNode of filterNodes) {
     let val: any = undefined;
     let valNode = filterNode.children![2].children![0];
-    switch (valNode.type) {
-      case "Number":
-        val = valNode.children![0].text!;
-        break;
-      case "Bool":
-        val = valNode.children![0].text! === "true";
-        break;
-      case "Null":
-        val = null;
-        break;
-      case "Name":
-        val = valNode.children![0].text!;
-        break;
-      case "Regex":
-        val = valNode.children![0].text!;
-        val = val.substring(1, val.length - 1);
-        break;
-      case "String":
-        val = valNode.children![0].text!;
-        val = val.substring(1, val.length - 1);
-        break;
-    }
+    val = valueNodeToVal(valNode);
     let f: Filter = {
       prop: filterNode.children![0].children![0].text!,
       op: filterNode.children![1].text!,
@@ -93,7 +83,7 @@ export function parseQuery(query: string): ParsedQuery {
   }
   let selectNode = findNodeOfType(queryNode, "SelectClause");
   if (selectNode) {
-    console.log("Select node", JSON.stringify(selectNode));
+    // console.log("Select node", JSON.stringify(selectNode));
     parsedQuery.select = [];
     collectNodesOfType(selectNode, "Name").forEach((t) => {
       parsedQuery.select!.push(t.children![0].text!);
@@ -102,8 +92,37 @@ export function parseQuery(query: string): ParsedQuery {
     // parsedQuery.limit = +nameNode!.children![0].text!;
   }
 
+  let renderNode = findNodeOfType(queryNode, "RenderClause");
+  if (renderNode) {
+    let renderNameNode = findNodeOfType(renderNode, "String");
+    parsedQuery.render = valueNodeToVal(renderNameNode!);
+  }
+
   // console.log(JSON.stringify(queryNode, null, 2));
   return parsedQuery;
+}
+
+function valueNodeToVal(valNode: ParseTree): any {
+  switch (valNode.type) {
+    case "Number":
+      return +valNode.children![0].text!;
+    case "Bool":
+      return valNode.children![0].text! === "true";
+    case "Null":
+      return null;
+    case "Name":
+      return valNode.children![0].text!;
+    case "Regex":
+      let val = valNode.children![0].text!;
+      return val.substring(1, val.length - 1);
+    case "String":
+      let stringVal = valNode.children![0].text!;
+      return stringVal.substring(1, stringVal.length - 1);
+    case "List":
+      return collectNodesOfType(valNode, "Value").map((t) =>
+        valueNodeToVal(t.children![0])
+      );
+  }
 }
 
 export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
@@ -156,6 +175,11 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
               continue recordLoop;
             }
             break;
+          case "in":
+            if (!value.includes(recordAny[prop])) {
+              continue recordLoop;
+            }
+            break;
         }
       }
       resultRecords.push(recordAny);
@@ -190,4 +214,34 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
     });
   }
   return resultRecords;
+}
+
+export async function renderQuery(
+  parsedQuery: ParsedQuery,
+  data: any[]
+): Promise<string> {
+  if (parsedQuery.render) {
+    Handlebars.registerHelper("json", (v) => JSON.stringify(v));
+    Handlebars.registerHelper("niceDate", (ts) => niceDate(new Date(ts)));
+    Handlebars.registerHelper("yaml", (v, prefix) => {
+      if (typeof prefix === "string") {
+        let yaml = YAML.stringify(v)
+          .split("\n")
+          .join("\n" + prefix)
+          .trim();
+        if (Array.isArray(v)) {
+          return "\n" + prefix + yaml;
+        } else {
+          return yaml;
+        }
+      } else {
+        return YAML.stringify(v).trim();
+      }
+    });
+    let { text: templateText } = await readPage(parsedQuery.render);
+    let template = Handlebars.compile(templateText, { noEscape: true });
+    return template(data);
+  }
+
+  return "ERROR";
 }

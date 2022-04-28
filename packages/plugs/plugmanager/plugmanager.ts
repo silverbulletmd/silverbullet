@@ -36,7 +36,18 @@ export async function compileCommand() {
     );
     console.log("Wrote this plug", manifest);
     await hideBhs();
-    // Important not to await!
+    await reloadPlugs();
+  } catch (e: any) {
+    await showBhs(e.message);
+    // console.error("Got this error from compiler", e.message);
+  }
+}
+
+export async function checkCommand() {
+  let text = await getText();
+  try {
+    await compileDefinition(text);
+    await hideBhs();
     reloadPlugs();
   } catch (e: any) {
     await showBhs(e.message);

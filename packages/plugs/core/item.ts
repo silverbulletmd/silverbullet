@@ -59,7 +59,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
 export async function queryProvider({
   query,
-}: QueryProviderEvent): Promise<string> {
+}: QueryProviderEvent): Promise<any[]> {
   let allItems: Item[] = [];
   for (let { key, page, value } of await scanPrefixGlobal("it:")) {
     let [, pos] = key.split(":");
@@ -69,10 +69,5 @@ export async function queryProvider({
       pos: +pos,
     });
   }
-  let markdownItems = applyQuery(query, allItems).map(
-    (item) =>
-      `* [[${item.page}@${item.pos}]] ${item.name}` +
-      (item.nested ? "\n  " + item.nested : "")
-  );
-  return markdownItems.join("\n");
+  return applyQuery(query, allItems);
 }
