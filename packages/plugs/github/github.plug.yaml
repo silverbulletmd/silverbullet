@@ -1,6 +1,10 @@
 name: github
 functions:
-  test:
+  queryEvents:
     path: ./github.ts:queryEvents
     events:
       - query:gh-events
+  queryIssues:
+    path: ./github.ts:queryIssues
+    events:
+      - query:gh-issues

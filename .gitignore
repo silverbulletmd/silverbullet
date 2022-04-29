@@ -6,3 +6,5 @@ node_modules
 dist
 generated
 .yarnrc.yml
+*.test.js
+*.js.map

@@ -1,4 +1,9 @@
-import { addParentPointers, collectNodesMatching, ParseTree, renderToText } from "@silverbulletmd/common/tree";
+import {
+  addParentPointers,
+  collectNodesMatching,
+  ParseTree,
+  renderToText,
+} from "@silverbulletmd/common/tree";
 
 export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*#end\s*-->)/gs;
@@ -44,27 +49,69 @@ export function removeQueries(pt: ParseTree) {
   });
 }
 
+const maxWidth = 70;
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer?: (k: string, v: any) => string | undefined
+  valueTransformer: (k: string, v: any) => string = (k, v) => "" + v
 ): string {
-  let headers = new Set<string>();
+  let fieldWidths = new Map<string, number>();
   for (let entry of jsonArray) {
     for (let k of Object.keys(entry)) {
-      headers.add(k);
+      let fieldWidth = fieldWidths.get(k);
+      if (!fieldWidth) {
+        fieldWidth = valueTransformer(k, entry[k]).length;
+      } else {
+        fieldWidth = Math.max(valueTransformer(k, entry[k]).length, fieldWidth);
+      }
+      fieldWidths.set(k, fieldWidth);
     }
   }
-  let headerList = [...headers];
+
+  let fullWidth = 0;
+  for (let v of fieldWidths.values()) {
+    fullWidth += v + 1;
+  }
+
+  let headerList = [...fieldWidths.keys()];
   let lines = [];
-  lines.push("|" + headerList.join("|") + "|");
-  lines.push("|" + headerList.map((title) => "----").join("|") + "|");
+  lines.push(
+    "|" +
+      headerList
+        .map(
+          (headerName) =>
+            headerName +
+            charPad(" ", fieldWidths.get(headerName)! - headerName.length)
+        )
+        .join("|") +
+      "|"
+  );
+  lines.push(
+    "|" +
+      headerList
+        .map((title) => charPad("-", fieldWidths.get(title)!))
+        .join("|") +
+      "|"
+  );
   for (const val of jsonArray) {
     let el = [];
     for (let prop of headerList) {
-      el.push(valueTransformer ? valueTransformer(prop, val[prop]) : val[prop]);
+      let s = valueTransformer(prop, val[prop]);
+      el.push(s + charPad(" ", fieldWidths.get(prop)! - s.length));
     }
     lines.push("|" + el.join("|") + "|");
   }
   return lines.join("\n");
+
+  function charPad(ch: string, length: number) {
+    if (fullWidth > maxWidth && ch === "") {
+      return "";
+    } else if (fullWidth > maxWidth && ch === "-") {
+      return "--";
+    }
+    if (length < 1) {
+      return "";
+    }
+    return new Array(length + 1).join(ch);
+  }
 }
