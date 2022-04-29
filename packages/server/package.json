@@ -10,7 +10,8 @@
     "silverbullet": "./dist/server.js"
   },
   "scripts": {
-    "start": "nodemon  -w dist --exec 'node --enable-source-maps dist/server.js ../../pages'"
+    "start": "nodemon  -w dist --exec 'node --enable-source-maps dist/server/server.js --token abc ../../pages'",
+    "test": "jest dist/test"
   },
   "targets": {
     "server": {
@@ -25,6 +26,14 @@
         "@silverbulletmd/common",
         "@silverbulletmd/web"
       ]
+    },
+    "test": {
+      "source": [
+        "auth.test.ts"
+      ],
+      "outputFormat": "commonjs",
+      "isLibrary": true,
+      "context": "node"
     }
   },
   "dependencies": {

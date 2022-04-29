@@ -28,10 +28,9 @@ import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
 import { lineWrapper } from "./line_wrapper";
-import { markdown } from "./markdown";
+import { markdown } from "@silverbulletmd/common/markdown";
 import { PathPageNavigator } from "./navigator";
-import customMarkDown from "./parser";
-import buildMarkdown from "./parser";
+import buildMarkdown from "@silverbulletmd/common/parser";
 import reducer from "./reducer";
 import { smartQuoteKeymap } from "./smart_quotes";
 import { Space } from "@silverbulletmd/common/spaces/space";
@@ -52,7 +51,10 @@ import { pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
 import { StatusBar } from "./components/status_bar";
-import { loadMarkdownExtensions, MDExt } from "./markdown_ext";
+import {
+  loadMarkdownExtensions,
+  MDExt,
+} from "@silverbulletmd/common/markdown_ext";
 import { FilterList } from "./components/filter";
 import { FilterOption } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
@@ -402,7 +404,7 @@ export class Editor {
         ),
         pasteLinkExtension,
         markdown({
-          base: customMarkDown(this.mdExtensions),
+          base: buildMarkdown(this.mdExtensions),
         }),
       ],
     });

@@ -12,6 +12,9 @@ let args = yargs(hideBin(process.argv))
     type: "number",
     default: 3000,
   })
+  .option("token", {
+    type: "string",
+  })
   .parse();
 
 if (!args._.length) {
@@ -31,13 +34,14 @@ const plugDistDir = realpathSync(
 );
 console.log("Builtin plug dist dir", plugDistDir);
 
-const expressServer = new ExpressServer(
-  port,
-  pagesPath,
-  webappDistDir,
-  plugDistDir,
-  preloadModules
-);
+const expressServer = new ExpressServer({
+  port: port,
+  pagesPath: pagesPath,
+  preloadedModules: preloadModules,
+  distDir: webappDistDir,
+  builtinPlugDir: plugDistDir,
+  token: args.token,
+});
 expressServer.start().catch((e) => {
   console.error(e);
 });

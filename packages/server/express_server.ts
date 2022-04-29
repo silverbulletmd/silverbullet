@@ -19,13 +19,26 @@ import { EventedSpacePrimitives } from "@silverbulletmd/common/spaces/evented_sp
 import { Space } from "@silverbulletmd/common/spaces/space";
 import { createSandbox } from "@plugos/plugos/environments/node_sandbox";
 import { jwtSyscalls } from "@plugos/plugos/syscalls/jwt";
-import buildMarkdown from "@silverbulletmd/web/parser";
-import { loadMarkdownExtensions } from "@silverbulletmd/web/markdown_ext";
+import buildMarkdown from "@silverbulletmd/common/parser";
+import { loadMarkdownExtensions } from "@silverbulletmd/common/markdown_ext";
 import http, { Server } from "http";
 import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
 import { systemSyscalls } from "./syscalls/system";
 import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
+import { Authenticator } from "./auth";
+import { nextTick } from "process";
+
+const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
+
+export type ServerOptions = {
+  port: number;
+  pagesPath: string;
+  distDir: string;
+  builtinPlugDir: string;
+  preloadedModules: string[];
+  token?: string;
+};
 export class ExpressServer {
   app: Express;
   system: System<SilverBulletHooks>;
@@ -37,27 +50,23 @@ export class ExpressServer {
   private server?: Server;
   builtinPlugDir: string;
   preloadedModules: string[];
+  token?: string;
 
-  constructor(
-    port: number,
-    pagesPath: string,
-    distDir: string,
-    builtinPlugDir: string,
-    preloadedModules: string[]
-  ) {
-    this.port = port;
+  constructor(options: ServerOptions) {
+    this.port = options.port;
     this.app = express();
-    this.builtinPlugDir = builtinPlugDir;
-    this.distDir = distDir;
+    this.builtinPlugDir = options.builtinPlugDir;
+    this.distDir = options.distDir;
     this.system = new System<SilverBulletHooks>("server");
-    this.preloadedModules = preloadedModules;
+    this.preloadedModules = options.preloadedModules;
+    this.token = options.token;
 
     // Setup system
     this.eventHook = new EventHook();
     this.system.addHook(this.eventHook);
     this.space = new Space(
       new EventedSpacePrimitives(
-        new DiskSpacePrimitives(pagesPath),
+        new DiskSpacePrimitives(options.pagesPath),
         this.eventHook
       ),
       true
@@ -65,27 +74,33 @@ export class ExpressServer {
     this.db = knex({
       client: "better-sqlite3",
       connection: {
-        filename: path.join(pagesPath, "data.db"),
+        filename: path.join(options.pagesPath, "data.db"),
       },
       useNullAsDefault: true,
     });
 
-    this.system.registerSyscalls(["shell"], shellSyscalls(pagesPath));
+    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
     this.system.addHook(new NodeCronHook());
 
-    this.system.registerSyscalls([], pageIndexSyscalls(this.db));
-    this.system.registerSyscalls([], spaceSyscalls(this.space));
-    this.system.registerSyscalls([], eventSyscalls(this.eventHook));
-    this.system.registerSyscalls([], markdownSyscalls(buildMarkdown([])));
-    this.system.registerSyscalls([], esbuildSyscalls());
-    this.system.registerSyscalls([], systemSyscalls(this));
-    this.system.registerSyscalls([], jwtSyscalls());
+    this.system.registerSyscalls(
+      [],
+      pageIndexSyscalls(this.db),
+      spaceSyscalls(this.space),
+      eventSyscalls(this.eventHook),
+      markdownSyscalls(buildMarkdown([])),
+      esbuildSyscalls(),
+      systemSyscalls(this),
+      jwtSyscalls()
+    );
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
     this.eventHook.addLocalListener(
       "get-plug:builtin",
       async (plugName: string): Promise<Manifest> => {
         // console.log("Ok, resovling a plugin", plugName);
+        if (!safeFilename.test(plugName)) {
+          throw new Error(`Invalid plug name: ${plugName}`);
+        }
         try {
           let manifestJson = await readFile(
             path.join(this.builtinPlugDir, `${plugName}.plug.json`),
@@ -156,9 +171,24 @@ export class ExpressServer {
   }
 
   async start() {
+    const tokenMiddleware: (req: any, res: any, next: any) => void = this.token
+      ? (req, res, next) => {
+          if (req.headers.authorization === `Bearer ${this.token}`) {
+            next();
+          } else {
+            res.status(401).send("Unauthorized");
+          }
+        }
+      : (req, res, next) => {
+          next();
+        };
+
     await ensurePageIndexTable(this.db);
     console.log("Setting up router");
 
+    let auth = new Authenticator(this.db);
+
+    // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
 
     let fsRouter = express.Router();
@@ -169,8 +199,6 @@ export class ExpressServer {
       res.header("Now-Timestamp", "" + nowTimestamp);
       res.json([...pages]);
     });
-
-    fsRouter.route("/").post(bodyParser.json(), async (req, res) => {});
 
     fsRouter
       .route(/\/(.+)/)
@@ -242,6 +270,7 @@ export class ExpressServer {
 
     this.app.use(
       "/fs",
+      tokenMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -251,6 +280,8 @@ export class ExpressServer {
 
     let plugRouter = express.Router();
 
+    // TODO: This is currently only used for the indexer calls, it's potentially dangerous
+    // do we need a better solution?
     plugRouter.post(
       "/:plug/syscall/:name",
       bodyParser.json(),
@@ -277,6 +308,7 @@ export class ExpressServer {
         }
       }
     );
+
     plugRouter.post(
       "/:plug/function/:name",
       bodyParser.json(),
@@ -290,7 +322,6 @@ export class ExpressServer {
           return res.send(`Plug ${plugName} not found`);
         }
         try {
-          console.log("Invoking", name);
           const result = await plug.invoke(name, args);
           res.status(200);
           res.send(result);
@@ -304,6 +335,7 @@ export class ExpressServer {
 
     this.app.use(
       "/plug",
+      tokenMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -312,13 +344,8 @@ export class ExpressServer {
     );
 
     // Fallback, serve index.html
-    // let cachedIndex: string | undefined = undefined;
     this.app.get("/*", async (req, res) => {
-      // if (!cachedIndex) {
-      // let cachedIndex = await readFile(`${this.distDir}/index.html`, "utf8");
-      // }
       res.sendFile(`${this.distDir}/index.html`, {});
-      // res.status(200).header("Content-Type", "text/html").send(cachedIndex);
     });
 
     this.server = http.createServer(this.app);

@@ -1,6 +1,11 @@
 var $hVExJ$jestglobals = require("@jest/globals");
+var $hVExJ$handlebars = require("handlebars");
+var $hVExJ$yaml = require("yaml");
 var $hVExJ$lezerlr = require("@lezer/lr");
 
+function $parcel$interopDefault(a) {
+  return a && a.__esModule ? a.default : a;
+}
 
 function $255163dfff8c42fb$export$6dd7a1b2f91e0e12(tree) {
     if (!tree.children) return;
@@ -151,6 +156,8 @@ function $88d466d5aaf7a497$export$98e6a39c04603d36(language, text) {
 
 
 
+
+
 const $d85524f23de2149a$export$8f49e4af10703ce3 = $hVExJ$lezerlr.LRParser.deserialize({
     version: 13,
     states: "&fOVQPOOOmQQO'#C^QOQPOOOtQPO'#C`OyQQO'#CkO!OQPO'#CmO!TQPO'#CnO!YQPO'#CoOOQO'#Cp'#CpO!_QQO,58xO!fQQO'#CcO#TQQO'#CaOOQO'#Ca'#CaOOQO,58z,58zO#lQPO,59VOOQO,59X,59XO#qQQO'#D`OOQO,59Y,59YOOQO,59Z,59ZOOQO-E6n-E6nO$YQQO,58}OtQPO,58|O$qQQO1G.qO%]QPO'#CrO%bQQO,59zOOQO'#Cg'#CgOOQO'#Ci'#CiO$YQQO'#CjOOQO'#Cd'#CdOOQO1G.i1G.iOOQO1G.h1G.hOOQO'#Cl'#ClOOQO7+$]7+$]OOQO,59^,59^OOQO-E6p-E6pO%yQPO'#C|O&RQPO,59UO$YQQO'#CqO&WQPO,59hOOQO1G.p1G.pOOQO,59],59]OOQO-E6o-E6o",
@@ -191,6 +198,92 @@ async function $2780e5830b4782c9$export$7ed3b3f07f54e00c(name, text) {
 }
 async function $2780e5830b4782c9$export$2e9858c25869c949(name) {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("space.deletePage", name);
+}
+
+
+
+function $11a7e2bff790f35a$export$7945ba8eb1c827e6() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getCurrentPage");
+}
+function $11a7e2bff790f35a$export$5e830c5f3cd8a610(newName) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.setPage", newName);
+}
+function $11a7e2bff790f35a$export$c72d34660a162238() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getText");
+}
+function $11a7e2bff790f35a$export$da3f040fb23d21f() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getCursor");
+}
+function $11a7e2bff790f35a$export$a1544dad697b423d() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.save");
+}
+function $11a7e2bff790f35a$export$ff7962acd6052c28(name, pos) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.navigate", name, pos);
+}
+function $11a7e2bff790f35a$export$da22d4a5076a7905() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.reloadPage");
+}
+function $11a7e2bff790f35a$export$a238cfe4a10e6279(url) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.openUrl", url);
+}
+function $11a7e2bff790f35a$export$4f02334034b5dd8c(message) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.flashNotification", message);
+}
+function $11a7e2bff790f35a$export$83b9d7a71bc0a208(label, options, helpText = "", placeHolder = "") {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.filterBox", label, options, helpText, placeHolder);
+}
+function $11a7e2bff790f35a$export$53ed0b99a5f8822e(html, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showRhs", html, flex);
+}
+function $11a7e2bff790f35a$export$f19f28e8a128fabe() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideRhs");
+}
+function $11a7e2bff790f35a$export$dcf0ace441f4b3a4(html, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showLhs", html, flex);
+}
+function $11a7e2bff790f35a$export$1be2ad20c6324dcf() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideLhs");
+}
+function $11a7e2bff790f35a$export$6ebe231c70cc6efb(html, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showBhs", html, flex);
+}
+function $11a7e2bff790f35a$export$a7a5aa8ba1cd9dc3() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideBhs");
+}
+function $11a7e2bff790f35a$export$f1124a4ce9f9bf29(text, pos) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.insertAtPos", text, pos);
+}
+function $11a7e2bff790f35a$export$54cb80d99fa58e48(from, to, text) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.replaceRange", from, to, text);
+}
+function $11a7e2bff790f35a$export$185d1f0722e636b2(pos) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.moveCursor", pos);
+}
+function $11a7e2bff790f35a$export$df659347c0c138a9(text) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.insertAtCursor", text);
+}
+function $11a7e2bff790f35a$export$c4c1b7dbe675fa50(re) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.matchBefore", re);
+}
+function $11a7e2bff790f35a$export$635e15bbd66f01ea(change) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.dispatch", change);
+}
+function $11a7e2bff790f35a$export$195ba6d62321b933(message, defaultValue = "") {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.prompt", message, defaultValue);
+}
+
+
+const $c3893eec0c49ec96$var$dateMatchRegex = /(\d{4}\-\d{2}\-\d{2})/g;
+function $c3893eec0c49ec96$export$5dc1410f87262ed6(d) {
+    return d.toISOString().split("T")[0];
+}
+async function $c3893eec0c49ec96$export$151bb3c215c78d5a() {
+    await $11a7e2bff790f35a$export$df659347c0c138a9($c3893eec0c49ec96$export$5dc1410f87262ed6(new Date()));
+}
+async function $c3893eec0c49ec96$export$2177dd573df27382() {
+    let d = new Date();
+    d.setDate(d.getDate() + 1);
+    await $11a7e2bff790f35a$export$df659347c0c138a9($c3893eec0c49ec96$export$5dc1410f87262ed6(d));
 }
 
 
@@ -327,11 +420,26 @@ function $9072202279b76d33$export$5884dae03c64f759(parsedQuery, records) {
     });
     return resultRecords;
 }
-async function $9072202279b76d33$var$renderQuery(parsedQuery, data) {
+async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
     if (parsedQuery.render) {
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("json", (v)=>JSON.stringify(v)
+        );
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("niceDate", (ts)=>$c3893eec0c49ec96$export$5dc1410f87262ed6(new Date(ts))
+        );
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("yaml", (v, prefix)=>{
+            if (typeof prefix === "string") {
+                let yaml = ($parcel$interopDefault($hVExJ$yaml)).stringify(v).split("\n").join("\n" + prefix).trim();
+                if (Array.isArray(v)) return "\n" + prefix + yaml;
+                else return yaml;
+            } else return ($parcel$interopDefault($hVExJ$yaml)).stringify(v).trim();
+        });
         let { text: templateText  } = await $2780e5830b4782c9$export$126f79da5c357ad(parsedQuery.render);
-    // let template = Handlebars.compile(templateText);
+        let template = ($parcel$interopDefault($hVExJ$handlebars)).compile(templateText, {
+            noEscape: true
+        });
+        return template(data);
     }
+    return "ERROR";
 }
 
 

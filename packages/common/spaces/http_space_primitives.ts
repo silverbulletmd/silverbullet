@@ -5,17 +5,34 @@ import { SpacePrimitives } from "./space_primitives";
 export class HttpSpacePrimitives implements SpacePrimitives {
   pageUrl: string;
   private plugUrl: string;
+  token?: string;
 
-  constructor(url: string) {
+  constructor(url: string, token?: string) {
     this.pageUrl = url + "/fs";
     this.plugUrl = url + "/plug";
+    this.token = token;
+  }
+
+  private async authenticatedFetch(
+    url: string,
+    options: any
+  ): Promise<Response> {
+    if (this.token) {
+      options.headers = options.headers || {};
+      options.headers["Authorization"] = `Bearer ${this.token}`;
+    }
+    let result = await fetch(url, options);
+    if (result.status === 401) {
+      throw Error("Unauthorized");
+    }
+    return result;
   }
 
   public async fetchPageList(): Promise<{
     pages: Set<PageMeta>;
     nowTimestamp: number;
   }> {
-    let req = await fetch(this.pageUrl, {
+    let req = await this.authenticatedFetch(this.pageUrl, {
       method: "GET",
     });
 
@@ -35,7 +52,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let res = await fetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
       method: "GET",
     });
     if (res.headers.get("X-Status") === "404") {
@@ -54,7 +71,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     lastModified?: number
   ): Promise<PageMeta> {
     // TODO: lastModified ignored for now
-    let res = await fetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
       method: "PUT",
       body: text,
       headers: lastModified
@@ -68,7 +85,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async deletePage(name: string): Promise<void> {
-    let req = await fetch(`${this.pageUrl}/${name}`, {
+    let req = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
       method: "DELETE",
     });
     if (req.status !== 200) {
@@ -77,13 +94,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    let req = await fetch(`${this.plugUrl}/${plug.name}/syscall/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-type": "application/json",
-      },
-      body: JSON.stringify(args),
-    });
+    let req = await this.authenticatedFetch(
+      `${this.plugUrl}/${plug.name}/syscall/${name}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(args),
+      }
+    );
     if (req.status !== 200) {
       let error = await req.text();
       throw Error(error);
@@ -105,13 +125,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       return plug.invoke(name, args);
     }
     // Or dispatch to server
-    let req = await fetch(`${this.plugUrl}/${plug.name}/function/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-type": "application/json",
-      },
-      body: JSON.stringify(args),
-    });
+    let req = await this.authenticatedFetch(
+      `${this.plugUrl}/${plug.name}/function/${name}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(args),
+      }
+    );
     if (req.status !== 200) {
       let error = await req.text();
       throw Error(error);
@@ -127,7 +150,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    let res = await fetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
       method: "OPTIONS",
     });
     if (res.headers.get("X-Status") === "404") {

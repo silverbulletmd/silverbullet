@@ -29,10 +29,6 @@ import {
 
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
-// const pageLinkRegexPrefix = new RegExp(
-//   "^" + pageLinkRegex.toString().slice(1, -1)
-// );
-
 const WikiLink: MarkdownConfig = {
   defineNodes: ["WikiLink", "WikiLinkPage"],
   parseInline: [

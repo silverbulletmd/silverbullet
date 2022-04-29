@@ -1,6 +1,6 @@
 import { HighlightStyle, tags as t } from "@codemirror/highlight";
-import * as ct from "./customtags";
-import { MDExt } from "./markdown_ext";
+import * as ct from "@silverbulletmd/common/customtags";
+import { MDExt } from "@silverbulletmd/common/markdown_ext";
 
 export default function highlightStyles(mdExtension: MDExt[]) {
   return HighlightStyle.define([

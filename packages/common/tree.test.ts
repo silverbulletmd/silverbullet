@@ -7,9 +7,9 @@ import {
   nodeAtPos,
   removeParentPointers,
   renderToText,
-  replaceNodesMatching
+  replaceNodesMatching,
 } from "./tree";
-import wikiMarkdownLang from "@silverbulletmd/web/parser";
+import wikiMarkdownLang from "@silverbulletmd/common/parser";
 
 const mdTest1 = `
 # Heading

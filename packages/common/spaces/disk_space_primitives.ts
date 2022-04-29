@@ -11,21 +11,30 @@ import * as path from "path";
 import { PageMeta } from "../types";
 import { SpacePrimitives } from "./space_primitives";
 import { Plug } from "@plugos/plugos/plug";
+import { realpathSync } from "fs";
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
   plugPrefix: string;
 
   constructor(rootPath: string, plugPrefix: string = "_plug/") {
-    this.rootPath = rootPath;
+    this.rootPath = realpathSync(rootPath);
     this.plugPrefix = plugPrefix;
+  }
+
+  safePath(p: string): string {
+    let realPath = realpathSync(p);
+    if (!realPath.startsWith(this.rootPath)) {
+      throw Error(`Path ${p} is not in the space`);
+    }
+    return realPath;
   }
 
   pageNameToPath(pageName: string) {
     if (pageName.startsWith(this.plugPrefix)) {
-      return path.join(this.rootPath, pageName + ".plug.json");
+      return this.safePath(path.join(this.rootPath, pageName + ".plug.json"));
     }
-    return path.join(this.rootPath, pageName + ".md");
+    return this.safePath(path.join(this.rootPath, pageName + ".md"));
   }
 
   pathToPageName(fullPath: string): string {
