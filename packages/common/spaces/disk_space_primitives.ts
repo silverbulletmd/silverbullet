@@ -23,7 +23,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   safePath(p: string): string {
-    let realPath = realpathSync(p);
+    let realPath = path.resolve(p);
     if (!realPath.startsWith(this.rootPath)) {
       throw Error(`Path ${p} is not in the space`);
     }
