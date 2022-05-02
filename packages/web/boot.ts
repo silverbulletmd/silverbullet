@@ -6,7 +6,7 @@ import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_pr
 safeRun(async () => {
   // let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
   // localSpace.watch();
-  let token: string | undefined = sessionStorage.getItem("token") || undefined;
+  let token: string | undefined = localStorage.getItem("token") || undefined;
 
   let httpPrimitives = new HttpSpacePrimitives("", token);
   while (true) {
@@ -20,7 +20,7 @@ safeRun(async () => {
           alert("Sorry, that's it then");
           return;
         }
-        sessionStorage.setItem("token", token!);
+        localStorage.setItem("token", token!);
         httpPrimitives = new HttpSpacePrimitives("", token);
       }
     }
