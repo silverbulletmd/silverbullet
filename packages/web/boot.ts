@@ -56,11 +56,17 @@ safeRun(async () => {
 
 // if (!isDesktop) {
 // if (localStorage.getItem("disable_sw") !== "true") {
-navigator.serviceWorker
-  .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
-  .then((r) => {
-    console.log("Service worker registered...");
-  });
+if (navigator.serviceWorker) {
+  navigator.serviceWorker
+    .register(new URL("service_worker.ts", import.meta.url), { type: "module" })
+    .then((r) => {
+      console.log("Service worker registered...");
+    });
+} else {
+  console.log(
+    "No launching service worker (not present, maybe because not running on localhost or over SSL"
+  );
+}
 // }
 
 // }
