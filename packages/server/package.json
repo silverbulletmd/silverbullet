@@ -7,10 +7,10 @@
   "version": "0.0.1",
   "license": "MIT",
   "bin": {
-    "silverbullet": "./dist/server.js"
+    "silverbullet": "./dist/server/server.js"
   },
   "scripts": {
-    "start": "nodemon  -w dist --exec 'node --enable-source-maps dist/server/server.js --token abc ../../pages'",
+    "start": "nodemon  -w dist --exec 'silverbullet ../../pages'",
     "test": "jest dist/test"
   },
   "targets": {

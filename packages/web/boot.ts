@@ -64,7 +64,7 @@ if (navigator.serviceWorker) {
     });
 } else {
   console.log(
-    "No launching service worker (not present, maybe because not running on localhost or over SSL"
+    "No launching service worker (not present, maybe because not running on localhost or over SSL)"
   );
 }
 // }

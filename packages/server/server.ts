@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --enable-source-maps
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
 import { preloadModules } from "@silverbulletmd/common/preload_modules";
 import { realpathSync } from "fs";
@@ -18,7 +18,9 @@ let args = yargs(hideBin(process.argv))
   .parse();
 
 if (!args._.length) {
-  console.error("Usage: silverbullet <path-to-pages>");
+  console.error(
+    "Usage: silverbullet [--port 3000] [--token mysecrettoken] <path-to-pages>"
+  );
   process.exit(1);
 }
 
