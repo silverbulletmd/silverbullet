@@ -1,4 +1,4 @@
-#!/usr/bin/env node --enable-source-maps
+#!/usr/bin/env -S node --enable-source-maps
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
 import { preloadModules } from "@silverbulletmd/common/preload_modules";
 import { realpathSync } from "fs";
