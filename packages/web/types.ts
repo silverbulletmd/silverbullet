@@ -9,6 +9,13 @@ export type Notification = {
   date: Date;
 };
 
+export type ActionButton = {
+  label: string;
+  tooltip?: string;
+  orderId?: number;
+  run: () => void;
+};
+
 export type AppViewState = {
   currentPage?: string;
   showPageNavigator: boolean;
@@ -23,6 +30,7 @@ export type AppViewState = {
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
+  actionButtons: ActionButton[];
 
   showFilterBox: boolean;
   filterBoxLabel: string;
@@ -45,6 +53,7 @@ export const initialViewState: AppViewState = {
   allPages: new Set(),
   commands: new Map(),
   notifications: [],
+  actionButtons: [],
   showFilterBox: false,
   filterBoxHelpText: "",
   filterBoxLabel: "",
@@ -60,7 +69,11 @@ export type Action =
   | { type: "page-saved" }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
-  | { type: "update-commands"; commands: Map<string, AppCommand> }
+  | {
+      type: "update-commands";
+      commands: Map<string, AppCommand>;
+      actionButtons: ActionButton[];
+    }
   | { type: "show-palette"; context?: string }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }

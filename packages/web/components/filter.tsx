@@ -174,6 +174,7 @@ export function FilterList({
                 break;
             }
           }}
+          onClick={(e) => e.stopPropagation()}
         />
       </div>
       <div

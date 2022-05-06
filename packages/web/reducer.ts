@@ -67,6 +67,7 @@ export default function reducer(
       return {
         ...state,
         commands: action.commands,
+        actionButtons: action.actionButtons,
       };
     case "show-notification":
       return {

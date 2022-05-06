@@ -12,10 +12,14 @@ import {
   ParseTree,
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
-import { parse as parseYaml, parseAllDocuments } from "yaml";
+import {
+  parse as parseYaml,
+  stringify as stringifyYaml,
+  parseAllDocuments,
+} from "yaml";
 import type { QueryProviderEvent } from "./engine";
 import { applyQuery } from "./engine";
-import { jsonToMDTable, removeQueries } from "./util";
+import { removeQueries } from "./util";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   let dataObjects: { key: string; value: Object }[] = [];
@@ -58,8 +62,11 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
   await batchSet(name, dataObjects);
 }
 
-export function extractMeta(parseTree: ParseTree, remove = false): any {
-  let data = {};
+export function extractMeta(
+  parseTree: ParseTree,
+  removeKeys: string[] = []
+): any {
+  let data: any = {};
   replaceNodesMatching(parseTree, (t) => {
     if (t.type !== "FencedCode") {
       return;
@@ -78,7 +85,14 @@ export function extractMeta(parseTree: ParseTree, remove = false): any {
     }
     let codeText = codeTextNode.children![0].text!;
     data = parseYaml(codeText);
-    return remove ? null : undefined;
+    if (removeKeys.length > 0) {
+      let newData = { ...data };
+      for (let key of removeKeys) {
+        delete newData[key];
+      }
+      codeTextNode.children![0].text = stringifyYaml(newData).trim();
+    }
+    return undefined;
   });
 
   return data;

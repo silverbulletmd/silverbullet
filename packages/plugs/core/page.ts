@@ -9,8 +9,11 @@ import {
 import {
   flashNotification,
   getCurrentPage,
+  getCursor,
   getText,
+  insertAtCursor,
   matchBefore,
+  moveCursor,
   navigate,
   prompt,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
@@ -246,4 +249,10 @@ export async function parsePageCommand() {
 
 export async function parsePage(text: string) {
   console.log("AST", JSON.stringify(await parseMarkdown(text), null, 2));
+}
+
+export async function insertPageMeta() {
+  let cursorPos = await getCursor();
+  await insertAtCursor("```meta\n\n```");
+  await moveCursor(cursorPos + 8);
 }

@@ -1,4 +1,4 @@
-import { Notification } from "../types";
+import { ActionButton, Notification } from "../types";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -11,6 +11,7 @@ export function TopBar({
   pageName,
   unsavedChanges,
   notifications,
+  actionButtons,
   onClick,
   lhs,
   rhs,
@@ -18,6 +19,7 @@ export function TopBar({
   pageName?: string;
   unsavedChanges: boolean;
   notifications: Notification[];
+  actionButtons: ActionButton[];
   onClick: () => void;
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
@@ -27,24 +29,11 @@ export function TopBar({
       {lhs}
       <div className="main">
         <div className="inner">
-          {/*<span className={`icon ${unsavedChanges ? "unsaved" : "saved"}`}>*/}
-          {/*  <FontAwesomeIcon icon={faFileLines} />*/}
-          {/*</span>*/}
-
           <span
             className={`current-page ${unsavedChanges ? "unsaved" : "saved"}`}
           >
             {prettyName(pageName)}
           </span>
-          {/*<button*/}
-          {/*  onClick={(e) => {*/}
-          {/*    // @ts-ignore*/}
-          {/*    window.syncer();*/}
-          {/*    e.stopPropagation();*/}
-          {/*  }}*/}
-          {/*>*/}
-          {/*  Sync*/}
-          {/*</button>*/}
           {notifications.length > 0 && (
             <div className="status">
               {notifications.map((notification) => (
@@ -52,6 +41,20 @@ export function TopBar({
               ))}
             </div>
           )}
+          <div className="actions">
+            {actionButtons.map((actionButton, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  actionButton.run();
+                }}
+                title={actionButton.tooltip}
+              >
+                {actionButton.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {rhs}

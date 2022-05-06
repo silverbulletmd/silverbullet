@@ -2,11 +2,38 @@
 @use "filter_box.scss";
 @import "constants";
 
+@font-face {
+  font-family: "iA-Mono";
+  src: url("../fonts/iAWriterMonoS-Regular.woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "iA-Mono";
+  src: url("../fonts/iAWriterMonoS-Bold.woff2");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "iA-Mono";
+  src: url("../fonts/iAWriterMonoS-Italic.woff2");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "iA-Mono";
+  src: url("../fonts/iAWriterMonoS-BoldItalic.woff2");
+  font-weight: bold;
+  font-style: italic;
+}
 
 :root {
   --ident: 18px;
   /* --editor-font: "Avenir"; */
-  --editor-font: "Menlo";
+  --editor-font: "iA-Mono", "Menlo";
   --ui-font: "Arial";
   --top-bar-bg: rgb(41, 41, 41);
   --highlight-color: #464cfc;
@@ -73,6 +100,20 @@ body {
         color: #5e5e5e;
       }
     }
+    .actions {
+      float: right;
+
+      button {
+        border: 0;
+        // border-radius: 5px;
+        // background-color: rgba(77,141,255,0.07);
+        background-color: transparent;
+        padding: 3px;
+        font-family: "IA-Mono", "Menlo";
+        font-size: 80%;
+      }
+    }
+
   }
 
 

@@ -5,6 +5,7 @@ import {
 } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import {
   filterBox,
+  moveCursor,
   navigate,
   prompt,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
@@ -35,7 +36,7 @@ export async function instantiateTemplateCommand() {
   let { text } = await readPage(selectedTemplate.name);
 
   let parseTree = await parseMarkdown(text);
-  let additionalPageMeta = extractMeta(parseTree, true);
+  let additionalPageMeta = extractMeta(parseTree, ["name"]);
   console.log("Page meta", additionalPageMeta);
 
   let pageName = await prompt("Name of new page", additionalPageMeta.name);
@@ -47,6 +48,7 @@ export async function instantiateTemplateCommand() {
   await navigate(pageName);
 }
 
+// TODO: This should probably be replaced with handlebards somehow?
 export function replaceTemplateVars(s: string, pageName: string): string {
   return s.replaceAll(/\{\{([^\}]+)\}\}/g, (match, v) => {
     switch (v) {
@@ -63,4 +65,23 @@ export function replaceTemplateVars(s: string, pageName: string): string {
     }
     return match;
   });
+}
+
+export async function quickNoteCommand() {
+  let isoDate = new Date().toISOString();
+  let [date, time] = isoDate.split("T");
+  time = time.split(".")[0];
+  let pageName = `📥 ${date} ${time}`;
+  await writePage(pageName, "");
+  await navigate(pageName);
+}
+
+export async function quickTaskCommand() {
+  let isoDate = new Date().toISOString();
+  let [date, time] = isoDate.split("T");
+  time = time.split(".")[0];
+  let pageName = `✅ ${date} ${time}`;
+  await writePage(pageName, "* [ ] ");
+  await navigate(pageName);
+  await moveCursor(6);
 }

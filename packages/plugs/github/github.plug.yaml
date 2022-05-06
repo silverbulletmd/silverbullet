@@ -5,6 +5,6 @@ functions:
     events:
       - query:gh-events
   queryIssues:
-    path: ./github.ts:queryIssues
+    path: ./github.ts:queryPulls
     events:
-      - query:gh-issues
+      - query:gh-pulls

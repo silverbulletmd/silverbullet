@@ -61,9 +61,13 @@ class GithubApi {
     );
   }
 
-  async listIssues(filter: string): Promise<any[]> {
+  async listPulls(
+    repo: string,
+    state: string = "all",
+    sort: string = "updated"
+  ): Promise<any[]> {
     return this.apiCall(
-      `https://api.github.com/issues?q=${encodeURIComponent(filter)}`
+      `https://api.github.com/repos/${repo}/pulls?state=${state}&sort=${sort}&direction=desc&per_page=100`
     );
   }
 
@@ -126,27 +130,40 @@ export async function queryEvents({
   return applyQuery(query, allEvents.map(mapEvent));
 }
 
-export async function queryIssues({
+function mapPull(pull: any): any {
+  // console.log("Pull", Object.keys(pull));
+  return {
+    ...pull,
+    username: pull.user.login,
+    // repo: pull.repo.name,
+    createdAt: pull.created_at.split("T")[0],
+    updatedAt: pull.updated_at.split("T")[0],
+  };
+}
+
+export async function queryPulls({
   query,
 }: QueryProviderEvent): Promise<any[]> {
   let api = await GithubApi.fromConfig();
-  let filter = query.filter.find((f) => f.prop === "filter");
-  if (!filter) {
-    throw Error("No 'filter' specified, this is mandatory");
+  let repo = query.filter.find((f) => f.prop === "repo");
+  if (!repo) {
+    throw Error("No 'repo' specified, this is mandatory");
   }
-  let queries: string[] = [];
-  if (filter.op === "=") {
-    queries = [filter.value];
-  } else if (filter.op === "in") {
-    queries = filter.value;
+  query.filter.splice(query.filter.indexOf(repo), 1);
+  let repos: string[] = [];
+  if (repo.op === "=") {
+    repos = [repo.value];
+  } else if (repo.op === "in") {
+    repos = repo.value;
   } else {
-    throw new Error(`Unsupported operator ${filter.op}`);
+    throw new Error(`Unsupported operator ${repo.op}`);
   }
-  let allIssues: any[] = [];
-  for (let issuesList of await Promise.all(
-    queries.map((query) => api.listIssues(query))
+  let allPulls: any[] = [];
+  for (let pullList of await Promise.all(
+    repos.map((repo) => api.listPulls(repo, "all", "updated"))
   )) {
-    allIssues.push(...issuesList);
+    allPulls.push(...pullList);
   }
-  return allIssues;
+  allPulls = applyQuery(query, allPulls.map(mapPull));
+  return allPulls;
 }

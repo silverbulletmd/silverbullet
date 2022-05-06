@@ -42,14 +42,14 @@ functions:
     path: ./page.ts:linkQueryProvider
     events:
       - query:link
-  indexItems:
-    path: "./item.ts:indexItems"
-    events:
-      - page:index
-  itemQueryProvider:
-    path: ./item.ts:queryProvider
-    events:
-      - query:item
+  # indexItems:
+  #   path: "./item.ts:indexItems"
+  #   events:
+  #     - page:index
+  # itemQueryProvider:
+  #   path: ./item.ts:queryProvider
+  #   events:
+  #     - query:item
   deletePage:
     path: "./page.ts:deletePage"
     command:
@@ -67,6 +67,9 @@ functions:
       name: "Page: Rename"
       mac: Cmd-Alt-r
       key: Ctrl-Alt-r
+      button:
+        label: "📝"
+        tooltip: "Rename page"
   pageComplete:
     path: "./page.ts:pageComplete"
     events:
@@ -99,7 +102,20 @@ functions:
     path: ./page.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
-
+  insertPageMeta:
+    path: "./page.ts:insertPageMeta"
+    slashCommand:
+      name: meta
+  quickNoteCommand:
+    path: ./template.ts:quickNoteCommand
+    command:
+      name: "Template: Quick Note"
+      key: "Alt-Shift-n"
+  quickTaskCommand:
+    path: ./template.ts:quickTaskCommand
+    command:
+      name: "Template: Quick Task"
+      key: "Alt-Shift-t"
   instantiateTemplateCommand:
     path: ./template.ts:instantiateTemplateCommand
     command:
