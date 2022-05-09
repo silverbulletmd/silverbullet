@@ -439,7 +439,7 @@ export class Editor {
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );
       if (editorView.contentDOM) {
-        editorView.contentDOM.spellcheck = true;
+        this.tweakEditorDOM(editorView.contentDOM);
       }
 
       this.restoreState(this.currentPage);
@@ -508,7 +508,7 @@ export class Editor {
     let editorState = this.createEditorState(pageName, doc.text);
     editorView.setState(editorState);
     if (editorView.contentDOM) {
-      editorView.contentDOM.spellcheck = true;
+      this.tweakEditorDOM(editorView.contentDOM);
     }
     this.restoreState(pageName);
     this.space.watchPage(pageName);
@@ -519,6 +519,12 @@ export class Editor {
     });
 
     await this.eventHook.dispatchEvent("editor:pageSwitched");
+  }
+
+  tweakEditorDOM(contentDOM: HTMLElement) {
+    contentDOM.spellcheck = true;
+    contentDOM.setAttribute("autocorrect", "on");
+    contentDOM.setAttribute("autocapitalize", "on");
   }
 
   private restoreState(pageName: string) {

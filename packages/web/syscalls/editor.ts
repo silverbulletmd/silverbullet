@@ -54,7 +54,10 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       await editor.reloadPage();
     },
     "editor.openUrl": async (ctx, url: string) => {
-      window.open(url, "_blank")!.focus();
+      let win = window.open(url, "_blank");
+      if (win) {
+        win.focus();
+      }
     },
     "editor.flashNotification": (ctx, message: string) => {
       editor.flashNotification(message);
