@@ -1,3 +1,5 @@
+import { ConsoleLogger } from "./custom_logger";
+
 const {
   parentPort,
   workerData: { preloadedModules, nodeModulesPath },
@@ -16,10 +18,18 @@ let pendingRequests = new Map<
 
 let syscallReqId = 0;
 
+let consoleLogger = new ConsoleLogger((level, message) => {
+  parentPort.postMessage({
+    type: "log",
+    level,
+    message,
+  });
+}, false);
+
 let vm = new VM({
   sandbox: {
     // Exposing some "safe" APIs
-    console,
+    console: consoleLogger,
     setTimeout,
     clearTimeout,
     setInterval,

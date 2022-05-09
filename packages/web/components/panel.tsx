@@ -2,7 +2,15 @@ import { useEffect, useRef } from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
 
-export function Panel({ html, flex }: { html: string; flex: number }) {
+export function Panel({
+  html,
+  script,
+  flex,
+}: {
+  html: string;
+  script?: string;
+  flex: number;
+}) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
     function loadContent() {
@@ -10,6 +18,7 @@ export function Panel({ html, flex }: { html: string; flex: number }) {
         iFrameRef.current.contentWindow.postMessage({
           type: "html",
           html: html,
+          script: script,
         });
       }
     }

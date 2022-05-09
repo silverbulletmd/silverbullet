@@ -232,20 +232,20 @@ function $11a7e2bff790f35a$export$4f02334034b5dd8c(message) {
 function $11a7e2bff790f35a$export$83b9d7a71bc0a208(label, options, helpText = "", placeHolder = "") {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.filterBox", label, options, helpText, placeHolder);
 }
-function $11a7e2bff790f35a$export$53ed0b99a5f8822e(html, flex = 1) {
-    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showRhs", html, flex);
+function $11a7e2bff790f35a$export$53ed0b99a5f8822e(html, script, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showRhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$f19f28e8a128fabe() {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideRhs");
 }
-function $11a7e2bff790f35a$export$dcf0ace441f4b3a4(html, flex = 1) {
-    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showLhs", html, flex);
+function $11a7e2bff790f35a$export$dcf0ace441f4b3a4(html, script, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showLhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$1be2ad20c6324dcf() {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideLhs");
 }
-function $11a7e2bff790f35a$export$6ebe231c70cc6efb(html, flex = 1) {
-    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showBhs", html, flex);
+function $11a7e2bff790f35a$export$6ebe231c70cc6efb(html, script, flex = 1) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showBhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$a7a5aa8ba1cd9dc3() {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideBhs");

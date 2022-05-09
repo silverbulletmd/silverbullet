@@ -3,6 +3,13 @@ window.addEventListener("message", (message) => {
   switch (data.type) {
     case "html":
       document.body.innerHTML = data.html;
+      if (data.script) {
+        try {
+          eval(data.script);
+        } catch (e: any) {
+          console.error("Error evaling script", e);
+        }
+      }
       break;
   }
 });

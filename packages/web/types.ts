@@ -27,6 +27,9 @@ export type AppViewState = {
   rhsHTML: string;
   lhsHTML: string;
   bhsHTML: string;
+  rhsScript?: string;
+  lhsScript?: string;
+  bhsScript?: string;
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
@@ -78,11 +81,11 @@ export type Action =
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
-  | { type: "show-rhs"; html: string; flex: number }
+  | { type: "show-rhs"; html: string; flex: number; script?: string }
   | { type: "hide-rhs" }
-  | { type: "show-lhs"; html: string; flex: number }
+  | { type: "show-lhs"; html: string; flex: number; script?: string }
   | { type: "hide-lhs" }
-  | { type: "show-bhs"; html: string; flex: number }
+  | { type: "show-bhs"; html: string; flex: number; script?: string }
   | { type: "hide-bhs" }
   | {
       type: "show-filterbox";

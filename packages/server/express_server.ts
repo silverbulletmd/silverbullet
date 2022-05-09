@@ -28,6 +28,7 @@ import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 import { Authenticator } from "./auth";
 import { nextTick } from "process";
+import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -90,6 +91,7 @@ export class ExpressServer {
       markdownSyscalls(buildMarkdown([])),
       esbuildSyscalls(),
       systemSyscalls(this),
+      sandboxSyscalls(this.system),
       jwtSyscalls()
     );
     this.system.addHook(new EndpointHook(this.app, "/_/"));

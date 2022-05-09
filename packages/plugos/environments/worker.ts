@@ -1,11 +1,14 @@
-export type ControllerMessageType = "inited" | "result" | "syscall";
+import type { LogLevel } from "./custom_logger";
 
+export type ControllerMessageType = "inited" | "result" | "syscall" | "log";
 export type ControllerMessage = {
   type: ControllerMessageType;
   id?: number;
   name?: string;
   args?: any[];
   error?: string;
+  level?: LogLevel;
+  message?: string;
   result?: any;
 };
 

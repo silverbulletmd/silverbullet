@@ -73,13 +73,18 @@ body {
       font-size: 28px;
       padding: 10px 20px;
 
-
       .status {
-        float: right;
+        position: absolute;
+        font-family: "iA-Mono";
+        bottom: 45px;
+        left: 5px;
+        right: 5px;
+        background-color: rgb(187, 221, 247);
         border: rgb(41, 41, 41) 1px solid;
         border-radius: 5px;
         padding: 3px;
-        font-size: 14px;
+        font-size: 15px;
+        z-index: 100;
       }
 
       .current-page {
@@ -113,13 +118,10 @@ body {
         font-size: 80%;
       }
     }
-
   }
-
 
   .panel {
     flex: 1;
-
   }
 }
 
@@ -141,9 +143,7 @@ body {
       margin: 0;
     }
   }
-
 }
-
 
 #editor {
   overflow-y: scroll;
@@ -152,10 +152,13 @@ body {
 }
 
 #bhs {
-  height: 200px;
+  height: 300px;
   width: 100%;
+  border-top: rgb(193, 193, 193) 1px solid;
 
- .panel {
+  .panel {
+    height: 100%;
+
     iframe {
       border: 0;
       width: 100%;
@@ -173,4 +176,5 @@ body {
   text-align: right;
   background-color: rgb(213, 213, 213);
   border-top: rgb(193, 193, 193) 1px solid;
+  font-family: "iA-Mono";
 }

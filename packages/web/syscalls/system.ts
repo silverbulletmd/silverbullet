@@ -22,5 +22,9 @@ export function systemSyscalls(editor: Editor): SysCallMapping {
     "system.reloadPlugs": async () => {
       return editor.reloadPlugs();
     },
+
+    "sandbox.getServerLogs": async (ctx) => {
+      return editor.space.proxySyscall(ctx.plug, "sandbox.getLogs", []);
+    },
   };
 }

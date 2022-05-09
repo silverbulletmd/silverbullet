@@ -28,7 +28,6 @@ export async function updateMaterializedQueriesCommand() {
     currentPage
   );
   await reloadPage();
-  await flashNotification("Updated materialized queries");
 }
 
 export async function whiteOutQueriesCommand() {

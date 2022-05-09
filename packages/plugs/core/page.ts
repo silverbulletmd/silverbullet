@@ -239,18 +239,6 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
   });
 }
 
-export async function parseServerPageCommand() {
-  console.log(await invokeFunction("server", "parsePage", await getText()));
-}
-
-export async function parsePageCommand() {
-  parsePage(await getText());
-}
-
-export async function parsePage(text: string) {
-  console.log("AST", JSON.stringify(await parseMarkdown(text), null, 2));
-}
-
 export async function insertPageMeta() {
   let cursorPos = await getCursor();
   await insertAtCursor("```meta\n\n```");

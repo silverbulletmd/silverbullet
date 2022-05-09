@@ -71,11 +71,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     ): Promise<FilterOption | undefined> => {
       return editor.filterBox(label, options, helpText, placeHolder);
     },
-    "editor.showRhs": (ctx, html: string, flex: number) => {
+    "editor.showRhs": (ctx, html: string, script: string, flex: number) => {
       editor.viewDispatch({
         type: "show-rhs",
         flex,
         html,
+        script,
       });
     },
     "editor.hideRhs": (ctx) => {
@@ -83,11 +84,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         type: "hide-rhs",
       });
     },
-    "editor.showLhs": (ctx, html: string, flex: number) => {
+    "editor.showLhs": (ctx, html: string, script: string, flex: number) => {
       editor.viewDispatch({
         type: "show-lhs",
         flex,
         html,
+        script,
       });
     },
     "editor.hideLhs": (ctx) => {
@@ -95,11 +97,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         type: "hide-lhs",
       });
     },
-    "editor.showBhs": (ctx, html: string, flex: number) => {
+    "editor.showBhs": (ctx, html: string, script: string, flex: number) => {
       editor.viewDispatch({
         type: "show-bhs",
         flex,
         html,
+        script,
       });
     },
     "editor.hideBhs": (ctx) => {

@@ -72,7 +72,7 @@ export default function reducer(
     case "show-notification":
       return {
         ...state,
-        notifications: [action.notification, ...state.notifications],
+        notifications: [...state.notifications, action.notification],
       };
     case "dismiss-notification":
       return {
@@ -84,36 +84,42 @@ export default function reducer(
         ...state,
         showRHS: action.flex,
         rhsHTML: action.html,
+        rhsScript: action.script,
       };
     case "hide-rhs":
       return {
         ...state,
         showRHS: 0,
         rhsHTML: "",
+        rhsScript: undefined,
       };
     case "show-lhs":
       return {
         ...state,
         showLHS: action.flex,
         lhsHTML: action.html,
+        lhsScript: action.script,
       };
     case "hide-lhs":
       return {
         ...state,
         showLHS: 0,
         lhsHTML: "",
+        lhsScript: undefined,
       };
     case "show-bhs":
       return {
         ...state,
         showBHS: action.flex,
         bhsHTML: action.html,
+        bhsScript: action.script,
       };
     case "hide-bhs":
       return {
         ...state,
         showBHS: 0,
         bhsHTML: "",
+        bhsScript: undefined,
       };
     case "show-filterbox":
       return {

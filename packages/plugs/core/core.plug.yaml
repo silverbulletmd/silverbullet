@@ -67,9 +67,6 @@ functions:
       name: "Page: Rename"
       mac: Cmd-Alt-r
       key: Ctrl-Alt-r
-      button:
-        label: "📝"
-        tooltip: "Rename page"
   pageComplete:
     path: "./page.ts:pageComplete"
     events:
@@ -93,15 +90,27 @@ functions:
     slashCommand:
       name: tomorrow
   parseServerCommand:
-    path: ./page.ts:parseServerPageCommand
+    path: ./debug.ts:parseServerPageCommand
     command:
       name: "Debug: Parse Document on Server"
   parsePage:
-    path: ./page.ts:parsePage
+    path: ./debug.ts:parsePage
   parseCommand:
-    path: ./page.ts:parsePageCommand
+    path: ./debug.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
+  showLogsCommand:
+    path: ./debug.ts:showLogsCommand
+    command:
+      name: "Debug: Show Logs"
+      key: "Ctrl-Alt-l"
+      mac: "Cmd-Alt-l"
+  hideBhsCommand:
+    path: ./debug.ts:hideBhsCommand
+    command:
+      name: "UI: Hide BHS"
+      key: "Ctrl-Alt-b"
+      mac: "Cmd-Alt-b"
   insertPageMeta:
     path: "./page.ts:insertPageMeta"
     slashCommand:
@@ -111,6 +120,8 @@ functions:
     command:
       name: "Template: Quick Note"
       key: "Alt-Shift-n"
+      button:
+        label: "🗒"
   quickTaskCommand:
     path: ./template.ts:quickTaskCommand
     command:

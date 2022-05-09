@@ -1,0 +1,82 @@
+import { getLogs } from "@plugos/plugos-syscall/sandbox";
+import { LogEntry } from "@plugos/plugos/sandbox";
+import {
+  getText,
+  hideBhs,
+  showBhs,
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+import { getServerLogs } from "@silverbulletmd/plugos-silverbullet-syscall/sandbox";
+import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+
+export async function parseServerPageCommand() {
+  console.log(await invokeFunction("server", "parsePage", await getText()));
+}
+
+export async function parsePageCommand() {
+  parsePage(await getText());
+}
+
+export async function parsePage(text: string) {
+  console.log("AST", JSON.stringify(await parseMarkdown(text), null, 2));
+}
+
+export async function showLogsCommand() {
+  let clientLogs = await getLogs();
+  let serverLogs = await getServerLogs();
+
+  await showBhs(
+    `
+    <style>
+    #client-log-header {
+        position: absolute;
+        left: 0;
+        top: 5px;
+    }
+    #server-log-header {
+        position: absolute;
+        right: 0;
+        top: 5px;
+        width: 50%;
+    }
+    #client-log {
+        position: absolute;
+        left: 0;
+        top: 30px;
+        bottom: 0;
+        width: 50%;
+        overflow: scroll;
+    }
+    #server-log {
+        position: absolute;
+        right: 0;
+        top: 30px;
+        bottom: 0;
+        width: 50%;
+        overflow: scroll;
+    }
+    </style>
+    <div id="client-log-header">Client logs (max 100)</div>
+    <div id="client-log">
+      <pre>${clientLogs
+        .map((le) => `[${le.level}] ${le.message}`)
+        .join("\n")}</pre>
+    </div>
+    <div id="server-log-header">Server logs (max 100)</div>
+    <div id="server-log">
+      <pre>${serverLogs
+        .map((le) => `[${le.level}] ${le.message}`)
+        .join("\n")}</pre>
+    </div>`,
+    `
+      var clientDiv = document.getElementById("client-log");
+      clientDiv.scrollTop = clientDiv.scrollHeight;
+      var serverDiv = document.getElementById("server-log");
+      serverDiv.scrollTop = serverDiv.scrollHeight;
+      `
+  );
+}
+
+export async function hideBhsCommand() {
+  await hideBhs();
+}

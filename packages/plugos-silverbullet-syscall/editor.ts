@@ -46,24 +46,36 @@ export function filterBox(
   return syscall("editor.filterBox", label, options, helpText, placeHolder);
 }
 
-export function showRhs(html: string, flex = 1): Promise<void> {
-  return syscall("editor.showRhs", html, flex);
+export function showRhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showRhs", html, script, flex);
 }
 
 export function hideRhs(): Promise<void> {
   return syscall("editor.hideRhs");
 }
 
-export function showLhs(html: string, flex = 1): Promise<void> {
-  return syscall("editor.showLhs", html, flex);
+export function showLhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showLhs", html, script, flex);
 }
 
 export function hideLhs(): Promise<void> {
   return syscall("editor.hideLhs");
 }
 
-export function showBhs(html: string, flex = 1): Promise<void> {
-  return syscall("editor.showBhs", html, flex);
+export function showBhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showBhs", html, script, flex);
 }
 
 export function hideBhs(): Promise<void> {

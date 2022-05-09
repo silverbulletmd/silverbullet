@@ -58,6 +58,7 @@ import {
 import { FilterList } from "./components/filter";
 import { FilterOption } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
+import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 
 class PageState {
   constructor(
@@ -120,15 +121,16 @@ export class Editor {
     });
     this.pageNavigator = new PathPageNavigator();
 
-    this.system.registerSyscalls([], editorSyscalls(this));
-    this.system.registerSyscalls([], spaceSyscalls(this));
-    this.system.registerSyscalls([], indexerSyscalls(this.space));
-    this.system.registerSyscalls([], systemSyscalls(this));
     this.system.registerSyscalls(
       [],
-      markdownSyscalls(buildMarkdown(this.mdExtensions))
+      editorSyscalls(this),
+      spaceSyscalls(this),
+      indexerSyscalls(this.space),
+      systemSyscalls(this),
+      markdownSyscalls(buildMarkdown(this.mdExtensions)),
+      clientStoreSyscalls(),
+      sandboxSyscalls(this.system)
     );
-    this.system.registerSyscalls([], clientStoreSyscalls());
   }
 
   get currentPage(): string | undefined {
@@ -636,16 +638,28 @@ export class Editor {
         />
         <div id="main">
           {!!viewState.showLHS && (
-            <Panel html={viewState.lhsHTML} flex={viewState.showLHS} />
+            <Panel
+              html={viewState.lhsHTML}
+              script={viewState.lhsScript}
+              flex={viewState.showLHS}
+            />
           )}
           <div id="editor" />
           {!!viewState.showRHS && (
-            <Panel html={viewState.rhsHTML} flex={viewState.showRHS} />
+            <Panel
+              html={viewState.rhsHTML}
+              script={viewState.rhsScript}
+              flex={viewState.showRHS}
+            />
           )}
         </div>
         {!!viewState.showBHS && (
           <div id="bhs">
-            <Panel html={viewState.bhsHTML} flex={1} />
+            <Panel
+              html={viewState.bhsHTML}
+              script={viewState.bhsScript}
+              flex={1}
+            />
           </div>
         )}
         <StatusBar editorView={editor.editorView} />

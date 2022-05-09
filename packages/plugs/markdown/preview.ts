@@ -78,6 +78,7 @@ export async function updateMarkdownPreview() {
   let cleanMd = await cleanMarkdown(text);
   await showRhs(
     `<html><head>${css}</head><body>${md.render(cleanMd)}</body></html>`,
+    undefined,
     2
   );
 }

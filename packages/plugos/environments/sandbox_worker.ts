@@ -1,4 +1,5 @@
 import { safeRun } from "../util";
+import { ConsoleLogger } from "./custom_logger";
 import { ControllerMessage, WorkerMessage } from "./worker";
 
 let loadedFunctions = new Map<string, Function>();
@@ -52,6 +53,11 @@ self.require = (moduleName: string): any => {
   // console.log("Loading", moduleName, preloadedModules[moduleName]);
   return preloadedModules[moduleName];
 };
+
+// @ts-ignore
+self.console = new ConsoleLogger((level, message) => {
+  workerPostMessage({ type: "log", level, message });
+}, false);
 
 function wrapScript(code: string) {
   return `return (${code})["default"]`;
