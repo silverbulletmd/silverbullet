@@ -7,6 +7,8 @@ functions:
     command:
       name: "Materialized Queries: Update"
       key: "Alt-q"
+      button:
+        label: "🔄"
   whiteOutQueriesCommand:
     path: ./materialized_queries.ts:whiteOutQueriesCommand
     command:
