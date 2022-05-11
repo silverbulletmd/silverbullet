@@ -73,6 +73,12 @@ export async function showLogsCommand() {
       clientDiv.scrollTop = clientDiv.scrollHeight;
       var serverDiv = document.getElementById("server-log");
       serverDiv.scrollTop = serverDiv.scrollHeight;
+      if(window.reloadInterval) {
+        clearInterval(window.reloadInterval);
+      }
+      window.reloadInterval = setInterval(() => {
+        sendEvent("log:reload");
+      }, 1000);
       `
   );
 }

@@ -123,3 +123,7 @@ parentPort.on("message", (data: any) => {
     }
   });
 });
+
+process.on("uncaughtException", (e) => {
+  console.error("Uncaught error", e);
+});

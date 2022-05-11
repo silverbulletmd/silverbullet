@@ -1,15 +1,20 @@
 import { useEffect, useRef } from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
+import { System } from "@plugos/plugos/system";
+import { SilverBulletHooks } from "@silverbulletmd/common/manifest";
+import { Editor } from "../editor";
 
 export function Panel({
   html,
   script,
   flex,
+  editor,
 }: {
   html: string;
   script?: string;
   flex: number;
+  editor: Editor;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -40,7 +45,9 @@ export function Panel({
       }
       let data = evt.data;
       if (!data) return;
-      console.log("Got message from panel", data);
+      if (data.type === "event") {
+        editor.dispatchAppEvent(data.name, data.args);
+      }
     };
     window.addEventListener("message", messageListener);
     return () => {

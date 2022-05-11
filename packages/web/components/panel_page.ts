@@ -1,3 +1,8 @@
+declare global {
+  function syscall(name: string, ...args: any[]): Promise<any>;
+  // function require(moduleName: string): any;
+}
+
 window.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {
@@ -14,11 +19,12 @@ window.addEventListener("message", (message) => {
   }
 });
 
-function sendEvent(data: any) {
+function sendEvent(name: string, ...args: any[]) {
   window.parent.postMessage(
     {
       type: "event",
-      data: data,
+      name,
+      args,
     },
     "*"
   );

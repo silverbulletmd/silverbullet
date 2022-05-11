@@ -642,6 +642,7 @@ export class Editor {
               html={viewState.lhsHTML}
               script={viewState.lhsScript}
               flex={viewState.showLHS}
+              editor={editor}
             />
           )}
           <div id="editor" />
@@ -650,6 +651,7 @@ export class Editor {
               html={viewState.rhsHTML}
               script={viewState.rhsScript}
               flex={viewState.showRHS}
+              editor={editor}
             />
           )}
         </div>
@@ -659,6 +661,7 @@ export class Editor {
               html={viewState.bhsHTML}
               script={viewState.bhsScript}
               flex={1}
+              editor={editor}
             />
           </div>
         )}

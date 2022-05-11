@@ -105,6 +105,8 @@ functions:
       name: "Debug: Show Logs"
       key: "Ctrl-Alt-l"
       mac: "Cmd-Alt-l"
+    events:
+      - log:reload
   hideBhsCommand:
     path: ./debug.ts:hideBhsCommand
     command:

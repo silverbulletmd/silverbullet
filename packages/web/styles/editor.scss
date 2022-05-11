@@ -110,7 +110,8 @@
       color: #038138;
     }
 
-    .string,.string2 {
+    .string,
+    .string2 {
       color: #440377;
     }
 
@@ -118,7 +119,6 @@
     //  background: black;
     //  border-radius: 3px;
     //}
-
   }
 
   .meta {
@@ -140,6 +140,10 @@
     font-weight: 900;
   }
 
+  .link {
+    cursor: pointer;
+  }
+
   .link:not(.meta, .url) {
     color: #0330cb;
     text-decoration: underline;
@@ -152,6 +156,7 @@
   .url:not(.link) {
     color: #0330cb;
     text-decoration: underline;
+    cursor: pointer;
   }
 
   .atom {
@@ -160,17 +165,14 @@
 
   .wiki-link-page {
     color: #0330cb;
-    background-color: rgba(77,141,255,0.07);
+    background-color: rgba(77, 141, 255, 0.07);
     border-radius: 5px;
     padding: 0 5px;
-    //text-decoration: underline;
+    cursor: pointer;
   }
   .wiki-link {
     color: #a8abbd;
-    //background-color: rgba(77,141,255,0.07);
   }
-
-
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent) {
