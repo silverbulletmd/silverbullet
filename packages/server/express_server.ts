@@ -94,7 +94,7 @@ export class ExpressServer {
       sandboxSyscalls(this.system),
       jwtSyscalls()
     );
-    this.system.addHook(new EndpointHook(this.app, "/_/"));
+    this.system.addHook(new EndpointHook(this.app, "/_"));
 
     this.eventHook.addLocalListener(
       "get-plug:builtin",

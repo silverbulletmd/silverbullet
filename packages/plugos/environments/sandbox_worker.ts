@@ -93,7 +93,8 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
             id: data.id,
             error: e.message,
           });
-          throw e;
+          console.error("Error invoking function", data.name, e.message);
+          // throw e;
         }
 
         break;

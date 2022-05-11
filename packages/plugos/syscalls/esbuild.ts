@@ -15,7 +15,8 @@ export function esbuildSyscalls(): SysCallMapping {
     "esbuild.compile": async (
       ctx,
       filename: string,
-      code: string
+      code: string,
+      functionName?: string
     ): Promise<string> => {
       let tmpDir = `${tmpdir()}/plugos-${Math.random()}`;
       await mkdir(tmpDir, { recursive: true });
@@ -34,7 +35,9 @@ export function esbuildSyscalls(): SysCallMapping {
       }
 
       await writeFile(`${tmpDir}/${filename}`, code);
-      let jsCode = await compile(`${tmpDir}/${filename}`, "", false, ["yaml"]);
+      let jsCode = await compile(`${tmpDir}/${filename}`, functionName, false, [
+        "yaml",
+      ]);
       await rm(tmpDir, { recursive: true });
       return jsCode;
     },

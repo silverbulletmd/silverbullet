@@ -4,22 +4,26 @@ import path from "path";
 
 export async function compile(
   filePath: string,
-  functionName: string = "",
+  functionName: string | undefined = undefined,
   debug: boolean = false,
   excludeModules: string[] = [],
   meta = false
 ): Promise<string> {
-  let outFile = path.join(path.dirname(filePath), "_out.tmp");
+  let outFile = path.resolve(path.dirname(filePath), "_out.tmp");
   let inFile = filePath;
 
   if (functionName) {
     // Generate a new file importing just this one function and exporting it
-    inFile = "_in.ts";
+    inFile = path.resolve(path.dirname(filePath), "_in.ts");
     await writeFile(
       inFile,
-      `import {${functionName}} from "./${filePath}";export default ${functionName};`
+      `import {${functionName}} from "./${path.basename(
+        filePath
+      )}";export default ${functionName};`
     );
   }
+  // console.log("In:", inFile);
+  // console.log("Outfile:", outFile);
 
   // TODO: Figure out how to make source maps work correctly with eval() code
   let result = await esbuild.build({

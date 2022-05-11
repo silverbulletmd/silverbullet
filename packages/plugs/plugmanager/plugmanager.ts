@@ -58,69 +58,55 @@ export async function checkCommand() {
 async function compileDefinition(text: string): Promise<Manifest> {
   let tree = await parseMarkdown(text);
 
-  let pageMeta = extractMeta(tree);
-
-  if (!pageMeta.name) {
-    throw new Error("No 'name' specified in page meta");
-  }
-
-  addParentPointers(tree);
-  let allHeaders = collectNodesOfType(tree, "ATXHeading2");
-  let manifest: Manifest = {
-    name: pageMeta.name,
-    functions: {},
-  };
-  for (let t of allHeaders) {
-    let parent = t.parent!;
-    let headerIdx = parent.children!.indexOf(t);
-    let headerTitle = t.children![1].text!.trim();
-    if (!headerTitle.startsWith("function ")) {
+  let codeNodes = collectNodesOfType(tree, "FencedCode");
+  let manifest: Manifest | undefined;
+  let code: string | undefined;
+  let language = "js";
+  for (let codeNode of codeNodes) {
+    let codeInfo = findNodeOfType(codeNode, "CodeInfo")!.children![0].text!;
+    let codeText = findNodeOfType(codeNode, "CodeText")!.children![0].text!;
+    if (codeInfo === "yaml") {
+      manifest = YAML.parse(codeText);
       continue;
     }
-    let functionName = headerTitle
-      .substring("function ".length)
-      .replace(/[^\w]/g, "_");
-    let meta: any;
-    let code: string | undefined;
-    let language = "js";
-    for (let i = headerIdx + 1; i < parent.children!.length; i++) {
-      let child = parent.children![i];
-      if (child.type === "FencedCode") {
-        let codeInfo = findNodeOfType(child, "CodeInfo")!.children![0].text!;
-        let codeText = findNodeOfType(child, "CodeText")!.children![0].text!;
-        if (codeInfo === "yaml") {
-          meta = YAML.parse(codeText);
-          continue;
-        }
-        if (codeInfo === "typescript" || codeInfo === "ts") {
-          language = "ts";
-        }
-        code = codeText;
-      }
-
-      if (child.type?.startsWith("ATXHeading")) {
-        break;
-      }
+    if (codeInfo === "typescript" || codeInfo === "ts") {
+      language = "ts";
     }
-    if (code) {
-      let compiled = await invokeFunction(
-        "server",
-        "compileJS",
-        `file.${language}`,
-        code
-      );
-      manifest.functions[functionName] = meta;
-      manifest.functions[functionName].code = compiled;
-    }
+    code = codeText;
   }
+
+  if (!manifest) {
+    throw new Error("No meta found");
+  }
+
+  if (!code) {
+    throw new Error("No code found");
+  }
+
+  manifest.functions = manifest.functions || {};
+
+  for (let [name, func] of Object.entries(manifest.functions)) {
+    let compiled = await invokeFunction(
+      "server",
+      "compileJS",
+      `file.${language}`,
+      code,
+      name
+    );
+    func.code = compiled;
+  }
+
+  console.log("Doing the whole manifest thing");
+
   return manifest;
 }
 
 export async function compileJS(
   filename: string,
-  code: string
+  code: string,
+  functionName: string
 ): Promise<string> {
-  return self.syscall("esbuild.compile", filename, code);
+  return self.syscall("esbuild.compile", filename, code, functionName);
 }
 
 async function listPlugs(): Promise<string[]> {
@@ -151,7 +137,7 @@ export async function updatePlugs() {
   }
   let plugYaml = codeTextNode.children![0].text;
   let plugList = YAML.parse(plugYaml!);
-  // console.log("Plug YAML", plugList);
+  console.log("Plug YAML", plugList);
   let allPlugNames: string[] = [];
   for (let plugUri of plugList) {
     let [protocol, ...rest] = plugUri.split(":");
