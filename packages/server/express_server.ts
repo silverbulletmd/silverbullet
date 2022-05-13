@@ -339,7 +339,7 @@ export class ExpressServer {
           res.send(result);
         } catch (e: any) {
           res.status(500);
-          console.log("Error invoking function", e);
+          // console.log("Error invoking function", e);
           return res.send(e.message);
         }
       }

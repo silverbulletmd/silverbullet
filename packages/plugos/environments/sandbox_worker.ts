@@ -96,8 +96,9 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
             type: "result",
             id: data.id,
             error: e.message,
+            stack: e.stack,
           });
-          console.error("Error invoking function", data.name, e.message);
+          // console.error("Error invoking function", data.name, e.message);
           // throw e;
         }
 

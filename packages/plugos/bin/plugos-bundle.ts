@@ -12,7 +12,7 @@ import { compile, sandboxCompileModule } from "../compile";
 
 async function bundle(
   manifestPath: string,
-  sourceMaps: boolean,
+  debug: boolean,
   excludeModules: string[]
 ) {
   const rootPath = path.dirname(manifestPath);
@@ -40,7 +40,7 @@ async function bundle(
     def.code = await compile(
       filePath,
       jsFunctionName,
-      sourceMaps,
+      debug,
       allModulesToExclude
     );
     delete def.path;

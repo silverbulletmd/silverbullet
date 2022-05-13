@@ -13,6 +13,7 @@ export type ControllerMessage = {
   name?: string;
   args?: any[];
   error?: string;
+  stack?: string;
   level?: LogLevel;
   message?: string;
   result?: any;

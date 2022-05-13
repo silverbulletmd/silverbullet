@@ -5,6 +5,7 @@ import {
   findNodeOfType,
 } from "@silverbulletmd/common/tree";
 import {
+  flashNotification,
   getText,
   hideBhs,
   showBhs,
@@ -84,6 +85,13 @@ async function compileDefinition(text: string): Promise<Manifest> {
     throw new Error("No code found");
   }
 
+  manifest.dependencies = manifest.dependencies || {};
+
+  for (let [dep, depSpec] of Object.entries(manifest.dependencies)) {
+    let compiled = await invokeFunction("server", "compileModule", depSpec);
+    manifest.dependencies![dep] = compiled;
+  }
+
   manifest.functions = manifest.functions || {};
 
   for (let [name, func] of Object.entries(manifest.functions)) {
@@ -92,7 +100,8 @@ async function compileDefinition(text: string): Promise<Manifest> {
       "compileJS",
       `file.${language}`,
       code,
-      name
+      name,
+      Object.keys(manifest.dependencies)
     );
     func.code = compiled;
   }
@@ -105,9 +114,21 @@ async function compileDefinition(text: string): Promise<Manifest> {
 export async function compileJS(
   filename: string,
   code: string,
-  functionName: string
+  functionName: string,
+  excludeModules: string[]
 ): Promise<string> {
-  return self.syscall("esbuild.compile", filename, code, functionName);
+  // console.log("Compiling JS", filename, excludeModules);
+  return self.syscall(
+    "esbuild.compile",
+    filename,
+    code,
+    functionName,
+    excludeModules
+  );
+}
+
+export async function compileModule(moduleName: string): Promise<string> {
+  return self.syscall("esbuild.compileModule", moduleName);
 }
 
 async function listPlugs(): Promise<string[]> {
@@ -122,7 +143,9 @@ export async function listCommand() {
 }
 
 export async function updatePlugsCommand() {
+  flashNotification("Updating plugs...");
   await invokeFunction("server", "updatePlugs");
+  flashNotification("And... done!");
   await reloadPlugs();
 }
 
@@ -137,7 +160,6 @@ export async function updatePlugs() {
     return;
   }
   let plugYaml = codeTextNode.children![0].text;
-  console.log("YAML", YAML);
   let plugList = YAML.parse(plugYaml!);
   console.log("Plug YAML", plugList);
   let allPlugNames: string[] = [];

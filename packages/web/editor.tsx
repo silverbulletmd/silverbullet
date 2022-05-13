@@ -603,7 +603,7 @@ export class Editor {
               editor!.focus();
               if (cmd) {
                 cmd.run().catch((e) => {
-                  console.error("Error running command", e);
+                  console.error("Error running command", e.message);
                 });
               }
             }}

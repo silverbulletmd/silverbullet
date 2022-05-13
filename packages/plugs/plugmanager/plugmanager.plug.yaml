@@ -24,8 +24,10 @@ functions:
   compileJS:
     path: "./plugmanager.ts:compileJS"
     env: server
-
+  compileModule:
+    path: "./plugmanager.ts:compileModule"
+    env: server
   getPlugPlugMd:
     path: "./plugmanager.ts:getPlugPlugMd"
     events:
-    - get-plug:plugmd
+      - get-plug:plugmd

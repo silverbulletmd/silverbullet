@@ -120,10 +120,12 @@ parentPort.on("message", (data: any) => {
             result: result && JSON.parse(JSON.stringify(result)),
           });
         } catch (e: any) {
+          // console.error("Error caught", e, "Stack", e.stack);
           parentPort.postMessage({
             type: "result",
             id: data.id,
             error: e.message,
+            stack: e.stack,
           });
         }
         break;

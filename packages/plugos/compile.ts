@@ -35,7 +35,7 @@ export async function compile(
     format: "iife",
     globalName: "mod",
     platform: "browser",
-    sourcemap: false, //sourceMap ? "inline" : false,
+    sourcemap: false, //debug ? "inline" : false,
     minify: !debug,
     outfile: outFile,
     metafile: true,
@@ -45,7 +45,7 @@ export async function compile(
 
   if (meta) {
     let text = await esbuild.analyzeMetafile(result.metafile);
-    console.log("Bundle info for", functionName, text);
+    // console.log("Bundle info for", functionName, text);
   }
 
   let jsCode = (await readFile(outFile)).toString();
@@ -77,6 +77,7 @@ export async function sandboxCompile(
   filename: string,
   code: string,
   functionName?: string,
+  debug: boolean = false,
   installModules: string[] = [],
   globalModules: string[] = []
 ): Promise<string> {
@@ -102,11 +103,10 @@ export async function sandboxCompile(
   }
 
   await writeFile(`${tmpDir}/${filename}`, code);
-
   let jsCode = await compile(
     `${tmpDir}/${filename}`,
     functionName,
-    false,
+    debug,
     globalModules
   );
   await rm(tmpDir, { recursive: true });
@@ -127,6 +127,7 @@ export async function sandboxCompileModule(
     // `export * from "${cleanModulesName}${path ? path : ""}";`,
     `module.exports = require("${cleanModulesName}${path ? path : ""}");`,
     undefined,
+    true,
     [modulePart],
     globalModules
   );

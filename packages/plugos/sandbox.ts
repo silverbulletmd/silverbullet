@@ -114,7 +114,10 @@ export class Sandbox {
         let resultCbs = this.outstandingInvocations.get(data.id!);
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
-          resultCbs && resultCbs.reject(new Error(data.error));
+          resultCbs &&
+            resultCbs.reject(
+              new Error(`${data.error}\nStack trace: ${data.stack}`)
+            );
         } else {
           resultCbs && resultCbs.resolve(data.result);
         }
