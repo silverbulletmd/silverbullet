@@ -36,6 +36,7 @@ export async function compileCommand() {
     );
     console.log("Wrote this plug", manifest);
     await hideBhs();
+
     await reloadPlugs();
   } catch (e: any) {
     await showBhs(e.message);
@@ -136,6 +137,7 @@ export async function updatePlugs() {
     return;
   }
   let plugYaml = codeTextNode.children![0].text;
+  console.log("YAML", YAML);
   let plugList = YAML.parse(plugYaml!);
   console.log("Plug YAML", plugList);
   let allPlugNames: string[] = [];

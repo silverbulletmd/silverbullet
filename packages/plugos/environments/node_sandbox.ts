@@ -41,15 +41,11 @@ while (!fs.existsSync(nodeModulesDir + "/node_modules/vm2")) {
   nodeModulesDir = path.dirname(nodeModulesDir);
 }
 
-export function createSandbox(
-  plug: Plug<any>,
-  preloadedModules: string[] = []
-) {
+export function createSandbox(plug: Plug<any>) {
   let worker = new Worker(workerCode, {
     eval: true,
     workerData: {
       nodeModulesPath: path.join(nodeModulesDir, "node_modules"),
-      preloadedModules,
     },
   });
   return new Sandbox(plug, new NodeWorkerWrapper(worker));

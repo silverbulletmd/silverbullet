@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile, unlink, watch, writeFile } from "fs/promises";
+import { readFile, watch, writeFile } from "fs/promises";
 import path from "path";
 
 import yargs from "yargs";
@@ -8,7 +8,7 @@ import { hideBin } from "yargs/helpers";
 import { Manifest } from "../types";
 import YAML from "yaml";
 import { mkdirSync } from "fs";
-import { compile } from "../compile";
+import { compile, sandboxCompileModule } from "../compile";
 
 async function bundle(
   manifestPath: string,
@@ -24,7 +24,13 @@ async function bundle(
     throw new Error(`Missing 'name' in ${manifestPath}`);
   }
 
-  for (let [name, def] of Object.entries(manifest.functions)) {
+  let allModulesToExclude = excludeModules.slice();
+  for (let [name, moduleSpec] of Object.entries(manifest.dependencies || {})) {
+    manifest.dependencies![name] = await sandboxCompileModule(moduleSpec);
+    allModulesToExclude.push(name);
+  }
+
+  for (let [name, def] of Object.entries(manifest.functions || {})) {
     let jsFunctionName = "default",
       filePath = path.join(rootPath, def.path!);
     if (filePath.indexOf(":") !== -1) {
@@ -35,7 +41,7 @@ async function bundle(
       filePath,
       jsFunctionName,
       sourceMaps,
-      excludeModules
+      allModulesToExclude
     );
     delete def.path;
   }

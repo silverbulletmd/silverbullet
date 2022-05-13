@@ -19,6 +19,7 @@ syntax:
     styles:
       color: "#0330cb"
       textDecoration: underline
+      cursor: pointer
 functions:
   clearPageIndex:
     path: "./page.ts:clearPageIndex"

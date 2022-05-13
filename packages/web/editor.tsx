@@ -59,6 +59,7 @@ import { FilterList } from "./components/filter";
 import { FilterOption } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
+import globalModules from "../common/dist/global.plug.json";
 
 class PageState {
   constructor(
@@ -131,6 +132,18 @@ export class Editor {
       clientStoreSyscalls(),
       sandboxSyscalls(this.system)
     );
+
+    this.system.on({
+      plugLoaded: (plug) => {
+        safeRun(async () => {
+          for (let [modName, code] of Object.entries(
+            globalModules.dependencies
+          )) {
+            await plug.sandbox.loadDependency(modName, code);
+          }
+        });
+      },
+    });
   }
 
   get currentPage(): string | undefined {

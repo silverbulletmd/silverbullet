@@ -27,8 +27,11 @@ import { systemSyscalls } from "./syscalls/system";
 import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 import { Authenticator } from "./auth";
-import { nextTick } from "process";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
+
+import globalModules from "../common/dist/global.plug.json";
+
+import { safeRun } from "./util";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -37,7 +40,6 @@ export type ServerOptions = {
   pagesPath: string;
   distDir: string;
   builtinPlugDir: string;
-  preloadedModules: string[];
   token?: string;
 };
 export class ExpressServer {
@@ -50,7 +52,6 @@ export class ExpressServer {
   private port: number;
   private server?: Server;
   builtinPlugDir: string;
-  preloadedModules: string[];
   token?: string;
 
   constructor(options: ServerOptions) {
@@ -59,7 +60,6 @@ export class ExpressServer {
     this.builtinPlugDir = options.builtinPlugDir;
     this.distDir = options.distDir;
     this.system = new System<SilverBulletHooks>("server");
-    this.preloadedModules = options.preloadedModules;
     this.token = options.token;
 
     // Setup system
@@ -95,6 +95,18 @@ export class ExpressServer {
       jwtSyscalls()
     );
     this.system.addHook(new EndpointHook(this.app, "/_"));
+
+    this.system.on({
+      plugLoaded: (plug) => {
+        safeRun(async () => {
+          for (let [modName, code] of Object.entries(
+            globalModules.dependencies
+          )) {
+            await plug.sandbox.loadDependency(modName, code);
+          }
+        });
+      },
+    });
 
     this.eventHook.addLocalListener(
       "get-plug:builtin",
@@ -165,9 +177,7 @@ export class ExpressServer {
     console.log("Reloading plugs");
     for (let pageInfo of allPlugs) {
       let { text } = await this.space.readPage(pageInfo.name);
-      await this.system.load(JSON.parse(text), (p) =>
-        createSandbox(p, this.preloadedModules)
-      );
+      await this.system.load(JSON.parse(text), createSandbox);
     }
     this.rebuildMdExtensions();
   }

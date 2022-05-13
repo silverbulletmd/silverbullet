@@ -14,7 +14,7 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   if (!mdTree) {
     return;
   }
-  console.log("Attempting to navigate based on syntax node", mdTree);
+  // console.log("Attempting to navigate based on syntax node", mdTree);
   switch (mdTree.type) {
     case "WikiLinkPage":
       let pageLink = mdTree.children![0].text!;

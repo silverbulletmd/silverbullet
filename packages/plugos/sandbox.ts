@@ -18,6 +18,7 @@ export class Sandbox {
   protected worker: WorkerLike;
   protected reqId = 0;
   protected outstandingInits = new Map<string, () => void>();
+  protected outstandingDependencyInits = new Map<string, () => void>();
   protected outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
@@ -63,12 +64,33 @@ export class Sandbox {
     });
   }
 
+  async loadDependency(name: string, code: string): Promise<void> {
+    // console.log("Loading dependency", name);
+    this.worker.postMessage({
+      type: "load-dependency",
+      name: name,
+      code: code,
+    } as WorkerMessage);
+    return new Promise((resolve) => {
+      // console.log("Loaded dependency", name);
+      this.outstandingDependencyInits.set(name, () => {
+        this.outstandingDependencyInits.delete(name);
+        resolve();
+      });
+    });
+  }
+
   async onMessage(data: ControllerMessage) {
     switch (data.type) {
       case "inited":
         let initCb = this.outstandingInits.get(data.name!);
         initCb && initCb();
         this.outstandingInits.delete(data.name!);
+        break;
+      case "dependency-inited":
+        let depInitCb = this.outstandingDependencyInits.get(data.name!);
+        depInitCb && depInitCb();
+        this.outstandingDependencyInits.delete(data.name!);
         break;
       case "syscall":
         try {

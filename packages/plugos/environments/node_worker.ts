@@ -2,7 +2,7 @@ import { ConsoleLogger } from "./custom_logger";
 
 const {
   parentPort,
-  workerData: { preloadedModules, nodeModulesPath },
+  workerData: { nodeModulesPath },
 } = require("worker_threads");
 
 const { VM, VMScript } = require(`${nodeModulesPath}/vm2`);
@@ -26,6 +26,8 @@ let consoleLogger = new ConsoleLogger((level, message) => {
   });
 }, false);
 
+let loadedModules = new Map<string, any>();
+
 let vm = new VM({
   sandbox: {
     // Exposing some "safe" APIs
@@ -39,9 +41,14 @@ let vm = new VM({
     // This is only going to be called for pre-bundled modules, we won't allow
     // arbitrary requiring of modules
     require: (moduleName: string): any => {
-      // console.log("Loading", moduleName);
-      if (preloadedModules.includes(moduleName)) {
-        return require(`${nodeModulesPath}/${moduleName}`);
+      // console.log("Loading module", moduleName);
+      // if (preloadedModules.includes(moduleName)) {
+      //   return require(`${nodeModulesPath}/${moduleName}`);
+      // } else
+      if (loadedModules.has(moduleName)) {
+        let mod = loadedModules.get(moduleName);
+        // console.log("And it has the value", mod);
+        return mod;
       } else {
         throw Error(`Cannot import arbitrary modules like ${moduleName}`);
       }
@@ -83,6 +90,20 @@ parentPort.on("message", (data: any) => {
           type: "inited",
           name: data.name,
         });
+        break;
+      case "load-dependency":
+        // console.log("Asked to load dep", data.name);
+        try {
+          let r = vm.run(data.code);
+          // console.log("Loaded dependency", r);
+          loadedModules.set(data.name, r);
+          parentPort.postMessage({
+            type: "dependency-inited",
+            name: data.name,
+          });
+        } catch (e: any) {
+          console.error("Could not load dependency", e.message);
+        }
         break;
       case "invoke":
         let fn = loadedFunctions.get(data.name);

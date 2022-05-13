@@ -221,6 +221,7 @@ export async function renderQuery(
   data: any[]
 ): Promise<string> {
   if (parsedQuery.render) {
+    console.log("Handlebars", Handlebars);
     Handlebars.registerHelper("json", (v) => JSON.stringify(v));
     Handlebars.registerHelper("niceDate", (ts) => niceDate(new Date(ts)));
     Handlebars.registerHelper("yaml", (v, prefix) => {

@@ -67,7 +67,9 @@ export class EventHook implements Hook<EventHookT> {
 
   validateManifest(manifest: Manifest<EventHookT>): string[] {
     let errors = [];
-    for (const [name, functionDef] of Object.entries(manifest.functions)) {
+    for (const [name, functionDef] of Object.entries(
+      manifest.functions || {}
+    )) {
       if (functionDef.events && !Array.isArray(functionDef.events)) {
         errors.push("'events' key must be an array of strings");
       }

@@ -43,6 +43,9 @@ export class ConsoleLogger {
         case "number":
           pieces.push("" + val);
           break;
+        case "undefined":
+          pieces.push("undefined");
+          break;
         default:
           try {
             let s = JSON.stringify(val, null, 2);

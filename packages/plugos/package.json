@@ -60,7 +60,8 @@
     "vm2": "^3.9.9",
     "ws": "^8.5.0",
     "yaml": "^1.10.2",
-    "yargs": "^17.3.1"
+    "yargs": "^17.3.1",
+    "typescript": "^4.6.2"
   },
   "devDependencies": {
     "@lezer/lr": "^0.15.0",
@@ -82,7 +83,6 @@
     "assert": "^2.0.0",
     "events": "^3.3.0",
     "parcel": "2.3.2",
-    "prettier": "^2.5.1",
-    "typescript": "^4.6.2"
+    "prettier": "^2.5.1"
   }
 }

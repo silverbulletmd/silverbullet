@@ -1,6 +1,12 @@
 import type { LogLevel } from "./custom_logger";
 
-export type ControllerMessageType = "inited" | "result" | "syscall" | "log";
+export type ControllerMessageType =
+  | "inited"
+  | "dependency-inited"
+  | "result"
+  | "syscall"
+  | "log";
+
 export type ControllerMessage = {
   type: ControllerMessageType;
   id?: number;
@@ -21,7 +27,11 @@ export interface WorkerLike {
   terminate(): void;
 }
 
-export type WorkerMessageType = "load" | "invoke" | "syscall-response";
+export type WorkerMessageType =
+  | "load"
+  | "load-dependency"
+  | "invoke"
+  | "syscall-response";
 
 export type WorkerMessage = {
   type: WorkerMessageType;

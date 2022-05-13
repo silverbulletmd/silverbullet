@@ -1,6 +1,5 @@
 #!/usr/bin/env -S node --enable-source-maps
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
-import { preloadModules } from "@silverbulletmd/common/preload_modules";
 import { realpathSync } from "fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -39,7 +38,6 @@ console.log("Builtin plug dist dir", plugDistDir);
 const expressServer = new ExpressServer({
   port: port,
   pagesPath: pagesPath,
-  preloadedModules: preloadModules,
   distDir: webappDistDir,
   builtinPlugDir: plugDistDir,
   token: args.token,

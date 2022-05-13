@@ -1,8 +1,3 @@
-declare global {
-  function syscall(name: string, ...args: any[]): Promise<any>;
-  // function require(moduleName: string): any;
-}
-
 window.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {

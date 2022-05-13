@@ -39,19 +39,12 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
-const preloadedModules: { [key: string]: any } = {
-  "@lezer/lr": require("@lezer/lr"),
-  yaml: require("yaml"),
-  handlebars: require("handlebars/dist/handlebars"),
-};
-// for (const moduleName of preloadModules) {
-//   preloadedModules[moduleName] = require(moduleName);
-// }
+let loadedModules = new Map<string, any>();
 
 // @ts-ignore
 self.require = (moduleName: string): any => {
-  // console.log("Loading", moduleName, preloadedModules[moduleName]);
-  return preloadedModules[moduleName];
+  // console.log("Loading", moduleName, loadedModules.get(moduleName));
+  return loadedModules.get(moduleName);
 };
 
 // @ts-ignore
@@ -72,6 +65,17 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         loadedFunctions.set(data.name!, fn2());
         workerPostMessage({
           type: "inited",
+          name: data.name,
+        });
+        break;
+      case "load-dependency":
+        // console.log("Received dep", data.name);
+        let fn3 = new Function(`return ${data.code!}`);
+        let v = fn3();
+        loadedModules.set(data.name!, v);
+        // console.log("Dep val", v);
+        workerPostMessage({
+          type: "dependency-inited",
           name: data.name,
         });
         break;

@@ -1,5 +1,8 @@
 import { Action, AppViewState } from "./types";
 
+let m = new Map();
+m.size;
+
 export default function reducer(
   state: AppViewState,
   action: Action
