@@ -1,0 +1,10 @@
+name: search
+functions:
+  index:
+    path: ./search.ts:index
+    events:
+      - page:index
+  queryProvider:
+    path: ./search.ts:queryProvider
+    events:
+      - query:full-text

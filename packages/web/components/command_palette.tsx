@@ -6,9 +6,11 @@ import { FilterOption } from "@silverbulletmd/common/types";
 
 export function CommandPalette({
   commands,
+  recentCommands,
   onTrigger,
 }: {
   commands: Map<string, AppCommand>;
+  recentCommands: Map<string, Date>;
   onTrigger: (command: AppCommand | undefined) => void;
 }) {
   let options: FilterOption[] = [];
@@ -17,6 +19,9 @@ export function CommandPalette({
     options.push({
       name: name,
       hint: isMac && def.command.mac ? def.command.mac : def.command.key,
+      orderId: recentCommands.has(name)
+        ? -recentCommands.get(name)!.getTime()
+        : 0,
     });
   }
   return (

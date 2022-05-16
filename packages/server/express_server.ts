@@ -32,6 +32,10 @@ import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import globalModules from "../common/dist/global.plug.json";
 
 import { safeRun } from "./util";
+import {
+  ensureFTSTable,
+  fullTextSearchSyscalls,
+} from "@plugos/plugos/syscalls/fulltext.knex_sqlite";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -86,6 +90,7 @@ export class ExpressServer {
     this.system.registerSyscalls(
       [],
       pageIndexSyscalls(this.db),
+      fullTextSearchSyscalls(this.db, "fts"),
       spaceSyscalls(this.space),
       eventSyscalls(this.eventHook),
       markdownSyscalls(buildMarkdown([])),
@@ -196,6 +201,7 @@ export class ExpressServer {
         };
 
     await ensurePageIndexTable(this.db);
+    await ensureFTSTable(this.db, "fts");
     console.log("Setting up router");
 
     let auth = new Authenticator(this.db);

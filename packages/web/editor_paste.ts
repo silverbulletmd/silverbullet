@@ -1,8 +1,10 @@
 import { ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { createImportSpecifier } from "typescript";
 
 const urlRegexp =
   /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
+// Known iOS Safari paste issue (unrelated to this implementation): https://voxpelli.com/2015/03/ios-safari-url-copy-paste-bug/
 export const pasteLinkExtension = ViewPlugin.fromClass(
   class {
     update(update: ViewUpdate): void {
@@ -19,6 +21,7 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
           let pastedString = pastedText.join("");
           if (pastedString.match(urlRegexp)) {
             let selection = update.startState.selection.main;
+            console.log("It's a URL and selection empty?", selection.empty);
             if (!selection.empty) {
               setTimeout(() => {
                 update.view.dispatch({

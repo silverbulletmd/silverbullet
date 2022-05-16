@@ -602,12 +602,14 @@ export class Editor {
               dispatch({ type: "hide-palette" });
               editor!.focus();
               if (cmd) {
+                dispatch({ type: "command-run", command: cmd.command.name });
                 cmd.run().catch((e) => {
                   console.error("Error running command", e.message);
                 });
               }
             }}
             commands={viewState.commands}
+            recentCommands={viewState.recentCommands}
           />
         )}
         {viewState.showFilterBox && (

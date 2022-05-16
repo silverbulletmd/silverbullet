@@ -66,6 +66,11 @@ export default function reducer(
         ...state,
         showCommandPalette: false,
       };
+    case "command-run":
+      return {
+        ...state,
+        recentCommands: state.recentCommands.set(action.command, new Date()),
+      };
     case "update-commands":
       return {
         ...state,

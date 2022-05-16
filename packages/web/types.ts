@@ -1,4 +1,4 @@
-import { AppCommand } from "./hooks/command";
+import { AppCommand, CommandDef } from "./hooks/command";
 import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 
 export const slashCommandRegexp = /\/[\w\-]*/;
@@ -34,6 +34,7 @@ export type AppViewState = {
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   actionButtons: ActionButton[];
+  recentCommands: Map<string, Date>;
 
   showFilterBox: boolean;
   filterBoxLabel: string;
@@ -55,6 +56,7 @@ export const initialViewState: AppViewState = {
   bhsHTML: "",
   allPages: new Set(),
   commands: new Map(),
+  recentCommands: new Map(),
   notifications: [],
   actionButtons: [],
   showFilterBox: false,
@@ -87,6 +89,7 @@ export type Action =
   | { type: "hide-lhs" }
   | { type: "show-bhs"; html: string; flex: number; script?: string }
   | { type: "hide-bhs" }
+  | { type: "command-run"; command: string }
   | {
       type: "show-filterbox";
       options: FilterOption[];

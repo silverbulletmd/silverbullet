@@ -72,7 +72,6 @@ export async function quickNoteCommand() {
   let [date, time] = isoDate.split("T");
   time = time.split(".")[0];
   let pageName = `📥 ${date} ${time}`;
-  await writePage(pageName, "");
   await navigate(pageName);
 }
 

@@ -2,49 +2,24 @@ import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FilterOption } from "@silverbulletmd/common/types";
+import fuzzysort from "fuzzysort";
 
 function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
     return a.orderId < b.orderId ? -1 : 1;
   }
-  return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+  if (a.orderId) {
+    return -1;
+  }
+  if (b.orderId) {
+    return 1;
+  }
+  return 0;
 }
 
-function escapeRegExp(str: string): string {
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-}
-
-function fuzzyFilter(pattern: string, options: FilterOption[]): FilterOption[] {
-  let closeMatchRegex = escapeRegExp(pattern);
-  closeMatchRegex = closeMatchRegex.split(/\s+/).join(".*?");
-  closeMatchRegex = closeMatchRegex.replace(/\\\//g, ".*?\\/.*?");
-  const distantMatchRegex = escapeRegExp(pattern).split("").join(".*?");
-  const r1 = new RegExp(closeMatchRegex, "i");
-  const r2 = new RegExp(distantMatchRegex, "i");
-  let matches = [];
-  if (!pattern) {
-    return options;
-  }
-  for (let option of options) {
-    let m = r1.exec(option.name);
-    if (m) {
-      matches.push({
-        ...option,
-        orderId: 100000 - (options.length - m[0].length - m.index),
-      });
-    } else {
-      // Let's try the distant matcher
-      var m2 = r2.exec(option.name);
-      if (m2) {
-        matches.push({
-          ...option,
-          orderId: 10000 - (options.length - m2[0].length - m2.index),
-        });
-      }
-    }
-  }
-  return matches;
-}
+type FilterResult = FilterOption & {
+  result?: any;
+};
 
 function simpleFilter(
   pattern: string,
@@ -54,6 +29,25 @@ function simpleFilter(
   return options.filter((option) => {
     return option.name.toLowerCase().includes(lowerPattern);
   });
+}
+
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function fuzzySorter(pattern: string, options: FilterOption[]): FilterResult[] {
+  return fuzzysort
+    .go(pattern, options, {
+      all: true,
+      key: "name",
+    })
+    .map((result) => ({ ...result.obj, result: result }))
+    .sort(magicSorter);
 }
 
 export function FilterList({
@@ -82,7 +76,7 @@ export function FilterList({
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    options.sort(magicSorter)
+    fuzzySorter("", options)
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
@@ -93,23 +87,15 @@ export function FilterList({
   }
 
   function updateFilter(originalPhrase: string) {
-    const searchPhrase = originalPhrase.toLowerCase();
-
-    if (searchPhrase) {
-      let foundExactMatch = false;
-      let results = simpleFilter(searchPhrase, options);
-      results = results.sort(magicSorter);
-      if (allowNew && !foundExactMatch) {
-        results.push({
-          name: originalPhrase,
-          hint: newHint,
-        });
-      }
-      setMatchingOptions(results);
-    } else {
-      let results = options.sort(magicSorter);
-      setMatchingOptions(results);
+    let foundExactMatch = false;
+    let results = fuzzySorter(originalPhrase, options);
+    if (allowNew && !foundExactMatch) {
+      results.push({
+        name: originalPhrase,
+        hint: newHint,
+      });
     }
+    setMatchingOptions(results);
 
     setText(originalPhrase);
     setSelectionOption(0);
@@ -201,7 +187,14 @@ export function FilterList({
                 <span className="icon">
                   {icon && <FontAwesomeIcon icon={icon} />}
                 </span>
-                <span className="name">{option.name}</span>
+                <span
+                  className="name"
+                  dangerouslySetInnerHTML={{
+                    __html: option?.result?.indexes
+                      ? fuzzysort.highlight(option.result, "<b>", "</b>")!
+                      : escapeHtml(option.name),
+                  }}
+                ></span>
                 {option.hint && <span className="hint">{option.hint}</span>}
               </div>
             ))

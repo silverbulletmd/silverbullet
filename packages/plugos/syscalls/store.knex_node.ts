@@ -19,6 +19,7 @@ export async function ensureTable(db: Knex<any, unknown>, tableName: string) {
       table.text("value");
       table.primary(["key"]);
     });
+
     console.log(`Created table ${tableName}`);
   }
 }
