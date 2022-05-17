@@ -72,9 +72,10 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean,
     lastModified?: number
   ): Promise<PageMeta> {
-    let meta = {
+    const meta: PageMeta = {
       name,
       lastModified: lastModified ? lastModified : Date.now() + this.timeSkew,
+      perm: "rw",
     };
     await this.pageTable.put({
       name,

@@ -56,6 +56,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         meta: {
           name: pageName,
           lastModified: s.mtime.getTime(),
+          perm: "rw",
         },
       };
     } catch (e) {
@@ -88,6 +89,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       return {
         name: pageName,
         lastModified: s.mtime.getTime(),
+        perm: "rw",
       };
     } catch (e) {
       console.error("Error while writing page", pageName, e);
@@ -102,6 +104,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       return {
         name: pageName,
         lastModified: s.mtime.getTime(),
+        perm: "rw",
       };
     } catch (e) {
       console.error("Error while getting page meta", pageName, e);
@@ -132,6 +135,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
             pages.add({
               name: this.pathToPageName(fullPath),
               lastModified: s.mtime.getTime(),
+              perm: "rw",
             });
           }
         }

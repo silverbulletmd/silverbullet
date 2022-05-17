@@ -1,6 +1,11 @@
 import { fullTextIndex, fullTextSearch } from "@plugos/plugos-syscall/fulltext";
 import { renderToText } from "@silverbulletmd/common/tree";
+import { PageMeta } from "@silverbulletmd/common/types";
 import { scanPrefixGlobal } from "@silverbulletmd/plugos-silverbullet-syscall";
+import {
+  navigate,
+  prompt,
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { removeQueries } from "../query/util";
@@ -37,4 +42,38 @@ export async function queryProvider({
 
   results = applyQuery(query, results);
   return results;
+}
+
+export async function searchCommand() {
+  let phrase = await prompt("Search for: ");
+  if (phrase) {
+    await navigate(`@search/${phrase}`);
+  }
+}
+
+export async function readPageSearch(
+  name: string
+): Promise<{ text: string; meta: PageMeta }> {
+  let phrase = name.substring("@search/".length);
+  let results = await fullTextSearch(phrase, 100);
+  const text = `# Search results for "${phrase}"\n${results
+    .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)
+    .join("\n")}
+  `;
+  return {
+    text: text,
+    meta: {
+      name,
+      lastModified: 0,
+      perm: "ro",
+    },
+  };
+}
+
+export async function getPageMetaSearch(name: string): Promise<PageMeta> {
+  return {
+    name,
+    lastModified: 0,
+    perm: "ro",
+  };
 }

@@ -159,6 +159,7 @@ export function FilterList({
                 }
                 break;
             }
+            e.stopPropagation();
           }}
           onClick={(e) => e.stopPropagation()}
         />

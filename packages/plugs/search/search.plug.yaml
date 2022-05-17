@@ -8,3 +8,19 @@ functions:
     path: ./search.ts:queryProvider
     events:
       - query:full-text
+  searchCommand:
+    path: ./search.ts:searchCommand
+    command:
+      name: "Search Space"
+      key: Ctrl-Shift-f
+      mac: Cmd-Shift-f
+  readPageSearch:
+    path: ./search.ts:readPageSearch
+    pageNamespace:
+      pattern: "@search/.+"
+      operation: readPage
+  getPageMetaSearch:
+    path: ./search.ts:getPageMetaSearch
+    pageNamespace:
+      pattern: "@search/.+"
+      operation: getPageMeta

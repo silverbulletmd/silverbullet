@@ -16,6 +16,7 @@ import {
   highlightSpecialChars,
   KeyBinding,
   keymap,
+  runScopeHandlers,
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
@@ -56,7 +57,7 @@ import {
   MDExt,
 } from "@silverbulletmd/common/markdown_ext";
 import { FilterList } from "./components/filter";
-import { FilterOption } from "@silverbulletmd/common/types";
+import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import globalModules from "../common/dist/global.plug.json";
@@ -143,6 +144,16 @@ export class Editor {
           }
         });
       },
+    });
+
+    // Make keyboard shortcuts work even when the editor is in read only mode or not focused
+    window.addEventListener("keydown", (ev) => {
+      if (!this.editorView?.hasFocus) {
+        console.log("Window-level keyboard event", ev);
+        if (runScopeHandlers(this.editorView!, ev, "editor")) {
+          ev.preventDefault();
+        }
+      }
     });
   }
 
@@ -454,7 +465,10 @@ export class Editor {
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
       );
       if (editorView.contentDOM) {
-        this.tweakEditorDOM(editorView.contentDOM);
+        this.tweakEditorDOM(
+          editorView.contentDOM,
+          this.viewState.perm === "ro"
+        );
       }
 
       this.restoreState(this.currentPage);
@@ -516,30 +530,31 @@ export class Editor {
       console.log("Creating new page", pageName);
       doc = {
         text: "",
-        meta: { name: pageName, lastModified: 0 },
+        meta: { name: pageName, lastModified: 0, perm: "rw" } as PageMeta,
       };
     }
 
     let editorState = this.createEditorState(pageName, doc.text);
     editorView.setState(editorState);
     if (editorView.contentDOM) {
-      this.tweakEditorDOM(editorView.contentDOM);
+      this.tweakEditorDOM(editorView.contentDOM, doc.meta.perm === "ro");
     }
     this.restoreState(pageName);
     this.space.watchPage(pageName);
 
     this.viewDispatch({
       type: "page-loaded",
-      name: pageName,
+      meta: doc.meta,
     });
 
     await this.eventHook.dispatchEvent("editor:pageSwitched");
   }
 
-  tweakEditorDOM(contentDOM: HTMLElement) {
+  tweakEditorDOM(contentDOM: HTMLElement, readOnly: boolean) {
     contentDOM.spellcheck = true;
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
+    contentDOM.setAttribute("contenteditable", readOnly ? "false" : "true");
   }
 
   private restoreState(pageName: string) {

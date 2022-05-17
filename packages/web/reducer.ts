@@ -14,12 +14,13 @@ export default function reducer(
         ...state,
         allPages: new Set(
           [...state.allPages].map((pageMeta) =>
-            pageMeta.name === action.name
+            pageMeta.name === action.meta.name
               ? { ...pageMeta, lastOpened: Date.now() }
               : pageMeta
           )
         ),
-        currentPage: action.name,
+        perm: action.meta.perm,
+        currentPage: action.meta.name,
       };
     case "page-changed":
       return {

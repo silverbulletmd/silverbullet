@@ -36,6 +36,8 @@ import {
   ensureFTSTable,
   fullTextSearchSyscalls,
 } from "@plugos/plugos/syscalls/fulltext.knex_sqlite";
+import { PlugSpacePrimitives } from "./hooks/plug_space_primitives";
+import { PageNamespaceHook } from "./hooks/page_namespace";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -69,9 +71,14 @@ export class ExpressServer {
     // Setup system
     this.eventHook = new EventHook();
     this.system.addHook(this.eventHook);
+    let namespaceHook = new PageNamespaceHook();
+    this.system.addHook(namespaceHook);
     this.space = new Space(
       new EventedSpacePrimitives(
-        new DiskSpacePrimitives(options.pagesPath),
+        new PlugSpacePrimitives(
+          new DiskSpacePrimitives(options.pagesPath),
+          namespaceHook
+        ),
         this.eventHook
       ),
       true
@@ -227,6 +234,7 @@ export class ExpressServer {
           let pageData = await this.space.readPage(pageName);
           res.status(200);
           res.header("Last-Modified", "" + pageData.meta.lastModified);
+          res.header("X-Permission", pageData.meta.perm);
           res.header("Content-Type", "text/markdown");
           res.send(pageData.text);
         } catch (e) {
@@ -251,6 +259,7 @@ export class ExpressServer {
           );
           res.status(200);
           res.header("Last-Modified", "" + meta.lastModified);
+          res.header("X-Permission", meta.perm);
           res.send("OK");
         } catch (err) {
           res.status(500);
@@ -264,6 +273,7 @@ export class ExpressServer {
           const meta = await this.space.getPageMeta(pageName);
           res.status(200);
           res.header("Last-Modified", "" + meta.lastModified);
+          res.header("X-Permission", meta.perm);
           res.header("Content-Type", "text/markdown");
           res.send("");
         } catch (e) {

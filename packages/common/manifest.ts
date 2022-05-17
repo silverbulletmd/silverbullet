@@ -4,12 +4,14 @@ import { CronHookT } from "@plugos/plugos/hooks/node_cron";
 import { EventHookT } from "@plugos/plugos/hooks/event";
 import { CommandHookT } from "@silverbulletmd/web/hooks/command";
 import { SlashCommandHookT } from "@silverbulletmd/web/hooks/slash_command";
+import { PageNamespaceHookT } from "../server/hooks/page_namespace";
 
 export type SilverBulletHooks = CommandHookT &
   SlashCommandHookT &
   EndpointHookT &
   CronHookT &
-  EventHookT;
+  EventHookT &
+  PageNamespaceHookT;
 
 export type SyntaxExtensions = {
   syntax?: { [key: string]: NodeDef };

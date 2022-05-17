@@ -42,6 +42,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       result.add({
         name: pageName,
         lastModified: meta.lastModified,
+        perm: "rw",
       });
     });
 
@@ -160,10 +161,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   private responseToMeta(name: string, res: Response): PageMeta {
-    const meta = {
+    return {
       name,
       lastModified: +(res.headers.get("Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
-    return meta;
   }
 }
