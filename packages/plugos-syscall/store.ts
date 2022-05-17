@@ -5,6 +5,20 @@ export type KV = {
   value: any;
 };
 
+export type Query = {
+  filter?: Filter[];
+  orderBy?: string;
+  orderDesc?: boolean;
+  limit?: number;
+  select?: string[];
+};
+
+export type Filter = {
+  op: string;
+  prop: string;
+  value: any;
+};
+
 export async function set(key: string, value: any): Promise<void> {
   return syscall("store.set", key, value);
 }
@@ -28,7 +42,13 @@ export async function batchDel(keys: string[]): Promise<void> {
 export async function queryPrefix(
   prefix: string
 ): Promise<{ key: string; value: any }[]> {
-  return syscall("store.scanPrefix", prefix);
+  return syscall("store.queryPrefix", prefix);
+}
+
+export async function query(
+  query: Query
+): Promise<{ key: string; value: any }[]> {
+  return syscall("store.query", query);
 }
 
 export async function deletePrefix(prefix: string): Promise<void> {

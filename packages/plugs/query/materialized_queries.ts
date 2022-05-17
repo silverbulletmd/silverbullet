@@ -22,25 +22,24 @@ export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
   await save();
   await flashNotification("Updating materialized queries...");
-  await invokeFunction(
-    "server",
-    "updateMaterializedQueriesOnPage",
-    currentPage
-  );
-  await reloadPage();
-}
-
-export async function whiteOutQueriesCommand() {
-  const text = await getText();
-  const parsed = await parseMarkdown(text);
-  console.log(removeQueries(parsed));
+  if (
+    await invokeFunction(
+      "server",
+      "updateMaterializedQueriesOnPage",
+      currentPage
+    )
+  ) {
+    await reloadPage();
+  }
 }
 
 // Called from client, running on server
-export async function updateMaterializedQueriesOnPage(pageName: string) {
+export async function updateMaterializedQueriesOnPage(
+  pageName: string
+): Promise<boolean> {
   let { text } = await readPage(pageName);
 
-  text = await replaceAsync(
+  let newText = await replaceAsync(
     text,
     queryRegex,
     async (fullMatch, startQuery, query, body, endQuery) => {
@@ -68,6 +67,9 @@ export async function updateMaterializedQueriesOnPage(pageName: string) {
       }
     }
   );
-  // console.log("New text", text);
-  await writePage(pageName, text);
+  if (text !== newText) {
+    await writePage(pageName, newText);
+    return true;
+  }
+  return false;
 }

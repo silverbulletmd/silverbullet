@@ -509,6 +509,7 @@ export class Editor {
   }
 
   async loadPage(pageName: string) {
+    const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
     if (!editorView) {
       return;
@@ -547,7 +548,9 @@ export class Editor {
       meta: doc.meta,
     });
 
-    await this.eventHook.dispatchEvent("editor:pageSwitched");
+    if (loadingDifferentPage) {
+      await this.eventHook.dispatchEvent("editor:pageLoaded", pageName);
+    }
   }
 
   tweakEditorDOM(contentDOM: HTMLElement, readOnly: boolean) {

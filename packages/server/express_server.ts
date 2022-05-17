@@ -10,7 +10,7 @@ import bodyParser from "body-parser";
 import { EventHook } from "@plugos/plugos/hooks/event";
 import spaceSyscalls from "./syscalls/space";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
-import { ensurePageIndexTable, pageIndexSyscalls } from "./syscalls";
+import { ensureTable, pageIndexSyscalls } from "./syscalls";
 import knex, { Knex } from "knex";
 import shellSyscalls from "@plugos/plugos/syscalls/shell.node";
 import { NodeCronHook } from "@plugos/plugos/hooks/node_cron";
@@ -207,7 +207,7 @@ export class ExpressServer {
           next();
         };
 
-    await ensurePageIndexTable(this.db);
+    await ensureTable(this.db);
     await ensureFTSTable(this.db, "fts");
     console.log("Setting up router");
 

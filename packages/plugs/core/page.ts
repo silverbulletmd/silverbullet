@@ -3,7 +3,7 @@ import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
-  scanPrefixGlobal,
+  queryPrefix,
   set,
 } from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
@@ -73,7 +73,7 @@ export async function pageQueryProvider({
   let allPageMap: Map<string, any> = new Map(
     allPages.map((pm) => [pm.name, pm])
   );
-  for (let { page, value } of await scanPrefixGlobal("meta:")) {
+  for (let { page, value } of await queryPrefix("meta:")) {
     let p = allPageMap.get(page);
     if (p) {
       for (let [k, v] of Object.entries(value)) {
@@ -90,7 +90,7 @@ export async function linkQueryProvider({
   pageName,
 }: QueryProviderEvent): Promise<any[]> {
   let uniqueLinks = new Set<string>();
-  for (let { value: name } of await scanPrefixGlobal(`pl:${pageName}:`)) {
+  for (let { value: name } of await queryPrefix(`pl:${pageName}:`)) {
     uniqueLinks.add(name);
   }
   return applyQuery(
@@ -176,7 +176,7 @@ type BackLink = {
 };
 
 async function getBackLinks(pageName: string): Promise<BackLink[]> {
-  let allBackLinks = await scanPrefixGlobal(`pl:${pageName}:`);
+  let allBackLinks = await queryPrefix(`pl:${pageName}:`);
   let pagesToUpdate: BackLink[] = [];
   for (let { key, value } of allBackLinks) {
     let keyParts = key.split(":");

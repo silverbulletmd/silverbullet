@@ -12,10 +12,8 @@ functions:
       key: "Alt-q"
       button:
         label: "🔄"
-  whiteOutQueriesCommand:
-    path: ./materialized_queries.ts:whiteOutQueriesCommand
-    command:
-      name: "Debug: Whiteout Queries"
+    events:
+      - editor:pageLoaded
   indexData:
     path: ./data.ts:indexData
     events:

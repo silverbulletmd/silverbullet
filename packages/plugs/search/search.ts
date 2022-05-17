@@ -1,7 +1,7 @@
 import { fullTextIndex, fullTextSearch } from "@plugos/plugos-syscall/fulltext";
 import { renderToText } from "@silverbulletmd/common/tree";
 import { PageMeta } from "@silverbulletmd/common/types";
-import { scanPrefixGlobal } from "@silverbulletmd/plugos-silverbullet-syscall";
+import { queryPrefix } from "@silverbulletmd/plugos-silverbullet-syscall";
 import {
   navigate,
   prompt,
@@ -28,7 +28,7 @@ export async function queryProvider({
   let allPageMap: Map<string, any> = new Map(
     results.map((r: any) => [r.name, r])
   );
-  for (let { page, value } of await scanPrefixGlobal("meta:")) {
+  for (let { page, value } of await queryPrefix("meta:")) {
     let p = allPageMap.get(page);
     if (p) {
       for (let [k, v] of Object.entries(value)) {

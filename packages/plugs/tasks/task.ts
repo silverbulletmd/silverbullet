@@ -2,7 +2,7 @@ import type { ClickEvent, IndexTreeEvent } from "@silverbulletmd/web/app_event";
 
 import {
   batchSet,
-  scanPrefixGlobal,
+  queryPrefix,
 } from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
   readPage,
@@ -197,7 +197,7 @@ export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<Task[]> {
   let allTasks: Task[] = [];
-  for (let { key, page, value } of await scanPrefixGlobal("task:")) {
+  for (let { key, page, value } of await queryPrefix("task:")) {
     let [, pos] = key.split(":");
     allTasks.push({
       ...value,

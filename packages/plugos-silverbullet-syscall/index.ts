@@ -1,3 +1,4 @@
+import type { Query } from "@plugos/plugos-syscall/store";
 import { syscall } from "./syscall";
 
 export type KV = {
@@ -25,17 +26,16 @@ export async function del(page: string, key: string): Promise<void> {
   return syscall("index.delete", page, key);
 }
 
-export async function scanPrefixForPage(
-  page: string,
+export async function queryPrefix(
   prefix: string
 ): Promise<{ key: string; page: string; value: any }[]> {
-  return syscall("index.scanPrefixForPage", page, prefix);
+  return syscall("index.queryPrefix", prefix);
 }
 
-export async function scanPrefixGlobal(
-  prefix: string
+export async function query(
+  query: Query
 ): Promise<{ key: string; page: string; value: any }[]> {
-  return syscall("index.scanPrefixGlobal", prefix);
+  return syscall("index.query", query);
 }
 
 export async function clearPageIndexForPage(page: string): Promise<void> {

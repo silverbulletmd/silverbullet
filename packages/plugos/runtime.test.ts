@@ -93,19 +93,19 @@ test("Run a Node sandbox", async () => {
     await plug.invoke("errorOut", []);
     expect(true).toBe(false);
   } catch (e: any) {
-    expect(e.message).toBe("BOOM");
+    expect(e.message).toContain("BOOM");
   }
   try {
     await plug.invoke("errorOutSys", []);
     expect(true).toBe(false);
   } catch (e: any) {
-    expect(e.message).toBe("#fail");
+    expect(e.message).toContain("#fail");
   }
   try {
     await plug.invoke("restrictedTest", []);
     expect(true).toBe(false);
   } catch (e: any) {
-    expect(e.message).toBe(
+    expect(e.message).toContain(
       "Missing permission 'restricted' for syscall restrictedSyscall"
     );
   }

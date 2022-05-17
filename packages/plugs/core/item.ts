@@ -2,7 +2,7 @@ import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 
 import {
   batchSet,
-  scanPrefixGlobal,
+  queryPrefix,
 } from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
   collectNodesOfType,
@@ -61,7 +61,7 @@ export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
   let allItems: Item[] = [];
-  for (let { key, page, value } of await scanPrefixGlobal("it:")) {
+  for (let { key, page, value } of await queryPrefix("it:")) {
     let [, pos] = key.split(":");
     allItems.push({
       ...value,

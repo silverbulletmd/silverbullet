@@ -422,7 +422,6 @@ function $9072202279b76d33$export$5884dae03c64f759(parsedQuery, records) {
 }
 async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
     if (parsedQuery.render) {
-        console.log("Handlebars", ($parcel$interopDefault($hVExJ$handlebars)));
         ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("json", (v)=>JSON.stringify(v)
         );
         ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("niceDate", (ts)=>$c3893eec0c49ec96$export$5dc1410f87262ed6(new Date(ts))

@@ -24,6 +24,45 @@ export async function ensureTable(db: Knex<any, unknown>, tableName: string) {
   }
 }
 
+export type Query = {
+  filter?: Filter[];
+  orderBy?: string;
+  orderDesc?: boolean;
+  limit?: number;
+  select?: string[];
+};
+
+export type Filter = {
+  op: string;
+  prop: string;
+  value: any;
+};
+
+export function queryToKnex(
+  queryBuilder: Knex.QueryBuilder<Item, any>,
+  query: Query
+): Knex.QueryBuilder<Item, any> {
+  if (query.filter) {
+    for (let filter of query.filter) {
+      queryBuilder = queryBuilder.andWhereRaw(
+        `json_extract(value, '$.${filter.prop}') ${filter.op} ?`,
+        [filter.value]
+      );
+    }
+  }
+  if (query.limit) {
+    queryBuilder = queryBuilder.limit(query.limit);
+  }
+  if (query.orderBy) {
+    queryBuilder = queryBuilder.orderByRaw(
+      `json_extract(value, '$.${query.orderBy}') ${
+        query.orderDesc ? "desc" : "asc"
+      }`
+    );
+  }
+  return queryBuilder;
+}
+
 export function storeSyscalls(
   db: Knex<any, unknown>,
   tableName: string
@@ -34,6 +73,9 @@ export function storeSyscalls(
     },
     "store.deletePrefix": async (ctx, prefix: string) => {
       return db<Item>(tableName).andWhereLike("key", `${prefix}%`).del();
+    },
+    "store.deleteQuery": async (ctx, query: Query) => {
+      await queryToKnex(db<Item>(tableName), query).del();
     },
     "store.deleteAll": async (ctx) => {
       await db<Item>(tableName).del();
@@ -74,6 +116,14 @@ export function storeSyscalls(
           .andWhereLike("key", `${prefix}%`)
           .select("key", "value")
       ).map(({ key, value }) => ({
+        key,
+        value: JSON.parse(value),
+      }));
+    },
+    "store.query": async (ctx, query: Query) => {
+      return (
+        await queryToKnex(db<Item>(tableName), query).select("key", "value")
+      ).map(({ key, value }: { key: string; value: string }) => ({
         key,
         value: JSON.parse(value),
       }));

@@ -5,8 +5,7 @@ import { Space } from "@silverbulletmd/common/spaces/space";
 export function indexerSyscalls(space: Space): SysCallMapping {
   return proxySyscalls(
     [
-      "index.scanPrefixForPage",
-      "index.scanPrefixGlobal",
+      "index.queryPrefix",
       "index.get",
       "index.set",
       "index.batchSet",

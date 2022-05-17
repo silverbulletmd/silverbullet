@@ -1,12 +1,8 @@
 import { Knex } from "knex";
 import { SysCallMapping } from "@plugos/plugos/system";
+import { Query, queryToKnex } from "@plugos/plugos/syscalls/store.knex_node";
 
-import {
-  ensureTable,
-  storeSyscalls,
-} from "@plugos/plugos/syscalls/store.knex_node";
-
-type IndexItem = {
+type Item = {
   page: string;
   key: string;
   value: any;
@@ -17,45 +13,35 @@ export type KV = {
   value: any;
 };
 
-/*
- Keyspace design:
+const tableName = "page_index";
 
- for page lookups:
- p~page~key
+export async function ensureTable(db: Knex<any, unknown>) {
+  if (!(await db.schema.hasTable(tableName))) {
+    await db.schema.createTable(tableName, (table) => {
+      table.string("page");
+      table.string("key");
+      table.text("value");
+      table.primary(["page", "key"]);
+      table.index(["key"]);
+    });
 
- for global lookups:
- k~key~page
-
- */
-
-function pageKey(page: string, key: string) {
-  return `p~${page}~${key}`;
-}
-
-function unpackPageKey(dbKey: string): { page: string; key: string } {
-  const [, page, key] = dbKey.split("~");
-  return { page, key };
-}
-
-function globalKey(page: string, key: string) {
-  return `k~${key}~${page}`;
-}
-
-function unpackGlobalKey(dbKey: string): { page: string; key: string } {
-  const [, key, page] = dbKey.split("~");
-  return { page, key };
-}
-
-export async function ensurePageIndexTable(db: Knex<any, unknown>) {
-  await ensureTable(db, "page_index");
+    console.log(`Created table ${tableName}`);
+  }
 }
 
 export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
-  const storeCalls = storeSyscalls(db, "page_index");
   const apiObj: SysCallMapping = {
     "index.set": async (ctx, page: string, key: string, value: any) => {
-      await storeCalls["store.set"](ctx, pageKey(page, key), value);
-      await storeCalls["store.set"](ctx, globalKey(page, key), value);
+      let changed = await db<Item>(tableName)
+        .where({ key, page })
+        .update("value", JSON.stringify(value));
+      if (changed === 0) {
+        await db<Item>(tableName).insert({
+          key,
+          page,
+          value: JSON.stringify(value),
+        });
+      }
     },
     "index.batchSet": async (ctx, page: string, kvs: KV[]) => {
       for (let { key, value } of kvs) {
@@ -63,53 +49,53 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
       }
     },
     "index.delete": async (ctx, page: string, key: string) => {
-      await storeCalls["store.delete"](ctx, pageKey(page, key));
-      await storeCalls["store.delete"](ctx, globalKey(page, key));
+      await db<Item>(tableName).where({ key, page }).del();
     },
     "index.get": async (ctx, page: string, key: string) => {
-      return storeCalls["store.get"](ctx, pageKey(page, key));
+      let result = await db<Item>(tableName)
+        .where({ key, page })
+        .select("value");
+      if (result.length) {
+        return JSON.parse(result[0].value);
+      } else {
+        return null;
+      }
     },
-    "index.scanPrefixForPage": async (ctx, page: string, prefix: string) => {
+    "index.queryPrefix": async (ctx, prefix: string) => {
       return (
-        await storeCalls["store.queryPrefix"](ctx, pageKey(page, prefix))
-      ).map(({ key, value }: { key: string; value: any }) => {
-        const { key: pageKey } = unpackPageKey(key);
-        return {
-          page,
-          key: pageKey,
-          value,
-        };
-      });
+        await db<Item>(tableName)
+          .andWhereLike("key", `${prefix}%`)
+          .select("key", "value", "page")
+      ).map(({ key, value, page }) => ({
+        key,
+        page,
+        value: JSON.parse(value),
+      }));
     },
-    "index.scanPrefixGlobal": async (ctx, prefix: string) => {
-      return (await storeCalls["store.queryPrefix"](ctx, `k~${prefix}`)).map(
-        ({ key, value }: { key: string; value: any }) => {
-          const { page, key: pageKey } = unpackGlobalKey(key);
-          return {
-            page,
-            key: pageKey,
-            value,
-          };
-        }
-      );
+    "index.query": async (ctx, query: Query) => {
+      return (
+        await queryToKnex(db<Item>(tableName), query).select(
+          "key",
+          "value",
+          "page"
+        )
+      ).map(({ key, value, page }: any) => ({
+        key,
+        page,
+        value: JSON.parse(value),
+      }));
     },
     "index.clearPageIndexForPage": async (ctx, page: string) => {
       await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
     "index.deletePrefixForPage": async (ctx, page: string, prefix: string) => {
-      // Collect all global keys for this page to delete
-      let keysToDelete = (
-        await storeCalls["store.queryPrefix"](ctx, pageKey(page, prefix))
-      ).map(({ key }: { key: string; value: string }) =>
-        globalKey(page, unpackPageKey(key).key)
-      );
-      // Delete all page keys
-      await storeCalls["store.deletePrefix"](ctx, pageKey(page, prefix));
-      // console.log("Deleting keys", keysToDelete);
-      await storeCalls["store.batchDelete"](ctx, keysToDelete);
+      return db<Item>(tableName)
+        .where({ page })
+        .andWhereLike("key", `${prefix}%`)
+        .del();
     },
     "index.clearPageIndex": async (ctx) => {
-      await storeCalls["store.deleteAll"](ctx);
+      await db<Item>(tableName).del();
     },
   };
   return apiObj;
