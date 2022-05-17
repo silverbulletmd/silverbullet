@@ -20,7 +20,9 @@ export async function queryProvider({
   }
   let results = await fullTextSearch(phraseFilter.value, 100);
 
-  let allPageMap: Map<string, any> = new Map(results.map((r) => [r.name, r]));
+  let allPageMap: Map<string, any> = new Map(
+    results.map((r: any) => [r.name, r])
+  );
   for (let { page, value } of await scanPrefixGlobal("meta:")) {
     let p = allPageMap.get(page);
     if (p) {
