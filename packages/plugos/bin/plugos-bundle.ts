@@ -41,7 +41,8 @@ async function bundle(
       filePath,
       jsFunctionName,
       debug,
-      allModulesToExclude
+      allModulesToExclude,
+      true
     );
     delete def.path;
   }

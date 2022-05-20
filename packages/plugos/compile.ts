@@ -45,7 +45,7 @@ export async function compile(
 
   if (meta) {
     let text = await esbuild.analyzeMetafile(result.metafile);
-    // console.log("Bundle info for", functionName, text);
+    console.log("Bundle info for", functionName, text);
   }
 
   let jsCode = (await readFile(outFile)).toString();

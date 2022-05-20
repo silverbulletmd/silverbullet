@@ -16,12 +16,11 @@ import { replaceTemplateVars } from "../core/template";
 import { jsonToMDTable, queryRegex, removeQueries } from "./util";
 import { dispatch } from "@plugos/plugos-syscall/event";
 import { replaceAsync } from "../lib/util";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
   await save();
-  await flashNotification("Updating materialized queries...");
+  // await flashNotification("Updating materialized queries...");
   if (
     await invokeFunction(
       "server",
