@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
-import { System } from "@plugos/plugos/system";
-import { SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { Editor } from "../editor";
 
 export function Panel({

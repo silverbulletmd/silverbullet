@@ -6,6 +6,6 @@ import {
 
 export async function insertQuery() {
   let cursorPos = await getCursor();
-  await insertAtCursor(`<!-- #query  -->\n\n<!-- #end -->`);
+  await insertAtCursor(`<!-- #query  -->\n\n<!-- /query -->`);
   await moveCursor(cursorPos + 12);
 }

@@ -1,10 +1,9 @@
 import {
-  flashNotification,
   getCurrentPage,
-  getText,
   reloadPage,
   save,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import Handlebars from "handlebars";
 
 import {
   readPage,
@@ -13,7 +12,7 @@ import {
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 import { parseQuery, renderQuery } from "./engine";
 import { replaceTemplateVars } from "../core/template";
-import { jsonToMDTable, queryRegex, removeQueries } from "./util";
+import { jsonToMDTable, queryRegex } from "./util";
 import { dispatch } from "@plugos/plugos-syscall/event";
 import { replaceAsync } from "../lib/util";
 
@@ -32,14 +31,47 @@ export async function updateMaterializedQueriesCommand() {
   }
 }
 
+export const templateInstRegex =
+  /(<!--\s*#inst\s+"([^"]+)"(.+?)-->)(.+?)(<!--\s*\/inst\s*-->)/gs;
+
+async function updateTemplateInstantiations(
+  text: string,
+  pageName: string
+): Promise<string> {
+  return replaceAsync(
+    text,
+    templateInstRegex,
+    async (fullMatch, startInst, template, args, body, endInst) => {
+      args = args.trim();
+      let parsedArgs = {};
+      if (args) {
+        try {
+          parsedArgs = JSON.parse(args);
+        } catch (e) {
+          console.error("Failed to parse template instantiation args", args);
+          return fullMatch;
+        }
+      }
+      let { text: templateText } = await readPage(template);
+      let templateFn = Handlebars.compile(
+        replaceTemplateVars(templateText, pageName),
+        { noEscape: true }
+      );
+      let newBody = templateFn(parsedArgs);
+      return `${startInst}\n${newBody.trim()}\n${endInst}`;
+    }
+  );
+}
+
 // Called from client, running on server
 export async function updateMaterializedQueriesOnPage(
   pageName: string
 ): Promise<boolean> {
   let { text } = await readPage(pageName);
 
-  let newText = await replaceAsync(
-    text,
+  let newText = await updateTemplateInstantiations(text, pageName);
+  newText = await replaceAsync(
+    newText,
     queryRegex,
     async (fullMatch, startQuery, query, body, endQuery) => {
       let parsedQuery = parseQuery(replaceTemplateVars(query, pageName));

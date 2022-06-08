@@ -6,11 +6,11 @@ import {
 } from "@silverbulletmd/common/tree";
 
 export const queryRegex =
-  /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*#end\s*-->)/gs;
+  /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;
 
 export const queryStartRegex = /<!--\s*#query\s+(.+?)-->/s;
 
-export const queryEndRegex = /<!--\s*#end\s*-->/s;
+export const queryEndRegex = /<!--\s*\/query\s*-->/s;
 
 // export function whiteOutQueries(text: string): string {
 //   return text.replaceAll(queryRegex, (match) =>
