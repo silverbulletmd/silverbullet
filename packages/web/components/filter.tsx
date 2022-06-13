@@ -131,6 +131,9 @@ export function FilterList({
           placeholder={placeholder}
           ref={searchBoxRef}
           onChange={filterUpdate}
+          onBlur={(e) => {
+            searchBoxRef.current!.focus();
+          }}
           onKeyDown={(e: React.KeyboardEvent) => {
             // console.log("Key up", e);
             if (onKeyPress) {
