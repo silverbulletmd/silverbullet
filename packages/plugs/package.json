@@ -8,8 +8,8 @@
   "license": "MIT",
   "scripts": {
     "generate": "lezer-generator query/query.grammar -o query/parse-query.js",
-    "watch": "plugos-bundle --dist ../common/dist global.plug.yaml && plugos-bundle --debug -w --dist dist --exclude @lezer/lr yaml handlebars -- */*.plug.yaml",
-    "build": "plugos-bundle --dist ../common/dist global.plug.yaml && plugos-bundle --dist dist --exclude @lezer/lr yaml handlebars -- */*.plug.yaml",
+    "watch": "plugos-bundle --dist ../web/dist global.plug.yaml && plugos-bundle --debug -w --dist dist --exclude @lezer/lr yaml handlebars -- */*.plug.yaml",
+    "build": "plugos-bundle --dist ../web/dist global.plug.yaml && plugos-bundle --dist dist --exclude @lezer/lr yaml handlebars -- */*.plug.yaml",
     "test": "jest build/test"
   },
   "files": [

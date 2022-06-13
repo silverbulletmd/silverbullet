@@ -17,7 +17,10 @@ import { NodeCronHook } from "@plugos/plugos/hooks/node_cron";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { EventedSpacePrimitives } from "@silverbulletmd/common/spaces/evented_space_primitives";
 import { Space } from "@silverbulletmd/common/spaces/space";
-import { createSandbox } from "@plugos/plugos/environments/node_sandbox";
+import {
+  createSandbox,
+  nodeModulesDir,
+} from "@plugos/plugos/environments/node_sandbox";
 import { jwtSyscalls } from "@plugos/plugos/syscalls/jwt";
 import buildMarkdown from "@silverbulletmd/common/parser";
 import { loadMarkdownExtensions } from "@silverbulletmd/common/markdown_ext";
@@ -29,7 +32,14 @@ import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 import { Authenticator } from "./auth";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 
-import globalModules from "../common/dist/global.plug.json";
+// import globalModules from "../common/dist/global.plug.json";
+
+const globalModules: any = JSON.parse(
+  readFileSync(
+    nodeModulesDir + "/node_modules/@silverbulletmd/web/dist/global.plug.json",
+    "utf-8"
+  )
+);
 
 import { safeRun } from "./util";
 import {
@@ -38,6 +48,7 @@ import {
 } from "@plugos/plugos/syscalls/fulltext.knex_sqlite";
 import { PlugSpacePrimitives } from "./hooks/plug_space_primitives";
 import { PageNamespaceHook } from "./hooks/page_namespace";
+import { readFileSync } from "fs";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -114,7 +125,7 @@ export class ExpressServer {
           for (let [modName, code] of Object.entries(
             globalModules.dependencies
           )) {
-            await plug.sandbox.loadDependency(modName, code);
+            await plug.sandbox.loadDependency(modName, code as string);
           }
         });
       },

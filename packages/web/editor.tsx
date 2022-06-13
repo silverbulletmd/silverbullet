@@ -60,7 +60,7 @@ import { FilterList } from "./components/filter";
 import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
-import globalModules from "../common/dist/global.plug.json";
+// import globalModules from "../common/dist/global.plug.json";
 
 class PageState {
   constructor(
@@ -134,18 +134,6 @@ export class Editor {
       sandboxSyscalls(this.system)
     );
 
-    this.system.on({
-      plugLoaded: (plug) => {
-        safeRun(async () => {
-          for (let [modName, code] of Object.entries(
-            globalModules.dependencies
-          )) {
-            await plug.sandbox.loadDependency(modName, code);
-          }
-        });
-      },
-    });
-
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     window.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
@@ -177,6 +165,22 @@ export class Editor {
           selection: { anchor: pos },
         });
       }
+    });
+
+    let globalModules: any = await (await fetch("/global.plug.json")).json();
+
+    console.log("Global modules", globalModules);
+
+    this.system.on({
+      plugLoaded: (plug) => {
+        safeRun(async () => {
+          for (let [modName, code] of Object.entries(
+            globalModules.dependencies
+          )) {
+            await plug.sandbox.loadDependency(modName, code as string);
+          }
+        });
+      },
     });
 
     this.space.on({

@@ -3,7 +3,7 @@ import { manifest, version } from "@parcel/service-worker";
 async function install() {
   const cache = await caches.open(version);
   // console.log("Installing", manifest, "version", version);
-  await cache.addAll(manifest);
+  await cache.addAll([...manifest, "/global.plug.json"]);
   // @ts-ignore
   self.skipWaiting(); // This automatically enables the service worker, preventing from caching stuff forever if there's a page open
   // console.log("Installed");
