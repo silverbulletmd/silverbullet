@@ -3,10 +3,14 @@ import {
   completionKeymap,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
+import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
-import { history, historyKeymap } from "@codemirror/history";
-import { bracketMatching } from "@codemirror/matchbrackets";
+import { history, historyKeymap } from "@codemirror/commands";
+import {
+  bracketMatching,
+  defaultHighlightStyle,
+  syntaxHighlighting,
+} from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import {
@@ -315,7 +319,8 @@ export class Editor {
         history(),
         drawSelection(),
         dropCursor(),
-        customMarkdownStyle(this.mdExtensions),
+        syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
+        // syntaxHighlighting(defaultHighlightStyle),
         bracketMatching(),
         closeBrackets(),
         autocompletion({

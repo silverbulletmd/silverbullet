@@ -1,43 +1,25 @@
 import {
+  Language,
   defineLanguageFacet,
+  languageDataProp,
   foldNodeProp,
   indentNodeProp,
-  Language,
-  languageDataProp,
   LanguageDescription,
-  ParseContext
+  ParseContext,
 } from "@codemirror/language";
-import { styleTags, tags as t } from "@codemirror/highlight";
-import { Emoji, GFM, MarkdownParser, parser as baseParser, Subscript, Superscript } from "@lezer/markdown";
+import {
+  parser as baseParser,
+  MarkdownParser,
+  GFM,
+  Subscript,
+  Superscript,
+  Emoji,
+} from "@lezer/markdown";
 
 const data = defineLanguageFacet({ block: { open: "<!--", close: "-->" } });
 
 export const commonmark = baseParser.configure({
   props: [
-    styleTags({
-      "Blockquote/...": t.quote,
-      HorizontalRule: t.contentSeparator,
-      "ATXHeading1/... SetextHeading1/...": t.heading1,
-      "ATXHeading2/... SetextHeading2/...": t.heading2,
-      "ATXHeading3/...": t.heading3,
-      "ATXHeading4/...": t.heading4,
-      "ATXHeading5/...": t.heading5,
-      "ATXHeading6/...": t.heading6,
-      "Comment CommentBlock": t.comment,
-      Escape: t.escape,
-      Entity: t.character,
-      "Emphasis/...": t.emphasis,
-      "StrongEmphasis/...": t.strong,
-      "Link/... Image/...": t.link,
-      "OrderedList/... BulletList/...": t.list,
-      "InlineCode CodeText": t.monospace,
-      URL: t.url,
-      "HeaderMark HardBreak QuoteMark ListMark LinkMark EmphasisMark CodeMark":
-        t.processingInstruction,
-      "CodeInfo LinkLabel": t.labelName,
-      LinkTitle: t.string,
-      Paragraph: t.content,
-    }),
     foldNodeProp.add((type) => {
       if (!type.is("Block") || type.is("Document")) return undefined;
       return (tree, state) => ({
@@ -55,51 +37,36 @@ export const commonmark = baseParser.configure({
 });
 
 export function mkLang(parser: MarkdownParser) {
-  return new Language(
-    data,
-    parser,
-    parser.nodeSet.types.find((t) => t.name == "Document")!
-  );
+  return new Language(data, parser);
 }
 
 /// Language support for strict CommonMark.
 export const commonmarkLanguage = mkLang(commonmark);
 
-const extended = commonmark.configure([
-  GFM,
-  Subscript,
-  Superscript,
-  Emoji,
-  {
-    props: [
-      styleTags({
-        "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
-          t.processingInstruction,
-        "TableHeader/...": t.heading,
-        "Strikethrough/...": t.strikethrough,
-        TaskMarker: t.atom,
-        Task: t.list,
-        Emoji: t.character,
-        "Subscript Superscript": t.special(t.content),
-        TableCell: t.content,
-      }),
-    ],
-  },
-]);
+const extended = commonmark.configure([GFM, Subscript, Superscript, Emoji]);
 
 /// Language support for [GFM](https://github.github.com/gfm/) plus
 /// subscript, superscript, and emoji syntax.
 export const markdownLanguage = mkLang(extended);
 
 export function getCodeParser(
-  languages: readonly LanguageDescription[],
+  languages:
+    | readonly LanguageDescription[]
+    | ((info: string) => Language | LanguageDescription | null)
+    | undefined,
   defaultLanguage?: Language
 ) {
   return (info: string) => {
-    let found =
-      info && LanguageDescription.matchLanguageName(languages, info, true);
-    if (!found) return defaultLanguage ? defaultLanguage.parser : null;
-    if (found.support) return found.support.language.parser;
-    return ParseContext.getSkippingParser(found.load());
+    if (info && languages) {
+      let found = null;
+      if (typeof languages == "function") found = languages(info);
+      else found = LanguageDescription.matchLanguageName(languages, info, true);
+      if (found instanceof LanguageDescription)
+        return found.support
+          ? found.support.language.parser
+          : ParseContext.getSkippingParser(found.load());
+      else if (found) return found.parser;
+    }
+    return defaultLanguage ? defaultLanguage.parser : null;
   };
 }

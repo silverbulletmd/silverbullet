@@ -1,7 +1,13 @@
 import { syntaxTree } from "@codemirror/language";
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import {
+  Decoration,
+  DecorationSet,
+  EditorView,
+  ViewPlugin,
+  ViewUpdate,
+} from "@codemirror/view";
 
-import { Range } from "@codemirror/rangeset";
+import { Range } from "@codemirror/state";
 
 interface WrapElement {
   selector: string;
@@ -17,7 +23,7 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
     syntaxTree(view.state).iterate({
       from,
       to,
-      enter: (type, from, to) => {
+      enter: ({ type, from, to }) => {
         const bodyText = doc.sliceString(from, to);
         for (let wrapElement of wrapElements) {
           if (type.name == wrapElement.selector) {
@@ -41,7 +47,7 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
           }
         }
       },
-      leave(type, from: number, to: number) {
+      leave({ type }) {
         for (let wrapElement of wrapElements) {
           if (type.name == wrapElement.selector && wrapElement.nesting) {
             elementStack.pop();

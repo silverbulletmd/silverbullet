@@ -64,7 +64,7 @@
     "typescript": "^4.6.2"
   },
   "devDependencies": {
-    "@lezer/lr": "^0.15.0",
+    "@lezer/lr": "1.0.0",
     "@parcel/optimizer-data-url": "2.6.0",
     "@parcel/packager-raw-url": "2.6.0",
     "@parcel/service-worker": "2.6.0",

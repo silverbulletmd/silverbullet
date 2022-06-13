@@ -1,4 +1,9 @@
-import { ChangeSpec, EditorSelection, StateCommand, Text } from "@codemirror/state";
+import {
+  StateCommand,
+  Text,
+  EditorSelection,
+  ChangeSpec,
+} from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, Tree } from "@lezer/common";
 import { markdownLanguage } from "./markdown";
@@ -20,11 +25,8 @@ class Context {
 
   blank(trailing: boolean = true) {
     let result = this.spaceBefore;
-    if (this.node.name == "Blockquote") {
-      result += ">";
-    } else if (this.node.name == "Comment") {
-      result += "%%";
-    } else
+    if (this.node.name == "Blockquote") result += ">";
+    else
       for (
         let i = this.to - this.from - result.length - this.spaceAfter.length;
         i > 0;
@@ -50,12 +52,7 @@ function getContext(node: SyntaxNode, line: string, doc: Text) {
     cur && cur.name != "Document";
     cur = cur.parent
   ) {
-    if (
-      cur.name == "ListItem" ||
-      cur.name == "Blockquote" ||
-      cur.name == "Comment"
-    )
-      nodes.push(cur);
+    if (cur.name == "ListItem" || cur.name == "Blockquote") nodes.push(cur);
   }
   let context = [],
     pos = 0;
@@ -69,12 +66,6 @@ function getContext(node: SyntaxNode, line: string, doc: Text) {
     ) {
       pos += match[0].length;
       context.push(new Context(node, start, pos, "", match[1], ">", null));
-    } else if (
-      node.name == "Comment" &&
-      (match = /^[ \t]*%%( ?)/.exec(line.slice(pos)))
-    ) {
-      pos += match[0].length;
-      context.push(new Context(node, start, pos, "", match[1], "%%", null));
     } else if (
       node.name == "ListItem" &&
       node.parent!.name == "OrderedList" &&
@@ -93,17 +84,21 @@ function getContext(node: SyntaxNode, line: string, doc: Text) {
     } else if (
       node.name == "ListItem" &&
       node.parent!.name == "BulletList" &&
-      (match = /^([ \t]*)([-+*])([ \t]+)/.exec(nodeStart(node, doc)))
+      (match = /^([ \t]*)([-+*])([ \t]{1,4}\[[ xX]\])?([ \t]+)/.exec(
+        nodeStart(node, doc)
+      ))
     ) {
-      let after = match[3],
+      let after = match[4],
         len = match[0].length;
       if (after.length > 4) {
         after = after.slice(0, after.length - 4);
         len -= 4;
       }
+      let type = match[2];
+      if (match[3]) type += match[3].replace(/[xX]/, " ");
       pos += len;
       context.push(
-        new Context(node.parent!, start, pos, match[1], after, match[2], node)
+        new Context(node.parent!, start, pos, match[1], after, type, node)
       );
     }
   }
@@ -223,19 +218,6 @@ export const insertNewlineContinueMarkup: StateCommand = ({
         if (quoted && quoted.index == inner.from) {
           let changes = state.changes([
             { from: prevLine.from + quoted.index, to: prevLine.to },
-            { from: line.from + inner.from, to: line.to },
-          ]);
-          return { range: range.map(changes), changes };
-        }
-      }
-
-      if (inner.node.name == "Comment" && emptyLine && line.from) {
-        let prevLine = doc.lineAt(line.from - 1),
-          commented = /%%\s*$/.exec(prevLine.text);
-        // Two aligned empty quoted lines in a row
-        if (commented && commented.index == inner.from) {
-          let changes = state.changes([
-            { from: prevLine.from + commented.index, to: prevLine.to },
             { from: line.from + inner.from, to: line.to },
           ]);
           return { range: range.map(changes), changes };

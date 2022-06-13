@@ -1,9 +1,10 @@
-import { HighlightStyle, tags as t } from "@codemirror/highlight";
+import { HighlightStyle } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
 import * as ct from "@silverbulletmd/common/customtags";
 import { MDExt } from "@silverbulletmd/common/markdown_ext";
 
 export default function highlightStyles(mdExtension: MDExt[]) {
-  return HighlightStyle.define([
+  const hls = HighlightStyle.define([
     { tag: t.heading1, class: "h1" },
     { tag: t.heading2, class: "h2" },
     { tag: t.heading3, class: "h3" },
@@ -29,7 +30,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.literal, class: "literal" },
     { tag: t.keyword, class: "keyword" },
     { tag: t.list, class: "list" },
-    { tag: t.definition, class: "li" },
+    // { tag: t.def, class: "li" },
     { tag: t.string, class: "string" },
     { tag: t.number, class: "number" },
     { tag: [t.regexp, t.escape, t.special(t.string)], class: "string2" },
@@ -44,4 +45,12 @@ export default function highlightStyles(mdExtension: MDExt[]) {
       return { tag: mdExt.tag, ...mdExt.styles };
     }),
   ]);
+  const fn0 = hls.style;
+  // Hack: https://discuss.codemirror.net/t/highlighting-that-seems-ignored-in-cm6/4320/16
+  // @ts-ignore
+  hls.style = (tags) => {
+    return fn0(tags || []);
+  };
+
+  return hls;
 }

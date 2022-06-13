@@ -1,4 +1,4 @@
-import { Tag } from "@codemirror/highlight";
+import { Tag } from "@lezer/highlight";
 
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();

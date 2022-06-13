@@ -1,4 +1,4 @@
-import { Tag } from "@codemirror/highlight";
+import { Tag } from "@lezer/highlight";
 import type { MarkdownConfig } from "@lezer/markdown";
 import { System } from "@plugos/plugos/system";
 import { Manifest } from "@silverbulletmd/common/manifest";

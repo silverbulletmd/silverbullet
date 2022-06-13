@@ -1,4 +1,4 @@
-import { styleTags, tags as t } from "@codemirror/highlight";
+import { styleTags, tags as t } from "@lezer/highlight";
 import {
   BlockContext,
   LeafBlock,
@@ -15,7 +15,7 @@ import {
   LanguageDescription,
   LanguageSupport,
 } from "@codemirror/language";
-import { StreamLanguage } from "@codemirror/stream-parser";
+import { StreamLanguage } from "@codemirror/language";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import {
   javascriptLanguage,

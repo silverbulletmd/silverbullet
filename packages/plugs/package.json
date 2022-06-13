@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "@jest/globals": "^27.5.1",
-    "@lezer/generator": "^0.15.4",
-    "@lezer/lr": "^0.15.8",
+    "@lezer/generator": "1.0.0",
+    "@lezer/lr": "1.0.0",
     "@mattermost/client": "^6.7.0-0",
     "@mattermost/types": "^6.7.0-0",
     "@types/yaml": "^1.9.7",
