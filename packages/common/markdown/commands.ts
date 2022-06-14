@@ -154,7 +154,9 @@ export const insertNewlineContinueMarkup: StateCommand = ({
     { doc } = state;
   let dont = null,
     changes = state.changeByRange((range) => {
-      if (!range.empty || !markdownLanguage.isActiveAt(state, range.from))
+      if (!range.empty)
+        // TODO: Hack due to languagefacet stuff not working
+        // || !markdownLanguage.isActiveAt(state, range.from))
         return (dont = { range });
       let pos = range.from,
         line = doc.lineAt(pos);

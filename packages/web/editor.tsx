@@ -6,13 +6,9 @@ import {
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/commands";
-import {
-  bracketMatching,
-  defaultHighlightStyle,
-  syntaxHighlighting,
-} from "@codemirror/language";
+import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -74,6 +70,31 @@ class PageState {
 }
 
 const saveInterval = 1000;
+
+// Monkey patching the languageDataAt, somehow the languageData facet is not set
+// properly, no idea why
+// TODO: Remove at some point
+EditorState.prototype.languageDataAt = function (
+  name: string,
+  pos: number,
+  side = -1
+) {
+  let values = [];
+  // console.log("Getting language data");
+  // @ts-ignore
+  for (let provider of this.facet(EditorState.languageData)) {
+    let providerResult = provider(this, pos, side);
+    if (!providerResult) {
+      // console.log("Empty provider result");
+      continue;
+    }
+    for (let result of providerResult) {
+      if (Object.prototype.hasOwnProperty.call(result, name))
+        values.push(result[name]);
+    }
+  }
+  return values;
+};
 
 export class Editor {
   readonly commandHook: CommandHook;
@@ -315,14 +336,15 @@ export class Editor {
     return EditorState.create({
       doc: text,
       extensions: [
+        markdown({
+          base: buildMarkdown(this.mdExtensions),
+          addKeymap: true,
+        }),
         highlightSpecialChars(),
         history(),
         drawSelection(),
         dropCursor(),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
-        // syntaxHighlighting(defaultHighlightStyle),
-        bracketMatching(),
-        closeBrackets(),
         autocompletion({
           override: [
             this.completer.bind(this),
@@ -365,14 +387,6 @@ export class Editor {
             mac: "Cmd-i",
             run: commands.insertMarker("_"),
           },
-          // {
-          //   key: "Ctrl-p",
-          //   mac: "Cmd-p",
-          //   run: (): boolean => {
-          //     window.open(location.href, "_blank")!.focus();
-          //     return true;
-          //   },
-          // },
           {
             key: "Ctrl-k",
             mac: "Cmd-k",
@@ -439,9 +453,10 @@ export class Editor {
           }
         ),
         pasteLinkExtension,
-        markdown({
-          base: buildMarkdown(this.mdExtensions),
+        bracketMatching({
+          brackets: "()[]{}",
         }),
+        closeBrackets(),
       ],
     });
   }

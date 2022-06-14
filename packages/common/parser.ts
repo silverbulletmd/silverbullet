@@ -90,25 +90,25 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       Comment,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
-      parseCode({
-        codeParser: getCodeParser([
-          LanguageDescription.of({
-            name: "yaml",
-            alias: ["meta", "data"],
-            support: new LanguageSupport(StreamLanguage.define(yaml)),
-          }),
-          LanguageDescription.of({
-            name: "javascript",
-            alias: ["js"],
-            support: new LanguageSupport(javascriptLanguage),
-          }),
-          LanguageDescription.of({
-            name: "typescript",
-            alias: ["ts"],
-            support: new LanguageSupport(typescriptLanguage),
-          }),
-        ]),
-      }),
+      // parseCode({
+      //   codeParser: getCodeParser([
+      //     LanguageDescription.of({
+      //       name: "yaml",
+      //       alias: ["meta", "data"],
+      //       support: new LanguageSupport(StreamLanguage.define(yaml)),
+      //     }),
+      //     LanguageDescription.of({
+      //       name: "javascript",
+      //       alias: ["js"],
+      //       support: new LanguageSupport(javascriptLanguage),
+      //     }),
+      //     LanguageDescription.of({
+      //       name: "typescript",
+      //       alias: ["ts"],
+      //       support: new LanguageSupport(typescriptLanguage),
+      //     }),
+      //   ]),
+      // }),
       {
         props: [
           styleTags({
