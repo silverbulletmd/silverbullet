@@ -194,8 +194,6 @@ export class Editor {
 
     let globalModules: any = await (await fetch("/global.plug.json")).json();
 
-    console.log("Global modules", globalModules);
-
     this.system.on({
       plugLoaded: (plug) => {
         safeRun(async () => {
@@ -224,11 +222,10 @@ export class Editor {
       },
     });
 
-    await this.reloadPlugs();
-
     if (this.pageNavigator.getCurrentPage() === "") {
       await this.pageNavigator.navigate("start");
     }
+    await this.reloadPlugs();
   }
 
   async save(immediate: boolean = false): Promise<void> {
@@ -474,7 +471,9 @@ export class Editor {
 
   rebuildEditorState() {
     const editorView = this.editorView;
+    console.log("Rebuilding editor state");
     if (editorView && this.currentPage) {
+      console.log("Getting all syntax extensions");
       this.mdExtensions = loadMarkdownExtensions(this.system);
 
       // And reload the syscalls to use the new syntax extensions

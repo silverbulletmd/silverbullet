@@ -21,7 +21,6 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
           let pastedString = pastedText.join("");
           if (pastedString.match(urlRegexp)) {
             let selection = update.startState.selection.main;
-            console.log("It's a URL and selection empty?", selection.empty);
             if (!selection.empty) {
               setTimeout(() => {
                 update.view.dispatch({
