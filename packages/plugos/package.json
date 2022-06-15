@@ -65,13 +65,13 @@
   },
   "devDependencies": {
     "@lezer/lr": "1.0.0",
-    "@parcel/optimizer-data-url": "2.6.0",
-    "@parcel/packager-raw-url": "2.6.0",
-    "@parcel/service-worker": "2.6.0",
-    "@parcel/transformer-inline-string": "2.6.0",
-    "@parcel/transformer-sass": "2.6.0",
-    "@parcel/transformer-webmanifest": "2.6.0",
-    "@parcel/validator-typescript": "2.6.0",
+    "@parcel/optimizer-data-url": "2.5.0",
+    "@parcel/packager-raw-url": "2.5.0",
+    "@parcel/service-worker": "2.5.0",
+    "@parcel/transformer-inline-string": "2.5.0",
+    "@parcel/transformer-sass": "2.5.0",
+    "@parcel/transformer-webmanifest": "2.5.0",
+    "@parcel/validator-typescript": "2.5.0",
     "@types/events": "^3.0.0",
     "@types/jest": "^27.4.1",
     "@types/node": "^17.0.21",
@@ -82,7 +82,7 @@
     "@vscode/sqlite3": "^5.0.7",
     "assert": "^2.0.0",
     "events": "^3.3.0",
-    "parcel": "2.6.0",
+    "parcel": "2.5.0",
     "prettier": "^2.5.1"
   }
 }

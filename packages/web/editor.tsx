@@ -459,6 +459,7 @@ export class Editor {
   }
 
   async reloadPlugs() {
+    console.log("Loading plugs");
     await this.space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
