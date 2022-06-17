@@ -58,12 +58,12 @@ body {
 #top {
   display: flex;
   flex-direction: row;
+  z-index: 20;
 
   height: $top-bar-height;
   background-color: rgb(213, 213, 213);
   border-bottom: rgb(193, 193, 193) 1px solid;
   color: rgb(55, 55, 55);
-
   .main {
     flex: 2;
 
@@ -72,6 +72,10 @@ body {
       margin: auto;
       font-size: 28px;
       padding: 10px 20px;
+
+      @media (max-width: $max-editor-width) {
+        width: 800px;
+      }
 
       .status {
         position: absolute;
@@ -90,6 +94,14 @@ body {
       .current-page {
         font-family: var(--ui-font);
         font-weight: bold;
+
+        overflow: hidden;
+        white-space: nowrap;
+        margin-right: 40px;
+        display: block;
+        text-overflow: ellipsis;
+        direction: rtl;
+        text-align: left;
       }
 
       .icon {
@@ -107,15 +119,36 @@ body {
     }
     .actions {
       float: right;
+      text-align: right;
+      margin-top: -35px;
 
-      button {
-        border: 0;
-        // border-radius: 5px;
-        // background-color: rgba(77,141,255,0.07);
-        background-color: transparent;
-        padding: 3px;
-        font-family: "IA-Mono", "Menlo";
-        font-size: 80%;
+      ul {
+        list-style: none;
+        margin-left: 0;
+        padding-left: 0;
+        margin-top: 0;
+        list-style: none;
+        background: #fff;
+        border: #000 1px solid;
+        text-align: left;
+
+        a {
+          padding: 3px;
+          font-family: var(--ui-font);
+          font-size: 50%;
+          text-decoration: none;
+          color: #000;
+        }
+
+        li {
+          padding-left: 10px;
+          padding-right: 10px;
+          padding-bottom: 5px;
+        }
+
+        li:hover {
+          background-color: #4d8dff12;
+        }
       }
     }
   }

@@ -10,8 +10,8 @@ functions:
     command:
       name: "Materialized Queries: Update"
       key: "Alt-q"
-      button:
-        label: "🔄"
+      shortcut:
+        label: "Update queries"
     events:
       - editor:pageLoaded
   indexData:

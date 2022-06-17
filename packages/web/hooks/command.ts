@@ -1,7 +1,7 @@
 import { Hook, Manifest } from "@plugos/plugos/types";
 import { System } from "@plugos/plugos/system";
 import { EventEmitter } from "@plugos/plugos/event";
-import { ActionButton } from "../types";
+import { ShortcutItem } from "../types";
 
 export type CommandDef = {
   name: string;
@@ -12,13 +12,12 @@ export type CommandDef = {
   key?: string;
   mac?: string;
 
-  // Action button
-  button?: ButtonDef;
+  // Shortcuts in UI
+  shortcut?: ShortcutDef;
 };
 
-export type ButtonDef = {
+export type ShortcutDef = {
   label: string;
-  tooltip?: string;
 };
 
 export type AppCommand = {
@@ -33,7 +32,7 @@ export type CommandHookT = {
 export type CommandHookEvents = {
   commandsUpdated(
     commandMap: Map<string, AppCommand>,
-    appButtons: ActionButton[]
+    appButtons: ShortcutItem[]
   ): void;
 };
 
@@ -42,11 +41,11 @@ export class CommandHook
   implements Hook<CommandHookT>
 {
   editorCommands = new Map<string, AppCommand>();
-  actionButtons: ActionButton[] = [];
+  shortcutItems: ShortcutItem[] = [];
 
   buildAllCommands(system: System<CommandHookT>) {
     this.editorCommands.clear();
-    this.actionButtons = [];
+    this.shortcutItems = [];
     for (let plug of system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions
@@ -61,10 +60,9 @@ export class CommandHook
             return plug.invoke(name, []);
           },
         });
-        if (cmd.button) {
-          this.actionButtons.push({
-            label: cmd.button.label,
-            tooltip: cmd.button.tooltip,
+        if (cmd.shortcut) {
+          this.shortcutItems.push({
+            label: cmd.shortcut.label,
             run: () => {
               return plug.invoke(name, []);
             },
@@ -72,7 +70,7 @@ export class CommandHook
         }
       }
     }
-    this.emit("commandsUpdated", this.editorCommands, this.actionButtons);
+    this.emit("commandsUpdated", this.editorCommands, this.shortcutItems);
   }
 
   apply(system: System<CommandHookT>): void {

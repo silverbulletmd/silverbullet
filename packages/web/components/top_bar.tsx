@@ -1,4 +1,5 @@
-import { ActionButton, Notification } from "../types";
+import { useEffect, useState } from "react";
+import { ShortcutItem, Notification } from "../types";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -11,7 +12,7 @@ export function TopBar({
   pageName,
   unsavedChanges,
   notifications,
-  actionButtons,
+  shortcutItems,
   onClick,
   lhs,
   rhs,
@@ -19,11 +20,25 @@ export function TopBar({
   pageName?: string;
   unsavedChanges: boolean;
   notifications: Notification[];
-  actionButtons: ActionButton[];
+  shortcutItems: ShortcutItem[];
   onClick: () => void;
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
 }) {
+  const [menuExpanded, setMenuExpanded] = useState(false);
+
+  useEffect(() => {
+    function closer() {
+      setMenuExpanded(false);
+    }
+
+    document.addEventListener("click", closer);
+
+    return () => {
+      document.removeEventListener("click", closer);
+    };
+  }, []);
+
   return (
     <div id="top" onClick={onClick}>
       {lhs}
@@ -42,18 +57,33 @@ export function TopBar({
             </div>
           )}
           <div className="actions">
-            {actionButtons.map((actionButton, idx) => (
-              <button
-                key={idx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  actionButton.run();
-                }}
-                title={actionButton.tooltip}
-              >
-                {actionButton.label}
-              </button>
-            ))}
+            <button
+              onClick={(e) => {
+                setMenuExpanded(!menuExpanded);
+                e.stopPropagation();
+              }}
+            >
+              ...
+            </button>
+            {menuExpanded && (
+              <ul>
+                {shortcutItems.map((actionButton, idx) => (
+                  <li key={idx}>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMenuExpanded(false);
+                        actionButton.run();
+                      }}
+                    >
+                      {actionButton.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>

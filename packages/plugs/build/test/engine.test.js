@@ -30,7 +30,8 @@ function $255163dfff8c42fb$export$6dcbc6776594ee95(tree, matchFn) {
     return null;
 }
 function $255163dfff8c42fb$export$dddeb721bf64f8df(tree, nodeType) {
-    return $255163dfff8c42fb$export$b86407c733c9fe3(tree, (n)=>n.type === nodeType);
+    return $255163dfff8c42fb$export$b86407c733c9fe3(tree, (n)=>n.type === nodeType
+    );
 }
 function $255163dfff8c42fb$export$b86407c733c9fe3(tree, matchFn) {
     if (matchFn(tree)) return [
@@ -61,7 +62,8 @@ function $255163dfff8c42fb$export$4d49acedd23f9b0a(tree, matchFn) {
     return $255163dfff8c42fb$export$b86407c733c9fe3(tree, matchFn)[0];
 }
 function $255163dfff8c42fb$export$80a8b4335833eeeb(tree, nodeType) {
-    return $255163dfff8c42fb$export$b86407c733c9fe3(tree, (n)=>n.type === nodeType)[0];
+    return $255163dfff8c42fb$export$b86407c733c9fe3(tree, (n)=>n.type === nodeType
+    )[0];
 }
 function $255163dfff8c42fb$export$a41716fb83443983(tree, pos) {
     if (pos < tree.from || pos > tree.to) return null;
@@ -156,12 +158,12 @@ function $88d466d5aaf7a497$export$98e6a39c04603d36(language, text) {
 
 
 
-const $d85524f23de2149a$export$8f49e4af10703ce3 = (0, $hVExJ$lezerlr.LRParser).deserialize({
+const $d85524f23de2149a$export$8f49e4af10703ce3 = $hVExJ$lezerlr.LRParser.deserialize({
     version: 13,
     states: "&fOVQPOOOmQQO'#C^QOQPOOOtQPO'#C`OyQQO'#CkO!OQPO'#CmO!TQPO'#CnO!YQPO'#CoOOQO'#Cp'#CpO!_QQO,58xO!fQQO'#CcO#TQQO'#CaOOQO'#Ca'#CaOOQO,58z,58zO#lQPO,59VOOQO,59X,59XO#qQQO'#D`OOQO,59Y,59YOOQO,59Z,59ZOOQO-E6n-E6nO$YQQO,58}OtQPO,58|O$qQQO1G.qO%]QPO'#CrO%bQQO,59zOOQO'#Cg'#CgOOQO'#Ci'#CiO$YQQO'#CjOOQO'#Cd'#CdOOQO1G.i1G.iOOQO1G.h1G.hOOQO'#Cl'#ClOOQO7+$]7+$]OOQO,59^,59^OOQO-E6p-E6pO%yQPO'#C|O&RQPO,59UO$YQQO'#CqO&WQPO,59hOOQO1G.p1G.pOOQO,59],59]OOQO-E6o-E6o",
     stateData: "&`~OiOS~ORPO~OjRO|SO!QTO!RUO!TVO~OgQX~P[ORYO~O}^O~OX_O~OR`O~OYbO~OgQa~P[OkdOsdOtdOudOvdOwdOxdOydOzdO~O{eOgTXjTX|TX!QTX!RTX!TTX~ORfO~OqgOg!SXj!SX|!SX!Q!SX!R!SX!T!SX~OXlOYlO[lOliOmiOnjOokO~O!OoO!PoOg_ij_i|_i!Q_i!R_i!T_i~ORqO~OqgOg!Saj!Sa|!Sa!Q!Sa!R!Sa!T!Sa~OquOrpX~OrwO~OquOrpa~O",
     goto: "#d!TPP!UP!X!]!`!c!iPP!rP!r!r!X!w!X!X!X!z#Q#WPPPPPPPPP#^PPPPPPPPPPPPPPPPP#aRQOTWPXR]RR[RQZRRneQmdQskRxuVldkuRpfQXPRcXQvsRyvQh`RrhRtkRaU",
-    nodeNames: "\u26A0 Program Query Name WhereClause LogicalExpr AndExpr FilterExpr Value Number String Bool Regex Null List OrderClause Order LimitClause SelectClause RenderClause",
+    nodeNames: "⚠ Program Query Name WhereClause LogicalExpr AndExpr FilterExpr Value Number String Bool Regex Null List OrderClause Order LimitClause SelectClause RenderClause",
     maxTerm: 51,
     skippedNodes: [
         0
@@ -186,88 +188,88 @@ const $4ba3510c824e3aea$export$c5be9092dbf465c = self.syscall;
 
 
 async function $2780e5830b4782c9$export$c3455d2d4767a60b(unfiltered = false) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("space.listPages", unfiltered);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("space.listPages", unfiltered);
 }
 async function $2780e5830b4782c9$export$126f79da5c357ad(name) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("space.readPage", name);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("space.readPage", name);
 }
 async function $2780e5830b4782c9$export$7ed3b3f07f54e00c(name, text) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("space.writePage", name, text);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("space.writePage", name, text);
 }
 async function $2780e5830b4782c9$export$2e9858c25869c949(name) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("space.deletePage", name);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("space.deletePage", name);
 }
 
 
 
 function $11a7e2bff790f35a$export$7945ba8eb1c827e6() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.getCurrentPage");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getCurrentPage");
 }
 function $11a7e2bff790f35a$export$5e830c5f3cd8a610(newName) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.setPage", newName);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.setPage", newName);
 }
 function $11a7e2bff790f35a$export$c72d34660a162238() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.getText");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getText");
 }
 function $11a7e2bff790f35a$export$da3f040fb23d21f() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.getCursor");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getCursor");
 }
 function $11a7e2bff790f35a$export$a1544dad697b423d() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.save");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.save");
 }
 function $11a7e2bff790f35a$export$ff7962acd6052c28(name, pos) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.navigate", name, pos);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.navigate", name, pos);
 }
 function $11a7e2bff790f35a$export$da22d4a5076a7905() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.reloadPage");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.reloadPage");
 }
 function $11a7e2bff790f35a$export$a238cfe4a10e6279(url) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.openUrl", url);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.openUrl", url);
 }
 function $11a7e2bff790f35a$export$4f02334034b5dd8c(message) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.flashNotification", message);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.flashNotification", message);
 }
 function $11a7e2bff790f35a$export$83b9d7a71bc0a208(label, options, helpText = "", placeHolder = "") {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.filterBox", label, options, helpText, placeHolder);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.filterBox", label, options, helpText, placeHolder);
 }
 function $11a7e2bff790f35a$export$53ed0b99a5f8822e(html, script, flex = 1) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.showRhs", html, script, flex);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showRhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$f19f28e8a128fabe() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.hideRhs");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideRhs");
 }
 function $11a7e2bff790f35a$export$dcf0ace441f4b3a4(html, script, flex = 1) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.showLhs", html, script, flex);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showLhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$1be2ad20c6324dcf() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.hideLhs");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideLhs");
 }
 function $11a7e2bff790f35a$export$6ebe231c70cc6efb(html, script, flex = 1) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.showBhs", html, script, flex);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.showBhs", html, script, flex);
 }
 function $11a7e2bff790f35a$export$a7a5aa8ba1cd9dc3() {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.hideBhs");
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.hideBhs");
 }
 function $11a7e2bff790f35a$export$f1124a4ce9f9bf29(text, pos) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.insertAtPos", text, pos);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.insertAtPos", text, pos);
 }
 function $11a7e2bff790f35a$export$54cb80d99fa58e48(from, to, text) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.replaceRange", from, to, text);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.replaceRange", from, to, text);
 }
 function $11a7e2bff790f35a$export$185d1f0722e636b2(pos) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.moveCursor", pos);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.moveCursor", pos);
 }
 function $11a7e2bff790f35a$export$df659347c0c138a9(text) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.insertAtCursor", text);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.insertAtCursor", text);
 }
 function $11a7e2bff790f35a$export$c4c1b7dbe675fa50(re) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.matchBefore", re);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.matchBefore", re);
 }
 function $11a7e2bff790f35a$export$635e15bbd66f01ea(change) {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.dispatch", change);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.dispatch", change);
 }
 function $11a7e2bff790f35a$export$195ba6d62321b933(message, defaultValue = "") {
-    return (0, $4ba3510c824e3aea$export$c5be9092dbf465c)("editor.prompt", message, defaultValue);
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.prompt", message, defaultValue);
 }
 
 
@@ -276,19 +278,19 @@ function $c3893eec0c49ec96$export$5dc1410f87262ed6(d) {
     return d.toISOString().split("T")[0];
 }
 async function $c3893eec0c49ec96$export$151bb3c215c78d5a() {
-    await (0, $11a7e2bff790f35a$export$df659347c0c138a9)($c3893eec0c49ec96$export$5dc1410f87262ed6(new Date()));
+    await $11a7e2bff790f35a$export$df659347c0c138a9($c3893eec0c49ec96$export$5dc1410f87262ed6(new Date()));
 }
 async function $c3893eec0c49ec96$export$2177dd573df27382() {
     let d = new Date();
     d.setDate(d.getDate() + 1);
-    await (0, $11a7e2bff790f35a$export$df659347c0c138a9)($c3893eec0c49ec96$export$5dc1410f87262ed6(d));
+    await $11a7e2bff790f35a$export$df659347c0c138a9($c3893eec0c49ec96$export$5dc1410f87262ed6(d));
 }
 
 
 function $9072202279b76d33$export$1e8473eaf75b0d10(query) {
-    let n1 = (0, $88d466d5aaf7a497$export$87cc1c28aef74af1)(query, (0, $d85524f23de2149a$export$8f49e4af10703ce3).parse(query).topNode);
+    let n1 = $88d466d5aaf7a497$export$87cc1c28aef74af1(query, $d85524f23de2149a$export$8f49e4af10703ce3.parse(query).topNode);
     // Clean the tree a bit
-    (0, $255163dfff8c42fb$export$90b8ac453fa63932)(n1, (n)=>{
+    $255163dfff8c42fb$export$90b8ac453fa63932(n1, (n)=>{
         if (!n.type) {
             let trimmed = n.text.trim();
             if (!trimmed) return null;
@@ -301,19 +303,19 @@ function $9072202279b76d33$export$1e8473eaf75b0d10(query) {
         table: queryNode.children[0].children[0].text,
         filter: []
     };
-    let orderByNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(queryNode, "OrderClause");
+    let orderByNode = $255163dfff8c42fb$export$80a8b4335833eeeb(queryNode, "OrderClause");
     if (orderByNode) {
-        let nameNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(orderByNode, "Name");
+        let nameNode = $255163dfff8c42fb$export$80a8b4335833eeeb(orderByNode, "Name");
         parsedQuery.orderBy = nameNode.children[0].text;
-        let orderNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(orderByNode, "Order");
+        let orderNode = $255163dfff8c42fb$export$80a8b4335833eeeb(orderByNode, "Order");
         parsedQuery.orderDesc = orderNode ? orderNode.children[0].text === "desc" : false;
     }
-    let limitNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(queryNode, "LimitClause");
+    let limitNode = $255163dfff8c42fb$export$80a8b4335833eeeb(queryNode, "LimitClause");
     if (limitNode) {
-        let nameNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(limitNode, "Number");
+        let nameNode = $255163dfff8c42fb$export$80a8b4335833eeeb(limitNode, "Number");
         parsedQuery.limit = $9072202279b76d33$var$valueNodeToVal(nameNode);
     }
-    let filterNodes = (0, $255163dfff8c42fb$export$dddeb721bf64f8df)(queryNode, "FilterExpr");
+    let filterNodes = $255163dfff8c42fb$export$dddeb721bf64f8df(queryNode, "FilterExpr");
     for (let filterNode of filterNodes){
         let val = undefined;
         let valNode = filterNode.children[2].children[0];
@@ -325,19 +327,19 @@ function $9072202279b76d33$export$1e8473eaf75b0d10(query) {
         };
         parsedQuery.filter.push(f);
     }
-    let selectNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(queryNode, "SelectClause");
+    let selectNode = $255163dfff8c42fb$export$80a8b4335833eeeb(queryNode, "SelectClause");
     if (selectNode) {
         // console.log("Select node", JSON.stringify(selectNode));
         parsedQuery.select = [];
-        (0, $255163dfff8c42fb$export$dddeb721bf64f8df)(selectNode, "Name").forEach((t)=>{
+        $255163dfff8c42fb$export$dddeb721bf64f8df(selectNode, "Name").forEach((t)=>{
             parsedQuery.select.push(t.children[0].text);
         });
     // let nameNode = findNodeOfType(selectNode, "Number");
     // parsedQuery.limit = +nameNode!.children![0].text!;
     }
-    let renderNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(queryNode, "RenderClause");
+    let renderNode = $255163dfff8c42fb$export$80a8b4335833eeeb(queryNode, "RenderClause");
     if (renderNode) {
-        let renderNameNode = (0, $255163dfff8c42fb$export$80a8b4335833eeeb)(renderNode, "String");
+        let renderNameNode = $255163dfff8c42fb$export$80a8b4335833eeeb(renderNode, "String");
         parsedQuery.render = $9072202279b76d33$var$valueNodeToVal(renderNameNode);
     }
     // console.log(JSON.stringify(queryNode, null, 2));
@@ -360,7 +362,8 @@ function $9072202279b76d33$var$valueNodeToVal(valNode) {
             let stringVal = valNode.children[0].text;
             return stringVal.substring(1, stringVal.length - 1);
         case "List":
-            return (0, $255163dfff8c42fb$export$dddeb721bf64f8df)(valNode, "Value").map((t)=>$9072202279b76d33$var$valueNodeToVal(t.children[0]));
+            return $255163dfff8c42fb$export$dddeb721bf64f8df(valNode, "Value").map((t)=>$9072202279b76d33$var$valueNodeToVal(t.children[0])
+            );
     }
 }
 function $9072202279b76d33$export$5884dae03c64f759(parsedQuery, records) {
@@ -418,17 +421,19 @@ function $9072202279b76d33$export$5884dae03c64f759(parsedQuery, records) {
 }
 async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
     if (parsedQuery.render) {
-        (0, ($parcel$interopDefault($hVExJ$handlebars))).registerHelper("json", (v)=>JSON.stringify(v));
-        (0, ($parcel$interopDefault($hVExJ$handlebars))).registerHelper("niceDate", (ts)=>(0, $c3893eec0c49ec96$export$5dc1410f87262ed6)(new Date(ts)));
-        (0, ($parcel$interopDefault($hVExJ$handlebars))).registerHelper("yaml", (v, prefix)=>{
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("json", (v)=>JSON.stringify(v)
+        );
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("niceDate", (ts)=>$c3893eec0c49ec96$export$5dc1410f87262ed6(new Date(ts))
+        );
+        ($parcel$interopDefault($hVExJ$handlebars)).registerHelper("yaml", (v, prefix)=>{
             if (typeof prefix === "string") {
-                let yaml = (0, ($parcel$interopDefault($hVExJ$yaml))).stringify(v).split("\n").join("\n" + prefix).trim();
+                let yaml = ($parcel$interopDefault($hVExJ$yaml)).stringify(v).split("\n").join("\n" + prefix).trim();
                 if (Array.isArray(v)) return "\n" + prefix + yaml;
                 else return yaml;
-            } else return (0, ($parcel$interopDefault($hVExJ$yaml))).stringify(v).trim();
+            } else return ($parcel$interopDefault($hVExJ$yaml)).stringify(v).trim();
         });
-        let { text: templateText  } = await (0, $2780e5830b4782c9$export$126f79da5c357ad)(parsedQuery.render);
-        let template = (0, ($parcel$interopDefault($hVExJ$handlebars))).compile(templateText, {
+        let { text: templateText  } = await $2780e5830b4782c9$export$126f79da5c357ad(parsedQuery.render);
+        let template = ($parcel$interopDefault($hVExJ$handlebars)).compile(templateText, {
             noEscape: true
         });
         return template(data);
@@ -437,49 +442,49 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
 }
 
 
-(0, $hVExJ$jestglobals.test)("Test parser", ()=>{
-    let parsedBasicQuery = (0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page`);
-    (0, $hVExJ$jestglobals.expect)(parsedBasicQuery.table).toBe("page");
-    let parsedQuery1 = (0, $9072202279b76d33$export$1e8473eaf75b0d10)(`task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.table).toBe("task");
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.orderBy).toBe("dueDate");
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.orderDesc).toBe(true);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.limit).toBe(5);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.filter.length).toBe(2);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.filter[0]).toStrictEqual({
+$hVExJ$jestglobals.test("Test parser", ()=>{
+    let parsedBasicQuery = $9072202279b76d33$export$1e8473eaf75b0d10(`page`);
+    $hVExJ$jestglobals.expect(parsedBasicQuery.table).toBe("page");
+    let parsedQuery1 = $9072202279b76d33$export$1e8473eaf75b0d10(`task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`);
+    $hVExJ$jestglobals.expect(parsedQuery1.table).toBe("task");
+    $hVExJ$jestglobals.expect(parsedQuery1.orderBy).toBe("dueDate");
+    $hVExJ$jestglobals.expect(parsedQuery1.orderDesc).toBe(true);
+    $hVExJ$jestglobals.expect(parsedQuery1.limit).toBe(5);
+    $hVExJ$jestglobals.expect(parsedQuery1.filter.length).toBe(2);
+    $hVExJ$jestglobals.expect(parsedQuery1.filter[0]).toStrictEqual({
         op: "=",
         prop: "completed",
         value: false
     });
-    (0, $hVExJ$jestglobals.expect)(parsedQuery1.filter[1]).toStrictEqual({
+    $hVExJ$jestglobals.expect(parsedQuery1.filter[1]).toStrictEqual({
         op: "<=",
         prop: "dueDate",
         value: "{{today}}"
     });
-    let parsedQuery2 = (0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where name =~ /interview\\/.*/"`);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery2.table).toBe("page");
-    (0, $hVExJ$jestglobals.expect)(parsedQuery2.filter.length).toBe(1);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery2.filter[0]).toStrictEqual({
+    let parsedQuery2 = $9072202279b76d33$export$1e8473eaf75b0d10(`page where name =~ /interview\\/.*/"`);
+    $hVExJ$jestglobals.expect(parsedQuery2.table).toBe("page");
+    $hVExJ$jestglobals.expect(parsedQuery2.filter.length).toBe(1);
+    $hVExJ$jestglobals.expect(parsedQuery2.filter[0]).toStrictEqual({
         op: "=~",
         prop: "name",
         value: "interview\\/.*"
     });
-    let parsedQuery3 = (0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where something != null`);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery3.table).toBe("page");
-    (0, $hVExJ$jestglobals.expect)(parsedQuery3.filter.length).toBe(1);
-    (0, $hVExJ$jestglobals.expect)(parsedQuery3.filter[0]).toStrictEqual({
+    let parsedQuery3 = $9072202279b76d33$export$1e8473eaf75b0d10(`page where something != null`);
+    $hVExJ$jestglobals.expect(parsedQuery3.table).toBe("page");
+    $hVExJ$jestglobals.expect(parsedQuery3.filter.length).toBe(1);
+    $hVExJ$jestglobals.expect(parsedQuery3.filter[0]).toStrictEqual({
         op: "!=",
         prop: "something",
         value: null
     });
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page select name`).select).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$1e8473eaf75b0d10(`page select name`).select).toStrictEqual([
         "name"
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page select name, age`).select).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$1e8473eaf75b0d10(`page select name, age`).select).toStrictEqual([
         "name",
         "age", 
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`gh-events where type in ["PushEvent", "somethingElse"]`)).toStrictEqual({
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$1e8473eaf75b0d10(`gh-events where type in ["PushEvent", "somethingElse"]`)).toStrictEqual({
         table: "gh-events",
         filter: [
             {
@@ -492,13 +497,13 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
             }, 
         ]
     });
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`something render "template/table"`)).toStrictEqual({
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$1e8473eaf75b0d10(`something render "template/table"`)).toStrictEqual({
         table: "something",
         filter: [],
         render: "template/table"
     });
 });
-(0, $hVExJ$jestglobals.test)("Test performing the queries", ()=>{
+$hVExJ$jestglobals.test("Test performing the queries", ()=>{
     let data = [
         {
             name: "interview/My Interview",
@@ -517,7 +522,7 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
             age: 28
         }, 
     ];
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where name =~ /interview\\/.*/`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where name =~ /interview\\/.*/`), data)).toStrictEqual([
         {
             name: "interview/My Interview",
             lastModified: 1
@@ -527,7 +532,7 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
             lastModified: 2
         }, 
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where name =~ /interview\\/.*/ order by lastModified`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where name =~ /interview\\/.*/ order by lastModified`), data)).toStrictEqual([
         {
             name: "interview/My Interview",
             lastModified: 1
@@ -537,7 +542,7 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
             lastModified: 2
         }, 
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where name  =~ /interview\\/.*/ order by lastModified desc`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where name  =~ /interview\\/.*/ order by lastModified desc`), data)).toStrictEqual([
         {
             name: "interview/My Interview 2",
             lastModified: 2
@@ -547,19 +552,19 @@ async function $9072202279b76d33$export$b3c659c1456e61b0(parsedQuery, data) {
             lastModified: 1
         }, 
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where age > 30`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where age > 30`), data)).toStrictEqual([
         {
             name: "Pete",
             age: 38
         }, 
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where age > 28 and age < 38`), data)).toStrictEqual([]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where age > 30 select name`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where age > 28 and age < 38`), data)).toStrictEqual([]);
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where age > 30 select name`), data)).toStrictEqual([
         {
             name: "Pete"
         }
     ]);
-    (0, $hVExJ$jestglobals.expect)((0, $9072202279b76d33$export$5884dae03c64f759)((0, $9072202279b76d33$export$1e8473eaf75b0d10)(`page where name in ["Pete"] select name`), data)).toStrictEqual([
+    $hVExJ$jestglobals.expect($9072202279b76d33$export$5884dae03c64f759($9072202279b76d33$export$1e8473eaf75b0d10(`page where name in ["Pete"] select name`), data)).toStrictEqual([
         {
             name: "Pete"
         }
