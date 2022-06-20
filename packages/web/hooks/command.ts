@@ -1,7 +1,6 @@
 import { Hook, Manifest } from "@plugos/plugos/types";
 import { System } from "@plugos/plugos/system";
 import { EventEmitter } from "@plugos/plugos/event";
-import { ShortcutItem } from "../types";
 
 export type CommandDef = {
   name: string;
@@ -11,13 +10,6 @@ export type CommandDef = {
   // Bind to keyboard shortcut
   key?: string;
   mac?: string;
-
-  // Shortcuts in UI
-  shortcut?: ShortcutDef;
-};
-
-export type ShortcutDef = {
-  label: string;
 };
 
 export type AppCommand = {
@@ -30,10 +22,7 @@ export type CommandHookT = {
 };
 
 export type CommandHookEvents = {
-  commandsUpdated(
-    commandMap: Map<string, AppCommand>,
-    appButtons: ShortcutItem[]
-  ): void;
+  commandsUpdated(commandMap: Map<string, AppCommand>): void;
 };
 
 export class CommandHook
@@ -41,11 +30,9 @@ export class CommandHook
   implements Hook<CommandHookT>
 {
   editorCommands = new Map<string, AppCommand>();
-  shortcutItems: ShortcutItem[] = [];
 
   buildAllCommands(system: System<CommandHookT>) {
     this.editorCommands.clear();
-    this.shortcutItems = [];
     for (let plug of system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
         plug.manifest!.functions
@@ -60,17 +47,9 @@ export class CommandHook
             return plug.invoke(name, []);
           },
         });
-        if (cmd.shortcut) {
-          this.shortcutItems.push({
-            label: cmd.shortcut.label,
-            run: () => {
-              return plug.invoke(name, []);
-            },
-          });
-        }
       }
     }
-    this.emit("commandsUpdated", this.editorCommands, this.shortcutItems);
+    this.emit("commandsUpdated", this.editorCommands);
   }
 
   apply(system: System<CommandHookT>): void {

@@ -127,11 +127,10 @@ export class Editor {
     // Command hook
     this.commandHook = new CommandHook();
     this.commandHook.on({
-      commandsUpdated: (commandMap, shortcutItems) => {
+      commandsUpdated: (commandMap) => {
         this.viewDispatch({
           type: "update-commands",
           commands: commandMap,
-          shortcutItems: shortcutItems,
         });
       },
     });
@@ -660,7 +659,6 @@ export class Editor {
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
             allowNew={false}
-            // icon={faPersonRunning}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
           />
@@ -669,18 +667,11 @@ export class Editor {
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
-          shortcutItems={[
-            {
-              label: "Run command",
-              orderId: 0,
-              run: () => {
-                this.viewDispatch({ type: "show-palette" });
-              },
-            },
-            ...viewState.shortcutItems,
-          ]}
           onClick={() => {
             dispatch({ type: "start-navigate" });
+          }}
+          onActionClick={() => {
+            dispatch({ type: "show-palette" });
           }}
           rhs={
             !!viewState.showRHS && (

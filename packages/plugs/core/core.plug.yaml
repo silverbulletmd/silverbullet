@@ -123,8 +123,6 @@ functions:
     command:
       name: "Template: Quick Note"
       key: "Alt-Shift-n"
-      shortcut:
-        label: "Quick note"
   quickTaskCommand:
     path: ./template.ts:quickTaskCommand
     command:

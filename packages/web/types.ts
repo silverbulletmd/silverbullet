@@ -9,12 +9,6 @@ export type Notification = {
   date: Date;
 };
 
-export type ShortcutItem = {
-  label: string;
-  orderId?: number;
-  run: () => void;
-};
-
 export type AppViewState = {
   currentPage?: string;
   perm: "ro" | "rw";
@@ -34,7 +28,6 @@ export type AppViewState = {
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
-  shortcutItems: ShortcutItem[];
   recentCommands: Map<string, Date>;
 
   showFilterBox: boolean;
@@ -60,7 +53,6 @@ export const initialViewState: AppViewState = {
   commands: new Map(),
   recentCommands: new Map(),
   notifications: [],
-  shortcutItems: [],
   showFilterBox: false,
   filterBoxHelpText: "",
   filterBoxLabel: "",
@@ -79,7 +71,6 @@ export type Action =
   | {
       type: "update-commands";
       commands: Map<string, AppCommand>;
-      shortcutItems: ShortcutItem[];
     }
   | { type: "show-palette"; context?: string }
   | { type: "hide-palette" }

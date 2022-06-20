@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { ShortcutItem, Notification } from "../types";
+import { faRunning } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Notification } from "../types";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -12,33 +13,19 @@ export function TopBar({
   pageName,
   unsavedChanges,
   notifications,
-  shortcutItems,
   onClick,
+  onActionClick,
   lhs,
   rhs,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
   notifications: Notification[];
-  shortcutItems: ShortcutItem[];
   onClick: () => void;
+  onActionClick: () => void;
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
 }) {
-  const [menuExpanded, setMenuExpanded] = useState(false);
-
-  useEffect(() => {
-    function closer() {
-      setMenuExpanded(false);
-    }
-
-    document.addEventListener("click", closer);
-
-    return () => {
-      document.removeEventListener("click", closer);
-    };
-  }, []);
-
   return (
     <div id="top" onClick={onClick}>
       {lhs}
@@ -59,31 +46,13 @@ export function TopBar({
           <div className="actions">
             <button
               onClick={(e) => {
-                setMenuExpanded(!menuExpanded);
+                // setMenuExpanded(!menuExpanded);
+                onActionClick();
                 e.stopPropagation();
               }}
             >
-              ...
+              <FontAwesomeIcon icon={faRunning} />
             </button>
-            {menuExpanded && (
-              <ul>
-                {shortcutItems.map((actionButton, idx) => (
-                  <li key={idx}>
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMenuExpanded(false);
-                        actionButton.run();
-                      }}
-                    >
-                      {actionButton.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
       </div>

@@ -76,19 +76,19 @@ body {
       display: flex;
       flex-direction: row;
 
-      // .status {
-      //   position: absolute;
-      //   font-family: "iA-Mono";
-      //   bottom: 45px;
-      //   left: 5px;
-      //   right: 5px;
-      //   background-color: rgb(187, 221, 247);
-      //   border: rgb(41, 41, 41) 1px solid;
-      //   border-radius: 5px;
-      //   padding: 3px;
-      //   font-size: 15px;
-      //   z-index: 100;
-      // }
+      .status {
+        position: absolute;
+        font-family: "iA-Mono";
+        bottom: 45px;
+        left: 5px;
+        right: 5px;
+        background-color: rgb(187, 221, 247);
+        border: rgb(41, 41, 41) 1px solid;
+        border-radius: 5px;
+        padding: 3px;
+        font-size: 15px;
+        z-index: 100;
+      }
 
       .current-page {
         font-family: var(--ui-font);
@@ -97,14 +97,10 @@ body {
 
         overflow: hidden;
         white-space: nowrap;
-        // margin-right: 40px;
+        text-align: left;
         display: block;
+        text-overflow: ellipsis;
       }
-
-      // .icon {
-      //   padding-left: 5px;
-      //   padding-right: 10px;
-      // }
 
       .saved {
         color: #111;
@@ -115,10 +111,8 @@ body {
       }
     }
     .actions {
-      // float: right;
       text-align: right;
       width: 40px;
-      // margin-top: -35px;
 
       ul {
         list-style: none;
