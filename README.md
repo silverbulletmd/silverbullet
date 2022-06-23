@@ -15,10 +15,6 @@ npm run build
 npm install
 # Build plugs (ctrl-c after done, it's watching)
 npm run plugs
-# Symlink in the default set of plugs into your space
-cd pages
-ln -s ../packages/plugs/dist _plug
-cd ..
 # Launch server
 npm run server
 ```

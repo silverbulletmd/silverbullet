@@ -139,6 +139,14 @@ functions:
       name: "Text: Quote Selection"
       key: "Ctrl->"
       mac: "Cmd-Shift-."
+  listifySelection:
+    path: ./text.ts:listifySelection
+    command:
+      name: "Text: Listify Selection"
+  numberListifySelection:
+    path: ./text.ts:numberListifySelection
+    command:
+      name: "Text: Number Listify Selection"
   bold:
     path: ./text.ts:boldCommand
     command:

@@ -26,6 +26,36 @@ export async function quoteSelection() {
   await replaceRange(from, selection.to, text);
 }
 
+export async function listifySelection() {
+  let text = await getText();
+  const selection = await getSelection();
+  let from = selection.from;
+  while (from >= 0 && text[from] !== "\n") {
+    from--;
+  }
+  from++;
+  text = text.slice(from, selection.to);
+  text = `* ${text.replaceAll(/\n(?!\n)/g, "\n* ")}`;
+  await replaceRange(from, selection.to, text);
+}
+
+export async function numberListifySelection() {
+  let text = await getText();
+  const selection = await getSelection();
+  let from = selection.from;
+  while (from >= 0 && text[from] !== "\n") {
+    from--;
+  }
+  from++;
+  text = text.slice(from, selection.to);
+  let counter = 1;
+  text = `1. ${text.replaceAll(/\n(?!\n)/g, () => {
+    counter++;
+    return `\n${counter}. `;
+  })}`;
+  await replaceRange(from, selection.to, text);
+}
+
 export function boldCommand() {
   return insertMarker("**");
 }
