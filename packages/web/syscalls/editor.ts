@@ -1,5 +1,5 @@
 import { Editor } from "../editor";
-import { Transaction } from "@codemirror/state";
+import { SelectionRange, Transaction } from "@codemirror/state";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { FilterOption } from "@silverbulletmd/common/types";
 
@@ -36,6 +36,9 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     },
     "editor.getCursor": (): number => {
       return editor.editorView!.state.selection.main.from;
+    },
+    "editor.getSelection": (): { from: number; to: number } => {
+      return editor.editorView!.state.selection.main;
     },
     "editor.save": async () => {
       return editor.save(true);
@@ -127,6 +130,16 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
+    "editor.setSelection": (ctx, from: number, to: number) => {
+      let editorView = editor.editorView!;
+      editorView.dispatch({
+        selection: {
+          anchor: from,
+          head: to,
+        },
+      });
+    },
+
     "editor.insertAtCursor": (ctx, text: string) => {
       let editorView = editor.editorView!;
       let from = editorView.state.selection.main.from;

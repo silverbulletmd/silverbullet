@@ -10,7 +10,6 @@
     "silverbullet": "./dist/server/server.js"
   },
   "scripts": {
-    "start": "nodemon  -w dist --exec 'silverbullet ../../pages'",
     "test": "jest dist/test"
   },
   "targets": {

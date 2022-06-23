@@ -1,0 +1,91 @@
+import {
+  getSelection,
+  getText,
+  insertAtCursor,
+  moveCursor,
+  replaceRange,
+  setSelection,
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+
+export async function quoteSelection() {
+  let text = await getText();
+  const selection = await getSelection();
+  let from = selection.from;
+  while (from >= 0 && text[from] !== "\n") {
+    from--;
+  }
+  from++;
+  if (text[from] === ">" && text[from + 1] === " ") {
+    // Already quoted, we have to unquote
+    text = text.slice(from + 2, selection.to);
+    text = text.replaceAll("\n> ", "\n");
+  } else {
+    text = text.slice(from, selection.to);
+    text = `> ${text.replaceAll("\n", "\n> ")}`;
+  }
+  await replaceRange(from, selection.to, text);
+}
+
+export function boldCommand() {
+  return insertMarker("**");
+}
+
+export function italicCommand() {
+  return insertMarker("_");
+}
+
+async function insertMarker(marker: string) {
+  let text = await getText();
+  const selection = await getSelection();
+  if (selection.from === selection.to) {
+    // empty selection
+    if (markerAt(selection.from)) {
+      // Already there, skipping ahead
+      await moveCursor(selection.from + marker.length);
+    } else {
+      // Not there, inserting
+      await insertAtCursor(marker + marker);
+      await moveCursor(selection.from + marker.length);
+    }
+  } else {
+    let from = selection.from;
+    let to = selection.to;
+    let hasMarker = markerAt(from);
+    if (!markerAt(from)) {
+      // Maybe just before the cursor? We'll accept that
+      from = selection.from - marker.length;
+      to = selection.to + marker.length;
+      hasMarker = markerAt(from);
+    }
+
+    if (!hasMarker) {
+      // Adding
+      await replaceRange(
+        selection.from,
+        selection.to,
+        marker + text.slice(selection.from, selection.to) + marker
+      );
+      await setSelection(
+        selection.from + marker.length,
+        selection.to + marker.length
+      );
+    } else {
+      // Removing
+      await replaceRange(
+        from,
+        to,
+        text.substring(from + marker.length, to - marker.length)
+      );
+      await setSelection(from, to - marker.length * 2);
+    }
+  }
+
+  function markerAt(pos: number) {
+    for (var i = 0; i < marker.length; i++) {
+      if (text[pos + i] !== marker[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+}

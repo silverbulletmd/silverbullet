@@ -17,6 +17,14 @@ export function getCursor(): Promise<number> {
   return syscall("editor.getCursor");
 }
 
+export function getSelection(): Promise<{ from: number; to: number }> {
+  return syscall("editor.getSelection");
+}
+
+export function setSelection(from: number, to: number): Promise<void> {
+  return syscall("editor.setSelection", from, to);
+}
+
 export function save(): Promise<void> {
   return syscall("editor.save");
 }

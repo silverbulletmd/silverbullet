@@ -134,7 +134,6 @@ export class ExpressServer {
     this.eventHook.addLocalListener(
       "get-plug:builtin",
       async (plugName: string): Promise<Manifest> => {
-        // console.log("Ok, resovling a plugin", plugName);
         if (!safeFilename.test(plugName)) {
           throw new Error(`Invalid plug name: ${plugName}`);
         }
@@ -146,6 +145,26 @@ export class ExpressServer {
           return JSON.parse(manifestJson);
         } catch (e) {
           throw new Error(`No such builtin: ${plugName}`);
+        }
+      }
+    );
+
+    this.eventHook.addLocalListener(
+      "get-plug:file",
+      async (plugPath: string): Promise<Manifest> => {
+        let resolvedPath = path.resolve(plugPath);
+        if (!resolvedPath.startsWith(process.cwd())) {
+          throw new Error(
+            `Plugin path outside working directory, this is disallowed: ${resolvedPath}`
+          );
+        }
+        try {
+          let manifestJson = await readFile(resolvedPath, "utf8");
+          return JSON.parse(manifestJson);
+        } catch (e) {
+          throw new Error(
+            `No such file: ${resolvedPath} or could not parse as JSON`
+          );
         }
       }
     );

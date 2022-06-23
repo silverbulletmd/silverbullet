@@ -132,3 +132,22 @@ functions:
     path: ./template.ts:instantiateTemplateCommand
     command:
       name: "Template: Instantiate for Page"
+
+  quoteSelection:
+    path: ./text.ts:quoteSelection
+    command:
+      name: "Text: Quote Selection"
+      key: "Ctrl->"
+      mac: "Cmd-Shift-."
+  bold:
+    path: ./text.ts:boldCommand
+    command:
+      name: "Text: Bold"
+      key: "Ctrl-b"
+      mac: "Cmd-b"
+  italic:
+    path: ./text.ts:italicCommand
+    command:
+      name: "Text: Italic"
+      key: "Ctrl-i"
+      mac: "Cmd-i"

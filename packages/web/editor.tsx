@@ -374,16 +374,6 @@ export class Editor {
           indentWithTab,
           ...commandKeyBindings,
           {
-            key: "Ctrl-b",
-            mac: "Cmd-b",
-            run: commands.insertMarker("**"),
-          },
-          {
-            key: "Ctrl-i",
-            mac: "Cmd-i",
-            run: commands.insertMarker("_"),
-          },
-          {
             key: "Ctrl-k",
             mac: "Cmd-k",
             run: (): boolean => {
@@ -612,7 +602,7 @@ export class Editor {
     this.viewState = viewState;
     this.viewDispatch = dispatch;
 
-    let editor = this;
+    const editor = this;
 
     useEffect(() => {
       if (viewState.currentPage) {
@@ -641,7 +631,7 @@ export class Editor {
           <CommandPalette
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
-              editor!.focus();
+              editor.focus();
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
                 cmd.run().catch((e) => {

@@ -8,7 +8,7 @@
     "clean": "rm -rf .parcel-cache packages/*/dist",
     "build": "parcel build packages/{web,server,plugos}",
     "plugs": "cd packages/plugs && npm run watch",
-    "server": "cd packages/server && npm start",
+    "server": "nodemon -w packages/server/dist --exec 'silverbullet pages'",
     "test": "jest packages/*/dist/test",
     "publish-all": "npm publish --access public --ws"
   },

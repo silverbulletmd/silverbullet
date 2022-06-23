@@ -214,6 +214,12 @@ function $11a7e2bff790f35a$export$c72d34660a162238() {
 function $11a7e2bff790f35a$export$da3f040fb23d21f() {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getCursor");
 }
+function $11a7e2bff790f35a$export$ca798a7e6e94638c() {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.getSelection");
+}
+function $11a7e2bff790f35a$export$f6e36f80a8190133(from, to) {
+    return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.setSelection", from, to);
+}
 function $11a7e2bff790f35a$export$a1544dad697b423d() {
     return $4ba3510c824e3aea$export$c5be9092dbf465c("editor.save");
 }
