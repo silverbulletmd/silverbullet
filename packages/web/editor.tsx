@@ -8,7 +8,7 @@ import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/commands";
 import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
-import { Compartment, EditorSelection, EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -24,7 +24,6 @@ import React, { useEffect, useReducer } from "react";
 import ReactDOM from "react-dom";
 import { createSandbox as createIFrameSandbox } from "@plugos/plugos/environments/webworker_sandbox";
 import { AppEvent, ClickEvent } from "./app_event";
-import * as commands from "./commands";
 import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
@@ -439,9 +438,6 @@ export class Editor {
           }
         ),
         pasteLinkExtension,
-        bracketMatching({
-          brackets: "()[]{}",
-        }),
         closeBrackets(),
       ],
     });
