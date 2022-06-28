@@ -3,7 +3,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "watch": "rm -rf .parcel-cache && parcel watch --no-hmr packages/{web,server,plugos,plugs} desktop",
+    "watch": "rm -rf .parcel-cache && parcel watch --no-hmr packages/{web,server,plugos,plugs}",
     "clean": "rm -rf .parcel-cache packages/*/dist",
     "nuke": "rm -rf node_modules && npm run clean",
     "build": "parcel build packages/{web,server,plugos}",

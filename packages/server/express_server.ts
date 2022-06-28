@@ -236,7 +236,7 @@ export class ExpressServer {
       allPlugs = this.space.listPlugs();
     }
     await this.system.unloadAll();
-    console.log("Reloading plugs");
+    console.log("Loading plugs");
     for (let pageInfo of allPlugs) {
       let { text } = await this.space.readPage(pageInfo.name);
       await this.system.load(JSON.parse(text), createSandbox);
@@ -261,7 +261,6 @@ export class ExpressServer {
     await ensureTable(this.db);
     await ensureFTSTable(this.db, "fts");
     await this.ensureIndexPage();
-    console.log("Setting up router");
 
     let auth = new Authenticator(this.db);
 
@@ -430,7 +429,10 @@ export class ExpressServer {
 
     this.server = http.createServer(this.app);
     this.server.listen(this.port, () => {
-      console.log(`Server listening on port ${this.port}`);
+      console.log(
+        `Silver Bullet is now running: http://localhost:${this.port}`
+      );
+      console.log("--------------");
     });
   }
 

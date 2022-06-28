@@ -29,11 +29,11 @@ const port = args.port;
 const webappDistDir = realpathSync(
   `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`
 );
-console.log("Webapp dist dir", webappDistDir);
+// console.log("Webapp dist dir", webappDistDir);
 const plugDistDir = realpathSync(
   `${nodeModulesDir}/node_modules/@silverbulletmd/plugs/dist`
 );
-console.log("Builtin plug dist dir", plugDistDir);
+// console.log("Builtin plug dist dir", plugDistDir);
 
 const expressServer = new ExpressServer({
   port: port,
