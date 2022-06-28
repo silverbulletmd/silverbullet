@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "MIT",
   "scripts": {
     "generate": "lezer-generator query/query.grammar -o query/parse-query.js",
@@ -36,9 +36,9 @@
     "@lezer/lr": "1.0.0",
     "@mattermost/client": "^7.0.0",
     "@mattermost/types": "^7.0.0",
-    "@silverbulletmd/common": "^0.0.7",
-    "@silverbulletmd/plugs": "^0.0.7",
-    "@silverbulletmd/web": "^0.0.7",
+    "@silverbulletmd/common": "^0.0.8",
+    "@silverbulletmd/plugs": "^0.0.8",
+    "@silverbulletmd/web": "^0.0.8",
     "@types/yaml": "^1.9.7",
     "handlebars": "^4.7.7",
     "markdown-it": "^12.3.2",

@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "MIT",
   "bin": {
     "plugos-bundle": "./dist/plugos/plugos-bundle.js",
@@ -40,9 +40,9 @@
   },
   "dependencies": {
     "@jest/globals": "^27.5.1",
-    "@silverbulletmd/common": "^0.0.7",
-    "@silverbulletmd/plugs": "^0.0.7",
-    "@silverbulletmd/web": "^0.0.7",
+    "@silverbulletmd/common": "^0.0.8",
+    "@silverbulletmd/plugs": "^0.0.8",
+    "@silverbulletmd/web": "^0.0.8",
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/jsonwebtoken": "^8.5.8",

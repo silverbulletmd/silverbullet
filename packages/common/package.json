@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "MIT",
   "dependencies": {
     "@codemirror/autocomplete": "6.0.1",
@@ -19,9 +19,9 @@
     "@lezer/common": "1.0.0",
     "@lezer/highlight": "1.0.0",
     "@lezer/markdown": "1.0.0",
-    "@silverbulletmd/common": "^0.0.7",
-    "@silverbulletmd/plugs": "^0.0.7",
-    "@silverbulletmd/web": "^0.0.7",
+    "@silverbulletmd/common": "^0.0.8",
+    "@silverbulletmd/plugs": "^0.0.8",
+    "@silverbulletmd/web": "^0.0.8",
     "server": "^1.0.37"
   }
 }
