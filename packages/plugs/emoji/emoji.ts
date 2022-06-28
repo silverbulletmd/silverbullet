@@ -2,8 +2,6 @@
 import emojis from "./emoji.json";
 import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 
-const emojiMatcher = /\(([^\)]+)\)\s+(.+)$/;
-
 export async function emojiCompleter() {
   let prefix = await matchBefore(":[\\w]+");
   if (!prefix) {

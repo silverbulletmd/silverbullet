@@ -7,7 +7,6 @@ export async function togglePreview() {
   await clientStore.set("enableMarkdownPreview", !currentValue);
   if (!currentValue) {
     await invokeFunction("client", "preview");
-    // updateMarkdownPreview();
   } else {
     await hideMarkdownPreview();
   }

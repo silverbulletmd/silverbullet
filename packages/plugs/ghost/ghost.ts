@@ -1,7 +1,4 @@
-import {
-  readPage,
-  writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 import {
   getCurrentPage,
@@ -195,21 +192,6 @@ async function getConfig(): Promise<GhostConfig> {
   return pageMeta as GhostConfig;
 }
 
-export async function downloadAllPostsCommand() {
-  await invokeFunction("server", "downloadAllPosts");
-}
-
-export async function downloadAllPosts() {
-  let config = await getConfig();
-  let admin = new GhostAdmin(config.url, config.adminKey);
-  await admin.init();
-  let allPosts = await admin.listMarkdownPosts();
-  for (let post of allPosts) {
-    let text = mobileDocToMarkdown(post.mobiledoc);
-    text = `# ${post.title}\n${text}`;
-    await writePage(`${config.postPrefix}/${post.slug}`, text);
-  }
-}
 export async function publishCommand() {
   await invokeFunction(
     "server",

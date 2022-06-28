@@ -11,14 +11,14 @@ let args = yargs(hideBin(process.argv))
     type: "number",
     default: 3000,
   })
-  .option("token", {
+  .option("password", {
     type: "string",
   })
   .parse();
 
 if (!args._.length) {
   console.error(
-    "Usage: silverbullet [--port 3000] [--token mysecrettoken] <path-to-pages>"
+    "Usage: silverbullet [--port 3000] [--password mysecretpassword] <path-to-pages>"
   );
   process.exit(1);
 }
@@ -40,7 +40,7 @@ const expressServer = new ExpressServer({
   pagesPath: pagesPath,
   distDir: webappDistDir,
   builtinPlugDir: plugDistDir,
-  token: args.token,
+  password: args.password,
 });
 expressServer.start().catch((e) => {
   console.error(e);

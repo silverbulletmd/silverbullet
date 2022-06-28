@@ -1,7 +1,6 @@
 {
   "name": "silverbulletmd",
   "private": true,
-  "version": "0.0.1",
   "license": "MIT",
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch --no-hmr packages/{web,server,plugos,plugs} desktop",
@@ -9,8 +8,10 @@
     "nuke": "rm -rf node_modules && npm run clean",
     "build": "parcel build packages/{web,server,plugos}",
     "plugs": "cd packages/plugs && npm run watch",
-    "server": "nodemon -w packages/server/dist --exec 'silverbullet pages'",
+    "build-plugs": "cd packages/plugs && npm run build",
+    "server": "nodemon -w packages/server/dist --exec silverbullet",
     "test": "jest packages/*/dist/test",
+    "clean-build": "npm run clean && npm run build && npm i && npm run build-plugs",
     "publish-all": "npm publish --access public --ws"
   },
   "devDependencies": {

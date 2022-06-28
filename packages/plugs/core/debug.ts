@@ -1,5 +1,4 @@
 import { getLogs } from "@plugos/plugos-syscall/sandbox";
-import { LogEntry } from "@plugos/plugos/sandbox";
 import {
   getText,
   hideBhs,

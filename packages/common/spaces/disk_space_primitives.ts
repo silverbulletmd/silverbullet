@@ -107,7 +107,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         perm: "rw",
       };
     } catch (e) {
-      console.error("Error while getting page meta", pageName, e);
+      // console.error("Error while getting page meta", pageName, e);
       throw Error(`Could not get meta for ${pageName}`);
     }
   }

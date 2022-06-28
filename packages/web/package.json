@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.2",
+  "version": "0.0.7",
   "license": "MIT",
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
@@ -41,12 +41,16 @@
     "@jest/globals": "^27.5.1",
     "@lezer/highlight": "1.0.0",
     "@lezer/markdown": "1.0.0",
+    "@silverbulletmd/common": "^0.0.7",
+    "@silverbulletmd/plugs": "^0.0.7",
+    "@silverbulletmd/web": "^0.0.7",
     "fake-indexeddb": "^3.1.7",
     "fuzzysort": "^1.9.0",
     "jest": "^27.5.1",
     "knex": "^1.0.4",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "server": "^1.0.37"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "2.5.0",

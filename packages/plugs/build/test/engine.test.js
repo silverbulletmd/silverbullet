@@ -279,7 +279,6 @@ function $11a7e2bff790f35a$export$195ba6d62321b933(message, defaultValue = "") {
 }
 
 
-const $c3893eec0c49ec96$var$dateMatchRegex = /(\d{4}\-\d{2}\-\d{2})/g;
 function $c3893eec0c49ec96$export$5dc1410f87262ed6(d) {
     return d.toISOString().split("T")[0];
 }

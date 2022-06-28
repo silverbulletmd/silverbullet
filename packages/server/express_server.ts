@@ -57,7 +57,7 @@ export type ServerOptions = {
   pagesPath: string;
   distDir: string;
   builtinPlugDir: string;
-  token?: string;
+  password?: string;
 };
 export class ExpressServer {
   app: Express;
@@ -69,21 +69,27 @@ export class ExpressServer {
   private port: number;
   private server?: Server;
   builtinPlugDir: string;
-  token?: string;
+  password?: string;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = express();
     this.builtinPlugDir = options.builtinPlugDir;
     this.distDir = options.distDir;
-    this.system = new System<SilverBulletHooks>("server");
-    this.token = options.token;
+    this.password = options.password;
 
-    // Setup system
+    // Set up the PlugOS System
+    this.system = new System<SilverBulletHooks>("server");
+
+    // Instantiate the event bus hook
     this.eventHook = new EventHook();
     this.system.addHook(this.eventHook);
+
+    // And the page namespace hook
     let namespaceHook = new PageNamespaceHook();
     this.system.addHook(namespaceHook);
+
+    // The space
     this.space = new Space(
       new EventedSpacePrimitives(
         new PlugSpacePrimitives(
@@ -94,6 +100,8 @@ export class ExpressServer {
       ),
       true
     );
+
+    // The database used for persistence (SQLite)
     this.db = knex({
       client: "better-sqlite3",
       connection: {
@@ -102,9 +110,11 @@ export class ExpressServer {
       useNullAsDefault: true,
     });
 
-    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
+    // The cron hook
     this.system.addHook(new NodeCronHook());
 
+    // Register syscalls available on the server sid
+    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
     this.system.registerSyscalls(
       [],
       pageIndexSyscalls(this.db),
@@ -117,10 +127,13 @@ export class ExpressServer {
       sandboxSyscalls(this.system),
       jwtSyscalls()
     );
+
+    // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
     this.system.addHook(new EndpointHook(this.app, "/_"));
 
     this.system.on({
       plugLoaded: (plug) => {
+        // Automatically inject some modules into each plug
         safeRun(async () => {
           for (let [modName, code] of Object.entries(
             globalModules.dependencies
@@ -131,6 +144,8 @@ export class ExpressServer {
       },
     });
 
+    // Hook into some "get-plug:" to allow loading plugs from disk (security of this TBD)
+    // First, for builtins (loaded from the packages/plugs/ folder)
     this.eventHook.addLocalListener(
       "get-plug:builtin",
       async (plugName: string): Promise<Manifest> => {
@@ -149,6 +164,7 @@ export class ExpressServer {
       }
     );
 
+    // Second, for loading plug JSON files with absolute or relative (from CWD) paths
     this.eventHook.addLocalListener(
       "get-plug:file",
       async (plugPath: string): Promise<Manifest> => {
@@ -169,9 +185,12 @@ export class ExpressServer {
       }
     );
 
+    // Rescan disk every 5s to detect any out-of-process file changes
     setInterval(() => {
       this.space.updatePageList().catch(console.error);
     }, 5000);
+
+    // Load plugs
     this.reloadPlugs().catch(console.error);
   }
 
@@ -182,6 +201,7 @@ export class ExpressServer {
     );
   }
 
+  // In case of a new space with no `PLUGS` file, generate a default one based on all built-in plugs
   private async bootstrapBuiltinPlugs() {
     let allPlugFiles = await readdir(this.builtinPlugDir);
     let pluginNames = [];
@@ -225,9 +245,10 @@ export class ExpressServer {
   }
 
   async start() {
-    const tokenMiddleware: (req: any, res: any, next: any) => void = this.token
+    const passwordMiddleware: (req: any, res: any, next: any) => void = this
+      .password
       ? (req, res, next) => {
-          if (req.headers.authorization === `Bearer ${this.token}`) {
+          if (req.headers.authorization === `Bearer ${this.password}`) {
             next();
           } else {
             res.status(401).send("Unauthorized");
@@ -239,6 +260,7 @@ export class ExpressServer {
 
     await ensureTable(this.db);
     await ensureFTSTable(this.db, "fts");
+    await this.ensureIndexPage();
     console.log("Setting up router");
 
     let auth = new Authenticator(this.db);
@@ -328,7 +350,7 @@ export class ExpressServer {
 
     this.app.use(
       "/fs",
-      tokenMiddleware,
+      passwordMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -393,7 +415,7 @@ export class ExpressServer {
 
     this.app.use(
       "/plug",
-      tokenMiddleware,
+      passwordMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -410,6 +432,14 @@ export class ExpressServer {
     this.server.listen(this.port, () => {
       console.log(`Server listening on port ${this.port}`);
     });
+  }
+
+  async ensureIndexPage() {
+    try {
+      await this.space.getPageMeta("index");
+    } catch (e) {
+      await this.space.writePage("index", `Welcome to your new space!`);
+    }
   }
 
   async stop() {

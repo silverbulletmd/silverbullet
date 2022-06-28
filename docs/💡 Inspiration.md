@@ -1,0 +1,3 @@
+Inspiration for Silver Bullet comes primarily from [Obsidian](https://obsidian.md/) and its various plugs (the work-in-progress plugs around querying and tasks are inspired by Obsidian’s tasks and dataview plugins), but also [Roam Research](https://roamresearch.com/) was an inspiration.
+
+Why start something new? Neither of these tools are open source, and they make some different choices, specifically on how extensibility is implemented — more on the differences some time in the future.

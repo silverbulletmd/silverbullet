@@ -221,7 +221,7 @@ export class Editor {
     });
 
     if (this.pageNavigator.getCurrentPage() === "") {
-      await this.pageNavigator.navigate("start");
+      await this.pageNavigator.navigate("index");
     }
     await this.reloadPlugs();
   }

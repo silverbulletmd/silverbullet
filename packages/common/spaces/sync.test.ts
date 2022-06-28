@@ -18,17 +18,17 @@ test("Test store", async () => {
   async function conflictResolver(pageMeta1: PageMeta, pageMeta2: PageMeta) {}
 
   // Write one page to primary
-  await primary.writePage("start", "Hello");
+  await primary.writePage("index", "Hello");
   expect((await secondary.listPages()).size).toBe(0);
   await syncPages(conflictResolver);
   expect((await secondary.listPages()).size).toBe(1);
-  expect((await secondary.readPage("start")).text).toBe("Hello");
+  expect((await secondary.readPage("index")).text).toBe("Hello");
 
   // Should be a no-op
   expect(await syncPages()).toBe(0);
 
   // Now let's make a change on the secondary
-  await secondary.writePage("start", "Hello!!");
+  await secondary.writePage("index", "Hello!!");
   await secondary.writePage("test", "Test page");
 
   // And sync it
@@ -37,13 +37,13 @@ test("Test store", async () => {
   expect(primary.listPages().size).toBe(2);
   expect(secondary.listPages().size).toBe(2);
 
-  expect((await primary.readPage("start")).text).toBe("Hello!!");
+  expect((await primary.readPage("index")).text).toBe("Hello!!");
 
   // Let's make some random edits on both ends
-  await primary.writePage("start", "1");
-  await primary.writePage("start2", "2");
-  await secondary.writePage("start3", "3");
-  await secondary.writePage("start4", "4");
+  await primary.writePage("index", "1");
+  await primary.writePage("index2", "2");
+  await secondary.writePage("index3", "3");
+  await secondary.writePage("index4", "4");
   await syncPages();
 
   expect((await primary.listPages()).size).toBe(5);
@@ -53,8 +53,8 @@ test("Test store", async () => {
 
   console.log("Deleting pages");
   // Delete some pages
-  await primary.deletePage("start");
-  await primary.deletePage("start3");
+  await primary.deletePage("index");
+  await primary.deletePage("index3");
 
   console.log("Pages", await primary.listPages());
   console.log("Trash", await primary.listTrash());
@@ -67,8 +67,8 @@ test("Test store", async () => {
   // No-op
   expect(await syncPages()).toBe(0);
 
-  await secondary.deletePage("start4");
-  await primary.deletePage("start2");
+  await secondary.deletePage("index4");
+  await primary.deletePage("index2");
 
   await syncPages();
 
@@ -79,15 +79,15 @@ test("Test store", async () => {
   // No-op
   expect(await syncPages()).toBe(0);
 
-  await secondary.writePage("start", "I'm back");
+  await secondary.writePage("index", "I'm back");
 
   await syncPages();
 
-  expect((await primary.readPage("start")).text).toBe("I'm back");
+  expect((await primary.readPage("index")).text).toBe("I'm back");
 
   // Cause a conflict
-  await primary.writePage("start", "Hello 1");
-  await secondary.writePage("start", "Hello 2");
+  await primary.writePage("index", "Hello 1");
+  await secondary.writePage("index", "Hello 2");
 
   await syncPages(SpaceSync.primaryConflictResolver(primary, secondary));
 
@@ -95,10 +95,10 @@ test("Test store", async () => {
   await syncPages();
 
   // Verify that primary won
-  expect((await primary.readPage("start")).text).toBe("Hello 1");
-  expect((await secondary.readPage("start")).text).toBe("Hello 1");
+  expect((await primary.readPage("index")).text).toBe("Hello 1");
+  expect((await secondary.readPage("index")).text).toBe("Hello 1");
 
-  // test + start + start.conflicting copy
+  // test + index + index.conflicting copy
   expect((await primary.listPages()).size).toBe(3);
   expect((await secondary.listPages()).size).toBe(3);
 

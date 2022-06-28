@@ -1,7 +1,4 @@
 name: query
-# dependencies:
-#   yaml: "yaml@2"
-#   "@lezer/lr": "@lezer/lr@0.15.4"
 functions:
   updateMaterializedQueriesOnPage:
     path: ./materialized_queries.ts:updateMaterializedQueriesOnPage

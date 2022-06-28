@@ -21,9 +21,9 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
       return await editor.space.writePage(name, text);
     },
     "space.deletePage": async (ctx, name: string) => {
-      // If we're deleting the current page, navigate to the start page
+      // If we're deleting the current page, navigate to the index page
       if (editor.currentPage === name) {
-        await editor.navigate("start");
+        await editor.navigate("index");
       }
       // Remove page from open pages in editor
       editor.openPages.delete(name);

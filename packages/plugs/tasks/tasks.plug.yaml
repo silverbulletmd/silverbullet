@@ -41,7 +41,7 @@ functions:
   taskPostponeCommand:
     path: ./task.ts:postponeCommand
     command:
-      name: "Task: Postpone by 1 day"
+      name: "Task: Postpone"
       key: Alt-+
       contexts:
         - DeadlineDate

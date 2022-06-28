@@ -1,4 +1,8 @@
-import { fullTextIndex, fullTextSearch } from "@plugos/plugos-syscall/fulltext";
+import {
+  fullTextDelete,
+  fullTextIndex,
+  fullTextSearch,
+} from "@plugos/plugos-syscall/fulltext";
 import { renderToText } from "@silverbulletmd/common/tree";
 import { PageMeta } from "@silverbulletmd/common/types";
 import { queryPrefix } from "@silverbulletmd/plugos-silverbullet-syscall";
@@ -14,6 +18,10 @@ export async function index(data: IndexTreeEvent) {
   removeQueries(data.tree);
   let cleanText = renderToText(data.tree);
   await fullTextIndex(data.name, cleanText);
+}
+
+export async function unindex(pageName: string) {
+  await fullTextDelete(pageName);
 }
 
 export async function queryProvider({

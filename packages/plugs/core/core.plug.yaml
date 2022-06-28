@@ -35,6 +35,13 @@ functions:
     path: "./page.ts:parseIndexTextRepublish"
     events:
       - page:index_text
+  reindexSpaceCommand:
+    path: "./page.ts:reindexCommand"
+    command:
+      name: "Space: Reindex"
+  reindexSpace:
+    path: "./page.ts:reindexSpace"
+    env: server
   indexLinks:
     path: "./page.ts:indexLinks"
     events:
@@ -43,25 +50,10 @@ functions:
     path: ./page.ts:linkQueryProvider
     events:
       - query:link
-  # indexItems:
-  #   path: "./item.ts:indexItems"
-  #   events:
-  #     - page:index
-  # itemQueryProvider:
-  #   path: ./item.ts:queryProvider
-  #   events:
-  #     - query:item
   deletePage:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
-  reindexSpaceCommand:
-    path: "./page.ts:reindexCommand"
-    command:
-      name: "Space: Reindex"
-  reindexSpace:
-    path: "./page.ts:reindexSpace"
-    env: server
   renamePage:
     path: "./page.ts:renamePage"
     command:
@@ -82,38 +74,39 @@ functions:
     path: "./navigate.ts:clickNavigate"
     events:
       - page:click
-  insertToday:
-    path: "./dates.ts:insertToday"
-    slashCommand:
-      name: today
-  insertTomorrow:
-    path: "./dates.ts:insertTomorrow"
-    slashCommand:
-      name: tomorrow
-  parseServerCommand:
-    path: ./debug.ts:parseServerPageCommand
-    command:
-      name: "Debug: Parse Document on Server"
-  parsePage:
-    path: ./debug.ts:parsePage
-  parseCommand:
-    path: ./debug.ts:parsePageCommand
-    command:
-      name: "Debug: Parse Document"
-  showLogsCommand:
-    path: ./debug.ts:showLogsCommand
-    command:
-      name: "Debug: Show Logs"
-      key: "Ctrl-Alt-l"
-      mac: "Cmd-Alt-l"
+
+  # Full text search
+  searchIndex:
+    path: ./search.ts:index
     events:
-      - log:reload
-  hideBhsCommand:
-    path: ./debug.ts:hideBhsCommand
+      - page:index
+  searchUnindex:
+    path: "./search.ts:unindex"
+    env: server
+    events:
+      - page:deleted
+  searchQueryProvider:
+    path: ./search.ts:queryProvider
+    events:
+      - query:full-text
+  searchCommand:
+    path: ./search.ts:searchCommand
     command:
-      name: "UI: Hide BHS"
-      key: "Ctrl-Alt-b"
-      mac: "Cmd-Alt-b"
+      name: "Search Space"
+      key: Ctrl-Shift-f
+      mac: Cmd-Shift-f
+  readPageSearch:
+    path: ./search.ts:readPageSearch
+    pageNamespace:
+      pattern: "@search/.+"
+      operation: readPage
+  getPageMetaSearch:
+    path: ./search.ts:getPageMetaSearch
+    pageNamespace:
+      pattern: "@search/.+"
+      operation: getPageMeta
+
+  # Template commands
   insertPageMeta:
     path: "./page.ts:insertPageMeta"
     slashCommand:
@@ -132,7 +125,16 @@ functions:
     path: ./template.ts:instantiateTemplateCommand
     command:
       name: "Template: Instantiate for Page"
+  insertToday:
+    path: "./dates.ts:insertToday"
+    slashCommand:
+      name: today
+  insertTomorrow:
+    path: "./dates.ts:insertTomorrow"
+    slashCommand:
+      name: tomorrow
 
+  # Text editing commands
   quoteSelection:
     path: ./text.ts:quoteSelection
     command:
@@ -159,3 +161,40 @@ functions:
       name: "Text: Italic"
       key: "Ctrl-i"
       mac: "Cmd-i"
+
+  # Plug manager
+  updatePlugsCommand:
+    path: ./plugmanager.ts:updatePlugsCommand
+    command:
+      name: "Plugs: Update"
+      key: "Ctrl-Shift-p"
+      mac: "Cmd-Shift-p"
+  updatePlugs:
+    path: ./plugmanager.ts:updatePlugs
+    env: server
+
+  # Debug commands
+  parseServerCommand:
+    path: ./debug.ts:parseServerPageCommand
+    command:
+      name: "Debug: Parse Document on Server"
+  parsePage:
+    path: ./debug.ts:parsePage
+  parseCommand:
+    path: ./debug.ts:parsePageCommand
+    command:
+      name: "Debug: Parse Document"
+  showLogsCommand:
+    path: ./debug.ts:showLogsCommand
+    command:
+      name: "Debug: Show Logs"
+      key: "Ctrl-Alt-l"
+      mac: "Cmd-Alt-l"
+    events:
+      - log:reload
+  hideBhsCommand:
+    path: ./debug.ts:hideBhsCommand
+    command:
+      name: "UI: Hide BHS"
+      key: "Ctrl-Alt-b"
+      mac: "Cmd-Alt-b"

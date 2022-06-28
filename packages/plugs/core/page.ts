@@ -35,9 +35,7 @@ import {
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { PageMeta } from "@silverbulletmd/common/types";
 import { extractMeta } from "../query/data";
-import { jsonToMDTable } from "../query/util";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -101,8 +99,8 @@ export async function linkQueryProvider({
 
 export async function deletePage() {
   let pageName = await getCurrentPage();
-  console.log("Navigating to start page");
-  await navigate("start");
+  console.log("Navigating to index page");
+  await navigate("index");
   console.log("Deleting page from space");
   await deletePageSyscall(pageName);
 }

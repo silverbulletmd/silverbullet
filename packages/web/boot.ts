@@ -6,22 +6,23 @@ import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_pr
 safeRun(async () => {
   // let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
   // localSpace.watch();
-  let token: string | undefined = localStorage.getItem("token") || undefined;
+  let password: string | undefined =
+    localStorage.getItem("password") || undefined;
 
-  let httpPrimitives = new HttpSpacePrimitives("", token);
+  let httpPrimitives = new HttpSpacePrimitives("", password);
   while (true) {
     try {
-      await httpPrimitives.getPageMeta("start");
+      await httpPrimitives.getPageMeta("index");
       break;
     } catch (e: any) {
       if (e.message === "Unauthorized") {
-        token = prompt("Token: ") || undefined;
-        if (!token) {
-          alert("Sorry, that's it then");
+        password = prompt("Password: ") || undefined;
+        if (!password) {
+          alert("Sorry, need a password");
           return;
         }
-        localStorage.setItem("token", token!);
-        httpPrimitives = new HttpSpacePrimitives("", token);
+        localStorage.setItem("password", password!);
+        httpPrimitives = new HttpSpacePrimitives("", password);
       }
     }
   }
