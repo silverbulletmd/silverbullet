@@ -3,6 +3,8 @@ Silver Bullet (SB) is a highly extensible, open source **personal knowledge play
 
 So what is it SB _really_? That is hard to answer. It can do a ton of stuff out of the box, and I’m constantly finding new use cases. It’s like... a silver bullet!
 
+![Screenshot](https://raw.githubusercontent.com/zefhemel/silverbullet/main/images/silverbullet1.png)
+
 Here’s how I use it today (but this has grown significantly over time):
 
 * Basic note taking, e.g. meeting notes, notes on books I read, blogs I read, podcasts I listen to, movies I watch.
