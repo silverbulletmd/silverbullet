@@ -22,6 +22,7 @@
     "@parcel/transformer-sass": "2.5.0",
     "@parcel/transformer-webmanifest": "2.5.0",
     "@parcel/validator-typescript": "2.5.0",
+    "nodemon": "^2.0.18",
     "parcel": "2.5.0",
     "prettier": "^2.5.1",
     "process": "^0.11.10",

@@ -4,12 +4,12 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.8",
+  "version": "0.0.9",
   "license": "MIT",
   "dependencies": {
-    "@silverbulletmd/common": "^0.0.8",
-    "@silverbulletmd/plugs": "^0.0.8",
-    "@silverbulletmd/web": "^0.0.8",
-    "server": "^1.0.37"
+    "@silverbulletmd/common": "^0.0.9",
+    "@silverbulletmd/plugs": "^0.0.9",
+    "@silverbulletmd/web": "^0.0.9",
+    "node-fetch": "^3.2.6"
   }
 }
