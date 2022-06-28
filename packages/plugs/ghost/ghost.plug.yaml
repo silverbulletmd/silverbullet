@@ -1,9 +1,0 @@
-name: ghost
-functions:
-  publishCommand:
-    path: "./ghost.ts:publishCommand"
-    command:
-      name: "Ghost: Publish"
-  publish:
-    path: "./ghost.ts:publish"
-    env: server
