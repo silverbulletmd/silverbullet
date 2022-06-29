@@ -92,7 +92,7 @@ async function run() {
     process.exit(1);
   }
 
-  console.log("Args", args);
+  // console.log("Args", args);
 
   async function buildAll() {
     mkdirSync(args.dist, { recursive: true });

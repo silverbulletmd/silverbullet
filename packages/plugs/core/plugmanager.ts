@@ -1,6 +1,10 @@
 import { dispatch } from "@plugos/plugos-syscall/event";
+import { Manifest } from "@silverbulletmd/common/manifest";
 import { findNodeOfType } from "@silverbulletmd/common/tree";
-import { flashNotification } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import {
+  flashNotification,
+  save,
+} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import {
   deletePage,
@@ -22,6 +26,7 @@ async function listPlugs(): Promise<string[]> {
 }
 
 export async function updatePlugsCommand() {
+  await save();
   flashNotification("Updating plugs...");
   await invokeFunction("server", "updatePlugs");
   flashNotification("And... done!");
@@ -66,4 +71,27 @@ export async function updatePlugs() {
     }
   }
   await reloadPlugs();
+}
+
+export async function getPlugHTTPS(url: string): Promise<Manifest> {
+  let fullUrl = `https:${url}`;
+  console.log("Now fetching plug manifest from", fullUrl);
+  let req = await fetch(fullUrl);
+  if (req.status !== 200) {
+    throw new Error(`Could not fetch plug manifest from ${fullUrl}`);
+  }
+  let json = await req.json();
+
+  return json;
+}
+
+export async function getPlugGithub(identifier: string): Promise<Manifest> {
+  let [owner, repo, path] = identifier.split("/");
+  let [repoClean, branch] = repo.split("@");
+  if (!branch) {
+    branch = "main"; // or "master"?
+  }
+  return getPlugHTTPS(
+    `//raw.githubusercontent.com/${owner}/${repoClean}/${branch}/${path}`
+  );
 }

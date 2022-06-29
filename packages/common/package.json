@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.9",
+  "version": "0.0.16",
   "license": "MIT",
   "dependencies": {
     "@codemirror/autocomplete": "6.0.1",
@@ -18,10 +18,6 @@
     "@codemirror/view": "6.0.0",
     "@lezer/common": "1.0.0",
     "@lezer/highlight": "1.0.0",
-    "@lezer/markdown": "1.0.0",
-    "@silverbulletmd/common": "^0.0.9",
-    "@silverbulletmd/plugs": "^0.0.9",
-    "@silverbulletmd/web": "^0.0.9",
-    "node-fetch": "^3.2.6"
+    "@lezer/markdown": "1.0.0"
   }
 }

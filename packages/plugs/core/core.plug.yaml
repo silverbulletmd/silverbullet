@@ -172,6 +172,14 @@ functions:
   updatePlugs:
     path: ./plugmanager.ts:updatePlugs
     env: server
+  getPlugHTTPS:
+    path: "./plugmanager.ts:getPlugHTTPS"
+    events:
+      - get-plug:https
+  getPlugGithub:
+    path: "./plugmanager.ts:getPlugGithub"
+    events:
+      - get-plug:github
 
   # Debug commands
   parseServerCommand:
