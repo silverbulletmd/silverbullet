@@ -7,6 +7,8 @@ Below is what it looks like in action (when run on the `docs` folder in this rep
 
 ![Screenshot](https://raw.githubusercontent.com/zefhemel/silverbullet/main/images/silverbullet1.png)
 
+And [here is a video of me demoing some of its features](https://www.youtube.com/watch?v=RYdc3UF9gok).
+
 Here’s how I use it today (but this has grown significantly over time):
 
 * Basic note taking, e.g. meeting notes, notes on books I read, blogs I read, podcasts I listen to, movies I watch.
