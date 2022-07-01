@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.18",
+  "version": "0.0.19",
   "license": "MIT",
   "dependencies": {
     "@codemirror/autocomplete": "6.0.1",

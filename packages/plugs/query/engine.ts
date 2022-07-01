@@ -239,6 +239,7 @@ export async function renderQuery(
       }
     });
     let { text: templateText } = await readPage(parsedQuery.render);
+    templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
     let template = Handlebars.compile(templateText, { noEscape: true });
     return template(data);
   }
