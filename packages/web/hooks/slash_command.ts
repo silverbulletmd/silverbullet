@@ -8,9 +8,11 @@ import {
 import { slashCommandRegexp } from "../types";
 import { safeRun } from "../../common/util";
 import { Editor } from "../editor";
+import { syntaxTree } from "@codemirror/language";
 
 export type SlashCommandDef = {
   name: string;
+  description?: string;
 };
 
 export type AppSlashCommand = {
@@ -43,7 +45,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         this.slashCommands.set(cmd.name, {
           slashCommand: cmd,
           run: () => {
-            return plug.invoke(name, []);
+            return plug.invoke(name, [cmd]);
           },
         });
       }
@@ -59,10 +61,16 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       return null;
     }
     let options: Completion[] = [];
+
+    // No slash commands in comment blocks (queries and such)
+    let currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos);
+    if (currentNode.type.name === "CommentBlock") {
+      return null;
+    }
     for (let [name, def] of this.slashCommands.entries()) {
       options.push({
         label: def.slashCommand.name,
-        detail: name,
+        detail: def.slashCommand.description,
         apply: () => {
           // Delete slash command part
           this.editor.editorView?.dispatch({
@@ -75,6 +83,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           // Replace with whatever the completion is
           safeRun(async () => {
             await def.run();
+            this.editor.focus();
           });
         },
       });

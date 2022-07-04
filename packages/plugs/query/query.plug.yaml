@@ -17,7 +17,7 @@ functions:
     path: ./data.ts:queryProvider
     events:
       - query:data
-  insertQueryCommand:
-    path: ./command.ts:insertQuery
-    slashCommand:
-      name: query
+  queryComplete:
+    path: ./complete.ts:queryComplete
+    events:
+      - page:complete

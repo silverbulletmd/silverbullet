@@ -20,6 +20,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: ct.CodeInfoTag, class: "code-info" },
     { tag: ct.CommentTag, class: "comment" },
     { tag: ct.CommentMarkerTag, class: "comment-marker" },
+    { tag: ct.Highlight, class: "highlight" },
     { tag: t.emphasis, class: "emphasis" },
     { tag: t.strong, class: "strong" },
     { tag: t.atom, class: "atom" },

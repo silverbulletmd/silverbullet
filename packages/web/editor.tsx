@@ -59,6 +59,7 @@ import { FilterList } from "./components/filter";
 import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
+import { eventSyscalls } from "@plugos/plugos/syscalls/event";
 // import globalModules from "../common/dist/global.plug.json";
 
 class PageState {
@@ -148,6 +149,7 @@ export class Editor {
 
     this.system.registerSyscalls(
       [],
+      eventSyscalls(this.eventHook),
       editorSyscalls(this),
       spaceSyscalls(this),
       indexerSyscalls(this.space),
@@ -630,9 +632,15 @@ export class Editor {
               editor.focus();
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
-                cmd.run().catch((e) => {
-                  console.error("Error running command", e.message);
-                });
+                cmd
+                  .run()
+                  .catch((e) => {
+                    console.error("Error running command", e.message);
+                  })
+                  .then(() => {
+                    // Always be focusing the editor after running a command
+                    editor.focus();
+                  });
               }
             }}
             commands={viewState.commands}

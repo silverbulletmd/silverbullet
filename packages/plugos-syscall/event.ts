@@ -23,3 +23,7 @@ export async function dispatch(
       .catch(reject);
   });
 }
+
+export async function listEvents(): Promise<string[]> {
+  return syscall("event.list");
+}

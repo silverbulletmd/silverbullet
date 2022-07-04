@@ -21,6 +21,30 @@ export class EventHook implements Hook<EventHookT> {
     this.localListeners.get(eventName)!.push(callback);
   }
 
+  // Pull all events listened to
+  listEvents(): string[] {
+    if (!this.system) {
+      throw new Error("Event hook is not initialized");
+    }
+    let eventNames = new Set<string>();
+    for (const plug of this.system.loadedPlugs.values()) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions
+      )) {
+        if (functionDef.events) {
+          for (let eventName of functionDef.events) {
+            eventNames.add(eventName);
+          }
+        }
+      }
+    }
+    for (let eventName of this.localListeners.keys()) {
+      eventNames.add(eventName);
+    }
+
+    return [...eventNames];
+  }
+
   async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");

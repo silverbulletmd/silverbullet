@@ -236,9 +236,3 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
     tree: await parseMarkdown(text),
   });
 }
-
-export async function insertPageMeta() {
-  let cursorPos = await getCursor();
-  await insertAtCursor("```meta\n\n```");
-  await moveCursor(cursorPos + 8);
-}

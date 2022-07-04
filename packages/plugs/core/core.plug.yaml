@@ -123,34 +123,63 @@ functions:
 
   # Template commands
   insertPageMeta:
-    path: "./page.ts:insertPageMeta"
+    path: "./template.ts:insertTemplateText"
     slashCommand:
       name: meta
+      value: |
+        ```meta
+        |^|
+        ```
+  insertTask:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: task
+      value: "* [ ] |^|"
+  insertQuery:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: query
+      value: |
+        <!-- #query |^| -->
+
+        <!-- /query -->
+  insertTaskToday:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: task-today
+      value: "* [ ] |^| 📅 {{today}}"
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:
       name: "Template: Quick Note"
       key: "Alt-Shift-n"
-  quickTaskCommand:
-    path: ./template.ts:quickTaskCommand
-    command:
-      name: "Template: Quick Task"
-      key: "Alt-Shift-t"
+
   instantiateTemplateCommand:
     path: ./template.ts:instantiateTemplateCommand
     command:
-      name: "Template: Instantiate for Page"
-  insertToday:
-    path: "./dates.ts:insertToday"
+      name: "Template: Instantiate Page"
+  insertSnippet:
+    path: ./template.ts:insertSnippet
+    command:
+      name: "Template: Insert Snippet"
+    slashCommand:
+      name: snippet
+      description: Insert a snippet
+  insertTodayCommand:
+    path: "./template.ts:insertTemplateText"
     slashCommand:
       name: today
-  insertTomorrow:
-    path: "./dates.ts:insertTomorrow"
+      description: Insert today's date
+      value: "{{today}}"
+  insertTomorrowCommand:
+    path: "./template.ts:insertTemplateText"
     slashCommand:
       name: tomorrow
+      description: Insert tomorrow's date
+      value: "{{tomorrow}}"
 
   # Text editing commands
-  quoteSelection:
+  quoteSelectionCommand:
     path: ./text.ts:quoteSelection
     command:
       name: "Text: Quote Selection"
@@ -165,17 +194,25 @@ functions:
     command:
       name: "Text: Number Listify Selection"
   bold:
-    path: ./text.ts:boldCommand
+    path: ./text.ts:wrapSelection
     command:
       name: "Text: Bold"
       key: "Ctrl-b"
       mac: "Cmd-b"
+      wrapper: "**"
   italic:
-    path: ./text.ts:italicCommand
+    path: ./text.ts:wrapSelection
     command:
       name: "Text: Italic"
       key: "Ctrl-i"
       mac: "Cmd-i"
+      wrapper: "_"
+  marker:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Marker"
+      key: "Alt-m"
+      wrapper: "=="
 
   # Plug manager
   updatePlugsCommand:

@@ -53,6 +53,31 @@ const WikiLink: MarkdownConfig = {
   ],
 };
 
+const HighlightDelim = { resolve: "Highlight", mark: "HighlightMark" };
+
+export const Strikethrough: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: "Highlight",
+      style: { "Highlight/...": ct.Highlight },
+    },
+    {
+      name: "HighlightMark",
+      style: t.processingInstruction,
+    },
+  ],
+  parseInline: [
+    {
+      name: "Highlight",
+      parse(cx, next, pos) {
+        if (next != 61 /* '=' */ || cx.char(pos + 1) != 61) return -1;
+        return cx.addDelimiter(HighlightDelim, pos, pos + 2, true, true);
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
 class CommentParser implements LeafBlockParser {
   nextLine() {
     return false;
@@ -88,6 +113,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       WikiLink,
       TaskList,
       Comment,
+      Strikethrough,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
       // parseCode({

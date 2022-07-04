@@ -19,7 +19,6 @@ import { replaceAsync } from "../lib/util";
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
   await save();
-  // await flashNotification("Updating materialized queries...");
   if (
     await invokeFunction(
       "server",
@@ -67,8 +66,17 @@ async function updateTemplateInstantiations(
 export async function updateMaterializedQueriesOnPage(
   pageName: string
 ): Promise<boolean> {
-  let { text } = await readPage(pageName);
-
+  let text = "";
+  try {
+    text = (await readPage(pageName)).text;
+  } catch {
+    console.warn(
+      "Could not read page",
+      pageName,
+      "perhaps it doesn't yet exist"
+    );
+    return false;
+  }
   let newText = await updateTemplateInstantiations(text, pageName);
   newText = await replaceAsync(
     newText,

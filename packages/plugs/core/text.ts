@@ -56,12 +56,8 @@ export async function numberListifySelection() {
   await replaceRange(from, selection.to, text);
 }
 
-export function boldCommand() {
-  return insertMarker("**");
-}
-
-export function italicCommand() {
-  return insertMarker("_");
+export function wrapSelection(cmdDef: any) {
+  return insertMarker(cmdDef.wrapper);
 }
 
 async function insertMarker(marker: string) {
