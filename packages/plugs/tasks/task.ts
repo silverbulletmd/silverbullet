@@ -26,7 +26,7 @@ import {
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
-import { applyQuery, QueryProviderEvent, renderQuery } from "../query/engine";
+import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { niceDate } from "../core/dates";
 
 export type Task = {

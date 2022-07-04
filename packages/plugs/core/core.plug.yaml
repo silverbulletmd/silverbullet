@@ -1,5 +1,11 @@
 name: core
 syntax:
+  Hashtag:
+    firstCharacters:
+      - "#"
+    regex: "#[^#\\s]+"
+    styles:
+      color: blue
   NakedURL:
     firstCharacters:
       - "h"
@@ -62,6 +68,16 @@ functions:
     path: "./navigate.ts:clickNavigate"
     events:
       - page:click
+
+  # Hashtags
+  indexTags:
+    path: "./tags.ts:indexTags"
+    events:
+      - page:index
+  tagComplete:
+    path: "./tags.ts:tagComplete"
+    events:
+      - page:complete
 
   # Full text search
   searchIndex:
