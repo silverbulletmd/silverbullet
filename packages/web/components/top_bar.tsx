@@ -1,4 +1,4 @@
-import { faRunning } from "@fortawesome/free-solid-svg-icons";
+import { faRunning, faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Notification } from "../types";
 
@@ -14,6 +14,7 @@ export function TopBar({
   unsavedChanges,
   notifications,
   onClick,
+  onHomeClick,
   onActionClick,
   lhs,
   rhs,
@@ -22,6 +23,7 @@ export function TopBar({
   unsavedChanges: boolean;
   notifications: Notification[];
   onClick: () => void;
+  onHomeClick: () => void;
   onActionClick: () => void;
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
@@ -46,10 +48,19 @@ export function TopBar({
           <div className="actions">
             <button
               onClick={(e) => {
-                // setMenuExpanded(!menuExpanded);
+                onHomeClick();
+                e.stopPropagation();
+              }}
+              title="Navigate to the 'index' page"
+            >
+              <FontAwesomeIcon icon={faHome} />
+            </button>
+            <button
+              onClick={(e) => {
                 onActionClick();
                 e.stopPropagation();
               }}
+              title="Open the command palette"
             >
               <FontAwesomeIcon icon={faRunning} />
             </button>

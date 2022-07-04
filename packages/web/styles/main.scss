@@ -112,35 +112,13 @@ body {
     }
     .actions {
       text-align: right;
-      width: 40px;
 
-      ul {
-        list-style: none;
-        margin-left: 0;
-        padding-left: 0;
-        margin-top: 0;
-        list-style: none;
-        background: #fff;
-        border: #000 1px solid;
-        text-align: left;
-
-        a {
-          padding: 3px;
-          font-family: var(--ui-font);
-          font-size: 50%;
-          text-decoration: none;
-          color: #000;
-        }
-
-        li {
-          padding-left: 10px;
-          padding-right: 10px;
-          padding-bottom: 5px;
-        }
-
-        li:hover {
-          background-color: #4d8dff12;
-        }
+      button {
+        border: 1px solid #7897d0;
+        border-radius: 3px;
+        margin: 3px;
+        padding: 5px;
+        background-color: #e6e6e6;
       }
     }
   }

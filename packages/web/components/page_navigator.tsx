@@ -30,6 +30,8 @@ export function PageNavigator({
   if (currentPage && currentPage.includes("/")) {
     const pieces = currentPage.split("/");
     completePrefix = pieces.slice(0, pieces.length - 1).join("/") + "/";
+  } else if (currentPage && currentPage.includes(" ")) {
+    completePrefix = currentPage.split(" ")[0] + " ";
   }
   return (
     <FilterList

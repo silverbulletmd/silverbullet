@@ -656,6 +656,9 @@ export class Editor {
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}
+          onHomeClick={() => {
+            editor.navigate("index");
+          }}
           onActionClick={() => {
             dispatch({ type: "show-palette" });
           }}
