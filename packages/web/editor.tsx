@@ -6,7 +6,7 @@ import {
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { indentWithTab, standardKeymap } from "@codemirror/commands";
 import { history, historyKeymap } from "@codemirror/commands";
-import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
+import { syntaxHighlighting } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import {
@@ -60,7 +60,6 @@ import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
-// import globalModules from "../common/dist/global.plug.json";
 
 class PageState {
   constructor(
@@ -166,6 +165,15 @@ export class Editor {
         if (runScopeHandlers(this.editorView!, ev, "editor")) {
           ev.preventDefault();
         }
+      }
+    });
+
+    window.addEventListener("touchstart", (ev) => {
+      // Launch the command palette using a three-finger tap
+      if (ev.touches.length > 2) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        this.viewDispatch({ type: "show-palette" });
       }
     });
   }
