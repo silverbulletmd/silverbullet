@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.19",
+  "version": "0.0.20",
   "license": "MIT",
   "scripts": {
     "generate": "lezer-generator query/query.grammar -o query/parse-query.js",
@@ -34,7 +34,7 @@
     "@jest/globals": "^27.5.1",
     "@lezer/generator": "1.0.0",
     "@lezer/lr": "1.0.0",
-    "@silverbulletmd/common": "^0.0.19",
+    "@silverbulletmd/common": "^0.0.20",
     "@types/yaml": "^1.9.7",
     "handlebars": "^4.7.7",
     "markdown-it": "^12.3.2",
