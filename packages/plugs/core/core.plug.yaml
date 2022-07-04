@@ -41,6 +41,7 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
+
   # Backlinks
   indexLinks:
     path: "./page.ts:indexLinks"
@@ -138,7 +139,14 @@ functions:
     path: "./template.ts:insertTemplateText"
     slashCommand:
       name: task
+      description: Insert a task
       value: "* [ ] |^|"
+  insertTaskToday:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: task-today
+      description: Insert a task with today as the deadline
+      value: "* [ ] |^| 📅 {{today}}"
   insertQuery:
     path: "./template.ts:insertTemplateText"
     slashCommand:
@@ -147,11 +155,6 @@ functions:
         <!-- #query |^| -->
 
         <!-- /query -->
-  insertTaskToday:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: task-today
-      value: "* [ ] |^| 📅 {{today}}"
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:
@@ -187,7 +190,7 @@ functions:
     path: ./text.ts:quoteSelection
     command:
       name: "Text: Quote Selection"
-      key: "Ctrl->"
+      key: "Ctrl-Shift-."
       mac: "Cmd-Shift-."
   listifySelection:
     path: ./text.ts:listifySelection
@@ -238,12 +241,6 @@ functions:
       - get-plug:github
 
   # Debug commands
-  parseServerCommand:
-    path: ./debug.ts:parseServerPageCommand
-    command:
-      name: "Debug: Parse Document on Server"
-  parsePage:
-    path: ./debug.ts:parsePage
   parseCommand:
     path: ./debug.ts:parsePageCommand
     command:

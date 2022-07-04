@@ -8,16 +8,11 @@ import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markd
 import { getServerLogs } from "@silverbulletmd/plugos-silverbullet-syscall/sandbox";
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 
-export async function parseServerPageCommand() {
-  console.log(await invokeFunction("server", "parsePage", await getText()));
-}
-
 export async function parsePageCommand() {
-  parsePage(await getText());
-}
-
-export async function parsePage(text: string) {
-  console.log("AST", JSON.stringify(await parseMarkdown(text), null, 2));
+  console.log(
+    "AST",
+    JSON.stringify(await parseMarkdown(await getText()), null, 2)
+  );
 }
 
 export async function showLogsCommand() {
