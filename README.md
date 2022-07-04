@@ -83,5 +83,5 @@ npm run watch
 # Runs the silverbullet server
 npm run server
 # Builds (and watches for changes) all builtin plugs (in packages/plugs)
-npm run plugs
+npm run plugs -- <PATH-TO-YOUR-SPACE>
 ```

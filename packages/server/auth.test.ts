@@ -9,7 +9,7 @@ beforeEach(async () => {
   db = knex({
     client: "better-sqlite3",
     connection: {
-      filename: "test.db",
+      filename: "auth-test.db",
     },
     useNullAsDefault: true,
   });
@@ -17,7 +17,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   db!.destroy();
-  await unlink("test.db");
+  await unlink("auth-test.db");
 });
 
 test("Test auth", async () => {

@@ -137,7 +137,7 @@ parentPort.on("message", (data: any) => {
         }
         pendingRequests.delete(syscallId);
         if (data.error) {
-          console.log("Got rejection", data.error);
+          // console.log("Got rejection", data.error);
           lookup.reject(new Error(data.error));
         } else {
           lookup.resolve(data.result);

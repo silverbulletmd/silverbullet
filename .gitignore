@@ -4,6 +4,7 @@ logo.pxd
 node_modules
 .parcel-cache
 dist
+build
 generated
 .yarnrc.yml
 *.test.js

@@ -46,4 +46,5 @@ test("Run a plugos endpoint server", async () => {
       expect(resp.text).toBe(JSON.stringify([1, 2, 3]));
     });
   server.close();
+  await system.unloadAll();
 });
