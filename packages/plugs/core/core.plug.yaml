@@ -3,7 +3,7 @@ syntax:
   Hashtag:
     firstCharacters:
       - "#"
-    regex: "#[^#\\s]+"
+    regex: "#[^#\\d\\s]+\\w"
     styles:
       color: blue
   NakedURL:
@@ -89,6 +89,10 @@ functions:
     path: "./tags.ts:tagComplete"
     events:
       - page:complete
+  tagProvider:
+    path: "./tags.ts:tagProvider"
+    events:
+      - query:tag
 
   # Full text search
   searchIndex:

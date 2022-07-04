@@ -82,7 +82,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       key: `task:${n.from}`,
       value: task,
     });
-    console.log("Task", task);
+    // console.log("Task", task);
   });
 
   console.log("Found", tasks.length, "task(s)");

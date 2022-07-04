@@ -5,10 +5,11 @@ import {
 } from "@silverbulletmd/plugos-silverbullet-syscall";
 import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
+import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { removeQueries } from "../query/util";
 
 // Key space
-// ht:TAG => true (for completion)
+// tag:TAG => true (for completion)
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
@@ -18,7 +19,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
   });
   batchSet(
     name,
-    [...allTags].map((t) => ({ key: `ht:${t}`, value: t }))
+    [...allTags].map((t) => ({ key: `tag:${t}`, value: t }))
   );
 }
 
@@ -28,7 +29,7 @@ export async function tagComplete() {
   if (!prefix) {
     return null;
   }
-  let allTags = await queryPrefix(`ht:${prefix.text}`);
+  let allTags = await queryPrefix(`tag:${prefix.text}`);
   return {
     from: prefix.from,
     options: allTags.map((tag) => ({
@@ -36,4 +37,27 @@ export async function tagComplete() {
       type: "tag",
     })),
   };
+}
+
+type Tag = {
+  name: string;
+  freq: number;
+};
+
+export async function tagProvider({ query }: QueryProviderEvent) {
+  let allTags = new Map<string, number>();
+  for (let { value } of await queryPrefix("tag:")) {
+    let currentFreq = allTags.get(value);
+    if (!currentFreq) {
+      currentFreq = 0;
+    }
+    allTags.set(value, currentFreq + 1);
+  }
+  return applyQuery(
+    query,
+    [...allTags.entries()].map(([name, freq]) => ({
+      name,
+      freq,
+    }))
+  );
 }
