@@ -68,7 +68,7 @@ test("Test parser", () => {
   });
 });
 
-test("Test performing the queries", () => {
+test("Test applyQuery", () => {
   let data: any[] = [
     { name: "interview/My Interview", lastModified: 1 },
     { name: "interview/My Interview 2", lastModified: 2 },
@@ -115,4 +115,26 @@ test("Test performing the queries", () => {
   expect(
     applyQuery(parseQuery(`page where name in ["Pete"] select name`), data)
   ).toStrictEqual([{ name: "Pete" }]);
+});
+
+test("Test applyQuery with multi value", () => {
+  let data: any[] = [
+    { name: "Pete", children: ["John", "Angie"] },
+    { name: "Angie", children: ["Angie"] },
+    { name: "Steve" },
+  ];
+
+  expect(
+    applyQuery(parseQuery(`page where children = "Angie"`), data)
+  ).toStrictEqual([
+    { name: "Pete", children: ["John", "Angie"] },
+    { name: "Angie", children: ["Angie"] },
+  ]);
+
+  expect(
+    applyQuery(parseQuery(`page where children = ["Angie", "John"]`), data)
+  ).toStrictEqual([
+    { name: "Pete", children: ["John", "Angie"] },
+    { name: "Angie", children: ["Angie"] },
+  ]);
 });

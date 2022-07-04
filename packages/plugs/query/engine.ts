@@ -135,7 +135,19 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
       for (let { op, prop, value } of parsedQuery.filter) {
         switch (op) {
           case "=":
-            if (!(recordAny[prop] == value)) {
+            const recordPropVal = recordAny[prop];
+            if (Array.isArray(recordPropVal) && !Array.isArray(value)) {
+              // Record property is an array, and value is a scalar: find the value in the array
+              if (!recordPropVal.includes(value)) {
+                continue recordLoop;
+              }
+            } else if (Array.isArray(recordPropVal) && Array.isArray(value)) {
+              // Record property is an array, and value is an array: find the value in the array
+              if (!recordPropVal.some((v) => value.includes(v))) {
+                continue recordLoop;
+              }
+            } else if (!(recordPropVal == value)) {
+              // Both are scalars: exact value
               continue recordLoop;
             }
             break;
