@@ -47,3 +47,7 @@ export async function clickNavigate(event: ClickEvent) {
   let newNode = nodeAtPos(mdTree, event.pos);
   await actionClickOrActionEnter(newNode);
 }
+
+export async function navigateCommand(cmdDef: any) {
+  await navigateTo(cmdDef.page);
+}

@@ -44,7 +44,7 @@ export class CommandHook
         this.editorCommands.set(cmd.name, {
           command: cmd,
           run: () => {
-            return plug.invoke(name, []);
+            return plug.invoke(name, [cmd]);
           },
         });
       }

@@ -36,6 +36,12 @@ functions:
   reindexSpace:
     path: "./page.ts:reindexSpace"
     env: server
+
+  deletePage:
+    path: "./page.ts:deletePage"
+    command:
+      name: "Page: Delete"
+  # Backlinks
   indexLinks:
     path: "./page.ts:indexLinks"
     events:
@@ -44,20 +50,19 @@ functions:
     path: ./page.ts:linkQueryProvider
     events:
       - query:link
-  deletePage:
-    path: "./page.ts:deletePage"
-    command:
-      name: "Page: Delete"
   renamePage:
     path: "./page.ts:renamePage"
     command:
       name: "Page: Rename"
       mac: Cmd-Alt-r
       key: Ctrl-Alt-r
+
   pageComplete:
     path: "./page.ts:pageComplete"
     events:
       - page:complete
+
+  # Navigation
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
     command:
@@ -68,6 +73,12 @@ functions:
     path: "./navigate.ts:clickNavigate"
     events:
       - page:click
+  navigateHome:
+    path: "./navigate.ts:navigateCommand"
+    command:
+      name: "Navigate: Home"
+      key: "Alt-h"
+      page: "index"
 
   # Hashtags
   indexTags:
