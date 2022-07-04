@@ -23,6 +23,7 @@ import {
   nodeAtPos,
   ParseTree,
   renderToText,
+  replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent, renderQuery } from "../query/engine";
@@ -32,6 +33,7 @@ export type Task = {
   name: string;
   done: boolean;
   deadline?: string;
+  tags?: string[];
   nested?: string;
   // Not saved in DB, just added when pulled out (from key)
   pos?: number;
@@ -47,28 +49,40 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   let tasks: { key: string; value: Task }[] = [];
   removeQueries(tree);
   collectNodesOfType(tree, "Task").forEach((n) => {
-    let task = n.children!.slice(1).map(renderToText).join("").trim();
     let complete = n.children![0].children![0].text! !== "[ ]";
-    let value: Task = {
-      name: task,
+    let task: Task = {
+      name: "",
       done: complete,
     };
 
-    let deadlineNode = findNodeOfType(n, "DeadlineDate");
-    if (deadlineNode) {
-      value.deadline = getDeadline(deadlineNode);
-    }
+    replaceNodesMatching(n, (tree) => {
+      if (tree.type === "DeadlineDate") {
+        task.deadline = getDeadline(tree);
+        // Remove this node from the tree
+        return null;
+      }
+      if (tree.type === "Hashtag") {
+        if (!task.tags) {
+          task.tags = [];
+        }
+        task.tags.push(tree.children![0].text!);
+        // Remove this node from the tree
+        return null;
+      }
+    });
+
+    task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
     let taskIndex = n.parent!.children!.indexOf(n);
     let nestedItems = n.parent!.children!.slice(taskIndex + 1);
     if (nestedItems.length > 0) {
-      value.nested = nestedItems.map(renderToText).join("").trim();
+      task.nested = nestedItems.map(renderToText).join("").trim();
     }
     tasks.push({
       key: `task:${n.from}`,
-      value,
+      value: task,
     });
-    // console.log("Task", value);
+    console.log("Task", task);
   });
 
   console.log("Found", tasks.length, "task(s)");

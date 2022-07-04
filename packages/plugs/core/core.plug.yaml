@@ -1,17 +1,5 @@
 name: core
 syntax:
-  HashTag:
-    firstCharacters:
-      - "#"
-    regex: "#[A-Za-z\\.]+"
-    styles:
-      color: blue
-  AtMention:
-    firstCharacters:
-      - "@"
-    regex: "@[A-Za-z\\.]+"
-    styles:
-      color: blue
   NakedURL:
     firstCharacters:
       - "h"

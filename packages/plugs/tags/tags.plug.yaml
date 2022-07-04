@@ -1,0 +1,17 @@
+name: tags
+syntax:
+  Hashtag:
+    firstCharacters:
+      - "#"
+    regex: "#[^#\\s]+"
+    styles:
+      color: blue
+functions:
+  indexTags:
+    path: "./tags.ts:indexTags"
+    events:
+      - page:index
+  tagComplete:
+    path: "./tags.ts:tagComplete"
+    events:
+      - page:complete

@@ -7,6 +7,7 @@ import {
   queryPrefix,
 } from "@silverbulletmd/plugos-silverbullet-syscall";
 import {
+  addParentPointers,
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
@@ -67,7 +68,22 @@ export function extractMeta(
   removeKeys: string[] = []
 ): any {
   let data: any = {};
+  addParentPointers(parseTree);
   replaceNodesMatching(parseTree, (t) => {
+    if (t.type === "Hashtag") {
+      // Check if if nested directly into a Paragraph
+      if (t.parent && t.parent.type === "Paragraph") {
+        let tagname = t.children![0].text;
+        if (!data.tags) {
+          data.tags = [];
+        }
+        if (!data.tags.includes(tagname)) {
+          data.tags.push(tagname);
+        }
+      }
+      return;
+    }
+    // Find a fenced code block
     if (t.type !== "FencedCode") {
       return;
     }
