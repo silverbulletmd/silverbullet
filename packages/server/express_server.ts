@@ -49,6 +49,7 @@ import {
 import { PlugSpacePrimitives } from "./hooks/plug_space_primitives";
 import { PageNamespaceHook } from "./hooks/page_namespace";
 import { readFileSync } from "fs";
+import fileSystemSyscalls from "@plugos/plugos/syscalls/fs.node";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -115,6 +116,8 @@ export class ExpressServer {
 
     // Register syscalls available on the server sid
     this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
+    // YOLO
+    this.system.registerSyscalls([], fileSystemSyscalls("/"));
     this.system.registerSyscalls(
       [],
       pageIndexSyscalls(this.db),
