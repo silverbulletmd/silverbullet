@@ -24,7 +24,6 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
       from,
       to,
       enter: ({ type, from, to }) => {
-        const bodyText = doc.sliceString(from, to);
         for (let wrapElement of wrapElements) {
           if (type.name == wrapElement.selector) {
             if (wrapElement.nesting) {

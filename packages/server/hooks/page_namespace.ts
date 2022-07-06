@@ -75,9 +75,13 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
           errors.push(`Function ${funcName} has a namespace but no operation`);
         }
         if (
-          !["readPage", "writePage", "getPageMeta", "listPages"].includes(
-            funcDef.pageNamespace.operation
-          )
+          ![
+            "readPage",
+            "writePage",
+            "getPageMeta",
+            "listPages",
+            "deletePage",
+          ].includes(funcDef.pageNamespace.operation)
         ) {
           errors.push(
             `Function ${funcName} has an invalid operation ${funcDef.pageNamespace.operation}`

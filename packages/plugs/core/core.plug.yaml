@@ -158,8 +158,14 @@ functions:
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:
-      name: "Template: Quick Note"
+      name: "Quick Note"
       key: "Alt-Shift-n"
+      priority: 1
+  dailyNoteCommand:
+    path: ./template.ts:dailyNoteCommand
+    command:
+      name: "Open Daily Note"
+      key: "Alt-Shift-d"
 
   instantiateTemplateCommand:
     path: ./template.ts:instantiateTemplateCommand
@@ -259,3 +265,30 @@ functions:
       name: "UI: Hide BHS"
       key: "Ctrl-Alt-b"
       mac: "Cmd-Alt-b"
+
+  # Mounting
+  readPageMounted:
+    path: ./mount.ts:readPageMounted
+    pageNamespace:
+      pattern: "^🚪 .+"
+      operation: readPage
+  writePageMounted:
+    path: ./mount.ts:writePageMounted
+    pageNamespace:
+      pattern: "^🚪 .+"
+      operation: writePage
+  deletePageMounted:
+    path: ./mount.ts:deletePageMounted
+    pageNamespace:
+      pattern: "^🚪 .+"
+      operation: deletePage
+  getPageMetaMounted:
+    path: ./mount.ts:getPageMetaMounted
+    pageNamespace:
+      pattern: "^🚪 .+"
+      operation: getPageMeta
+  listPagesMounted:
+    path: ./mount.ts:listPagesMounted
+    pageNamespace:
+      pattern: "^🚪 .+"
+      operation: listPages

@@ -459,6 +459,7 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     for (let pageInfo of this.space.listPlugs()) {
+      console.log("Loading plug", pageInfo.name);
       let { text } = await this.space.readPage(pageInfo.name);
       await this.system.load(JSON.parse(text), createIFrameSandbox);
     }
@@ -587,6 +588,7 @@ export class Editor {
       // console.log("Restoring selection state", pageState);
       editorView.dispatch({
         selection: pageState.selection,
+        scrollIntoView: true,
       });
       editorView.scrollDOM.scrollTop = pageState!.scrollTop;
     }
