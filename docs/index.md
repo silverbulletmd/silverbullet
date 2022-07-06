@@ -24,6 +24,7 @@ I know, right?
 [[💡 Inspiration]]
 [[🔌 Plugs]]
 [[🔨 Development]]
+[[🗺 Roadmap]]
 
 ## Installing and running Silver Bullet
 To run a release version, you need to have a recent version of npm (8+) and node.js (16+) installed as well as some basic build infrastructure (make, cpp). Silver Bullet has only been tested on MacOS and Linux thus far.
@@ -34,22 +35,3 @@ To install and run, create a folder for your pages (can be empty or an existing 
 
 Optionally you can use the `--port` argument to specify a HTTP port (defaults to `3000`) and you can pass a `--password` flag to require a password to access. Note this is a rather weak security mechanism, so it’s recommended to add additional layers of security on top of this if you run this on a public server somewhere (at least add TLS). Personally I run it on a tiny Linux VM on my server at home, and use a VPN (Tailscale) to access it from outside my home.
 
-## Roadmap
-More details on the [[🗺️ Roadmap]] page.
-<!-- #query task render "template/tasks" -->
-* [ ] [[🗺️ Roadmap@34]] Persistent recent commands (saved between sessions)
-* [ ] [[🗺️ Roadmap@92]] Add ==marker== syntax
-* [ ] [[🗺️ Roadmap@120]] Two finger tap gesture to bring up command palette
-* [ ] [[🗺️ Roadmap@177]] Change indent level command
-* [ ] [[🗺️ Roadmap@212]] Keyboard shortcuts for specific notes (e.g. `index` note)
-* [ ] [[🗺️ Roadmap@276]] RevealJS slides plug
-* [ ] [[🗺️ Roadmap@303]] Pinned notes and actions?
-* [ ] [[🗺️ Roadmap@335]] Template for deadline, with 📅 emoji and perhaps defaulting to today?
-* [ ] [[🗺️ Roadmap@411]] Use webauthn https://www.npmjs.com/package/webauthn
-* [ ] [[🗺️ Roadmap@469]] Proper sign up and login
-* [ ] [[🗺️ Roadmap@500]] Data store pagination API
-* [ ] [[🗺️ Roadmap@532]] Hashtag plug:
-* [ ] [[🗺️ Roadmap@656]] Extract `MarkdownEditor` component.
-* [ ] [[🗺️ Roadmap@725]] PUT page with `If-Last-Modified-Before` type header. Rejects if not matching. Client creates a revision, navigates to it.
-* [ ] [[🗺️ Roadmap@858]] Put retries exponential back off
-<!-- /query -->
