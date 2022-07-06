@@ -20,6 +20,8 @@ const globalMountPrefix = "🚪 ";
 type MountPoint = {
   prefix: string;
   path: string;
+  password?: string;
+  protocol: "file" | "http";
   perm: "rw" | "ro";
 };
 
@@ -44,11 +46,12 @@ async function updateMountPoints() {
     return;
   }
   let mountsYaml = codeTextNode.children![0].text;
-  let mountList = YAML.parse(mountsYaml!);
+  let mountList: Partial<MountPoint>[] = YAML.parse(mountsYaml!);
   if (!Array.isArray(mountList)) {
     console.error("Invalid MOUNTS file, should have array of mount points");
     return;
   }
+  // Let's validate this and fill in some of the blanks
   for (let mountPoint of mountList) {
     if (!mountPoint.prefix) {
       console.error("Invalid mount point, no prefix specified", mountPoint);
@@ -61,9 +64,16 @@ async function updateMountPoints() {
     if (!mountPoint.perm) {
       mountPoint.perm = "rw";
     }
+    if (mountPoint.path.startsWith("file:")) {
+      mountPoint.protocol = "file";
+      mountPoint.path = mountPoint.path.substring("file:".length);
+    } else {
+      mountPoint.protocol = "http";
+      mountPoint.path += "/fs"; // Add the /fs suffix to the path
+    }
   }
 
-  mountPointCache = mountList;
+  mountPointCache = mountList as MountPoint[];
 }
 
 async function translateLinksWithPrefix(
@@ -120,15 +130,39 @@ export async function readPageMounted(
 ): Promise<{ text: string; meta: PageMeta }> {
   await updateMountPoints();
   let { resolvedPath, mountPoint } = lookupMountPoint(name);
-  let { text, meta } = await readFile(`${resolvedPath}.md`);
-  return {
-    text: await translateLinksWithPrefix(text, mountPoint.prefix),
-    meta: {
-      name: name,
-      lastModified: meta.lastModified,
-      perm: mountPoint.perm,
-    },
-  };
+  if (mountPoint.protocol === "file") {
+    let { text, meta } = await readFile(`${resolvedPath}.md`);
+    return {
+      text: await translateLinksWithPrefix(text, mountPoint.prefix),
+      meta: {
+        name: name,
+        lastModified: meta.lastModified,
+        perm: mountPoint.perm,
+      },
+    };
+  } else {
+    let res = await fetch(resolvedPath, {
+      method: "GET",
+      headers: authHeaders(mountPoint),
+    });
+    if (res.status !== 200) {
+      throw new Error(
+        `Failed to read page: ${res.status}: ${await res.text()}`
+      );
+    }
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
+    let text = await res.text();
+    return {
+      text: await translateLinksWithPrefix(text, mountPoint.prefix),
+      meta: {
+        name: name,
+        lastModified: +(res.headers.get("Last-Modified") || "0"),
+        perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+      },
+    };
+  }
 }
 
 export async function writePageMounted(
@@ -138,52 +172,124 @@ export async function writePageMounted(
   await updateMountPoints();
   let { resolvedPath, mountPoint } = lookupMountPoint(name);
   text = await translateLinksWithoutPrefix(text, mountPoint.prefix);
-  let meta = await writeFile(`${resolvedPath}.md`, text);
-  return {
-    name: name,
-    lastModified: meta.lastModified,
-    perm: mountPoint.perm,
-  };
+  if (mountPoint.protocol === "file") {
+    let meta = await writeFile(`${resolvedPath}.md`, text);
+    return {
+      name: name,
+      lastModified: meta.lastModified,
+      perm: mountPoint.perm,
+    };
+  } else {
+    let res = await fetch(resolvedPath, {
+      method: "PUT",
+      headers: authHeaders(mountPoint),
+      body: text,
+    });
+    if (res.status !== 200) {
+      throw new Error(
+        `Failed to write page: ${res.status}: ${await res.text()}`
+      );
+    }
+    return {
+      name: name,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+    };
+  }
 }
 
 export async function deletePageMounted(name: string): Promise<void> {
   await updateMountPoints();
   let { resolvedPath, mountPoint } = lookupMountPoint(name);
-  if (mountPoint.perm === "rw") {
-    await deleteFile(`${resolvedPath}.md`);
+  if (mountPoint.protocol === "file") {
+    if (mountPoint.perm === "rw") {
+      await deleteFile(`${resolvedPath}.md`);
+    } else {
+      throw new Error("Deleting read-only page");
+    }
   } else {
-    throw new Error("Deleting read-only page");
+    throw new Error("Not yet implemented");
   }
+}
+
+function authHeaders(mountPoint: MountPoint): HeadersInit {
+  return {
+    Authorization: mountPoint.password ? `Bearer ${mountPoint.password}` : "",
+  };
 }
 
 export async function getPageMetaMounted(name: string): Promise<PageMeta> {
   await updateMountPoints();
   let { resolvedPath, mountPoint } = lookupMountPoint(name);
-  let meta = await getFileMeta(`${resolvedPath}.md`);
-  return {
-    name,
-    lastModified: meta.lastModified,
-    perm: mountPoint.perm,
-  };
+  if (mountPoint.protocol === "file") {
+    let meta = await getFileMeta(`${resolvedPath}.md`);
+    return {
+      name,
+      lastModified: meta.lastModified,
+      perm: mountPoint.perm,
+    };
+  } else {
+    // http/https
+    let res = await fetch(resolvedPath, {
+      method: "OPTIONS",
+      headers: authHeaders(mountPoint),
+    });
+    if (res.status !== 200) {
+      throw new Error(
+        `Failed to list pages: ${res.status}: ${await res.text()}`
+      );
+    }
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
+    return {
+      name: name,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+    };
+  }
 }
 
 export async function listPagesMounted(): Promise<PageMeta[]> {
   await updateMountPoints();
   let allPages: PageMeta[] = [];
   for (let mp of mountPointCache) {
-    let files = await listFiles(mp.path, true);
-    for (let file of files) {
-      if (!file.name.endsWith(".md")) {
-        continue;
+    if (mp.protocol === "file") {
+      let files = await listFiles(mp.path, true);
+      for (let file of files) {
+        if (!file.name.endsWith(".md")) {
+          continue;
+        }
+        allPages.push({
+          name: `${globalMountPrefix}${mp.prefix}${file.name.substring(
+            0,
+            file.name.length - 3
+          )}`,
+          lastModified: file.lastModified,
+          perm: mp.perm,
+        });
       }
-      allPages.push({
-        name: `${globalMountPrefix}${mp.prefix}${file.name.substring(
-          0,
-          file.name.length - 3
-        )}`,
-        lastModified: file.lastModified,
-        perm: mp.perm,
+    } else {
+      let res = await fetch(mp.path, {
+        headers: authHeaders(mp),
       });
+      if (res.status !== 200) {
+        throw new Error(
+          `Failed to list pages: ${res.status}: ${await res.text()}`
+        );
+      }
+      let remotePages: PageMeta[] = await res.json();
+      // console.log("Remote pages", remotePages);
+      for (let pageMeta of remotePages) {
+        if (pageMeta.name.startsWith("_")) {
+          continue;
+        }
+        allPages.push({
+          name: `${globalMountPrefix}${mp.prefix}${pageMeta.name}`,
+          lastModified: pageMeta.lastModified,
+          perm: mp.perm,
+        });
+      }
     }
   }
   return allPages;

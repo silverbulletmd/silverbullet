@@ -2,8 +2,10 @@ Space mounting in `MOUNTS`
 
 ```yaml
 - path: file:/Users/zef/git/blog
-  prefix: 📖
+  prefix: blog/
   perm: ro,rw #default rw
+- path: http://someIP:3000
+  prefix: prod/
 ```
 
 Features
@@ -13,6 +15,8 @@ To do:
 * [ ] Handle queries
   * `page` and `link` query needs to dynamically add/remove a `and name =~ /^🚪 PREFIX/` clause)
   * `task` same but with `page` check
+* [x] Add `file:` support
+* [x] Add `http:`/`https:` support
 
 * Due to namespacing, the mounted space needs to be namespaced somehow
 * Could be an emoji, could be a page prefix (now using `name`)

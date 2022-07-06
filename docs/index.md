@@ -26,6 +26,9 @@ I know, right?
 [[🔨 Development]]
 [[🗺 Roadmap]]
 
+## Proposals
+[[Mounts]]
+
 ## Installing and running Silver Bullet
 To run a release version, you need to have a recent version of npm (8+) and node.js (16+) installed as well as some basic build infrastructure (make, cpp). Silver Bullet has only been tested on MacOS and Linux thus far.
 
