@@ -28,32 +28,35 @@ export async function compile(
     );
   }
 
-  // TODO: Figure out how to make source maps work correctly with eval() code
-  let result = await esbuild.build({
-    entryPoints: [path.basename(inFile)],
-    bundle: true,
-    format: "iife",
-    globalName: "mod",
-    platform: "browser",
-    sourcemap: false, //debug ? "inline" : false,
-    minify: !debug,
-    outfile: outFile,
-    metafile: true,
-    external: excludeModules,
-    absWorkingDir: path.resolve(path.dirname(inFile)),
-  });
+  try {
+    // TODO: Figure out how to make source maps work correctly with eval() code
+    let result = await esbuild.build({
+      entryPoints: [path.basename(inFile)],
+      bundle: true,
+      format: "iife",
+      globalName: "mod",
+      platform: "browser",
+      sourcemap: false, //debug ? "inline" : false,
+      minify: !debug,
+      outfile: outFile,
+      metafile: true,
+      external: excludeModules,
+      absWorkingDir: path.resolve(path.dirname(inFile)),
+    });
 
-  if (meta) {
-    let text = await esbuild.analyzeMetafile(result.metafile);
-    console.log("Bundle info for", functionName, text);
-  }
+    if (meta) {
+      let text = await esbuild.analyzeMetafile(result.metafile);
+      console.log("Bundle info for", functionName, text);
+    }
 
-  let jsCode = (await readFile(outFile)).toString();
-  await unlink(outFile);
-  if (inFile !== filePath) {
-    await unlink(inFile);
+    let jsCode = (await readFile(outFile)).toString();
+    await unlink(outFile);
+    return `(() => { ${jsCode} return mod;})()`;
+  } finally {
+    if (inFile !== filePath) {
+      await unlink(inFile);
+    }
   }
-  return `(() => { ${jsCode} return mod;})()`;
 }
 
 export async function compileModule(
