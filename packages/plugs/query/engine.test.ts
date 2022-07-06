@@ -1,5 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { applyQuery, parseQuery } from "./engine";
+import { applyQuery } from "./engine";
+import { parseQuery } from "./parser";
 
 test("Test parser", () => {
   let parsedBasicQuery = parseQuery(`page`);

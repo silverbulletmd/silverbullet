@@ -114,6 +114,13 @@ export async function quickNoteCommand() {
   await navigate(pageName);
 }
 
+export async function dailyNoteCommand() {
+  let isoDate = new Date().toISOString();
+  let date = isoDate.split("T")[0];
+  let pageName = `📅 ${date}`;
+  await navigate(pageName);
+}
+
 export async function insertTemplateText(cmdDef: any) {
   let cursorPos = await getCursor();
   let page = await getCurrentPage();

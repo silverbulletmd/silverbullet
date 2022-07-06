@@ -10,7 +10,8 @@ import {
   writePage,
 } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { parseQuery, renderQuery } from "./engine";
+import { renderQuery } from "./engine";
+import { parseQuery } from "./parser";
 import { replaceTemplateVars } from "../core/template";
 import { jsonToMDTable, queryRegex } from "./util";
 import { dispatch } from "@plugos/plugos-syscall/event";
