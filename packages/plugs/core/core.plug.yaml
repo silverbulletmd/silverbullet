@@ -3,7 +3,7 @@ syntax:
   Hashtag:
     firstCharacters:
       - "#"
-    regex: "#[^#\\d\\s]+\\w"
+    regex: "#[^#\\d\\s]+\\w+"
     styles:
       color: blue
   NakedURL:
@@ -36,7 +36,6 @@ functions:
   reindexSpace:
     path: "./page.ts:reindexSpace"
     env: server
-
   deletePage:
     path: "./page.ts:deletePage"
     command:
@@ -62,6 +61,16 @@ functions:
     path: "./page.ts:pageComplete"
     events:
       - page:complete
+
+  # Item indexing
+  indexItem:
+    path: "./item.ts:indexItems"
+    events:
+      - page:index
+  itemQueryProvider:
+    path: "./item.ts:queryProvider"
+    events:
+      - query:item
 
   # Navigation
   linkNavigate:

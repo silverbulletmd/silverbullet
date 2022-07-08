@@ -5,9 +5,11 @@ import {
   queryPrefix,
 } from "@silverbulletmd/plugos-silverbullet-syscall/index";
 import {
+  collectNodesMatching,
   collectNodesOfType,
   ParseTree,
   renderToText,
+  replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
 import { removeQueries } from "../query/util";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
@@ -15,6 +17,7 @@ import { applyQuery, QueryProviderEvent } from "../query/engine";
 export type Item = {
   name: string;
   nested?: string;
+  tags?: string[];
   // Not stored in DB
   page?: string;
   pos?: number;
@@ -32,6 +35,11 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     if (!n.children) {
       return;
     }
+    if (collectNodesOfType(n, "Task").length > 0) {
+      // This is a task item, skip it
+      return;
+    }
+
     let textNodes: ParseTree[] = [];
     let nested: string | undefined;
     for (let child of n.children!.slice(1)) {
@@ -41,16 +49,24 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       }
       textNodes.push(child);
     }
-    let item = textNodes.map(renderToText).join("").trim();
-    let value: Item = {
-      name: item,
+
+    let itemText = textNodes.map(renderToText).join("").trim();
+    let item: Item = {
+      name: itemText,
     };
     if (nested) {
-      value.nested = nested;
+      item.nested = nested;
     }
+    collectNodesOfType(n, "Hashtag").forEach((h) => {
+      if (!item.tags) {
+        item.tags = [];
+      }
+      item.tags.push(h.children![0].text!);
+    });
+
     items.push({
       key: `it:${n.from}`,
-      value,
+      value: item,
     });
   });
   console.log("Found", items.length, "item(s)");
