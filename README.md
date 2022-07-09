@@ -81,7 +81,7 @@ Run these in separate terminals
 # Runs ParcelJS in watch mode, rebuilding the server and webapp continuously on change
 npm run watch
 # Runs the silverbullet server
-npm run server
+npm run server -- <PATH-TO-YOUR-SPACE>
 # Builds (and watches for changes) all builtin plugs (in packages/plugs)
-npm run plugs -- <PATH-TO-YOUR-SPACE>
+npm run plugs
 ```
