@@ -215,6 +215,12 @@ functions:
     path: ./text.ts:numberListifySelection
     command:
       name: "Text: Number Listify Selection"
+  linkSelection:
+    path: ./text.ts:linkSelection
+    command:
+      name: "Text: Link Selection"
+      key: "Ctrl-Shift-k"
+      mac: "Cmd-Shift-k"
   bold:
     path: ./text.ts:wrapSelection
     command:

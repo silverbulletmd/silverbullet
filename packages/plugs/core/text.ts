@@ -56,6 +56,23 @@ export async function numberListifySelection() {
   await replaceRange(from, selection.to, text);
 }
 
+export async function linkSelection() {
+  const text = await getText();
+  const selection = await getSelection();
+  const textSelection = text.slice(selection.from, selection.to);
+  let linkedText = `[]()`;
+  if (textSelection.length > 0) {
+    try {
+      new URL(textSelection);
+      linkedText = `[](${textSelection})`;
+    } catch {
+      linkedText = `[${textSelection}]()`;
+
+    }
+  }
+  await replaceRange(selection.from, selection.to, linkedText)
+}
+
 export function wrapSelection(cmdDef: any) {
   return insertMarker(cmdDef.wrapper);
 }
