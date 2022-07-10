@@ -61,16 +61,18 @@ export async function linkSelection() {
   const selection = await getSelection();
   const textSelection = text.slice(selection.from, selection.to);
   let linkedText = `[]()`;
+  let pos = 1;
   if (textSelection.length > 0) {
     try {
       new URL(textSelection);
       linkedText = `[](${textSelection})`;
     } catch {
       linkedText = `[${textSelection}]()`;
-
+      pos = linkedText.length - 1;
     }
   }
   await replaceRange(selection.from, selection.to, linkedText)
+  await moveCursor(selection.from + pos);
 }
 
 export function wrapSelection(cmdDef: any) {
