@@ -53,7 +53,17 @@ Optionally you can use the `--port` argument to specify a HTTP port (defaults to
 ## Development
 This Silver Bullet repo is a monorepo using npm's "workspaces" feature.
 
-Requirements: node 16+ and npm 8+ as well as C/C++ compilers (for compiling SQLite, on debian/ubuntu style systems you get these via the `build-essential` package)
+Requirements: 
+- node 18+ and npm 8+ 
+- C/C++ compilers (for compiling SQLite, on debian/ubuntu style systems you get these via the `build-essential` package)
+- python v2.7
+
+> **Note**
+> If you use nvm, you can just `nvm install` and it should use the right version
+
+> **Note**
+> On MacOs Monterey, python v2.7 is no longer shipped, if you install pyenv, you can `pyenv install` and it should use the right version
+
 
 To run, after clone:
 
