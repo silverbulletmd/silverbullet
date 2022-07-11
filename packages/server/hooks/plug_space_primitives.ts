@@ -29,8 +29,12 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     let allPages = new Set<PageMeta>();
     for (let { plug, name, operation } of this.hook.spaceFunctions) {
       if (operation === "listPages") {
-        for (let pm of await plug.invoke(name, [])) {
-          allPages.add(pm);
+        try {
+          for (let pm of await plug.invoke(name, [])) {
+            allPages.add(pm);
+          }
+        } catch (e) {
+          console.error("Error listing pages", e);
         }
       }
     }
