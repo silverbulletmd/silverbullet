@@ -29,7 +29,6 @@ import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
 import { systemSyscalls } from "./syscalls/system";
 import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
-import { Authenticator } from "./auth";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 
 // import globalModules from "../common/dist/global.plug.json";
@@ -264,8 +263,6 @@ export class ExpressServer {
     await ensureTable(this.db);
     await ensureFTSTable(this.db, "fts");
     await this.ensureIndexPage();
-
-    let auth = new Authenticator(this.db);
 
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));

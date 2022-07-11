@@ -280,30 +280,3 @@ functions:
       name: "UI: Hide BHS"
       key: "Ctrl-Alt-b"
       mac: "Cmd-Alt-b"
-
-  # Mounting
-  readPageMounted:
-    path: ./mount.ts:readPageMounted
-    pageNamespace:
-      pattern: "^🚪 .+"
-      operation: readPage
-  writePageMounted:
-    path: ./mount.ts:writePageMounted
-    pageNamespace:
-      pattern: "^🚪 .+"
-      operation: writePage
-  deletePageMounted:
-    path: ./mount.ts:deletePageMounted
-    pageNamespace:
-      pattern: "^🚪 .+"
-      operation: deletePage
-  getPageMetaMounted:
-    path: ./mount.ts:getPageMetaMounted
-    pageNamespace:
-      pattern: "^🚪 .+"
-      operation: getPageMeta
-  listPagesMounted:
-    path: ./mount.ts:listPagesMounted
-    pageNamespace:
-      pattern: "^🚪 .+"
-      operation: listPages

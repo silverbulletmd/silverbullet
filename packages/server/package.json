@@ -27,9 +27,7 @@
       ]
     },
     "test": {
-      "source": [
-        "auth.test.ts"
-      ],
+      "source": [],
       "outputFormat": "commonjs",
       "isLibrary": true,
       "context": "node"
