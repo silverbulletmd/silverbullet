@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.20",
+  "version": "0.0.21",
   "license": "MIT",
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
