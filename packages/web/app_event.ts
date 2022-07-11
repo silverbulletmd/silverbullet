@@ -1,6 +1,11 @@
 import type { ParseTree } from "@silverbulletmd/common/tree";
 
-export type AppEvent = "page:click" | "page:complete" | "page:load";
+export type AppEvent =
+  | "page:click"
+  | "page:complete"
+  | "page:load"
+  | "editor:init"
+  | "plugs:loaded";
 
 export type ClickEvent = {
   page: string;

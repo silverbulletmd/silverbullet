@@ -234,6 +234,8 @@ export class Editor {
       await this.pageNavigator.navigate("index");
     }
     await this.reloadPlugs();
+
+    await this.dispatchAppEvent("editor:init");
   }
 
   async save(immediate: boolean = false): Promise<void> {
@@ -459,11 +461,12 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     for (let pageInfo of this.space.listPlugs()) {
-      console.log("Loading plug", pageInfo.name);
+      // console.log("Loading plug", pageInfo.name);
       let { text } = await this.space.readPage(pageInfo.name);
       await this.system.load(JSON.parse(text), createIFrameSandbox);
     }
     this.rebuildEditorState();
+    await this.dispatchAppEvent("plugs:loaded");
   }
 
   rebuildEditorState() {
@@ -723,6 +726,15 @@ export class Editor {
         <StatusBar editorView={editor.editorView} />
       </>
     );
+  }
+
+  async runCommandByName(name: string) {
+    const cmd = this.viewState.commands.get(name);
+    if (cmd) {
+      await cmd.run();
+    } else {
+      throw new Error(`Command ${name} not found`);
+    }
   }
 
   render(container: ReactDOM.Container) {

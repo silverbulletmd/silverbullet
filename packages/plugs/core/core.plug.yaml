@@ -41,6 +41,12 @@ functions:
     command:
       name: "Page: Delete"
 
+  editorInit:
+    path: "./editor.ts:editorInit"
+    env: client
+    events:
+      - plugs:loaded
+
   # Backlinks
   indexLinks:
     path: "./page.ts:indexLinks"

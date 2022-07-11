@@ -135,7 +135,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   ) {
     await this.unloadAll();
     for (let manifest of json) {
-      console.log("Loading plug", manifest.name);
+      // console.log("Loading plug", manifest.name);
       await this.load(manifest, sandboxFactory);
     }
   }

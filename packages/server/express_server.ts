@@ -383,7 +383,8 @@ export class ExpressServer {
             args
           );
           res.status(200);
-          res.send(result);
+          res.header("Content-Type", "application/json");
+          res.send(JSON.stringify(result));
         } catch (e: any) {
           res.status(500);
           return res.send(e.message);
@@ -406,7 +407,8 @@ export class ExpressServer {
         try {
           const result = await plug.invoke(name, args);
           res.status(200);
-          res.send(result);
+          res.header("Content-Type", "application/json");
+          res.send(JSON.stringify(result));
         } catch (e: any) {
           res.status(500);
           // console.log("Error invoking function", e);
