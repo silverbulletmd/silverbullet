@@ -113,10 +113,7 @@ export class ExpressServer {
     // The cron hook
     this.system.addHook(new NodeCronHook());
 
-    // Register syscalls available on the server sid
-    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
-    // YOLO
-    this.system.registerSyscalls([], fileSystemSyscalls("/"));
+    // Register syscalls available on the server side
     this.system.registerSyscalls(
       [],
       pageIndexSyscalls(this.db),
@@ -129,6 +126,9 @@ export class ExpressServer {
       sandboxSyscalls(this.system),
       jwtSyscalls()
     );
+    // Danger zone
+    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
+    this.system.registerSyscalls(["fs"], fileSystemSyscalls("/"));
 
     // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
     this.system.addHook(new EndpointHook(this.app, "/_"));
