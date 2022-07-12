@@ -6,6 +6,9 @@ import {
   queryPrefix,
   set,
 } from "@silverbulletmd/plugos-silverbullet-syscall/index";
+
+import { set as storeSet } from "@plugos/plugos-syscall/store";
+
 import {
   flashNotification,
   getCurrentPage,
@@ -189,7 +192,7 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 export async function reindexCommand() {
   await flashNotification("Reindexing...");
   await invokeFunction("server", "reindexSpace");
-  await set("index", "$spaceIndexed", true);
+  await storeSet("$spaceIndexed", true);
   await flashNotification("Reindexing done");
 }
 
