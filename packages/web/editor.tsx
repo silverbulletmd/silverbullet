@@ -60,6 +60,7 @@ import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
+import { storeSyscalls } from "./syscalls/store";
 
 class PageState {
   constructor(
@@ -155,6 +156,7 @@ export class Editor {
       systemSyscalls(this),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       clientStoreSyscalls(),
+      storeSyscalls(this.space),
       sandboxSyscalls(this.system)
     );
 

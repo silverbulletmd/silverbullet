@@ -10,7 +10,7 @@ import bodyParser from "body-parser";
 import { EventHook } from "@plugos/plugos/hooks/event";
 import spaceSyscalls from "./syscalls/space";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
-import { ensureTable, pageIndexSyscalls } from "./syscalls";
+import { ensureTable as ensureIndexTable, pageIndexSyscalls } from "./syscalls";
 import knex, { Knex } from "knex";
 import shellSyscalls from "@plugos/plugos/syscalls/shell.node";
 import { NodeCronHook } from "@plugos/plugos/hooks/node_cron";
@@ -49,6 +49,10 @@ import { PlugSpacePrimitives } from "./hooks/plug_space_primitives";
 import { PageNamespaceHook } from "./hooks/page_namespace";
 import { readFileSync } from "fs";
 import fileSystemSyscalls from "@plugos/plugos/syscalls/fs.node";
+import {
+  storeSyscalls,
+  ensureTable as ensureStoreTable,
+} from "@plugos/plugos/syscalls/store.knex_node";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -117,6 +121,7 @@ export class ExpressServer {
     this.system.registerSyscalls(
       [],
       pageIndexSyscalls(this.db),
+      storeSyscalls(this.db, "store"),
       fullTextSearchSyscalls(this.db, "fts"),
       spaceSyscalls(this.space),
       eventSyscalls(this.eventHook),
@@ -260,7 +265,8 @@ export class ExpressServer {
           next();
         };
 
-    await ensureTable(this.db);
+    await ensureIndexTable(this.db);
+    await ensureStoreTable(this.db, "store");
     await ensureFTSTable(this.db, "fts");
     await this.ensureIndexPage();
 
