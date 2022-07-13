@@ -79,7 +79,6 @@
     "@types/node-fetch": "^2.6.1",
     "@types/supertest": "^2.0.11",
     "@types/yaml": "^1.9.7",
-    "@vscode/sqlite3": "^5.0.7",
     "assert": "^2.0.0",
     "events": "^3.3.0",
     "parcel": "2.5.0",
