@@ -76,18 +76,28 @@ body {
       display: flex;
       flex-direction: row;
 
-      .status {
+      .notifications {
         position: absolute;
         font-family: "iA-Mono";
         bottom: 45px;
         left: 5px;
         right: 5px;
-        background-color: rgb(187, 221, 247);
-        border: rgb(41, 41, 41) 1px solid;
-        border-radius: 5px;
-        padding: 3px;
         font-size: 15px;
         z-index: 100;
+
+        > div {
+          padding: 3px;
+          margin-bottom: 3px;
+          border-radius: 5px;
+          border: rgb(41, 41, 41) 1px solid;
+        }
+
+        .notification-info {
+          background-color: rgb(187, 221, 247);
+        }
+        .notification-error {
+          background-color: rgb(255, 84, 84);
+        }
       }
 
       .current-page {

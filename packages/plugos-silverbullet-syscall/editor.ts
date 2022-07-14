@@ -41,8 +41,11 @@ export function openUrl(url: string): Promise<void> {
   return syscall("editor.openUrl", url);
 }
 
-export function flashNotification(message: string): Promise<void> {
-  return syscall("editor.flashNotification", message);
+export function flashNotification(
+  message: string,
+  type: "info" | "error" = "info"
+): Promise<void> {
+  return syscall("editor.flashNotification", message, type);
 }
 
 export function filterBox(

@@ -55,8 +55,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         win.focus();
       }
     },
-    "editor.flashNotification": (ctx, message: string) => {
-      editor.flashNotification(message);
+    "editor.flashNotification": (
+      ctx,
+      message: string,
+      type: "error" | "info" = "info"
+    ) => {
+      editor.flashNotification(message, type);
     },
     "editor.filterBox": (
       ctx,

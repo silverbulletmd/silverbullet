@@ -6,6 +6,7 @@ export const slashCommandRegexp = /\/[\w\-]*/;
 export type Notification = {
   id: number;
   message: string;
+  type: "info" | "error";
   date: Date;
 };
 

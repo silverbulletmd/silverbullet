@@ -272,22 +272,26 @@ export class Editor {
     });
   }
 
-  flashNotification(message: string) {
+  flashNotification(message: string, type: "info" | "error" = "info") {
     let id = Math.floor(Math.random() * 1000000);
     this.viewDispatch({
       type: "show-notification",
       notification: {
-        id: id,
-        message: message,
+        id,
+        type,
+        message,
         date: new Date(),
       },
     });
-    setTimeout(() => {
-      this.viewDispatch({
-        type: "dismiss-notification",
-        id: id,
-      });
-    }, 2000);
+    setTimeout(
+      () => {
+        this.viewDispatch({
+          type: "dismiss-notification",
+          id: id,
+        });
+      },
+      type === "info" ? 2000 : 5000
+    );
   }
 
   filterBox(
@@ -334,7 +338,10 @@ export class Editor {
               .then(def.run)
               .catch((e: any) => {
                 console.error(e);
-                this.flashNotification(`Error running command: ${e.message}`);
+                this.flashNotification(
+                  `Error running command: ${e.message}`,
+                  "error"
+                );
               });
             return true;
           },

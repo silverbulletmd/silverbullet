@@ -39,9 +39,14 @@ export function TopBar({
             {prettyName(pageName)}
           </span>
           {notifications.length > 0 && (
-            <div className="status">
+            <div className="notifications">
               {notifications.map((notification) => (
-                <div key={notification.id}>{notification.message}</div>
+                <div
+                  key={notification.id}
+                  className={`notification-${notification.type}`}
+                >
+                  {notification.message}
+                </div>
               ))}
             </div>
           )}
