@@ -15,15 +15,10 @@ async function getFiles(dir) {
 const rootDir = resolve("docs");
 
 getFiles(rootDir).then((files) => {
-  files = files
-    .map((file) => ({
-      name: file.substring(rootDir.length + 1).replace(/\.md$/, ""),
-      lastModified: 0,
-      perm: "ro",
-    }))
-    .filter(
-      (pageMeta) =>
-        !pageMeta.name.startsWith("_") && !pageMeta.name.startsWith(".")
-    );
+  files = files.map((file) => ({
+    name: file.substring(rootDir.length + 1).replace(/\.md$/, ""),
+    lastModified: 0,
+    perm: "ro",
+  }));
   console.log(JSON.stringify(files, null, 2));
 });
