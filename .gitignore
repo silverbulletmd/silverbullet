@@ -10,5 +10,6 @@ generated
 *.test.js
 *.js.map
 .vscode
-website
+website_build
 data.db
+/index.json

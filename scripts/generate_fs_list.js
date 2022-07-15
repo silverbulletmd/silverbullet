@@ -12,7 +12,7 @@ async function getFiles(dir) {
   return Array.prototype.concat(...files);
 }
 
-const rootDir = resolve("website/fs");
+const rootDir = resolve("website_build/fs");
 
 getFiles(rootDir).then((files) => {
   files = files

@@ -1,3 +1,5 @@
+This is currently implemented in [this github repo](https://github.com/silverbulletmd/silverbullet-mount):
+
 Space mounting in `MOUNTS`
 
 ```yaml
