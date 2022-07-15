@@ -13,6 +13,7 @@ Things to try:
 * Select some text and hit `Alt-m` to highlight it, or `Cmd-b` (Mac) or `Ctrl-b` to make it bold.
 * Click a link below to navigate there
 * Start typing `[[` somewhere to insert a page link (with completion)
+* [ ] Tap this box 👈 to mark this task as done
 * Start typing `:pa` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to use a _slash command_.
 * Open this site on your phone or tablet and… it just works! 
