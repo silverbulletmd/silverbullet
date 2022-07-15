@@ -15,7 +15,7 @@ Feel free to make some edits in this space. Don’t worry, you won’t break any
 Things to try:
 
 * Click on the page name at the top, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the _page switcher_. Type the a name of a non-existing page to create it (although it won’t save in this environment).
-* Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the _command palette_ (note not all command will work in this quasi read-only mode).
+* Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the _command palette_ (note not all commands will work in this quasi read-only mode).
 * Select some text and hit `Alt-m` to highlight it, or `Cmd-b` (Mac) or `Ctrl-b` to make it bold.
 * Click a link below to navigate there
 * Start typing `[[` somewhere to insert a page link (with completion)
@@ -53,7 +53,7 @@ To run a release version, you need to have a recent version of [node.js installe
 
 To install and run, create a folder for your pages (can be empty or an existing folder with `.md` files) and run:
 
-    npx @silverbullet/server <path-to-folder>
+    npx @silverbulletmd/server <path-to-folder>
 
 Optionally you can use the `--port` argument to specify a HTTP port (defaults to `3000`) and you can pass a `--password` flag to require a password to access. Note this is a rather weak security mechanism, so it’s recommended to add additional layers of security on top of this if you run this on a public server somewhere (at least add TLS). Personally I run it on a tiny Linux VM on my server at home, and use a VPN (Tailscale) to access it from outside my home.
 
