@@ -1,10 +1,16 @@
 # Silver Bullet
 ## Markdown as a platform
-Silver Bullet (SB) is a highly extensible, open source **personal knowledge playground**. At its core it’s a Markdown-based writing/note taking application that stores _pages_ (notes) as plain markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. This makes it a simple tool for [Personal Knowledge Management](https://en.wikipedia.org/wiki/Personal_knowledge_management). However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge playground_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you.
+Silver Bullet (SB) is highly-extensible, open source **personal knowledge management** software. Indeed, that’s fancy language for “a note taking app with links.” 
 
-What does Silver Bullet look like? Well, have a look around. **You’re looking at it at this very moment!** Say what!? 
+At its core SB is a Markdown editor that stores _pages_ (notes) as plain markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. This makes it a great tool for [Personal Knowledge Management](https://en.wikipedia.org/wiki/Personal_knowledge_management). However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge playground_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you.
 
-Feel free to make some edits, to get a feel for it. Don’t worry, you won’t break anything, nothing is saved (just reload the page to see).
+Cool, no?
+
+What does Silver Bullet look like? Well, have a look around. **You’re looking at it at this very moment!**
+
+Note that this is not a fully functional version, because the back-end is read only. However, it should give you some feel for what it’s like to use SB before making that massive commitment of running a single `npx` command (see below) to run it locally in its fully functioning mode.
+
+Feel free to make some edits in this space. Don’t worry, you won’t break anything, nothing is saved (just reload the page to see).
 
 Things to try:
 
@@ -19,7 +25,7 @@ Things to try:
 * Open this site on your phone or tablet and… it just works! 
 
 ## Explore more
-Click on the links below to explore various of Silver Bullet more in-depth:
+Click on the links below to explore various aspects of Silver Bullet more in-depth:
 
 [[🤯 Features]]
 [[💡 Inspiration]]
@@ -31,6 +37,14 @@ More of a video person? Here’s two to get you started:
 
 * [A Tour of Silver Bullet’s features](https://youtu.be/RYdc3UF9gok) — spoiler alert: it’s cool.
 * [A look the SilverBullet architecture](https://youtu.be/mXCGau05p5o) — spoiler alert: it’s plugs all the way down.
+
+## Principles
+Some core principles that underly Silver Bullet’s philosophy:
+
+* **The truth is in the markdown.** And markdown is simply text files stored on disk. No proprietary formats or lock in. While SB uses a database for indexing and caching some data, all of that can be rebuilt from its markdown sources at any time.
+* **What you see is what it is.** No magic or hidden content.
+* **Single mode.** SB doesn’t have a separate view and edit mode. You’re always in edit mode, and you like it that way.
+* **Extend it your way**. SB is highly extensible, and you can customize it your liking and your workflows.
 
 ## Installing and running Silver Bullet
 Like what you’re seeing? Install it yourself locally or on your server! It’s free.
