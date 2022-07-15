@@ -4,7 +4,7 @@ npm run clean-build
 rm -rf website
 mkdir -p website/fs/_plug
 cp -r packages/web/dist/* website/
-cp _redirects website/
+cp _redirects _headers website/
 cp -r docs/* website/fs/
 cp packages/plugs/dist/* website/fs/_plug/
 find website/fs/ -depth -name "*.md" -exec sh -c 'mv "$1" "${1%.md}"' _ {} \;
