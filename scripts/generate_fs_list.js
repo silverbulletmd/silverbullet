@@ -22,7 +22,7 @@ getFiles(rootDir).then((files) => {
         .replace(/\.md$/, "")
         .replace(/\.plug\.json$/, ""),
       lastModified: 0,
-      perm: "ro",
+      perm: "rw",
     }))
     .filter((pageMeta) => !pageMeta.name.startsWith("."));
   console.log(JSON.stringify(files, null, 2));
