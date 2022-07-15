@@ -16,8 +16,8 @@ Here are some things to try:
 
 * Click on the page name at the top, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the a name of a non-existing page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note not all command will work in this quasi read-only mode).
-* Select some text and hit `Alt-m` to highlight it, or `Cmd-b` (Mac) or `Ctrl-b` to make it bold.
-* Click a link somewhere in this page, to navigate there.
+* Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` to make it **bold**.
+* Click a link somewhere in this page to navigate there.
 * Start typing `[[` somewhere to insert a page link (with completion).
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
@@ -41,10 +41,12 @@ More of a video person? Here’s two to get you started:
 ## Principles
 Some core principles that underly Silver Bullet’s philosophy:
 
+* **Free and open source**. 
 * **The truth is in the markdown.** Markdown is simply text files, stored on disk. Nothing fancy. No proprietary formats or lock in. While SB uses a database for indexing and caching some data, all of that can be rebuilt from its markdown source at any time.
 * **What you see is what it is.** No magic or hidden content.
-* **Single mode.** SB doesn’t have a separate view and edit mode. You’re always in edit mode, and you like it that way.
-* **Extend it your way**. SB is highly extensible, and you can customize it your liking and your workflows.
+* **Single, distraction free mode.** SB doesn’t have a separate view and edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode, why wouldn’t you?
+* **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
+* **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it your liking and your workflows.
 
 ## Running Silver Bullet
 Do you like what you’re seeing? Are you ready to take that next step? Install it yourself locally or on your server! It’s free.
