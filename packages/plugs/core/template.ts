@@ -16,12 +16,14 @@ import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markd
 import { extractMeta } from "../query/data";
 import { renderToText } from "@silverbulletmd/common/tree";
 import { niceDate } from "./dates";
-
-const pageTemplatePrefix = `template/page/`;
-const snippetPrefix = `snippet/`;
+import { readSettings } from "../lib/settings_page";
 
 export async function instantiateTemplateCommand() {
   let allPages = await listPages();
+  let { pageTemplatePrefix } = await readSettings({
+    pageTemplatePrefix: "template/page/",
+  });
+
   let allPageTemplates = allPages.filter((pageMeta) =>
     pageMeta.name.startsWith(pageTemplatePrefix)
   );
@@ -54,11 +56,17 @@ export async function instantiateTemplateCommand() {
 
 export async function insertSnippet() {
   let allPages = await listPages();
+  let { snippetPrefix } = await readSettings({
+    snippetPrefix: "snippet/",
+  });
   let cursorPos = await getCursor();
   let page = await getCurrentPage();
-  let allSnippets = allPages.filter((pageMeta) =>
-    pageMeta.name.startsWith(snippetPrefix)
-  );
+  let allSnippets = allPages
+    .filter((pageMeta) => pageMeta.name.startsWith(snippetPrefix))
+    .map((pageMeta) => ({
+      ...pageMeta,
+      name: pageMeta.name.slice(snippetPrefix.length),
+    }));
 
   let selectedSnippet = await filterBox(
     "Snippet",
@@ -69,7 +77,7 @@ export async function insertSnippet() {
   if (!selectedSnippet) {
     return;
   }
-  let { text } = await readPage(selectedSnippet.name);
+  let { text } = await readPage(`${snippetPrefix}${selectedSnippet.name}`);
 
   let templateText = replaceTemplateVars(text, page);
   let carretPos = templateText.indexOf("|^|");

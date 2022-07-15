@@ -12,11 +12,8 @@ import { set as storeSet } from "@plugos/plugos-syscall/store";
 import {
   flashNotification,
   getCurrentPage,
-  getCursor,
   getText,
-  insertAtCursor,
   matchBefore,
-  moveCursor,
   navigate,
   prompt,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";

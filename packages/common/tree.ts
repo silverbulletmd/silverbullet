@@ -107,6 +107,15 @@ export function findNodeOfType(
   return collectNodesMatching(tree, (n) => n.type === nodeType)[0];
 }
 
+export function traverseTree(
+  tree: ParseTree,
+  // Return value = should stop traversal?
+  matchFn: (tree: ParseTree) => boolean
+): void {
+  // Do a collect, but ignore the result
+  collectNodesMatching(tree, matchFn);
+}
+
 // Finds non-text node at position
 export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
   if (pos < tree.from! || pos > tree.to!) {

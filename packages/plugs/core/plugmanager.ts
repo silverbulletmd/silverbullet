@@ -1,22 +1,20 @@
 import { dispatch } from "@plugos/plugos-syscall/event";
 import { Manifest } from "@silverbulletmd/common/manifest";
-import { findNodeOfType } from "@silverbulletmd/common/tree";
 import {
   flashNotification,
   save,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import {
   deletePage,
   listPages,
-  readPage,
   writePage,
 } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import {
   invokeFunction,
   reloadPlugs,
 } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import YAML from "yaml";
+
+import { readYamlPage } from "../lib/yaml_page";
 
 async function listPlugs(): Promise<string[]> {
   let unfilteredPages = await listPages(true);
@@ -28,23 +26,22 @@ async function listPlugs(): Promise<string[]> {
 export async function updatePlugsCommand() {
   await save();
   flashNotification("Updating plugs...");
-  await invokeFunction("server", "updatePlugs");
-  flashNotification("And... done!");
-  await reloadPlugs();
+  try {
+    await invokeFunction("server", "updatePlugs");
+    flashNotification("And... done!");
+    await reloadPlugs();
+  } catch (e: any) {
+    flashNotification("Error updating plugs: " + e.message, "error");
+  }
 }
 
 export async function updatePlugs() {
-  let { text: plugPageText } = await readPage("PLUGS");
-
-  let tree = await parseMarkdown(plugPageText);
-
-  let codeTextNode = findNodeOfType(tree, "CodeText");
-  if (!codeTextNode) {
-    console.error("Could not find yaml block in PLUGS");
-    return;
+  let plugList: string[] = [];
+  try {
+    plugList = await readYamlPage("PLUGS");
+  } catch (e: any) {
+    throw new Error(`Error processing PLUGS: ${e.message}`);
   }
-  let plugYaml = codeTextNode.children![0].text;
-  let plugList = YAML.parse(plugYaml!);
   console.log("Plug YAML", plugList);
   let allPlugNames: string[] = [];
   for (let plugUri of plugList) {
