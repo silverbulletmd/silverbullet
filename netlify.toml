@@ -1,0 +1,3 @@
+[build]
+publish = "website"
+command = "./scripts/build_website.sh"

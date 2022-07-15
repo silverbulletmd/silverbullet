@@ -10,3 +10,4 @@ generated
 *.test.js
 *.js.map
 .vscode
+website
