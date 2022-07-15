@@ -11,3 +11,4 @@ generated
 *.js.map
 .vscode
 website
+data.db
