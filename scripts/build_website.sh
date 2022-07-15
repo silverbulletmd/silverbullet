@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#npm run clean-build
+npm run clean-build
 rm -rf website_build
 mkdir -p website_build/fs/_plug
 cp -r packages/web/dist/* website_build/
