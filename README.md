@@ -3,7 +3,7 @@ Silver Bullet (SB) is a highly extensible, open source **personal knowledge play
 
 So what is it SB _really_? That is hard to answer. It can do a ton of stuff out of the box, and I’m constantly finding new use cases. It’s like... a silver bullet!
 
-Below is what it looks like in action (when run on the `docs` folder in this repo).
+Below is what it looks like in action (when run on the `website` folder in this repo).
 
 ![Screenshot](https://raw.githubusercontent.com/zefhemel/silverbullet/main/images/silverbullet1.png)
 
