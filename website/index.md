@@ -47,14 +47,14 @@ Some core principles that underly Silver Bullet’s philosophy:
 * **What you see is what it is.** No magic or hidden content.
 * **Single, distraction free mode.** SB doesn’t have a separate view and edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode, why wouldn’t you?
 * **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
-* **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it your liking and your workflows.
+* **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
 
 ## Running Silver Bullet
 Do you like what you’re seeing? Are you ready to take that next step? Install it yourself locally or on your server! It’s free.
 
 To run a release version, you need to have a recent version of [node.js installed](https://nodejs.org/en/) (16+). Silver Bullet has only been tested on MacOS and Linux thus far. It could also run on Windows, let me know if it does.
 
-To install and run SB, create a folder for your pages (can be empty or an existing folder with `.md` files) and run the following command in your terminal:
+To install and run SB, create a folder for your pages (it can be empty or an existing folder with `.md` files) and run the following command in your terminal:
 
     npx @silverbulletmd/server <path-to-folder>
 
