@@ -22,7 +22,8 @@ Here are some things to try:
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to invoke a **slash command**.
-* Open this site on your phone or tablet and… it just works! 
+* Open this site on your phone or tablet and… it just works!
+* Are you using a browser with **PWA support** (e.g. any Chromium-based browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
 ## Explore more
 Click on the links below to explore various aspects of Silver Bullet more in-depth:
@@ -42,7 +43,7 @@ More of a video person? Here’s two to get you started:
 Some core principles that underly Silver Bullet’s philosophy:
 
 * **Free and open source**. Silver Bullet is MIT licensed.
-* **The truth is in the markdown.** Markdown is simply text files, stored on disk. Nothing fancy. No proprietary formats or lock in. While SB uses a database for indexing and caching some data, all of that can be rebuilt from its markdown source at any time.
+* **The truth is in the markdown.** Markdown is simply text files, stored on disk. Nothing fancy. No proprietary formats or lock in. While SB uses a database for indexing and caching some data, all of that can be rebuilt from its markdown source at any time. If SB would ever go away, you can still read your pages with any text editor.
 * **What you see is what it is.** No magic or hidden content.
 * **Single, distraction free mode.** SB doesn’t have a separate view and edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode, why wouldn’t you?
 * **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
