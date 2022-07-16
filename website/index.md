@@ -4,8 +4,6 @@ Silver Bullet (SB) is highly-extensible, [open source](https://github.com/silver
 
 At its core, SB is a Markdown editor that stores _pages_ (notes) as plain markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge playground_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you. To get a good feel for it, [watch this video](https://youtu.be/RYdc3UF9gok).
 
-Cool, no?
-
 What does Silver Bullet look like? Well, have a look around. **You’re looking at it at this very moment!** 🤯
 
 Note that what you’re looking at is not a fully functional version, because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `npx` command (see below) to download and run it locally in its fully functioning mode.
@@ -25,6 +23,17 @@ Here are some things to try:
 * Hit `Cmd-p` (Mac) or `Ctrl-p` (Windows, Linux) to show a live preview for the current page on the side, if your brain doesn’t speak native Markdown yet.
 * Open this site on your phone or tablet and… it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
+
+Cool, no?
+
+There are a few features you don’t get to try in this environment, because they rely on some back-end processing, such as:
+
+* Using SB’s powerful page indexing and **query mechanism** where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
+* Intelligent page renaming, automatically updating any pages that link to it.
+* Full text search.
+* Dynamically **extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] and writing your own.
+
+To experience these, you’ll have to install SB yourself (see below).
 
 ## Explore more
 Click on the links below to explore various aspects of Silver Bullet more in-depth:
@@ -50,16 +59,16 @@ Some core principles that underly Silver Bullet’s philosophy:
 * **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
 * **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
 
-## Running Silver Bullet
-Do you like what you’re seeing? Are you ready to take that next step? Install it yourself locally or on your server! It’s free.
+## Installing Silver Bullet
+For this you will need to have a recent version of [node.js installed](https://nodejs.org/en/) (16+). Silver Bullet has only been tested on MacOS and Linux thus far. It could also run on Windows, let me know if it does.
 
-To run a release version, you need to have a recent version of [node.js installed](https://nodejs.org/en/) (16+). Silver Bullet has only been tested on MacOS and Linux thus far. It could also run on Windows, let me know if it does.
-
-To install and run SB, create a folder for your pages (it can be empty or an existing folder with `.md` files) and run the following command in your terminal:
+To install and run SB, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
 
     npx @silverbulletmd/server <path-to-folder>
 
 Optionally you can use the `—port` argument to specify a HTTP port (defaults to `3000`) and you can pass a `—password` flag to require a password to access. Note this is a rather weak security mechanism, so it’s recommended to add additional layers of security on top of this if you run this on a public server somewhere (at least add TLS). Personally I run it on a tiny Linux VM on my server at home, and use a VPN (Tailscale) to access it from outside my home.
+
+Once downloaded and booted, you will be provided with a URL to open SB in your browser (spoiler alert: by default this will be http://localhost:3000 ).
 
 That’s it! Enjoy.
 
