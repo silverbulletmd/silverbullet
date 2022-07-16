@@ -22,6 +22,7 @@ Here are some things to try:
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to invoke a **slash command**.
+* Hit `Cmd-p` (Mac) or `Ctrl-p` (Windows, Linux) to show a live preview for the current page on the side, if your brain doesn’t speak native Markdown yet.
 * Open this site on your phone or tablet and… it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
