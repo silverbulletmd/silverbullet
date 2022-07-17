@@ -44,7 +44,7 @@ export function Panel({
       let data = evt.data;
       if (!data) return;
       if (data.type === "event") {
-        editor.dispatchAppEvent(data.name, data.args);
+        editor.dispatchAppEvent(data.name, ...data.args);
       }
     };
     window.addEventListener("message", messageListener);
