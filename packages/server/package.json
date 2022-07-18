@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.23",
+  "version": "0.0.25",
   "license": "MIT",
   "bin": {
     "silverbullet": "./dist/server/server.js"
@@ -39,9 +39,9 @@
     "@codemirror/legacy-modes": "6.0.0",
     "@jest/globals": "^27.5.1",
     "@lezer/markdown": "1.0.1",
-    "@silverbulletmd/common": "^0.0.23",
-    "@silverbulletmd/plugs": "^0.0.23",
-    "@silverbulletmd/web": "^0.0.23",
+    "@silverbulletmd/common": "^0.0.25",
+    "@silverbulletmd/plugs": "^0.0.25",
+    "@silverbulletmd/web": "^0.0.25",
     "better-sqlite3": "^7.5.0",
     "body-parser": "^1.19.2",
     "buffer": "^6.0.3",
@@ -51,6 +51,7 @@
     "events": "^3.3.0",
     "express": "^4.17.3",
     "fake-indexeddb": "^3.1.7",
+    "form-data": "^4.0.0",
     "jest": "^27.5.1",
     "jsonwebtoken": "^8.5.1",
     "knex": "^1.0.4",

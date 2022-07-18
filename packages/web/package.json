@@ -4,7 +4,7 @@
     "name": "Zef Hemel",
     "email": "zef@zef.me"
   },
-  "version": "0.0.23",
+  "version": "0.0.25",
   "license": "MIT",
   "scripts": {
     "watch": "rm -rf .parcel-cache && parcel watch",
@@ -45,7 +45,6 @@
     "fuzzysort": "^1.9.0",
     "jest": "^27.5.1",
     "knex": "^1.0.4",
-    "node-fetch": "^3.2.6",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
