@@ -598,11 +598,13 @@ export class Editor {
     if (pageState) {
       // Restore state
       // console.log("Restoring selection state", pageState);
+      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
       editorView.dispatch({
         selection: pageState.selection,
         scrollIntoView: true,
       });
-      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
+    } else {
+      editorView.scrollDOM.scrollTop = 0;
     }
     editorView.focus();
   }
