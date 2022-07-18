@@ -37,6 +37,22 @@ More documentation can be found in the [docs space](https://github.com/zefhemel/
 * **Extensible** through plugs.
 
 ## Installing and running Silver Bullet
+
+## Start with docker 
+First you have to clone the repo, then configure your port, space/directory in .env file  
+
+then run 
+```
+docker compose up 
+```
+then open your browser and ROCK!
+
+e.g.
+```
+localhost:PORT
+```
+
+## Start without docker 
 To run a release version, you need to have a recent version of npm (8+) and node.js (16+) installed as well as some basic build infrastructure (make, cpp). Silver Bullet has only been tested on MacOS and Linux thus far.
 
 To install and run, create a folder for your pages (can be empty or an existing folder with `.md` files) and run:
