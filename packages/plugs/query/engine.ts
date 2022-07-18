@@ -144,6 +144,17 @@ export async function renderQuery(
   if (parsedQuery.render) {
     Handlebars.registerHelper("json", (v) => JSON.stringify(v));
     Handlebars.registerHelper("niceDate", (ts) => niceDate(new Date(ts)));
+    Handlebars.registerHelper("prefixLines", (v: string, prefix) =>
+      v
+        .split("\n")
+        .map((l) => prefix + l)
+        .join("\n")
+    );
+
+    Handlebars.registerHelper("substring", (s, from, to, elipsis = "") =>
+      s.length > to - from ? s.substring(from, to) + elipsis : s
+    );
+
     Handlebars.registerHelper("yaml", (v, prefix) => {
       if (typeof prefix === "string") {
         let yaml = YAML.stringify(v)
