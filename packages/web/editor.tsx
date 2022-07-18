@@ -582,6 +582,8 @@ export class Editor {
 
     if (loadingDifferentPage) {
       await this.eventHook.dispatchEvent("editor:pageLoaded", pageName);
+    } else {
+      await this.eventHook.dispatchEvent("editor:pageReloaded", pageName);
     }
   }
 
