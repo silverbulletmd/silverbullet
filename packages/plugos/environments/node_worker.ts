@@ -28,6 +28,9 @@ let consoleLogger = new ConsoleLogger((level, message) => {
 
 let loadedModules = new Map<string, any>();
 
+// HACK to make Mattermost client work...
+loadedModules.set("form-data", require(`${nodeModulesPath}/form-data`));
+
 let vm = new VM({
   sandbox: {
     // Exposing some "safe" APIs

@@ -1,5 +1,15 @@
 import { readYamlPage } from "./yaml_page";
 
+/**
+ * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
+ * in case they are not specified.
+ * Example: `await readSettings({showPreview: false})` will return an object like `{showPreview: false}` (or `true`)
+ * in case this setting is specifically set in the `SETTINGS` page.
+ *
+ * @param settings object with settings to fetch and their default values
+ * @returns an object with the same shape as `settings` but with non-default values override based on `SETTINGS`
+ */
+
 export async function readSettings<T extends object>(settings: T): Promise<T> {
   try {
     let allSettings = (await readYamlPage("SETTINGS", ["yaml"])) || {};

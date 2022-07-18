@@ -14,6 +14,20 @@ syntax:
       color: "#0330cb"
       textDecoration: underline
       cursor: pointer
+  CommandLink:
+    firstCharacters:
+      - "{"
+    regex: "\\{\\[[^\\]]+\\]\\}"
+    styles:
+      #color: "#1e62a0"
+      backgroundColor: "#e3dfdf"
+      cursor: pointer
+      borderTop: 1px solid silver
+      borderLeft: 1px solid silver
+      borderBottom: 1px solid gray
+      borderRight: 1px solid gray
+      borderRadius: 4px
+      padding: 0 4px
 functions:
   clearPageIndex:
     path: "./page.ts:clearPageIndex"

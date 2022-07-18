@@ -120,6 +120,10 @@ async function run() {
       if (
         filename.endsWith(".plug.yaml") ||
         filename.endsWith(".js") ||
+        filename.endsWith(".css") ||
+        filename.endsWith(".png") ||
+        filename.endsWith(".jpg") ||
+        filename.endsWith(".gif") ||
         (filename.endsWith(".ts") && !filename.endsWith("_in.ts"))
       ) {
         console.log("Change detected", eventType, filename);

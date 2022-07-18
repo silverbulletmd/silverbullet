@@ -12,4 +12,5 @@ functions:
     events:
       - plug:load
       - editor:updated
-      - editor:pageSwitched
+      - editor:pageLoaded
+      - editor:pageReloaded
