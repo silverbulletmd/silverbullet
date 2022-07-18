@@ -7,6 +7,7 @@ import {
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import { nodeAtPos, ParseTree } from "@silverbulletmd/common/tree";
+import { invokeCommand } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 
 async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   if (!mdTree) {
@@ -28,6 +29,13 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       break;
     case "Link":
       await openUrl(mdTree.children![4].children![0].text!);
+      break;
+    case "CommandLink":
+      let command = mdTree
+        .children![0].text!.substring(2, mdTree.children![0].text!.length - 2)
+        .trim();
+      console.log("Got command link", command);
+      await invokeCommand(command);
       break;
   }
 }
