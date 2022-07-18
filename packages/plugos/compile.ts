@@ -41,6 +41,12 @@ export async function compile(
       outfile: outFile,
       metafile: true,
       external: excludeModules,
+      loader: {
+        ".css": "text",
+        ".png": "dataurl",
+        ".gif": "dataurl",
+        ".jpg": "dataurl",
+      },
       absWorkingDir: path.resolve(path.dirname(inFile)),
     });
 
