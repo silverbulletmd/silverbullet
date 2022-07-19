@@ -269,7 +269,14 @@ export class Editor {
                 this.viewDispatch({ type: "page-saved" });
                 resolve();
               })
-              .catch(reject);
+              .catch((e) => {
+                this.flashNotification(
+                  "Could not save page, retrying again in 10 seconds",
+                  "error"
+                );
+                this.saveTimeout = setTimeout(this.save.bind(this), 10000);
+                reject(e);
+              });
           } else {
             resolve();
           }
