@@ -26,7 +26,7 @@ I know, right?
 
 **Disclaimer:** Silver Bullet is under heavy development and significant changes under the hood happen constantly. It’s also low on automated tests and documentation. All this will improve over time. I’ll do better, I promise.
 
-More documentation can be found in the [docs space](https://github.com/zefhemel/silverbullet/tree/main/docs)
+More documentation can be found in the [website space](https://github.com/zefhemel/silverbullet/tree/main/website)
 
 ## Features
 * **Free and open source**
