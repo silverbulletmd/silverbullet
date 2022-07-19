@@ -163,7 +163,14 @@ export class Editor {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     window.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
-        console.log("Window-level keyboard event", ev);
+        // console.log(
+        //   "Window-level keyboard event",
+        //   ev
+        // );
+        if ((ev.target as any).classList.contains("cm-textfield")) {
+          // Search & replace feature, ignore this
+          return;
+        }
         if (runScopeHandlers(this.editorView!, ev, "editor")) {
           ev.preventDefault();
         }
