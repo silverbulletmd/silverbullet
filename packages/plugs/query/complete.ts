@@ -29,4 +29,15 @@ export async function queryComplete() {
       })),
     };
   }
+
+  prefix = await matchBefore('#inst "[^"]*');
+  if (prefix) {
+    let allPages = await listPages();
+    return {
+      from: prefix.from + '#inst "'.length,
+      options: allPages.map((pageMeta) => ({
+        label: pageMeta.name,
+      })),
+    };
+  }
 }
