@@ -1,0 +1,11 @@
+services:
+  sb:
+    build: ./
+    image: sb
+    container_name: sb
+    ports:
+      - ${PORT}:3000
+    volumes:
+      - type: bind
+        source: ${DIRECTORY}
+        target: /space

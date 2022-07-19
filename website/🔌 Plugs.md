@@ -2,6 +2,8 @@ Silver Bullet at its core is bare bones in terms of functionality, most of its p
 
 Plugs are an extension mechanism (implemented using a library called `plugos` that runs plug code on the server in a sandboxed v8 node.js process, and in the browser using web workers). Plugs can hook into SB in various ways: plugs can extend the Markdown parser and its syntax, define new commands and keybindings, respond to various events triggered either on the server or client side, as well as run recurring and background tasks. Plugs can even define their own extension mechanisms through custom events. Each plug runs in its own sandboxed environment and communicates with SB via _syscalls_ that expose a vast range of functionality. Plugs can be loaded, unloaded and updated without having to restart SB itself.
 
+[[🔌 Plug Directory]]
+
 Examples of functionality implemented as plugs:
 
 * _Core functionality_ such as:
