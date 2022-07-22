@@ -1,0 +1,6 @@
+dist/
+.env
+
+# Mac
+.DS_Store
+

@@ -30,6 +30,7 @@
     "typescript": "^4.6.2"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "mattermost-plugin/webapp"
   ]
 }
