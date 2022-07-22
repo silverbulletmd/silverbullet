@@ -11,8 +11,14 @@ function decodePageUrl(url: string): string {
 export class PathPageNavigator {
   navigationResolve?: () => void;
 
+  constructor(readonly root: string = "") {}
+
   async navigate(page: string, pos?: number) {
-    window.history.pushState({ page, pos }, page, `/${encodePageUrl(page)}`);
+    window.history.pushState(
+      { page, pos },
+      page,
+      `${this.root}/${encodePageUrl(page)}`
+    );
     window.dispatchEvent(
       new PopStateEvent("popstate", {
         state: { page, pos },
@@ -47,7 +53,9 @@ export class PathPageNavigator {
   }
 
   decodeURI(): [string, number] {
-    let parts = decodeURI(location.pathname).substring(1).split("@");
+    let parts = decodeURI(
+      location.pathname.substring(this.root.length + 1)
+    ).split("@");
     let page =
       parts.length > 1 ? parts.slice(0, parts.length - 1).join("@") : parts[0];
     let pos = parts.length > 1 ? parts[parts.length - 1] : "0";
@@ -63,7 +71,7 @@ export class PathPageNavigator {
   }
 
   getCurrentPos(): number {
-    console.log("Pos", this.decodeURI()[1]);
+    // console.log("Pos", this.decodeURI()[1]);
     return this.decodeURI()[1];
   }
 }

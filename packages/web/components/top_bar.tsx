@@ -29,7 +29,7 @@ export function TopBar({
   rhs?: React.ReactNode;
 }) {
   return (
-    <div id="top" onClick={onClick}>
+    <div id="sb-top" onClick={onClick}>
       {lhs}
       <div className="main">
         <div className="inner">

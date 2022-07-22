@@ -49,7 +49,7 @@ safeRun(async () => {
   //   localStorage.setItem("lastRemoteSync", "" + syncer.primaryLastSync);
   //   console.log("Done!");
   // };
-  let editor = new Editor(serverSpace, document.getElementById("root")!);
+  let editor = new Editor(serverSpace, document.getElementById("sb-root")!, "");
   await editor.init();
   // @ts-ignore
   window.editor = editor;

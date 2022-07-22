@@ -30,32 +30,20 @@
   font-style: italic;
 }
 
-:root {
+#sb-root {
   --ident: 18px;
-  /* --editor-font: "Avenir"; */
-  --editor-font: "iA-Mono", "Menlo";
-  --ui-font: "Arial";
   --top-bar-bg: rgb(41, 41, 41);
   --highlight-color: #464cfc;
 }
 
-html,
-body {
-  margin: 0;
-  height: 100%;
-  padding: 0;
-  width: 100%;
-  overflow: hidden;
-}
-
-#root {
+#sb-root {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
 }
 
-#top {
+#sb-top {
   display: flex;
   flex-direction: row;
   z-index: 20;
@@ -101,9 +89,10 @@ body {
       }
 
       .current-page {
-        font-family: var(--ui-font);
+        font-family: $ui-font;
         font-weight: bold;
         flex: 1;
+        font-size: 28px;
 
         overflow: hidden;
         white-space: nowrap;
@@ -127,6 +116,7 @@ body {
         border: 1px solid #7897d0;
         border-radius: 3px;
         margin: 3px;
+        font-size: 15px;
         padding: 5px;
         background-color: #e6e6e6;
       }
@@ -138,7 +128,7 @@ body {
   }
 }
 
-#main {
+#sb-main {
   display: flex;
   flex-direction: row;
   flex-grow: 1;
@@ -158,13 +148,13 @@ body {
   }
 }
 
-#editor {
+#sb-editor {
   overflow-y: scroll;
   flex: 2;
   height: 100%;
 }
 
-#bhs {
+.bhs {
   height: 300px;
   width: 100%;
   border-top: rgb(193, 193, 193) 1px solid;
@@ -182,7 +172,7 @@ body {
   }
 }
 
-#status-bar {
+#sb-status-bar {
   height: 40px;
   line-height: 40px;
   padding: 0 10px;

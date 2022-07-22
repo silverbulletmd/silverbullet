@@ -1,6 +1,8 @@
+@import "constants";
+
 .filter-box {
   position: absolute;
-  font-family: var(--ui-font);
+  font-family: $ui-font;
   margin: auto;
   max-width: 500px;
   height: 600px;

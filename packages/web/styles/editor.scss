@@ -10,7 +10,7 @@
   padding: 0 20px;
 
   .cm-content {
-    font-family: var(--editor-font);
+    font-family: $editor-font;
     margin: auto;
     max-width: $max-editor-width;
   }

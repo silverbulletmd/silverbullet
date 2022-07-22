@@ -114,9 +114,11 @@ export class Editor {
   }, 1000);
   private system = new System<SilverBulletHooks>("client");
   private mdExtensions: MDExt[] = [];
+  urlPrefix: string;
 
-  constructor(space: Space, parent: Element) {
+  constructor(space: Space, parent: Element, urlPrefix: string) {
     this.space = space;
+    this.urlPrefix = urlPrefix;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
 
@@ -143,9 +145,9 @@ export class Editor {
     this.render(parent);
     this.editorView = new EditorView({
       state: this.createEditorState("", ""),
-      parent: document.getElementById("editor")!,
+      parent: document.getElementById("sb-editor")!,
     });
-    this.pageNavigator = new PathPageNavigator();
+    this.pageNavigator = new PathPageNavigator(urlPrefix);
 
     this.system.registerSyscalls(
       [],
@@ -209,7 +211,9 @@ export class Editor {
       }
     });
 
-    let globalModules: any = await (await fetch("/global.plug.json")).json();
+    let globalModules: any = await (
+      await fetch(`${this.urlPrefix}/global.plug.json`)
+    ).json();
 
     this.system.on({
       plugLoaded: (plug) => {
@@ -721,7 +725,7 @@ export class Editor {
             )
           }
         />
-        <div id="main">
+        <div id="sb-main">
           {!!viewState.showLHS && (
             <Panel
               html={viewState.lhsHTML}
@@ -730,7 +734,7 @@ export class Editor {
               editor={editor}
             />
           )}
-          <div id="editor" />
+          <div id="sb-editor" />
           {!!viewState.showRHS && (
             <Panel
               html={viewState.rhsHTML}
@@ -741,7 +745,7 @@ export class Editor {
           )}
         </div>
         {!!viewState.showBHS && (
-          <div id="bhs">
+          <div className="bhs">
             <Panel
               html={viewState.bhsHTML}
               script={viewState.bhsScript}
