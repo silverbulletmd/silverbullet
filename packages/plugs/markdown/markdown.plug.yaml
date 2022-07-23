@@ -14,3 +14,7 @@ functions:
       - editor:updated
       - editor:pageLoaded
       - editor:pageReloaded
+  switchSide:
+    path: "./preview.ts:switchSide"
+    command:
+      name: "Swith Preview to other Sidebar"

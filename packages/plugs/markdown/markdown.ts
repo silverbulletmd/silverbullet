@@ -1,6 +1,8 @@
-import { hideRhs } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { hideRhs, hideLhs } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
+import { readSettings, writeSettings } from "@silverbulletmd/plugs/lib/settings_page";;
+
 
 export async function togglePreview() {
   let currentValue = !!(await clientStore.get("enableMarkdownPreview"));
@@ -13,5 +15,7 @@ export async function togglePreview() {
 }
 
 async function hideMarkdownPreview() {
-  await hideRhs();
+  const setting = await readSettings({previewOnRHS: true});
+  const hide = setting.previewOnRHS ? hideRhs : hideLhs;
+  await hide();
 }

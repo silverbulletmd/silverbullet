@@ -1,4 +1,5 @@
-import { readYamlPage } from "./yaml_page";
+import { flashNotification } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { readYamlPage, writeYamlPage } from "./yaml_page";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
@@ -10,13 +11,16 @@ import { readYamlPage } from "./yaml_page";
  * @returns an object with the same shape as `settings` but with non-default values override based on `SETTINGS`
  */
 
+const SETTINGS_PAGE = "SETTINGS";
+const SETTINGS_TEMPLATE = `This page contains settings for configuring SilverBullet and its Plugs:\n\`\`\`yaml\n\`\`\``; // might need \r\n for windows?
+
 export async function readSettings<T extends object>(settings: T): Promise<T> {
   try {
-    let allSettings = (await readYamlPage("SETTINGS", ["yaml"])) || {};
+    let allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
     // TODO: I'm sure there's a better way to type this than "any"
     let collectedSettings: any = {};
     for (let [key, defaultVal] of Object.entries(settings)) {
-      if (allSettings[key]) {
+      if (key in allSettings) {
         collectedSettings[key] = allSettings[key];
       } else {
         collectedSettings[key] = defaultVal;
@@ -29,5 +33,26 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
       return settings;
     }
     throw e;
+  }
+}
+
+/**
+ * Convenience function to write a specific set of settings from the `SETTINGS` page.
+ * If the SETTiNGS page doesn't exist it will create it.
+ * @param settings 
+ */
+export async function writeSettings<T extends object>(settings: T) {
+  let readSettings = {};
+  try {
+    readSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
+  } catch (e: any) {
+    console.log("Couldn't read settings, generating a new settings page");
+    flashNotification("Creating a new SETTINGS page...", "info");
+  }
+  const writeSettings = {...readSettings, ...settings};
+  if(await writeYamlPage(SETTINGS_PAGE, writeSettings, SETTINGS_TEMPLATE)) {
+    flashNotification("SETTINGS page written successfully", "info");
+  } else {
+    flashNotification("SETTINGS page failed to update", "error");
   }
 }
