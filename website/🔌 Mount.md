@@ -21,3 +21,13 @@ Create a `MOUNTS` page:
         ```
 
 This will make these available under `🚪 docs/` and `🚪 remote/` respectively.
+
+## Features
+* Auto translates internal wiki links (prefixes with prefix) and removes prefix upon save
+
+## To do
+* [ ] Handle queries
+  * `page` and `link` query needs to dynamically add/remove a `and name =~ /^🚪 PREFIX/` clause)
+  * `task` same but with `page` check
+* [x] Add `file:` support
+* [x] Add `http:`/`https:` support
