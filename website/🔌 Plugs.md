@@ -52,6 +52,7 @@ Reload your list of plugs via the `Plugs: Update` command (`Cmd-Shift-p` on Mac,
 Once you’re happy with your plug, you can distribute it in various ways:
 
 * You can put it on github by simply committing the resulting `.plug.json` file there and instructing users to point to by adding `- github:yourgithubuser/yourrepo/yourplugname.plug.json` to their `PLUGS` file
+* Add a release in your github repo and instruct users to add the release as `- ghr:yourgithubuser/yourrepo` or if they need a spcecific release `- ghr:yourgithubuser/yourrepo/release-name`
 * You can put it on any other web server, and tell people to load it via https, e.g. `- https://mydomain.com/mypugname.plug.json`.
 
 ### Recommended development workflow

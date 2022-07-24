@@ -280,7 +280,10 @@ functions:
     path: "./plugmanager.ts:getPlugGithub"
     events:
       - get-plug:github
-
+  getPlugGithubRelease:
+    path: "./plugmanager.ts:getPlugGithubRelease"
+    events:
+      - get-plug:ghr
   # Debug commands
   parseCommand:
     path: ./debug.ts:parsePageCommand

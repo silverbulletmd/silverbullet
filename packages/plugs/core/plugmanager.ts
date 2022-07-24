@@ -92,3 +92,18 @@ export async function getPlugGithub(identifier: string): Promise<Manifest> {
     `//raw.githubusercontent.com/${owner}/${repoClean}/${branch}/${path}`
   );
 }
+
+export async function getPlugGithubRelease(identifier: string): Promise<Manifest> {
+  let [owner, repo, version] = identifier.split("/");
+  if (!version || version === "latest") {
+    console.log('fetching the latest version');
+    const req = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+    if (req.status !== 200) {
+      throw new Error(`Could not fetch latest relase manifest from ${identifier}}`);
+    }
+    const result = await req.json();
+    version = result.name;
+  } 
+  const finalUrl = `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.json`;
+  return getPlugHTTPS(finalUrl);
+}
