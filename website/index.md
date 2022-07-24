@@ -8,6 +8,7 @@ What does Silver Bullet look like? Well, have a look around. **You’re looking 
 
 Note that what you’re looking at is not a fully functional version, because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `npx` command (see below) to download and run it locally in its fully functioning mode.
 
+## Playground
 So, feel free to make some edits in this space. Don’t worry, you won’t break anything, nothing is saved (just reload the page to see).
 
 Here are some things to try:
@@ -24,16 +25,28 @@ Here are some things to try:
 * Open this site on your phone or tablet and… it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
-Cool, no?
-
-There are a few features you don’t get to try in this environment, because they rely on some back-end processing, such as:
+There are a few features you don’t get to try in this environment, because they rely on back-end processing, such as:
 
 * Using SB’s powerful page indexing and **query mechanism** where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
 * Intelligent page renaming, automatically updating any pages that link to it.
 * Full text search.
-* Dynamically **extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] and writing your own.
+* **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] and writing your own.
 
-To experience these, you’ll have to install SB yourself (see below).
+## Extensions
+What type of extensions, you ask? Let us demonstrate this in a very meta way: by querying a list of plugs an injecting it into this page!
+
+Here’s a list of (non-built in) plugs documented in this space (note the `#query` ... `/query` notation used):
+
+<!-- #query page where type = “plug” render “template/plug” -->
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
+* [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
+<!-- /query -->.
+
+In a regular SB installation, the body of this query 👆 (in between the placeholders) would automatically be kept up to date as new pages are added to the space that match the query. 🤯 Have a look at the [[template/plug]] template (referenced in the `render` clause) to see how the results are rendered, and have a look at one of the linked pages to see how the meta data used to query and render is supplied to SB. And to learn about the specific plug, of course.
 
 ## Explore more
 Click on the links below to explore various aspects of Silver Bullet more in-depth:
