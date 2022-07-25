@@ -1,4 +1,7 @@
 import { readYamlPage } from "./yaml_page";
+import { notifyUser } from "./util";
+import YAML from "yaml";
+import { writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
@@ -10,13 +13,15 @@ import { readYamlPage } from "./yaml_page";
  * @returns an object with the same shape as `settings` but with non-default values override based on `SETTINGS`
  */
 
+const SETTINGS_PAGE = "SETTINGS";
+
 export async function readSettings<T extends object>(settings: T): Promise<T> {
   try {
-    let allSettings = (await readYamlPage("SETTINGS", ["yaml"])) || {};
+    let allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
     // TODO: I'm sure there's a better way to type this than "any"
     let collectedSettings: any = {};
     for (let [key, defaultVal] of Object.entries(settings)) {
-      if (allSettings[key]) {
+      if (key in allSettings) {
         collectedSettings[key] = allSettings[key];
       } else {
         collectedSettings[key] = defaultVal;
@@ -30,4 +35,23 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
     }
     throw e;
   }
+}
+
+/**
+ * Convenience function to write a specific set of settings from the `SETTINGS` page.
+ * If the SETTiNGS page doesn't exist it will create it.
+ * @param settings 
+ */
+export async function writeSettings<T extends object>(settings: T) {
+  let readSettings = {};
+  try {
+    readSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
+  } catch (e: any) {
+    await notifyUser("Creating a new SETTINGS page...", "info");
+  }
+  const writeSettings = {...readSettings, ...settings};
+  const doc = new YAML.Document();
+  doc.contents = writeSettings;
+  const contents = `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${doc.toString()}\n\`\`\``; // might need \r\n for windows?
+  await writePage(SETTINGS_PAGE, contents)
 }

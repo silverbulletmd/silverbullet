@@ -1,10 +1,14 @@
 import MarkdownIt from "markdown-it";
 import {
   getText,
+  showLhs,
   showRhs,
+  hideRhs,
+  hideLhs,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
 import { cleanMarkdown } from "./util";
+import { readSettings, writeSettings } from "@silverbulletmd/plugs/lib/settings_page";
 
 const css = `
 <style>
@@ -76,9 +80,27 @@ export async function updateMarkdownPreview() {
   }
   let text = await getText();
   let cleanMd = await cleanMarkdown(text);
-  await showRhs(
+  const setting = await readSettings({previewOnRHS: true});
+  const show = setting.previewOnRHS ? showRhs : showLhs;
+  await show(
     `<html><head>${css}</head><body>${md.render(cleanMd)}</body></html>`,
     undefined,
     2
   );
+}
+
+export async function switchSide() {
+  const {previewOnRHS} = await readSettings({previewOnRHS: true});
+  const isVisible = await clientStore.get("enableMarkdownPreview");
+  if (isVisible) {
+    if (previewOnRHS){
+      hideRhs();
+    } else {
+      hideLhs();
+    }
+  }
+  await writeSettings({previewOnRHS: !previewOnRHS});
+  if (isVisible) {
+    updateMarkdownPreview();
+  }
 }

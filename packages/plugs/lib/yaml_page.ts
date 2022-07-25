@@ -1,6 +1,6 @@
-import { findNodeOfType, traverseTree } from "@silverbulletmd/common/tree";
+import { findNodeOfType, ParseTree, renderToText, replaceNodesMatching, traverseTree } from "@silverbulletmd/common/tree";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import YAML from "yaml";
 
 export async function readYamlPage(
