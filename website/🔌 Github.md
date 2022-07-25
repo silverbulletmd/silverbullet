@@ -4,8 +4,29 @@ uri: github:silverbulletmd/silverbullet-github/github.plug.json
 repo: https://github.com/silverbulletmd/silverbullet-github
 author: Zef Hemel
 ```
-
+<!-- #include "https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/README.md" -->
+# SilverBullet plug for Github
 Provides Github events, notifications and pull requests as query sources using SB's query mechanism
+
+## Installation
+Open your `PLUGS` note in SilverBullet and add this plug to the list:
+
+```
+- github:silverbulletmd/silverbullet-github/github.plug.json
+```
+
+Then run the `Plugs: Update` command and off you go!
+
+## Configuration
+This step is optional for anything but the `gh-notification` source, but without it you may be rate limited by the Github API,
+
+To configure, add a `githubToken` key to your `SECRETS` page, this should be a [personal access token](https://github.com/settings/tokens):
+
+        ```yaml
+        githubToken: your-github-token
+        ```
+
+## Query sources
 
 * `gh-event` required filters in the `where` clause:
     * `username`: the user whose events to query
@@ -30,3 +51,4 @@ Example uses:
 Where the `template/gh-pull` looks as follows:
 
     * ({{state}}) [{{title}}]({{html_url}})
+<!-- /include -->

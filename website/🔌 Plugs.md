@@ -4,12 +4,12 @@ Plugs are an extension mechanism (implemented using a library called `plugos` th
 
 ## Directory
 <!-- #query page where type = “plug” render “template/plug” -->
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 * [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 <!-- /query -->
 
 ## How to develop your own plug

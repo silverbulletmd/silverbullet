@@ -184,6 +184,22 @@ functions:
         <!-- #query |^| -->
 
         <!-- /query -->
+  insertInclude:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: include
+      value: |
+        <!-- #include "|^|" -->
+
+        <!-- /include -->
+  insertInlineTemplate:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: inline-template
+      value: |
+        <!-- #template "|^|" {} -->
+
+        <!-- /template -->
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:

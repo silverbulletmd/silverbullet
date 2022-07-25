@@ -4,10 +4,10 @@ uri: github:silverbulletmd/silverbullet-ghost/ghost.plug.json
 repo: https://github.com/silverbulletmd/silverbullet-ghost
 author: Zef Hemel
 ```
+<!-- #include "https://raw.githubusercontent.com/silverbulletmd/silverbullet-ghost/main/README.md" -->
+# Ghost plug for Silver Bullet
 
-Very basic plug to publish pages and posts onto the [Ghost](https://ghost.org) platform
-
-## Configuration
+Note: Still very basic, to use:
 
 In your `SETTINGS` specify the following settings:
 
@@ -26,3 +26,13 @@ And in your `SECRETS` file:
 This will assume the naming pattern of `posts/my-post-slug` where the first top-level heading (`# Hello`) will be used as the post title.
 
 Commands to use `Ghost: Publish`
+
+## Installation
+Open your `PLUGS` note in SilverBullet and add this plug to the list:
+
+```
+- github:silverbulletmd/silverbullet-ghost/ghost.plug.json
+```
+
+Then run the `Plugs: Update` command and off you go!
+<!-- /include -->
