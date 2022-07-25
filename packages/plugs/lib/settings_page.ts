@@ -1,5 +1,7 @@
-import { flashNotification } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { readYamlPage, writeYamlPage } from "./yaml_page";
+import { readYamlPage } from "./yaml_page";
+import { notifyUser } from "./util";
+import YAML from "yaml";
+import { writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
@@ -12,7 +14,6 @@ import { readYamlPage, writeYamlPage } from "./yaml_page";
  */
 
 const SETTINGS_PAGE = "SETTINGS";
-const SETTINGS_TEMPLATE = `This page contains settings for configuring SilverBullet and its Plugs:\n\`\`\`yaml\n\`\`\``; // might need \r\n for windows?
 
 export async function readSettings<T extends object>(settings: T): Promise<T> {
   try {
@@ -46,13 +47,11 @@ export async function writeSettings<T extends object>(settings: T) {
   try {
     readSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
   } catch (e: any) {
-    console.log("Couldn't read settings, generating a new settings page");
-    flashNotification("Creating a new SETTINGS page...", "info");
+    await notifyUser("Creating a new SETTINGS page...", "info");
   }
   const writeSettings = {...readSettings, ...settings};
-  if(await writeYamlPage(SETTINGS_PAGE, writeSettings, SETTINGS_TEMPLATE)) {
-    flashNotification("SETTINGS page written successfully", "info");
-  } else {
-    flashNotification("SETTINGS page failed to update", "error");
-  }
+  const doc = new YAML.Document();
+  doc.contents = writeSettings;
+  const contents = `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${doc.toString()}\n\`\`\``; // might need \r\n for windows?
+  await writePage(SETTINGS_PAGE, contents)
 }
