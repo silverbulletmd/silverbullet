@@ -37,7 +37,11 @@ class NodeWorkerWrapper implements WorkerLike {
 
 // Look for the node_modules directory, to be passed to the worker to find e.g. the vm2 module
 export let nodeModulesDir = __dirname;
-while (!fs.existsSync(nodeModulesDir + "/node_modules/vm2")) {
+
+while (
+  !fs.existsSync(nodeModulesDir + "/node_modules/vm2") &&
+  nodeModulesDir !== "/"
+) {
   nodeModulesDir = path.dirname(nodeModulesDir);
 }
 
