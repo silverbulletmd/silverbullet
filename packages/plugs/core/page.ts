@@ -112,6 +112,10 @@ export async function renamePage() {
   if (!newName) {
     return;
   }
+
+  if (newName.trim() === oldName.trim()) {
+    return;
+  }
   console.log("New name", newName);
 
   let pagesToUpdate = await getBackLinks(oldName);
