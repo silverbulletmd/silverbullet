@@ -64,5 +64,6 @@
     "parcel": "2.5.0",
     "prettier": "^2.5.1",
     "typescript": "^4.6.2"
-  }
+  },
+  "version": "0.0.27"
 }
