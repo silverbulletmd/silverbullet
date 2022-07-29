@@ -39,7 +39,6 @@ export async function updatePlugs() {
   let plugList: string[] = [];
   try {
     const plugListRead: any[] = await readYamlPage("PLUGS");
-    console.log(plugList);
     plugList = plugListRead.filter((plug) => typeof plug === 'string');
     if (plugList.length !== plugListRead.length) {
       throw new Error(`Some of the plugs were not in a yaml list format, they were ignored`);
