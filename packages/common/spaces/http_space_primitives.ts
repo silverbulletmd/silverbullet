@@ -143,7 +143,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (req.headers.get("Content-length") === "0") {
       return;
     }
-    if (req.headers.get("Content-type") === "application/json") {
+    if (req.headers.get("Content-type")?.includes("application/json")) {
       return await req.json();
     } else {
       return await req.text();
