@@ -105,3 +105,15 @@ Look at the data. This is more than we need. The query even gives us template pa
 <!-- /query -->
 
 #### 5.2 Simple query without a condition
+We would like to get all plug pages and sorted by last modified time
+
+<!-- #query page where type = "plug" order by lastModified desc limit 5 -->
+|name         |lastModified |perm|type|uri                                                               |repo                                                     |author               |
+|--|--|--|--|--|--|--|
+|🔌 Query     |1659180237743|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
+|🔌 Mattermost|1659111156000|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel            |
+|🔌 Backlinks |1659108035000|rw|plug|ghr:Willyfrog/silverbullet-backlinks                              |https://github.com/Willyfrog/silverbullet-backlinks      |Guillermo Vayá       |
+|🔌 Ghost     |1659108035000|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |https://github.com/silverbulletmd/silverbullet-ghost     |Zef Hemel            |
+|🔌 Git       |1659108035000|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json        |https://github.com/silverbulletmd/silverbullet-github    |Zef Hemel            |
+<!-- /query -->
+
