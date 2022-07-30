@@ -112,7 +112,7 @@ For the sake of simplicity, we will use `page` data source and limit the results
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
 |name         |lastModified |perm|type|uri                                                               |repo                                                     |author               |
 |--|--|--|--|--|--|--|
-|🔌 Query     |1659180321311|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
+|🔌 Query     |1659180816719|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
 |🔌 Mattermost|1659111156000|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel            |
 |🔌 Backlinks |1659108035000|rw|plug|ghr:Willyfrog/silverbullet-backlinks                              |https://github.com/Willyfrog/silverbullet-backlinks      |Guillermo Vayá       |
 |🔌 Ghost     |1659108035000|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |https://github.com/silverbulletmd/silverbullet-ghost     |Zef Hemel            |
@@ -125,14 +125,26 @@ For the sake of simplicity, we will use `page` data source and limit the results
 
 **Result:** Okay, this is much better. However, I believe this needs a touch from a visual perspective
 
-<!-- #query page select name uri where type = "plug" order by lastModified desc limit 5 -->
-|name         |uri                                                               |
-|--|--|
-|🔌 Query     |core:query                                                        |
-|🔌 Mattermost|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|
-|🔌 Backlinks |ghr:Willyfrog/silverbullet-backlinks                              |
-|🔌 Ghost     |github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |
-|🔌 Git       |github:silverbulletmd/silverbullet-github/github.plug.json        |
+<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 -->
+|name         |author               |repo                                                     |
+|--|--|--|
+|🔌 Query     |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet           |
+|🔌 Mattermost|Zef Hemel            |https://github.com/silverbulletmd/silverbullet-mattermost|
+|🔌 Backlinks |Guillermo Vayá       |https://github.com/Willyfrog/silverbullet-backlinks      |
+|🔌 Ghost     |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-ghost     |
+|🔌 Git       |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github    |
 <!-- /query -->
 
-#### 5.4 Query to select only certain fields
+#### 5.4 Display the data in a format defined by a template
+
+**Goal:** We would like to display the data from 5.3 in a nice format using bullet points with links to Plug pages, with author name and link to their GitHub repo. 
+
+**Result:** Here you go this is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀 
+
+<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render "template/plug" -->
+* [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+<!-- /query -->
