@@ -360,6 +360,10 @@ export class Editor {
                   `Error running command: ${e.message}`,
                   "error"
                 );
+              })
+              .then(() => {
+                // Always be focusing the editor after running a command
+                editor.focus();
               });
             return true;
           },
