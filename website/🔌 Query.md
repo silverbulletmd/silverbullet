@@ -86,9 +86,9 @@ Our goal in this exercise is to (i) get all plug pages (ii) ordered by last modi
 For the sake of simplicity, we will use `page` data source and limit the results not to spoil the page.
 
 #### 5.1 Simple query without any condition
-We would like to get the list of all pages. 
+**Goal:** We would like to get the list of all pages. 
 
-Look at the data. This is more than we need. The query even gives us template pages. Lets try to limit it in the next step
+**Result:** Look at the data. This is more than we need. The query even gives us template pages. Lets try to limit it in the next step
 <!-- #query page limit 10 -->
 |name             |lastModified |perm|tags |type|uri                                                       |repo                                                 |author        |
 |--|--|--|--|--|--|--|--|
@@ -105,15 +105,34 @@ Look at the data. This is more than we need. The query even gives us template pa
 <!-- /query -->
 
 #### 5.2 Simple query without a condition
-We would like to get all plug pages and sorted by last modified time
+**Goal:** We would like to get all plug pages and sorted by last modified time
+
+**Result:** Okay, this what we wanted but there are also information such as perm, type and lastModified that we don't want to show in the page
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
 |name         |lastModified |perm|type|uri                                                               |repo                                                     |author               |
 |--|--|--|--|--|--|--|
-|🔌 Query     |1659180237743|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
+|🔌 Query     |1659180321311|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
 |🔌 Mattermost|1659111156000|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel            |
 |🔌 Backlinks |1659108035000|rw|plug|ghr:Willyfrog/silverbullet-backlinks                              |https://github.com/Willyfrog/silverbullet-backlinks      |Guillermo Vayá       |
 |🔌 Ghost     |1659108035000|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |https://github.com/silverbulletmd/silverbullet-ghost     |Zef Hemel            |
 |🔌 Git       |1659108035000|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json        |https://github.com/silverbulletmd/silverbullet-github    |Zef Hemel            |
 <!-- /query -->
 
+
+#### 5.3 Query to select only certain fields
+**Goal:** We would like to get all plug pages, select only `name` and `uri` column and sort by last modified time and 
+
+**Result:** Okay, this is much better. However, I believe this needs a touch from a visual perspective
+
+<!-- #query page select name uri where type = "plug" order by lastModified desc limit 5 -->
+|name         |uri                                                               |
+|--|--|
+|🔌 Query     |core:query                                                        |
+|🔌 Mattermost|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|
+|🔌 Backlinks |ghr:Willyfrog/silverbullet-backlinks                              |
+|🔌 Ghost     |github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |
+|🔌 Git       |github:silverbulletmd/silverbullet-github/github.plug.json        |
+<!-- /query -->
+
+#### 5.4 Query to select only certain fields
