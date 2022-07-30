@@ -32,7 +32,7 @@ After using one of the options, the data will be displayed.
 Available data sources can be categorized as
 1. Builtin data sources
 2. Data that can be inserted by users
-3. Plug’s data sourcer
+3. Plug’s data sources
 
 Best part about data sources: there is an auto completion 🎉. Start writing `<!— #query `, it will show you all available data sources.  
 
@@ -44,8 +44,32 @@ Best part about data sources: there is an auto completion 🎉. Start writing `<
 * `tags`: list of all hashtags used in all pages
 * `link`: list of all pages giving a link to the page where query is written
 
-<!-- #query  -->
-
+#### 4.2 Data that can be inserted by users
+* *insert the data:* You can insert a data using the syntax below
+```data
+name: John
+age: 50
+city: Milan
+country: Italy
+---
+name: Jane
+age: 53
+city: Rome
+country: Italy
+---
+name: Francesco
+age: 28
+city: Berlin
+country: Germany
+```
+* *query the data:* You can query the data using `data` option
+<!-- #query data where age > 20 and country = "Italy" -->
+|name|age|city |country|page           |pos |
+|----|--|-----|-----|---------------|----|
+|John|50|Milan|Italy|Test Data Query|0   |
+|Jane|53|Rome |Italy|Test Data Query|46  |
+|John|50|Milan|Italy|🔌 Query       |2148|
+|Jane|53|Rome |Italy|🔌 Query       |2194|
 <!-- /query -->
  
 
