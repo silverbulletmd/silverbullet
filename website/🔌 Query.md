@@ -77,3 +77,31 @@ Certain plugs can also give you special options to query a certain data. Some ex
 * [[🔌 Github]] provides `gh-pull` to query PRs for selected repo
 * [[🔌 Mattermost]] provides `mm-saved` to fetch (by default 15) saved posts in Mattermost
 For complete list of data sources, please check plugs’ pages
+
+### 5. Examples
+We will walk you through a set of example starting from very basic one all the way to format the data using templates. 
+
+Our goal in this exercise is to (i) get all plug pages (ii) ordered by last modified time and (iii) display in a nice format.
+
+For the sake of simplicity, we will use `page` data source and limit the results not to spoil the page.
+
+#### 5.1 Simple query without any condition
+We would like to get the list of all pages. 
+
+Look at the data. This is more than we need. The query even gives us template pages. Lets try to limit it in the next step
+<!-- #query page limit 10 -->
+|name             |lastModified |perm|tags |type|uri                                                       |repo                                                 |author        |
+|--|--|--|--|--|--|--|--|
+|index            |1659178324609|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|Mattermost Plugin|1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|PLUGS            |1659108634000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|Test Data Query  |1659179547936|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|template/plug    |1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|template/tasks   |1659108035000|rw|#each|undefined|undefined                                                 |undefined                                            |undefined     |
+|💡 Inspiration   |1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
+|🔌 Backlinks     |1659108035000|rw|undefined|plug|ghr:Willyfrog/silverbullet-backlinks                      |https://github.com/Willyfrog/silverbullet-backlinks  |Guillermo Vayá|
+|🔌 Ghost         |1659108035000|rw|undefined|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json  |https://github.com/silverbulletmd/silverbullet-ghost |Zef Hemel     |
+|🔌 Git           |1659108035000|rw|undefined|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel     |
+<!-- /query -->
+
+#### 5.2 Simple query without a condition
