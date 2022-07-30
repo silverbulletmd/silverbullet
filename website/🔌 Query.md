@@ -23,6 +23,7 @@ The query plug is a built-in plug implementing the `<!-- #query -->` mechanism. 
 ### How to run a query
 After writing the query, there are two options
 * Open the **command palette** and run **Materialized Queries: Update**
-* Use shortcut: for windows **Alt-q** and for mac **Option-q** 
+* Use shortcut: for windows **Alt-q** and for mac **Option-q**
+* Go to another page and come back to the page where query is located
 
 After using one of the options, the data will be displayed.
