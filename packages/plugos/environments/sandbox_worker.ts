@@ -11,8 +11,16 @@ let pendingRequests = new Map<
   }
 >();
 
+let isWorker = false;
+
+if (typeof window === "undefined") {
+  // @ts-ignore
+  window = {};
+  isWorker = true;
+}
+
 function workerPostMessage(msg: ControllerMessage) {
-  if (typeof window !== "undefined" && window.parent !== window) {
+  if (!isWorker && window.parent !== window) {
     window.parent.postMessage(msg, "*");
   } else {
     self.postMessage(msg);

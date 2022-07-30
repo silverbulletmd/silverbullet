@@ -319,3 +319,26 @@ functions:
       name: "UI: Hide BHS"
       key: "Ctrl-Alt-b"
       mac: "Cmd-Alt-b"
+
+  # Link unfurl infrastructure
+  unfurlLink:
+    path: ./link.ts:unfurlCommand
+    command:
+      name: "Link: Unfurl"
+      key: "Ctrl-Shift-u"
+      mac: "Cmd-Shift-u"
+      contexts:
+        - NakedURL
+  unfurlExec:
+    env: server
+    path: ./link.ts:unfurlExec
+
+  # Title-based link unfurl
+  titleUnfurlOptions:
+    path: ./link.ts:titleUnfurlOptions
+    events:
+      - unfurl:options
+  titleUnfurl:
+    path: ./link.ts:titleUnfurl
+    events:
+      - unfurl:title-unfurl

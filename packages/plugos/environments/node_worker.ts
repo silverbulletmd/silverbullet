@@ -39,6 +39,7 @@ let vm = new VM({
     clearTimeout,
     setInterval,
     URL,
+    window: {},
     clearInterval,
     fetch: require(`${nodeModulesPath}/node-fetch`),
     WebSocket: require(`${nodeModulesPath}/ws`),
