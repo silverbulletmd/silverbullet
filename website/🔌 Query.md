@@ -72,4 +72,8 @@ country: Germany
 |Jane|53|Rome |Italy|🔌 Query       |2194|
 <!-- /query -->
  
-
+#### 4.3 Plugs’ data sources
+Certain plugs can also give you special options to query a certain data. Some examples are 
+* [[🔌 Github]] provides `gh-pull` to query PRs for selected repo
+* [[🔌 Mattermost]] provides `mm-saved` to fetch (by default 15) saved posts in Mattermost
+For complete list of data sources, please check plugs’ pages
