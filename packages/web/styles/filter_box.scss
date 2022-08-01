@@ -10,7 +10,7 @@
   top: 0;
   bottom: 0;
   max-height: 290px;
-  overflow: hide;
+  // overflow: hide;
   z-index: 100;
 }
 
@@ -19,7 +19,8 @@
   background-color: #fff;
   border: rgb(103, 103, 103) 1px solid;
   border-radius: 8px;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+  overflow: hidden;
   margin: 10px;
 
   .header {
@@ -55,7 +56,7 @@
   }
 
   .result-list {
-    max-height: 200px;
+    max-height: 216px;
     overflow-y: scroll;
 
     .icon {
@@ -70,11 +71,14 @@
   .selected-option {
     padding: 8px;
     cursor: pointer;
+    height: 20px;
+    line-height: 20px;
   }
 
   .selected-option {
     background-color: var(--highlight-color);
     color: #eee;
+    // border-radius: 5px;
   }
 
   .option .hint,

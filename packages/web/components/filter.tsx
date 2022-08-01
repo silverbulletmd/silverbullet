@@ -89,7 +89,7 @@ export function FilterList({
   function updateFilter(originalPhrase: string) {
     let foundExactMatch = false;
     let results = fuzzySorter(originalPhrase, options);
-    if (allowNew && !foundExactMatch) {
+    if (allowNew && !foundExactMatch && originalPhrase) {
       results.push({
         name: originalPhrase,
         hint: newHint,
@@ -121,6 +121,8 @@ export function FilterList({
     };
   }, []);
 
+  let exiting = false;
+
   const returnEl = (
     <div className="filter-wrapper">
       <div className="filter-box">
@@ -133,7 +135,9 @@ export function FilterList({
             ref={searchBoxRef}
             onChange={filterUpdate}
             onBlur={(e) => {
-              searchBoxRef.current!.focus();
+              if (!exiting) {
+                searchBoxRef.current!.focus();
+              }
             }}
             onKeyDown={(e: React.KeyboardEvent) => {
               // console.log("Key up", e);
@@ -150,10 +154,24 @@ export function FilterList({
                   );
                   break;
                 case "Enter":
+                  exiting = true;
                   onSelect(matchingOptions[selectedOption]);
                   e.preventDefault();
                   break;
+                case "PageUp":
+                  setSelectionOption(Math.max(0, selectedOption - 5));
+                  break;
+                case "PageDown":
+                  setSelectionOption(Math.max(0, selectedOption + 5));
+                  break;
+                case "Home":
+                  setSelectionOption(0);
+                  break;
+                case "End":
+                  setSelectionOption(matchingOptions.length - 1);
+                  break;
                 case "Escape":
+                  exiting = true;
                   onSelect(undefined);
                   break;
                 case " ":
