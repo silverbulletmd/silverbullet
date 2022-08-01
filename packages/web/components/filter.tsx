@@ -122,87 +122,89 @@ export function FilterList({
   }, []);
 
   const returnEl = (
-    <div className="filter-box">
-      <div className="header">
-        <label>{label}</label>
-        <input
-          type="text"
-          value={text}
-          placeholder={placeholder}
-          ref={searchBoxRef}
-          onChange={filterUpdate}
-          onBlur={(e) => {
-            searchBoxRef.current!.focus();
-          }}
-          onKeyDown={(e: React.KeyboardEvent) => {
-            // console.log("Key up", e);
-            if (onKeyPress) {
-              onKeyPress(e.key, text);
-            }
-            switch (e.key) {
-              case "ArrowUp":
-                setSelectionOption(Math.max(0, selectedOption - 1));
-                break;
-              case "ArrowDown":
-                setSelectionOption(
-                  Math.min(matchingOptions.length - 1, selectedOption + 1)
-                );
-                break;
-              case "Enter":
-                onSelect(matchingOptions[selectedOption]);
-                e.preventDefault();
-                break;
-              case "Escape":
-                onSelect(undefined);
-                break;
-              case " ":
-                if (completePrefix && !text) {
-                  updateFilter(completePrefix);
+    <div className="filter-wrapper">
+      <div className="filter-box">
+        <div className="header">
+          <label>{label}</label>
+          <input
+            type="text"
+            value={text}
+            placeholder={placeholder}
+            ref={searchBoxRef}
+            onChange={filterUpdate}
+            onBlur={(e) => {
+              searchBoxRef.current!.focus();
+            }}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              // console.log("Key up", e);
+              if (onKeyPress) {
+                onKeyPress(e.key, text);
+              }
+              switch (e.key) {
+                case "ArrowUp":
+                  setSelectionOption(Math.max(0, selectedOption - 1));
+                  break;
+                case "ArrowDown":
+                  setSelectionOption(
+                    Math.min(matchingOptions.length - 1, selectedOption + 1)
+                  );
+                  break;
+                case "Enter":
+                  onSelect(matchingOptions[selectedOption]);
                   e.preventDefault();
-                }
-                break;
-            }
-            e.stopPropagation();
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </div>
-      <div
-        className="help-text"
-        dangerouslySetInnerHTML={{ __html: helpText }}
-      ></div>
-      <div className="result-list">
-        {matchingOptions && matchingOptions.length > 0
-          ? matchingOptions.map((option, idx) => (
-              <div
-                key={"" + idx}
-                ref={selectedOption === idx ? selectedElementRef : undefined}
-                className={
-                  selectedOption === idx ? "selected-option" : "option"
-                }
-                onMouseOver={(e) => {
-                  setSelectionOption(idx);
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelect(option);
-                }}
-              >
-                <span className="icon">
-                  {icon && <FontAwesomeIcon icon={icon} />}
-                </span>
-                <span
-                  className="name"
-                  dangerouslySetInnerHTML={{
-                    __html: option?.result?.indexes
-                      ? fuzzysort.highlight(option.result, "<b>", "</b>")!
-                      : escapeHtml(option.name),
+                  break;
+                case "Escape":
+                  onSelect(undefined);
+                  break;
+                case " ":
+                  if (completePrefix && !text) {
+                    updateFilter(completePrefix);
+                    e.preventDefault();
+                  }
+                  break;
+              }
+              e.stopPropagation();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <div
+          className="help-text"
+          dangerouslySetInnerHTML={{ __html: helpText }}
+        ></div>
+        <div className="result-list">
+          {matchingOptions && matchingOptions.length > 0
+            ? matchingOptions.map((option, idx) => (
+                <div
+                  key={"" + idx}
+                  ref={selectedOption === idx ? selectedElementRef : undefined}
+                  className={
+                    selectedOption === idx ? "selected-option" : "option"
+                  }
+                  onMouseOver={(e) => {
+                    setSelectionOption(idx);
                   }}
-                ></span>
-                {option.hint && <span className="hint">{option.hint}</span>}
-              </div>
-            ))
-          : null}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onSelect(option);
+                  }}
+                >
+                  <span className="icon">
+                    {icon && <FontAwesomeIcon icon={icon} />}
+                  </span>
+                  <span
+                    className="name"
+                    dangerouslySetInnerHTML={{
+                      __html: option?.result?.indexes
+                        ? fuzzysort.highlight(option.result, "<b>", "</b>")!
+                        : escapeHtml(option.name),
+                    }}
+                  ></span>
+                  {option.hint && <span className="hint">{option.hint}</span>}
+                </div>
+              ))
+            : null}
+        </div>
       </div>
     </div>
   );

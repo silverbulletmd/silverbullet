@@ -1,12 +1,10 @@
 @import "constants";
 
-.filter-box {
+.filter-wrapper {
   position: absolute;
-  font-family: $ui-font;
   margin: auto;
   max-width: 500px;
   height: 600px;
-  background-color: #fff;
   left: 0;
   right: 0;
   top: 0;
@@ -14,9 +12,15 @@
   max-height: 290px;
   overflow: hide;
   z-index: 100;
+}
+
+.filter-box {
+  font-family: $ui-font;
+  background-color: #fff;
   border: rgb(103, 103, 103) 1px solid;
   border-radius: 8px;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  margin: 10px;
 
   .header {
     border-bottom: 1px rgb(108, 108, 108) solid;
@@ -53,7 +57,6 @@
   .result-list {
     max-height: 200px;
     overflow-y: scroll;
-    background-color: white;
 
     .icon {
       padding: 0 8px 0 5px;
