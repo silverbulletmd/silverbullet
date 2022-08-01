@@ -29,8 +29,12 @@ export function save(): Promise<void> {
   return syscall("editor.save");
 }
 
-export function navigate(name: string, pos?: number): Promise<void> {
-  return syscall("editor.navigate", name, pos);
+export function navigate(
+  name: string,
+  pos?: number,
+  replaceState = false
+): Promise<void> {
+  return syscall("editor.navigate", name, pos, replaceState);
 }
 
 export function reloadPage(): Promise<void> {

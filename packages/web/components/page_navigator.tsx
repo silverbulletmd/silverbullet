@@ -12,14 +12,16 @@ export function PageNavigator({
 }) {
   let options: FilterOption[] = [];
   for (let pageMeta of allPages) {
-    if (currentPage && currentPage === pageMeta.name) {
-      continue;
-    }
     // Order by last modified date in descending order
     let orderId = -pageMeta.lastModified;
     // Unless it was opened in this session
     if (pageMeta.lastOpened) {
       orderId = -pageMeta.lastOpened;
+    }
+    // Or it's the currently open page
+    if (currentPage && currentPage === pageMeta.name) {
+      // ... then we put it all the way to the end
+      orderId = Infinity;
     }
     options.push({
       ...pageMeta,

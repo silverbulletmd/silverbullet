@@ -557,8 +557,8 @@ export class Editor {
     this.editorView!.focus();
   }
 
-  async navigate(name: string, pos?: number) {
-    await this.pageNavigator.navigate(name, pos);
+  async navigate(name: string, pos?: number, replaceState = false) {
+    await this.pageNavigator.navigate(name, pos, replaceState);
   }
 
   async loadPage(pageName: string) {

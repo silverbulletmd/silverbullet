@@ -12,6 +12,7 @@ import { set as storeSet } from "@plugos/plugos-syscall/store";
 import {
   flashNotification,
   getCurrentPage,
+  getCursor,
   getText,
   matchBefore,
   navigate,
@@ -107,6 +108,7 @@ export async function deletePage() {
 
 export async function renamePage() {
   const oldName = await getCurrentPage();
+  const cursor = await getCursor();
   console.log("Old name is", oldName);
   const newName = await prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
@@ -125,7 +127,7 @@ export async function renamePage() {
   console.log("Writing new page to space");
   await writePage(newName, text);
   console.log("Navigating to new page");
-  await navigate(newName);
+  await navigate(newName, cursor, true);
   console.log("Deleting page from space");
   await deletePageSyscall(oldName);
 

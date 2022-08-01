@@ -13,12 +13,20 @@ export class PathPageNavigator {
 
   constructor(readonly root: string = "") {}
 
-  async navigate(page: string, pos?: number) {
-    window.history.pushState(
-      { page, pos },
-      page,
-      `${this.root}/${encodePageUrl(page)}`
-    );
+  async navigate(page: string, pos?: number, replaceState = false) {
+    if (replaceState) {
+      window.history.replaceState(
+        { page, pos },
+        page,
+        `${this.root}/${encodePageUrl(page)}`
+      );
+    } else {
+      window.history.pushState(
+        { page, pos },
+        page,
+        `${this.root}/${encodePageUrl(page)}`
+      );
+    }
     window.dispatchEvent(
       new PopStateEvent("popstate", {
         state: { page, pos },

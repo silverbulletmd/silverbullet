@@ -43,8 +43,13 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.save": async () => {
       return editor.save(true);
     },
-    "editor.navigate": async (ctx, name: string, pos: number) => {
-      await editor.navigate(name, pos);
+    "editor.navigate": async (
+      ctx,
+      name: string,
+      pos: number,
+      replaceState = false
+    ) => {
+      await editor.navigate(name, pos, replaceState);
     },
     "editor.reloadPage": async (ctx) => {
       await editor.reloadPage();

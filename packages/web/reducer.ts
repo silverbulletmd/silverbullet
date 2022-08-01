@@ -43,6 +43,14 @@ export default function reducer(
         showPageNavigator: false,
       };
     case "pages-listed":
+      // Let's move over any "lastOpened" times to the "allPages" list
+      let oldPageMeta = new Map([...state.allPages].map((pm) => [pm.name, pm]));
+      for (let pageMeta of action.pages) {
+        let oldPageMetaItem = oldPageMeta.get(pageMeta.name);
+        if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
+          pageMeta.lastOpened = oldPageMetaItem.lastOpened;
+        }
+      }
       return {
         ...state,
         allPages: action.pages,
