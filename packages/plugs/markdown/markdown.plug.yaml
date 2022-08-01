@@ -3,7 +3,7 @@ functions:
   toggle:
     path: "./markdown.ts:togglePreview"
     command:
-      name: "Toggle Markdown Preview"
+      name: "Markdown Preview: Toggle"
       key: Ctrl-p
       mac: Cmd-p
   preview:
@@ -17,4 +17,4 @@ functions:
   switchSide:
     path: "./preview.ts:switchSide"
     command:
-      name: "Swith Preview to other Sidebar"
+      name: "Markdown Preview: Switch Side"
