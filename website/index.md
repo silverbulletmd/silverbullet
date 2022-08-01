@@ -38,12 +38,13 @@ What type of extensions, you ask? Let us demonstrate this in a very meta way: by
 Here’s a list of (non-built in) plugs documented in this space (note the `#query` ... `/query` notation used):
 
 <!-- #query page where type = “plug” render “template/plug” -->
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 * [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
+* [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
 <!-- /query -->.
 
 In a regular SB installation, the body of this query 👆 (in between the placeholders) would automatically be kept up to date as new pages are added to the space that match the query. 🤯 Have a look at the [[template/plug]] _template_ (referenced in the `render` clause) to see how the results are rendered using handlebars syntax, and have a look at one of the linked pages to see how the _meta data_ is specified, which is subsequently used to query and render in this page. And to learn about the specific plug, of course.
@@ -51,11 +52,11 @@ In a regular SB installation, the body of this query 👆 (in between the placeh
 ## Explore more
 Click on the links below to explore various aspects of Silver Bullet more in-depth:
 
+[[CHANGELOG]]
 [[🤯 Features]]
 [[💡 Inspiration]]
 [[🔌 Plugs]]
 [[🔨 Development]]
-[[🗺 Roadmap]]
 
 More of a video person? Here’s two to get you started:
 
