@@ -21,6 +21,7 @@ export async function editorInit() {
     let spaceIndexed = await get("$spaceIndexed");
     console.log("Space indexed", spaceIndexed);
     if (!spaceIndexed) {
+      await set("$spaceIndexed", true);
       await invokeFunction("client", "reindexSpaceCommand");
       // Resetting this, because part of the reindex will be to wipe this too
       await set("$silverBulletVersion", currentVersion);

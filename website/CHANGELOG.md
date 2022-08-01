@@ -12,3 +12,4 @@ An attempt at documenting of the changes/new features introduced in each (pre) r
   4. The currently open page (at the bottom)
 * Filter boxes (used for the page switching and command palette among other things) now also support PgUp, PgDown, Home and End and have some visual glitches fixed as well.
 * Reverted exposing an empty `window` object to sandboxes running in workers and node.js (introduced in 0.0.28)
+* Renamed Markdown-preview related commands to something more consistent
