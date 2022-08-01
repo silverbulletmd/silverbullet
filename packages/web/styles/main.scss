@@ -67,7 +67,7 @@
       .notifications {
         position: absolute;
         font-family: "iA-Mono";
-        bottom: 45px;
+        bottom: 0;
         left: 5px;
         right: 5px;
         font-size: 15px;
@@ -170,14 +170,4 @@
       margin: 0;
     }
   }
-}
-
-#sb-status-bar {
-  height: 40px;
-  line-height: 40px;
-  padding: 0 10px;
-  text-align: right;
-  background-color: rgb(213, 213, 213);
-  border-top: rgb(193, 193, 193) 1px solid;
-  font-family: "iA-Mono";
 }

@@ -342,3 +342,11 @@ functions:
     path: ./link.ts:titleUnfurl
     events:
       - unfurl:title-unfurl
+
+  # Random stuff
+  statsCommand:
+    path: ./stats.ts:statsCommand
+    command:
+      name: "Stats: Show"
+      key: "Ctrl-Shift-s"
+      mac: "Cmd-Shift-s"

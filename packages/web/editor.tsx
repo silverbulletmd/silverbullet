@@ -50,7 +50,6 @@ import { SlashCommandHook } from "./hooks/slash_command";
 import { pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
-import { StatusBar } from "./components/status_bar";
 import {
   loadMarkdownExtensions,
   MDExt,
@@ -758,7 +757,6 @@ export class Editor {
             />
           </div>
         )}
-        <StatusBar editorView={editor.editorView} />
       </>
     );
   }
