@@ -1,8 +1,8 @@
 # Silver Bullet
 Silver Bullet (SB) is an extensible, open source **personal knowledge platform**. At its core it’s a clean markdown-based writing/note taking application that stores your _pages_ (notes) as plain markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. This makes it a simple tool for [Personal Knowledge Management](https://en.wikipedia.org/wiki/Personal_knowledge_management). However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge platform_, allowing you to annotate, combine and query your accumulated knowledge in creative ways specific to you.
 
-<img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-pwa.png" height="400"/>
-<img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-ios.png" height="400"/>
+<img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-pwa.png" height="250"/>
+<img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-ios.png" height="250"/>
 
 For more in-depth information, an interactive demo, and links to more background, check out the [Silver Bullet website](https://silverbullet.md) (published from this repo’s `website/` folder).
 
