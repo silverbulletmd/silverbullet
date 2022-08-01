@@ -4,8 +4,6 @@ import { Space } from "@silverbulletmd/common/spaces/space";
 import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
 
 safeRun(async () => {
-  // let localSpace = new Space(new IndexedDBSpacePrimitives("pages"), true);
-  // localSpace.watch();
   let password: string | undefined =
     localStorage.getItem("password") || undefined;
 
@@ -31,24 +29,6 @@ safeRun(async () => {
 
   console.log("Booting...");
 
-  // // @ts-ignore
-  // window.syncer = async () => {
-  //   let lastLocalSync = +(localStorage.getItem("lastLocalSync") || "0"),
-  //     lastRemoteSync = +(localStorage.getItem("lastRemoteSync") || "0");
-  //   let syncer = new SpaceSync(
-  //     serverSpace,
-  //     localSpace,
-  //     lastRemoteSync,
-  //     lastLocalSync,
-  //     "_trash/"
-  //   );
-  //   await syncer.syncPages(
-  //     SpaceSync.primaryConflictResolver(serverSpace, localSpace)
-  //   );
-  //   localStorage.setItem("lastLocalSync", "" + syncer.secondaryLastSync);
-  //   localStorage.setItem("lastRemoteSync", "" + syncer.primaryLastSync);
-  //   console.log("Done!");
-  // };
   let editor = new Editor(serverSpace, document.getElementById("sb-root")!, "");
   await editor.init();
   // @ts-ignore
