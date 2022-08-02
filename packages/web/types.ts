@@ -1,7 +1,7 @@
 import { AppCommand, CommandDef } from "./hooks/command";
 import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 
-export const slashCommandRegexp = /\/[\w\-]*/;
+export const slashCommandRegexp = /(?<!\w)\/[\w\-]*/;
 
 export type Notification = {
   id: number;
