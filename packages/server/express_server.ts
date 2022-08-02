@@ -31,7 +31,7 @@ import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 // @ts-ignore
-import settingsTemplate from "bundle-text:./SETTINGS_TEMPLATE.md";
+import settingsTemplate from "bundle-text:./SETTINGS_template.md";
 
 const globalModules: any = JSON.parse(
   readFileSync(

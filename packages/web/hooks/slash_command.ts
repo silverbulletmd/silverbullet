@@ -61,7 +61,6 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     if (!prefix) {
       return null;
     }
-    console.log("Match", prefix);
     let options: Completion[] = [];
 
     // No slash commands in comment blocks (queries and such)
