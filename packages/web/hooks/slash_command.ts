@@ -5,7 +5,6 @@ import {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import { slashCommandRegexp } from "../types";
 import { safeRun } from "../../common/util";
 import { Editor } from "../editor";
 import { syntaxTree } from "@codemirror/language";
@@ -23,6 +22,8 @@ export type AppSlashCommand = {
 export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
 };
+
+const slashCommandRegexp = /([^\w]|^)\/[\w\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands = new Map<string, AppSlashCommand>();
@@ -60,6 +61,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     if (!prefix) {
       return null;
     }
+    console.log("Match", prefix);
     let options: Completion[] = [];
 
     // No slash commands in comment blocks (queries and such)
@@ -90,7 +92,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     }
     return {
       // + 1 because of the '/'
-      from: prefix.from + 1,
+      from: prefix.from + prefix.text.indexOf("/") + 1,
       options: options,
     };
   }
