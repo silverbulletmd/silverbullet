@@ -54,7 +54,7 @@ export function Panel({
   }, []);
 
   return (
-    <div className="panel" style={{ flex }}>
+    <div className="sb-panel" style={{ flex }}>
       <iframe srcDoc={iframeHtml} ref={iFrameRef} />
     </div>
   );

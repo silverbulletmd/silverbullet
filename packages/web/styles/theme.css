@@ -1,0 +1,272 @@
+#sb-root {
+  font-family: Arial;
+  --highlight-color: #464cfc;
+}
+
+#sb-top {
+  background-color: rgb(213, 213, 213);
+  border-bottom: rgb(193, 193, 193) 1px solid;
+  color: rgb(55, 55, 55);
+}
+
+.sb-panel {
+  border-left: 1px solid #eee;
+}
+
+.sb-bhs {
+  border-top: rgb(193, 193, 193) 1px solid;
+}
+
+.sb-notifications {
+  font-family: "iA-Mono";
+}
+
+.sb-notifications > div {
+  border: rgb(41, 41, 41) 1px solid;
+}
+
+.sb-notification-info {
+  background-color: rgb(187, 221, 247);
+}
+.sb-notification-error {
+  background-color: rgb(255, 84, 84);
+}
+
+.sb-saved {
+  color: #111;
+}
+
+.sb-unsaved {
+  color: #5e5e5e;
+}
+
+.sb-actions button {
+  border: 1px solid #7897d0;
+  border-radius: 3px;
+  margin: 3px;
+  font-size: 15px;
+  padding: 5px;
+  background-color: #e6e6e6;
+}
+
+/* Filter boxes */
+.sb-filter-box {
+  background-color: #fff;
+  border: rgb(103, 103, 103) 1px solid;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+}
+
+.sb-filter-box .sb-header {
+  border-bottom: 1px rgb(108, 108, 108) solid;
+}
+
+.sb-filter-box .sb-header input {
+  font-family: "Arial";
+  color: #000;
+}
+
+.sb-filter-box .sb-header input::placeholder {
+  color: rgb(199, 199, 199);
+  font-weight: normal;
+}
+
+.sb-filter-box .sb-help-text {
+  background-color: #eee;
+  border-bottom: 1px rgb(108, 108, 108) solid;
+  color: #555;
+}
+
+.sb-filter-box .sb-selected-option {
+  color: #eee;
+}
+
+.sb-filter-box .sb-option .sb-hint,
+.sb-filter-box .sb-selected-option .sb-hint {
+  color: #eee;
+  background-color: #212476;
+}
+
+/* Editor */
+
+.cm-content {
+  font-family: "iA-Mono", "Menlo";
+}
+
+.cm-selectionBackground {
+  background-color: #d7e1f6 !important;
+}
+
+.sb-line-h1,
+.sb-line-h2,
+.sb-line-h3 {
+  background-color: rgba(0, 30, 77, 0.5);
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 2px !important;
+}
+
+.sb-line-h1 .sb-meta {
+  color: orange;
+}
+.sb-line-h2 .sb-meta {
+  color: orange;
+}
+
+.sb-line-h3 .sb-meta {
+  color: orange;
+}
+
+.sb-line-h1 {
+  font-size: 1.5em;
+}
+
+.sb-line-h2 {
+  font-size: 1.2em;
+}
+
+.sb-line-h3 {
+  font-size: 1.1em;
+}
+
+/* Color list item this way */
+.sb-line-li .sb-meta {
+  color: rgb(150, 150, 150);
+}
+/* Then undo other meta */
+.sb-line-li .sb-meta ~ .sb-meta {
+  color: #650007;
+}
+
+.sb-line-code {
+  background-color: rgba(72, 72, 72, 0.1);
+}
+
+.sb-line-code .sb-code {
+  background-color: transparent;
+}
+
+.sb-line-tbl-header {
+  font-weight: bold;
+}
+
+.sb-line-tbl-header .meta {
+  font-weight: normal;
+}
+
+.sb-struct {
+  color: darkred;
+}
+
+.sb-code {
+  background-color: rgba(72, 72, 72, 0.1);
+}
+
+.sb-highlight {
+  background-color: rgba(255, 255, 0, 0.5);
+}
+
+.sb-line-fenced-code {
+  background-color: rgba(72, 72, 72, 0.1);
+}
+
+/* Mostly for JS when that comes back */
+.sb-line-fenced-code .sb-code {
+  background-color: transparent;
+}
+
+.sb-line-fenced-code .sb-comment {
+  color: #989797;
+  background-color: transparent;
+  border-radius: 0;
+  font-style: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.sb-line-fenced-code .sb-keyword {
+  color: #830000;
+}
+
+.sb-line-fenced-code .sb-variableName {
+  color: #036d9b;
+}
+
+.sb-line-fenced-code .sb-typeName {
+  color: #038138;
+}
+
+.sb-line-fenced-code .sb-string,
+.sb-line-fenced-code .sb-string2 {
+  color: #440377;
+}
+
+.sb-meta {
+  color: #650007;
+}
+
+.sb-line-blockquote {
+  background-color: rgba(220, 220, 220, 0.5);
+  color: #676767;
+  text-indent: -2ch;
+  padding-left: 2ch;
+}
+
+.sb-emphasis {
+  font-style: italic;
+}
+
+.sb-strong {
+  font-weight: 900;
+}
+
+.sb-link {
+  cursor: pointer;
+}
+
+.sb-link:not(.sb-meta, .sb-url) {
+  color: #0330cb;
+  text-decoration: underline;
+}
+
+.sb-link.sb-url {
+  color: #7e7d7d;
+}
+
+.sb-url:not(.sb-link) {
+  color: #0330cb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sb-atom {
+  color: darkred;
+}
+
+.sb-wiki-link-page {
+  color: #0330cb;
+  background-color: rgba(77, 141, 255, 0.07);
+  border-radius: 5px;
+  padding: 0 5px;
+  cursor: pointer;
+}
+
+.sb-wiki-link {
+  cursor: pointer;
+  color: #a8abbd;
+}
+
+.sb-task-marker {
+  background-color: #ddd;
+}
+
+.sb-line-comment {
+  background-color: rgba(255, 255, 0, 0.5);
+}
+
+.sb-comment {
+  color: #989797;
+  background-color: rgba(210, 210, 210, 0.2);
+  border-radius: 5px;
+  font-size: 75%;
+  line-height: 75%;
+}

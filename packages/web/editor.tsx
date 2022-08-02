@@ -395,18 +395,18 @@ export class Editor {
         }),
         EditorView.lineWrapping,
         lineWrapper([
-          { selector: "ATXHeading1", class: "line-h1" },
-          { selector: "ATXHeading2", class: "line-h2" },
-          { selector: "ATXHeading3", class: "line-h3" },
-          { selector: "ListItem", class: "line-li", nesting: true },
-          { selector: "Blockquote", class: "line-blockquote" },
-          { selector: "Task", class: "line-task" },
-          { selector: "CodeBlock", class: "line-code" },
-          { selector: "FencedCode", class: "line-fenced-code" },
-          { selector: "Comment", class: "line-comment" },
-          { selector: "BulletList", class: "line-ul" },
-          { selector: "OrderedList", class: "line-ol" },
-          { selector: "TableHeader", class: "line-tbl-header" },
+          { selector: "ATXHeading1", class: "sb-line-h1" },
+          { selector: "ATXHeading2", class: "sb-line-h2" },
+          { selector: "ATXHeading3", class: "sb-line-h3" },
+          { selector: "ListItem", class: "sb-line-li", nesting: true },
+          { selector: "Blockquote", class: "sb-line-blockquote" },
+          { selector: "Task", class: "sb-line-task" },
+          { selector: "CodeBlock", class: "sb-line-code" },
+          { selector: "FencedCode", class: "sb-line-fenced-code" },
+          { selector: "Comment", class: "sb-line-comment" },
+          { selector: "BulletList", class: "sb-line-ul" },
+          { selector: "OrderedList", class: "sb-line-ol" },
+          { selector: "TableHeader", class: "sb-line-tbl-header" },
         ]),
         keymap.of([
           ...smartQuoteKeymap,
@@ -754,7 +754,7 @@ export class Editor {
           )}
         </div>
         {!!viewState.showBHS && (
-          <div className="bhs">
+          <div className="sb-bhs">
             <Panel
               html={viewState.bhsHTML}
               script={viewState.bhsScript}

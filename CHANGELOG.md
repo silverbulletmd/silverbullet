@@ -1,1 +1,1 @@
-See [website/CHANGELOG.md](https://github.com/silverbulletmd/silverbullet/blob/main/website/CHANGELOG.md)
+website/CHANGELOG.md

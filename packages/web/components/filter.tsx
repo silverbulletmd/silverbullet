@@ -124,9 +124,9 @@ export function FilterList({
   let exiting = false;
 
   const returnEl = (
-    <div className="filter-wrapper">
-      <div className="filter-box">
-        <div className="header">
+    <div className="sb-filter-wrapper">
+      <div className="sb-filter-box">
+        <div className="sb-header">
           <label>{label}</label>
           <input
             type="text"
@@ -187,17 +187,17 @@ export function FilterList({
           />
         </div>
         <div
-          className="help-text"
+          className="sb-help-text"
           dangerouslySetInnerHTML={{ __html: helpText }}
         ></div>
-        <div className="result-list">
+        <div className="sb-result-list">
           {matchingOptions && matchingOptions.length > 0
             ? matchingOptions.map((option, idx) => (
                 <div
                   key={"" + idx}
                   ref={selectedOption === idx ? selectedElementRef : undefined}
                   className={
-                    selectedOption === idx ? "selected-option" : "option"
+                    selectedOption === idx ? "sb-selected-option" : "sb-option"
                   }
                   onMouseOver={(e) => {
                     setSelectionOption(idx);
@@ -207,18 +207,20 @@ export function FilterList({
                     onSelect(option);
                   }}
                 >
-                  <span className="icon">
+                  <span className="sb-icon">
                     {icon && <FontAwesomeIcon icon={icon} />}
                   </span>
                   <span
-                    className="name"
+                    className="sb-name"
                     dangerouslySetInnerHTML={{
                       __html: option?.result?.indexes
                         ? fuzzysort.highlight(option.result, "<b>", "</b>")!
                         : escapeHtml(option.name),
                     }}
                   ></span>
-                  {option.hint && <span className="hint">{option.hint}</span>}
+                  {option.hint && (
+                    <span className="sb-hint">{option.hint}</span>
+                  )}
                 </div>
               ))
             : null}

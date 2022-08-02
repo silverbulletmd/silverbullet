@@ -1,6 +1,4 @@
-@import "constants";
-
-.filter-wrapper {
+.sb-filter-wrapper {
   position: absolute;
   margin: auto;
   max-width: 500px;
@@ -10,21 +8,15 @@
   top: 0;
   bottom: 0;
   max-height: 290px;
-  // overflow: hide;
   z-index: 100;
 }
 
-.filter-box {
-  font-family: $ui-font;
-  background-color: #fff;
-  border: rgb(103, 103, 103) 1px solid;
+.sb-filter-box {
   border-radius: 8px;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
   overflow: hidden;
   margin: 10px;
 
-  .header {
-    border-bottom: 1px rgb(108, 108, 108) solid;
+  .sb-header {
     padding: 13px 10px 10px 10px;
     display: flex;
     label {
@@ -33,56 +25,45 @@
     }
 
     input {
-      font-family: "Arial";
       background: transparent;
-      color: #000;
       border: 0;
       padding: 3px;
       outline: 0;
       font-size: 1em;
       flex-grow: 100;
     }
-    input::placeholder {
-      color: rgb(199, 199, 199);
-      font-weight: normal;
-    }
   }
 
-  .help-text {
-    background-color: #eee;
-    border-bottom: 1px rgb(108, 108, 108) solid;
+  .sb-help-text {
     padding: 5px;
-    color: #555;
   }
 
-  .result-list {
+  .sb-result-list {
     max-height: 216px;
     overflow-y: scroll;
 
-    .icon {
+    .sb-icon {
       padding: 0 8px 0 5px;
     }
-    .name {
+    .sb-name {
       padding-top: -3px;
     }
   }
 
-  .option,
-  .selected-option {
+  .sb-option,
+  .sb-selected-option {
     padding: 8px;
     cursor: pointer;
     height: 20px;
     line-height: 20px;
   }
 
-  .selected-option {
+  .sb-selected-option {
     background-color: var(--highlight-color);
-    color: #eee;
-    // border-radius: 5px;
   }
 
-  .option .hint,
-  .selected-option .hint {
+  .sb-option .sb-hint,
+  .sb-selected-option .sb-hint {
     float: right;
     margin-right: 0;
     margin-top: -4px;
@@ -90,8 +71,6 @@
     padding-right: 5px;
     padding-top: 3px;
     padding-bottom: 3px;
-    color: #eee;
-    background-color: #212476;
     border-radius: 5px;
   }
 }

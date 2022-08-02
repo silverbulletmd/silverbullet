@@ -34,23 +34,25 @@ export function TopBar({
       <div className="main">
         <div className="inner">
           <span
-            className={`current-page ${unsavedChanges ? "unsaved" : "saved"}`}
+            className={`sb-current-page ${
+              unsavedChanges ? "sb-unsaved" : "sb-saved"
+            }`}
           >
             {prettyName(pageName)}
           </span>
           {notifications.length > 0 && (
-            <div className="notifications">
+            <div className="sb-notifications">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notification-${notification.type}`}
+                  className={`sb-notification-${notification.type}`}
                 >
                   {notification.message}
                 </div>
               ))}
             </div>
           )}
-          <div className="actions">
+          <div className="sb-actions">
             <button
               onClick={(e) => {
                 onHomeClick();

@@ -1,177 +1,14 @@
-@import "constants.scss";
-
 .cm-editor {
-  font-size: var(--ident);
+  font-size: 18px;
   padding: 0 20px;
 
   .cm-content {
-    font-family: $editor-font;
     margin: auto;
-    max-width: $max-editor-width;
+    max-width: 800px;
   }
 
   &.cm-focused {
     outline: none !important;
-  }
-
-  .cm-selectionBackground {
-    background-color: #d7e1f6 !important;
-  }
-
-  .line-h1,
-  .line-h2,
-  .line-h3 {
-    background-color: rgba(0, 30, 77, 0.5);
-    color: #fff;
-    font-weight: bold;
-    padding: 2px 2px;
-
-    .meta {
-      color: orange;
-    }
-  }
-
-  .line-h1 {
-    font-size: 1.5em;
-  }
-
-  .line-h2 {
-    font-size: 1.2em;
-  }
-
-  .line-h3 {
-    font-size: 1.1em;
-  }
-
-  /* Color list item this way */
-  .line-li .meta {
-    color: rgb(150, 150, 150);
-  }
-  /* Then undo other meta */
-  .line-li .meta ~ .meta {
-    color: #650007;
-  }
-
-  .line-code {
-    background-color: rgba(72, 72, 72, 0.1);
-
-    .code {
-      background-color: transparent;
-    }
-  }
-
-  .line-tbl-header {
-    font-weight: bold;
-
-    .meta {
-      font-weight: normal;
-    }
-  }
-
-  .struct {
-    color: darkred;
-  }
-
-  .code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  .highlight {
-    background-color: rgba(255, 255, 0, 0.5);
-  }
-
-  .line-fenced-code {
-    background-color: rgba(72, 72, 72, 0.1);
-
-    .code {
-      background-color: transparent;
-    }
-
-    // Set this to defaults
-    .comment {
-      color: #989797;
-      background-color: transparent;
-      border-radius: 0;
-      font-style: inherit;
-      font-size: inherit;
-      line-height: inherit;
-    }
-
-    .keyword {
-      color: #830000;
-    }
-
-    .variableName {
-      color: #036d9b;
-    }
-
-    .typeName {
-      color: #038138;
-    }
-
-    .string,
-    .string2 {
-      color: #440377;
-    }
-
-    //.code-info {
-    //  background: black;
-    //  border-radius: 3px;
-    //}
-  }
-
-  .meta {
-    color: #650007;
-  }
-
-  .line-blockquote {
-    background-color: rgba(220, 220, 220, 0.5);
-    color: #676767;
-    text-indent: -2ch;
-    padding-left: 2ch;
-  }
-
-  .emphasis {
-    font-style: italic;
-  }
-
-  .strong {
-    font-weight: 900;
-  }
-
-  .link {
-    cursor: pointer;
-  }
-
-  .link:not(.meta, .url) {
-    color: #0330cb;
-    text-decoration: underline;
-  }
-
-  .link.url {
-    color: #7e7d7d;
-  }
-
-  .url:not(.link) {
-    color: #0330cb;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-
-  .atom {
-    color: darkred;
-  }
-
-  .wiki-link-page {
-    color: #0330cb;
-    background-color: rgba(77, 141, 255, 0.07);
-    border-radius: 5px;
-    padding: 0 5px;
-    cursor: pointer;
-  }
-  .wiki-link {
-    cursor: pointer;
-    color: #a8abbd;
   }
 
   // Indentation of follow-up lines
@@ -179,79 +16,63 @@
     text-indent: -1 * ($baseIndent + 2ch);
     padding-left: $baseIndent + 2ch;
 
-    &.line-task {
+    &.sb-line-task {
       text-indent: -1 * ($baseIndent + 6ch);
       padding-left: $baseIndent + 6ch;
     }
 
-    &.line-blockquote {
+    &.sb-line-blockquote {
       text-indent: -1 * ($baseIndent + 4ch);
       padding-left: $baseIndent + 4ch;
     }
   }
 
-  .line-ul {
-    &.line-li-1 {
+  .sb-line-ul {
+    &.sb-line-li-1 {
       @include lineOverflow(0);
     }
 
-    &.line-li-1.line-li-2 {
+    &.sb-line-li-1.sb-line-li-2 {
       @include lineOverflow(2);
     }
 
-    &.line-li-1.line-li-2.line-li-3 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
       @include lineOverflow(4);
     }
 
-    &.line-li-1.line-li-2.line-li-3.line-li-4 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
       @include lineOverflow(6);
     }
 
-    &.line-li-1.line-li-2.line-li-3.line-li-4.line-li-5 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
       @include lineOverflow(8);
     }
   }
 
-  .line-ol {
-    &.line-li-1 {
+  .sb-line-ol {
+    &.sb-line-li-1 {
       @include lineOverflow(1);
     }
 
-    &.line-li-1.line-li-2 {
+    &.sb-line-li-1.sb-line-li-2 {
       @include lineOverflow(2);
     }
 
-    &.line-li-1.line-li-2.line-li-3 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
       @include lineOverflow(4);
     }
 
-    &.line-li-1.line-li-2.line-li-3.line-li-4 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
       @include lineOverflow(6);
     }
 
-    &.line-li-1.line-li-2.line-li-3.line-li-4.line-li-5 {
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
       @include lineOverflow(8);
     }
   }
 
-  .line-comment {
+  .sb-line-comment {
     text-indent: -1 * 3ch;
     padding-left: 3ch;
-  }
-
-  .task-marker {
-    background-color: #ddd;
-  }
-
-  .line-comment {
-    background-color: rgba(255, 255, 0, 0.5);
-  }
-
-  .comment {
-    color: #989797;
-    background-color: rgba(210, 210, 210, 0.2);
-    border-radius: 5px;
-    font-size: 75%;
-    line-height: 75%;
   }
 }

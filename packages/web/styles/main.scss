@@ -1,6 +1,5 @@
 @use "editor.scss";
 @use "filter_box.scss";
-@import "constants";
 
 @font-face {
   font-family: "iA-Mono";
@@ -31,12 +30,6 @@
 }
 
 #sb-root {
-  --ident: 18px;
-  --top-bar-bg: rgb(41, 41, 41);
-  --highlight-color: #464cfc;
-}
-
-#sb-root {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -48,25 +41,22 @@
   flex-direction: row;
   z-index: 20;
 
-  height: $top-bar-height;
-  background-color: rgb(213, 213, 213);
-  border-bottom: rgb(193, 193, 193) 1px solid;
-  color: rgb(55, 55, 55);
+  height: 55px;
+
   .main {
     flex: 2;
     max-width: 100%;
 
     .inner {
-      max-width: $max-editor-width;
+      max-width: 800px;
       margin: auto;
       font-size: 28px;
       padding: 10px 20px;
       display: flex;
       flex-direction: row;
 
-      .notifications {
+      .sb-notifications {
         position: absolute;
-        font-family: "iA-Mono";
         bottom: 0;
         left: 5px;
         right: 5px;
@@ -77,19 +67,10 @@
           padding: 3px;
           margin-bottom: 3px;
           border-radius: 5px;
-          border: rgb(41, 41, 41) 1px solid;
-        }
-
-        .notification-info {
-          background-color: rgb(187, 221, 247);
-        }
-        .notification-error {
-          background-color: rgb(255, 84, 84);
         }
       }
 
-      .current-page {
-        font-family: $ui-font;
+      .sb-current-page {
         font-weight: bold;
         flex: 1;
         font-size: 28px;
@@ -100,30 +81,14 @@
         display: block;
         text-overflow: ellipsis;
       }
-
-      .saved {
-        color: #111;
-      }
-
-      .unsaved {
-        color: #5e5e5e;
-      }
     }
-    .actions {
-      text-align: right;
 
-      button {
-        border: 1px solid #7897d0;
-        border-radius: 3px;
-        margin: 3px;
-        font-size: 15px;
-        padding: 5px;
-        background-color: #e6e6e6;
-      }
+    .sb-actions {
+      text-align: right;
     }
   }
 
-  .panel {
+  .sb-panel {
     flex: 1;
   }
 }
@@ -134,9 +99,8 @@
   flex-grow: 1;
   height: 0;
 
-  .panel {
+  .sb-panel {
     flex: 1;
-    border-left: 1px solid #eee;
 
     iframe {
       border: 0;
@@ -154,12 +118,11 @@
   height: 100%;
 }
 
-.bhs {
+.sb-bhs {
   height: 300px;
   width: 100%;
-  border-top: rgb(193, 193, 193) 1px solid;
 
-  .panel {
+  .sb-panel {
     height: 100%;
 
     iframe {
