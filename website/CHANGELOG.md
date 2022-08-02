@@ -1,5 +1,13 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
+## 0.0.30
+* Slash commands now only trigger after a non-word character to avoid "false positives" like "hello/world".
+* Page auto complete now works with slashes in the name.
+* Having a `SETTINGS` page is now mandatory. One is auto generated if none is present.
+* Added a `indexPage` setting to set the index page for the space (which by default is `index`). When navigating to this page, the page name will "disappear" from the URL. That is, the index URL will simply be `http://localhost:3000/`.
+  * This feature is now used in `website` and set to `Silver Bullet` there. To also make the title look nicer when visiting https://silverbullet.md
+  
+
 ## 0.0.29
 * Added the `Link: Unfurl` command, which is scoped to only work (and be visible) when used on “naked URLs”, that is: URLs not embedded in a link or other place, such as this one: https://silverbullet.md
   * Plugs can implement their own unfurlers by responding to the `unfurl:options` event (see the [Twitter plug](https://github.com/silverbulletmd/silverbullet-twitter) for an example).
