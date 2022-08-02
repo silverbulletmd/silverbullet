@@ -3,11 +3,7 @@ This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` c
 ```yaml
 - builtin:core
 - builtin:emoji
-- builtin:ghost
-- builtin:git
-- builtin:github
 - builtin:markdown
-- builtin:mattermost
 - builtin:plugmd
 - builtin:query
 - builtin:tasks

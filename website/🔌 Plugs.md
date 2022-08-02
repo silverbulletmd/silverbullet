@@ -3,12 +3,12 @@ Silver Bullet at its core is bare bones in terms of functionality, most of its p
 Plugs are an extension mechanism (implemented using a library called `plugos` that runs plug code on the server in a sandboxed v8 node.js process, and in the browser using web workers). Plugs can hook into SB in various ways: plugs can extend the Markdown parser and its syntax, define new commands and keybindings, respond to various events triggered either on the server or client side, as well as run recurring and background tasks. Plugs can even define their own extension mechanisms through custom events. Each plug runs in its own sandboxed environment and communicates with SB via _syscalls_ that expose a vast range of functionality. Plugs can be loaded, unloaded and updated without having to restart SB itself.
 
 ## Directory
-<!-- #query page where type = “plug” render “template/plug” -->
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
+<!-- #query page where type = "plug" order by name render "template/plug" -->
 * [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 * [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
 * [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
 <!-- /query -->
