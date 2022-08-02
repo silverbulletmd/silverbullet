@@ -1,3 +1,5 @@
+import YAML from "yaml";
+
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
     console.error(e);
@@ -18,4 +20,18 @@ export function throttle(func: () => void, limit: number) {
       }, limit);
     }
   };
+}
+
+// TODO: This is naive, may be better to use a proper parser
+const yamlSettingsRegex = /```yaml([^`]+)```/;
+
+export function parseYamlSettings(settingsMarkdown: string): {
+  [key: string]: any;
+} {
+  const match = yamlSettingsRegex.exec(settingsMarkdown);
+  if (!match) {
+    return {};
+  }
+  const yaml = match[1];
+  return YAML.parse(yaml);
 }

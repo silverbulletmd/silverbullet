@@ -11,20 +11,24 @@ function decodePageUrl(url: string): string {
 export class PathPageNavigator {
   navigationResolve?: () => void;
 
-  constructor(readonly root: string = "") {}
+  constructor(readonly indexPage: string, readonly root: string = "") {}
 
   async navigate(page: string, pos?: number, replaceState = false) {
+    let encodedPage = encodePageUrl(page);
+    if (page === this.indexPage) {
+      encodedPage = "";
+    }
     if (replaceState) {
       window.history.replaceState(
         { page, pos },
         page,
-        `${this.root}/${encodePageUrl(page)}`
+        `${this.root}/${encodedPage}`
       );
     } else {
       window.history.pushState(
         { page, pos },
         page,
-        `${this.root}/${encodePageUrl(page)}`
+        `${this.root}/${encodedPage}`
       );
     }
     window.dispatchEvent(
@@ -75,7 +79,7 @@ export class PathPageNavigator {
   }
 
   getCurrentPage(): string {
-    return decodePageUrl(this.decodeURI()[0]);
+    return decodePageUrl(this.decodeURI()[0]) || this.indexPage;
   }
 
   getCurrentPos(): number {

@@ -18,6 +18,7 @@
     "@codemirror/view": "^6.0.0",
     "@lezer/common": "1.0.0",
     "@lezer/highlight": "1.0.0",
-    "@lezer/markdown": "1.0.1"
+    "@lezer/markdown": "1.0.1",
+    "yaml": "^1.10.2"
   }
 }

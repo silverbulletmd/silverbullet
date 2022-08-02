@@ -1,5 +1,5 @@
 import { Editor } from "./editor";
-import { safeRun } from "@silverbulletmd/common/util";
+import { parseYamlSettings, safeRun } from "@silverbulletmd/common/util";
 import { Space } from "@silverbulletmd/common/spaces/space";
 import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
 
@@ -8,9 +8,10 @@ safeRun(async () => {
     localStorage.getItem("password") || undefined;
 
   let httpPrimitives = new HttpSpacePrimitives("", password);
+  let settingsPageText = "";
   while (true) {
     try {
-      await httpPrimitives.getPageMeta("index");
+      settingsPageText = (await httpPrimitives.readPage("SETTINGS")).text;
       break;
     } catch (e: any) {
       if (e.message === "Unauthorized") {
@@ -29,7 +30,14 @@ safeRun(async () => {
 
   console.log("Booting...");
 
-  let editor = new Editor(serverSpace, document.getElementById("sb-root")!, "");
+  let settings = parseYamlSettings(settingsPageText);
+
+  let editor = new Editor(
+    serverSpace,
+    document.getElementById("sb-root")!,
+    "",
+    settings.indexPage || "index"
+  );
   await editor.init();
   // @ts-ignore
   window.editor = editor;

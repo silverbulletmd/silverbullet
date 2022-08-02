@@ -114,12 +114,19 @@ export class Editor {
   private system = new System<SilverBulletHooks>("client");
   private mdExtensions: MDExt[] = [];
   urlPrefix: string;
+  indexPage: string;
 
-  constructor(space: Space, parent: Element, urlPrefix: string) {
+  constructor(
+    space: Space,
+    parent: Element,
+    urlPrefix: string,
+    indexPage: string
+  ) {
     this.space = space;
     this.urlPrefix = urlPrefix;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
+    this.indexPage = indexPage;
 
     // Event hook
     this.eventHook = new EventHook();
@@ -146,7 +153,7 @@ export class Editor {
       state: this.createEditorState("", ""),
       parent: document.getElementById("sb-editor")!,
     });
-    this.pageNavigator = new PathPageNavigator(urlPrefix);
+    this.pageNavigator = new PathPageNavigator(indexPage, urlPrefix);
 
     this.system.registerSyscalls(
       [],
@@ -242,11 +249,7 @@ export class Editor {
       },
     });
 
-    if (this.pageNavigator.getCurrentPage() === "") {
-      await this.pageNavigator.navigate("index");
-    }
     await this.reloadPlugs();
-
     await this.dispatchAppEvent("editor:init");
   }
 
@@ -558,6 +561,9 @@ export class Editor {
   }
 
   async navigate(name: string, pos?: number, replaceState = false) {
+    if (!name) {
+      name = this.indexPage;
+    }
     await this.pageNavigator.navigate(name, pos, replaceState);
   }
 
@@ -712,7 +718,7 @@ export class Editor {
             dispatch({ type: "start-navigate" });
           }}
           onHomeClick={() => {
-            editor.navigate("index");
+            editor.navigate("");
           }}
           onActionClick={() => {
             dispatch({ type: "show-palette" });

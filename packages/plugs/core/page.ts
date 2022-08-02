@@ -101,7 +101,7 @@ export async function linkQueryProvider({
 export async function deletePage() {
   let pageName = await getCurrentPage();
   console.log("Navigating to index page");
-  await navigate("index");
+  await navigate("");
   console.log("Deleting page from space");
   await deletePageSyscall(pageName);
 }
@@ -201,7 +201,7 @@ export async function reindexCommand() {
 
 // Completion
 export async function pageComplete() {
-  let prefix = await matchBefore("\\[\\[[\\w\\s]*");
+  let prefix = await matchBefore("\\[\\[[^\\]]*");
   if (!prefix) {
     return null;
   }

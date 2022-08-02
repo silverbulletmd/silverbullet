@@ -107,7 +107,7 @@ functions:
     command:
       name: "Navigate: Home"
       key: "Alt-h"
-      page: "index"
+      page: ""
 
   # Hashtags
   indexTags:

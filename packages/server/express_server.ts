@@ -30,8 +30,8 @@ import { systemSyscalls } from "./syscalls/system";
 import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
-
-// import globalModules from "../common/dist/global.plug.json";
+// @ts-ignore
+import settingsTemplate from "bundle-text:./SETTINGS_TEMPLATE.md";
 
 const globalModules: any = JSON.parse(
   readFileSync(
@@ -53,6 +53,7 @@ import {
   storeSyscalls,
   ensureTable as ensureStoreTable,
 } from "@plugos/plugos/syscalls/store.knex_node";
+import { parseYamlSettings } from "@silverbulletmd/common/util";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -74,6 +75,7 @@ export class ExpressServer {
   private server?: Server;
   builtinPlugDir: string;
   password?: string;
+  settings: { [key: string]: any } = {};
 
   constructor(options: ServerOptions) {
     this.port = options.port;
@@ -268,7 +270,7 @@ export class ExpressServer {
     await ensureIndexTable(this.db);
     await ensureStoreTable(this.db, "store");
     await ensureFTSTable(this.db, "fts");
-    await this.ensureIndexPage();
+    await this.ensureAndLoadSettings();
 
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
@@ -444,11 +446,26 @@ export class ExpressServer {
     });
   }
 
-  async ensureIndexPage() {
+  async ensureAndLoadSettings() {
     try {
-      await this.space.getPageMeta("index");
+      await this.space.getPageMeta("SETTINGS");
     } catch (e) {
-      await this.space.writePage("index", `Welcome to your new space!`);
+      await this.space.writePage("SETTINGS", settingsTemplate, true);
+    }
+
+    let { text: settingsText } = await this.space.readPage("SETTINGS");
+    this.settings = parseYamlSettings(settingsText);
+    if (!this.settings.indexPage) {
+      this.settings.indexPage = "index";
+    }
+
+    try {
+      await this.space.getPageMeta(this.settings.indexPage);
+    } catch (e) {
+      await this.space.writePage(
+        this.settings.indexPage,
+        `Welcome to your new space!`
+      );
     }
   }
 
