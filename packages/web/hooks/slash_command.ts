@@ -61,6 +61,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     if (!prefix) {
       return null;
     }
+    const prefixText = prefix.text;
     let options: Completion[] = [];
 
     // No slash commands in comment blocks (queries and such)
@@ -76,7 +77,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           // Delete slash command part
           this.editor.editorView?.dispatch({
             changes: {
-              from: prefix!.from,
+              from: prefix!.from + prefixText.indexOf("/"),
               to: ctx.pos,
               insert: "",
             },
@@ -91,7 +92,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     }
     return {
       // + 1 because of the '/'
-      from: prefix.from + prefix.text.indexOf("/") + 1,
+      from: prefix.from + prefixText.indexOf("/") + 1,
       options: options,
     };
   }
