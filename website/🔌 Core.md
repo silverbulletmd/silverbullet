@@ -1,4 +1,5 @@
 ```meta
+type: plug
 uri: builtin:core
 repo: https://github.com/silverbulletmd/silverbullet
 author: Silver Bullet Authors
