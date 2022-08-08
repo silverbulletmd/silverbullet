@@ -42,10 +42,10 @@ export async function instantiateTemplateCommand() {
   let { text } = await readPage(selectedTemplate.name);
 
   let parseTree = await parseMarkdown(text);
-  let additionalPageMeta = extractMeta(parseTree, ["name"]);
+  let additionalPageMeta = extractMeta(parseTree, ["PAGENAME"]);
   console.log("Page meta", additionalPageMeta);
 
-  let pageName = await prompt("Name of new page", additionalPageMeta.name);
+  let pageName = await prompt("Name of new page", additionalPageMeta.PAGENAME);
   if (!pageName) {
     return;
   }

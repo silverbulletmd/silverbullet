@@ -107,6 +107,10 @@ export function extractMeta(
         delete newData[key];
       }
       codeTextNode.children![0].text = stringifyYaml(newData).trim();
+      // If nothing is left, let's just delete this thing
+      if (Object.keys(newData).length === 0) {
+        return null;
+      }
     }
     return undefined;
   });
