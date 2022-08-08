@@ -5,6 +5,12 @@ export async function listPages(unfiltered = false): Promise<PageMeta[]> {
   return syscall("space.listPages", unfiltered);
 }
 
+export async function getPageMeta(
+  name: string
+): Promise<{ text: string; meta: PageMeta }> {
+  return syscall("space.getPageMeta", name);
+}
+
 export async function readPage(
   name: string
 ): Promise<{ text: string; meta: PageMeta }> {

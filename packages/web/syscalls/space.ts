@@ -13,6 +13,9 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     ): Promise<{ text: string; meta: PageMeta }> => {
       return await editor.space.readPage(name);
     },
+    "space.getPageMeta": async (ctx, name: string): Promise<PageMeta> => {
+      return await editor.space.getPageMeta(name);
+    },
     "space.writePage": async (
       ctx,
       name: string,

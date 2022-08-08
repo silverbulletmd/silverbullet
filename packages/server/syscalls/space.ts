@@ -13,6 +13,9 @@ export default (space: Space): SysCallMapping => {
     ): Promise<{ text: string; meta: PageMeta }> => {
       return space.readPage(name);
     },
+    "space.getPageMeta": async (ctx, name: string): Promise<PageMeta> => {
+      return space.getPageMeta(name);
+    },
     "space.writePage": async (
       ctx,
       name: string,
