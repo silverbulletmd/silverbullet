@@ -2,6 +2,7 @@ import {
   listPages,
   readPage,
   writePage,
+  getPageMeta,
 } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import {
   filterBox,
@@ -24,14 +25,15 @@ export async function instantiateTemplateCommand() {
     pageTemplatePrefix: "template/page/",
   });
 
-  let allPageTemplates = allPages.filter((pageMeta) =>
-    pageMeta.name.startsWith(pageTemplatePrefix)
-  );
-
   let selectedTemplate = await filterBox(
     "Template",
-    allPageTemplates,
-    "Select the template to create a new page from"
+    allPages
+      .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
+      .map((pageMeta) => ({
+        ...pageMeta,
+        name: pageMeta.name.slice(pageTemplatePrefix.length),
+      })),
+    `Select the template to create a new page from (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`
   );
 
   if (!selectedTemplate) {
@@ -39,11 +41,12 @@ export async function instantiateTemplateCommand() {
   }
   console.log("Selected template", selectedTemplate);
 
-  let { text } = await readPage(selectedTemplate.name);
+  let { text } = await readPage(
+    `${pageTemplatePrefix}${selectedTemplate.name}`
+  );
 
   let parseTree = await parseMarkdown(text);
   let additionalPageMeta = extractMeta(parseTree, ["PAGENAME"]);
-  console.log("Page meta", additionalPageMeta);
 
   let pageName = await prompt("Name of new page", additionalPageMeta.PAGENAME);
   if (!pageName) {
@@ -115,18 +118,45 @@ export function replaceTemplateVars(s: string, pageName: string): string {
 }
 
 export async function quickNoteCommand() {
+  let { quickNotePrefix } = await readSettings({
+    quickNotePrefix: "📥 ",
+  });
   let isoDate = new Date().toISOString();
   let [date, time] = isoDate.split("T");
   time = time.split(".")[0];
-  let pageName = `📥 ${date} ${time}`;
+  let pageName = `${quickNotePrefix}${date} ${time}`;
   await navigate(pageName);
 }
 
 export async function dailyNoteCommand() {
+  let { dailyNoteTemplate, dailyNotePrefix } = await readSettings({
+    dailyNoteTemplate: "template/page/Daily Note",
+    dailyNotePrefix: "📅 ",
+  });
+  let dailyNoteTemplateText = "";
+  try {
+    let { text } = await readPage(dailyNoteTemplate);
+    dailyNoteTemplateText = text;
+  } catch {
+    console.warn(`No daily note template found at ${dailyNoteTemplate}`);
+  }
   let isoDate = new Date().toISOString();
   let date = isoDate.split("T")[0];
-  let pageName = `📅 ${date}`;
-  await navigate(pageName);
+  let pageName = `${dailyNotePrefix}${date}`;
+  if (dailyNoteTemplateText) {
+    try {
+      await getPageMeta(pageName);
+    } catch {
+      // Doesn't exist, let's create
+      await writePage(
+        pageName,
+        replaceTemplateVars(dailyNoteTemplateText, pageName)
+      );
+    }
+    await navigate(pageName);
+  } else {
+    await navigate(pageName);
+  }
 }
 
 export async function insertTemplateText(cmdDef: any) {

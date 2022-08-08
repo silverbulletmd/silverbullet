@@ -1,7 +1,10 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
 ## 0.0.31
-* For the `Template: Instantiate Page` command, the page meta value `PAGENAME` is now used to configure the page name (was `name` before). Also if `PAGENAME` is the only page meta defined, it will remove the page meta entirely when instantiating.
+* Updates to templates:
+  * For the `Template: Instantiate Page` command, the page meta value `PAGENAME` is now used to configure the page name (was `name` before). Also if `PAGENAME` is the only page meta defined, it will remove the page meta entirely when instantiating.
+  * You can now configure a daily note prefix with `dailyNotePrefix` in `SETTINGS` and create a template for your daily note under `template/page/Daily Note` (configurable via the `dailyNoteTemplate` setting).
+  * You can now a quick note prefix with `quickNotePrefix` in `SETTINGS`.
 
 ## 0.0.30
 * Slash commands now only trigger after a non-word character to avoid "false positives" like "hello/world".
