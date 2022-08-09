@@ -48,6 +48,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   console.log("Now indexing", name);
   let pageMeta = extractMeta(tree);
   if (Object.keys(pageMeta).length > 0) {
+    console.log("Extracted page meta data", pageMeta);
     await set(name, "meta:", pageMeta);
   }
 
@@ -88,14 +89,12 @@ export async function linkQueryProvider({
   query,
   pageName,
 }: QueryProviderEvent): Promise<any[]> {
-  let uniqueLinks = new Set<string>();
-  for (let { value: name } of await queryPrefix(`pl:${pageName}:`)) {
-    uniqueLinks.add(name);
+  let links: any[] = [];
+  for (let { value: name, key } of await queryPrefix(`pl:${pageName}:`)) {
+    const [, , pos] = key.split(":"); // Key: pl:page:pos
+    links.push({ name, pos });
   }
-  return applyQuery(
-    query,
-    [...uniqueLinks].map((l) => ({ name: l }))
-  );
+  return applyQuery(query, links);
 }
 
 export async function deletePage() {

@@ -17,7 +17,8 @@ import { jsonToMDTable, queryRegex } from "./util";
 import { dispatch } from "@plugos/plugos-syscall/event";
 import { replaceAsync } from "../lib/util";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { nodeAtPos } from "@silverbulletmd/common/tree";
+import { nodeAtPos, renderToText } from "@silverbulletmd/common/tree";
+import { extractMeta } from "./data";
 
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
@@ -34,7 +35,7 @@ export async function updateMaterializedQueriesCommand() {
 }
 
 export const templateInstRegex =
-  /(<!--\s*#(template|include)\s+"([^"]+)"(.+?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
+  /(<!--\s*#(inject|inject-clean|include)\s+\[\[([^\]]+)\]\](.*?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
 
 async function updateTemplateInstantiations(
   text: string,
@@ -66,8 +67,11 @@ async function updateTemplateInstantiations(
         templateText = (await readPage(template)).text;
       }
       let newBody = templateText;
-      // if it's a template (note a literal "include")
-      if (type === "template") {
+      // if it's a template injection (not a literal "include")
+      if (type == "inject" || type === "inject-clean") {
+        let tree = await parseMarkdown(templateText);
+        extractMeta(tree, ["$disableDirectives"]);
+        templateText = renderToText(tree);
         let templateFn = Handlebars.compile(
           replaceTemplateVars(templateText, pageName),
           { noEscape: true }
@@ -75,6 +79,29 @@ async function updateTemplateInstantiations(
         newBody = templateFn(parsedArgs);
       }
       return `${startInst}\n${newBody.trim()}\n${endInst}`;
+    }
+  );
+}
+
+async function cleanTemplateInstantiations(text: string): Promise<string> {
+  return replaceAsync(
+    text,
+    templateInstRegex,
+    async (fullMatch, startInst, type, template, args, body, endInst) => {
+      if (type === "inject-clean") {
+        body = body.replaceAll(
+          queryRegex,
+          (
+            fullMatch: string,
+            startQuery: string,
+            query: string,
+            body: string
+          ) => {
+            return body.trim();
+          }
+        );
+      }
+      return `${startInst}${body}${endInst}`;
     }
   );
 }
@@ -96,6 +123,12 @@ export async function updateMaterializedQueriesOnPage(
   }
   let newText = await updateTemplateInstantiations(text, pageName);
   let tree = await parseMarkdown(newText);
+  let metaData = extractMeta(tree, ["$disableDirectives"]);
+  if (metaData.$disableDirectives) {
+    console.log("Directives disabled, skipping");
+    return false;
+  }
+  newText = renderToText(tree);
 
   newText = await replaceAsync(
     newText,
@@ -106,7 +139,6 @@ export async function updateMaterializedQueriesOnPage(
         // If not a comment block, it's likely a code block, ignore
         return fullMatch;
       }
-      // console.log("Text slice", newText.substring(index, index + 100));
 
       let parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
@@ -132,6 +164,7 @@ export async function updateMaterializedQueriesOnPage(
       }
     }
   );
+  newText = await cleanTemplateInstantiations(newText);
   if (text !== newText) {
     await writePage(pageName, newText);
     return true;

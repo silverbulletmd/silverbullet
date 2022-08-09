@@ -46,9 +46,12 @@ export async function instantiateTemplateCommand() {
   );
 
   let parseTree = await parseMarkdown(text);
-  let additionalPageMeta = extractMeta(parseTree, ["PAGENAME"]);
+  let additionalPageMeta = extractMeta(parseTree, [
+    "$name",
+    "$disableDirectives",
+  ]);
 
-  let pageName = await prompt("Name of new page", additionalPageMeta.PAGENAME);
+  let pageName = await prompt("Name of new page", additionalPageMeta.$name);
   if (!pageName) {
     return;
   }

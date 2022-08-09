@@ -27,6 +27,9 @@ export function valueNodeToVal(valNode: ParseTree): any {
     case "String":
       let stringVal = valNode.children![0].text!;
       return stringVal.substring(1, stringVal.length - 1);
+    case "PageRef":
+      let pageRefVal = valNode.children![0].text!;
+      return pageRefVal.substring(2, pageRefVal.length - 2);
     case "List":
       return collectNodesOfType(valNode, "Value").map((t) =>
         valueNodeToVal(t.children![0])

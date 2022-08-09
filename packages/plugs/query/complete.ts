@@ -18,37 +18,4 @@ export async function queryComplete() {
         })),
     };
   }
-
-  prefix = await matchBefore('render "[^"]*');
-  if (prefix) {
-    let allPages = await listPages();
-    return {
-      from: prefix.from + 'render "'.length,
-      options: allPages.map((pageMeta) => ({
-        label: pageMeta.name,
-      })),
-    };
-  }
-
-  prefix = await matchBefore('#template "[^"]*');
-  if (prefix) {
-    let allPages = await listPages();
-    return {
-      from: prefix.from + '#template "'.length,
-      options: allPages.map((pageMeta) => ({
-        label: pageMeta.name,
-      })),
-    };
-  }
-
-  prefix = await matchBefore('#include "[^"]*');
-  if (prefix) {
-    let allPages = await listPages();
-    return {
-      from: prefix.from + '#include "'.length,
-      options: allPages.map((pageMeta) => ({
-        label: pageMeta.name,
-      })),
-    };
-  }
 }

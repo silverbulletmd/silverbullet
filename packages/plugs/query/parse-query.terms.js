@@ -18,4 +18,5 @@ export const
   Order = 16,
   LimitClause = 17,
   SelectClause = 18,
-  RenderClause = 19
+  RenderClause = 19,
+  PageRef = 20

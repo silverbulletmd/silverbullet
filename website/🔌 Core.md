@@ -16,14 +16,14 @@ Page templates, by default, are looked for in the `template/page/` prefix. So cr
 
 Page template have one “magic” type of page meta data that is used during instantiation:
 
-* `PAGENAME` is used as a default value for a new page based on this template
+* `$name` is used as a default value for a new page based on this template
 
 In addition, any standard template placeholders are available (see below)
 
 For instance:
 
     ```meta
-    PAGENAME: "📕 "
+    $name: "📕 "
     ```
 
     # {{page}}
@@ -45,7 +45,7 @@ Will prompt you to pick a page name (defaulting to “📕 “), and then create
 ### Snippets
 Snippets are similar to page templates, except you insert them into an existing page with the `/snippet` slash command. The default prefix is `snippet/` which is configurable via the `snippetPrefix` setting in `SETTINGS`.
 
-Snippet templates do not support the `PAGENAME` page meta, because it doesn’t apply.
+Snippet templates do not support the `$name` page meta, because it doesn’t apply.
 
 However, snippets do support the special `|^|` placeholder for placing the cursor caret after injecting the snippet. If you leave it out, the cursor will simply be placed at the end, but if you like to insert the cursor elsewhere, that position can be set with the `|^|` placeholder.
 

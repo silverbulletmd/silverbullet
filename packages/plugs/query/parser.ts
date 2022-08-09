@@ -84,7 +84,10 @@ export function parseQuery(query: string): ParsedQuery {
 
   let renderNode = findNodeOfType(queryNode, "RenderClause");
   if (renderNode) {
-    let renderNameNode = findNodeOfType(renderNode, "String");
+    let renderNameNode = findNodeOfType(renderNode, "PageRef");
+    if (!renderNameNode) {
+      renderNameNode = findNodeOfType(renderNode, "String");
+    }
     parsedQuery.render = valueNodeToVal(renderNameNode!);
   }
 

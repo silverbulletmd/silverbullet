@@ -62,6 +62,12 @@ test("Test parser", () => {
     ],
   });
 
+  expect(parseQuery(`something render [[template/table]]`)).toStrictEqual({
+    table: "something",
+    filter: [],
+    render: "template/table",
+  });
+
   expect(parseQuery(`something render "template/table"`)).toStrictEqual({
     table: "something",
     filter: [],

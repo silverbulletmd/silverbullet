@@ -12,7 +12,7 @@ WhereClause { "where" LogicalExpr }
 OrderClause { "order" "by" Name Order? }
 LimitClause { "limit" Number }
 SelectClause { "select" commaSep<Name> }
-RenderClause { "render" String }
+RenderClause { "render" (PageRef | String) }
 
 Order {
   "desc" | "asc"
@@ -55,6 +55,9 @@ Null {
   Name { (std.asciiLetter | "-" | "_")+ }
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
+  }
+  PageRef {
+    "[" "[" ![\]]* "]" "]"
   }
   Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
 

@@ -37,7 +37,7 @@ What type of extensions, you ask? Let us demonstrate this in a very meta way: by
 
 Here’s a list of (non-built in) plugs documented in this space (note the `#query` ... `/query` notation used):
 
-<!-- #query page where type = "plug" order by name render "template/plug" -->
+<!-- #query page where type = "plug" order by name render [[template/plug]] -->
 * [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))

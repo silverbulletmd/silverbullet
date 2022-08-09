@@ -1,10 +1,18 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
 ## 0.0.31
+* Update to the query language: the `render` clause now uses page reference syntax `[[page]]`. For example `render [[template/task]]` rather than `render "template/task"`. The old syntax still works, but is deprecated, completion for the old syntax has been removed.
 * Updates to templates:
-  * For the `Template: Instantiate Page` command, the page meta value `PAGENAME` is now used to configure the page name (was `name` before). Also if `PAGENAME` is the only page meta defined, it will remove the page meta entirely when instantiating.
+  * For the `Template: Instantiate Page` command, the page meta value `$name` is now used to configure the page name (was `name` before). Also if `$name` is the only page meta defined, it will remove the page meta entirely when instantiating.
   * You can now configure a daily note prefix with `dailyNotePrefix` in `SETTINGS` and create a template for your daily note under `template/page/Daily Note` (configurable via the `dailyNoteTemplate` setting).
   * You can now a quick note prefix with `quickNotePrefix` in `SETTINGS`.
+* Directives (e.g. `#query`, `#import`, `#inject`) changes:
+  * Renamed `#template` directive to `#inject`
+  * New `#inject-clean` directive will clean all the embedded queries and templates in its scope
+  * All directives now use the page reference syntax `[[page name]]` instead of `"page name"`, this includes `#inject` and `#inject-clean` as well as `#import`.
+  * The `link` query provider now also returns the `pos` of a link (in addition to the `page`)
+  * New `$disableDirectives` page meta data attribute can be used to disable directives processing in a page (useful for templates)
+* Added a new `/hr` slash command to insert a horizontal rule (`---`) useful for mobile devices (where these are harder to type)
 
 ## 0.0.30
 * Slash commands now only trigger after a non-word character to avoid "false positives" like "hello/world".

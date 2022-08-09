@@ -4,7 +4,7 @@ uri: github:silverbulletmd/silverbullet-github/github.plug.json
 repo: https://github.com/silverbulletmd/silverbullet-github
 author: Zef Hemel
 ```
-<!-- #include "https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/README.md" -->
+<!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/README.md]] -->
 # SilverBullet plug for Github
 Provides Github events, notifications and pull requests as query sources using SB's query mechanism
 
@@ -44,7 +44,7 @@ Example uses:
     <!-- /query -->
 
     ## Recent PRs
-    <!-- #query gh-pull where repo = "silverbulletmd/silverbullet" and user_login = "zefhemel" limit 3 render "template/gh-pull" -->
+    <!-- #query gh-pull where repo = "silverbulletmd/silverbullet" and user_login = "zefhemel" limit 3 render [[template/gh-pull]] -->
 
     <!-- /query -->
 

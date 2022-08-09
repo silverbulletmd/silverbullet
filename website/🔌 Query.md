@@ -64,10 +64,10 @@ city: Berlin
 country: Germany
 ```
 <!-- #query data where age > 20 and country = "Italy" -->
-|name|age|city |country|page           |pos |
-|----|--|-----|-----|---------------|----|
-|John|50|Milan|Italy|🔌 Query       |2198|
-|Jane|53|Rome |Italy|🔌 Query       |2244|
+|name|age|city |country|page    |pos |
+|----|--|-----|-----|--------|----|
+|John|50|Milan|Italy|🔌 Query|2277|
+|Jane|53|Rome |Italy|🔌 Query|2323|
 <!-- /query -->
  
 #### 4.2 Plugs’ data sources
@@ -89,18 +89,18 @@ For the sake of simplicity, we will use `page` data source and limit the results
 
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Lets try to limit it in the next step.
 <!-- #query page limit 10 -->
-|name             |lastModified |perm|tags |type|uri                                                       |repo                                                 |author        |
+|name             |lastModified |perm|tags |type|uri                                 |repo                                               |author        |
 |--|--|--|--|--|--|--|--|
-|index            |1659178324000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|Mattermost Plugin|1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|PLUGS            |1659108634000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|Test Data Query  |1659179547000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|template/plug    |1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|template/tasks   |1659108035000|rw|#each|undefined|undefined                                                 |undefined                                            |undefined     |
-|💡 Inspiration   |1659108035000|rw|undefined|undefined|undefined                                                 |undefined                                            |undefined     |
-|🔌 Backlinks     |1659108035000|rw|undefined|plug|ghr:Willyfrog/silverbullet-backlinks                      |https://github.com/Willyfrog/silverbullet-backlinks  |Guillermo Vayá|
-|🔌 Ghost         |1659108035000|rw|undefined|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json  |https://github.com/silverbulletmd/silverbullet-ghost |Zef Hemel     |
-|🔌 Git           |1659108035000|rw|undefined|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel     |
+|SETTINGS         |1659437160849|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|Silver Bullet    |1660051168973|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|CHANGELOG        |1660050383951|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|Mattermost Plugin|1658755340866|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|PLUGS            |1659437423367|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|index            |1659440751554|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|template/plug    |1658751100952|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|template/tasks   |1657890041936|rw|#each|undefined|undefined                           |undefined                                          |undefined     |
+|💡 Inspiration   |1658133917441|rw|undefined|undefined|undefined                           |undefined                                          |undefined     |
+|🔌 Backlinks     |1658760465195|rw|undefined|plug|ghr:Willyfrog/silverbullet-backlinks|https://github.com/Willyfrog/silverbullet-backlinks|Guillermo Vayá|
 <!-- /query -->
 
 #### 5.2 Simple query with a condition
@@ -109,13 +109,13 @@ For the sake of simplicity, we will use `page` data source and limit the results
 **Result:** Okay, this what we wanted but there are also information such as perm, type and lastModified that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name         |lastModified |perm|type|uri                                                               |repo                                                     |author               |
+|name     |lastModified |perm|type|uri                                                       |repo                                                 |author               |
 |--|--|--|--|--|--|--|
-|🔌 Query     |1659194185345|rw|plug|core:query                                                        |https://github.com/silverbulletmd/silverbullet           |Silver Bullet Authors|
-|🔌 Mattermost|1659111156000|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel            |
-|🔌 Backlinks |1659108035000|rw|plug|ghr:Willyfrog/silverbullet-backlinks                              |https://github.com/Willyfrog/silverbullet-backlinks      |Guillermo Vayá       |
-|🔌 Ghost     |1659108035000|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json          |https://github.com/silverbulletmd/silverbullet-ghost     |Zef Hemel            |
-|🔌 Git       |1659108035000|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json        |https://github.com/silverbulletmd/silverbullet-github    |Zef Hemel            |
+|🔌 Query |1660051209241|rw|plug|core:query                                                |https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|
+|🔌 Github|1660050280511|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |
+|🔌 Mount |1658760601369|rw|plug|github:silverbulletmd/silverbullet-mount/mount.plug.json  |https://github.com/silverbulletmd/silverbullet-mount |Zef Hemel            |
+|🔌 Git   |1658760545612|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |
+|🔌 Ghost |1658760515320|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json  |https://github.com/silverbulletmd/silverbullet-ghost |Zef Hemel            |
 <!-- /query -->
 
 
@@ -125,13 +125,13 @@ For the sake of simplicity, we will use `page` data source and limit the results
 **Result:** Okay, this is much better. However, I believe this needs a touch from a visual perspective.
 
 <!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 -->
-|name         |author               |repo                                                     |
+|name     |author               |repo                                                 |
 |--|--|--|
-|🔌 Query     |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet           |
-|🔌 Mattermost|Zef Hemel            |https://github.com/silverbulletmd/silverbullet-mattermost|
-|🔌 Backlinks |Guillermo Vayá       |https://github.com/Willyfrog/silverbullet-backlinks      |
-|🔌 Ghost     |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-ghost     |
-|🔌 Git       |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github    |
+|🔌 Query |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       |
+|🔌 Github|Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github|
+|🔌 Mount |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-mount |
+|🔌 Git   |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github|
+|🔌 Ghost |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-ghost |
 <!-- /query -->
 
 #### 5.4 Display the data in a format defined by a template
@@ -140,21 +140,21 @@ For the sake of simplicity, we will use `page` data source and limit the results
 
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀 
 
-<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render "template/plug" -->
+<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
 * [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
 <!-- /query -->
 
 PS: You don't need select only certain fields to use templates. Templates are smart enough to get only the information needed to render the data. 
 Therefore, following queries are same in terms of end result when using the templates.
 
 ```yaml
-<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render "template/plug" -->
+<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
 ```
 
 ```yaml
-<!-- #query page where type = "plug" order by lastModified desc limit 5 render "template/plug" -->
+<!-- #query page where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
 ```

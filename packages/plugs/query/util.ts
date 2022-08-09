@@ -8,15 +8,9 @@ import {
 export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;
 
-export const queryStartRegex = /<!--\s*#query\s+(.+?)-->/s;
+export const directiveStartRegex = /<!--\s*#([\w\-]+)\s+(.+?)-->/s;
 
-export const queryEndRegex = /<!--\s*\/query\s*-->/s;
-
-// export function whiteOutQueries(text: string): string {
-//   return text.replaceAll(queryRegex, (match) =>
-//     new Array(match.length + 1).join(" ")
-//   );
-// }
+export const directiveEndRegex = /<!--\s*\/([\w\-]+)\s*-->/s;
 
 export function removeQueries(pt: ParseTree) {
   addParentPointers(pt);
@@ -25,9 +19,11 @@ export function removeQueries(pt: ParseTree) {
       return false;
     }
     let text = t.children![0].text!;
-    if (!queryStartRegex.exec(text)) {
+    let match = directiveStartRegex.exec(text);
+    if (!match) {
       return false;
     }
+    let directiveType = match[1];
     let parentChildren = t.parent!.children!;
     let index = parentChildren.indexOf(t);
     let nodesToReplace: ParseTree[] = [];
@@ -35,7 +31,8 @@ export function removeQueries(pt: ParseTree) {
       let n = parentChildren[i];
       if (n.type === "CommentBlock") {
         let text = n.children![0].text!;
-        if (queryEndRegex.exec(text)) {
+        let match = directiveEndRegex.exec(text);
+        if (match && match[1] === directiveType) {
           break;
         }
       }

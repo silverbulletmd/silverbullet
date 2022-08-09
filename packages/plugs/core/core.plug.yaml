@@ -187,18 +187,35 @@ functions:
     path: "./template.ts:insertTemplateText"
     slashCommand:
       name: include
+      description: Include another page
       value: |
-        <!-- #include "|^|" -->
+        <!-- #include [[|^|]] -->
 
         <!-- /include -->
-  insertInlineTemplate:
+  insertInjectTemplate:
     path: "./template.ts:insertTemplateText"
     slashCommand:
-      name: inline-template
+      name: inject
+      description: Inject template
       value: |
-        <!-- #template "|^|" {} -->
+        <!-- #inject [[|^|]] {} -->
 
-        <!-- /template -->
+        <!-- /inject -->
+  insertInjectCleanTemplate:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: inject-clean
+      description: Inject template clean
+      value: |
+        <!-- #inject-clean [[|^|]] {} -->
+
+        <!-- /inject-clean -->
+  insertHRTemplate:
+    path: "./template.ts:insertTemplateText"
+    slashCommand:
+      name: hr
+      description: Insert a horizontal rule
+      value: "---"
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:
