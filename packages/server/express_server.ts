@@ -228,13 +228,19 @@ export class ExpressServer {
         );
       }
     }
-
-    await this.space.writePage(
-      "PLUGS",
-      "This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` command to update and reload this list of plugs.\n\n```yaml\n- " +
-        pluginNames.map((name) => `builtin:${name}`).join("\n- ") +
-        "\n```"
-    );
+    try {
+      await this.space.getPageMeta("PLUGS");
+      console.log("PLUGS file already exists, won't override it.");
+      return;
+    } catch {
+      console.log("Writing fresh PLUGS file.");
+      await this.space.writePage(
+        "PLUGS",
+        "This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` command to update and reload this list of plugs.\n\n```yaml\n- " +
+          pluginNames.map((name) => `builtin:${name}`).join("\n- ") +
+          "\n```"
+      );
+    }
   }
 
   async reloadPlugs() {
