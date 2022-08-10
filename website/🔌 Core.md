@@ -3,6 +3,7 @@ type: plug
 uri: builtin:core
 repo: https://github.com/silverbulletmd/silverbullet
 author: Silver Bullet Authors
+$disableDirectives: true
 ```
 
 This documentation is still a WIP.
@@ -57,6 +58,31 @@ For instance to replicate the `/query` slash command as a snippet:
     <!-- /query -->
 
 Which would insert the cursor right after `#query`.
+
+### Dynamic template injection
+In addition to using the `/snippet` slash command to insert a template as a one-off, it’s also possible to reuse templates that update dynamically (similar to [[🔌 Query]]). For this,  you use the `#use` and `#use-verbose` directives.
+
+In its most basic form:
+
+    <!-- #use [[template/plug]] -->
+    <!-- /use -->
+
+Upon load (or when updating materialized queries) the body of this dynamic section will be replaced with the content of the referenced template.
+
+The referenced template will be treated as a Handlebars template (just like when using a `render` clause with `#query`). 
+
+Optionally, you can pass any JSON-formatted value as an argument, which will be exposed in the template as the top-level value.
+
+For example, given the following template:
+
+    Hello there {{name}} you are {{age}} years old!
+
+You can reference and instantiate as follows:
+
+    <!-- #use [[template/plug]] {"name": "Pete", "age": 50} -->
+    <!-- /use -->
+
+If a template contains any dynamic sections with directives, these will all be removed before injecting the content into the page. This makes things look cleaner. If you want to preserve them, use `#use-verbose` instead of `#use`.
 
 ### Daily Note
 The {[Open Daily Note]} command navigates (or creates) a daily note prefixed with a 📅 emoji by default, but this is configurable via the `dailyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `Daily Note` it will use this as a template, otherwise the page will just be empty. 

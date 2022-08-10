@@ -6,10 +6,10 @@ An attempt at documenting of the changes/new features introduced in each (pre) r
   * For the `Template: Instantiate Page` command, the page meta value `$name` is now used to configure the page name (was `name` before). Also if `$name` is the only page meta defined, it will remove the page meta entirely when instantiating.
   * You can now configure a daily note prefix with `dailyNotePrefix` in `SETTINGS` and create a template for your daily note under `template/page/Daily Note` (configurable via the `dailyNoteTemplate` setting).
   * You can now a quick note prefix with `quickNotePrefix` in `SETTINGS`.
-* Directives (e.g. `#query`, `#import`, `#inject`) changes:
-  * Renamed `#template` directive to `#inject`
-  * New `#inject-clean` directive will clean all the embedded queries and templates in its scope
-  * All directives now use the page reference syntax `[[page name]]` instead of `"page name"`, this includes `#inject` and `#inject-clean` as well as `#import`.
+* Directives (e.g. `#query`, `#import`, `#use`) changes:
+  * Renamed `#template` directive to `#use-verbose`
+  * New `#use` directive will clean all the embedded queries and templates in its scope
+  * All directives now use the page reference syntax `[[page name]]` instead of `"page name"`, this includes `#use` and `#use-verbose` as well as `#import`.
   * The `link` query provider now also returns the `pos` of a link (in addition to the `page`)
   * New `$disableDirectives` page meta data attribute can be used to disable directives processing in a page (useful for templates)
 * Added a new `/hr` slash command to insert a horizontal rule (`---`) useful for mobile devices (where these are harder to type)

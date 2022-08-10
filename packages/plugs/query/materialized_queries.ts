@@ -35,7 +35,7 @@ export async function updateMaterializedQueriesCommand() {
 }
 
 export const templateInstRegex =
-  /(<!--\s*#(inject|inject-clean|include)\s+\[\[([^\]]+)\]\](.*?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
+  /(<!--\s*#(use|use-verbose|include)\s+\[\[([^\]]+)\]\](.*?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
 
 async function updateTemplateInstantiations(
   text: string,
@@ -68,7 +68,7 @@ async function updateTemplateInstantiations(
       }
       let newBody = templateText;
       // if it's a template injection (not a literal "include")
-      if (type == "inject" || type === "inject-clean") {
+      if (type === "use" || type === "use-verbose") {
         let tree = await parseMarkdown(templateText);
         extractMeta(tree, ["$disableDirectives"]);
         templateText = renderToText(tree);
@@ -88,7 +88,7 @@ async function cleanTemplateInstantiations(text: string): Promise<string> {
     text,
     templateInstRegex,
     async (fullMatch, startInst, type, template, args, body, endInst) => {
-      if (type === "inject-clean") {
+      if (type === "use") {
         body = body.replaceAll(
           queryRegex,
           (
@@ -142,7 +142,7 @@ export async function updateMaterializedQueriesOnPage(
 
       let parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
-      console.log("Parsed query", parsedQuery);
+      // console.log("Parsed query", parsedQuery);
       // Let's dispatch an event and see what happens
       let results = await dispatch(
         `query:${parsedQuery.table}`,

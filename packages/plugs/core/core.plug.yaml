@@ -195,21 +195,21 @@ functions:
   insertInjectTemplate:
     path: "./template.ts:insertTemplateText"
     slashCommand:
-      name: inject
-      description: Inject template
+      name: use
+      description: Use a template
       value: |
-        <!-- #inject [[|^|]] {} -->
+        <!-- #use [[|^|]] {} -->
 
-        <!-- /inject -->
+        <!-- /use -->
   insertInjectCleanTemplate:
     path: "./template.ts:insertTemplateText"
     slashCommand:
-      name: inject-clean
-      description: Inject template clean
+      name: use-verbose
+      description: Use a template (verbose mode)
       value: |
-        <!-- #inject-clean [[|^|]] {} -->
+        <!-- #use-verbose [[|^|]] {} -->
 
-        <!-- /inject-clean -->
+        <!-- /use-verbose -->
   insertHRTemplate:
     path: "./template.ts:insertTemplateText"
     slashCommand:
