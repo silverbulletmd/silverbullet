@@ -49,6 +49,12 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   let pageMeta = extractMeta(tree);
   if (Object.keys(pageMeta).length > 0) {
     console.log("Extracted page meta data", pageMeta);
+    // Don't index meta data starting with $
+    for (let key in pageMeta) {
+      if (key.startsWith("$")) {
+        delete pageMeta[key];
+      }
+    }
     await set(name, "meta:", pageMeta);
   }
 
