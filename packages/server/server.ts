@@ -14,11 +14,13 @@ let args = yargs(hideBin(process.argv))
   .option("password", {
     type: "string",
   })
+  .option("github", {
+    type: "string"
+  })
   .parse();
-
 if (!args._.length) {
   console.error(
-    "Usage: silverbullet [--port 3000] [--password mysecretpassword] <path-to-pages>"
+    "Usage: silverbullet [--port 3000] [--password mysecretpassword] [--github allowedGitHubLogin] <path-to-pages>"
   );
   process.exit(1);
 }
@@ -41,6 +43,7 @@ const expressServer = new ExpressServer({
   distDir: webappDistDir,
   builtinPlugDir: plugDistDir,
   password: args.password,
+  allowedGithub: args.github,
 });
 expressServer.start().catch((e) => {
   console.error(e);

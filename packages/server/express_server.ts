@@ -54,6 +54,7 @@ import {
   ensureTable as ensureStoreTable,
 } from "@plugos/plugos/syscalls/store.knex_node";
 import { parseYamlSettings } from "@silverbulletmd/common/util";
+import { GITHUB, PASSWORD, getAuthenticateMiddleware, setupPassportStrategies } from "./auth";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -63,6 +64,7 @@ export type ServerOptions = {
   distDir: string;
   builtinPlugDir: string;
   password?: string;
+  allowedGithub?: string;
 };
 export class ExpressServer {
   app: Express;
@@ -75,6 +77,7 @@ export class ExpressServer {
   private server?: Server;
   builtinPlugDir: string;
   password?: string;
+  allowedGithub?: string;
   settings: { [key: string]: any } = {};
 
   constructor(options: ServerOptions) {
@@ -83,6 +86,7 @@ export class ExpressServer {
     this.builtinPlugDir = options.builtinPlugDir;
     this.distDir = options.distDir;
     this.password = options.password;
+    this.allowedGithub = options.allowedGithub;
 
     // Set up the PlugOS System
     this.system = new System<SilverBulletHooks>("server");
@@ -115,6 +119,15 @@ export class ExpressServer {
       },
       useNullAsDefault: true,
     });
+    let strategies: any;
+    strategies = {};
+    if (this.allowedGithub) {
+      strategies[GITHUB] = this.allowedGithub;
+    }
+    if (this.password) {
+      strategies[PASSWORD] = this.password;
+    }
+    setupPassportStrategies(strategies);
 
     // The cron hook
     this.system.addHook(new NodeCronHook());
@@ -260,24 +273,28 @@ export class ExpressServer {
   }
 
   async start() {
-    const passwordMiddleware: (req: any, res: any, next: any) => void = this
-      .password
-      ? (req, res, next) => {
-          if (req.headers.authorization === `Bearer ${this.password}`) {
-            next();
-          } else {
-            res.status(401).send("Unauthorized");
-          }
-        }
-      : (req, res, next) => {
-          next();
-        };
-
     await ensureIndexTable(this.db);
     await ensureStoreTable(this.db, "store");
     await ensureFTSTable(this.db, "fts");
     await this.ensureAndLoadSettings();
 
+    let authMiddleware;
+    if (this.password || this.allowedGithub){
+      const strategy = this.allowedGithub ? GITHUB : PASSWORD;
+      authMiddleware = getAuthenticateMiddleware(strategy);
+      if (this.allowedGithub) {
+        this.app.get('/auth/github', authMiddleware());
+
+        this.app.get(
+          '/auth/github/callback', 
+          authMiddleware(
+            {failureRedirect: '/login' },
+            (_req: any, res: any) => res.redirect('/'),
+          ));
+      }
+    } else {
+      authMiddleware =  (_req: any, _res: any, next: any) => next();
+    }
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
 
@@ -363,7 +380,7 @@ export class ExpressServer {
 
     this.app.use(
       "/fs",
-      passwordMiddleware,
+      authMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -430,7 +447,7 @@ export class ExpressServer {
 
     this.app.use(
       "/plug",
-      passwordMiddleware,
+      authMiddleware,
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
