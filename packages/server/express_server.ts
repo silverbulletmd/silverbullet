@@ -282,18 +282,11 @@ export class ExpressServer {
     if (this.password || this.allowedGithub){
       const strategy = this.allowedGithub ? GITHUB : PASSWORD;
       authMiddleware = getAuthenticateMiddleware(strategy);
-      if (this.allowedGithub) {
-        this.app.get('/auth/github', authMiddleware());
-
-        this.app.get(
-          '/auth/github/callback', 
-          authMiddleware(
-            {failureRedirect: '/login' },
-            (_req: any, res: any) => res.redirect('/'),
-          ));
-      }
     } else {
-      authMiddleware =  (_req: any, _res: any, next: any) => next();
+      authMiddleware =  (_req: any, res: any, next: any) => {
+        res.user = "user"; // Shoouldn't be needed, but in case something else relies on it.
+        next();
+      }
     }
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
@@ -380,7 +373,7 @@ export class ExpressServer {
 
     this.app.use(
       "/fs",
-      authMiddleware,
+      authMiddleware(),
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,
@@ -447,7 +440,7 @@ export class ExpressServer {
 
     this.app.use(
       "/plug",
-      authMiddleware,
+      authMiddleware(),
       cors({
         methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
         preflightContinue: true,

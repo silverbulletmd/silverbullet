@@ -1,13 +1,14 @@
-import passport from 'passport';
-import {Strategy as GitHubStrategy} from 'passport-github';
-import {Strategy as BearerStrategy} from 'passport-http-bearer';
+import passport from "passport";
+import {Strategy as GitHubStrategy} from "passport-github";
+import {Strategy as BearerStrategy} from "passport-http-bearer";
+import { nextTick } from "process";
 
 // todo: get them from the config or env variables.
 let GITHUB_CLIENT_ID = process.env.SB_GH_CLIENT_ID;
 let GITHUB_CLIENT_SECRET = process.env.SB_GH_CLIENT_SECRET;
 
-export const GITHUB = 'github';
-export const PASSWORD = 'password';
+export const GITHUB = "github";
+export const PASSWORD = "bearer";
 
 interface Strategy {
   [key: string]: string;
@@ -34,8 +35,11 @@ export function setupPassportStrategies(strategies: Strategy) {
   // maybe in the future might make sense having more than one auth strategy (i.e.: multiuser support), but for now we should restrict to one at most
   else if (strategies[PASSWORD]) {
     passport.use(new BearerStrategy((token: string, cb:(err?: Error, user?: string)=>void) => {
+      if (!token) {
+        return cb(new Error("Unauthorized"));
+      }
       if (token !== strategies[PASSWORD]) {
-        return cb(new Error("Invalid password"));
+        return cb();
       }
       return cb(undefined, "user");
     }));
@@ -43,6 +47,11 @@ export function setupPassportStrategies(strategies: Strategy) {
 }
 
 export function getAuthenticateMiddleware(strategy: string) {
+  if (strategy === PASSWORD) {
+    return (... args: any[]) => {
+      return passport.authenticate(strategy, {session: false}, ...args);
+    }
+  }
   return (...args: any[]) => {
     return passport.authenticate(strategy, ...args);
   }
