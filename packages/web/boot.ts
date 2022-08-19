@@ -23,7 +23,21 @@ safeRun(async () => {
         localStorage.setItem("password", password!);
         httpPrimitives = new HttpSpacePrimitives("", password);
       }
+      if (e.message === 'Unauthorized Github') {
+        console.log('It\'s a github login'); // We might need to differentiate somehow if we add other Oauth logins
+        if (!document.getElementById('oauth-login')) {
+          const root = document.getElementById('sb-root');
+          const a = document.createElement('a');
+          a.href = '/auth/oauth';
+          a.id = 'oauth-login';
+          const login = document.createTextNode('Login via Github'); // So ugly, but working
+          a.appendChild(login);
+          root?.appendChild(a);  
+        }
+      }
+      console.error(`error initializing the settings page: ${e.message}`);
     }
+    await new Promise(r => setTimeout(r, 1000));
   }
   let serverSpace = new Space(httpPrimitives, true);
   serverSpace.watch();

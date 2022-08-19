@@ -1,9 +1,11 @@
-import express, { Express } from "express";
+import express, { Express, RequestHandler } from "express";
+import session from "express-session";
+import passport from "passport";
 import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
 import { readdir, readFile } from "fs/promises";
 import { System } from "@plugos/plugos/system";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import { DiskSpacePrimitives } from "@silverbulletmd/common/spaces/disk_space_primitives";
 import path from "path";
 import bodyParser from "body-parser";
@@ -54,9 +56,10 @@ import {
   ensureTable as ensureStoreTable,
 } from "@plugos/plugos/syscalls/store.knex_node";
 import { parseYamlSettings } from "@silverbulletmd/common/util";
-import { GITHUB, PASSWORD, getAuthenticateMiddleware, setupPassportStrategies } from "./auth";
+import { GITHUB, PASSWORD, getAuthenticateMiddleware, setupPassportStrategies, ensureAuthenticated } from "./auth";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
+const noOpMiddleware = (_req: any, _res: any, next: any) => next(); //naming it to make it explicit.
 
 export type ServerOptions = {
   port: number;
@@ -278,15 +281,52 @@ export class ExpressServer {
     await ensureFTSTable(this.db, "fts");
     await this.ensureAndLoadSettings();
 
-    let authMiddleware;
+    let authMiddleware: (...args:any[]) => RequestHandler;
+    let isAuthenticated: RequestHandler;
+    let corsOptions:CorsOptions = {
+      methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
+      preflightContinue: true,
+    };
     if (this.password || this.allowedGithub){
+      const secret = this.allowedGithub || this.password || "notusingthis";
+      this.app.use(session({secret, resave: false}))
+      this.app.use(passport.initialize());
+      this.app.use(passport.session());
+      passport.serializeUser(function(user: Express.User, done:(err?: any, id?: unknown) => void) {
+        done(null, user);
+      });
+      
+      passport.deserializeUser(function(user: any, done: (err?: any, id?: unknown) => void) {
+        done(null, user);
+      });
       const strategy = this.allowedGithub ? GITHUB : PASSWORD;
       authMiddleware = getAuthenticateMiddleware(strategy);
-    } else {
-      authMiddleware =  (_req: any, res: any, next: any) => {
-        res.user = "user"; // Shoouldn't be needed, but in case something else relies on it.
-        next();
+      isAuthenticated = ensureAuthenticated;
+      if (this.allowedGithub) {
+        this.app.get('/auth/oauth',
+          // @ts-ignore
+          cors(corsOptions),
+          authMiddleware({ scope: [ 'user:login' ]}));
+
+        this.app.get(
+          '/auth/oauth/callback',
+          // @ts-ignore
+          cors(corsOptions),
+          authMiddleware(
+            {failureRedirect: '/auth/login' }),
+          (_req: any, res: any) => res.redirect('/'),
+          );
+        this.app.get('/auth/login',
+            function (req, res) {
+              res.status(401);
+              res.header('WWW-Authenticate', 'OAuth');
+              res.send();
+            }
+        );
       }
+    } else {
+      authMiddleware =  () => noOpMiddleware
+      isAuthenticated = noOpMiddleware;
     }
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
@@ -373,11 +413,8 @@ export class ExpressServer {
 
     this.app.use(
       "/fs",
-      authMiddleware(),
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
+      isAuthenticated,
+      cors(corsOptions),
       fsRouter
     );
 
@@ -410,7 +447,8 @@ export class ExpressServer {
           res.status(500);
           return res.send(e.message);
         }
-      }
+      },
+    cors(corsOptions),
     );
 
     plugRouter.post(
@@ -435,23 +473,23 @@ export class ExpressServer {
           // console.log("Error invoking function", e);
           return res.send(e.message);
         }
-      }
+      },
+      cors(corsOptions),
     );
 
     this.app.use(
       "/plug",
-      authMiddleware(),
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
+      isAuthenticated,
+      cors(corsOptions),
       plugRouter
     );
 
     // Fallback, serve index.html
     this.app.get("/*", async (req, res) => {
-      res.sendFile(`${this.distDir}/index.html`, {});
-    });
+        res.sendFile(`${this.distDir}/index.html`, {});
+      },
+      cors(corsOptions),
+    );
 
     this.server = http.createServer(this.app);
     this.server.listen(this.port, () => {

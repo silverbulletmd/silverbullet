@@ -23,6 +23,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     let result = await fetch(url, options);
     if (result.status === 401) {
+      if (result.headers.get('WWW-Authenticate') === 'OAuth') {
+        throw Error("Unauthorized Github");
+      }
       throw Error("Unauthorized");
     }
     return result;

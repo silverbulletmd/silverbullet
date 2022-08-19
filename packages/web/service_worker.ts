@@ -1,4 +1,5 @@
 import { manifest, version } from "@parcel/service-worker";
+import e from "cors";
 
 async function install() {
   const cache = await caches.open(version);
@@ -23,15 +24,19 @@ async function activate() {
 self.addEventListener("activate", (e) => e.waitUntil(activate()));
 
 self.addEventListener("fetch", (event: any) => {
+  let parsedUrl = new URL(event.request.url);
+  // don't cache anything from auth
+  if (parsedUrl.pathname.startsWith('/auth')) {
+    return;
+  }
   event.respondWith(
     caches.open(version).then(async (cache) => {
-      let parsedUrl = new URL(event.request.url);
       // console.log("Got fetch request", parsedUrl.pathname);
       let response = await cache.match(event.request, {
         ignoreSearch: true,
       });
-      // console.log("Got cache result", response);
       if (response) {
+        // console.log("Got cache result", response);
         return response;
       } else {
         if (

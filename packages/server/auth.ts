@@ -1,12 +1,10 @@
 import passport from "passport";
-import {Strategy as GitHubStrategy} from "passport-github";
+import {Strategy as GitHubStrategy} from "passport-github2";
 import {Strategy as BearerStrategy} from "passport-http-bearer";
-import { nextTick } from "process";
 
-// todo: get them from the config or env variables.
 let GITHUB_CLIENT_ID = process.env.SB_GH_CLIENT_ID;
 let GITHUB_CLIENT_SECRET = process.env.SB_GH_CLIENT_SECRET;
-
+let SB_HOST = process.env.SB_HOST || "http://127.0.0.1:3000";
 export const GITHUB = "github";
 export const PASSWORD = "bearer";
 
@@ -23,13 +21,15 @@ export function setupPassportStrategies(strategies: Strategy) {
       new GitHubStrategy({
         clientID: GITHUB_CLIENT_ID,
         clientSecret: GITHUB_CLIENT_SECRET,
-        callbackURL: "http://127.0.0.1:3000/auth/github/callback"
+        callbackURL: `${SB_HOST}/auth/oauth/callback`
       },
-      function(accessToken: string, refreshToken: string, profile: any, cb:(err?: Error, user?: string) => void) {
-        if (profile.login !== strategies[GITHUB]) {
-          return cb(new Error("User is not authorized to use this app"));
+      function(accessToken: string, _refreshToken: string, profile: any, cb:(err?: Error, user?: string) => void) {
+        if (profile.username !== strategies[GITHUB]) {
+          console.log('access with wrong token');
+          return cb();
         }
-        return cb(undefined, profile.login);
+        console.log('access ok');
+        return cb(undefined, profile.username);
       }));
   }
   // maybe in the future might make sense having more than one auth strategy (i.e.: multiuser support), but for now we should restrict to one at most
@@ -41,18 +41,31 @@ export function setupPassportStrategies(strategies: Strategy) {
       if (token !== strategies[PASSWORD]) {
         return cb();
       }
-      return cb(undefined, "user");
+      return cb(undefined, "defaultUser");
     }));
   }
 }
 
 export function getAuthenticateMiddleware(strategy: string) {
+  if (strategy === GITHUB) {
+    return (... args: any[]) => {
+      return passport.authenticate(strategy, ...args);
+    }
+  }
   if (strategy === PASSWORD) {
     return (... args: any[]) => {
-      return passport.authenticate(strategy, {session: false}, ...args);
+      return passport.authenticate(strategy, {session: true}, ...args);
     }
   }
   return (...args: any[]) => {
     return passport.authenticate(strategy, ...args);
   }
 }
+
+export function ensureAuthenticated(req: any, res: any, next: any) {
+  if (req.user) { 
+    return next(); 
+  }
+  res.redirect('/auth/login');
+}
+
