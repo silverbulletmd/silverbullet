@@ -56,7 +56,7 @@ import {
   ensureTable as ensureStoreTable,
 } from "@plugos/plugos/syscalls/store.knex_node";
 import { parseYamlSettings } from "@silverbulletmd/common/util";
-import { GITHUB, PASSWORD, getAuthenticateMiddleware, setupPassportStrategies, ensureAuthenticated } from "./auth";
+import { GITHUB, PASSWORD, getAuthenticateMiddleware, setupPassportStrategies, getEnsureAuthenticated, StrategyConfig } from "./auth";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 const noOpMiddleware = (_req: any, _res: any, next: any) => next(); //naming it to make it explicit.
@@ -299,9 +299,17 @@ export class ExpressServer {
       passport.deserializeUser(function(user: any, done: (err?: any, id?: unknown) => void) {
         done(null, user);
       });
+      let strategies: StrategyConfig;
+      strategies = {};
+      if (this.allowedGithub) {
+        strategies[GITHUB] = this.allowedGithub;
+      }
+      if (this.password) {
+        strategies[PASSWORD] = this.password;
+      }
       const strategy = this.allowedGithub ? GITHUB : PASSWORD;
       authMiddleware = getAuthenticateMiddleware(strategy);
-      isAuthenticated = ensureAuthenticated;
+      isAuthenticated = getEnsureAuthenticated(strategies);
       if (this.allowedGithub) {
         this.app.get('/auth/oauth',
           // @ts-ignore

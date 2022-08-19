@@ -1,6 +1,8 @@
 import passport from "passport";
 import {Strategy as GitHubStrategy} from "passport-github2";
 import {Strategy as BearerStrategy} from "passport-http-bearer";
+import {RequestHandler} from "express";
+
 
 let GITHUB_CLIENT_ID = process.env.SB_GH_CLIENT_ID;
 let GITHUB_CLIENT_SECRET = process.env.SB_GH_CLIENT_SECRET;
@@ -8,11 +10,11 @@ let SB_HOST = process.env.SB_HOST || "http://127.0.0.1:3000";
 export const GITHUB = "github";
 export const PASSWORD = "bearer";
 
-interface Strategy {
+export interface StrategyConfig {
   [key: string]: string;
 }
 
-export function setupPassportStrategies(strategies: Strategy) {
+export function setupPassportStrategies(strategies: StrategyConfig) {
   if (strategies[GITHUB]) {
     if (typeof GITHUB_CLIENT_ID === "undefined" || typeof GITHUB_CLIENT_SECRET === "undefined") {
       throw new Error("Can't configure github auth strategy without client_id and client_secret. Please refer to the docs to set them up.");
@@ -39,7 +41,7 @@ export function setupPassportStrategies(strategies: Strategy) {
         return cb(new Error("Unauthorized"));
       }
       if (token !== strategies[PASSWORD]) {
-        return cb();
+        return cb(new Error('Unauthorized'));
       }
       return cb(undefined, "defaultUser");
     }));
@@ -62,10 +64,20 @@ export function getAuthenticateMiddleware(strategy: string) {
   }
 }
 
-export function ensureAuthenticated(req: any, res: any, next: any) {
-  if (req.user) { 
-    return next(); 
+export function getEnsureAuthenticated(strategies: StrategyConfig): RequestHandler {
+  if (strategies[GITHUB]) {
+    return (req: any, res: any, next: any) => {
+      if (req.user === strategies[GITHUB]) {
+        return next(); 
+      }
+      res.redirect('/auth/login');
+    }
   }
-  res.redirect('/auth/login');
+  return (req, res, next) => {
+    console.log(`auth: ${req.headers.authorization}`);
+    if (req.headers.authorization === `Bearer ${strategies[PASSWORD]}`) { // this needs investigation, why add passport if I end up making the same authentication manually :shrughs:
+      return next();
+    }
+    return res.status(401).send('Unauthorized');
+  }
 }
-
