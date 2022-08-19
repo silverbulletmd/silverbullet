@@ -30,11 +30,38 @@ This will do one of three things:
 2. If you _already have_ SB installed, but there is a newer version available, it will offer to upgrade. Say yes!
 3. If you _already have the latest and greatest_ SB installed, it will just run it.
 
-By default, SB will bind to port `3000`, to use a different port use the `--port` flag. By default SB doesn’t offer any sort of authentication, to add basic password authentication, pass the `--password` flag.
+By default, SB will bind to port `3000`, to use a different port use the `--port` flag. By default SB doesn’t offer any sort of authentication, to add basic password authentication, pass the `--password` flag. If you want to use github as an authentication mechanism, see the Authentication section.
 
 Once downloaded and booted, SB will print out a URL to open SB in your browser (spoiler alert: by default this will be http://localhost:3000 ).
 
 #protip: If you have a PWA enabled browser (like any browser based on Chromium) hit that little button right of the location bar to install SB, and give it its own window frame (sans location bar) and desktop/dock icon. At last the PWA has found its killer app.
+
+## Authentication
+
+SilverBullet supports three mechanisms for authentication:
+
+* **None**. This is the default, everything is exposed. This is great for quickly testing Silverbullet anywhere, but it is not recommended as anyone with access to that address, will have access to everything.
+* **Password**. By using `--password <mysuperpsecurepassword>` when starting the server, it will request a password using [Basic HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#basic_authentication_scheme). It's not great in terms of security, but if you have some other measures in place it might fit your purposes.
+* **OAuth**. Currently only Github Oauth is supported, but it is using [passportjs](https://passportjs.org) behind the scenes, so it can be adapted to other providers.
+
+### Setting up Github Authentication
+
+If you want to setup github, you'll need:
+
+* A domain where you'll host your Silverbullet app. You can use `http://localhhost:3000` as that's the default, but it won't be very accesible.
+* A [new developer application](https://github.com/settings/applications/new). This will provide you with a client ID and a secret. On the callback, you'll need to add the host of your Silverbullet app and append to it `/auth/oauth/callback`, so for the above host it would look like `http://localhhost:3000/auth/oauth/callback`. Make sure to write down the provided  client ID and client secret.
+
+Now you are ready to configure SilverBullet! It'll use some environment variables and a cli flag. 
+
+The environment variables are:
+
+* **SB_HOST**: This will hold the expected host where silverbullet will be listening. Include protocol and port if needed.
+* **SB_GH_CLIENT_ID**: This will hold the client ID provided by the Github app.
+* **SB_GH_CLIENT_SECRET**: This will hold the client secret provided by the Github app.
+
+We are almos set, add the `--github` flag, this takes an arg which is the username of the allowed login. As you might have noticed, silverbullet only allows for a single user to interact with the system, so we need to add this restriction to the login.
+
+The first time you try to fetch a note, it'll will give you the option to login into github, and if everything is properly configured, you'll be back with access to the pages.
 
 ## Developing Silver Bullet
 Silver Bullet is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using React.js. [ParcelJS](https://parceljs.org/) is used to build both the front-end and back-end bundles. The server backend runs as a HTTP server on node.js using express.
