@@ -79,8 +79,8 @@ country: Germany
 <!-- #query data where age > 20 and country = "Italy" -->
 |name|age|city |country|page    |pos |
 |----|--|-----|-----|--------|----|
-|John|50|Milan|Italy|🔌 Query|2277|
-|Jane|53|Rome |Italy|🔌 Query|2323|
+|John|50|Milan|Italy|🔌 Query|2696|
+|Jane|53|Rome |Italy|🔌 Query|2742|
 <!-- /query -->
  
 #### 4.2 Plugs’ data sources
@@ -94,8 +94,20 @@ For a complete list of data sources, please check plugs’ pages.
 Templates are predefined formats to render the body of the query. 
 
 #### 5.1 How to create a template?
-It is pretty easy. You just need to create a new page. However, it is recommended to create your templates using `template/[TEMPLATE_NAME]` convention. For this guide, we will create `template/plug` which we will use in the example 6.4 below. 
+It is pretty easy. You just need to create a new page. However, it is recommended to create your templates using `template/[TEMPLATE_NAME]` convention. For this guide, we will create `template/plug` to display list of Plugs available in Silver Bullet. We will use this template in the example section below. 
 
+#### 5.2 What is the syntax?
+We are using Handlebars which is a simple templating language. It is using double curly braces and name of parameter to be injected. For our `template/plug`, we are using simple template like below.
+
+`* [[{{name}}]] by **{{author}}** ([repo]({{repo}}))`
+
+Let me explain the each part
+* `* ` is creating a bullet point for each item in Silver Bullet
+* `[[{{name}}]]` is injecting the name of Plug and creating an internal link to the page of the Plug
+* `**{{author}}**` is injecting the author of the Plug and making it bold
+* `([repo]({{repo}}))` is injecting the name of the Plug and creating an external link to GitHub page of the Plug
+
+For more information on the Handlebars syntax, you can read the [official documentation](https://handlebarsjs.com/).
 
 ### 6. Examples
 We will walk you through a set of examples starting from very basic one until to format the data using templates. 
@@ -131,11 +143,11 @@ For the sake of simplicity, we will use `page` data source and limit the results
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
 |name        |lastModified |perm|type|uri                                                       |repo                                                 |author               |
 |--|--|--|--|--|--|--|
+|🔌 Query    |1661114193972|rw|plug|core:query                                                |https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|
 |🔌 Backlinks|1661112513718|rw|plug|ghr:Willyfrog/silverbullet-backlinks                      |https://github.com/Willyfrog/silverbullet-backlinks  |Guillermo Vayá       |
 |🔌 Core     |1661112513718|rw|plug|builtin:core                                              |https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|
 |🔌 Ghost    |1661112513718|rw|plug|github:silverbulletmd/silverbullet-ghost/ghost.plug.json  |https://github.com/silverbulletmd/silverbullet-ghost |Zef Hemel            |
 |🔌 Git      |1661112513718|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |
-|🔌 Github   |1661112513718|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.json|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |
 <!-- /query -->
 
 
@@ -147,11 +159,11 @@ For the sake of simplicity, we will use `page` data source and limit the results
 <!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 -->
 |name        |author               |repo                                                 |
 |--|--|--|
+|🔌 Query    |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       |
 |🔌 Backlinks|Guillermo Vayá       |https://github.com/Willyfrog/silverbullet-backlinks  |
 |🔌 Core     |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       |
 |🔌 Ghost    |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-ghost |
 |🔌 Git      |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github|
-|🔌 Github   |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github|
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -161,11 +173,11 @@ For the sake of simplicity, we will use `page` data source and limit the results
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀 
 
 <!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+* [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
 * [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Core]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are smart enough to get only the information needed to render the data. 
