@@ -30,7 +30,7 @@ P.S.: If you are a developer or have a technical knowledge to read a code and wo
 * `>=` greater than or equals
 * `=~` to match against a regular expression
 * `!=~` does not match this regular expression
-* `in` to specify multiple values in a `WHERE` clause
+* `in` to specify multiple values in a `where` clause
 
 Further, you can combine multiple of these with `and`. Example `prop =~ /something/ and prop != “something”`.
 
@@ -88,16 +88,23 @@ Certain plugs can also provide special data sources to query a certain data. Som
 * [[🔌 Github]] provides `gh-pull` to query PRs for selected repo
 * [[🔌 Mattermost]] provides `mm-saved` to fetch (by default 15) saved posts in Mattermost
 
-For complete list of data sources, please check plugs’ pages.
+For a complete list of data sources, please check plugs’ pages.
 
-### 5. Examples
+### 5. Templates
+Templates are predefined formats to render the body of the query. 
+
+#### 5.1 How to create a template?
+It is pretty easy. You just need to create a new page. However, it is recommended to create your templates using `template/[TEMPLATE_NAME]` convention. For this guide, we will create `template/plug` which we will use in the example 6.4 below. 
+
+
+### 6. Examples
 We will walk you through a set of examples starting from very basic one until to format the data using templates. 
 
 Our goal in this exercise is to (i) get all plug pages (ii) ordered by last modified time and (iii) display in a nice format.
 
 For the sake of simplicity, we will use `page` data source and limit the results not to spoil the page.
 
-#### 5.1 Simple query without any condition
+#### 6.1 Simple query without any condition
 **Goal:** We would like to get the list of all pages. 
 
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Lets try to limit it in the next step.
@@ -116,7 +123,7 @@ For the sake of simplicity, we will use `page` data source and limit the results
 |🔌 Backlinks     |1661112513718|rw|undefined|plug|ghr:Willyfrog/silverbullet-backlinks|https://github.com/Willyfrog/silverbullet-backlinks|Guillermo Vayá|
 <!-- /query -->
 
-#### 5.2 Simple query with a condition
+#### 6.2 Simple query with a condition
 **Goal:** We would like to get all plug pages and sorted by last modified time.
 
 **Result:** Okay, this what we wanted but there are also information such as perm, type and lastModified that we don't need.
@@ -132,7 +139,7 @@ For the sake of simplicity, we will use `page` data source and limit the results
 <!-- /query -->
 
 
-#### 5.3 Query to select only certain fields
+#### 6.3 Query to select only certain fields
 **Goal:** We would like to get all plug pages, select only `name`, `author` and `repo` columns and sort by last modified time.
 
 **Result:** Okay, this is much better. However, I believe this needs a touch from a visual perspective.
@@ -147,7 +154,7 @@ For the sake of simplicity, we will use `page` data source and limit the results
 |🔌 Github   |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github|
 <!-- /query -->
 
-#### 5.4 Display the data in a format defined by a template
+#### 6.4 Display the data in a format defined by a template
 
 **Goal:** We would like to display the data from step 5.3 in a nice format using bullet points with links to Plug pages, with author name and link to their GitHub repo. 
 
