@@ -94,20 +94,27 @@ For a complete list of data sources, please check plugs’ pages.
 Templates are predefined formats to render the body of the query. 
 
 #### 5.1 How to create a template?
-It is pretty easy. You just need to create a new page. However, it is recommended to create your templates using `template/[TEMPLATE_NAME]` convention. For this guide, we will create `template/plug` to display list of Plugs available in Silver Bullet. We will use this template in the example section below. 
+It is pretty easy. You just need to create a new page. However, it is recommended to create your templates using `template/[TEMPLATE_NAME]` convention. For this guide, we will create `template/plug` to display list of Plugs available in Silver Bullet. We will use this template in the Examples section below. 
 
 #### 5.2 What is the syntax?
 We are using Handlebars which is a simple templating language. It is using double curly braces and name of parameter to be injected. For our `template/plug`, we are using simple template like below.
 
 `* [[{{name}}]] by **{{author}}** ([repo]({{repo}}))`
 
-Let me explain the each part
+Let me break it down for you
 * `* ` is creating a bullet point for each item in Silver Bullet
 * `[[{{name}}]]` is injecting the name of Plug and creating an internal link to the page of the Plug
 * `**{{author}}**` is injecting the author of the Plug and making it bold
 * `([repo]({{repo}}))` is injecting the name of the Plug and creating an external link to GitHub page of the Plug
 
 For more information on the Handlebars syntax, you can read the [official documentation](https://handlebarsjs.com/).
+
+#### 5.3 How to use the template?
+You just need to add `render` keyword followed by the link of the template to the query like below:
+
+`#query page where type = "plug" render [[template/plug]]`
+
+You can see the usage of our template in the example 6.4 below. 
 
 ### 6. Examples
 We will walk you through a set of examples starting from very basic one until to format the data using templates. 
