@@ -88,7 +88,7 @@ Certain plugs can also provide special data sources to query a certain data. Som
 * [[🔌 Github]] provides `gh-pull` to query PRs for selected repo
 * [[🔌 Mattermost]] provides `mm-saved` to fetch (by default 15) saved posts in Mattermost
 
-For a complete list of data sources, please check plugs’ pages.
+For a complete list of data sources, please check plugs’ own pages.
 
 ### 5. Templates
 Templates are predefined formats to render the body of the query. 
