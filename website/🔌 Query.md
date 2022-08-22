@@ -30,7 +30,6 @@ P.S.: If you are a developer or have a technical knowledge to read a code and wo
 * `>=` greater than or equals
 * `=~` to match against a regular expression
 * `!=~` does not match this regular expression
-* `in` to specify multiple values in a `where` clause
 
 Further, you can combine multiple of these with `and`. Example `prop =~ /something/ and prop != “something”`.
 
