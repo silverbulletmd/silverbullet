@@ -60,6 +60,7 @@ import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
 import { storeSyscalls } from "./syscalls/store";
+import { inlineImagesPlugin } from "./inline_image";
 
 class PageState {
   constructor(
@@ -380,6 +381,7 @@ export class Editor {
           base: buildMarkdown(this.mdExtensions),
           addKeymap: true,
         }),
+        inlineImagesPlugin(),
         highlightSpecialChars(),
         history(),
         drawSelection(),
