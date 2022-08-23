@@ -3,17 +3,19 @@ import { Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 
 class InlineImageWidget extends WidgetType {
-  constructor(readonly url: string) {
+  constructor(readonly url: string, readonly title: string) {
     super();
   }
 
   eq(other: InlineImageWidget) {
-    return other.url === this.url;
+    return other.url === this.url && other.title === this.title;
   }
 
   toDOM() {
     const img = document.createElement('img')
     img.src = this.url;
+    img.alt = this.title;
+    img.title = this.title;
     img.style.display = 'block';
 
     return img;
@@ -22,7 +24,7 @@ class InlineImageWidget extends WidgetType {
 
 const inlineImages = (view: EditorView) => {
   let widgets: Range<Decoration>[] = [];
-  const imageRegex = /!\[[^\]]*\]\((?<url>.+)\)/;
+  const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
 
   for (let {from, to} of view.visibleRanges) {
     syntaxTree(view.state).iterate({
@@ -38,8 +40,9 @@ const inlineImages = (view: EditorView) => {
         }
         
         const url = imageRexexResult.groups.url;
+        const title = imageRexexResult.groups.title;
         let deco = Decoration.widget({
-          widget: new InlineImageWidget(url),
+          widget: new InlineImageWidget(url, title),
         });
         widgets.push(deco.range(node.to));
       }
