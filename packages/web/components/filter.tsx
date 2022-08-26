@@ -173,6 +173,7 @@ export function FilterList({
                 case "Escape":
                   exiting = true;
                   onSelect(undefined);
+                  e.preventDefault();
                   break;
                 case " ":
                   if (completePrefix && !text) {
