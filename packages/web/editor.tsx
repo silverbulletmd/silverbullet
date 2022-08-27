@@ -719,6 +719,13 @@ export class Editor {
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}
+          onThemeClick={() => {
+            if (localStorage.theme === 'dark')
+              localStorage.theme = 'light';
+            else
+              localStorage.theme = 'dark';
+            document.documentElement.dataset.theme = localStorage.theme;
+          }}
           onHomeClick={() => {
             editor.navigate("");
           }}

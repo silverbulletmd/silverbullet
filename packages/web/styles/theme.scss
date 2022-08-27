@@ -270,3 +270,42 @@
   font-size: 75%;
   line-height: 75%;
 }
+
+html[data-theme="dark"] {
+  #sb-root {
+    background-color: #555;
+    color: rgb(200, 200, 200);
+  }
+
+  #sb-top {
+    background-color: rgb(38, 38, 38);
+    border-bottom: rgb(62, 62, 62) 1px solid;
+    color: rgb(200, 200, 200);
+  }
+
+  .sb-saved {
+    color: rgb(225, 225, 225);
+  }
+
+  .sb-filter-box,
+  /* duplicating the class name to increase specificity */
+  .sb-help-text.sb-help-text {
+    color: #ccc;
+    background-color: rgb(38, 38, 38);
+  }
+
+  .sb-help-text {
+    border-bottom: 1px solid #6c6c6c;
+  }
+
+  .sb-code,
+  .sb-line-fenced-code,
+  .sb-task-marker {
+    background-color: #333;
+  }
+
+  .sb-notifications > div {
+    border: rgb(197, 197, 197) 1px solid;
+    background-color: #333;
+  }
+}

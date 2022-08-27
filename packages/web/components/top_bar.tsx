@@ -1,5 +1,6 @@
-import { faRunning, faHome } from "@fortawesome/free-solid-svg-icons";
+import { faRunning, faHome, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useEffect, useState } from "react";
 import { Notification } from "../types";
 
 function prettyName(s: string | undefined): string {
@@ -14,6 +15,7 @@ export function TopBar({
   unsavedChanges,
   notifications,
   onClick,
+  onThemeClick,
   onHomeClick,
   onActionClick,
   lhs,
@@ -23,11 +25,15 @@ export function TopBar({
   unsavedChanges: boolean;
   notifications: Notification[];
   onClick: () => void;
+  onThemeClick: () => void;
   onHomeClick: () => void;
   onActionClick: () => void;
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
 }) {
+
+  const [theme, setTheme] = useState<string>(localStorage.theme ?? 'light');
+
   return (
     <div id="sb-top" onClick={onClick}>
       {lhs}
@@ -70,6 +76,16 @@ export function TopBar({
               title="Open the command palette"
             >
               <FontAwesomeIcon icon={faRunning} />
+            </button>
+            <button
+              onClick={(e) => {
+                onThemeClick();
+                setTheme(localStorage.theme ?? 'light');
+                e.stopPropagation();
+              }}
+              title="Toggle theme"
+            >
+              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
             </button>
           </div>
         </div>
