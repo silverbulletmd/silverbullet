@@ -1,5 +1,9 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
+## 0.0.32
+* Inline image previews are now implemented, use the standard `![alt text](https://url.com/image.jpg)` notation and a preview of the image will appear automatically
+* Dark mode! Toggle between the dark and light mode using a new button, top-right.
+
 ## 0.0.31
 * Update to the query language: the `render` clause now uses page reference syntax `[[page]]`. For example `render [[template/task]]` rather than `render "template/task"`. The old syntax still works, but is deprecated, completion for the old syntax has been removed.
 * Updates to templates:
