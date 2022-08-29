@@ -17,7 +17,7 @@ export interface StrategyConfig {
 export function setupPassportStrategies(strategies: StrategyConfig) {
   if (strategies[GITHUB]) {
     if (typeof GITHUB_CLIENT_ID === "undefined" || typeof GITHUB_CLIENT_SECRET === "undefined") {
-      throw new Error("Can't configure github auth strategy without client_id and client_secret. Please refer to the docs to set them up.");
+      throw new Error("Can't configure github auth strategy without SB_GH_CLIENT_ID and SB_GB_CLIENT_SECRET. Please refer to the docs to set them up.");
     }
     passport.use(
       new GitHubStrategy({
