@@ -1,5 +1,6 @@
 import type { ClickEvent } from "@silverbulletmd/web/app_event";
 import {
+  flashNotification,
   getCursor,
   getText,
   navigate as navigateTo,
@@ -28,7 +29,11 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       await openUrl(mdTree.children![0].text!);
       break;
     case "Link":
-      await openUrl(mdTree.children![4].children![0].text!);
+      const url = mdTree.children![4].children![0].text!;
+      if (url.length <= 1) {
+        return flashNotification("Empty link, ignoring", "error");
+      }
+      await openUrl(url);
       break;
     case "CommandLink":
       let command = mdTree
