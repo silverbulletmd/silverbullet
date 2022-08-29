@@ -148,6 +148,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
             "TableHeader/...": t.heading,
             TableCell: t.content,
             CodeInfo: ct.CodeInfoTag,
+            HorizontalRule: ct.HorizontalRuleTag,
           }),
           ...mdExtensions.map((mdExt) =>
             styleTags(mdExtensionStyleTags(mdExt))

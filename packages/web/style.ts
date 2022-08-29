@@ -42,6 +42,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.processingInstruction, class: "sb-meta" },
     // { tag: t.content, class: "tbl-content" },
     { tag: t.punctuation, class: "sb-punctuation" },
+    { tag: ct.HorizontalRuleTag, class: "sb-hr" },
     ...mdExtension.map((mdExt) => {
       return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };
     }),
