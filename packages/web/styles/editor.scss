@@ -1,10 +1,15 @@
 .cm-editor {
   font-size: 18px;
   padding: 0 20px;
+  --max-width: 800px;
 
   .cm-content {
     margin: auto;
-    max-width: 800px;
+    max-width: var(--max-width);
+  }
+
+  .sb-inline-img {
+    max-width: calc(var(--max-width) * 0.9);
   }
 
   &.cm-focused {

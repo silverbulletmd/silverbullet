@@ -1,8 +1,10 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
 ## 0.0.32
-* Inline image previews are now implemented, use the standard `![alt text](https://url.com/image.jpg)` notation and a preview of the image will appear automatically
+* Inline image previews are now implemented, use the standard `![alt text](https://url.com/image.jpg)` notation and a preview of the image will appear automatically. Example:
+  ![Inline image preview](https://user-images.githubusercontent.com/812886/186218876-6d8a4a71-af8b-4e9e-83eb-4ac89607a6b4.png)
 * Dark mode! Toggle between the dark and light mode using a new button, top-right.
+  ![Dark mode screenshot](https://user-images.githubusercontent.com/6335792/187000151-ba06ce55-ad27-494b-bfe9-6b19ef62145b.png)
 
 ## 0.0.31
 * Update to the query language: the `render` clause now uses page reference syntax `[[page]]`. For example `render [[template/task]]` rather than `render "template/task"`. The old syntax still works, but is deprecated, completion for the old syntax has been removed.
