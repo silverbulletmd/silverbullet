@@ -4,29 +4,17 @@ syntax:
     firstCharacters:
       - "#"
     regex: "#[^#\\d\\s]+\\w+"
-    styles:
-      color: blue
+    className: sb-hashtag
   NakedURL:
     firstCharacters:
       - "h"
     regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
-    styles:
-      color: "#0330cb"
-      textDecoration: underline
-      cursor: pointer
+    className: sb-naked-url
   CommandLink:
     firstCharacters:
       - "{"
     regex: "\\{\\[[^\\]]+\\]\\}"
-    styles:
-      backgroundColor: "#e3dfdf"
-      cursor: pointer
-      borderTop: 1px solid silver
-      borderLeft: 1px solid silver
-      borderBottom: 1px solid gray
-      borderRight: 1px solid gray
-      borderRadius: 4px
-      padding: 0 4px
+    className: sb-command-link
 functions:
   clearPageIndex:
     path: "./page.ts:clearPageIndex"

@@ -21,6 +21,7 @@ export type NodeDef = {
   firstCharacters: string[];
   regex: string;
   styles: { [key: string]: string };
+  className?: string;
 };
 
 export type Manifest = plugos.Manifest<SilverBulletHooks> & SyntaxExtensions;

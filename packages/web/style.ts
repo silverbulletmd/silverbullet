@@ -43,7 +43,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     // { tag: t.content, class: "tbl-content" },
     { tag: t.punctuation, class: "sb-punctuation" },
     ...mdExtension.map((mdExt) => {
-      return { tag: mdExt.tag, ...mdExt.styles };
+      return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };
     }),
   ]);
   const fn0 = hls.style;

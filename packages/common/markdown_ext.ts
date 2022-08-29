@@ -10,6 +10,7 @@ export type MDExt = {
   nodeType: string;
   tag: Tag;
   styles: { [key: string]: string };
+  className?: string;
 };
 
 export function mdExtensionSyntaxConfig({
@@ -58,6 +59,7 @@ export function loadMarkdownExtensions(system: System<any>): MDExt[] {
           firstCharCodes: def.firstCharacters.map((ch) => ch.charCodeAt(0)),
           regex: new RegExp("^" + def.regex),
           styles: def.styles,
+          className: def.className,
         });
       }
     }

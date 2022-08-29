@@ -128,6 +128,27 @@
   font-size: 1.1em;
 }
 
+.sb-hashtag {
+  color: blue;
+}
+
+.sb-naked-url {
+  color: #0330cb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sb-command-link {
+  background-color: #e3dfdf;
+  cursor: pointer;
+  border-top: 1px solid silver;
+  border-left: 1px solid silver;
+  border-bottom: 1px solid gray;
+  border-right: 1px solid gray;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
 /* Color list item this way */
 .sb-line-li .sb-meta {
   color: rgb(150, 150, 150);
@@ -265,8 +286,6 @@
 
 .sb-comment {
   color: #989797;
-  background-color: rgba(210, 210, 210, 0.2);
-  border-radius: 5px;
   font-size: 75%;
   line-height: 75%;
 }
@@ -298,6 +317,16 @@ html[data-theme="dark"] {
     border-bottom: 1px solid #6c6c6c;
   }
 
+  .sb-line-li .sb-meta ~ .sb-meta,
+  .sb-line-fenced-code .sb-meta {
+    color: #d17278;
+  }
+
+  .sb-wiki-link-page {
+    color: #7e99fc;
+    background-color: #a3bce712;
+  }
+
   .sb-code,
   .sb-line-fenced-code,
   .sb-task-marker {
@@ -307,5 +336,17 @@ html[data-theme="dark"] {
   .sb-notifications > div {
     border: rgb(197, 197, 197) 1px solid;
     background-color: #333;
+  }
+
+  .sb-hashtag {
+    color: #94b0f4;
+  }
+
+  .sb-naked-url {
+    color: #94b0f4;
+  }
+
+  .sb-command-link {
+    background-color: #595959;
   }
 }
