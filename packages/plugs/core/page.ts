@@ -206,7 +206,7 @@ export async function reindexCommand() {
 
 // Completion
 export async function pageComplete() {
-  let prefix = await matchBefore("\\[\\[[^\\]]*");
+  let prefix = await matchBefore("\\[\\[[^\\]@]*");
   if (!prefix) {
     return null;
   }

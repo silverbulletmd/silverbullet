@@ -13,7 +13,7 @@ export class PathPageNavigator {
 
   constructor(readonly indexPage: string, readonly root: string = "") {}
 
-  async navigate(page: string, pos?: number, replaceState = false) {
+  async navigate(page: string, pos?: number | string, replaceState = false) {
     let encodedPage = encodePageUrl(page);
     if (page === this.indexPage) {
       encodedPage = "";
@@ -43,7 +43,7 @@ export class PathPageNavigator {
   }
 
   subscribe(
-    pageLoadCallback: (pageName: string, pos: number) => Promise<void>
+    pageLoadCallback: (pageName: string, pos: number | string) => Promise<void>
   ): void {
     const cb = (event?: PopStateEvent) => {
       const gotoPage = this.getCurrentPage();
@@ -53,7 +53,7 @@ export class PathPageNavigator {
       safeRun(async () => {
         await pageLoadCallback(
           this.getCurrentPage(),
-          event?.state && event.state.pos
+          event?.state?.pos || this.getCurrentPos()
         );
         if (this.navigationResolve) {
           this.navigationResolve();
@@ -64,17 +64,18 @@ export class PathPageNavigator {
     cb();
   }
 
-  decodeURI(): [string, number] {
-    let parts = decodeURI(
+  decodeURI(): [string, number | string] {
+    let [page, pos] = decodeURI(
       location.pathname.substring(this.root.length + 1)
     ).split("@");
-    let page =
-      parts.length > 1 ? parts.slice(0, parts.length - 1).join("@") : parts[0];
-    let pos = parts.length > 1 ? parts[parts.length - 1] : "0";
-    if (pos.match(/^\d+$/)) {
-      return [page, +pos];
+    if (pos) {
+      if (pos.match(/^\d+$/)) {
+        return [page, +pos];
+      } else {
+        return [page, pos];
+      }
     } else {
-      return [`${page}@${pos}`, 0];
+      return [page, 0];
     }
   }
 
@@ -82,7 +83,7 @@ export class PathPageNavigator {
     return decodePageUrl(this.decodeURI()[0]) || this.indexPage;
   }
 
-  getCurrentPos(): number {
+  getCurrentPos(): number | string {
     // console.log("Pos", this.decodeURI()[1]);
     return this.decodeURI()[1];
   }

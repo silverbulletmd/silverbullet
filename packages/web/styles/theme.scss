@@ -141,8 +141,11 @@
 
 .sb-naked-url {
   color: #0330cb;
-  text-decoration: underline;
   cursor: pointer;
+}
+
+.sb-named-anchor {
+  color: #959595;
 }
 
 .sb-command-link {

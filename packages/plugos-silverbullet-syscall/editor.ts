@@ -31,7 +31,7 @@ export function save(): Promise<void> {
 
 export function navigate(
   name: string,
-  pos?: number,
+  pos?: string | number,
   replaceState = false
 ): Promise<void> {
   return syscall("editor.navigate", name, pos, replaceState);

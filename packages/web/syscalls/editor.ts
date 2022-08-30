@@ -46,7 +46,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.navigate": async (
       ctx,
       name: string,
-      pos: number,
+      pos: number | string,
       replaceState = false
     ) => {
       await editor.navigate(name, pos, replaceState);

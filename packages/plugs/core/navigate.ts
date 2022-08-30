@@ -1,6 +1,7 @@
 import type { ClickEvent } from "@silverbulletmd/web/app_event";
 import {
   flashNotification,
+  getCurrentPage,
   getCursor,
   getText,
   navigate as navigateTo,
@@ -18,11 +19,17 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   switch (mdTree.type) {
     case "WikiLinkPage":
       let pageLink = mdTree.children![0].text!;
-      let pos = "0";
+      let pos;
       if (pageLink.includes("@")) {
         [pageLink, pos] = pageLink.split("@");
+        if (pos.match(/^\d+$/)) {
+          pos = +pos;
+        }
       }
-      await navigateTo(pageLink, +pos);
+      if (!pageLink) {
+        pageLink = await getCurrentPage();
+      }
+      await navigateTo(pageLink, pos);
       break;
     case "URL":
     case "NakedURL":

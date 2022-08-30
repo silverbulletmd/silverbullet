@@ -203,8 +203,8 @@ export class Editor {
   async init() {
     this.focus();
 
-    this.pageNavigator.subscribe(async (pageName, pos) => {
-      console.log("Now navigating to", pageName);
+    this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
+      console.log("Now navigating to", pageName, pos);
 
       if (!this.editorView) {
         return;
@@ -212,8 +212,30 @@ export class Editor {
 
       await this.loadPage(pageName);
       if (pos) {
+        if (typeof pos === "string") {
+          console.log("Navigating to anchor", pos);
+
+          // We're going to look up the anchor through a direct page store query...
+          // TODO: This is a bit hacky, but it works for now
+          let posLookup = await this.system.syscallWithContext(
+            // Mock the "core" plug
+            { plug: { name: "core" } as any },
+            "index.get",
+            [pageName, `a:${pageName}:@${pos}`]
+          );
+
+          if (!posLookup) {
+            return this.flashNotification(
+              `Could not find anchor @${pos}`,
+              "error"
+            );
+          } else {
+            pos = +posLookup;
+          }
+        }
         this.editorView.dispatch({
           selection: { anchor: pos },
+          scrollIntoView: true,
         });
       }
     });
@@ -562,7 +584,7 @@ export class Editor {
     this.editorView!.focus();
   }
 
-  async navigate(name: string, pos?: number, replaceState = false) {
+  async navigate(name: string, pos?: number | string, replaceState = false) {
     if (!name) {
       name = this.indexPage;
     }

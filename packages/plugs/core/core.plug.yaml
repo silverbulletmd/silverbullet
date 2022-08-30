@@ -15,6 +15,11 @@ syntax:
       - "{"
     regex: "\\{\\[[^\\]]+\\]\\}"
     className: sb-command-link
+  NamedAnchor:
+    firstCharacters:
+      - "@"
+    regex: "@[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
+    className: sb-named-anchor
 functions:
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
@@ -110,6 +115,16 @@ functions:
     path: "./tags.ts:tagProvider"
     events:
       - query:tag
+
+  # Anchors
+  indexAnchors:
+    path: "./anchor.ts:indexAnchors"
+    events:
+      - page:index
+  anchorComplete:
+    path: "./anchor.ts:anchorComplete"
+    events:
+      - page:complete
 
   # Full text search
   searchIndex:
