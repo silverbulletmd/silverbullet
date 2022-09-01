@@ -1,4 +1,4 @@
-import { readdir, readFile, stat, writeFile, unlink } from "fs/promises";
+import { readdir, readFile, stat, writeFile, unlink, mkdir } from "fs/promises";
 import path from "path";
 import type { SysCallMapping } from "../system";
 
@@ -46,6 +46,7 @@ export default function fileSystemSyscalls(root: string = "/"): SysCallMapping {
       text: string
     ): Promise<FileMeta> => {
       let p = resolvedPath(filePath);
+      await mkdir(path.dirname(p), { recursive: true });
       await writeFile(p, text);
       let s = await stat(p);
       return {

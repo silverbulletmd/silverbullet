@@ -1,6 +1,9 @@
-import { findNodeOfType, ParseTree, renderToText, replaceNodesMatching, traverseTree } from "@silverbulletmd/common/tree";
+import { findNodeOfType, traverseTree } from "@silverbulletmd/common/tree";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { readPage, writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import {
+  readPage,
+  writePage,
+} from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import YAML from "yaml";
 
 export async function readYamlPage(
@@ -39,4 +42,12 @@ export async function readYamlPage(
   });
 
   return data;
+}
+
+export async function writeYamlPage(
+  pageName: string,
+  data: any
+): Promise<void> {
+  const text = YAML.stringify(data);
+  await writePage(pageName, "```yaml\n" + text + "\n```");
 }

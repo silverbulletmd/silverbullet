@@ -43,6 +43,10 @@ export async function compile(
       external: excludeModules,
       loader: {
         ".css": "text",
+        ".md": "text",
+        ".txt": "text",
+        ".html": "text",
+        ".hbs": "text",
         ".png": "dataurl",
         ".gif": "dataurl",
         ".jpg": "dataurl",
