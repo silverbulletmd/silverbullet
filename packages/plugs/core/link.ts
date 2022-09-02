@@ -58,7 +58,11 @@ export async function titleUnfurlOptions(url: string): Promise<UnfurlOption[]> {
 // Run on the server because plugs will likely rely on fetch for this
 export async function unfurlExec(id: string, url: string): Promise<string> {
   let replacement = await dispatchEvent(`unfurl:${id}`, url);
-  return replacement[0];
+  if (replacement.length === 0) {
+    throw new Error("Unfurl failed");
+  } else {
+    return replacement[0];
+  }
 }
 
 const titleRegex = /<title[^>]*>\s*([^<]+)\s*<\/title\s*>/i;
