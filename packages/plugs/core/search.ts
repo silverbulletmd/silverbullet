@@ -14,6 +14,8 @@ import { IndexTreeEvent } from "@silverbulletmd/web/app_event";
 import { applyQuery, QueryProviderEvent } from "../query/engine";
 import { removeQueries } from "../query/util";
 
+const searchPrefix = "🔍 ";
+
 export async function index(data: IndexTreeEvent) {
   removeQueries(data.tree);
   let cleanText = renderToText(data.tree);
@@ -55,14 +57,14 @@ export async function queryProvider({
 export async function searchCommand() {
   let phrase = await prompt("Search for: ");
   if (phrase) {
-    await navigate(`@search/${phrase}`);
+    await navigate(`${searchPrefix}${phrase}`);
   }
 }
 
 export async function readPageSearch(
   name: string
 ): Promise<{ text: string; meta: PageMeta }> {
-  let phrase = name.substring("@search/".length);
+  let phrase = name.substring(searchPrefix.length);
   let results = await fullTextSearch(phrase, 100);
   const text = `# Search results for "${phrase}"\n${results
     .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)

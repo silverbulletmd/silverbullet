@@ -149,12 +149,12 @@ functions:
   readPageSearch:
     path: ./search.ts:readPageSearch
     pageNamespace:
-      pattern: "@search/.+"
+      pattern: "🔍 .+"
       operation: readPage
   getPageMetaSearch:
     path: ./search.ts:getPageMetaSearch
     pageNamespace:
-      pattern: "@search/.+"
+      pattern: "🔍 .+"
       operation: getPageMeta
 
   # Template commands
@@ -367,5 +367,17 @@ functions:
     path: ./stats.ts:statsCommand
     command:
       name: "Stats: Show"
-      key: "Ctrl-Shift-s"
-      mac: "Cmd-Shift-s"
+      key: "Ctrl-s"
+      mac: "Cmd-s"
+
+  # Cloud pages
+  readPageCloud:
+    path: ./cloud.ts:readPageCloud
+    pageNamespace:
+      pattern: "💭 .+"
+      operation: readPage
+  getPageMetaCloud:
+    path: ./cloud.ts:getPageMetaCloud
+    pageNamespace:
+      pattern: "💭 .+"
+      operation: getPageMeta

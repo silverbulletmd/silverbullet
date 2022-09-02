@@ -1,5 +1,8 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
+## 0.0.33
+* Changed full-text search page prefix from `@search/` to `🔍` for the {[Search Space]} command.
+
 ## 0.0.32
 * **Inline image previews**: use the standard `![alt text](https://url.com/image.jpg)` notation and a preview of the image will appear automatically. Example:
   ![Inline image preview](https://user-images.githubusercontent.com/812886/186218876-6d8a4a71-af8b-4e9e-83eb-4ac89607a6b4.png)
