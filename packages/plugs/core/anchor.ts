@@ -30,7 +30,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function anchorComplete() {
-  let prefix = await matchBefore("\\[\\[[^\\]@]*@[\\w\\.\\-\\/]*");
+  let prefix = await matchBefore("\\[\\[[^\\]@:]*@[\\w\\.\\-\\/]*");
   if (!prefix) {
     return null;
   }
