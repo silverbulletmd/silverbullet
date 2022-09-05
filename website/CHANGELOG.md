@@ -3,6 +3,7 @@ An attempt at documenting of the changes/new features introduced in each (pre) r
 ---
 ## 0.0.33
 * Changed full-text search page prefix from `@search/` to `🔍` for the {[Search Space]} command.
+* `page`, `plug` and `attachment` are now _reserved page names_, you cannot name your pages these (you will get an error when explicitly navigating to them).
 
 ---
 

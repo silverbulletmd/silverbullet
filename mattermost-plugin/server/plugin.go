@@ -26,7 +26,7 @@ type Plugin struct {
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 
-	if strings.HasPrefix(r.URL.Path, "/fs") || strings.HasPrefix(r.URL.Path, "/plug/") {
+	if strings.HasPrefix(r.URL.Path, "/page") || strings.HasPrefix(r.URL.Path, "/plug/") {
 		p.httpProxy(w, r)
 		return
 	}

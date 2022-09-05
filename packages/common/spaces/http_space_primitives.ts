@@ -1,14 +1,16 @@
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 import { Plug } from "@plugos/plugos/plug";
 import { SpacePrimitives } from "./space_primitives";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
-  pageUrl: string;
+  fsUrl: string;
+  fsaUrl: string;
   private plugUrl: string;
   token?: string;
 
   constructor(url: string, token?: string) {
-    this.pageUrl = url + "/fs";
+    this.fsUrl = url + "/page";
+    this.fsaUrl = url + "/attachment";
     this.plugUrl = url + "/plug";
     this.token = token;
   }
@@ -32,7 +34,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     pages: Set<PageMeta>;
     nowTimestamp: number;
   }> {
-    let req = await this.authenticatedFetch(this.pageUrl, {
+    let req = await this.authenticatedFetch(this.fsUrl, {
       method: "GET",
     });
 
@@ -53,7 +55,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "GET",
     });
     if (res.headers.get("X-Status") === "404") {
@@ -61,7 +63,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return {
       text: await res.text(),
-      meta: this.responseToMeta(name, res),
+      meta: this.responseToPageMeta(name, res),
     };
   }
 
@@ -72,7 +74,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     lastModified?: number
   ): Promise<PageMeta> {
     // TODO: lastModified ignored for now
-    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "PUT",
       body: text,
       headers: lastModified
@@ -81,12 +83,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           }
         : undefined,
     });
-    const newMeta = this.responseToMeta(name, res);
+    const newMeta = this.responseToPageMeta(name, res);
     return newMeta;
   }
 
   async deletePage(name: string): Promise<void> {
-    let req = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
+    let req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "DELETE",
     });
     if (req.status !== 200) {
@@ -114,6 +116,90 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return await req.json();
   }
+
+  // Attachments
+  public async fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    let req = await this.authenticatedFetch(this.fsaUrl, {
+      method: "GET",
+    });
+
+    let result = new Set<AttachmentMeta>();
+    ((await req.json()) as any[]).forEach((meta: any) => {
+      const pageName = meta.name;
+      result.add({
+        name: pageName,
+        size: meta.size,
+        lastModified: meta.lastModified,
+        contentType: meta.contentType,
+        perm: "rw",
+      });
+    });
+
+    return {
+      attachments: result,
+      nowTimestamp: +req.headers.get("Now-Timestamp")!,
+    };
+  }
+
+  async readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
+      method: "GET",
+    });
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
+    let blob = await res.blob();
+    return {
+      buffer: await blob.arrayBuffer(),
+      meta: this.responseToAttachmentMeta(name, res),
+    };
+  }
+
+  async writeAttachment(
+    name: string,
+    buffer: ArrayBuffer,
+    selfUpdate?: boolean,
+    lastModified?: number
+  ): Promise<AttachmentMeta> {
+    // TODO: lastModified ignored for now
+    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
+      method: "PUT",
+      body: buffer,
+      headers: {
+        "Last-Modified": lastModified ? "" + lastModified : undefined,
+        "Content-type": "application/octet-stream",
+        "Content-length": "" + buffer.byteLength,
+      },
+    });
+    const newMeta = this.responseToAttachmentMeta(name, res);
+    return newMeta;
+  }
+
+  async getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
+      method: "OPTIONS",
+    });
+    if (res.headers.get("X-Status") === "404") {
+      throw new Error(`Page not found`);
+    }
+    return this.responseToAttachmentMeta(name, res);
+  }
+
+  async deleteAttachment(name: string): Promise<void> {
+    let req = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
+      method: "DELETE",
+    });
+    if (req.status !== 200) {
+      throw Error(`Failed to delete attachment: ${req.statusText}`);
+    }
+  }
+
+  // Plugs
 
   async invokeFunction(
     plug: Plug<any>,
@@ -151,19 +237,33 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    let res = await this.authenticatedFetch(`${this.pageUrl}/${name}`, {
+    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "OPTIONS",
     });
     if (res.headers.get("X-Status") === "404") {
       throw new Error(`Page not found`);
     }
-    return this.responseToMeta(name, res);
+    return this.responseToPageMeta(name, res);
   }
 
-  private responseToMeta(name: string, res: Response): PageMeta {
+  private responseToPageMeta(name: string, res: Response): PageMeta {
     return {
       name,
       lastModified: +(res.headers.get("Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+    };
+  }
+
+  private responseToAttachmentMeta(
+    name: string,
+    res: Response
+  ): AttachmentMeta {
+    return {
+      name,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+      size: +(res.headers.get("Content-Length") || "0"),
+      contentType:
+        res.headers.get("Content-Type") || "application/octet-stream",
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
   }

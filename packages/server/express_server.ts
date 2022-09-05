@@ -281,6 +281,113 @@ export class ExpressServer {
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));
 
+    // Pages API
+    this.app.use(
+      "/page",
+      passwordMiddleware,
+      cors({
+        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
+        preflightContinue: true,
+      }),
+      this.buildFsRouter()
+    );
+
+    // Attachment API
+    this.app.use(
+      "/attachment",
+      passwordMiddleware,
+      cors({
+        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
+        preflightContinue: true,
+      }),
+      this.buildAttachmentRouter()
+    );
+
+    // Plug API
+    this.app.use(
+      "/plug",
+      passwordMiddleware,
+      cors({
+        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
+        preflightContinue: true,
+      }),
+      this.buildPlugRouter()
+    );
+
+    // Fallback, serve index.html
+    this.app.get("/*", async (req, res) => {
+      res.sendFile(`${this.distDir}/index.html`, {});
+    });
+
+    this.server = http.createServer(this.app);
+    this.server.listen(this.port, () => {
+      console.log(
+        `Silver Bullet is now running: http://localhost:${this.port}`
+      );
+      console.log("--------------");
+    });
+  }
+
+  private buildPlugRouter() {
+    let plugRouter = express.Router();
+
+    plugRouter.post(
+      "/:plug/syscall/:name",
+      bodyParser.json(),
+      async (req, res) => {
+        const name = req.params.name;
+        const plugName = req.params.plug;
+        const args = req.body as any;
+        const plug = this.system.loadedPlugs.get(plugName);
+        if (!plug) {
+          res.status(404);
+          return res.send(`Plug ${plugName} not found`);
+        }
+        try {
+          const result = await this.system.syscallWithContext(
+            { plug },
+            name,
+            args
+          );
+          res.status(200);
+          res.header("Content-Type", "application/json");
+          res.send(JSON.stringify(result));
+        } catch (e: any) {
+          res.status(500);
+          return res.send(e.message);
+        }
+      }
+    );
+
+    plugRouter.post(
+      "/:plug/function/:name",
+      bodyParser.json(),
+      async (req, res) => {
+        const name = req.params.name;
+        const plugName = req.params.plug;
+        const args = req.body as any[];
+        const plug = this.system.loadedPlugs.get(plugName);
+        if (!plug) {
+          res.status(404);
+          return res.send(`Plug ${plugName} not found`);
+        }
+        try {
+          const result = await plug.invoke(name, args);
+          res.status(200);
+          res.header("Content-Type", "application/json");
+          res.send(JSON.stringify(result));
+        } catch (e: any) {
+          res.status(500);
+          // console.log("Error invoking function", e);
+          return res.send(e.message);
+        }
+      }
+    );
+
+    return plugRouter;
+  }
+
+  private buildFsRouter() {
     let fsRouter = express.Router();
 
     // Page list
@@ -360,96 +467,120 @@ export class ExpressServer {
           res.send("OK");
         }
       });
+    return fsRouter;
+  }
 
-    this.app.use(
-      "/fs",
-      passwordMiddleware,
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
-      fsRouter
-    );
+  // Build attachment router
+  private buildAttachmentRouter() {
+    let fsaRouter = express.Router();
 
-    let plugRouter = express.Router();
-
-    // TODO: This is currently only used for the indexer calls, it's potentially dangerous
-    // do we need a better solution?
-    plugRouter.post(
-      "/:plug/syscall/:name",
-      bodyParser.json(),
-      async (req, res) => {
-        const name = req.params.name;
-        const plugName = req.params.plug;
-        const args = req.body as any;
-        const plug = this.system.loadedPlugs.get(plugName);
-        if (!plug) {
-          res.status(404);
-          return res.send(`Plug ${plugName} not found`);
-        }
-        try {
-          const result = await this.system.syscallWithContext(
-            { plug },
-            name,
-            args
-          );
-          res.status(200);
-          res.header("Content-Type", "application/json");
-          res.send(JSON.stringify(result));
-        } catch (e: any) {
-          res.status(500);
-          return res.send(e.message);
-        }
-      }
-    );
-
-    plugRouter.post(
-      "/:plug/function/:name",
-      bodyParser.json(),
-      async (req, res) => {
-        const name = req.params.name;
-        const plugName = req.params.plug;
-        const args = req.body as any[];
-        const plug = this.system.loadedPlugs.get(plugName);
-        if (!plug) {
-          res.status(404);
-          return res.send(`Plug ${plugName} not found`);
-        }
-        try {
-          const result = await plug.invoke(name, args);
-          res.status(200);
-          res.header("Content-Type", "application/json");
-          res.send(JSON.stringify(result));
-        } catch (e: any) {
-          res.status(500);
-          // console.log("Error invoking function", e);
-          return res.send(e.message);
-        }
-      }
-    );
-
-    this.app.use(
-      "/plug",
-      passwordMiddleware,
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
-      plugRouter
-    );
-
-    // Fallback, serve index.html
-    this.app.get("/*", async (req, res) => {
-      res.sendFile(`${this.distDir}/index.html`, {});
+    // Page list
+    fsaRouter.route("/").get(async (req, res) => {
+      let { nowTimestamp, attachments } =
+        await this.space.fetchAttachmentList();
+      res.header("Now-Timestamp", "" + nowTimestamp);
+      res.json([...attachments]);
     });
 
-    this.server = http.createServer(this.app);
-    this.server.listen(this.port, () => {
-      console.log(
-        `Silver Bullet is now running: http://localhost:${this.port}`
-      );
-      console.log("--------------");
-    });
+    fsaRouter
+      .route(/\/(.+)/)
+      .get(async (req, res) => {
+        let attachmentName = req.params[0];
+        if (!this.attachmentCheck(attachmentName, res)) {
+          return;
+        }
+        console.log("Getting", attachmentName);
+        try {
+          let attachmentData = await this.space.readAttachment(attachmentName);
+          res.status(200);
+          res.header("Last-Modified", "" + attachmentData.meta.lastModified);
+          res.header("X-Permission", attachmentData.meta.perm);
+          res.header("Content-Type", attachmentData.meta.contentType);
+          // res.header("X-Content-Length", "" + attachmentData.meta.size);
+          res.send(Buffer.from(attachmentData.buffer));
+        } catch (e) {
+          // CORS
+          res.status(200);
+          res.header("X-Status", "404");
+          res.send("");
+        }
+      })
+      .put(
+        bodyParser.raw({ type: "*/*", limit: "100mb" }),
+        async (req, res) => {
+          let attachmentName = req.params[0];
+          if (!this.attachmentCheck(attachmentName, res)) {
+            return;
+          }
+          console.log("Saving attachment", attachmentName);
+
+          try {
+            let meta = await this.space.writeAttachment(
+              attachmentName,
+              req.body,
+              false,
+              req.header("Last-Modified")
+                ? +req.header("Last-Modified")!
+                : undefined
+            );
+            res.status(200);
+            res.header("Last-Modified", "" + meta.lastModified);
+            res.header("Content-Type", meta.contentType);
+            res.header("Content-Length", "" + meta.size);
+            res.header("X-Permission", meta.perm);
+            res.send("OK");
+          } catch (err) {
+            res.status(500);
+            res.send("Write failed");
+            console.error("Pipeline failed", err);
+          }
+        }
+      )
+      .options(async (req, res) => {
+        let attachmentName = req.params[0];
+        if (!this.attachmentCheck(attachmentName, res)) {
+          return;
+        }
+        try {
+          const meta = await this.space.getAttachmentMeta(attachmentName);
+          res.status(200);
+          res.header("Last-Modified", "" + meta.lastModified);
+          res.header("X-Permission", meta.perm);
+          res.header("Content-Length", "" + meta.size);
+          res.header("Content-Type", meta.contentType);
+          res.send("");
+        } catch (e) {
+          // CORS
+          res.status(200);
+          res.header("X-Status", "404");
+          res.send("Not found");
+        }
+      })
+      .delete(async (req, res) => {
+        let attachmentName = req.params[0];
+        if (!this.attachmentCheck(attachmentName, res)) {
+          return;
+        }
+        try {
+          await this.space.deleteAttachment(attachmentName);
+          res.status(200);
+          res.send("OK");
+        } catch (e) {
+          console.error("Error deleting attachment", e);
+          res.status(500);
+          res.send("OK");
+        }
+      });
+    return fsaRouter;
+  }
+
+  attachmentCheck(attachmentName: string, res: express.Response): boolean {
+    if (attachmentName.endsWith(".md")) {
+      res.status(405);
+      res.send("No markdown files allowed through the attachment API");
+      return false;
+    }
+    return true;
   }
 
   async ensureAndLoadSettings() {

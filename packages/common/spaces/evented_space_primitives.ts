@@ -1,7 +1,7 @@
 import { EventHook } from "@plugos/plugos/hooks/event";
 import { Plug } from "@plugos/plugos/plug";
 
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 import { plugPrefix, trashPrefix } from "./constants";
 import { SpacePrimitives } from "./space_primitives";
 
@@ -65,5 +65,43 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async deletePage(pageName: string): Promise<void> {
     await this.eventHook.dispatchEvent("page:deleted", pageName);
     return this.wrapped.deletePage(pageName);
+  }
+
+  fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    return this.wrapped.fetchAttachmentList();
+  }
+
+  readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    return this.wrapped.readAttachment(name);
+  }
+
+  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    return this.wrapped.getAttachmentMeta(name);
+  }
+
+  async writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean | undefined,
+    lastModified?: number | undefined
+  ): Promise<AttachmentMeta> {
+    let meta = await this.wrapped.writeAttachment(
+      name,
+      blob,
+      selfUpdate,
+      lastModified
+    );
+    await this.eventHook.dispatchEvent("attachment:saved", name);
+    return meta;
+  }
+
+  async deleteAttachment(name: string): Promise<void> {
+    await this.eventHook.dispatchEvent("attachment:deleted", name);
+    return this.wrapped.deleteAttachment(name);
   }
 }

@@ -1,6 +1,6 @@
 import { Plug } from "@plugos/plugos/plug";
 import { SpacePrimitives } from "@silverbulletmd/common/spaces/space_primitives";
-import { PageMeta } from "@silverbulletmd/common/types";
+import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 import { PageNamespaceHook, PageNamespaceOperation } from "./page_namespace";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
@@ -90,6 +90,32 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       return result;
     }
     return this.wrapped.deletePage(name);
+  }
+
+  fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    return this.wrapped.fetchAttachmentList();
+  }
+  readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    return this.wrapped.readAttachment(name);
+  }
+  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    return this.wrapped.getAttachmentMeta(name);
+  }
+  writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean | undefined,
+    lastModified?: number | undefined
+  ): Promise<AttachmentMeta> {
+    return this.wrapped.writeAttachment(name, blob, selfUpdate, lastModified);
+  }
+  deleteAttachment(name: string): Promise<void> {
+    return this.wrapped.deleteAttachment(name);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {

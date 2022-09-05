@@ -1,5 +1,5 @@
 import { SpacePrimitives } from "./space_primitives";
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 import Dexie, { Table } from "dexie";
 import { Plug } from "@plugos/plugos/plug";
 
@@ -18,6 +18,31 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
       page: "name",
     });
     this.pageTable = db.table("page");
+  }
+  fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    throw new Error("Method not implemented.");
+  }
+  readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    throw new Error("Method not implemented.");
+  }
+  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    throw new Error("Method not implemented.");
+  }
+  writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean | undefined,
+    lastModified?: number | undefined
+  ): Promise<AttachmentMeta> {
+    throw new Error("Method not implemented.");
+  }
+  deleteAttachment(name: string): Promise<void> {
+    throw new Error("Method not implemented.");
   }
 
   async deletePage(name: string): Promise<void> {

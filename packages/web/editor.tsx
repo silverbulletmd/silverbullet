@@ -47,7 +47,7 @@ import { systemSyscalls } from "./syscalls/system";
 import { Panel } from "./components/panel";
 import { CommandHook } from "./hooks/command";
 import { SlashCommandHook } from "./hooks/slash_command";
-import { pasteLinkExtension } from "./editor_paste";
+import { pasteAttachmentExtension, pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
 import {
@@ -55,7 +55,11 @@ import {
   MDExt,
 } from "@silverbulletmd/common/markdown_ext";
 import { FilterList } from "./components/filter";
-import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
+import {
+  FilterOption,
+  PageMeta,
+  reservedPageNames,
+} from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
@@ -204,6 +208,13 @@ export class Editor {
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
+      if (reservedPageNames.includes(pageName)) {
+        this.flashNotification(
+          `"${pageName}" is a reserved page name. It cannot be used.`,
+          "error"
+        );
+        return;
+      }
       console.log("Now navigating to", pageName, pos);
 
       if (!this.editorView) {
@@ -507,6 +518,7 @@ export class Editor {
           }
         ),
         pasteLinkExtension,
+        pasteAttachmentExtension(this.space),
         closeBrackets(),
       ],
     });

@@ -1,5 +1,5 @@
 import { Plug } from "@plugos/plugos/plug";
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 
 export interface SpacePrimitives {
   // Pages
@@ -13,6 +13,23 @@ export interface SpacePrimitives {
     lastModified?: number
   ): Promise<PageMeta>;
   deletePage(name: string): Promise<void>;
+
+  // Attachments
+  fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }>;
+  readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }>;
+  getAttachmentMeta(name: string): Promise<AttachmentMeta>;
+  writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean,
+    lastModified?: number
+  ): Promise<AttachmentMeta>;
+  deleteAttachment(name: string): Promise<void>;
 
   // Plugs
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any>;

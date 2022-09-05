@@ -8,10 +8,11 @@ import {
   writeFile,
 } from "fs/promises";
 import * as path from "path";
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 import { SpacePrimitives } from "./space_primitives";
 import { Plug } from "@plugos/plugos/plug";
 import { realpathSync } from "fs";
+import mime from "mime-types";
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
@@ -47,6 +48,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     );
   }
 
+  // Pages
   async readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
     const localPath = this.pageNameToPath(pageName);
     try {
@@ -148,6 +150,136 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     };
   }
 
+  // Attachments
+  attachmentNameToPath(name: string) {
+    return this.safePath(path.join(this.rootPath, name));
+  }
+
+  pathToAttachmentName(fullPath: string): string {
+    return fullPath.substring(this.rootPath.length + 1);
+  }
+
+  async fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    let attachments = new Set<AttachmentMeta>();
+
+    const walkPath = async (dir: string) => {
+      let files = await readdir(dir);
+      for (let file of files) {
+        const fullPath = path.join(dir, file);
+        let s = await stat(fullPath);
+        if (s.isDirectory()) {
+          if (!file.startsWith(".")) {
+            await walkPath(fullPath);
+          }
+        } else {
+          if (
+            !file.startsWith(".") &&
+            !file.endsWith(".md") &&
+            !file.endsWith(".json")
+          ) {
+            attachments.add({
+              name: this.pathToAttachmentName(fullPath),
+              lastModified: s.mtime.getTime(),
+              size: s.size,
+              contentType: mime.lookup(file) || "application/octet-stream",
+              perm: "rw",
+            } as AttachmentMeta);
+          }
+        }
+      }
+    };
+    await walkPath(this.rootPath);
+    return {
+      attachments,
+      nowTimestamp: Date.now(),
+    };
+  }
+
+  async readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    const localPath = this.attachmentNameToPath(name);
+    let fileBuffer = await readFile(localPath);
+
+    try {
+      const s = await stat(localPath);
+      return {
+        buffer: fileBuffer.buffer,
+        meta: {
+          name: name,
+          lastModified: s.mtime.getTime(),
+          size: s.size,
+          contentType: mime.lookup(name) || "application/octet-stream",
+          perm: "rw",
+        },
+      };
+    } catch (e) {
+      // console.error("Error while reading attachment", name, e);
+      throw Error(`Could not read attachment ${name}`);
+    }
+  }
+
+  async getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    const localPath = this.attachmentNameToPath(name);
+    try {
+      const s = await stat(localPath);
+      return {
+        name: name,
+        lastModified: s.mtime.getTime(),
+        size: s.size,
+        contentType: mime.lookup(name) || "application/octet-stream",
+        perm: "rw",
+      };
+    } catch (e) {
+      // console.error("Error while getting attachment meta", name, e);
+      throw Error(`Could not get meta for ${name}`);
+    }
+  }
+
+  async writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean,
+    lastModified?: number
+  ): Promise<AttachmentMeta> {
+    let localPath = this.attachmentNameToPath(name);
+    try {
+      // Ensure parent folder exists
+      await mkdir(path.dirname(localPath), { recursive: true });
+
+      // Actually write the file
+      await writeFile(localPath, Buffer.from(blob));
+
+      if (lastModified) {
+        let d = new Date(lastModified);
+        console.log("Going to set the modified time", d);
+        await utimes(localPath, d, d);
+      }
+
+      // Fetch new metadata
+      const s = await stat(localPath);
+      return {
+        name: name,
+        lastModified: s.mtime.getTime(),
+        size: s.size,
+        contentType: mime.lookup(name) || "application/octet-stream",
+        perm: "rw",
+      };
+    } catch (e) {
+      console.error("Error while writing attachment", name, e);
+      throw Error(`Could not write ${name}`);
+    }
+  }
+
+  async deleteAttachment(name: string): Promise<void> {
+    let localPath = this.attachmentNameToPath(name);
+    await unlink(localPath);
+  }
+
+  // Plugs
   invokeFunction(
     plug: Plug<any>,
     env: string,

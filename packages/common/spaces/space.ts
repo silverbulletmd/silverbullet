@@ -1,5 +1,5 @@
 import { SpacePrimitives } from "./space_primitives";
-import { PageMeta } from "../types";
+import { AttachmentMeta, PageMeta } from "../types";
 import { EventEmitter } from "@plugos/plugos/event";
 import { Plug } from "@plugos/plugos/plug";
 import { Manifest } from "../manifest";
@@ -15,7 +15,10 @@ export type SpaceEvents = {
   pageListUpdated: (pages: Set<PageMeta>) => void;
 };
 
-export class Space extends EventEmitter<SpaceEvents> {
+export class Space
+  extends EventEmitter<SpaceEvents>
+  implements SpacePrimitives
+{
   pageMetaCache = new Map<string, PageMeta>();
   watchedPages = new Set<string>();
   private initialPageListLoad = true;
@@ -213,6 +216,32 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   fetchPageList(): Promise<{ pages: Set<PageMeta>; nowTimestamp: number }> {
     return this.space.fetchPageList();
+  }
+
+  fetchAttachmentList(): Promise<{
+    attachments: Set<AttachmentMeta>;
+    nowTimestamp: number;
+  }> {
+    return this.space.fetchAttachmentList();
+  }
+  readAttachment(
+    name: string
+  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    return this.space.readAttachment(name);
+  }
+  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    return this.space.getAttachmentMeta(name);
+  }
+  writeAttachment(
+    name: string,
+    blob: ArrayBuffer,
+    selfUpdate?: boolean | undefined,
+    lastModified?: number | undefined
+  ): Promise<AttachmentMeta> {
+    return this.space.writeAttachment(name, blob, selfUpdate, lastModified);
+  }
+  deleteAttachment(name: string): Promise<void> {
+    return this.space.deleteAttachment(name);
   }
 
   private metaCacher(name: string, pageMeta: PageMeta): PageMeta {
