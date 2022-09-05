@@ -1,4 +1,4 @@
-import { PageMeta } from "@silverbulletmd/common/types";
+import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { Space } from "@silverbulletmd/common/spaces/space";
 
@@ -25,6 +25,31 @@ export default (space: Space): SysCallMapping => {
     },
     "space.deletePage": async (ctx, name: string) => {
       return space.deletePage(name);
+    },
+    "space.listAttachments": async (ctx): Promise<AttachmentMeta[]> => {
+      return [...(await space.fetchAttachmentList()).attachments];
+    },
+    "space.readAttachment": async (
+      ctx,
+      name: string
+    ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> => {
+      return await space.readAttachment(name);
+    },
+    "space.getAttachmentMeta": async (
+      ctx,
+      name: string
+    ): Promise<AttachmentMeta> => {
+      return await space.getAttachmentMeta(name);
+    },
+    "space.writeAttachment": async (
+      ctx,
+      name: string,
+      buffer: ArrayBuffer
+    ): Promise<AttachmentMeta> => {
+      return await space.writeAttachment(name, buffer);
+    },
+    "space.deleteAttachment": async (ctx, name: string) => {
+      await space.deleteAttachment(name);
     },
   };
 };

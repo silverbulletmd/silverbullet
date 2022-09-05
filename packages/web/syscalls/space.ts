@@ -1,6 +1,6 @@
 import { Editor } from "../editor";
 import { SysCallMapping } from "@plugos/plugos/system";
-import { PageMeta } from "@silverbulletmd/common/types";
+import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {
@@ -32,6 +32,31 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
       editor.openPages.delete(name);
       console.log("Deleting page");
       await editor.space.deletePage(name);
+    },
+    "space.listAttachments": async (ctx): Promise<AttachmentMeta[]> => {
+      return [...(await editor.space.fetchAttachmentList()).attachments];
+    },
+    "space.readAttachment": async (
+      ctx,
+      name: string
+    ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> => {
+      return await editor.space.readAttachment(name);
+    },
+    "space.getAttachmentMeta": async (
+      ctx,
+      name: string
+    ): Promise<AttachmentMeta> => {
+      return await editor.space.getAttachmentMeta(name);
+    },
+    "space.writeAttachment": async (
+      ctx,
+      name: string,
+      buffer: ArrayBuffer
+    ): Promise<AttachmentMeta> => {
+      return await editor.space.writeAttachment(name, buffer);
+    },
+    "space.deleteAttachment": async (ctx, name: string) => {
+      await editor.space.deleteAttachment(name);
     },
   };
 }
