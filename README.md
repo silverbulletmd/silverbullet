@@ -69,5 +69,7 @@ npm run server -- <PATH-TO-YOUR-SPACE>
 npm run plugs
 ```
 
+
 ## Feedback
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Would you like to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet), and the issue tracker as well for ideas on what to work on.
+
