@@ -491,13 +491,16 @@ export class ExpressServer {
         }
         console.log("Getting", attachmentName);
         try {
-          let attachmentData = await this.space.readAttachment(attachmentName);
+          let attachmentData = await this.space.readAttachment(
+            attachmentName,
+            "arraybuffer"
+          );
           res.status(200);
           res.header("Last-Modified", "" + attachmentData.meta.lastModified);
           res.header("X-Permission", attachmentData.meta.perm);
           res.header("Content-Type", attachmentData.meta.contentType);
           // res.header("X-Content-Length", "" + attachmentData.meta.size);
-          res.send(Buffer.from(attachmentData.buffer));
+          res.send(Buffer.from(attachmentData.data as ArrayBuffer));
         } catch (e) {
           // CORS
           res.status(200);

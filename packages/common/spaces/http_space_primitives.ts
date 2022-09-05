@@ -1,6 +1,10 @@
 import { AttachmentMeta, PageMeta } from "../types";
 import { Plug } from "@plugos/plugos/plug";
-import { SpacePrimitives } from "./space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "./space_primitives";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   fsUrl: string;
@@ -145,8 +149,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
     let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
       method: "GET",
     });
@@ -155,25 +160,29 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     let blob = await res.blob();
     return {
-      buffer: await blob.arrayBuffer(),
+      data:
+        encoding === "arraybuffer"
+          ? await blob.arrayBuffer()
+          : arrayBufferToDataUrl(await blob.arrayBuffer()),
       meta: this.responseToAttachmentMeta(name, res),
     };
   }
 
   async writeAttachment(
     name: string,
-    buffer: ArrayBuffer,
+    data: AttachmentData,
     selfUpdate?: boolean,
     lastModified?: number
   ): Promise<AttachmentMeta> {
-    // TODO: lastModified ignored for now
+    if (typeof data === "string") {
+      data = dataUrlToArrayBuffer(data);
+    }
     let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
       method: "PUT",
-      body: buffer,
+      body: data,
       headers: {
         "Last-Modified": lastModified ? "" + lastModified : undefined,
         "Content-type": "application/octet-stream",
-        "Content-length": "" + buffer.byteLength,
       },
     });
     const newMeta = this.responseToAttachmentMeta(name, res);
@@ -267,4 +276,24 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
   }
+}
+
+function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
+  var binary_string = window.atob(dataUrl.split(",")[1]);
+  var len = binary_string.length;
+  var bytes = new Uint8Array(len);
+  for (var i = 0; i < len; i++) {
+    bytes[i] = binary_string.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
+  var binary = "";
+  var bytes = new Uint8Array(buffer);
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return `data:application/octet-stream,${window.btoa(binary)}`;
 }

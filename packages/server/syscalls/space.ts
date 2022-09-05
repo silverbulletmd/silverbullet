@@ -1,6 +1,7 @@
 import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { Space } from "@silverbulletmd/common/spaces/space";
+import { AttachmentData } from "@silverbulletmd/common/spaces/space_primitives";
 
 export default (space: Space): SysCallMapping => {
   return {
@@ -32,8 +33,8 @@ export default (space: Space): SysCallMapping => {
     "space.readAttachment": async (
       ctx,
       name: string
-    ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> => {
-      return await space.readAttachment(name);
+    ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> => {
+      return await space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
       ctx,
@@ -44,9 +45,9 @@ export default (space: Space): SysCallMapping => {
     "space.writeAttachment": async (
       ctx,
       name: string,
-      buffer: ArrayBuffer
+      data: string
     ): Promise<AttachmentMeta> => {
-      return await space.writeAttachment(name, buffer);
+      return await space.writeAttachment(name, data);
     },
     "space.deleteAttachment": async (ctx, name: string) => {
       await space.deleteAttachment(name);

@@ -1,5 +1,9 @@
 import { Plug } from "@plugos/plugos/plug";
-import { SpacePrimitives } from "@silverbulletmd/common/spaces/space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "@silverbulletmd/common/spaces/space_primitives";
 import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 import { PageNamespaceHook, PageNamespaceOperation } from "./page_namespace";
 
@@ -99,9 +103,10 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return this.wrapped.fetchAttachmentList();
   }
   readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
-    return this.wrapped.readAttachment(name);
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
+    return this.wrapped.readAttachment(name, encoding);
   }
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {
     return this.wrapped.getAttachmentMeta(name);

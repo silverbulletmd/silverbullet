@@ -1,4 +1,8 @@
-import { SpacePrimitives } from "./space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "./space_primitives";
 import { AttachmentMeta, PageMeta } from "../types";
 import { EventEmitter } from "@plugos/plugos/event";
 import { Plug } from "@plugos/plugos/plug";
@@ -225,20 +229,21 @@ export class Space
     return this.space.fetchAttachmentList();
   }
   readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
-    return this.space.readAttachment(name);
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
+    return this.space.readAttachment(name, encoding);
   }
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {
     return this.space.getAttachmentMeta(name);
   }
   writeAttachment(
     name: string,
-    blob: ArrayBuffer,
+    data: AttachmentData,
     selfUpdate?: boolean | undefined,
     lastModified?: number | undefined
   ): Promise<AttachmentMeta> {
-    return this.space.writeAttachment(name, blob, selfUpdate, lastModified);
+    return this.space.writeAttachment(name, data, selfUpdate, lastModified);
   }
   deleteAttachment(name: string): Promise<void> {
     return this.space.deleteAttachment(name);

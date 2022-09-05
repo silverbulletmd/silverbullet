@@ -1,4 +1,8 @@
-import { SpacePrimitives } from "./space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "./space_primitives";
 import { AttachmentMeta, PageMeta } from "../types";
 import Dexie, { Table } from "dexie";
 import { Plug } from "@plugos/plugos/plug";
@@ -26,8 +30,9 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     throw new Error("Method not implemented.");
   }
   readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
     throw new Error("Method not implemented.");
   }
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {

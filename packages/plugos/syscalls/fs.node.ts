@@ -19,10 +19,16 @@ export default function fileSystemSyscalls(root: string = "/"): SysCallMapping {
   return {
     "fs.readFile": async (
       ctx,
-      filePath: string
+      filePath: string,
+      encoding: "utf8" | "dataurl" = "utf8"
     ): Promise<{ text: string; meta: FileMeta }> => {
       let p = resolvedPath(filePath);
-      let text = await readFile(p, "utf8");
+      let text = "";
+      if (encoding === "utf8") {
+        text = await readFile(p, "utf8");
+      } else {
+        text = `data:application/octet-stream,${await readFile(p, "base64")}`;
+      }
       let s = await stat(p);
       return {
         text,
@@ -43,11 +49,18 @@ export default function fileSystemSyscalls(root: string = "/"): SysCallMapping {
     "fs.writeFile": async (
       ctx,
       filePath: string,
-      text: string
+      text: string,
+      encoding: "utf8" | "dataurl" = "utf8"
     ): Promise<FileMeta> => {
       let p = resolvedPath(filePath);
       await mkdir(path.dirname(p), { recursive: true });
-      await writeFile(p, text);
+      if (encoding === "utf8") {
+        await writeFile(p, text);
+      } else {
+        await writeFile(p, text.split(",")[1], {
+          encoding: "base64",
+        });
+      }
       let s = await stat(p);
       return {
         name: filePath,

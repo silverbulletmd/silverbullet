@@ -9,7 +9,11 @@ import {
 } from "fs/promises";
 import * as path from "path";
 import { AttachmentMeta, PageMeta } from "../types";
-import { SpacePrimitives } from "./space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "./space_primitives";
 import { Plug } from "@plugos/plugos/plug";
 import { realpathSync } from "fs";
 import mime from "mime-types";
@@ -199,20 +203,27 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
     const localPath = this.attachmentNameToPath(name);
-    let fileBuffer = await readFile(localPath);
+    let fileBuffer = await readFile(localPath, {
+      encoding: encoding === "dataurl" ? "base64" : null,
+    });
 
     try {
       const s = await stat(localPath);
+      let contentType = mime.lookup(name) || "application/octet-stream";
       return {
-        buffer: fileBuffer.buffer,
+        data:
+          encoding === "dataurl"
+            ? `data:${contentType};base64,${fileBuffer}`
+            : (fileBuffer as Buffer).buffer,
         meta: {
           name: name,
           lastModified: s.mtime.getTime(),
           size: s.size,
-          contentType: mime.lookup(name) || "application/octet-stream",
+          contentType: contentType,
           perm: "rw",
         },
       };
@@ -241,7 +252,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async writeAttachment(
     name: string,
-    blob: ArrayBuffer,
+    data: AttachmentData,
     selfUpdate?: boolean,
     lastModified?: number
   ): Promise<AttachmentMeta> {
@@ -251,7 +262,11 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       await mkdir(path.dirname(localPath), { recursive: true });
 
       // Actually write the file
-      await writeFile(localPath, Buffer.from(blob));
+      if (typeof data === "string") {
+        await writeFile(localPath, data.split(",")[1], { encoding: "base64" });
+      } else {
+        await writeFile(localPath, Buffer.from(data));
+      }
 
       if (lastModified) {
         let d = new Date(lastModified);

@@ -3,7 +3,11 @@ import { Plug } from "@plugos/plugos/plug";
 
 import { AttachmentMeta, PageMeta } from "../types";
 import { plugPrefix, trashPrefix } from "./constants";
-import { SpacePrimitives } from "./space_primitives";
+import {
+  AttachmentData,
+  AttachmentEncoding,
+  SpacePrimitives,
+} from "./space_primitives";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
@@ -75,9 +79,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
-    return this.wrapped.readAttachment(name);
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
+    return this.wrapped.readAttachment(name, encoding);
   }
 
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {

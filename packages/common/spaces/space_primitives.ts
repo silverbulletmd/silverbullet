@@ -1,6 +1,8 @@
 import { Plug } from "@plugos/plugos/plug";
 import { AttachmentMeta, PageMeta } from "../types";
 
+export type AttachmentEncoding = "arraybuffer" | "dataurl";
+export type AttachmentData = ArrayBuffer | string;
 export interface SpacePrimitives {
   // Pages
   fetchPageList(): Promise<{ pages: Set<PageMeta>; nowTimestamp: number }>;
@@ -20,12 +22,13 @@ export interface SpacePrimitives {
     nowTimestamp: number;
   }>;
   readAttachment(
-    name: string
-  ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }>;
+    name: string,
+    encoding: AttachmentEncoding
+  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }>;
   getAttachmentMeta(name: string): Promise<AttachmentMeta>;
   writeAttachment(
     name: string,
-    blob: ArrayBuffer,
+    data: AttachmentData,
     selfUpdate?: boolean,
     lastModified?: number
   ): Promise<AttachmentMeta>;

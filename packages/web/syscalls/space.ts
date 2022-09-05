@@ -1,6 +1,7 @@
 import { Editor } from "../editor";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
+import { AttachmentData } from "@silverbulletmd/common/spaces/space_primitives";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {
@@ -39,8 +40,8 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.readAttachment": async (
       ctx,
       name: string
-    ): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> => {
-      return await editor.space.readAttachment(name);
+    ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> => {
+      return await editor.space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
       ctx,
