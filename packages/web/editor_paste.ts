@@ -1,8 +1,6 @@
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { safeRun } from "@plugos/plugos/util";
-import { Space } from "@silverbulletmd/common/spaces/space";
 import { maximumAttachmentSize } from "@silverbulletmd/common/types";
-import { createImportSpecifier } from "typescript";
 import { Editor } from "./editor";
 
 const urlRegexp =
@@ -57,7 +55,10 @@ export function attachmentExtension(editor: Editor) {
       // TODO: This doesn't take into account the target cursor position,
       // it just drops the attachment wherever the cursor was last.
       if (event.dataTransfer) {
-        let payload = [...event.dataTransfer.items];
+        let payload = [...event.dataTransfer.files];
+        if (!payload.length) {
+          return;
+        }
         safeRun(async () => {
           await processFileTransfer(payload);
         });
@@ -65,22 +66,41 @@ export function attachmentExtension(editor: Editor) {
     },
     paste: (event: ClipboardEvent) => {
       let payload = [...event.clipboardData!.items];
+      if (!payload.length || payload.length === 0) {
+        return false;
+      }
       safeRun(async () => {
-        await processFileTransfer(payload);
+        await processItemTransfer(payload);
       });
     },
   });
 
-  async function processFileTransfer(payload: DataTransferItem[]) {
-    if (!payload.length || payload.length === 0) {
-      return false;
-    }
+  async function processFileTransfer(payload: File[]) {
+    let data = await payload[0].arrayBuffer();
+    await saveFile(data!, payload[0].name, payload[0].type);
+  }
+
+  async function processItemTransfer(payload: DataTransferItem[]) {
     let file = payload.find((item) => item.kind === "file");
     if (!file) {
       return false;
     }
     const fileType = file.type;
+    let ext = fileType.split("/")[1];
+    let fileName = new Date()
+      .toISOString()
+      .split(".")[0]
+      .replace("T", "_")
+      .replaceAll(":", "-");
     let data = await file!.getAsFile()?.arrayBuffer();
+    await saveFile(data!, `${fileName}.${ext}`, fileType);
+  }
+
+  async function saveFile(
+    data: ArrayBuffer,
+    suggestedName: string,
+    mimeType: string
+  ) {
     if (data!.byteLength > maximumAttachmentSize) {
       editor.flashNotification(
         `Attachment is too large, maximum is ${
@@ -90,22 +110,17 @@ export function attachmentExtension(editor: Editor) {
       );
       return;
     }
-    let ext = fileType.split("/")[1];
-    let fileName = new Date()
-      .toISOString()
-      .split(".")[0]
-      .replace("T", "_")
-      .replaceAll(":", "-");
+
     let finalFileName = prompt(
       "File name for pasted attachment",
-      `${fileName}.${ext}`
+      suggestedName
     );
     if (!finalFileName) {
       return;
     }
     await editor.space.writeAttachment(finalFileName, data!);
     let attachmentMarkdown = `[${finalFileName}](attachment/${finalFileName})`;
-    if (fileType.startsWith("image/")) {
+    if (mimeType.startsWith("image/")) {
       attachmentMarkdown = `![](attachment/${finalFileName})`;
     }
     editor.editorView!.dispatch({
