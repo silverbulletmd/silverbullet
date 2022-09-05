@@ -1,4 +1,4 @@
-import { AppCommand, CommandDef } from "./hooks/command";
+import { AppCommand } from "./hooks/command";
 import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 
 export type Notification = {

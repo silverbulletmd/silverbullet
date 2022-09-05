@@ -47,7 +47,7 @@ import { systemSyscalls } from "./syscalls/system";
 import { Panel } from "./components/panel";
 import { CommandHook } from "./hooks/command";
 import { SlashCommandHook } from "./hooks/slash_command";
-import { pasteAttachmentExtension, pasteLinkExtension } from "./editor_paste";
+import { attachmentExtension, pasteLinkExtension } from "./editor_paste";
 import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
 import { clientStoreSyscalls } from "./syscalls/clientStore";
 import {
@@ -518,7 +518,7 @@ export class Editor {
           }
         ),
         pasteLinkExtension,
-        pasteAttachmentExtension(this.space),
+        attachmentExtension(this),
         closeBrackets(),
       ],
     });
