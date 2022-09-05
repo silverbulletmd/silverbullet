@@ -1,7 +1,10 @@
 An attempt at documenting of the changes/new features introduced in each (pre) release.
 
+---
 ## 0.0.33
 * Changed full-text search page prefix from `@search/` to `🔍` for the {[Search Space]} command.
+
+---
 
 ## 0.0.32
 * **Inline image previews**: use the standard `![alt text](https://url.com/image.jpg)` notation and a preview of the image will appear automatically. Example:
@@ -10,6 +13,7 @@ An attempt at documenting of the changes/new features introduced in each (pre) r
   ![Dark mode screenshot](https://user-images.githubusercontent.com/6335792/187000151-ba06ce55-ad27-494b-bfe9-6b19ef62145b.png)
 * **Named anchors** and references, create an anchor with the new @anchor notation (anywhere on a page), then reference it locally via [[@anchor]] or cross page via [[CHANGELOG@anchor]].
 
+---
 ## 0.0.31
 * Update to the query language: the `render` clause now uses page reference syntax `[[page]]`. For example `render [[template/task]]` rather than `render "template/task"`. The old syntax still works, but is deprecated, completion for the old syntax has been removed.
 * Updates to templates:
@@ -24,14 +28,15 @@ An attempt at documenting of the changes/new features introduced in each (pre) r
   * New `$disableDirectives` page meta data attribute can be used to disable directives processing in a page (useful for templates)
 * Added a new `/hr` slash command to insert a horizontal rule (`---`) useful for mobile devices (where these are harder to type)
 
+---
 ## 0.0.30
 * Slash commands now only trigger after a non-word character to avoid "false positives" like "hello/world".
 * Page auto complete now works with slashes in the name.
 * Having a `SETTINGS` page is now mandatory. One is auto generated if none is present.
 * Added a `indexPage` setting to set the index page for the space (which by default is `index`). When navigating to this page, the page name will "disappear" from the URL. That is, the index URL will simply be `http://localhost:3000/`.
   * This feature is now used in `website` and set to `Silver Bullet` there. To also make the title look nicer when visiting https://silverbullet.md
-  
 
+---
 ## 0.0.29
 * Added the `Link: Unfurl` command, which is scoped to only work (and be visible) when used on “naked URLs”, that is: URLs not embedded in a link or other place, such as this one: https://silverbullet.md
   * Plugs can implement their own unfurlers by responding to the `unfurl:options` event (see the [Twitter plug](https://github.com/silverbulletmd/silverbullet-twitter) for an example).

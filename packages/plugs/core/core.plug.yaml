@@ -172,12 +172,6 @@ functions:
       name: task
       description: Insert a task
       value: "* [ ] |^|"
-  insertTaskToday:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: task-today
-      description: Insert a task with today as the deadline
-      value: "* [ ] |^| 📅 {{today}}"
   insertQuery:
     path: "./template.ts:insertTemplateText"
     slashCommand:
