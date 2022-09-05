@@ -33,7 +33,7 @@ export async function getAttachmentMeta(name: string): Promise<AttachmentMeta> {
 
 export async function readAttachment(
   name: string
-): Promise<{ buffer: ArrayBuffer; meta: AttachmentMeta }> {
+): Promise<{ data: string; meta: AttachmentMeta }> {
   return syscall("space.readAttachment", name);
 }
 
