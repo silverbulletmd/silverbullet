@@ -221,7 +221,7 @@ export class Editor {
         return;
       }
 
-      await this.loadPage(pageName);
+      let stateRestored = await this.loadPage(pageName);
       if (pos) {
         if (typeof pos === "string") {
           console.log("Navigating to anchor", pos);
@@ -246,6 +246,11 @@ export class Editor {
         }
         this.editorView.dispatch({
           selection: { anchor: pos },
+          scrollIntoView: true,
+        });
+      } else if (!stateRestored) {
+        this.editorView.dispatch({
+          selection: { anchor: 0 },
           scrollIntoView: true,
         });
       }
@@ -551,7 +556,7 @@ export class Editor {
         markdownSyscalls(buildMarkdown(this.mdExtensions))
       );
 
-      this.saveState();
+      this.saveState(this.currentPage);
 
       editorView.setState(
         this.createEditorState(this.currentPage, editorView.state.sliceDoc())
@@ -603,12 +608,14 @@ export class Editor {
     await this.pageNavigator.navigate(name, pos, replaceState);
   }
 
-  async loadPage(pageName: string) {
+  async loadPage(pageName: string): Promise<boolean> {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
     if (!editorView) {
-      return;
+      return false;
     }
+
+    const previousPage = this.currentPage;
 
     this.viewDispatch({
       type: "page-loading",
@@ -616,9 +623,9 @@ export class Editor {
     });
 
     // Persist current page state and nicely close page
-    if (this.currentPage) {
-      this.saveState();
-      this.space.unwatchPage(this.currentPage);
+    if (previousPage) {
+      this.saveState(previousPage);
+      this.space.unwatchPage(previousPage);
       await this.save(true);
     }
 
@@ -640,7 +647,7 @@ export class Editor {
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM, doc.meta.perm === "ro");
     }
-    this.restoreState(pageName);
+    let stateRestored = this.restoreState(pageName);
     this.space.watchPage(pageName);
 
     this.viewDispatch({
@@ -653,6 +660,8 @@ export class Editor {
     } else {
       await this.eventHook.dispatchEvent("editor:pageReloaded", pageName);
     }
+
+    return stateRestored;
   }
 
   tweakEditorDOM(contentDOM: HTMLElement, readOnly: boolean) {
@@ -676,7 +685,7 @@ export class Editor {
     }
   }
 
-  private restoreState(pageName: string) {
+  private restoreState(pageName: string): boolean {
     let pageState = this.openPages.get(pageName);
     const editorView = this.editorView!;
     if (pageState) {
@@ -695,11 +704,12 @@ export class Editor {
       });
     }
     editorView.focus();
+    return !!pageState;
   }
 
-  private saveState() {
+  private saveState(currentPage: string) {
     this.openPages.set(
-      this.currentPage!,
+      currentPage,
       new PageState(
         this.editorView!.scrollDOM.scrollTop,
         this.editorView!.state.selection
