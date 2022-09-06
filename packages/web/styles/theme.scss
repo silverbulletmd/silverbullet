@@ -96,6 +96,29 @@
   background-color: #d7e1f6 !important;
 }
 
+.cm-editor .cm-tooltip-autocomplete {
+  .cm-completionDetail {
+    font-style: normal;
+    display: block;
+    font-size: 80%;
+    margin-left: 5px;
+    color: #555;
+  }
+
+  li[aria-selected] .cm-completionDetail {
+    color: #d2d2d2;
+  }
+
+  .cm-completionLabel {
+    display: block;
+    margin-left: 5px;
+  }
+
+  .cm-completionIcon {
+    display: none;
+  }
+}
+
 .sb-line-h1,
 .sb-line-h2,
 .sb-line-h3 {

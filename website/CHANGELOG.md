@@ -1,5 +1,10 @@
 An attempt at documenting of the changes/new features introduced in each release.
 
+
+---
+## 0.0.34
+* Improved styling for completion (especially slash commands)
+
 ---
 
 ## 0.0.33
