@@ -670,6 +670,10 @@ export class Editor {
       });
     } else {
       editorView.scrollDOM.scrollTop = 0;
+      editorView.dispatch({
+        selection: { anchor: 0 },
+        scrollIntoView: true,
+      });
     }
     editorView.focus();
   }
