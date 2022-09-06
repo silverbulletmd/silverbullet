@@ -610,6 +610,11 @@ export class Editor {
       return;
     }
 
+    this.viewDispatch({
+      type: "page-loading",
+      name: pageName,
+    });
+
     // Persist current page state and nicely close page
     if (this.currentPage) {
       this.saveState();
@@ -768,6 +773,7 @@ export class Editor {
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
+          isLoading={viewState.isLoading}
           onClick={() => {
             dispatch({ type: "start-navigate" });
           }}

@@ -1,4 +1,9 @@
-import { faRunning, faHome, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
+import {
+  faRunning,
+  faHome,
+  faSun,
+  faMoon,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Notification } from "../types";
@@ -13,6 +18,7 @@ function prettyName(s: string | undefined): string {
 export function TopBar({
   pageName,
   unsavedChanges,
+  isLoading,
   notifications,
   onClick,
   onThemeClick,
@@ -23,6 +29,7 @@ export function TopBar({
 }: {
   pageName?: string;
   unsavedChanges: boolean;
+  isLoading: boolean;
   notifications: Notification[];
   onClick: () => void;
   onThemeClick: () => void;
@@ -31,8 +38,7 @@ export function TopBar({
   lhs?: React.ReactNode;
   rhs?: React.ReactNode;
 }) {
-
-  const [theme, setTheme] = useState<string>(localStorage.theme ?? 'light');
+  const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
 
   return (
     <div id="sb-top" onClick={onClick}>
@@ -41,7 +47,11 @@ export function TopBar({
         <div className="inner">
           <span
             className={`sb-current-page ${
-              unsavedChanges ? "sb-unsaved" : "sb-saved"
+              isLoading
+                ? "sb-loading"
+                : unsavedChanges
+                ? "sb-unsaved"
+                : "sb-saved"
             }`}
           >
             {prettyName(pageName)}
@@ -80,12 +90,12 @@ export function TopBar({
             <button
               onClick={(e) => {
                 onThemeClick();
-                setTheme(localStorage.theme ?? 'light');
+                setTheme(localStorage.theme ?? "light");
                 e.stopPropagation();
               }}
               title="Toggle theme"
             >
-              <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
+              <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
             </button>
           </div>
         </div>

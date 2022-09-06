@@ -9,9 +9,16 @@ export default function reducer(
 ): AppViewState {
   // console.log("Got action", action);
   switch (action.type) {
+    case "page-loading":
+      return {
+        ...state,
+        isLoading: true,
+        currentPage: action.name,
+      };
     case "page-loaded":
       return {
         ...state,
+        isLoading: false,
         allPages: new Set(
           [...state.allPages].map((pageMeta) =>
             pageMeta.name === action.meta.name

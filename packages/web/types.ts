@@ -12,6 +12,7 @@ export type AppViewState = {
   currentPage?: string;
   perm: "ro" | "rw";
 
+  isLoading: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
   unsavedChanges: boolean;
@@ -39,6 +40,7 @@ export type AppViewState = {
 
 export const initialViewState: AppViewState = {
   perm: "rw",
+  isLoading: false,
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
@@ -62,6 +64,7 @@ export const initialViewState: AppViewState = {
 
 export type Action =
   | { type: "page-loaded"; meta: PageMeta }
+  | { type: "page-loading"; name: string }
   | { type: "pages-listed"; pages: Set<PageMeta> }
   | { type: "page-changed" }
   | { type: "page-saved" }
