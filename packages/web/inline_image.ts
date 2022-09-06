@@ -20,7 +20,11 @@ class InlineImageWidget extends WidgetType {
 
   toDOM() {
     const img = document.createElement("img");
-    img.src = this.url;
+    if (this.url.startsWith("http")) {
+      img.src = this.url;
+    } else {
+      img.src = `attachment/${this.url}`;
+    }
     img.alt = this.title;
     img.title = this.title;
     img.style.display = "block";

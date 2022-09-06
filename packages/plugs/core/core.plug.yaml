@@ -74,6 +74,12 @@ functions:
     events:
       - page:complete
 
+  # Commands
+  commandComplete:
+    path: "./command.ts:commandComplete"
+    events:
+      - page:complete
+
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"
@@ -162,6 +168,7 @@ functions:
     path: "./template.ts:insertTemplateText"
     slashCommand:
       name: meta
+      description: Insert a page metadata block
       value: |
         ```meta
         |^|
@@ -176,6 +183,7 @@ functions:
     path: "./template.ts:insertTemplateText"
     slashCommand:
       name: query
+      description: Insert a query
       value: |
         <!-- #query |^| -->
 

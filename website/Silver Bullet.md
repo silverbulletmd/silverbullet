@@ -3,7 +3,7 @@ Silver Bullet (SB) is highly-extensible, [open source](https://github.com/silver
 
 Here is a screenshot:
 
-![Silver Bullet PWA screenshot](attachment/silverbullet-pwa.png)
+![Silver Bullet PWA screenshot](silverbullet-pwa.png)
 
 At its core, SB is a Markdown editor that stores _pages_ (notes) as plain markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge platform_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you. To get a good feel for it, [watch this video](https://youtu.be/RYdc3UF9gok).
 
