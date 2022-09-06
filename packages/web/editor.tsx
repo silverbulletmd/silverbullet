@@ -655,6 +655,20 @@ export class Editor {
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
     contentDOM.setAttribute("contenteditable", readOnly ? "false" : "true");
+
+    if (isMobileSafari() && readOnly) {
+      console.log("Safari read only hack");
+      contentDOM.classList.add("ios-safari-readonly");
+    } else {
+      contentDOM.classList.remove("ios-safari-readonly");
+    }
+
+    function isMobileSafari() {
+      return (
+        navigator.userAgent.match(/(iPod|iPhone|iPad)/) &&
+        navigator.userAgent.match(/AppleWebKit/)
+      );
+    }
   }
 
   private restoreState(pageName: string) {
