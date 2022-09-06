@@ -41,6 +41,13 @@ export async function cleanMarkdown(
         text: `__${n.children![0].text}__`,
       };
     }
+    if (n.type === "URL") {
+      const url = n.children![0].text!;
+      if (url.indexOf("://") === -1) {
+        n.children![0].text = `attachment/${url}`;
+      }
+      console.log("Link", url);
+    }
     if (n.type === "FencedCode") {
       let codeInfoNode = findNodeOfType(n, "CodeInfo");
       if (!codeInfoNode) {

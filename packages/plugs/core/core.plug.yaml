@@ -74,6 +74,12 @@ functions:
     events:
       - page:complete
 
+  # Commands
+  commandComplete:
+    path: "./command.ts:commandComplete"
+    events:
+      - page:complete
+
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"

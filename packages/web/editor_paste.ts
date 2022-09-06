@@ -119,9 +119,9 @@ export function attachmentExtension(editor: Editor) {
       return;
     }
     await editor.space.writeAttachment(finalFileName, data!);
-    let attachmentMarkdown = `[${finalFileName}](attachment/${finalFileName})`;
+    let attachmentMarkdown = `[${finalFileName}](${finalFileName})`;
     if (mimeType.startsWith("image/")) {
-      attachmentMarkdown = `![](attachment/${finalFileName})`;
+      attachmentMarkdown = `![](${finalFileName})`;
     }
     editor.editorView!.dispatch({
       changes: [

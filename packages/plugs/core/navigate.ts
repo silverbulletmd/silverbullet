@@ -11,6 +11,14 @@ import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markd
 import { nodeAtPos, ParseTree } from "@silverbulletmd/common/tree";
 import { invokeCommand } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 
+// Checks if the URL contains a protocol, if so keeps it, otherwise assumes an attachment
+function patchUrl(url: string): string {
+  if (url.indexOf("://") === -1) {
+    return `attachment/${url}`;
+  }
+  return url;
+}
+
 async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   if (!mdTree) {
     return;
@@ -33,10 +41,10 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       break;
     case "URL":
     case "NakedURL":
-      await openUrl(mdTree.children![0].text!);
+      await openUrl(patchUrl(mdTree.children![0].text!));
       break;
     case "Link":
-      const url = mdTree.children![4].children![0].text!;
+      const url = patchUrl(mdTree.children![4].children![0].text!);
       if (url.length <= 1) {
         return flashNotification("Empty link, ignoring", "error");
       }
