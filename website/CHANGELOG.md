@@ -3,7 +3,7 @@ An attempt at documenting of the changes/new features introduced in each release
 
 ---
 ## 0.0.34
-* Change to attachment handling: the `attachment/` prefix for links and images is no longer used, if you have links to attachments in your notes, you will need to remove the `attachment/` prefix manually. Sorry about that.
+* Change to attachment handling: the `attachment/` prefix for links and images is no longer used, if you already had links to attachments in your notes, you will need to remove the `attachment/` prefix manually. Sorry about that.
 * Improved styling for completion (especially slash commands)
 * Completion for commands using the (undocumented) `{[Command Syntax]}` — yep, that exists.
 
