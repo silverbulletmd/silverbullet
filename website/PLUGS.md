@@ -6,5 +6,6 @@ This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` c
 - builtin:markdown
 - builtin:plugmd
 - builtin:query
+- builtin:serendipity
 - builtin:tasks
 ```

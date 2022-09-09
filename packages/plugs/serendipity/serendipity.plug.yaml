@@ -1,0 +1,14 @@
+name: serendipity
+functions:
+  randomPageCommand:
+    path: ./serendipity.ts:randomPage
+    command:
+      name: "Serendipity: Open Random Page"
+  randomPageWithTag:
+    path: ./serendipity.ts:randomPageWithTag
+    command:
+      name: "Serendipity: Open Random Page with Tag"
+  randomPageFromSearch:
+    path: ./serendipity.ts:randomPageFromSearch
+    command:
+      name: "Serendipity: Open Random Page with Search Term"
