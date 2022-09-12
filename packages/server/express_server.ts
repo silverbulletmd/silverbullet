@@ -3,7 +3,6 @@ import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
 import { readdir, readFile } from "fs/promises";
 import { System } from "@plugos/plugos/system";
-import cors from "cors";
 import { DiskSpacePrimitives } from "@silverbulletmd/common/spaces/disk_space_primitives";
 import path from "path";
 import bodyParser from "body-parser";
@@ -32,14 +31,6 @@ import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 // @ts-ignore
 import settingsTemplate from "bundle-text:./SETTINGS_template.md";
-
-const globalModules: any = JSON.parse(
-  readFileSync(
-    nodeModulesDir + "/node_modules/@silverbulletmd/web/dist/global.plug.json",
-    "utf-8"
-  )
-);
-
 import { safeRun } from "./util";
 import {
   ensureFTSTable,
@@ -50,10 +41,18 @@ import { PageNamespaceHook } from "./hooks/page_namespace";
 import { readFileSync } from "fs";
 import fileSystemSyscalls from "@plugos/plugos/syscalls/fs.node";
 import {
-  storeSyscalls,
   ensureTable as ensureStoreTable,
+  storeSyscalls,
 } from "@plugos/plugos/syscalls/store.knex_node";
 import { parseYamlSettings } from "@silverbulletmd/common/util";
+import { SpacePrimitives } from "@silverbulletmd/common/spaces/space_primitives";
+
+const globalModules: any = JSON.parse(
+  readFileSync(
+    nodeModulesDir + "/node_modules/@silverbulletmd/web/dist/global.plug.json",
+    "utf-8"
+  )
+);
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -76,6 +75,7 @@ export class ExpressServer {
   builtinPlugDir: string;
   password?: string;
   settings: { [key: string]: any } = {};
+  spacePrimitives: SpacePrimitives;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
@@ -96,16 +96,14 @@ export class ExpressServer {
     this.system.addHook(namespaceHook);
 
     // The space
-    this.space = new Space(
-      new EventedSpacePrimitives(
-        new PlugSpacePrimitives(
-          new DiskSpacePrimitives(options.pagesPath),
-          namespaceHook
-        ),
-        this.eventHook
+    this.spacePrimitives = new EventedSpacePrimitives(
+      new PlugSpacePrimitives(
+        new DiskSpacePrimitives(options.pagesPath),
+        namespaceHook
       ),
-      true
+      this.eventHook
     );
+    this.space = new Space(this.spacePrimitives);
 
     // The database used for persistence (SQLite)
     this.db = knex({
@@ -222,8 +220,9 @@ export class ExpressServer {
         );
         let manifest: Manifest = JSON.parse(manifestJson);
         pluginNames.push(manifest.name);
-        await this.space.writePage(
-          `${plugPrefix}${manifest.name}`,
+        await this.spacePrimitives.writeFile(
+          `${plugPrefix}${file}`,
+          "string",
           manifestJson
         );
       }
@@ -245,16 +244,17 @@ export class ExpressServer {
 
   async reloadPlugs() {
     await this.space.updatePageList();
-    let allPlugs = this.space.listPlugs();
-    if (allPlugs.size === 0) {
+    let allPlugs = await this.space.listPlugs();
+    if (allPlugs.length === 0) {
       await this.bootstrapBuiltinPlugs();
-      allPlugs = this.space.listPlugs();
+      allPlugs = await this.space.listPlugs();
     }
     await this.system.unloadAll();
     console.log("Loading plugs");
-    for (let pageInfo of allPlugs) {
-      let { text } = await this.space.readPage(pageInfo.name);
-      await this.system.load(JSON.parse(text), createSandbox);
+    console.log(allPlugs);
+    for (let plugName of allPlugs) {
+      let { data } = await this.space.readAttachment(plugName, "string");
+      await this.system.load(JSON.parse(data as string), createSandbox);
     }
     this.rebuildMdExtensions();
   }
@@ -283,39 +283,16 @@ export class ExpressServer {
 
     // Pages API
     this.app.use(
-      "/page",
+      "/fs",
       passwordMiddleware,
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
-      this.buildFsRouter()
-    );
-
-    // Attachment API
-    this.app.use(
-      "/attachment",
-      passwordMiddleware,
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
-      this.buildAttachmentRouter()
+      buildFsRouter(this.spacePrimitives)
     );
 
     // Plug API
-    this.app.use(
-      "/plug",
-      passwordMiddleware,
-      cors({
-        methods: "GET,HEAD,PUT,OPTIONS,POST,DELETE",
-        preflightContinue: true,
-      }),
-      this.buildPlugRouter()
-    );
+    this.app.use("/plug", passwordMiddleware, this.buildPlugRouter());
 
     // Fallback, serve index.html
-    this.app.get("/*", async (req, res) => {
+    this.app.get(/^(\/((?!fs\/).)+)$/, async (req, res) => {
       res.sendFile(`${this.distDir}/index.html`, {});
     });
 
@@ -387,205 +364,6 @@ export class ExpressServer {
     return plugRouter;
   }
 
-  private buildFsRouter() {
-    let fsRouter = express.Router();
-
-    // Page list
-    fsRouter.route("/").get(async (req, res) => {
-      let { nowTimestamp, pages } = await this.space.fetchPageList();
-      res.header("Now-Timestamp", "" + nowTimestamp);
-      res.json([...pages]);
-    });
-
-    fsRouter
-      .route(/\/(.+)/)
-      .get(async (req, res) => {
-        let pageName = req.params[0];
-        // console.log("Getting", pageName);
-        try {
-          let pageData = await this.space.readPage(pageName);
-          res.status(200);
-          res.header("Last-Modified", "" + pageData.meta.lastModified);
-          res.header("X-Permission", pageData.meta.perm);
-          res.header("Content-Type", "text/markdown");
-          res.send(pageData.text);
-        } catch (e) {
-          // CORS
-          res.status(200);
-          res.header("X-Status", "404");
-          res.send("");
-        }
-      })
-      .put(bodyParser.text({ type: "*/*" }), async (req, res) => {
-        let pageName = req.params[0];
-        console.log("Saving", pageName);
-
-        try {
-          let meta = await this.space.writePage(
-            pageName,
-            req.body,
-            false,
-            req.header("Last-Modified")
-              ? +req.header("Last-Modified")!
-              : undefined
-          );
-          res.status(200);
-          res.header("Last-Modified", "" + meta.lastModified);
-          res.header("X-Permission", meta.perm);
-          res.send("OK");
-        } catch (err) {
-          res.status(500);
-          res.send("Write failed");
-          console.error("Pipeline failed", err);
-        }
-      })
-      .options(async (req, res) => {
-        let pageName = req.params[0];
-        try {
-          const meta = await this.space.getPageMeta(pageName);
-          res.status(200);
-          res.header("Last-Modified", "" + meta.lastModified);
-          res.header("X-Permission", meta.perm);
-          res.header("Content-Type", "text/markdown");
-          res.send("");
-        } catch (e) {
-          // CORS
-          res.status(200);
-          res.header("X-Status", "404");
-          res.send("Not found");
-        }
-      })
-      .delete(async (req, res) => {
-        let pageName = req.params[0];
-        try {
-          await this.space.deletePage(pageName);
-          res.status(200);
-          res.send("OK");
-        } catch (e) {
-          console.error("Error deleting file", e);
-          res.status(500);
-          res.send("OK");
-        }
-      });
-    return fsRouter;
-  }
-
-  // Build attachment router
-  private buildAttachmentRouter() {
-    let fsaRouter = express.Router();
-
-    // Page list
-    fsaRouter.route("/").get(async (req, res) => {
-      let { nowTimestamp, attachments } =
-        await this.space.fetchAttachmentList();
-      res.header("Now-Timestamp", "" + nowTimestamp);
-      res.json([...attachments]);
-    });
-
-    fsaRouter
-      .route(/\/(.+)/)
-      .get(async (req, res) => {
-        let attachmentName = req.params[0];
-        if (!this.attachmentCheck(attachmentName, res)) {
-          return;
-        }
-        console.log("Getting", attachmentName);
-        try {
-          let attachmentData = await this.space.readAttachment(
-            attachmentName,
-            "arraybuffer"
-          );
-          res.status(200);
-          res.header("Last-Modified", "" + attachmentData.meta.lastModified);
-          res.header("X-Permission", attachmentData.meta.perm);
-          res.header("Content-Type", attachmentData.meta.contentType);
-          // res.header("X-Content-Length", "" + attachmentData.meta.size);
-          res.send(Buffer.from(attachmentData.data as ArrayBuffer));
-        } catch (e) {
-          // CORS
-          res.status(200);
-          res.header("X-Status", "404");
-          res.send("");
-        }
-      })
-      .put(
-        bodyParser.raw({ type: "*/*", limit: "100mb" }),
-        async (req, res) => {
-          let attachmentName = req.params[0];
-          if (!this.attachmentCheck(attachmentName, res)) {
-            return;
-          }
-          console.log("Saving attachment", attachmentName);
-
-          try {
-            let meta = await this.space.writeAttachment(
-              attachmentName,
-              req.body,
-              false,
-              req.header("Last-Modified")
-                ? +req.header("Last-Modified")!
-                : undefined
-            );
-            res.status(200);
-            res.header("Last-Modified", "" + meta.lastModified);
-            res.header("Content-Type", meta.contentType);
-            res.header("Content-Length", "" + meta.size);
-            res.header("X-Permission", meta.perm);
-            res.send("OK");
-          } catch (err) {
-            res.status(500);
-            res.send("Write failed");
-            console.error("Pipeline failed", err);
-          }
-        }
-      )
-      .options(async (req, res) => {
-        let attachmentName = req.params[0];
-        if (!this.attachmentCheck(attachmentName, res)) {
-          return;
-        }
-        try {
-          const meta = await this.space.getAttachmentMeta(attachmentName);
-          res.status(200);
-          res.header("Last-Modified", "" + meta.lastModified);
-          res.header("X-Permission", meta.perm);
-          res.header("Content-Length", "" + meta.size);
-          res.header("Content-Type", meta.contentType);
-          res.send("");
-        } catch (e) {
-          // CORS
-          res.status(200);
-          res.header("X-Status", "404");
-          res.send("Not found");
-        }
-      })
-      .delete(async (req, res) => {
-        let attachmentName = req.params[0];
-        if (!this.attachmentCheck(attachmentName, res)) {
-          return;
-        }
-        try {
-          await this.space.deleteAttachment(attachmentName);
-          res.status(200);
-          res.send("OK");
-        } catch (e) {
-          console.error("Error deleting attachment", e);
-          res.status(500);
-          res.send("OK");
-        }
-      });
-    return fsaRouter;
-  }
-
-  attachmentCheck(attachmentName: string, res: express.Response): boolean {
-    if (attachmentName.endsWith(".md")) {
-      res.status(405);
-      res.send("No markdown files allowed through the attachment API");
-      return false;
-    }
-    return true;
-  }
-
   async ensureAndLoadSettings() {
     try {
       await this.space.getPageMeta("SETTINGS");
@@ -627,4 +405,83 @@ export class ExpressServer {
       });
     }
   }
+}
+
+function buildFsRouter(spacePrimitives: SpacePrimitives) {
+  let fsRouter = express.Router();
+
+  // File list
+  fsRouter.route("/").get(async (req, res, next) => {
+    res.json(await spacePrimitives.fetchFileList());
+  });
+
+  fsRouter
+    .route(/\/(.+)/)
+    .get(async (req, res, next) => {
+      let name = req.params[0];
+      console.log("Getting", name);
+      try {
+        let attachmentData = await spacePrimitives.readFile(
+          name,
+          "arraybuffer"
+        );
+        res.status(200);
+        res.header("Last-Modified", "" + attachmentData.meta.lastModified);
+        res.header("X-Permission", attachmentData.meta.perm);
+        res.header("Content-Type", attachmentData.meta.contentType);
+        res.send(Buffer.from(attachmentData.data as ArrayBuffer));
+      } catch (e) {
+        next();
+      }
+    })
+    .put(bodyParser.raw({ type: "*/*", limit: "100mb" }), async (req, res) => {
+      let name = req.params[0];
+      console.log("Saving file", name);
+
+      try {
+        let meta = await spacePrimitives.writeFile(
+          name,
+          "arraybuffer",
+          req.body,
+          false
+        );
+        res.status(200);
+        res.header("Last-Modified", "" + meta.lastModified);
+        res.header("Content-Type", meta.contentType);
+        res.header("Content-Length", "" + meta.size);
+        res.header("X-Permission", meta.perm);
+        res.send("OK");
+      } catch (err) {
+        res.status(500);
+        res.send("Write failed");
+        console.error("Pipeline failed", err);
+      }
+    })
+    .options(async (req, res, next) => {
+      let name = req.params[0];
+      try {
+        const meta = await spacePrimitives.getFileMeta(name);
+        res.status(200);
+        res.header("Last-Modified", "" + meta.lastModified);
+        res.header("X-Permission", meta.perm);
+        res.header("Content-Length", "" + meta.size);
+        res.header("Content-Type", meta.contentType);
+        res.send("");
+      } catch (e) {
+        next();
+      }
+    })
+    .delete(async (req, res) => {
+      let name = req.params[0];
+      try {
+        await spacePrimitives.deleteFile(name);
+        res.status(200);
+        res.send("OK");
+      } catch (e) {
+        console.error("Error deleting attachment", e);
+        res.status(500);
+        res.send("OK");
+      }
+    });
+  return fsRouter;
 }

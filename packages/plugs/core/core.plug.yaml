@@ -156,12 +156,12 @@ functions:
     path: ./search.ts:readPageSearch
     pageNamespace:
       pattern: "🔍 .+"
-      operation: readPage
+      operation: readFile
   getPageMetaSearch:
     path: ./search.ts:getPageMetaSearch
     pageNamespace:
       pattern: "🔍 .+"
-      operation: getPageMeta
+      operation: getFileMeta
 
   # Template commands
   insertPageMeta:
@@ -374,12 +374,12 @@ functions:
 
   # Cloud pages
   readPageCloud:
-    path: ./cloud.ts:readPageCloud
+    path: ./cloud.ts:readFileCloud
     pageNamespace:
       pattern: "💭 .+"
-      operation: readPage
+      operation: readFile
   getPageMetaCloud:
-    path: ./cloud.ts:getPageMetaCloud
+    path: ./cloud.ts:getFileMetaCloud
     pageNamespace:
       pattern: "💭 .+"
-      operation: getPageMeta
+      operation: getFileMeta

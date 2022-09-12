@@ -1,16 +1,24 @@
+import type {
+  FileData,
+  FileEncoding,
+} from "@silverbulletmd/common/spaces/space_primitives";
 import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
-import { PageMeta } from "@silverbulletmd/common/types";
+import type { FileMeta, PageMeta } from "@silverbulletmd/common/types";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 
 const pagePrefix = "💭 ";
 
-export async function readPageCloud(
-  name: string
-): Promise<{ text: string; meta: PageMeta } | undefined> {
-  let originalUrl = name.substring(pagePrefix.length);
+export async function readFileCloud(
+  name: string,
+  encoding: FileEncoding
+): Promise<{ data: FileData; meta: FileMeta } | undefined> {
+  let originalUrl = name.substring(
+    pagePrefix.length,
+    name.length - ".md".length
+  );
   let url = originalUrl;
   if (!url.includes("/")) {
     url += "/index";
@@ -32,13 +40,15 @@ export async function readPageCloud(
     text = e.message;
   }
   return {
-    text: await translateLinksWithPrefix(
+    data: await translateLinksWithPrefix(
       text,
       `${pagePrefix}${originalUrl.split("/")[0]}/`
     ),
     meta: {
       name,
+      contentType: "text/markdown",
       lastModified: 0,
+      size: text.length,
       perm: "ro",
     },
   };
@@ -60,9 +70,11 @@ async function translateLinksWithPrefix(
   return text;
 }
 
-export async function getPageMetaCloud(name: string): Promise<PageMeta> {
+export async function getFileMetaCloud(name: string): Promise<FileMeta> {
   return {
     name,
+    size: 0,
+    contentType: "text/markdown",
     lastModified: 0,
     perm: "ro",
   };

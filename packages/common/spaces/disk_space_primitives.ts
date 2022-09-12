@@ -1,30 +1,20 @@
-import {
-  mkdir,
-  readdir,
-  readFile,
-  stat,
-  unlink,
-  utimes,
-  writeFile,
-} from "fs/promises";
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import * as path from "path";
-import { AttachmentMeta, PageMeta } from "../types";
-import {
-  AttachmentData,
-  AttachmentEncoding,
-  SpacePrimitives,
-} from "./space_primitives";
+import { FileMeta } from "../types";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
 import { Plug } from "@plugos/plugos/plug";
 import { realpathSync } from "fs";
 import mime from "mime-types";
 
+function lookupContentType(path: string): string {
+  return mime.lookup(path) || "application/octet-stream";
+}
+
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
-  plugPrefix: string;
 
-  constructor(rootPath: string, plugPrefix: string = "_plug/") {
+  constructor(rootPath: string) {
     this.rootPath = realpathSync(rootPath);
-    this.plugPrefix = plugPrefix;
   }
 
   safePath(p: string): string {
@@ -35,111 +25,136 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     return realPath;
   }
 
-  pageNameToPath(pageName: string) {
-    if (pageName.startsWith(this.plugPrefix)) {
-      return this.safePath(path.join(this.rootPath, pageName + ".plug.json"));
-    }
-    return this.safePath(path.join(this.rootPath, pageName + ".md"));
+  filenameToPath(pageName: string) {
+    return this.safePath(path.join(this.rootPath, pageName));
   }
 
-  pathToPageName(fullPath: string): string {
-    let extLength = fullPath.endsWith(".plug.json")
-      ? ".plug.json".length
-      : ".md".length;
-    return fullPath.substring(
-      this.rootPath.length + 1,
-      fullPath.length - extLength
-    );
+  pathToFilename(fullPath: string): string {
+    return fullPath.substring(this.rootPath.length + 1);
   }
 
-  // Pages
-  async readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
-    const localPath = this.pageNameToPath(pageName);
+  async readFile(
+    name: string,
+    encoding: FileEncoding
+  ): Promise<{ data: FileData; meta: FileMeta }> {
+    const localPath = this.filenameToPath(name);
     try {
       const s = await stat(localPath);
+      let data: FileData | null = null;
+      let contentType = lookupContentType(name);
+      switch (encoding) {
+        case "string":
+          data = await readFile(localPath, "utf8");
+          break;
+        case "dataurl":
+          let fileBuffer = await readFile(localPath, {
+            encoding: "base64",
+          });
+          data = `data:${contentType};base64,${fileBuffer}`;
+          break;
+        case "arraybuffer":
+          let arrayBuffer = await readFile(localPath);
+          data = arrayBuffer.buffer;
+          break;
+      }
       return {
-        text: await readFile(localPath, "utf8"),
+        data,
         meta: {
-          name: pageName,
+          name: name,
           lastModified: s.mtime.getTime(),
           perm: "rw",
+          size: s.size,
+          contentType: contentType,
         },
       };
     } catch (e) {
-      // console.error("Error while reading page", pageName, e);
-      throw Error(`Could not read page ${pageName}`);
+      console.error("Error while reading file", name, e);
+      throw Error(`Could not read file ${name}`);
     }
   }
 
-  async writePage(
-    pageName: string,
-    text: string,
-    selfUpdate: boolean,
-    lastModified?: number
-  ): Promise<PageMeta> {
-    let localPath = this.pageNameToPath(pageName);
+  async writeFile(
+    name: string,
+    encoding: FileEncoding,
+    data: FileData,
+    selfUpdate?: boolean
+  ): Promise<FileMeta> {
+    let localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await mkdir(path.dirname(localPath), { recursive: true });
 
       // Actually write the file
-      await writeFile(localPath, text);
-
-      if (lastModified) {
-        let d = new Date(lastModified);
-        console.log("Going to set the modified time", d);
-        await utimes(localPath, d, d);
+      switch (encoding) {
+        case "string":
+          await writeFile(localPath, data as string, "utf8");
+          break;
+        case "dataurl":
+          await writeFile(localPath, (data as string).split(",")[1], {
+            encoding: "base64",
+          });
+          break;
+        case "arraybuffer":
+          await writeFile(localPath, Buffer.from(data as ArrayBuffer));
+          break;
       }
+
       // Fetch new metadata
       const s = await stat(localPath);
       return {
-        name: pageName,
+        name: name,
+        size: s.size,
+        contentType: lookupContentType(name),
         lastModified: s.mtime.getTime(),
         perm: "rw",
       };
     } catch (e) {
-      console.error("Error while writing page", pageName, e);
-      throw Error(`Could not write ${pageName}`);
+      console.error("Error while writing file", name, e);
+      throw Error(`Could not write ${name}`);
     }
   }
 
-  async getPageMeta(pageName: string): Promise<PageMeta> {
-    let localPath = this.pageNameToPath(pageName);
+  async getFileMeta(name: string): Promise<FileMeta> {
+    let localPath = this.filenameToPath(name);
     try {
       const s = await stat(localPath);
       return {
-        name: pageName,
+        name: name,
+        size: s.size,
+        contentType: lookupContentType(name),
         lastModified: s.mtime.getTime(),
         perm: "rw",
       };
     } catch (e) {
       // console.error("Error while getting page meta", pageName, e);
-      throw Error(`Could not get meta for ${pageName}`);
+      throw Error(`Could not get meta for ${name}`);
     }
   }
 
-  async deletePage(pageName: string): Promise<void> {
-    let localPath = this.pageNameToPath(pageName);
+  async deleteFile(name: string): Promise<void> {
+    let localPath = this.filenameToPath(name);
     await unlink(localPath);
   }
 
-  async fetchPageList(): Promise<{
-    pages: Set<PageMeta>;
-    nowTimestamp: number;
-  }> {
-    let pages = new Set<PageMeta>();
+  async fetchFileList(): Promise<FileMeta[]> {
+    let fileList: FileMeta[] = [];
 
     const walkPath = async (dir: string) => {
       let files = await readdir(dir);
       for (let file of files) {
+        if (file.startsWith(".")) {
+          continue;
+        }
         const fullPath = path.join(dir, file);
         let s = await stat(fullPath);
         if (s.isDirectory()) {
           await walkPath(fullPath);
         } else {
-          if (file.endsWith(".md") || file.endsWith(".json")) {
-            pages.add({
-              name: this.pathToPageName(fullPath),
+          if (!file.startsWith(".")) {
+            fileList.push({
+              name: this.pathToFilename(fullPath),
+              size: s.size,
+              contentType: lookupContentType(fullPath),
               lastModified: s.mtime.getTime(),
               perm: "rw",
             });
@@ -148,150 +163,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       }
     };
     await walkPath(this.rootPath);
-    return {
-      pages: pages,
-      nowTimestamp: Date.now(),
-    };
-  }
-
-  // Attachments
-  attachmentNameToPath(name: string) {
-    return this.safePath(path.join(this.rootPath, name));
-  }
-
-  pathToAttachmentName(fullPath: string): string {
-    return fullPath.substring(this.rootPath.length + 1);
-  }
-
-  async fetchAttachmentList(): Promise<{
-    attachments: Set<AttachmentMeta>;
-    nowTimestamp: number;
-  }> {
-    let attachments = new Set<AttachmentMeta>();
-
-    const walkPath = async (dir: string) => {
-      let files = await readdir(dir);
-      for (let file of files) {
-        const fullPath = path.join(dir, file);
-        let s = await stat(fullPath);
-        if (s.isDirectory()) {
-          if (!file.startsWith(".")) {
-            await walkPath(fullPath);
-          }
-        } else {
-          if (
-            !file.startsWith(".") &&
-            !file.endsWith(".md") &&
-            !file.endsWith(".json")
-          ) {
-            attachments.add({
-              name: this.pathToAttachmentName(fullPath),
-              lastModified: s.mtime.getTime(),
-              size: s.size,
-              contentType: mime.lookup(file) || "application/octet-stream",
-              perm: "rw",
-            } as AttachmentMeta);
-          }
-        }
-      }
-    };
-    await walkPath(this.rootPath);
-    return {
-      attachments,
-      nowTimestamp: Date.now(),
-    };
-  }
-
-  async readAttachment(
-    name: string,
-    encoding: AttachmentEncoding
-  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
-    const localPath = this.attachmentNameToPath(name);
-    let fileBuffer = await readFile(localPath, {
-      encoding: encoding === "dataurl" ? "base64" : null,
-    });
-
-    try {
-      const s = await stat(localPath);
-      let contentType = mime.lookup(name) || "application/octet-stream";
-      return {
-        data:
-          encoding === "dataurl"
-            ? `data:${contentType};base64,${fileBuffer}`
-            : (fileBuffer as Buffer).buffer,
-        meta: {
-          name: name,
-          lastModified: s.mtime.getTime(),
-          size: s.size,
-          contentType: contentType,
-          perm: "rw",
-        },
-      };
-    } catch (e) {
-      // console.error("Error while reading attachment", name, e);
-      throw Error(`Could not read attachment ${name}`);
-    }
-  }
-
-  async getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    const localPath = this.attachmentNameToPath(name);
-    try {
-      const s = await stat(localPath);
-      return {
-        name: name,
-        lastModified: s.mtime.getTime(),
-        size: s.size,
-        contentType: mime.lookup(name) || "application/octet-stream",
-        perm: "rw",
-      };
-    } catch (e) {
-      // console.error("Error while getting attachment meta", name, e);
-      throw Error(`Could not get meta for ${name}`);
-    }
-  }
-
-  async writeAttachment(
-    name: string,
-    data: AttachmentData,
-    selfUpdate?: boolean,
-    lastModified?: number
-  ): Promise<AttachmentMeta> {
-    let localPath = this.attachmentNameToPath(name);
-    try {
-      // Ensure parent folder exists
-      await mkdir(path.dirname(localPath), { recursive: true });
-
-      // Actually write the file
-      if (typeof data === "string") {
-        await writeFile(localPath, data.split(",")[1], { encoding: "base64" });
-      } else {
-        await writeFile(localPath, Buffer.from(data));
-      }
-
-      if (lastModified) {
-        let d = new Date(lastModified);
-        console.log("Going to set the modified time", d);
-        await utimes(localPath, d, d);
-      }
-
-      // Fetch new metadata
-      const s = await stat(localPath);
-      return {
-        name: name,
-        lastModified: s.mtime.getTime(),
-        size: s.size,
-        contentType: mime.lookup(name) || "application/octet-stream",
-        perm: "rw",
-      };
-    } catch (e) {
-      console.error("Error while writing attachment", name, e);
-      throw Error(`Could not write ${name}`);
-    }
-  }
-
-  async deleteAttachment(name: string): Promise<void> {
-    let localPath = this.attachmentNameToPath(name);
-    await unlink(localPath);
+    return fileList;
   }
 
   // Plugs

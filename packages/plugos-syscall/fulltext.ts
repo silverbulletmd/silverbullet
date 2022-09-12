@@ -5,7 +5,7 @@ export async function fullTextIndex(key: string, value: string) {
 }
 
 export async function fullTextDelete(key: string) {
-  return syscall("fulltext.index", key);
+  return syscall("fulltext.delete", key);
 }
 
 export async function fullTextSearch(phrase: string, limit: number = 100) {

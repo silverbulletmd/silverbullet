@@ -23,6 +23,10 @@ export async function deletePage(name: string): Promise<void> {
   return syscall("space.deletePage", name);
 }
 
+export async function listPlugs(): Promise<string[]> {
+  return syscall("space.listPlugs");
+}
+
 export async function listAttachments(): Promise<PageMeta[]> {
   return syscall("space.listAttachments");
 }
@@ -39,9 +43,10 @@ export async function readAttachment(
 
 export async function writeAttachment(
   name: string,
-  buffer: ArrayBuffer
+  encoding: "string" | "dataurl",
+  data: string
 ): Promise<AttachmentMeta> {
-  return syscall("space.writeAttachment", name, buffer);
+  return syscall("space.writeAttachment", name, encoding, data);
 }
 
 export async function deleteAttachment(name: string): Promise<void> {

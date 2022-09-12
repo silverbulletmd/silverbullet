@@ -40,6 +40,8 @@ let vm = new VM({
     setInterval,
     URL,
     clearInterval,
+    TextEncoder,
+    TextDecoder,
     fetch: require(`${nodeModulesPath}/node-fetch`),
     WebSocket: require(`${nodeModulesPath}/ws`),
     // This is only going to be called for pre-bundled modules, we won't allow

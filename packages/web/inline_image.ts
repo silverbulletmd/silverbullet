@@ -23,7 +23,7 @@ class InlineImageWidget extends WidgetType {
     if (this.url.startsWith("http")) {
       img.src = this.url;
     } else {
-      img.src = `attachment/${this.url}`;
+      img.src = `fs/${this.url}`;
     }
     img.alt = this.title;
     img.title = this.title;

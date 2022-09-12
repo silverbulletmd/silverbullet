@@ -44,7 +44,7 @@ export async function cleanMarkdown(
     if (n.type === "URL") {
       const url = n.children![0].text!;
       if (url.indexOf("://") === -1) {
-        n.children![0].text = `attachment/${url}`;
+        n.children![0].text = `fs/${url}`;
       }
       console.log("Link", url);
     }

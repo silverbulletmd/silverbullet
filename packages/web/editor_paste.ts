@@ -118,7 +118,7 @@ export function attachmentExtension(editor: Editor) {
     if (!finalFileName) {
       return;
     }
-    await editor.space.writeAttachment(finalFileName, data!);
+    await editor.space.writeAttachment(finalFileName, "arraybuffer", data!);
     let attachmentMarkdown = `[${finalFileName}](${finalFileName})`;
     if (mimeType.startsWith("image/")) {
       attachmentMarkdown = `![](${finalFileName})`;

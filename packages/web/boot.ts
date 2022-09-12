@@ -11,7 +11,9 @@ safeRun(async () => {
   let settingsPageText = "";
   while (true) {
     try {
-      settingsPageText = (await httpPrimitives.readPage("SETTINGS")).text;
+      settingsPageText = (await (
+        await httpPrimitives.readFile("SETTINGS.md", "string")
+      ).data) as string;
       break;
     } catch (e: any) {
       if (e.message === "Unauthorized") {
@@ -25,7 +27,7 @@ safeRun(async () => {
       }
     }
   }
-  let serverSpace = new Space(httpPrimitives, true);
+  let serverSpace = new Space(httpPrimitives);
   serverSpace.watch();
 
   console.log("Booting...");

@@ -5,9 +5,9 @@ import {
   save,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import {
-  deletePage,
-  listPages,
-  writePage,
+  deleteAttachment,
+  listPlugs,
+  writeAttachment,
 } from "@silverbulletmd/plugos-silverbullet-syscall/space";
 import {
   invokeFunction,
@@ -15,13 +15,6 @@ import {
 } from "@silverbulletmd/plugos-silverbullet-syscall/system";
 
 import { readYamlPage } from "../lib/yaml_page";
-
-async function listPlugs(): Promise<string[]> {
-  let unfilteredPages = await listPages(true);
-  return unfilteredPages
-    .filter((p) => p.name.startsWith("_plug/"))
-    .map((p) => p.name.substring("_plug/".length));
-}
 
 export async function updatePlugsCommand() {
   await save();
@@ -39,9 +32,11 @@ export async function updatePlugs() {
   let plugList: string[] = [];
   try {
     const plugListRead: any[] = await readYamlPage("PLUGS");
-    plugList = plugListRead.filter((plug) => typeof plug === 'string');
+    plugList = plugListRead.filter((plug) => typeof plug === "string");
     if (plugList.length !== plugListRead.length) {
-      throw new Error(`Some of the plugs were not in a yaml list format, they were ignored`);
+      throw new Error(
+        `Some of the plugs were not in a yaml list format, they were ignored`
+      );
     }
   } catch (e: any) {
     throw new Error(`Error processing PLUGS: ${e.message}`);
@@ -58,17 +53,23 @@ export async function updatePlugs() {
     let manifest = manifests[0];
     allPlugNames.push(manifest.name);
     // console.log("Writing", `_plug/${manifest.name}`);
-    await writePage(
-      `_plug/${manifest.name}`,
-      JSON.stringify(manifest, null, 2)
+    await writeAttachment(
+      `_plug/${manifest.name}.plug.json`,
+      "string",
+      JSON.stringify(manifest)
     );
   }
 
   // And delete extra ones
   for (let existingPlug of await listPlugs()) {
-    if (!allPlugNames.includes(existingPlug)) {
-      console.log("Removing plug", existingPlug);
-      await deletePage(`_plug/${existingPlug}`);
+    let plugName = existingPlug.substring(
+      "_plug/".length,
+      existingPlug.length - ".plug.json".length
+    );
+    console.log("Considering", plugName);
+    if (!allPlugNames.includes(plugName)) {
+      console.log("Removing plug", plugName);
+      await deleteAttachment(existingPlug);
     }
   }
   await reloadPlugs();
@@ -97,17 +98,23 @@ export async function getPlugGithub(identifier: string): Promise<Manifest> {
   );
 }
 
-export async function getPlugGithubRelease(identifier: string): Promise<Manifest> {
+export async function getPlugGithubRelease(
+  identifier: string
+): Promise<Manifest> {
   let [owner, repo, version] = identifier.split("/");
   if (!version || version === "latest") {
-    console.log('fetching the latest version');
-    const req = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+    console.log("fetching the latest version");
+    const req = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/releases/latest`
+    );
     if (req.status !== 200) {
-      throw new Error(`Could not fetch latest relase manifest from ${identifier}}`);
+      throw new Error(
+        `Could not fetch latest relase manifest from ${identifier}}`
+      );
     }
     const result = await req.json();
     version = result.name;
-  } 
+  }
   const finalUrl = `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.json`;
   return getPlugHTTPS(finalUrl);
 }

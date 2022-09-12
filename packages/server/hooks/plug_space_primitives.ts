@@ -1,11 +1,15 @@
 import { Plug } from "@plugos/plugos/plug";
 import {
-  AttachmentData,
-  AttachmentEncoding,
+  FileData,
+  FileEncoding,
   SpacePrimitives,
 } from "@silverbulletmd/common/spaces/space_primitives";
-import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
-import { PageNamespaceHook, PageNamespaceOperation } from "./page_namespace";
+import {
+  AttachmentMeta,
+  FileMeta,
+  PageMeta,
+} from "@silverbulletmd/common/types";
+import { PageNamespaceHook, NamespaceOperation } from "./page_namespace";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -14,7 +18,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   ) {}
 
   performOperation(
-    type: PageNamespaceOperation,
+    type: NamespaceOperation,
     pageName: string,
     ...args: any[]
   ): Promise<any> | false {
@@ -26,101 +30,71 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return false;
   }
 
-  async fetchPageList(): Promise<{
-    pages: Set<PageMeta>;
-    nowTimestamp: number;
-  }> {
-    let allPages = new Set<PageMeta>();
+  async fetchFileList(): Promise<FileMeta[]> {
+    let allFiles: FileMeta[] = [];
     for (let { plug, name, operation } of this.hook.spaceFunctions) {
-      if (operation === "listPages") {
+      if (operation === "listFiles") {
         try {
           for (let pm of await plug.invoke(name, [])) {
-            allPages.add(pm);
+            allFiles.push(pm);
           }
         } catch (e) {
-          console.error("Error listing pages", e);
+          console.error("Error listing files", e);
         }
       }
     }
-    let result = await this.wrapped.fetchPageList();
-    for (let pm of result.pages) {
-      allPages.add(pm);
+    let result = await this.wrapped.fetchFileList();
+    for (let pm of result) {
+      allFiles.push(pm);
     }
-    return {
-      nowTimestamp: result.nowTimestamp,
-      pages: allPages,
-    };
+    return allFiles;
   }
 
-  readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let result = this.performOperation("readPage", name);
-    if (result) {
-      return result;
-    }
-    return this.wrapped.readPage(name);
-  }
-
-  getPageMeta(name: string): Promise<PageMeta> {
-    let result = this.performOperation("getPageMeta", name);
-    if (result) {
-      return result;
-    }
-    return this.wrapped.getPageMeta(name);
-  }
-
-  writePage(
+  readFile(
     name: string,
-    text: string,
-    selfUpdate?: boolean,
-    lastModified?: number
-  ): Promise<PageMeta> {
+    encoding: FileEncoding
+  ): Promise<{ data: FileData; meta: FileMeta }> {
+    let result = this.performOperation("readFile", name);
+    if (result) {
+      return result;
+    }
+    return this.wrapped.readFile(name, encoding);
+  }
+
+  getFileMeta(name: string): Promise<FileMeta> {
+    let result = this.performOperation("getFileMeta", name);
+    if (result) {
+      return result;
+    }
+    return this.wrapped.getFileMeta(name);
+  }
+
+  writeFile(
+    name: string,
+    encoding: FileEncoding,
+    data: FileData,
+    selfUpdate?: boolean
+  ): Promise<FileMeta> {
     let result = this.performOperation(
-      "writePage",
+      "writeFile",
       name,
-      text,
-      selfUpdate,
-      lastModified
+      encoding,
+      data,
+      selfUpdate
     );
     if (result) {
       return result;
     }
 
-    return this.wrapped.writePage(name, text, selfUpdate, lastModified);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
   }
 
-  deletePage(name: string): Promise<void> {
-    let result = this.performOperation("deletePage", name);
+  deleteFile(name: string): Promise<void> {
+    let result = this.performOperation("deleteFile", name);
     if (result) {
       return result;
     }
-    return this.wrapped.deletePage(name);
-  }
-
-  fetchAttachmentList(): Promise<{
-    attachments: Set<AttachmentMeta>;
-    nowTimestamp: number;
-  }> {
-    return this.wrapped.fetchAttachmentList();
-  }
-  readAttachment(
-    name: string,
-    encoding: AttachmentEncoding
-  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
-    return this.wrapped.readAttachment(name, encoding);
-  }
-  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    return this.wrapped.getAttachmentMeta(name);
-  }
-  writeAttachment(
-    name: string,
-    blob: ArrayBuffer,
-    selfUpdate?: boolean | undefined,
-    lastModified?: number | undefined
-  ): Promise<AttachmentMeta> {
-    return this.wrapped.writeAttachment(name, blob, selfUpdate, lastModified);
-  }
-  deleteAttachment(name: string): Promise<void> {
-    return this.wrapped.deleteAttachment(name);
+    return this.wrapped.deleteFile(name);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {

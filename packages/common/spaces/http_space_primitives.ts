@@ -1,20 +1,14 @@
-import { AttachmentMeta, PageMeta } from "../types";
+import { AttachmentMeta, FileMeta, PageMeta } from "../types";
 import { Plug } from "@plugos/plugos/plug";
-import {
-  AttachmentData,
-  AttachmentEncoding,
-  SpacePrimitives,
-} from "./space_primitives";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   fsUrl: string;
-  fsaUrl: string;
   private plugUrl: string;
   token?: string;
 
   constructor(url: string, token?: string) {
-    this.fsUrl = url + "/page";
-    this.fsaUrl = url + "/attachment";
+    this.fsUrl = url + "/fs";
     this.plugUrl = url + "/plug";
     this.token = token;
   }
@@ -34,71 +28,104 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return result;
   }
 
-  public async fetchPageList(): Promise<{
-    pages: Set<PageMeta>;
-    nowTimestamp: number;
-  }> {
+  public async fetchFileList(): Promise<FileMeta[]> {
     let req = await this.authenticatedFetch(this.fsUrl, {
       method: "GET",
     });
 
-    let result = new Set<PageMeta>();
-    ((await req.json()) as any[]).forEach((meta: any) => {
-      const pageName = meta.name;
-      result.add({
-        name: pageName,
-        lastModified: meta.lastModified,
-        perm: "rw",
-      });
-    });
+    let result: FileMeta[] = await req.json();
 
-    return {
-      pages: result,
-      nowTimestamp: +req.headers.get("Now-Timestamp")!,
-    };
+    return result;
   }
 
-  async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
+  async readFile(
+    name: string,
+    encoding: FileEncoding
+  ): Promise<{ data: FileData; meta: FileMeta }> {
     let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "GET",
     });
-    if (res.headers.get("X-Status") === "404") {
+    if (res.status === 404) {
       throw new Error(`Page not found`);
     }
+    let data: FileData | null = null;
+    switch (encoding) {
+      case "arraybuffer":
+        let abBlob = await res.blob();
+        data = await abBlob.arrayBuffer();
+        break;
+      case "dataurl":
+        let dUBlob = await res.blob();
+        data = arrayBufferToDataUrl(await dUBlob.arrayBuffer());
+        break;
+      case "string":
+        data = await res.text();
+        break;
+    }
     return {
-      text: await res.text(),
-      meta: this.responseToPageMeta(name, res),
+      data: data,
+      meta: this.responseToMeta(name, res),
     };
   }
 
-  async writePage(
+  async writeFile(
     name: string,
-    text: string,
-    selfUpdate?: boolean,
-    lastModified?: number
-  ): Promise<PageMeta> {
-    // TODO: lastModified ignored for now
+    encoding: FileEncoding,
+    data: FileData,
+    selfUpdate?: boolean
+  ): Promise<FileMeta> {
+    let body: any = null;
+
+    switch (encoding) {
+      case "arraybuffer":
+      case "string":
+        body = data;
+        break;
+      case "dataurl":
+        data = dataUrlToArrayBuffer(data as string);
+        break;
+    }
     let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "PUT",
-      body: text,
-      headers: lastModified
-        ? {
-            "Last-Modified": "" + lastModified,
-          }
-        : undefined,
+      headers: {
+        "Content-type": "application/octet-stream",
+      },
+      body,
     });
-    const newMeta = this.responseToPageMeta(name, res);
+    const newMeta = this.responseToMeta(name, res);
     return newMeta;
   }
 
-  async deletePage(name: string): Promise<void> {
+  async deleteFile(name: string): Promise<void> {
     let req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "DELETE",
     });
     if (req.status !== 200) {
-      throw Error(`Failed to delete page: ${req.statusText}`);
+      throw Error(`Failed to delete file: ${req.statusText}`);
     }
   }
+
+  async getFileMeta(name: string): Promise<FileMeta> {
+    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
+      method: "OPTIONS",
+    });
+    if (res.status === 404) {
+      throw new Error(`File not found`);
+    }
+    return this.responseToMeta(name, res);
+  }
+
+  private responseToMeta(name: string, res: Response): FileMeta {
+    return {
+      name,
+      size: +res.headers.get("Content-length")!,
+      contentType: res.headers.get("Content-type")!,
+      lastModified: +(res.headers.get("Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+    };
+  }
+
+  // Plugs
 
   async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
     let req = await this.authenticatedFetch(
@@ -120,95 +147,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return await req.json();
   }
-
-  // Attachments
-  public async fetchAttachmentList(): Promise<{
-    attachments: Set<AttachmentMeta>;
-    nowTimestamp: number;
-  }> {
-    let req = await this.authenticatedFetch(this.fsaUrl, {
-      method: "GET",
-    });
-
-    let result = new Set<AttachmentMeta>();
-    ((await req.json()) as any[]).forEach((meta: any) => {
-      const pageName = meta.name;
-      result.add({
-        name: pageName,
-        size: meta.size,
-        lastModified: meta.lastModified,
-        contentType: meta.contentType,
-        perm: "rw",
-      });
-    });
-
-    return {
-      attachments: result,
-      nowTimestamp: +req.headers.get("Now-Timestamp")!,
-    };
-  }
-
-  async readAttachment(
-    name: string,
-    encoding: AttachmentEncoding
-  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
-    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
-      method: "GET",
-    });
-    if (res.headers.get("X-Status") === "404") {
-      throw new Error(`Page not found`);
-    }
-    let blob = await res.blob();
-    return {
-      data:
-        encoding === "arraybuffer"
-          ? await blob.arrayBuffer()
-          : arrayBufferToDataUrl(await blob.arrayBuffer()),
-      meta: this.responseToAttachmentMeta(name, res),
-    };
-  }
-
-  async writeAttachment(
-    name: string,
-    data: AttachmentData,
-    selfUpdate?: boolean,
-    lastModified?: number
-  ): Promise<AttachmentMeta> {
-    if (typeof data === "string") {
-      data = dataUrlToArrayBuffer(data);
-    }
-    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
-      method: "PUT",
-      body: data,
-      headers: {
-        "Last-Modified": lastModified ? "" + lastModified : undefined,
-        "Content-type": "application/octet-stream",
-      },
-    });
-    const newMeta = this.responseToAttachmentMeta(name, res);
-    return newMeta;
-  }
-
-  async getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    let res = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
-      method: "OPTIONS",
-    });
-    if (res.headers.get("X-Status") === "404") {
-      throw new Error(`Page not found`);
-    }
-    return this.responseToAttachmentMeta(name, res);
-  }
-
-  async deleteAttachment(name: string): Promise<void> {
-    let req = await this.authenticatedFetch(`${this.fsaUrl}/${name}`, {
-      method: "DELETE",
-    });
-    if (req.status !== 200) {
-      throw Error(`Failed to delete attachment: ${req.statusText}`);
-    }
-  }
-
-  // Plugs
 
   async invokeFunction(
     plug: Plug<any>,
@@ -243,38 +181,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     } else {
       return await req.text();
     }
-  }
-
-  async getPageMeta(name: string): Promise<PageMeta> {
-    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
-      method: "OPTIONS",
-    });
-    if (res.headers.get("X-Status") === "404") {
-      throw new Error(`Page not found`);
-    }
-    return this.responseToPageMeta(name, res);
-  }
-
-  private responseToPageMeta(name: string, res: Response): PageMeta {
-    return {
-      name,
-      lastModified: +(res.headers.get("Last-Modified") || "0"),
-      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
-    };
-  }
-
-  private responseToAttachmentMeta(
-    name: string,
-    res: Response
-  ): AttachmentMeta {
-    return {
-      name,
-      lastModified: +(res.headers.get("Last-Modified") || "0"),
-      size: +(res.headers.get("Content-Length") || "0"),
-      contentType:
-        res.headers.get("Content-Type") || "application/octet-stream",
-      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
-    };
   }
 }
 

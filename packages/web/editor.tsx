@@ -55,11 +55,7 @@ import {
   MDExt,
 } from "@silverbulletmd/common/markdown_ext";
 import { FilterList } from "./components/filter";
-import {
-  FilterOption,
-  PageMeta,
-  reservedPageNames,
-} from "@silverbulletmd/common/types";
+import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
 import { syntaxTree } from "@codemirror/language";
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
@@ -208,13 +204,6 @@ export class Editor {
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
-      if (reservedPageNames.includes(pageName)) {
-        this.flashNotification(
-          `"${pageName}" is a reserved page name. It cannot be used.`,
-          "error"
-        );
-        return;
-      }
       console.log("Now navigating to", pageName, pos);
 
       if (!this.editorView) {
@@ -534,10 +523,10 @@ export class Editor {
     await this.space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    for (let pageInfo of this.space.listPlugs()) {
+    for (let plugName of await this.space.listPlugs()) {
       // console.log("Loading plug", pageInfo.name);
-      let { text } = await this.space.readPage(pageInfo.name);
-      await this.system.load(JSON.parse(text), createIFrameSandbox);
+      let { data } = await this.space.readAttachment(plugName, "string");
+      await this.system.load(JSON.parse(data as string), createIFrameSandbox);
     }
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
@@ -617,17 +606,17 @@ export class Editor {
 
     const previousPage = this.currentPage;
 
-    this.viewDispatch({
-      type: "page-loading",
-      name: pageName,
-    });
-
     // Persist current page state and nicely close page
     if (previousPage) {
       this.saveState(previousPage);
       this.space.unwatchPage(previousPage);
       await this.save(true);
     }
+
+    this.viewDispatch({
+      type: "page-loading",
+      name: pageName,
+    });
 
     // Fetch next page to open
     let doc;

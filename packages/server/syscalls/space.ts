@@ -1,12 +1,15 @@
 import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { Space } from "@silverbulletmd/common/spaces/space";
-import { AttachmentData } from "@silverbulletmd/common/spaces/space_primitives";
+import {
+  FileData,
+  FileEncoding,
+} from "@silverbulletmd/common/spaces/space_primitives";
 
 export default (space: Space): SysCallMapping => {
   return {
-    "space.listPages": async (ctx, unfiltered = false): Promise<PageMeta[]> => {
-      return [...space.listPages(unfiltered)];
+    "space.listPages": async (): Promise<PageMeta[]> => {
+      return [...space.listPages()];
     },
     "space.readPage": async (
       ctx,
@@ -27,13 +30,16 @@ export default (space: Space): SysCallMapping => {
     "space.deletePage": async (ctx, name: string) => {
       return space.deletePage(name);
     },
+    "space.listPlugs": async (): Promise<string[]> => {
+      return await space.listPlugs();
+    },
     "space.listAttachments": async (ctx): Promise<AttachmentMeta[]> => {
-      return [...(await space.fetchAttachmentList()).attachments];
+      return await space.fetchAttachmentList();
     },
     "space.readAttachment": async (
       ctx,
       name: string
-    ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> => {
+    ): Promise<{ data: FileData; meta: AttachmentMeta }> => {
       return await space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
@@ -45,9 +51,10 @@ export default (space: Space): SysCallMapping => {
     "space.writeAttachment": async (
       ctx,
       name: string,
+      encoding: FileEncoding,
       data: string
     ): Promise<AttachmentMeta> => {
-      return await space.writeAttachment(name, data);
+      return await space.writeAttachment(name, encoding, data);
     },
     "space.deleteAttachment": async (ctx, name: string) => {
       await space.deleteAttachment(name);

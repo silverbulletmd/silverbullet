@@ -14,7 +14,7 @@ import { invokeCommand } from "@silverbulletmd/plugos-silverbullet-syscall/syste
 // Checks if the URL contains a protocol, if so keeps it, otherwise assumes an attachment
 function patchUrl(url: string): string {
   if (url.indexOf("://") === -1) {
-    return `attachment/${url}`;
+    return `fs/${url}`;
   }
   return url;
 }

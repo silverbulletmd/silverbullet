@@ -3,16 +3,16 @@ import { System } from "@plugos/plugos/system";
 import { Hook, Manifest } from "@plugos/plugos/types";
 import { Express, NextFunction, Request, Response, Router } from "express";
 
-export type PageNamespaceOperation =
-  | "readPage"
-  | "writePage"
-  | "listPages"
-  | "getPageMeta"
-  | "deletePage";
+export type NamespaceOperation =
+  | "readFile"
+  | "writeFile"
+  | "listFiles"
+  | "getFileMeta"
+  | "deleteFile";
 
 export type PageNamespaceDef = {
   pattern: string;
-  operation: PageNamespaceOperation;
+  operation: NamespaceOperation;
 };
 
 export type PageNamespaceHookT = {
@@ -20,7 +20,7 @@ export type PageNamespaceHookT = {
 };
 
 type SpaceFunction = {
-  operation: PageNamespaceOperation;
+  operation: NamespaceOperation;
   pattern: RegExp;
   plug: Plug<PageNamespaceHookT>;
   name: string;
@@ -76,11 +76,11 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
         }
         if (
           ![
-            "readPage",
-            "writePage",
-            "getPageMeta",
-            "listPages",
-            "deletePage",
+            "readFile",
+            "writeFile",
+            "getFileMeta",
+            "listFiles",
+            "deleteFile",
           ].includes(funcDef.pageNamespace.operation)
         ) {
           errors.push(

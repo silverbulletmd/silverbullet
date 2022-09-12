@@ -1,19 +1,14 @@
 import { EventHook } from "@plugos/plugos/hooks/event";
 import { Plug } from "@plugos/plugos/plug";
 
-import { AttachmentMeta, PageMeta } from "../types";
-import { plugPrefix, trashPrefix } from "./constants";
-import {
-  AttachmentData,
-  AttachmentEncoding,
-  SpacePrimitives,
-} from "./space_primitives";
+import { FileMeta } from "../types";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
 
-  fetchPageList(): Promise<{ pages: Set<PageMeta>; nowTimestamp: number }> {
-    return this.wrapped.fetchPageList();
+  fetchFileList(): Promise<FileMeta[]> {
+    return this.wrapped.fetchFileList();
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
@@ -29,26 +24,43 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return this.wrapped.invokeFunction(plug, env, name, args);
   }
 
-  readPage(pageName: string): Promise<{ text: string; meta: PageMeta }> {
-    return this.wrapped.readPage(pageName);
+  readFile(
+    name: string,
+    encoding: FileEncoding
+  ): Promise<{ data: FileData; meta: FileMeta }> {
+    return this.wrapped.readFile(name, encoding);
   }
 
-  async writePage(
-    pageName: string,
-    text: string,
-    selfUpdate: boolean,
-    lastModified?: number
-  ): Promise<PageMeta> {
-    const newPageMeta = await this.wrapped.writePage(
-      pageName,
-      text,
-      selfUpdate,
-      lastModified
+  async writeFile(
+    name: string,
+    encoding: FileEncoding,
+    data: FileData,
+    selfUpdate: boolean
+  ): Promise<FileMeta> {
+    const newMeta = await this.wrapped.writeFile(
+      name,
+      encoding,
+      data,
+      selfUpdate
     );
     // This can happen async
-    if (!pageName.startsWith(trashPrefix) && !pageName.startsWith(plugPrefix)) {
+    if (name.endsWith(".md")) {
+      const pageName = name.substring(0, name.length - 3);
+      let text = "";
+      switch (encoding) {
+        case "string":
+          text = data as string;
+          break;
+        case "arraybuffer":
+          const decoder = new TextDecoder("utf-8");
+          text = decoder.decode(data as ArrayBuffer);
+          break;
+        case "dataurl":
+          throw Error("Data urls not supported in this context");
+      }
+
       this.eventHook
-        .dispatchEvent("page:saved", pageName)
+        .dispatchEvent("page:saved")
         .then(() => {
           return this.eventHook.dispatchEvent("page:index_text", {
             name: pageName,
@@ -59,54 +71,18 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           console.error("Error dispatching page:saved event", e);
         });
     }
-    return newPageMeta;
+    return newMeta;
   }
 
-  getPageMeta(pageName: string): Promise<PageMeta> {
-    return this.wrapped.getPageMeta(pageName);
+  getFileMeta(name: string): Promise<FileMeta> {
+    return this.wrapped.getFileMeta(name);
   }
 
-  async deletePage(pageName: string): Promise<void> {
-    await this.eventHook.dispatchEvent("page:deleted", pageName);
-    return this.wrapped.deletePage(pageName);
-  }
-
-  fetchAttachmentList(): Promise<{
-    attachments: Set<AttachmentMeta>;
-    nowTimestamp: number;
-  }> {
-    return this.wrapped.fetchAttachmentList();
-  }
-
-  readAttachment(
-    name: string,
-    encoding: AttachmentEncoding
-  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
-    return this.wrapped.readAttachment(name, encoding);
-  }
-
-  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    return this.wrapped.getAttachmentMeta(name);
-  }
-
-  async writeAttachment(
-    name: string,
-    blob: ArrayBuffer,
-    selfUpdate?: boolean | undefined,
-    lastModified?: number | undefined
-  ): Promise<AttachmentMeta> {
-    let meta = await this.wrapped.writeAttachment(
-      name,
-      blob,
-      selfUpdate,
-      lastModified
-    );
-    await this.eventHook.dispatchEvent("attachment:saved", name);
-    return meta;
-  }
-
-  async deleteAttachment(name: string): Promise<void> {
-    await this.eventHook.dispatchEvent("attachment:deleted", name);
-    return this.wrapped.deleteAttachment(name);
+  async deleteFile(name: string): Promise<void> {
+    if (name.endsWith(".md")) {
+      const pageName = name.substring(0, name.length - 3);
+      await this.eventHook.dispatchEvent("page:deleted", pageName);
+    }
+    return this.wrapped.deleteFile(name);
   }
 }

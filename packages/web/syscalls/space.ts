@@ -1,12 +1,15 @@
 import { Editor } from "../editor";
 import { SysCallMapping } from "@plugos/plugos/system";
 import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
-import { AttachmentData } from "@silverbulletmd/common/spaces/space_primitives";
+import {
+  FileData,
+  FileEncoding,
+} from "@silverbulletmd/common/spaces/space_primitives";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {
-    "space.listPages": async (ctx, unfiltered = false): Promise<PageMeta[]> => {
-      return [...(await editor.space.listPages(unfiltered))];
+    "space.listPages": async (): Promise<PageMeta[]> => {
+      return [...editor.space.listPages()];
     },
     "space.readPage": async (
       ctx,
@@ -34,13 +37,16 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },
+    "space.listPlugs": async (): Promise<string[]> => {
+      return await editor.space.listPlugs();
+    },
     "space.listAttachments": async (ctx): Promise<AttachmentMeta[]> => {
-      return [...(await editor.space.fetchAttachmentList()).attachments];
+      return await editor.space.fetchAttachmentList();
     },
     "space.readAttachment": async (
       ctx,
       name: string
-    ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> => {
+    ): Promise<{ data: FileData; meta: AttachmentMeta }> => {
       return await editor.space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
@@ -52,9 +58,10 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.writeAttachment": async (
       ctx,
       name: string,
-      buffer: ArrayBuffer
+      encoding: FileEncoding,
+      data: FileData
     ): Promise<AttachmentMeta> => {
-      return await editor.space.writeAttachment(name, buffer);
+      return await editor.space.writeAttachment(name, encoding, data);
     },
     "space.deleteAttachment": async (ctx, name: string) => {
       await editor.space.deleteAttachment(name);

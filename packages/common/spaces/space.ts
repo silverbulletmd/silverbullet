@@ -1,13 +1,8 @@
-import {
-  AttachmentData,
-  AttachmentEncoding,
-  SpacePrimitives,
-} from "./space_primitives";
-import { AttachmentMeta, PageMeta } from "../types";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
+import { AttachmentMeta, FileMeta, PageMeta } from "../types";
 import { EventEmitter } from "@plugos/plugos/event";
 import { Plug } from "@plugos/plugos/plug";
-import { Manifest } from "../manifest";
-import { plugPrefix, trashPrefix } from "./constants";
+import { plugPrefix } from "./constants";
 import { safeRun } from "../util";
 
 const pageWatchInterval = 2000;
@@ -19,23 +14,21 @@ export type SpaceEvents = {
   pageListUpdated: (pages: Set<PageMeta>) => void;
 };
 
-export class Space
-  extends EventEmitter<SpaceEvents>
-  implements SpacePrimitives
-{
+export class Space extends EventEmitter<SpaceEvents> {
   pageMetaCache = new Map<string, PageMeta>();
   watchedPages = new Set<string>();
   private initialPageListLoad = true;
   private saving = false;
 
-  constructor(private space: SpacePrimitives, private trashEnabled = true) {
+  constructor(private space: SpacePrimitives) {
     super();
   }
 
   public async updatePageList() {
-    let newPageList = await this.space.fetchPageList();
+    let newPageList = await this.fetchPageList();
+    // console.log("Updating page list", newPageList);
     let deletedPages = new Set<string>(this.pageMetaCache.keys());
-    newPageList.pages.forEach((meta) => {
+    newPageList.forEach((meta) => {
       const pageName = meta.name;
       const oldPageMeta = this.pageMetaCache.get(pageName);
       const newPageMeta: PageMeta = {
@@ -50,9 +43,7 @@ export class Space
         this.emit("pageCreated", newPageMeta);
       } else if (
         oldPageMeta &&
-        oldPageMeta.lastModified !== newPageMeta.lastModified &&
-        (!this.trashEnabled ||
-          (this.trashEnabled && !pageName.startsWith(trashPrefix)))
+        oldPageMeta.lastModified !== newPageMeta.lastModified
       ) {
         this.emit("pageChanged", newPageMeta);
       }
@@ -95,17 +86,7 @@ export class Space
 
   async deletePage(name: string, deleteDate?: number): Promise<void> {
     await this.getPageMeta(name); // Check if page exists, if not throws Error
-    if (this.trashEnabled) {
-      let pageData = await this.readPage(name);
-      // Move to trash
-      await this.writePage(
-        `${trashPrefix}${name}`,
-        pageData.text,
-        true,
-        deleteDate
-      );
-    }
-    await this.space.deletePage(name);
+    await this.space.deleteFile(`${name}.md`);
 
     this.pageMetaCache.delete(name);
     this.emit("pageDeleted", name);
@@ -114,7 +95,9 @@ export class Space
 
   async getPageMeta(name: string): Promise<PageMeta> {
     let oldMeta = this.pageMetaCache.get(name);
-    let newMeta = await this.space.getPageMeta(name);
+    let newMeta = fileMetaToPageMeta(
+      await this.space.getFileMeta(`${name}.md`)
+    );
     if (oldMeta) {
       if (oldMeta.lastModified !== newMeta.lastModified) {
         // Changed on disk, trigger event
@@ -133,41 +116,15 @@ export class Space
     return this.space.invokeFunction(plug, env, name, args);
   }
 
-  listPages(unfiltered = false): Set<PageMeta> {
-    if (unfiltered) {
-      return new Set(this.pageMetaCache.values());
-    } else {
-      return new Set(
-        [...this.pageMetaCache.values()].filter(
-          (pageMeta) =>
-            !pageMeta.name.startsWith(trashPrefix) &&
-            !pageMeta.name.startsWith(plugPrefix)
-        )
-      );
-    }
+  listPages(): Set<PageMeta> {
+    return new Set(this.pageMetaCache.values());
   }
 
-  listTrash(): Set<PageMeta> {
-    return new Set(
-      [...this.pageMetaCache.values()]
-        .filter(
-          (pageMeta) =>
-            pageMeta.name.startsWith(trashPrefix) &&
-            !pageMeta.name.startsWith(plugPrefix)
-        )
-        .map((pageMeta) => ({
-          ...pageMeta,
-          name: pageMeta.name.substring(trashPrefix.length),
-        }))
-    );
-  }
-
-  listPlugs(): Set<PageMeta> {
-    return new Set(
-      [...this.pageMetaCache.values()].filter((pageMeta) =>
-        pageMeta.name.startsWith(plugPrefix)
-      )
-    );
+  async listPlugs(): Promise<string[]> {
+    let allFiles = await this.space.fetchFileList();
+    return allFiles
+      .filter((fileMeta) => fileMeta.name.endsWith(".plug.json"))
+      .map((fileMeta) => fileMeta.name);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
@@ -175,16 +132,20 @@ export class Space
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let pageData = await this.space.readPage(name);
+    let pageData = await this.space.readFile(`${name}.md`, "string");
     let previousMeta = this.pageMetaCache.get(name);
+    let newMeta = fileMetaToPageMeta(pageData.meta);
     if (previousMeta) {
-      if (previousMeta.lastModified !== pageData.meta.lastModified) {
+      if (previousMeta.lastModified !== newMeta.lastModified) {
         // Page changed since last cached metadata, trigger event
-        this.emit("pageChanged", pageData.meta);
+        this.emit("pageChanged", newMeta);
       }
     }
-    this.pageMetaCache.set(name, pageData.meta);
-    return pageData;
+    let meta = this.metaCacher(name, newMeta);
+    return {
+      text: pageData.data as string,
+      meta: meta,
+    };
   }
 
   watchPage(pageName: string) {
@@ -198,16 +159,12 @@ export class Space
   async writePage(
     name: string,
     text: string,
-    selfUpdate?: boolean,
-    lastModified?: number
+    selfUpdate?: boolean
   ): Promise<PageMeta> {
     try {
       this.saving = true;
-      let pageMeta = await this.space.writePage(
-        name,
-        text,
-        selfUpdate,
-        lastModified
+      let pageMeta = fileMetaToPageMeta(
+        await this.space.writeFile(`${name}.md`, "string", text, selfUpdate)
       );
       if (!selfUpdate) {
         this.emit("pageChanged", pageMeta);
@@ -218,39 +175,52 @@ export class Space
     }
   }
 
-  fetchPageList(): Promise<{ pages: Set<PageMeta>; nowTimestamp: number }> {
-    return this.space.fetchPageList();
+  async fetchPageList(): Promise<PageMeta[]> {
+    return (await this.space.fetchFileList())
+      .filter((fileMeta) => fileMeta.name.endsWith(".md"))
+      .map(fileMetaToPageMeta);
   }
 
-  fetchAttachmentList(): Promise<{
-    attachments: Set<AttachmentMeta>;
-    nowTimestamp: number;
-  }> {
-    return this.space.fetchAttachmentList();
+  async fetchAttachmentList(): Promise<AttachmentMeta[]> {
+    return (await this.space.fetchFileList()).filter(
+      (fileMeta) =>
+        !fileMeta.name.endsWith(".md") && !fileMeta.name.endsWith(".plug.json")
+    );
   }
+
   readAttachment(
     name: string,
-    encoding: AttachmentEncoding
-  ): Promise<{ data: AttachmentData; meta: AttachmentMeta }> {
-    return this.space.readAttachment(name, encoding);
-  }
-  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    return this.space.getAttachmentMeta(name);
-  }
-  writeAttachment(
-    name: string,
-    data: AttachmentData,
-    selfUpdate?: boolean | undefined,
-    lastModified?: number | undefined
-  ): Promise<AttachmentMeta> {
-    return this.space.writeAttachment(name, data, selfUpdate, lastModified);
-  }
-  deleteAttachment(name: string): Promise<void> {
-    return this.space.deleteAttachment(name);
+    encoding: FileEncoding
+  ): Promise<{ data: FileData; meta: AttachmentMeta }> {
+    return this.space.readFile(name, encoding);
   }
 
-  private metaCacher(name: string, pageMeta: PageMeta): PageMeta {
-    this.pageMetaCache.set(name, pageMeta);
-    return pageMeta;
+  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    return this.space.getFileMeta(name);
   }
+
+  writeAttachment(
+    name: string,
+    encoding: FileEncoding,
+    data: FileData,
+    selfUpdate?: boolean | undefined
+  ): Promise<AttachmentMeta> {
+    return this.space.writeFile(name, encoding, data, selfUpdate);
+  }
+
+  deleteAttachment(name: string): Promise<void> {
+    return this.space.deleteFile(name);
+  }
+
+  private metaCacher(name: string, meta: PageMeta): PageMeta {
+    this.pageMetaCache.set(name, meta);
+    return meta;
+  }
+}
+
+function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
+  return {
+    ...fileMeta,
+    name: fileMeta.name.substring(0, fileMeta.name.length - 3),
+  } as PageMeta;
 }
