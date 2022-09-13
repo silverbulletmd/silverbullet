@@ -12,15 +12,12 @@ async function getFiles(dir) {
   return Array.prototype.concat(...files);
 }
 
-const rootDir = resolve("website_build/page");
+const rootDir = resolve("website_build/fs");
 
 getFiles(rootDir).then((files) => {
   files = files
     .map((file) => ({
-      name: file
-        .substring(rootDir.length + 1)
-        .replace(/\.md$/, "")
-        .replace(/\.plug\.json$/, ""),
+      name: file.substring(rootDir.length + 1),
       lastModified: 0,
       perm: "rw",
     }))

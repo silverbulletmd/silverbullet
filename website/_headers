@@ -1,8 +1,8 @@
-/page/_plug/*
+/fs/_plug/*
   Content-Type: application/json
   Last-Modified: 0
   X-Permission: ro
-/page/*
+/fs/*
   Content-Type: text/markdown
   Last-Modified: 0
   X-Permission: rw
