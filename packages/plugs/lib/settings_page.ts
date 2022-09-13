@@ -40,7 +40,7 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
 /**
  * Convenience function to write a specific set of settings from the `SETTINGS` page.
  * If the SETTiNGS page doesn't exist it will create it.
- * @param settings 
+ * @param settings
  */
 export async function writeSettings<T extends object>(settings: T) {
   let readSettings = {};
@@ -49,9 +49,11 @@ export async function writeSettings<T extends object>(settings: T) {
   } catch (e: any) {
     await notifyUser("Creating a new SETTINGS page...", "info");
   }
-  const writeSettings = {...readSettings, ...settings};
-  const doc = new YAML.Document();
-  doc.contents = writeSettings;
-  const contents = `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${doc.toString()}\n\`\`\``; // might need \r\n for windows?
-  await writePage(SETTINGS_PAGE, contents)
+  const writeSettings = { ...readSettings, ...settings };
+  // const doc = new YAML.Document();
+  // doc.contents = writeSettings;
+  const contents = `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${YAML.stringify(
+    writeSettings
+  )}\n\`\`\``; // might need \r\n for windows?
+  await writePage(SETTINGS_PAGE, contents);
 }

@@ -419,7 +419,7 @@ function buildFsRouter(spacePrimitives: SpacePrimitives) {
     .route(/\/(.+)/)
     .get(async (req, res, next) => {
       let name = req.params[0];
-      console.log("Getting", name);
+      console.log("Loading file", name);
       try {
         let attachmentData = await spacePrimitives.readFile(
           name,

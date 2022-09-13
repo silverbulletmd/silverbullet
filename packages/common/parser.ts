@@ -8,7 +8,7 @@ import {
   Table,
   TaskList,
 } from "@lezer/markdown";
-import { commonmark, getCodeParser, mkLang } from "./markdown/markdown";
+import { markdown } from "@codemirror/lang-markdown";
 import * as ct from "./customtags";
 import {
   Language,
@@ -108,8 +108,8 @@ export const Comment: MarkdownConfig = {
 };
 
 export default function buildMarkdown(mdExtensions: MDExt[]): Language {
-  return mkLang(
-    commonmark.configure([
+  return markdown({
+    extensions: [
       WikiLink,
       TaskList,
       Comment,
@@ -155,6 +155,6 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
           ),
         ],
       },
-    ])
-  );
+    ],
+  }).language;
 }

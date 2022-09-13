@@ -28,7 +28,7 @@ import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
 import { lineWrapper } from "./line_wrapper";
-import { markdown } from "@silverbulletmd/common/markdown";
+import { markdown } from "@codemirror/lang-markdown";
 import { PathPageNavigator } from "./navigator";
 import buildMarkdown from "@silverbulletmd/common/parser";
 import reducer from "./reducer";
@@ -61,6 +61,7 @@ import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
 import { storeSyscalls } from "./syscalls/store";
 import { inlineImagesPlugin } from "./inline_image";
+import { ConsoleLogger } from "@plugos/plugos/environments/custom_logger";
 
 class PageState {
   constructor(
@@ -73,6 +74,9 @@ const saveInterval = 1000;
 
 // Monkey patching the languageDataAt, somehow the languageData facet is not set
 // properly, no idea why
+
+let _languageFacetsCache: any;
+
 // TODO: Remove at some point
 EditorState.prototype.languageDataAt = function (
   name: string,
@@ -86,7 +90,11 @@ EditorState.prototype.languageDataAt = function (
     let providerResult = provider(this, pos, side);
     if (!providerResult) {
       // console.log("Empty provider result");
-      continue;
+      providerResult = _languageFacetsCache;
+      // continue;
+    } else {
+      // console.log("Provider result", providerResult);
+      _languageFacetsCache = providerResult.slice();
     }
     for (let result of providerResult) {
       if (Object.prototype.hasOwnProperty.call(result, name))
@@ -204,7 +212,7 @@ export class Editor {
     this.focus();
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
-      console.log("Now navigating to", pageName, pos);
+      console.log("Now navigating to", pageName);
 
       if (!this.editorView) {
         return;
@@ -213,7 +221,7 @@ export class Editor {
       let stateRestored = await this.loadPage(pageName);
       if (pos) {
         if (typeof pos === "string") {
-          console.log("Navigating to anchor", pos);
+          // console.log("Navigating to anchor", pos);
 
           // We're going to look up the anchor through a direct page store query...
           // TODO: This is a bit hacky, but it works for now
@@ -408,11 +416,6 @@ export class Editor {
           base: buildMarkdown(this.mdExtensions),
           addKeymap: true,
         }),
-        inlineImagesPlugin(),
-        highlightSpecialChars(),
-        history(),
-        drawSelection(),
-        dropCursor(),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
         autocompletion({
           override: [
@@ -422,6 +425,11 @@ export class Editor {
             ),
           ],
         }),
+        inlineImagesPlugin(),
+        highlightSpecialChars(),
+        history(),
+        drawSelection(),
+        dropCursor(),
         EditorView.lineWrapping,
         lineWrapper([
           { selector: "ATXHeading1", class: "sb-line-h1" },

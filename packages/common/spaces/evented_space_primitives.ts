@@ -60,7 +60,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       this.eventHook
-        .dispatchEvent("page:saved")
+        .dispatchEvent("page:saved", pageName)
         .then(() => {
           return this.eventHook.dispatchEvent("page:index_text", {
             name: pageName,

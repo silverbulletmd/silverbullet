@@ -1,5 +1,9 @@
 An attempt at documenting of the changes/new features introduced in each release.
 
+---
+
+## 0.0.35
+* Big refactor of the internal Space API unifying attachment and page handling. This shouldn't affect (most) existing code and plugs (except some more exotic areas), but if stuff breaks, please report it.
 
 ---
 ## 0.0.34

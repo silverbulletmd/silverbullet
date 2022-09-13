@@ -16,9 +16,9 @@
     "@codemirror/search": "^6.2.0",
     "@codemirror/state": "^6.1.1",
     "@codemirror/view": "^6.2.3",
-    "@lezer/common": "1.0.1",
-    "@lezer/highlight": "1.0.0",
-    "@lezer/markdown": "1.0.1",
+    "@lezer/common": "^1.0.1",
+    "@lezer/highlight": "^1.0.0",
+    "@lezer/markdown": "^1.0.1",
     "mime-types": "^2.1.35",
     "yaml": "^1.10.2"
   },
