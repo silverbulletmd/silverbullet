@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 // @ts-ignore
-import iframeHtml from "bundle-text:./panel.html";
+import iframeHtml from "./panel.html";
 import { Editor } from "../editor";
 
 export function Panel({

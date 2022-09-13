@@ -27,7 +27,7 @@ const pagesPath = args._[0] as string;
 const port = args.port;
 
 const webappDistDir = realpathSync(
-  `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`
+  `${nodeModulesDir}/node_modules/@silverbulletmd/web/rdist`
 );
 // console.log("Webapp dist dir", webappDistDir);
 const plugDistDir = realpathSync(

@@ -3,10 +3,11 @@ import { parseYamlSettings, safeRun } from "@silverbulletmd/common/util";
 import { Space } from "@silverbulletmd/common/spaces/space";
 import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
 
+import "./styles/main.scss";
+
 safeRun(async () => {
   let password: string | undefined =
     localStorage.getItem("password") || undefined;
-
   let httpPrimitives = new HttpSpacePrimitives("", password);
   let settingsPageText = "";
   while (true) {
@@ -45,7 +46,6 @@ safeRun(async () => {
   window.editor = editor;
 });
 
-// if (!isDesktop) {
 if (localStorage.getItem("disable_sw") !== "true") {
   if (navigator.serviceWorker) {
     navigator.serviceWorker
@@ -61,5 +61,3 @@ if (localStorage.getItem("disable_sw") !== "true") {
     );
   }
 }
-
-// }

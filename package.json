@@ -12,7 +12,8 @@
     "server": "nodemon -w packages/server/dist --exec silverbullet",
     "test": "jest packages/*/{dist,build}/test",
     "clean-build": "npm run clean && npm run build && npm i && npm run build-plugs",
-    "publish-all": "npm publish --access public --ws"
+    "publish-all": "npm publish --access public --ws",
+    "ru": "rollup -c rollup.config.ts"
   },
   "devDependencies": {
     "@parcel/core": "2.5.0",
@@ -22,14 +23,26 @@
     "@parcel/transformer-sass": "2.5.0",
     "@parcel/transformer-webmanifest": "2.5.0",
     "@parcel/validator-typescript": "2.5.0",
+    "@rollup/plugin-node-resolve": "^14.1.0",
+    "@rollup/plugin-replace": "^4.0.0",
+    "@rollup/plugin-typescript": "^8.5.0",
     "nodemon": "^2.0.19",
     "parcel": "2.5.0",
     "prettier": "^2.7.1",
     "process": "^0.11.10",
-    "ts-node": "^10.9.1",
+    "rollup": "^2.79.0",
+    "rollup-plugin-scss": "^3.0.0",
+    "rollup-plugin-sourcemaps": "^0.6.3",
+    "rollup-plugin-string": "^3.0.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-web-worker-loader": "^1.6.1",
     "typescript": "^4.8.3"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@rollup/plugin-commonjs": "^22.0.2",
+    "@rollup/plugin-json": "^4.1.0"
+  }
 }
