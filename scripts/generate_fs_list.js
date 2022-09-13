@@ -1,5 +1,6 @@
 const { resolve } = require("path");
 const { readdir } = require("fs").promises;
+const mime = require("mime-types");
 
 async function getFiles(dir) {
   const dirents = await readdir(dir, { withFileTypes: true });
@@ -19,6 +20,8 @@ getFiles(rootDir).then((files) => {
     .map((file) => ({
       name: file.substring(rootDir.length + 1),
       lastModified: 0,
+      contentType: mime.lookup(file),
+      size: 0,
       perm: "rw",
     }))
     .filter((pageMeta) => !pageMeta.name.startsWith("."));
