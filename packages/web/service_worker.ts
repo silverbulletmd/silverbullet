@@ -36,7 +36,7 @@ self.addEventListener("fetch", (event: any) => {
       } else {
         if (
           parsedUrl.pathname !== "/fs" &&
-          !parsedUrl.pathname.startsWith("/page/") &&
+          !parsedUrl.pathname.startsWith("/fs/") &&
           !parsedUrl.pathname.startsWith("/plug/")
         ) {
           return cache.match("/index.html");
