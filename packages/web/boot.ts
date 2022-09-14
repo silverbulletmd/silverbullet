@@ -60,6 +60,8 @@ if (localStorage.getItem("disable_sw") !== "true") {
       "No launching service worker (not present, maybe because not running on localhost or over SSL)"
     );
   }
+} else {
+  console.log("Service worker disabled via disable_sw");
 }
 
 // }

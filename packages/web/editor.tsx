@@ -76,8 +76,6 @@ const saveInterval = 1000;
 // Monkey patching the languageDataAt, somehow the languageData facet is not set
 // properly, no idea why
 
-let _languageFacetsCache: any;
-
 // TODO: Remove at some point
 EditorState.prototype.languageDataAt = function (
   name: string,
@@ -91,11 +89,7 @@ EditorState.prototype.languageDataAt = function (
     let providerResult = provider(this, pos, side);
     if (!providerResult) {
       // console.log("Empty provider result");
-      providerResult = _languageFacetsCache;
-      // continue;
-    } else {
-      // console.log("Provider result", providerResult);
-      _languageFacetsCache = providerResult.slice();
+      continue;
     }
     for (let result of providerResult) {
       if (Object.prototype.hasOwnProperty.call(result, name))
