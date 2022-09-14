@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --enable-source-maps
+// #!/usr/bin/env -S node --enable-source-maps
 import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
 import { realpathSync } from "fs";
 import yargs from "yargs";
@@ -27,7 +27,7 @@ const pagesPath = args._[0] as string;
 const port = args.port;
 
 const webappDistDir = realpathSync(
-  `${nodeModulesDir}/node_modules/@silverbulletmd/web/rdist`
+  `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`
 );
 // console.log("Webapp dist dir", webappDistDir);
 const plugDistDir = realpathSync(

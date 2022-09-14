@@ -9,20 +9,21 @@
     <style>
       html,
       body {
-        margin: 0;
         height: 100%;
-        padding: 0;
         width: 100%;
+        margin: 0;
+        padding: 0;
         overflow: hidden;
       }
     </style>
     <script>
       document.documentElement.dataset.theme = localStorage.theme ?? "light";
+      console.log("SUPERPU");
     </script>
-    <link rel="stylesheet" href="styles/main.scss" />
-    <script type="module" src="boot.ts"></script>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/x-icon" href="images/favicon.gif" />
+    <link rel="stylesheet" href="bundle.css" />
+    <script src="bundle.js" defer=""></script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/x-icon" href="/favicon.0455ef5b.gif" />
   </head>
   <body>
     <div id="sb-root"></div>

@@ -30,7 +30,7 @@ import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
 
 import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 // @ts-ignore
-import settingsTemplate from "bundle-text:./SETTINGS_template.md";
+import settingsTemplate from "./SETTINGS_template.md";
 import { safeRun } from "./util";
 import {
   ensureFTSTable,

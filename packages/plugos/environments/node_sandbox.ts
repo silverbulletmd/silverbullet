@@ -2,7 +2,7 @@ import { Worker } from "worker_threads";
 import { safeRun } from "../util";
 
 // @ts-ignore
-import workerCode from "bundle-text:./node_worker.ts";
+import workerCode from "./node_worker.ts";
 import { Sandbox } from "../sandbox";
 import { WorkerLike } from "./worker";
 import { Plug } from "../plug";

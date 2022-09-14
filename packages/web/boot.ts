@@ -6,6 +6,7 @@ import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_pr
 import "./styles/main.scss";
 
 safeRun(async () => {
+  console.log("I'm GOING TO BOOT");
   let password: string | undefined =
     localStorage.getItem("password") || undefined;
   let httpPrimitives = new HttpSpacePrimitives("", password);
