@@ -18,8 +18,5 @@ export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
     "system.reloadPlugs": async () => {
       return expressServer.reloadPlugs();
     },
-    "system.getVersion": async () => {
-      return version;
-    },
   };
 }

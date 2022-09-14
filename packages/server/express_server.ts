@@ -1,7 +1,7 @@
 import express, { Express } from "express";
 import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
 import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, rm } from "fs/promises";
 import { System } from "@plugos/plugos/system";
 import { DiskSpacePrimitives } from "@silverbulletmd/common/spaces/disk_space_primitives";
 import path from "path";
@@ -47,6 +47,8 @@ import {
 import { parseYamlSettings } from "@silverbulletmd/common/util";
 import { SpacePrimitives } from "@silverbulletmd/common/spaces/space_primitives";
 
+import { version } from "./package.json";
+
 const globalModules: any = JSON.parse(
   readFileSync(
     nodeModulesDir + "/node_modules/@silverbulletmd/web/dist/global.plug.json",
@@ -63,6 +65,10 @@ export type ServerOptions = {
   builtinPlugDir: string;
   password?: string;
 };
+
+const storeVersionKey = "$silverBulletVersion";
+const indexRequiredKey = "$spaceIndexed";
+
 export class ExpressServer {
   app: Express;
   system: System<SilverBulletHooks>;
@@ -196,9 +202,6 @@ export class ExpressServer {
     setInterval(() => {
       this.space.updatePageList().catch(console.error);
     }, 5000);
-
-    // Load plugs
-    this.reloadPlugs().catch(console.error);
   }
 
   rebuildMdExtensions() {
@@ -243,20 +246,78 @@ export class ExpressServer {
   }
 
   async reloadPlugs() {
+    // Version check
+    let lastRunningVersion = await this.system.localSyscall(
+      "core",
+      "store.get",
+      [storeVersionKey]
+    );
+    let upgrading = false;
+    if (lastRunningVersion !== version) {
+      upgrading = true;
+      console.log("Version change detected!");
+      console.log("Going to re-bootstrap with the builtin set of plugs...");
+      console.log("First removing existing plug files...");
+      const existingPlugFiles = (
+        await this.spacePrimitives.fetchFileList()
+      ).filter((meta) => meta.name.startsWith(plugPrefix));
+      for (let plugFile of existingPlugFiles) {
+        await this.spacePrimitives.deleteFile(plugFile.name);
+      }
+      console.log("Now writing the default set of plugs...");
+      await this.bootstrapBuiltinPlugs();
+      await this.system.localSyscall("core", "store.set", [
+        storeVersionKey,
+        version,
+      ]);
+      await this.system.localSyscall("core", "store.set", [
+        "$spaceIndexed",
+        false,
+      ]);
+    }
+
     await this.space.updatePageList();
+
     let allPlugs = await this.space.listPlugs();
+
+    // Sanity check: are there any plugs at all? If not, let's put back the core set
     if (allPlugs.length === 0) {
       await this.bootstrapBuiltinPlugs();
       allPlugs = await this.space.listPlugs();
     }
     await this.system.unloadAll();
-    console.log("Loading plugs");
-    console.log(allPlugs);
+
+    console.log("Loading plugs", allPlugs);
     for (let plugName of allPlugs) {
       let { data } = await this.space.readAttachment(plugName, "string");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }
     this.rebuildMdExtensions();
+
+    let corePlug = this.system.loadedPlugs.get("core");
+    if (!corePlug) {
+      console.error("Something went very wrong, 'core' plug not found");
+      return;
+    }
+
+    // If we're upgrading, update plugs from PLUGS file
+    // This will automatically reinvoke an plugReload() call
+    if (upgrading) {
+      console.log("Now updating plugs");
+      await corePlug.invoke("updatePlugs", []);
+    }
+
+    // Do we need to reindex this space?
+    if (
+      !(await this.system.localSyscall("core", "store.get", [indexRequiredKey]))
+    ) {
+      console.log("Now reindexing space...");
+      await corePlug.invoke("reindexSpace", []);
+      await this.system.localSyscall("core", "store.set", [
+        indexRequiredKey,
+        true,
+      ]);
+    }
   }
 
   async start() {
@@ -277,6 +338,9 @@ export class ExpressServer {
     await ensureStoreTable(this.db, "store");
     await ensureFTSTable(this.db, "fts");
     await this.ensureAndLoadSettings();
+
+    // Load plugs
+    this.reloadPlugs().catch(console.error);
 
     // Serve static files (javascript, css, html)
     this.app.use("/", express.static(this.distDir));

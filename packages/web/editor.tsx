@@ -224,13 +224,10 @@ export class Editor {
           // console.log("Navigating to anchor", pos);
 
           // We're going to look up the anchor through a direct page store query...
-          // TODO: This is a bit hacky, but it works for now
-          let posLookup = await this.system.syscallWithContext(
-            // Mock the "core" plug
-            { plug: { name: "core" } as any },
-            "index.get",
-            [pageName, `a:${pageName}:@${pos}`]
-          );
+          let posLookup = await this.system.localSyscall("core", "index.get", [
+            pageName,
+            `a:${pageName}:@${pos}`,
+          ]);
 
           if (!posLookup) {
             return this.flashNotification(

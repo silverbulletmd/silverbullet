@@ -19,10 +19,6 @@ export async function listCommands(): Promise<{ [key: string]: CommandDef }> {
   return syscall("system.listCommands");
 }
 
-export async function getVersion(): Promise<string> {
-  return syscall("system.getVersion");
-}
-
 export async function reloadPlugs() {
   syscall("system.reloadPlugs");
 }

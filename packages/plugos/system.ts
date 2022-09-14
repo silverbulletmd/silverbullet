@@ -82,6 +82,19 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
+  async localSyscall(
+    contextPlugName: string,
+    syscallName: string,
+    args: any[]
+  ): Promise<any> {
+    return this.syscallWithContext(
+      // Mock the plug
+      { plug: { name: contextPlugName } as any },
+      syscallName,
+      args
+    );
+  }
+
   async load(
     manifest: Manifest<HookT>,
     sandboxFactory: SandboxFactory<HookT>

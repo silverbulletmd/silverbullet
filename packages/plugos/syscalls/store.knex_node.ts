@@ -1,7 +1,7 @@
 import { Knex } from "knex";
 import { SysCallMapping } from "../system";
 
-type Item = {
+export type Item = {
   page: string;
   key: string;
   value: any;

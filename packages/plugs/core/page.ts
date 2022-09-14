@@ -200,7 +200,6 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 export async function reindexCommand() {
   await flashNotification("Reindexing...");
   await invokeFunction("server", "reindexSpace");
-  await storeSet("$spaceIndexed", true);
   await flashNotification("Reindexing done");
 }
 
@@ -235,6 +234,7 @@ export async function reindexSpace() {
       tree: parsed,
     });
   }
+  console.log("Indexing completed!");
 }
 
 export async function clearPageIndex(page: string) {
