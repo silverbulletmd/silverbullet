@@ -4,6 +4,9 @@ An attempt at documenting of the changes/new features introduced in each release
 
 ## 0.0.35
 * Big refactor of the internal Space API unifying attachment and page handling. This shouldn't affect (most) existing code and plugs (except some more exotic areas), but if stuff breaks, please report it.
+* Technical change: Upgrades are now detected on the server-side, and plugs re-loaded and pages indexes upon every upgrade.
+* Various bug fixes (e.g. using HTML tags in a page before completely broke syntax highlighting)
+* Exposed `fulltext.*` syscalls on the client
 
 ---
 ## 0.0.34
