@@ -62,6 +62,7 @@ import { eventSyscalls } from "@plugos/plugos/syscalls/event";
 import { storeSyscalls } from "./syscalls/store";
 import { inlineImagesPlugin } from "./inline_image";
 import { ConsoleLogger } from "@plugos/plugos/environments/custom_logger";
+import { fulltextSyscalls } from "./syscalls/fulltext";
 
 class PageState {
   constructor(
@@ -170,6 +171,7 @@ export class Editor {
       editorSyscalls(this),
       spaceSyscalls(this),
       indexerSyscalls(this.space),
+      fulltextSyscalls(this.space),
       systemSyscalls(this),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       clientStoreSyscalls(),
