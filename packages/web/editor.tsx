@@ -28,7 +28,7 @@ import { CommandPalette } from "./components/command_palette";
 import { PageNavigator } from "./components/page_navigator";
 import { TopBar } from "./components/top_bar";
 import { lineWrapper } from "./line_wrapper";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown } from "@silverbulletmd/common/markdown";
 import { PathPageNavigator } from "./navigator";
 import buildMarkdown from "@silverbulletmd/common/parser";
 import reducer from "./reducer";
@@ -414,7 +414,7 @@ export class Editor {
       extensions: [
         markdown({
           base: buildMarkdown(this.mdExtensions),
-          addKeymap: true,
+          // addKeymap: true,
         }),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
         autocompletion({

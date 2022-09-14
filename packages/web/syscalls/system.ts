@@ -1,6 +1,6 @@
 import { SysCallMapping } from "@plugos/plugos/system";
 import type { Editor } from "../editor";
-import { AppCommand, CommandDef } from "../hooks/command";
+import { CommandDef } from "../hooks/command";
 import { version } from "../package.json";
 
 export function systemSyscalls(editor: Editor): SysCallMapping {

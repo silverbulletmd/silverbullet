@@ -1,3 +1,6 @@
+// Local changes made to this file:
+// * Disable HTML tags
+
 import { Prec } from "@codemirror/state";
 import { KeyBinding, keymap } from "@codemirror/view";
 import {
@@ -6,7 +9,7 @@ import {
   LanguageDescription,
 } from "@codemirror/language";
 import { MarkdownExtension, MarkdownParser, parseCode } from "@lezer/markdown";
-import { html } from "@codemirror/lang-html";
+// import { html } from "@codemirror/lang-html";
 import {
   commonmarkLanguage,
   markdownLanguage,
@@ -30,7 +33,7 @@ export const markdownKeymap: readonly KeyBinding[] = [
   { key: "Backspace", run: deleteMarkupBackward },
 ];
 
-const htmlNoMatch = html({ matchClosingTags: false });
+// const htmlNoMatch = html({ matchClosingTags: false });
 
 /// Markdown language support.
 export function markdown(
@@ -70,7 +73,8 @@ export function markdown(
       "Base parser provided to `markdown` should be a Markdown parser"
     );
   let extensions = config.extensions ? [config.extensions] : [];
-  let support = [htmlNoMatch.support],
+  // let support = [htmlNoMatch.support],
+  let support = [],
     defaultCode;
   if (defaultCodeLanguage instanceof LanguageSupport) {
     support.push(defaultCodeLanguage.support);
@@ -83,7 +87,7 @@ export function markdown(
       ? getCodeParser(codeLanguages, defaultCode)
       : undefined;
   extensions.push(
-    parseCode({ codeParser, htmlParser: htmlNoMatch.language.parser })
+    parseCode({ codeParser }) //, htmlParser: htmlNoMatch.language.parser })
   );
   if (addKeymap) support.push(Prec.high(keymap.of(markdownKeymap)));
   return new LanguageSupport(mkLang(parser.configure(extensions)), support);

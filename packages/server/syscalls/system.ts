@@ -1,5 +1,6 @@
 import { SysCallMapping } from "@plugos/plugos/system";
 import type { ExpressServer } from "../express_server";
+import { version } from "../package.json";
 
 export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
   return {
@@ -16,6 +17,9 @@ export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
     },
     "system.reloadPlugs": async () => {
       return expressServer.reloadPlugs();
+    },
+    "system.getVersion": async () => {
+      return version;
     },
   };
 }

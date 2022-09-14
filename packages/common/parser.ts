@@ -8,7 +8,7 @@ import {
   Table,
   TaskList,
 } from "@lezer/markdown";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown } from "./markdown";
 import * as ct from "./customtags";
 import {
   Language,

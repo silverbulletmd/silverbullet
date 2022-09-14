@@ -1,3 +1,6 @@
+// Changes made to this file:
+// - ignore language facet stuff, always assume markdown
+
 import {
   StateCommand,
   Text,
