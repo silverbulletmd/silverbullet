@@ -192,5 +192,11 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     ): string | null => {
       return prompt(message, defaultValue);
     },
+    "editor.enableReadOnlyMode": (ctx, enabled: boolean) => {
+      editor.viewDispatch({
+        type: "set-editor-ro",
+        enabled,
+      });
+    },
   };
 }

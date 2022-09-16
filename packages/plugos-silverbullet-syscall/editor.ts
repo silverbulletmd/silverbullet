@@ -133,3 +133,7 @@ export function prompt(
 ): Promise<string | undefined> {
   return syscall("editor.prompt", message, defaultValue);
 }
+
+export function enableReadOnlyMode(enabled: boolean) {
+  return syscall("editor.enableReadOnlyMode", enabled);
+}

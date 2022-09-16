@@ -46,6 +46,16 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
+
+  editorLoad:
+    path: "./editor.ts:editorLoad"
+    events:
+      - plugs:loaded
+  toggleReadOnlyode:
+    path: "./editor.ts:toggleReadOnlyMode"
+    command:
+      name: "Editor: Toggle Read Only Mode"
+
   # Backlinks
   indexLinks:
     path: "./page.ts:indexLinks"

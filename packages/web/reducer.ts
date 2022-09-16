@@ -163,6 +163,11 @@ export default function reducer(
         filterBoxOptions: [],
         filterBoxHelpText: "",
       };
+    case "set-editor-ro":
+      return {
+        ...state,
+        forcedROMode: action.enabled,
+      };
   }
   return state;
 }

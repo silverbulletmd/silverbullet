@@ -658,7 +658,10 @@ export class Editor {
     contentDOM.spellcheck = true;
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
-    contentDOM.setAttribute("contenteditable", readOnly ? "false" : "true");
+    contentDOM.setAttribute(
+      "contenteditable",
+      readOnly || this.viewState.forcedROMode ? "false" : "true"
+    );
 
     if (isMobileSafari() && readOnly) {
       console.log("Safari read only hack");
@@ -719,6 +722,15 @@ export class Editor {
         document.title = viewState.currentPage;
       }
     }, [viewState.currentPage]);
+
+    useEffect(() => {
+      if (editor.editorView) {
+        editor.tweakEditorDOM(
+          editor.editorView.contentDOM,
+          viewState.perm === "ro"
+        );
+      }
+    }, [viewState.forcedROMode]);
 
     return (
       <>

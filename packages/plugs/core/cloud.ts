@@ -6,7 +6,7 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/common/tree";
-import type { FileMeta, PageMeta } from "@silverbulletmd/common/types";
+import type { FileMeta } from "@silverbulletmd/common/types";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 
 const pagePrefix = "💭 ";

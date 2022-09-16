@@ -8,10 +8,12 @@ export type Notification = {
   date: Date;
 };
 
+type EditorMode = "ro" | "rw";
+
 export type AppViewState = {
   currentPage?: string;
-  perm: "ro" | "rw";
-
+  perm: EditorMode;
+  forcedROMode: boolean;
   isLoading: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
@@ -40,6 +42,7 @@ export type AppViewState = {
 
 export const initialViewState: AppViewState = {
   perm: "rw",
+  forcedROMode: false,
   isLoading: false,
   showPageNavigator: false,
   showCommandPalette: false,
@@ -93,4 +96,5 @@ export type Action =
       label: string;
       onSelect: (option: FilterOption | undefined) => void;
     }
-  | { type: "hide-filterbox" };
+  | { type: "hide-filterbox" }
+  | { type: "set-editor-ro"; enabled: boolean };
