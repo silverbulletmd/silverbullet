@@ -1,0 +1,18 @@
+ports:
+  - port: 3000
+    name: Silverbullet
+    onOpen: open-browser
+    visibility: public
+
+github:
+  prebuilds:
+    master: true
+    pullRequests: true
+
+tasks:
+  - name: Webapp
+    init: |
+      nvm install
+      npm install
+      npm run clean-build
+    command: npm run server --
