@@ -10,9 +10,8 @@ github:
     pullRequests: true
 
 tasks:
-  - name: Webapp
-    init: |
+  - init: |
       nvm install
       npm install
       npm run clean-build
-    command: npm run server --
+    command: npm run server -- .
