@@ -7,6 +7,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Notification } from "../types";
+import { isMacLike } from "../../common/util";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -39,6 +40,8 @@ export function TopBar({
   rhs?: React.ReactNode;
 }) {
   const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
+
+  const isMac = isMacLike();
 
   return (
     <div id="sb-top" onClick={onClick}>
@@ -83,7 +86,7 @@ export function TopBar({
                 onActionClick();
                 e.stopPropagation();
               }}
-              title="Open the command palette"
+              title={"Open the command palette (" + (isMac ? "Cmd" : "Ctrl") + "+/)"}
             >
               <FontAwesomeIcon icon={faRunning} />
             </button>
