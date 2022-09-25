@@ -1,3 +1,6 @@
+image:
+  file: .gitpod.Dockerfile
+
 ports:
   - port: 3000
     name: Silverbullet
@@ -12,25 +15,17 @@ github:
 tasks:
   - name: Setup
     init: |
-      nvm install
-      nvm use
       npm install
       npm run clean-build
       gp sync-done setup
-      exit
   - name: Run Silverbullet server
     init: |      
       gp sync-await setup
-      nvm use
       mkdir pages
     command: npm run server -- ./pages
   - name: Run ParcelJS
-    init: |
-      gp sync-await setup
-      nvm use
+    init: gp sync-await setup
     command: npm run watch
   - name: Build plugins
-    init: |
-      gp sync-await setup
-      nvm use
+    init: gp sync-await setup
     command: npm run plugs
