@@ -61,40 +61,17 @@ export function filterBox(
   return syscall("editor.filterBox", label, options, helpText, placeHolder);
 }
 
-export function showRhs(
+export function showPanel(
+  id: "lhs" | "rhs" | "bhs" | "modal",
+  mode: number,
   html: string,
-  script?: string,
-  flex = 1
+  script: string
 ): Promise<void> {
-  return syscall("editor.showRhs", html, script, flex);
+  return syscall("editor.showPanel", id, mode, html, script);
 }
 
-export function hideRhs(): Promise<void> {
-  return syscall("editor.hideRhs");
-}
-
-export function showLhs(
-  html: string,
-  script?: string,
-  flex = 1
-): Promise<void> {
-  return syscall("editor.showLhs", html, script, flex);
-}
-
-export function hideLhs(): Promise<void> {
-  return syscall("editor.hideLhs");
-}
-
-export function showBhs(
-  html: string,
-  script?: string,
-  flex = 1
-): Promise<void> {
-  return syscall("editor.showBhs", html, script, flex);
-}
-
-export function hideBhs(): Promise<void> {
-  return syscall("editor.hideBhs");
+export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
+  return syscall("editor.hidePanel", id);
 }
 
 export function insertAtPos(text: string, pos: number): Promise<void> {
@@ -137,3 +114,43 @@ export function prompt(
 export function enableReadOnlyMode(enabled: boolean) {
   return syscall("editor.enableReadOnlyMode", enabled);
 }
+
+// DEPRECATED in favor of showPanel and hidePanel
+
+export function showRhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showRhs", html, script, flex);
+}
+
+export function hideRhs(): Promise<void> {
+  return syscall("editor.hideRhs");
+}
+
+export function showLhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showLhs", html, script, flex);
+}
+
+export function hideLhs(): Promise<void> {
+  return syscall("editor.hideLhs");
+}
+
+export function showBhs(
+  html: string,
+  script?: string,
+  flex = 1
+): Promise<void> {
+  return syscall("editor.showBhs", html, script, flex);
+}
+
+export function hideBhs(): Promise<void> {
+  return syscall("editor.hideBhs");
+}
+
+// End deprecation

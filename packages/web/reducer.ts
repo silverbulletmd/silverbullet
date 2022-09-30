@@ -102,48 +102,23 @@ export default function reducer(
         ...state,
         notifications: state.notifications.filter((n) => n.id !== action.id),
       };
-    case "show-rhs":
+    case "show-panel":
       return {
         ...state,
-        showRHS: action.flex,
-        rhsHTML: action.html,
-        rhsScript: action.script,
+        panels: {
+          ...state.panels,
+          [action.id]: action.config,
+        },
       };
-    case "hide-rhs":
+    case "hide-panel":
       return {
         ...state,
-        showRHS: 0,
-        rhsHTML: "",
-        rhsScript: undefined,
+        panels: {
+          ...state.panels,
+          [action.id]: {},
+        },
       };
-    case "show-lhs":
-      return {
-        ...state,
-        showLHS: action.flex,
-        lhsHTML: action.html,
-        lhsScript: action.script,
-      };
-    case "hide-lhs":
-      return {
-        ...state,
-        showLHS: 0,
-        lhsHTML: "",
-        lhsScript: undefined,
-      };
-    case "show-bhs":
-      return {
-        ...state,
-        showBHS: action.flex,
-        bhsHTML: action.html,
-        bhsScript: action.script,
-      };
-    case "hide-bhs":
-      return {
-        ...state,
-        showBHS: 0,
-        bhsHTML: "",
-        bhsScript: undefined,
-      };
+
     case "show-filterbox":
       return {
         ...state,

@@ -10,6 +10,14 @@ export type Notification = {
 
 type EditorMode = "ro" | "rw";
 
+export type PanelMode = number;
+
+export type PanelConfig = {
+  mode?: PanelMode;
+  html?: string;
+  script?: string;
+};
+
 export type AppViewState = {
   currentPage?: string;
   perm: EditorMode;
@@ -18,15 +26,7 @@ export type AppViewState = {
   showPageNavigator: boolean;
   showCommandPalette: boolean;
   unsavedChanges: boolean;
-  showLHS: number; // 0 = hide, > 0 = flex
-  showRHS: number; // 0 = hide, > 0 = flex
-  showBHS: number;
-  rhsHTML: string;
-  lhsHTML: string;
-  bhsHTML: string;
-  rhsScript?: string;
-  lhsScript?: string;
-  bhsScript?: string;
+  panels: { [key: string]: PanelConfig };
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
   notifications: Notification[];
@@ -47,12 +47,12 @@ export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
-  showLHS: 0,
-  showRHS: 0,
-  showBHS: 0,
-  rhsHTML: "",
-  lhsHTML: "",
-  bhsHTML: "",
+  panels: {
+    lhs: {},
+    rhs: {},
+    bhs: {},
+    modal: {},
+  },
   allPages: new Set(),
   commands: new Map(),
   recentCommands: new Map(),
@@ -81,12 +81,12 @@ export type Action =
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
-  | { type: "show-rhs"; html: string; flex: number; script?: string }
-  | { type: "hide-rhs" }
-  | { type: "show-lhs"; html: string; flex: number; script?: string }
-  | { type: "hide-lhs" }
-  | { type: "show-bhs"; html: string; flex: number; script?: string }
-  | { type: "hide-bhs" }
+  | {
+      type: "show-panel";
+      id: "rhs" | "lhs" | "bhs" | "modal";
+      config: PanelConfig;
+    }
+  | { type: "hide-panel"; id: string }
   | { type: "command-run"; command: string }
   | {
       type: "show-filterbox";

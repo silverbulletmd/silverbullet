@@ -2,16 +2,13 @@ import { useEffect, useRef } from "react";
 // @ts-ignore
 import iframeHtml from "bundle-text:./panel.html";
 import { Editor } from "../editor";
+import { PanelConfig } from "../types";
 
 export function Panel({
-  html,
-  script,
-  flex,
+  config,
   editor,
 }: {
-  html: string;
-  script?: string;
-  flex: number;
+  config: PanelConfig;
   editor: Editor;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
@@ -20,8 +17,8 @@ export function Panel({
       if (iFrameRef.current?.contentWindow) {
         iFrameRef.current.contentWindow.postMessage({
           type: "html",
-          html: html,
-          script: script,
+          html: config.html,
+          script: config.script,
         });
       }
     }
@@ -34,7 +31,7 @@ export function Panel({
     return () => {
       iframe.onload = null;
     };
-  }, [html]);
+  }, [config.html, config.script]);
 
   useEffect(() => {
     let messageListener = (evt: any) => {
@@ -54,7 +51,7 @@ export function Panel({
   }, []);
 
   return (
-    <div className="sb-panel" style={{ flex }}>
+    <div className="sb-panel" style={{ flex: config.mode }}>
       <iframe srcDoc={iframeHtml} ref={iFrameRef} />
     </div>
   );

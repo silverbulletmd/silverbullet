@@ -27,7 +27,7 @@ function ensureAnchor(expr: any, start: boolean) {
 }
 
 export function editorSyscalls(editor: Editor): SysCallMapping {
-  return {
+  const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
       return editor.currentPage!;
     },
@@ -76,44 +76,43 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     ): Promise<FilterOption | undefined> => {
       return editor.filterBox(label, options, helpText, placeHolder);
     },
-    "editor.showRhs": (ctx, html: string, script: string, flex: number) => {
+    "editor.showPanel": (
+      ctx,
+      id: string,
+      mode: number,
+      html: string,
+      script: string
+    ) => {
       editor.viewDispatch({
-        type: "show-rhs",
-        flex,
-        html,
-        script,
+        type: "show-panel",
+        id: id as any,
+        config: { html, script, mode },
       });
+    },
+    "editor.hidePanel": (ctx, id: string) => {
+      editor.viewDispatch({
+        type: "hide-panel",
+        id: id as any,
+      });
+    },
+    // Deprecated in favor of using "hidePanel" and "showPanel"
+    "editor.showRhs": (ctx, html: string, script: string, flex: number) => {
+      syscalls["editor.showPanel"](ctx, "rhs", flex, html, script);
     },
     "editor.hideRhs": (ctx) => {
-      editor.viewDispatch({
-        type: "hide-rhs",
-      });
+      syscalls["editor.hidePanel"](ctx, "rhs");
     },
     "editor.showLhs": (ctx, html: string, script: string, flex: number) => {
-      editor.viewDispatch({
-        type: "show-lhs",
-        flex,
-        html,
-        script,
-      });
+      syscalls["editor.showPanel"](ctx, "lhs", flex, html, script);
     },
     "editor.hideLhs": (ctx) => {
-      editor.viewDispatch({
-        type: "hide-lhs",
-      });
+      syscalls["editor.hidePanel"](ctx, "lhs");
     },
     "editor.showBhs": (ctx, html: string, script: string, flex: number) => {
-      editor.viewDispatch({
-        type: "show-bhs",
-        flex,
-        html,
-        script,
-      });
+      syscalls["editor.showPanel"](ctx, "bhs", flex, html, script);
     },
     "editor.hideBhs": (ctx) => {
-      editor.viewDispatch({
-        type: "hide-bhs",
-      });
+      syscalls["editor.hidePanel"](ctx, "bhs");
     },
     "editor.insertAtPos": (ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({
@@ -199,4 +198,6 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       });
     },
   };
+
+  return syscalls;
 }

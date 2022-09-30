@@ -61,7 +61,6 @@ import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
 import { eventSyscalls } from "@plugos/plugos/syscalls/event";
 import { storeSyscalls } from "./syscalls/store";
 import { inlineImagesPlugin } from "./inline_image";
-import { ConsoleLogger } from "@plugos/plugos/environments/custom_logger";
 import { fulltextSyscalls } from "./syscalls/fulltext";
 
 class PageState {
@@ -801,43 +800,42 @@ export class Editor {
             dispatch({ type: "show-palette" });
           }}
           rhs={
-            !!viewState.showRHS && (
-              <div className="panel" style={{ flex: viewState.showRHS }} />
+            !!viewState.panels.rhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.rhs.mode }}
+              />
             )
           }
           lhs={
-            !!viewState.showLHS && (
-              <div className="panel" style={{ flex: viewState.showLHS }} />
+            !!viewState.panels.lhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.lhs.mode }}
+              />
             )
           }
         />
         <div id="sb-main">
-          {!!viewState.showLHS && (
-            <Panel
-              html={viewState.lhsHTML}
-              script={viewState.lhsScript}
-              flex={viewState.showLHS}
-              editor={editor}
-            />
+          {!!viewState.panels.lhs.mode && (
+            <Panel config={viewState.panels.lhs} editor={editor} />
           )}
           <div id="sb-editor" />
-          {!!viewState.showRHS && (
-            <Panel
-              html={viewState.rhsHTML}
-              script={viewState.rhsScript}
-              flex={viewState.showRHS}
-              editor={editor}
-            />
+          {!!viewState.panels.rhs.mode && (
+            <Panel config={viewState.panels.rhs} editor={editor} />
           )}
         </div>
-        {!!viewState.showBHS && (
+        {!!viewState.panels.modal.mode && (
+          <div
+            className="sb-modal"
+            style={{ inset: `${viewState.panels.modal.mode}px` }}
+          >
+            <Panel config={viewState.panels.modal} editor={editor} />
+          </div>
+        )}
+        {!!viewState.panels.bhs.mode && (
           <div className="sb-bhs">
-            <Panel
-              html={viewState.bhsHTML}
-              script={viewState.bhsScript}
-              flex={1}
-              editor={editor}
-            />
+            <Panel config={viewState.panels.bhs} editor={editor} />
           </div>
         )}
       </>

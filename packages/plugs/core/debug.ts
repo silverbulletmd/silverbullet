@@ -3,6 +3,7 @@ import {
   getText,
   hideBhs,
   showBhs,
+  showPanel,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
 import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
 import { getServerLogs } from "@silverbulletmd/plugos-silverbullet-syscall/sandbox";
@@ -19,7 +20,9 @@ export async function showLogsCommand() {
   let clientLogs = await getLogs();
   let serverLogs = await getServerLogs();
 
-  await showBhs(
+  await showPanel(
+    "modal",
+    100,
     `
     <style>
     #client-log-header {
