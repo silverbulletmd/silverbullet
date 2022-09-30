@@ -14,7 +14,3 @@ functions:
       - editor:updated
       - editor:pageLoaded
       - editor:pageReloaded
-  switchSide:
-    path: "./preview.ts:switchSide"
-    command:
-      name: "Markdown Preview: Switch Side"
