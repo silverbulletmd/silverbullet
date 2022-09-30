@@ -37,6 +37,9 @@ Once downloaded and booted, SB will print out a URL to open SB in your browser (
 #protip: If you have a PWA enabled browser (like any browser based on Chromium) hit that little button right of the location bar to install SB, and give it its own window frame (sans location bar) and desktop/dock icon. At last the PWA has found its killer app.
 
 ## Developing Silver Bullet
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/silverbulletmd/silverbullet)
+
 Silver Bullet is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using React.js. [ParcelJS](https://parceljs.org/) is used to build both the front-end and back-end bundles. The server backend runs as a HTTP server on node.js using express.
 
 This repo is a monorepo using npm's "workspaces" feature. It consists of a number of npm packages under `packages`.
