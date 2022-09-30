@@ -45,12 +45,6 @@ export async function queryPrefix(
   return syscall("store.queryPrefix", prefix);
 }
 
-export async function query(
-  query: Query
-): Promise<{ key: string; value: any }[]> {
-  return syscall("store.query", query);
-}
-
 export async function deletePrefix(prefix: string): Promise<void> {
   return syscall("store.deletePrefix", prefix);
 }
