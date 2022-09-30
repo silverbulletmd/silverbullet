@@ -65,7 +65,7 @@ export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
   mode: number,
   html: string,
-  script: string
+  script: string = ""
 ): Promise<void> {
   return syscall("editor.showPanel", id, mode, html, script);
 }
