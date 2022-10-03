@@ -1,4 +1,4 @@
-import { Tag } from "@lezer/highlight";
+import { Tag } from "../../mod.ts";
 
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();

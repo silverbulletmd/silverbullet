@@ -1,17 +1,18 @@
-import * as plugos from "@plugos/plugos/types";
-import { EndpointHookT } from "@plugos/plugos/hooks/endpoint";
-import { CronHookT } from "@plugos/plugos/hooks/node_cron";
-import { EventHookT } from "@plugos/plugos/hooks/event";
-import { CommandHookT } from "@silverbulletmd/web/hooks/command";
-import { SlashCommandHookT } from "@silverbulletmd/web/hooks/slash_command";
-import { PageNamespaceHookT } from "../server/hooks/page_namespace";
+import * as plugos from "../plugos/types.ts";
+import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
+import { CronHookT } from "../plugos/hooks/node_cron.ts";
+import { EventHookT } from "../plugos/hooks/event.ts";
+import { CommandHookT } from "../web/hooks/command.ts";
+import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
+import { PageNamespaceHookT } from "../server/hooks/page_namespace.ts";
 
-export type SilverBulletHooks = CommandHookT &
-  SlashCommandHookT &
-  EndpointHookT &
-  CronHookT &
-  EventHookT &
-  PageNamespaceHookT;
+export type SilverBulletHooks =
+  & CommandHookT
+  & SlashCommandHookT
+  & EndpointHookT
+  & CronHookT
+  & EventHookT
+  & PageNamespaceHookT;
 
 export type SyntaxExtensions = {
   syntax?: { [key: string]: NodeDef };

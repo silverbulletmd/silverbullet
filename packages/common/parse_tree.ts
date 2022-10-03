@@ -1,11 +1,11 @@
-import type { SyntaxNode } from "@lezer/common";
-import type { Language } from "@codemirror/language";
-import { ParseTree } from "./tree";
+import type { SyntaxNode } from "../../mod.ts";
+import type { Language } from "../../mod.ts";
+import { ParseTree } from "./tree.ts";
 
 export function lezerToParseTree(
   text: string,
   n: SyntaxNode,
-  offset = 0
+  offset = 0,
 ): ParseTree {
   let children: ParseTree[] = [];
   let nodeText: string | undefined;

@@ -1,5 +1,3 @@
-import React from "https://esm.sh/v96/@types/react@~17.0/index.d.ts";
-
 export {
   autocompletion,
   completionKeymap,
@@ -7,6 +5,7 @@ export {
 
 export {
   defaultHighlightStyle,
+  Language,
   syntaxHighlighting,
   syntaxTree,
 } from "https://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state";
@@ -21,6 +20,19 @@ export {
   closeBrackets,
   closeBracketsKeymap,
 } from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
+
+export { styleTags, Tag, tags } from "https://esm.sh/@lezer/highlight";
+
+export type {
+  BlockContext,
+  LeafBlock,
+  LeafBlockParser,
+  MarkdownConfig,
+  Table,
+  TaskList,
+} from "https://esm.sh/@lezer/markdown";
+
+export type { SyntaxNode } from "https://esm.sh/@lezer/common";
 
 export {
   searchKeymap,

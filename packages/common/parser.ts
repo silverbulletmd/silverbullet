@@ -1,31 +1,20 @@
-import { styleTags, tags as t } from "@lezer/highlight";
+import { styleTags, tags as t } from "../../mod.ts";
 import {
   BlockContext,
   LeafBlock,
   LeafBlockParser,
   MarkdownConfig,
-  parseCode,
   Table,
   TaskList,
-} from "@lezer/markdown";
-import { markdown } from "./markdown";
-import * as ct from "./customtags";
-import {
-  Language,
-  LanguageDescription,
-  LanguageSupport,
-} from "@codemirror/language";
-import { StreamLanguage } from "@codemirror/language";
-import { yaml } from "@codemirror/legacy-modes/mode/yaml";
-import {
-  javascriptLanguage,
-  typescriptLanguage,
-} from "@codemirror/lang-javascript";
+} from "../../mod.ts";
+import { markdown } from "./markdown/index.ts";
+import * as ct from "./customtags.ts";
+import { Language } from "../../mod.ts";
 import {
   MDExt,
   mdExtensionStyleTags,
   mdExtensionSyntaxConfig,
-} from "./markdown_ext";
+} from "./markdown_ext.ts";
 
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
@@ -45,7 +34,7 @@ const WikiLink: MarkdownConfig = {
         return cx.addElement(
           cx.elt("WikiLink", pos, pos + match[0].length, [
             cx.elt("WikiLinkPage", pos + 2, pos + match[0].length - 2),
-          ])
+          ]),
         );
       },
       after: "Emphasis",
@@ -89,7 +78,7 @@ class CommentParser implements LeafBlockParser {
       cx.elt("Comment", leaf.start, leaf.start + leaf.content.length, [
         // cx.elt("CommentMarker", leaf.start, leaf.start + 3),
         ...cx.parser.parseInline(leaf.content.slice(3), leaf.start + 3),
-      ])
+      ]),
     );
     return true;
   }
