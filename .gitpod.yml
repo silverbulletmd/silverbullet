@@ -12,20 +12,20 @@ github:
     master: true
     pullRequests: true
 
-tasks:
-  - name: Setup
-    init: |
-      npm install
-      npm run clean-build
-      gp sync-done setup
-  - name: Run Silverbullet server
-    init: |      
-      gp sync-await setup
-      mkdir pages
-    command: npm run server -- ./pages
-  - name: Run ParcelJS
-    init: gp sync-await setup
-    command: npm run watch
-  - name: Build plugins
-    init: gp sync-await setup
-    command: npm run plugs
+# tasks:
+#   - name: Setup
+#     init: |
+#       npm install
+#       npm run clean-build
+#       gp sync-done setup
+#   - name: Run Silverbullet server
+#     init: |      
+#       gp sync-await setup
+#       mkdir pages
+#     command: npm run server -- ./pages
+#   - name: Run ParcelJS
+#     init: gp sync-await setup
+#     command: npm run watch
+#   - name: Build plugins
+#     init: gp sync-await setup
+#     command: npm run plugs
