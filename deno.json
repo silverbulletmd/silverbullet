@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+      "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"]
+    },
+    "importMap": "import_map.json",
+    "tasks": {
+      "watch": "deno bundle --unstable --config deno.json --watch main.ts bundle.js"
+    }
+  }
+  

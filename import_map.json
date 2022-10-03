@@ -1,0 +1,8 @@
+
+{
+    "imports": {
+      "@codemirror/state": "https://esm.sh/@codemirror/state",
+      "@codemirror/language": "https://esm.sh/@codemirror/language"
+    }
+  }
+  

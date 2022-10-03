@@ -1,14 +1,10 @@
-import {
-  autocompletion,
-  completionKeymap,
-  CompletionResult,
-} from "@codemirror/autocomplete";
-import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { indentWithTab, standardKeymap } from "@codemirror/commands";
-import { history, historyKeymap } from "@codemirror/commands";
-import { syntaxHighlighting } from "@codemirror/language";
-import { searchKeymap } from "@codemirror/search";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import { autocompletion, completionKeymap } from "../../mod.ts";
+import { closeBrackets, closeBracketsKeymap } from "../../mod.ts";
+import { indentWithTab, standardKeymap } from "../../mod.ts";
+import { history, historyKeymap } from "../../mod.ts";
+import { syntaxHighlighting } from "../../mod.ts";
+import { searchKeymap } from "../../mod.ts";
+import { EditorSelection, EditorState } from "../../mod.ts";
 import {
   drawSelection,
   dropCursor,
@@ -19,54 +15,51 @@ import {
   runScopeHandlers,
   ViewPlugin,
   ViewUpdate,
-} from "@codemirror/view";
-import React, { useEffect, useReducer } from "react";
-import ReactDOM from "react-dom";
-import { createSandbox as createIFrameSandbox } from "@plugos/plugos/environments/webworker_sandbox";
-import { AppEvent, ClickEvent } from "./app_event";
-import { CommandPalette } from "./components/command_palette";
-import { PageNavigator } from "./components/page_navigator";
-import { TopBar } from "./components/top_bar";
-import { lineWrapper } from "./line_wrapper";
-import { markdown } from "@silverbulletmd/common/markdown";
-import { PathPageNavigator } from "./navigator";
-import buildMarkdown from "@silverbulletmd/common/parser";
-import reducer from "./reducer";
-import { smartQuoteKeymap } from "./smart_quotes";
-import { Space } from "@silverbulletmd/common/spaces/space";
-import customMarkdownStyle from "./style";
-import { editorSyscalls } from "./syscalls/editor";
-import { indexerSyscalls } from "./syscalls";
-import { spaceSyscalls } from "./syscalls/space";
-import { Action, AppViewState, initialViewState } from "./types";
-import { SilverBulletHooks } from "@silverbulletmd/common/manifest";
-import { safeRun, throttle } from "../common/util";
-import { System } from "@plugos/plugos/system";
-import { EventHook } from "@plugos/plugos/hooks/event";
-import { systemSyscalls } from "./syscalls/system";
-import { Panel } from "./components/panel";
-import { CommandHook } from "./hooks/command";
-import { SlashCommandHook } from "./hooks/slash_command";
-import { attachmentExtension, pasteLinkExtension } from "./editor_paste";
-import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
-import { clientStoreSyscalls } from "./syscalls/clientStore";
-import {
-  loadMarkdownExtensions,
-  MDExt,
-} from "@silverbulletmd/common/markdown_ext";
-import { FilterList } from "./components/filter";
-import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
-import { syntaxTree } from "@codemirror/language";
-import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
-import { eventSyscalls } from "@plugos/plugos/syscalls/event";
-import { storeSyscalls } from "./syscalls/store";
-import { inlineImagesPlugin } from "./inline_image";
-import { fulltextSyscalls } from "./syscalls/fulltext";
+} from "../../mod.ts";
+import React, { useEffect, useReducer } from "https://esm.sh/react@17";
+import ReactDOM from "https://esm.sh/react-dom@17";
+import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox.ts";
+import { AppEvent, ClickEvent } from "./app_event.ts";
+import { CommandPalette } from "./components/command_palette.tsx";
+import { PageNavigator } from "./components/page_navigator.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+import { lineWrapper } from "./line_wrapper.ts";
+import { markdown } from "../common/markdown/index.ts";
+import { PathPageNavigator } from "./navigator.ts";
+import buildMarkdown from "../common/parser.ts";
+import reducer from "./reducer.ts";
+import { smartQuoteKeymap } from "./smart_quotes.ts";
+import { Space } from "../common/spaces/space.ts";
+import customMarkdownStyle from "./style.ts";
+import { editorSyscalls } from "./syscalls/editor.ts";
+import { indexerSyscalls } from "./syscalls/index.ts";
+import { spaceSyscalls } from "./syscalls/space.ts";
+import { Action, AppViewState, initialViewState } from "./types.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { safeRun, throttle } from "../common/util.ts";
+import { System } from "../plugos/system.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { systemSyscalls } from "./syscalls/system.ts";
+import { Panel } from "./components/panel.tsx";
+import { CommandHook } from "./hooks/command.ts";
+import { SlashCommandHook } from "./hooks/slash_command.ts";
+import { attachmentExtension, pasteLinkExtension } from "./editor_paste.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
+import { FilterList } from "./components/filter.tsx";
+import { FilterOption, PageMeta } from "../common/types.ts";
+import { syntaxTree } from "../../mod.ts";
+import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
+import { eventSyscalls } from "../plugos/syscalls/event.ts";
+import { storeSyscalls } from "./syscalls/store.ts";
+import { inlineImagesPlugin } from "./inline_image.ts";
+import { fulltextSyscalls } from "./syscalls/fulltext.ts";
 
 class PageState {
   constructor(
     readonly scrollTop: number,
-    readonly selection: EditorSelection
+    readonly selection: EditorSelection,
   ) {}
 }
 
@@ -79,7 +72,7 @@ const saveInterval = 1000;
 EditorState.prototype.languageDataAt = function (
   name: string,
   pos: number,
-  side = -1
+  side = -1,
 ) {
   let values = [];
   // console.log("Getting language data");
@@ -91,8 +84,9 @@ EditorState.prototype.languageDataAt = function (
       continue;
     }
     for (let result of providerResult) {
-      if (Object.prototype.hasOwnProperty.call(result, name))
+      if (Object.prototype.hasOwnProperty.call(result, name)) {
         values.push(result[name]);
+      }
     }
   }
   return values;
@@ -123,7 +117,7 @@ export class Editor {
     space: Space,
     parent: Element,
     urlPrefix: string,
-    indexPage: string
+    indexPage: string,
   ) {
     this.space = space;
     this.urlPrefix = urlPrefix;
@@ -169,7 +163,7 @@ export class Editor {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       clientStoreSyscalls(),
       storeSyscalls(this.space),
-      sandboxSyscalls(this.system)
+      sandboxSyscalls(this.system),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -227,7 +221,7 @@ export class Editor {
           if (!posLookup) {
             return this.flashNotification(
               `Could not find anchor @${pos}`,
-              "error"
+              "error",
             );
           } else {
             pos = +posLookup;
@@ -252,9 +246,11 @@ export class Editor {
     this.system.on({
       plugLoaded: (plug) => {
         safeRun(async () => {
-          for (let [modName, code] of Object.entries(
-            globalModules.dependencies
-          )) {
+          for (
+            let [modName, code] of Object.entries(
+              globalModules.dependencies,
+            )
+          ) {
             await plug.sandbox.loadDependency(modName, code as string);
           }
         });
@@ -297,7 +293,7 @@ export class Editor {
               .writePage(
                 this.currentPage,
                 this.editorView!.state.sliceDoc(0),
-                true
+                true,
               )
               .then(() => {
                 this.viewDispatch({ type: "page-saved" });
@@ -306,7 +302,7 @@ export class Editor {
               .catch((e) => {
                 this.flashNotification(
                   "Could not save page, retrying again in 10 seconds",
-                  "error"
+                  "error",
                 );
                 this.saveTimeout = setTimeout(this.save.bind(this), 10000);
                 reject(e);
@@ -315,7 +311,7 @@ export class Editor {
             resolve();
           }
         },
-        immediate ? 0 : saveInterval
+        immediate ? 0 : saveInterval,
       );
     });
   }
@@ -338,7 +334,7 @@ export class Editor {
           id: id,
         });
       },
-      type === "info" ? 2000 : 5000
+      type === "info" ? 2000 : 5000,
     );
   }
 
@@ -346,7 +342,7 @@ export class Editor {
     label: string,
     options: FilterOption[],
     helpText: string = "",
-    placeHolder: string = ""
+    placeHolder: string = "",
   ): Promise<FilterOption | undefined> {
     return new Promise((resolve) => {
       this.viewDispatch({
@@ -388,7 +384,7 @@ export class Editor {
                 console.error(e);
                 this.flashNotification(
                   `Error running command: ${e.message}`,
-                  "error"
+                  "error",
                 );
               })
               .then(() => {
@@ -413,7 +409,7 @@ export class Editor {
           override: [
             this.completer.bind(this),
             this.slashCommandHook.slashCommandCompleter.bind(
-              this.slashCommandHook
+              this.slashCommandHook,
             ),
           ],
         }),
@@ -477,7 +473,7 @@ export class Editor {
                     this.editorView.state.selection.main.anchor,
                     {
                       y: "center",
-                    }
+                    },
                   ),
                 ],
               });
@@ -509,7 +505,7 @@ export class Editor {
                 editor.save().catch((e) => console.error("Error saving", e));
               }
             }
-          }
+          },
         ),
         pasteLinkExtension,
         attachmentExtension(this),
@@ -542,18 +538,18 @@ export class Editor {
       // And reload the syscalls to use the new syntax extensions
       this.system.registerSyscalls(
         [],
-        markdownSyscalls(buildMarkdown(this.mdExtensions))
+        markdownSyscalls(buildMarkdown(this.mdExtensions)),
       );
 
       this.saveState(this.currentPage);
 
       editorView.setState(
-        this.createEditorState(this.currentPage, editorView.state.sliceDoc())
+        this.createEditorState(this.currentPage, editorView.state.sliceDoc()),
       );
       if (editorView.contentDOM) {
         this.tweakEditorDOM(
           editorView.contentDOM,
-          this.viewState.perm === "ro"
+          this.viewState.perm === "ro",
         );
       }
 
@@ -568,7 +564,7 @@ export class Editor {
       if (result) {
         if (actualResult) {
           console.error(
-            "Got completion results from multiple sources, cannot deal with that"
+            "Got completion results from multiple sources, cannot deal with that",
           );
           return null;
         }
@@ -659,7 +655,7 @@ export class Editor {
     contentDOM.setAttribute("autocapitalize", "on");
     contentDOM.setAttribute(
       "contenteditable",
-      readOnly || this.viewState.forcedROMode ? "false" : "true"
+      readOnly || this.viewState.forcedROMode ? "false" : "true",
     );
 
     if (isMobileSafari() && readOnly) {
@@ -704,8 +700,8 @@ export class Editor {
       currentPage,
       new PageState(
         this.editorView!.scrollDOM.scrollTop,
-        this.editorView!.state.selection
-      )
+        this.editorView!.state.selection,
+      ),
     );
   }
 
@@ -726,7 +722,7 @@ export class Editor {
       if (editor.editorView) {
         editor.tweakEditorDOM(
           editor.editorView.contentDOM,
-          viewState.perm === "ro"
+          viewState.perm === "ro",
         );
       }
     }, [viewState.forcedROMode]);
@@ -757,7 +753,7 @@ export class Editor {
                 dispatch({ type: "command-run", command: cmd.command.name });
                 cmd
                   .run()
-                  .catch((e) => {
+                  .catch((e: any) => {
                     console.error("Error running command", e.message);
                   })
                   .then(() => {
@@ -799,22 +795,18 @@ export class Editor {
           onActionClick={() => {
             dispatch({ type: "show-palette" });
           }}
-          rhs={
-            !!viewState.panels.rhs.mode && (
-              <div
-                className="panel"
-                style={{ flex: viewState.panels.rhs.mode }}
-              />
-            )
-          }
-          lhs={
-            !!viewState.panels.lhs.mode && (
-              <div
-                className="panel"
-                style={{ flex: viewState.panels.lhs.mode }}
-              />
-            )
-          }
+          rhs={!!viewState.panels.rhs.mode && (
+            <div
+              className="panel"
+              style={{ flex: viewState.panels.rhs.mode }}
+            />
+          )}
+          lhs={!!viewState.panels.lhs.mode && (
+            <div
+              className="panel"
+              style={{ flex: viewState.panels.lhs.mode }}
+            />
+          )}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (

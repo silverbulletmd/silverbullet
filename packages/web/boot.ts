@@ -1,7 +1,7 @@
-import { Editor } from "./editor";
-import { parseYamlSettings, safeRun } from "@silverbulletmd/common/util";
-import { Space } from "@silverbulletmd/common/spaces/space";
-import { HttpSpacePrimitives } from "@silverbulletmd/common/spaces/http_space_primitives";
+import { Editor } from "./editor.tsx";
+import { parseYamlSettings, safeRun } from "../common/util.ts";
+import { Space } from "../common/spaces/space.ts";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 
 safeRun(async () => {
   let password: string | undefined =
