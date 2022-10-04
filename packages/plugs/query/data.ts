@@ -1,26 +1,21 @@
 // Index key space:
 // data:page@pos
 
-import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
+import type { IndexTreeEvent } from "../../web/app_event.ts";
 import {
   batchSet,
   queryPrefix,
-} from "@silverbulletmd/plugos-silverbullet-syscall";
+} from "../../plugos-silverbullet-syscall/index.ts";
 import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
   replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import {
-  parse as parseYaml,
-  stringify as stringifyYaml,
-  parseAllDocuments,
-} from "yaml";
-import type { QueryProviderEvent } from "./engine";
-import { applyQuery } from "./engine";
-import { removeQueries } from "./util";
+} from "../../common/tree.ts";
+import type { QueryProviderEvent } from "./engine.ts";
+import { applyQuery } from "./engine.ts";
+import { removeQueries } from "./util.ts";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   let dataObjects: { key: string; value: Object }[] = [];

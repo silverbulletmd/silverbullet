@@ -9,11 +9,11 @@ export abstract class EventEmitter<HandlerT> {
     this.handlers = this.handlers.filter((h) => h !== handlers);
   }
 
-  emit(eventName: keyof HandlerT, ...args: any[]) {
-    for (let handler of this.handlers) {
-      let fn: any = handler[eventName];
+  async emit(eventName: keyof HandlerT, ...args: any[]): Promise<void> {
+    for (const handler of this.handlers) {
+      const fn: any = handler[eventName];
       if (fn) {
-        fn(...args);
+        await Promise.resolve(fn(...args));
       }
     }
   }

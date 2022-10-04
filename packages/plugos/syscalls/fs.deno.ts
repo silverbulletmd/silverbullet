@@ -1,13 +1,11 @@
-import { readdir, readFile, stat, writeFile, unlink, mkdir } from "fs/promises";
-import path from "path";
-import type { SysCallMapping } from "../system";
+import type { SysCallMapping } from "../system.ts";
 
 export type FileMeta = {
   name: string;
   lastModified: number;
 };
 
-export default function fileSystemSyscalls(root: string = "/"): SysCallMapping {
+export default function fileSystemSyscalls(root = "/"): SysCallMapping {
   function resolvedPath(p: string): string {
     p = path.resolve(root, p);
     if (!p.startsWith(root)) {

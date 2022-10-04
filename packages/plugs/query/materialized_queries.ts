@@ -3,7 +3,7 @@ import {
   reloadPage,
   save,
 } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import Handlebars from "handlebars";
+import Handlebars from "https://esm.sh/handlebars";
 
 import {
   readPage,

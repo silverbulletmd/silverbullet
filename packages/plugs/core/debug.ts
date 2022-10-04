@@ -1,11 +1,11 @@
-import { getLogs } from "@plugos/plugos-syscall/sandbox";
+import { getLogs } from "../../plugos-syscall/sandbox.ts";
 import {
   getText,
   hidePanel,
   showPanel,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { getServerLogs } from "@silverbulletmd/plugos-silverbullet-syscall/sandbox";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
+import { getServerLogs } from "../../plugos-silverbullet-syscall/sandbox.ts";
 
 export async function parsePageCommand() {
   console.log(

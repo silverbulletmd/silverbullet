@@ -1,10 +1,10 @@
-import type { LogLevel } from "./environments/custom_logger";
+import type { LogLevel } from "./environments/custom_logger.ts";
 import {
   ControllerMessage,
   WorkerLike,
   WorkerMessage,
-} from "./environments/worker";
-import { Plug } from "./plug";
+} from "./environments/worker.ts";
+import { Plug } from "./plug.ts";
 
 export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox;
 
@@ -64,8 +64,8 @@ export class Sandbox {
     });
   }
 
-  async loadDependency(name: string, code: string): Promise<void> {
-    // console.log("Loading dependency", name);
+  loadDependency(name: string, code: string): Promise<void> {
+    console.log("Loading dependency", name);
     this.worker.postMessage({
       type: "load-dependency",
       name: name,

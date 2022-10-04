@@ -1,4 +1,4 @@
-import { syscall } from "./syscall";
+import { syscall } from "./syscall.ts";
 
 export async function fullTextIndex(key: string, value: string) {
   return syscall("fulltext.index", key, value);

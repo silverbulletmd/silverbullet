@@ -1,5 +1,5 @@
-import type { Query } from "@plugos/plugos-syscall/store";
-import { syscall } from "./syscall";
+import type { Query } from "../plugos-syscall/store.ts";
+import { syscall } from "./syscall.ts";
 
 export type KV = {
   key: string;

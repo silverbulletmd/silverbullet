@@ -3,7 +3,7 @@ import {
   readPage,
   writePage,
   getPageMeta,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
+} from "../../plugos-silverbullet-syscall/space.ts";
 import {
   filterBox,
   getCurrentPage,
@@ -12,12 +12,12 @@ import {
   moveCursor,
   navigate,
   prompt,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { extractMeta } from "../query/data";
-import { renderToText } from "@silverbulletmd/common/tree";
-import { niceDate } from "./dates";
-import { readSettings } from "../lib/settings_page";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
+import { extractMeta } from "../query/data.ts";
+import { renderToText } from "../../common/tree.ts";
+import { niceDate } from "./dates.ts";
+import { readSettings } from "../lib/settings_page.ts";
 
 export async function instantiateTemplateCommand() {
   let allPages = await listPages();

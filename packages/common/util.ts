@@ -1,4 +1,4 @@
-import YAML from "yaml";
+import { YAML } from "../../mod.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -33,5 +33,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
     return {};
   }
   const yaml = match[1];
-  return YAML.parse(yaml);
+  return YAML.parse(yaml) as {
+    [key: string]: any;
+  };
 }

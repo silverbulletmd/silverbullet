@@ -1,8 +1,8 @@
 import {
   flashNotification,
   getText,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { listPages } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { listPages } from "../../plugos-silverbullet-syscall/space.ts";
 
 function countWords(str: string): number {
   const matches = str.match(/[\w\d\'-]+/gi);

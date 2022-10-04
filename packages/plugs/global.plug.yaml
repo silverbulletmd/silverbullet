@@ -1,5 +1,5 @@
 name: global
 dependencies:
-  yaml: "yaml@2"
-  handlebars: "handlebars@4.7.7:/dist/handlebars"
-  "@lezer/lr": "@lezer/lr@1.0.0"
+  "https://esm.sh/handlebars": "https://esm.sh/handlebars"
+  "https://deno.land/std/encoding/yaml.ts": "https://deno.land/std/encoding/yaml.ts"
+  "https://esm.sh/@lezer/lr": "https://esm.sh/@lezer/lr"

@@ -1,4 +1,4 @@
-import { flashNotification } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import { flashNotification } from "../../plugos-silverbullet-syscall/editor.ts";
 
 export async function replaceAsync(
   str: string,
@@ -16,7 +16,9 @@ export async function replaceAsync(
 }
 
 export function isServer() {
-  return typeof window === 'undefined' || typeof window.document === "undefined"; // if something defines window the same way as the browser, this will fail.
+  return (
+    typeof window === "undefined" || typeof window.document === "undefined"
+  ); // if something defines window the same way as the browser, this will fail.
 }
 
 // this helps keep if's condition as positive
@@ -24,7 +26,7 @@ export function isBrowser() {
   return !isServer();
 }
 
-export async function notifyUser(message: string, type?: "info"|"error") {
+export async function notifyUser(message: string, type?: "info" | "error") {
   if (isBrowser()) {
     return flashNotification(message, type);
   }

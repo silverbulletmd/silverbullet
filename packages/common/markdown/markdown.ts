@@ -6,15 +6,15 @@ import {
   indentNodeProp,
   LanguageDescription,
   ParseContext,
-} from "@codemirror/language";
+} from "../../../mod.ts";
 import {
-  parser as baseParser,
+  baseParser,
   MarkdownParser,
   GFM,
   Subscript,
   Superscript,
   Emoji,
-} from "@lezer/markdown";
+} from "../../../mod.ts";
 
 const data = defineLanguageFacet({ block: { open: "<!--", close: "-->" } });
 

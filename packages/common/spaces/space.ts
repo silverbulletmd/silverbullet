@@ -1,9 +1,9 @@
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
-import { AttachmentMeta, FileMeta, PageMeta } from "../types";
-import { EventEmitter } from "@plugos/plugos/event";
-import { Plug } from "@plugos/plugos/plug";
-import { plugPrefix } from "./constants";
-import { safeRun } from "../util";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
+import { EventEmitter } from "../../plugos/event.ts";
+import { Plug } from "../../plugos/plug.ts";
+import { plugPrefix } from "./constants.ts";
+import { safeRun } from "../util.ts";
 
 const pageWatchInterval = 2000;
 

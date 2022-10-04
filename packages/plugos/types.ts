@@ -1,4 +1,4 @@
-import { System } from "./system";
+import { System } from "./system.ts";
 
 export interface Manifest<HookT> {
   name: string;

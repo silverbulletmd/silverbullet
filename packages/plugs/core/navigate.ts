@@ -1,4 +1,4 @@
-import type { ClickEvent } from "@silverbulletmd/web/app_event";
+import type { ClickEvent } from "../../web/app_event.ts";
 import {
   flashNotification,
   getCurrentPage,
@@ -6,10 +6,10 @@ import {
   getText,
   navigate as navigateTo,
   openUrl,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { nodeAtPos, ParseTree } from "@silverbulletmd/common/tree";
-import { invokeCommand } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
+import { nodeAtPos, ParseTree } from "../../common/tree.ts";
+import { invokeCommand } from "../../plugos-silverbullet-syscall/system.ts";
 
 // Checks if the URL contains a protocol, if so keeps it, otherwise assumes an attachment
 function patchUrl(url: string): string {

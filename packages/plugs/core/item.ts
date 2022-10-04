@@ -1,18 +1,16 @@
-import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
+import type { IndexTreeEvent } from "../../web/app_event.ts";
 
 import {
   batchSet,
   queryPrefix,
-} from "@silverbulletmd/plugos-silverbullet-syscall/index";
+} from "../../plugos-silverbullet-syscall/index.ts";
 import {
-  collectNodesMatching,
   collectNodesOfType,
   ParseTree,
   renderToText,
-  replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import { removeQueries } from "../query/util";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
+} from "../../common/tree.ts";
+import { removeQueries } from "../query/util.ts";
+import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
 
 export type Item = {
   name: string;

@@ -3,7 +3,7 @@ import {
   collectNodesMatching,
   ParseTree,
   renderToText,
-} from "@silverbulletmd/common/tree";
+} from "../../common/tree.ts";
 
 export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;

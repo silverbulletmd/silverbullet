@@ -5,7 +5,7 @@ import {
   moveCursor,
   replaceRange,
   setSelection,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+} from "../../plugos-silverbullet-syscall/editor.ts";
 
 export async function quoteSelection() {
   let text = await getText();
@@ -71,7 +71,7 @@ export async function linkSelection() {
       pos = linkedText.length - 1;
     }
   }
-  await replaceRange(selection.from, selection.to, linkedText)
+  await replaceRange(selection.from, selection.to, linkedText);
   await moveCursor(selection.from + pos);
 }
 

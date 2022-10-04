@@ -1,7 +1,5 @@
-import { queryPrefix } from "@silverbulletmd/plugos-silverbullet-syscall";
-import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { listCommands } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
+import { matchBefore } from "../../plugos-silverbullet-syscall/editor.ts";
+import { listCommands } from "../../plugos-silverbullet-syscall/system.ts";
 
 export async function commandComplete() {
   let prefix = await matchBefore("\\{\\[[^\\]]*");

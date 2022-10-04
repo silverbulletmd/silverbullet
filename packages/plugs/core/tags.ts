@@ -1,12 +1,12 @@
-import { collectNodesOfType } from "@silverbulletmd/common/tree";
+import { collectNodesOfType } from "../../common/tree.ts";
 import {
   batchSet,
   queryPrefix,
-} from "@silverbulletmd/plugos-silverbullet-syscall";
-import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { removeQueries } from "../query/util";
+} from "../../plugos-silverbullet-syscall/index.ts";
+import { matchBefore } from "../../plugos-silverbullet-syscall/editor.ts";
+import type { IndexTreeEvent } from "../../web/app_event.ts";
+import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+import { removeQueries } from "../query/util.ts";
 
 // Key space
 // tag:TAG => true (for completion)

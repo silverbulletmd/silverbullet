@@ -1,6 +1,6 @@
-import { Manifest, RuntimeEnvironment } from "./types";
-import { Sandbox } from "./sandbox";
-import { System } from "./system";
+import { Manifest, RuntimeEnvironment } from "./types.ts";
+import { Sandbox } from "./sandbox.ts";
+import { System } from "./system.ts";
 
 export class Plug<HookT> {
   system: System<HookT>;

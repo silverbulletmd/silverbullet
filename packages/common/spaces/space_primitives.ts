@@ -1,5 +1,5 @@
-import { Plug } from "@plugos/plugos/plug";
-import { FileMeta } from "../types";
+import { Plug } from "../../plugos/plug.ts";
+import { FileMeta } from "../types.ts";
 
 export type FileEncoding = "string" | "arraybuffer" | "dataurl";
 export type FileData = ArrayBuffer | string;

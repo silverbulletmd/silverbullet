@@ -1,16 +1,17 @@
-import esbuild from "esbuild";
-import { mkdir, readFile, rm, symlink, unlink, writeFile } from "fs/promises";
-import path from "path";
-import { tmpdir } from "os";
-import { nodeModulesDir } from "./environments/node_sandbox";
-import { promisify } from "util";
-import { execFile } from "child_process";
-const execFilePromise = promisify(execFile);
+// import { esbuild } from "../../mod.ts";
+import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
+import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
+
+export const esbuild: typeof esbuildWasm =
+  Deno.run === undefined ? esbuildWasm : esbuildNative;
+
+import { path } from "../../mod.ts";
+import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 
 export async function compile(
   filePath: string,
   functionName: string | undefined = undefined,
-  debug: boolean = false,
+  debug = false,
   excludeModules: string[] = [],
   meta = false
 ): Promise<string> {
@@ -20,13 +21,15 @@ export async function compile(
   if (functionName) {
     // Generate a new file importing just this one function and exporting it
     inFile = path.resolve(path.dirname(filePath), "_in.ts");
-    await writeFile(
+    await Deno.writeTextFile(
       inFile,
       `import {${functionName}} from "./${path.basename(
         filePath
       )}";export default ${functionName};`
     );
   }
+
+  // console.log("External modules", excludeModules);
 
   try {
     // TODO: Figure out how to make source maps work correctly with eval() code
@@ -41,6 +44,12 @@ export async function compile(
       outfile: outFile,
       metafile: true,
       external: excludeModules,
+      treeShaking: true,
+      plugins: [
+        denoPlugin({
+          importMapURL: new URL("./../../import_map.json", import.meta.url),
+        }),
+      ],
       loader: {
         ".css": "text",
         ".md": "text",
@@ -59,12 +68,12 @@ export async function compile(
       console.log("Bundle info for", functionName, text);
     }
 
-    let jsCode = (await readFile(outFile)).toString();
-    await unlink(outFile);
+    let jsCode = await Deno.readTextFile(outFile);
+    await Deno.remove(outFile);
     return `(() => { ${jsCode} return mod;})()`;
   } finally {
     if (inFile !== filePath) {
-      await unlink(inFile);
+      await Deno.remove(inFile);
     }
   }
 }
@@ -74,74 +83,61 @@ export async function compileModule(
   moduleName: string
 ): Promise<string> {
   let inFile = path.resolve(cwd, "_in.ts");
-  await writeFile(inFile, `export * from "${moduleName}";`);
+  await Deno.writeTextFile(inFile, `export * from "${moduleName}";`);
   let code = await compile(inFile);
-  await unlink(inFile);
+  await Deno.remove(inFile);
   return code;
 }
 
-// TODO: Reconsider this later
-const exposedModules = [
-  "@silverbulletmd/plugos-silverbullet-syscall",
-  "@plugos/plugos-syscall",
-];
+// export async function sandboxCompile(
+//   filename: string,
+//   code: string,
+//   functionName?: string,
+//   debug: boolean = false,
+//   installModules: string[] = [],
+//   globalModules: string[] = []
+// ): Promise<string> {
+//   let tmpDir = `${tmpdir()}/plugos-${Math.random()}`;
+//   await mkdir(tmpDir, { recursive: true });
 
-export async function sandboxCompile(
-  filename: string,
-  code: string,
-  functionName?: string,
-  debug: boolean = false,
-  installModules: string[] = [],
-  globalModules: string[] = []
-): Promise<string> {
-  let tmpDir = `${tmpdir()}/plugos-${Math.random()}`;
-  await mkdir(tmpDir, { recursive: true });
+//   const srcNodeModules = `${nodeModulesDir}/node_modules`;
+//   const targetNodeModules = `${tmpDir}/node_modules`;
 
-  const srcNodeModules = `${nodeModulesDir}/node_modules`;
-  const targetNodeModules = `${tmpDir}/node_modules`;
+//   await mkdir(`${targetNodeModules}/@silverbulletmd`, { recursive: true });
+//   await mkdir(`${targetNodeModules}/@plugos`, { recursive: true });
+//   for (const exposedModule of exposedModules) {
+//     await symlink(
+//       `${srcNodeModules}/${exposedModule}`,
+//       `${targetNodeModules}/${exposedModule}`,
+//       "dir"
+//     );
+//   }
+//   for (let moduleName of installModules) {
+//     await execFilePromise("npm", ["install", moduleName], {
+//       cwd: tmpDir,
+//     });
+//   }
 
-  await mkdir(`${targetNodeModules}/@silverbulletmd`, { recursive: true });
-  await mkdir(`${targetNodeModules}/@plugos`, { recursive: true });
-  for (const exposedModule of exposedModules) {
-    await symlink(
-      `${srcNodeModules}/${exposedModule}`,
-      `${targetNodeModules}/${exposedModule}`,
-      "dir"
-    );
-  }
-  for (let moduleName of installModules) {
-    await execFilePromise("npm", ["install", moduleName], {
-      cwd: tmpDir,
-    });
-  }
-
-  await writeFile(`${tmpDir}/${filename}`, code);
-  let jsCode = await compile(
-    `${tmpDir}/${filename}`,
-    functionName,
-    debug,
-    globalModules
-  );
-  await rm(tmpDir, { recursive: true });
-  return jsCode;
-}
+//   await writeFile(`${tmpDir}/${filename}`, code);
+//   let jsCode = await compile(
+//     `${tmpDir}/${filename}`,
+//     functionName,
+//     debug,
+//     globalModules
+//   );
+//   await rm(tmpDir, { recursive: true });
+//   return jsCode;
+// }
 
 export async function sandboxCompileModule(
-  moduleName: string,
+  moduleUrl: string,
   globalModules: string[] = []
 ): Promise<string> {
-  let [modulePart, path] = moduleName.split(":");
-  let modulePieces = modulePart.split("@");
-  let cleanModulesName = modulePieces
-    .slice(0, modulePieces.length - 1)
-    .join("@");
-  return sandboxCompile(
-    "module.ts",
-    // `export * from "${cleanModulesName}${path ? path : ""}";`,
-    `module.exports = require("${cleanModulesName}${path ? path : ""}");`,
-    undefined,
-    true,
-    [modulePart],
-    globalModules
+  await Deno.writeTextFile(
+    "_mod.ts",
+    `module.exports = require("${moduleUrl}");`
   );
+  let code = await compile("_mod.ts", undefined, false, globalModules);
+  await Deno.remove("_mod.ts");
+  return code;
 }

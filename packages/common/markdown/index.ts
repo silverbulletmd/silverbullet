@@ -2,21 +2,24 @@
 // * Disable HTML tags
 
 import { Prec } from "@codemirror/state";
-import { KeyBinding, keymap } from "@codemirror/view";
+import { KeyBinding, keymap } from "../../../mod.ts";
 import {
   Language,
   LanguageSupport,
   LanguageDescription,
-} from "@codemirror/language";
-import { MarkdownExtension, MarkdownParser, parseCode } from "@lezer/markdown";
+} from "../../../mod.ts";
+import { MarkdownExtension, MarkdownParser, parseCode } from "../../../mod.ts";
 // import { html } from "@codemirror/lang-html";
 import {
   commonmarkLanguage,
   markdownLanguage,
   mkLang,
   getCodeParser,
-} from "./markdown";
-import { insertNewlineContinueMarkup, deleteMarkupBackward } from "./commands";
+} from "./markdown.ts";
+import {
+  insertNewlineContinueMarkup,
+  deleteMarkupBackward,
+} from "./commands.ts";
 export {
   commonmarkLanguage,
   markdownLanguage,

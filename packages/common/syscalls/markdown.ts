@@ -1,11 +1,11 @@
-import { SysCallMapping } from "@plugos/plugos/system";
-import { parse } from "../parse_tree";
-import { Language } from "@codemirror/language";
-import type { ParseTree } from "../tree";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { parse } from "../parse_tree.ts";
+import { Language } from "../../../mod.ts";
+import type { ParseTree } from "../tree.ts";
 
 export function markdownSyscalls(lang: Language): SysCallMapping {
   return {
-    "markdown.parseMarkdown": (ctx, text: string): ParseTree => {
+    "markdown.parseMarkdown": (_ctx, text: string): ParseTree => {
       return parse(lang, text);
     },
   };

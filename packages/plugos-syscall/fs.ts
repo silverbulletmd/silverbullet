@@ -1,4 +1,4 @@
-import { syscall } from "./syscall";
+import { syscall } from "./syscall.ts";
 
 export type FileMeta = {
   name: string;

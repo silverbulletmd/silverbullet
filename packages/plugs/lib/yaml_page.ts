@@ -1,10 +1,10 @@
-import { findNodeOfType, traverseTree } from "@silverbulletmd/common/tree";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+import { findNodeOfType, traverseTree } from "../../common/tree.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
 import {
   readPage,
   writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import YAML from "yaml";
+} from "../../plugos-silverbullet-syscall/space.ts";
+import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
 
 export async function readYamlPage(
   pageName: string,

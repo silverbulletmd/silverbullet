@@ -1,5 +1,5 @@
-import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
-import { enableReadOnlyMode } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import * as clientStore from "../../plugos-silverbullet-syscall/clientStore.ts";
+import { enableReadOnlyMode } from "../../plugos-silverbullet-syscall/editor.ts";
 
 export async function editorLoad() {
   let readOnlyMode = await clientStore.get("readOnlyMode");

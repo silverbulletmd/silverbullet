@@ -1,5 +1,5 @@
-import type { CommandDef } from "@silverbulletmd/web/hooks/command";
-import { syscall } from "./syscall";
+import type { CommandDef } from "../web/hooks/command.ts";
+import { syscall } from "./syscall.ts";
 
 export async function invokeFunction(
   env: string,

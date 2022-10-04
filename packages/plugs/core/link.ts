@@ -1,14 +1,14 @@
-import { nodeAtPos } from "@silverbulletmd/common/tree";
+import { nodeAtPos } from "../../common/tree.ts";
 import {
   filterBox,
   flashNotification,
   getCursor,
   getText,
   replaceRange,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { dispatch as dispatchEvent } from "@plugos/plugos-syscall/event";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
+import { dispatch as dispatchEvent } from "../../plugos-syscall/event.ts";
+import { invokeFunction } from "../../plugos-silverbullet-syscall/system.ts";
 
 type UnfurlOption = {
   id: string;

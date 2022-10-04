@@ -1,13 +1,10 @@
 import type {
   FileData,
   FileEncoding,
-} from "@silverbulletmd/common/spaces/space_primitives";
-import {
-  renderToText,
-  replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import type { FileMeta } from "@silverbulletmd/common/types";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+} from "../../common/spaces/space_primitives.ts";
+import { renderToText, replaceNodesMatching } from "../../common/tree.ts";
+import type { FileMeta } from "../../common/types.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
 
 const pagePrefix = "💭 ";
 

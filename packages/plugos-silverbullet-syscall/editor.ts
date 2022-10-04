@@ -1,5 +1,5 @@
-import { syscall } from "./syscall";
-import { FilterOption } from "../common/types";
+import { syscall } from "./syscall.ts";
+import { FilterOption } from "../common/types.ts";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");

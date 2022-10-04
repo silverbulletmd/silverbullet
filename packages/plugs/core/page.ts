@@ -1,13 +1,11 @@
-import type { IndexEvent, IndexTreeEvent } from "@silverbulletmd/web/app_event";
+import type { IndexEvent, IndexTreeEvent } from "../../web/app_event.ts";
 import {
   batchSet,
   clearPageIndex as clearPageIndexSyscall,
   clearPageIndexForPage,
   queryPrefix,
   set,
-} from "@silverbulletmd/plugos-silverbullet-syscall/index";
-
-import { set as storeSet } from "@plugos/plugos-syscall/store";
+} from "../../plugos-silverbullet-syscall/index.ts";
 
 import {
   flashNotification,
@@ -17,26 +15,26 @@ import {
   matchBefore,
   navigate,
   prompt,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+} from "../../plugos-silverbullet-syscall/editor.ts";
 
-import { dispatch } from "@plugos/plugos-syscall/event";
+import { dispatch } from "../../plugos-syscall/event.ts";
 import {
   deletePage as deletePageSyscall,
   listPages,
   readPage,
   writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+} from "../../plugos-silverbullet-syscall/space.ts";
+import { invokeFunction } from "../../plugos-silverbullet-syscall/system.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
 import {
   addParentPointers,
   collectNodesMatching,
   ParseTree,
   renderToText,
   replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { extractMeta } from "../query/data";
+} from "../../common/tree.ts";
+import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+import { extractMeta } from "../query/data.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName

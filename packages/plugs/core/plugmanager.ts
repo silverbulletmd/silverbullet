@@ -1,20 +1,20 @@
-import { dispatch } from "@plugos/plugos-syscall/event";
-import { Manifest } from "@silverbulletmd/common/manifest";
+import { dispatch } from "../../plugos-syscall/event.ts";
+import { Manifest } from "../../common/manifest.ts";
 import {
   flashNotification,
   save,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+} from "../../plugos-silverbullet-syscall/editor.ts";
 import {
   deleteAttachment,
   listPlugs,
   writeAttachment,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
+} from "../../plugos-silverbullet-syscall/space.ts";
 import {
   invokeFunction,
   reloadPlugs,
-} from "@silverbulletmd/plugos-silverbullet-syscall/system";
+} from "../../plugos-silverbullet-syscall/system.ts";
 
-import { readYamlPage } from "../lib/yaml_page";
+import { readYamlPage } from "../lib/yaml_page.ts";
 
 export async function updatePlugsCommand() {
   await save();

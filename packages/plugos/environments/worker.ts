@@ -1,4 +1,4 @@
-import type { LogLevel } from "./custom_logger";
+import type { LogLevel } from "./custom_logger.ts";
 
 export type ControllerMessageType =
   | "inited"

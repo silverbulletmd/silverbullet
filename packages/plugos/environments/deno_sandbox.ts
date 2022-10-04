@@ -1,9 +1,12 @@
 import { safeRun } from "../util.ts";
+
+// @ts-ignore
+// import workerCode from "bundle-text:./node_worker.ts";
 import { Sandbox } from "../sandbox.ts";
 import { WorkerLike } from "./worker.ts";
-import type { Plug } from "../plug.ts";
+import { Plug } from "../plug.ts";
 
-class WebWorkerWrapper implements WorkerLike {
+class DenoWorkerWrapper implements WorkerLike {
   private worker: Worker;
   onMessage?: (message: any) => Promise<void>;
   ready: Promise<void>;
@@ -29,9 +32,11 @@ class WebWorkerWrapper implements WorkerLike {
 }
 
 export function createSandbox(plug: Plug<any>) {
-  // ParcelJS will build this file into a worker.
-  let worker = new Worker(new URL("sandbox_worker.ts", import.meta.url), {
-    type: "module",
-  });
-  return new Sandbox(plug, new WebWorkerWrapper(worker));
+  let worker = new Worker(
+    new URL("./sandbox_worker.ts", import.meta.url).href,
+    {
+      type: "module",
+    }
+  );
+  return new Sandbox(plug, new DenoWorkerWrapper(worker));
 }

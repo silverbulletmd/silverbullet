@@ -1,12 +1,12 @@
-import { SysCallMapping } from "../system";
-import { EventHook } from "../hooks/event";
+import { SysCallMapping } from "../system.ts";
+import { EventHook } from "../hooks/event.ts";
 
 export function eventSyscalls(eventHook: EventHook): SysCallMapping {
   return {
-    "event.dispatch": async (ctx, eventName: string, data: any) => {
+    "event.dispatch": (ctx, eventName: string, data: any) => {
       return eventHook.dispatchEvent(eventName, data);
     },
-    "event.list": async () => {
+    "event.list": () => {
       return eventHook.listEvents();
     },
   };

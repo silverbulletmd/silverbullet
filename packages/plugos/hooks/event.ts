@@ -1,7 +1,6 @@
-import { Hook, Manifest } from "../types";
-import { System } from "../system";
-import { safeRun } from "../util";
-import { EventEmitter } from "events";
+import type { Hook, Manifest } from "../types.ts";
+import { System } from "../system.ts";
+import { safeRun } from "../util.ts";
 
 // System events:
 // - plug:load (plugName: string)
@@ -28,9 +27,7 @@ export class EventHook implements Hook<EventHookT> {
     }
     let eventNames = new Set<string>();
     for (const plug of this.system.loadedPlugs.values()) {
-      for (const [name, functionDef] of Object.entries(
-        plug.manifest!.functions
-      )) {
+      for (const functionDef of Object.values(plug.manifest!.functions)) {
         if (functionDef.events) {
           for (let eventName of functionDef.events) {
             eventNames.add(eventName);

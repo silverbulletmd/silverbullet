@@ -1,7 +1,7 @@
-import { Hook, Manifest, RuntimeEnvironment } from "./types";
-import { EventEmitter } from "./event";
-import { SandboxFactory } from "./sandbox";
-import { Plug } from "./plug";
+import { Hook, Manifest, RuntimeEnvironment } from "./types.ts";
+import { EventEmitter } from "./event.ts";
+import { SandboxFactory } from "./sandbox.ts";
+import { Plug } from "./plug.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -10,8 +10,8 @@ export interface SysCallMapping {
 export type SystemJSON<HookT> = Manifest<HookT>[];
 
 export type SystemEvents<HookT> = {
-  plugLoaded: (plug: Plug<HookT>) => void;
-  plugUnloaded: (name: string) => void;
+  plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;
+  plugUnloaded: (name: string) => void | Promise<void>;
 };
 
 export type SyscallContext = {
@@ -62,7 +62,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
   }
 
-  async syscallWithContext(
+  syscallWithContext(
     ctx: SyscallContext,
     name: string,
     args: any[]
@@ -82,7 +82,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
-  async localSyscall(
+  localSyscall(
     contextPlugName: string,
     syscallName: string,
     args: any[]
@@ -116,7 +116,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     console.log("Loading", name);
     await plug.load(manifest);
     this.plugs.set(name, plug);
-    this.emit("plugLoaded", plug);
+    await this.emit("plugLoaded", plug);
     return plug;
   }
 

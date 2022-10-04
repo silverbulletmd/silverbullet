@@ -1,6 +1,6 @@
-import { AttachmentMeta, FileMeta, PageMeta } from "../types";
-import { Plug } from "@plugos/plugos/plug";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
+import { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
+import { Plug } from "../../plugos/plug.ts";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   fsUrl: string;
@@ -51,12 +51,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     let data: FileData | null = null;
     switch (encoding) {
       case "arraybuffer":
-        let abBlob = await res.blob();
-        data = await abBlob.arrayBuffer();
+        {
+          let abBlob = await res.blob();
+          data = await abBlob.arrayBuffer();
+        }
         break;
       case "dataurl":
-        let dUBlob = await res.blob();
-        data = arrayBufferToDataUrl(await dUBlob.arrayBuffer());
+        {
+          let dUBlob = await res.blob();
+          data = arrayBufferToDataUrl(await dUBlob.arrayBuffer());
+        }
         break;
       case "string":
         data = await res.text();

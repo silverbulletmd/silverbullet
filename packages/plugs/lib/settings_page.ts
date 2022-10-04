@@ -1,7 +1,8 @@
-import { readYamlPage } from "./yaml_page";
-import { notifyUser } from "./util";
-import YAML from "yaml";
-import { writePage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { readYamlPage } from "./yaml_page.ts";
+import { notifyUser } from "./util.ts";
+import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
+
+import { writePage } from "../../plugos-silverbullet-syscall/space.ts";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values

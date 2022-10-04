@@ -1,15 +1,14 @@
-import { collectNodesOfType, traverseTree } from "@silverbulletmd/common/tree";
+import { collectNodesOfType } from "../../common/tree.ts";
 import {
   batchSet,
   queryPrefix,
-} from "@silverbulletmd/plugos-silverbullet-syscall";
+} from "../../plugos-silverbullet-syscall/index.ts";
 import {
   getCurrentPage,
   matchBefore,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import type { IndexTreeEvent } from "@silverbulletmd/web/app_event";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { removeQueries } from "../query/util";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import type { IndexTreeEvent } from "../../web/app_event.ts";
+import { removeQueries } from "../query/util.ts";
 
 // Key space
 // a:pageName:anchorName => pos

@@ -2,17 +2,14 @@ import {
   fullTextDelete,
   fullTextIndex,
   fullTextSearch,
-} from "@plugos/plugos-syscall/fulltext";
-import { renderToText } from "@silverbulletmd/common/tree";
-import { PageMeta } from "@silverbulletmd/common/types";
-import { queryPrefix } from "@silverbulletmd/plugos-silverbullet-syscall";
-import {
-  navigate,
-  prompt,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { IndexTreeEvent } from "@silverbulletmd/web/app_event";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { removeQueries } from "../query/util";
+} from "../../plugos-syscall/fulltext.ts";
+import { renderToText } from "../../common/tree.ts";
+import { PageMeta } from "../../common/types.ts";
+import { queryPrefix } from "../../plugos-silverbullet-syscall/index.ts";
+import { navigate, prompt } from "../../plugos-silverbullet-syscall/editor.ts";
+import { IndexTreeEvent } from "../../web/app_event.ts";
+import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+import { removeQueries } from "../query/util.ts";
 
 const searchPrefix = "🔍 ";
 

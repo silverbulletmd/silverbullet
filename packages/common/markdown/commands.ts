@@ -6,10 +6,10 @@ import {
   Text,
   EditorSelection,
   ChangeSpec,
-} from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
-import { SyntaxNode, Tree } from "@lezer/common";
-import { markdownLanguage } from "./markdown";
+} from "../../../mod.ts";
+import { syntaxTree } from "../../../mod.ts";
+import { SyntaxNode, Tree } from "../../../mod.ts";
+import { markdownLanguage } from "./markdown.ts";
 
 function nodeStart(node: SyntaxNode, doc: Text) {
   return doc.sliceString(node.from, node.from + 50);

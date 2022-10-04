@@ -1,10 +1,11 @@
-import { collectNodesOfType, ParseTree } from "@silverbulletmd/common/tree";
-import Handlebars from "handlebars";
-import YAML from "yaml";
+import { collectNodesOfType, ParseTree } from "../../common/tree.ts";
+// import Handlebars from "handlebars";
+import Handlebars from "https://esm.sh/handlebars";
+import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
 
-import { readPage } from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { niceDate } from "../core/dates";
-import { ParsedQuery } from "./parser";
+import { readPage } from "../../plugos-silverbullet-syscall/space.ts";
+import { niceDate } from "../core/dates.ts";
+import { ParsedQuery } from "./parser.ts";
 
 export type QueryProviderEvent = {
   query: ParsedQuery;

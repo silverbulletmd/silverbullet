@@ -1,14 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env deno
 
-import { readFile, watch, writeFile } from "fs/promises";
-import path from "path";
+import { Manifest } from "../types.ts";
+import { YAML } from "../../../mod.ts";
+import { compile, esbuild, sandboxCompileModule } from "../compile.ts";
+import { path } from "../../../mod.ts";
 
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
-import { Manifest } from "../types";
-import YAML from "yaml";
-import { mkdirSync } from "fs";
-import { compile, sandboxCompileModule } from "../compile";
+import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 
 async function bundle(
   manifestPath: string,
@@ -17,14 +14,15 @@ async function bundle(
 ) {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
-    (await readFile(manifestPath)).toString()
+    await Deno.readTextFile(manifestPath)
   ) as Manifest<any>;
 
   if (!manifest.name) {
     throw new Error(`Missing 'name' in ${manifestPath}`);
   }
 
-  let allModulesToExclude = excludeModules.slice();
+  const allModulesToExclude = excludeModules.slice();
+
   for (let [name, moduleSpec] of Object.entries(manifest.dependencies || {})) {
     manifest.dependencies![name] = await sandboxCompileModule(moduleSpec);
     allModulesToExclude.push(name);
@@ -42,7 +40,7 @@ async function bundle(
       jsFunctionName,
       debug,
       allModulesToExclude,
-      false
+      true
     );
     delete def.path;
   }
@@ -55,7 +53,7 @@ async function buildManifest(
   debug: boolean,
   excludeModules: string[]
 ) {
-  let generatedManifest = await bundle(manifestPath, debug, excludeModules);
+  const generatedManifest = await bundle(manifestPath, debug, excludeModules);
   const outFile =
     manifestPath.substring(
       0,
@@ -63,47 +61,30 @@ async function buildManifest(
     ) + ".json";
   const outPath = path.join(distPath, path.basename(outFile));
   console.log("Emitting bundle to", outPath);
-  await writeFile(outPath, JSON.stringify(generatedManifest, null, 2));
+  await Deno.writeTextFile(outPath, JSON.stringify(generatedManifest, null, 2));
   return { generatedManifest, outPath };
 }
 
-async function run() {
-  let args = yargs(hideBin(process.argv))
-    .option("debug", {
-      type: "boolean",
-    })
-    .option("watch", {
-      type: "boolean",
-      alias: "w",
-    })
-    .option("dist", {
-      type: "string",
-      default: ".",
-    })
-    .option("exclude", {
-      type: "array",
-      default: [],
-    })
-    .parse();
-  if (args._.length === 0) {
-    console.log(
-      "Usage: plugos-bundle [--debug] [--dist <path>] [--exclude package1 package2] -- <manifest.plug.yaml> <manifest2.plug.yaml> ..."
-    );
-    process.exit(1);
-  }
+type BundleArgs = {
+  _: string[];
+  dist?: string;
+  debug?: boolean;
+  exclude?: string[] | string;
+};
 
-  // console.log("Args", args);
+export async function run(args: BundleArgs) {
+  console.log("Args", args);
 
   async function buildAll() {
-    mkdirSync(args.dist, { recursive: true });
+    Deno.mkdirSync(args.dist!, { recursive: true });
     for (const plugManifestPath of args._) {
-      let manifestPath = plugManifestPath as string;
+      const manifestPath = plugManifestPath as string;
       try {
         await buildManifest(
           manifestPath,
-          args.dist,
+          args.dist!,
           !!args.debug,
-          args.exclude
+          args.exclude as string[]
         );
       } catch (e) {
         console.error(`Error building ${manifestPath}:`, e);
@@ -112,28 +93,44 @@ async function run() {
   }
 
   await buildAll();
-  if (args.watch) {
-    console.log("Watching for changes...");
-    for await (const { eventType, filename } of watch(".", {
-      recursive: true,
-    })) {
-      if (
-        filename.endsWith(".plug.yaml") ||
-        filename.endsWith(".js") ||
-        filename.endsWith(".css") ||
-        filename.endsWith(".png") ||
-        filename.endsWith(".jpg") ||
-        filename.endsWith(".gif") ||
-        (filename.endsWith(".ts") && !filename.endsWith("_in.ts"))
-      ) {
-        console.log("Change detected", eventType, filename);
-        await buildAll();
-      }
-    }
-  }
+  // if (args.watch) {
+  //   console.log("Watching for changes...");
+  //   for await (const event of Deno.watchFs(".", {
+  //     recursive: true,
+  //   })) {
+  //     if (
+  //       event.filename.endsWith(".plug.yaml") ||
+  //       filename.endsWith(".js") ||
+  //       filename.endsWith(".css") ||
+  //       filename.endsWith(".png") ||
+  //       filename.endsWith(".jpg") ||
+  //       filename.endsWith(".gif") ||
+  //       (filename.endsWith(".ts") && !filename.endsWith("_in.ts"))
+  //     ) {
+  //       console.log("Change detected", eventType, filename);
+  //       await buildAll();
+  //     }
+  //   }
+  // }
 }
 
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (import.meta.main) {
+  let args: BundleArgs = flags.parse(Deno.args);
+
+  if (args._.length === 0) {
+    console.log(
+      "Usage: plugos-bundle [--debug] [--dist <path>] [--exclude=package1,package2] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
+    );
+    Deno.exit(1);
+  }
+
+  if (!args.dist) {
+    args.dist = path.resolve("dist");
+  }
+
+  args.exclude =
+    typeof args.exclude === "string" ? args.exclude.split(",") : [];
+
+  await run(args);
+  esbuild.stop();
+}

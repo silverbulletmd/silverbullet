@@ -1,7 +1,7 @@
-import { Hook, Manifest } from "../types";
-import cron, { ScheduledTask } from "node-cron";
-import { safeRun } from "../util";
-import { System } from "../system";
+import { Hook, Manifest } from "../types.ts";
+import { Cron } from "https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/croner.js";
+import { safeRun } from "../util.ts";
+import { System } from "../system.ts";
 
 export type CronHookT = {
   cron?: string | string[];
@@ -9,7 +9,7 @@ export type CronHookT = {
 
 export class NodeCronHook implements Hook<CronHookT> {
   apply(system: System<CronHookT>): void {
-    let tasks: ScheduledTask[] = [];
+    let tasks: Cron[] = [];
     system.on({
       plugLoaded: () => {
         reloadCrons();
@@ -37,9 +37,9 @@ export class NodeCronHook implements Hook<CronHookT> {
           const crons = Array.isArray(functionDef.cron)
             ? functionDef.cron
             : [functionDef.cron];
-          for (let cronDef of crons) {
+          for (const cronDef of crons) {
             tasks.push(
-              cron.schedule(cronDef, () => {
+              new Cron(cronDef, () => {
                 console.log("Now acting on cron", cronDef);
                 safeRun(async () => {
                   try {
@@ -57,7 +57,7 @@ export class NodeCronHook implements Hook<CronHookT> {
   }
 
   validateManifest(manifest: Manifest<CronHookT>): string[] {
-    let errors = [];
+    let errors: string[] = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (!functionDef.cron) {
         continue;
@@ -66,9 +66,9 @@ export class NodeCronHook implements Hook<CronHookT> {
         ? functionDef.cron
         : [functionDef.cron];
       for (let cronDef of crons) {
-        if (!cron.validate(cronDef)) {
-          errors.push(`Invalid cron expression ${cronDef}`);
-        }
+        // if (!cron.validate(cronDef)) {
+        //   errors.push(`Invalid cron expression ${cronDef}`);
+        // }
       }
     }
     return errors;

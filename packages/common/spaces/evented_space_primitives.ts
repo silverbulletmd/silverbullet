@@ -1,8 +1,8 @@
-import { EventHook } from "@plugos/plugos/hooks/event";
-import { Plug } from "@plugos/plugos/plug";
+import { EventHook } from "../../plugos/hooks/event.ts";
+import { Plug } from "../../plugos/plug.ts";
 
-import { FileMeta } from "../types";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
+import { FileMeta } from "../types.ts";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
@@ -52,8 +52,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           text = data as string;
           break;
         case "arraybuffer":
-          const decoder = new TextDecoder("utf-8");
-          text = decoder.decode(data as ArrayBuffer);
+          {
+            const decoder = new TextDecoder("utf-8");
+            text = decoder.decode(data as ArrayBuffer);
+          }
+
           break;
         case "dataurl":
           throw Error("Data urls not supported in this context");

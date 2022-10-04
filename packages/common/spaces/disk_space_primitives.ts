@@ -1,24 +1,25 @@
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
-import * as path from "path";
-import { FileMeta } from "../types";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives";
-import { Plug } from "@plugos/plugos/plug";
-import { realpathSync } from "fs";
-import mime from "mime-types";
+// import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import { path } from "../../../mod.ts";
+import { b64encode, b64decode } from "../../../mod.ts";
+import { readAll } from "../../../mod.ts";
+import { FileMeta } from "../types.ts";
+import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { Plug } from "../../plugos/plug.ts";
+import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 function lookupContentType(path: string): string {
-  return mime.lookup(path) || "application/octet-stream";
+  return mime.getType(path) || "application/octet-stream";
 }
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
 
   constructor(rootPath: string) {
-    this.rootPath = realpathSync(rootPath);
+    this.rootPath = Deno.realPathSync(rootPath);
   }
 
   safePath(p: string): string {
-    let realPath = path.resolve(p);
+    const realPath = path.resolve(p);
     if (!realPath.startsWith(this.rootPath)) {
       throw Error(`Path ${p} is not in the space`);
     }
@@ -39,29 +40,37 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   ): Promise<{ data: FileData; meta: FileMeta }> {
     const localPath = this.filenameToPath(name);
     try {
-      const s = await stat(localPath);
+      const s = await Deno.stat(localPath);
       let data: FileData | null = null;
-      let contentType = lookupContentType(name);
+      const contentType = lookupContentType(name);
       switch (encoding) {
         case "string":
-          data = await readFile(localPath, "utf8");
+          data = await Deno.readTextFile(localPath);
           break;
         case "dataurl":
-          let fileBuffer = await readFile(localPath, {
-            encoding: "base64",
-          });
-          data = `data:${contentType};base64,${fileBuffer}`;
+          {
+            const f = await Deno.open(localPath, { read: true });
+            const buf = b64encode(await readAll(f));
+            Deno.close(f.rid);
+
+            data = `data:${contentType};base64,${buf}`;
+          }
           break;
         case "arraybuffer":
-          let arrayBuffer = await readFile(localPath);
-          data = arrayBuffer.buffer;
+          {
+            const f = await Deno.open(localPath, { read: true });
+            const buf = await readAll(f);
+            Deno.close(f.rid);
+
+            data = buf.buffer;
+          }
           break;
       }
       return {
         data,
         meta: {
           name: name,
-          lastModified: s.mtime.getTime(),
+          lastModified: s.mtime!.getTime(),
           perm: "rw",
           size: s.size,
           contentType: contentType,
@@ -82,30 +91,31 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     let localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
-      await mkdir(path.dirname(localPath), { recursive: true });
+      await Deno.mkdir(path.dirname(localPath), { recursive: true });
 
       // Actually write the file
       switch (encoding) {
         case "string":
-          await writeFile(localPath, data as string, "utf8");
+          await Deno.writeTextFile(localPath, data as string);
           break;
         case "dataurl":
-          await writeFile(localPath, (data as string).split(",")[1], {
-            encoding: "base64",
-          });
+          await Deno.writeFile(
+            localPath,
+            b64decode((data as string).split(",")[1])
+          );
           break;
         case "arraybuffer":
-          await writeFile(localPath, Buffer.from(data as ArrayBuffer));
+          await Deno.writeFile(localPath, new Uint8Array(data as ArrayBuffer));
           break;
       }
 
       // Fetch new metadata
-      const s = await stat(localPath);
+      const s = await Deno.stat(localPath);
       return {
         name: name,
         size: s.size,
         contentType: lookupContentType(name),
-        lastModified: s.mtime.getTime(),
+        lastModified: s.mtime!.getTime(),
         perm: "rw",
       };
     } catch (e) {
@@ -115,14 +125,14 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    let localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(name);
     try {
-      const s = await stat(localPath);
+      const s = await Deno.stat(localPath);
       return {
         name: name,
         size: s.size,
         contentType: lookupContentType(name),
-        lastModified: s.mtime.getTime(),
+        lastModified: s.mtime!.getTime(),
         perm: "rw",
       };
     } catch (e) {
@@ -132,30 +142,29 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(name: string): Promise<void> {
-    let localPath = this.filenameToPath(name);
-    await unlink(localPath);
+    const localPath = this.filenameToPath(name);
+    await Deno.remove(localPath);
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    let fileList: FileMeta[] = [];
+    const fileList: FileMeta[] = [];
 
     const walkPath = async (dir: string) => {
-      let files = await readdir(dir);
-      for (let file of files) {
-        if (file.startsWith(".")) {
+      for await (const file of Deno.readDir(dir)) {
+        if (file.name.startsWith(".")) {
           continue;
         }
-        const fullPath = path.join(dir, file);
-        let s = await stat(fullPath);
-        if (s.isDirectory()) {
+        const fullPath = path.join(dir, file.name);
+        let s = await Deno.stat(fullPath);
+        if (file.isDirectory) {
           await walkPath(fullPath);
         } else {
-          if (!file.startsWith(".")) {
+          if (!file.name.startsWith(".")) {
             fileList.push({
               name: this.pathToFilename(fullPath),
               size: s.size,
               contentType: lookupContentType(fullPath),
-              lastModified: s.mtime.getTime(),
+              lastModified: s.mtime!.getTime(),
               perm: "rw",
             });
           }
