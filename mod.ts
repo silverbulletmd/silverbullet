@@ -9,22 +9,22 @@ export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
 export { readAll } from "https://deno.land/std@0.158.0/streams/conversion.ts";
 
 export {
-  encode as b64encode,
   decode as b64decode,
-} from "https://deno.land/std/encoding/base64.ts";
+  encode as b64encode,
+} from "https://deno.land/std@0.158.0/encoding/base64.ts";
 
 export {
   defaultHighlightStyle,
-  Language,
-  LanguageSupport,
-  LanguageDescription,
-  syntaxHighlighting,
-  syntaxTree,
   defineLanguageFacet,
-  languageDataProp,
   foldNodeProp,
   indentNodeProp,
+  Language,
+  languageDataProp,
+  LanguageDescription,
+  LanguageSupport,
   ParseContext,
+  syntaxHighlighting,
+  syntaxTree,
 } from "@codemirror/language";
 export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.1?external=@codemirror/state";
 export {
@@ -45,19 +45,19 @@ export type {
   LeafBlock,
   LeafBlockParser,
   MarkdownConfig,
+  MarkdownExtension,
   Table,
   TaskList,
-  MarkdownExtension,
 } from "https://esm.sh/@lezer/markdown";
 
 export {
+  Emoji,
+  GFM,
   MarkdownParser,
   parseCode,
   parser as baseParser,
-  GFM,
   Subscript,
   Superscript,
-  Emoji,
 } from "https://esm.sh/@lezer/markdown";
 
 export type { SyntaxNode, Tree } from "https://esm.sh/@lezer/common";
@@ -77,9 +77,6 @@ export {
 export type { KeyBinding } from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
 
 export { EditorSelection, EditorState, Text } from "@codemirror/state";
-export type { StateCommand, ChangeSpec } from "@codemirror/state";
+export type { ChangeSpec, StateCommand } from "@codemirror/state";
 
-export { DB as SQLite3 } from "https://deno.land/x/sqlite/mod.ts";
-
-// @deno-types="https://deno.land/x/dex@1.0.2/types/index.d.ts"
-export { default as Dex } from "https://deno.land/x/dex@1.0.2/mod.ts";
+export { Database as SQLite } from "https://deno.land/x/sqlite3@0.6.1/mod.ts";

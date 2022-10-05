@@ -1,5 +1,5 @@
 import { sandboxCompile, sandboxCompileModule } from "../compile";
-import { SysCallMapping } from "../system";
+import { SysCallMapping } from "../system.ts";
 
 // TODO: FIgure out a better way to do this
 const builtinModules = ["yaml", "handlebars"];
@@ -9,14 +9,14 @@ export function esbuildSyscalls(): SysCallMapping {
     "tsc.analyze": async (
       ctx,
       filename: string,
-      code: string
+      code: string,
     ): Promise<any> => {},
     "esbuild.compile": async (
       ctx,
       filename: string,
       code: string,
       functionName?: string,
-      excludeModules: string[] = []
+      excludeModules: string[] = [],
     ): Promise<string> => {
       return await sandboxCompile(
         filename,
@@ -24,12 +24,12 @@ export function esbuildSyscalls(): SysCallMapping {
         functionName,
         true,
         [],
-        [...builtinModules, ...excludeModules]
+        [...builtinModules, ...excludeModules],
       );
     },
     "esbuild.compileModule": async (
       ctx,
-      moduleName: string
+      moduleName: string,
     ): Promise<string> => {
       return await sandboxCompileModule(moduleName, builtinModules);
     },

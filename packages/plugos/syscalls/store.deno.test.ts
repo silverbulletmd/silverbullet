@@ -1,18 +1,11 @@
-import { createSandbox } from "../environments/node_sandbox";
-import { expect, test } from "@jest/globals";
-import { System } from "../system";
-import { ensureTable, storeSyscalls } from "./store.knex_node";
-import knex from "knex";
-import fs from "fs/promises";
+import { assertEquals } from "../../../test_dep.ts";
+import { SQLite } from "../../../mod.ts";
+import { createSandbox } from "../environments/deno_sandbox.ts";
+import { System } from "../system.ts";
+import { ensureTable, storeSyscalls } from "./store.deno.ts";
 
-test("Test store", async () => {
-  const db = knex({
-    client: "better-sqlite3",
-    connection: {
-      filename: "test.db",
-    },
-    useNullAsDefault: true,
-  });
+Deno.test("Test store", async () => {
+  const db = new SQLite(":memory:");
   await ensureTable(db, "test_table");
   let system = new System("server");
   let syscalls = storeSyscalls(db, "test_table");
@@ -33,9 +26,9 @@ test("Test store", async () => {
         },
       },
     },
-    createSandbox
+    createSandbox,
   );
-  expect(await plug.invoke("test1", [])).toBe("Pete");
+  assertEquals(await plug.invoke("test1", []), "Pete");
   await system.unloadAll();
 
   let dummyCtx: any = {};
@@ -74,8 +67,8 @@ test("Test store", async () => {
     orderDesc: true,
   });
 
-  expect(allRoberts.length).toBe(3);
-  expect(allRoberts[0].key).toBe("petesr");
+  assertEquals(allRoberts.length, 3);
+  assertEquals(allRoberts[0].key, "petesr");
 
   allRoberts = await syscalls["store.query"](dummyCtx, {
     filter: [{ op: "=", prop: "lastName", value: "Roberts" }],
@@ -83,8 +76,8 @@ test("Test store", async () => {
     limit: 1,
   });
 
-  expect(allRoberts.length).toBe(1);
-  expect(allRoberts[0].key).toBe("petejr");
+  assertEquals(allRoberts.length, 1);
+  assertEquals(allRoberts[0].key, "petejr");
 
   allRoberts = await syscalls["store.query"](dummyCtx, {
     filter: [
@@ -94,8 +87,8 @@ test("Test store", async () => {
     orderBy: "age",
   });
 
-  expect(allRoberts.length).toBe(1);
-  expect(allRoberts[0].key).toBe("pete");
+  assertEquals(allRoberts.length, 1);
+  assertEquals(allRoberts[0].key, "pete");
 
   // Delete the middle one
 
@@ -107,9 +100,7 @@ test("Test store", async () => {
   });
 
   allRoberts = await syscalls["store.query"](dummyCtx, {});
-  expect(allRoberts.length).toBe(2);
+  assertEquals(allRoberts.length, 2);
 
-  await db.destroy();
-
-  await fs.unlink("test.db");
+  db.close();
 });

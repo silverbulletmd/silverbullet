@@ -1,8 +1,4 @@
-import type { QueryBuilder } from "https://deno.land/x/dex@1.0.2/types/index.d.ts";
-import { RowObject } from "https://deno.land/x/sqlite/mod.ts";
-import type { SQLite3 } from "../../../mod.ts";
-
-import { Dex } from "../../../mod.ts";
+import { SQLite } from "../../../mod.ts";
 import { SysCallMapping } from "../system.ts";
 
 export type Item = {
@@ -16,24 +12,16 @@ export type KV = {
   value: any;
 };
 
-const dex = Dex<Item>({ client: "sqlite3" });
-
-export function ensureTable(db: SQLite3, tableName: string) {
-  const result = db.query<[string]>(
+export function ensureTable(db: SQLite, tableName: string) {
+  const stmt = db.prepare(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-    [tableName],
   );
+  const result = stmt.all(tableName);
   if (result.length === 0) {
-    const createQuery = dex.schema.createTable(tableName, (table) => {
-      table.string("key");
-      table.text("value");
-      table.primary(["key"]);
-    }).toString();
-
-    db.query(createQuery);
-
+    db.exec(`CREATE TABLE ${tableName} (key STRING PRIMARY KEY, value TEXT);`);
     console.log(`Created table ${tableName}`);
   }
+  return Promise.resolve();
 }
 
 export type Query = {
@@ -50,95 +38,110 @@ export type Filter = {
   value: any;
 };
 
-export function queryToKnex(
-  queryBuilder: QueryBuilder<Item, any>,
+export function queryToSql(
   query: Query,
-): QueryBuilder<Item, any> {
+): { sql: string; params: any[] } {
+  const whereClauses: string[] = [];
+  const clauses: string[] = [];
+  const params: any[] = [];
   if (query.filter) {
     for (const filter of query.filter) {
-      queryBuilder = queryBuilder.andWhereRaw(
+      whereClauses.push(
         `json_extract(value, '$.${filter.prop}') ${filter.op} ?`,
-        [filter.value],
       );
+      params.push(filter.value);
     }
   }
-  if (query.limit) {
-    queryBuilder = queryBuilder.limit(query.limit);
-  }
   if (query.orderBy) {
-    queryBuilder = queryBuilder.orderByRaw(
-      `json_extract(value, '$.${query.orderBy}') ${
+    clauses.push(
+      `ORDER BY json_extract(value, '$.${query.orderBy}') ${
         query.orderDesc ? "desc" : "asc"
       }`,
     );
   }
-  return queryBuilder;
+  if (query.limit) {
+    clauses.push(`LIMIT ${query.limit}`);
+  }
+  return {
+    sql: whereClauses.length > 0
+      ? `WHERE ${whereClauses.join(" AND ")} ${clauses.join(" ")}`
+      : clauses.join(" "),
+    params,
+  };
 }
 
-function asyncQuery<T extends RowObject>(
-  db: SQLite3,
-  query: QueryBuilder<any, any>,
+function asyncQuery<T extends Record<string, unknown>>(
+  db: SQLite,
+  query: string,
+  ...params: any[]
 ): Promise<T[]> {
-  return Promise.resolve(db.queryEntries<T>(query.toString()));
+  // console.log("Querying", query, params);
+  return Promise.resolve(db.prepare(query).all<T>(params));
 }
 
 function asyncExecute(
-  db: SQLite3,
-  query: QueryBuilder<any, any>,
-): Promise<void> {
-  return Promise.resolve(db.execute(query.toString()));
+  db: SQLite,
+  query: string,
+  ...params: any[]
+): Promise<number> {
+  // console.log("Exdecting", query, params);
+  return Promise.resolve(db.exec(query, params));
 }
 
 export function storeSyscalls(
-  db: SQLite3,
+  db: SQLite,
   tableName: string,
 ): SysCallMapping {
   const apiObj: SysCallMapping = {
     "store.delete": async (_ctx, key: string) => {
-      await asyncExecute(db, dex(tableName).where({ key }).del());
+      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
     },
     "store.deletePrefix": async (_ctx, prefix: string) => {
       await asyncExecute(
         db,
-        dex(tableName).whereRaw(`"key" LIKE "${prefix}%"`).del(),
+        `DELETE FROM ${tableName} WHERE key LIKE "?%"`,
+        prefix,
       );
     },
     "store.deleteQuery": async (_ctx, query: Query) => {
-      await asyncExecute(db, queryToKnex(dex(tableName), query).del());
+      const { sql, params } = queryToSql(query);
+      await asyncExecute(db, `DELETE FROM ${tableName} ${sql}`, ...params);
     },
     "store.deleteAll": async () => {
-      await asyncExecute(db, dex(tableName).del());
+      await asyncExecute(db, `DELETE FROM ${tableName}`);
     },
     "store.set": async (_ctx, key: string, value: any) => {
       await asyncExecute(
         db,
-        dex(tableName).where({ key }).update("value", JSON.stringify(value)),
+        `UPDATE ${tableName} SET value = ? WHERE key = ?`,
+        JSON.stringify(value),
+        key,
       );
       if (db.changes === 0) {
         await asyncExecute(
           db,
-          dex(tableName).insert({
-            key,
-            value: JSON.stringify(value),
-          }),
+          `INSERT INTO ${tableName} (key, value) VALUES (?, ?)`,
+          key,
+          JSON.stringify(value),
         );
       }
     },
     // TODO: Optimize
     "store.batchSet": async (ctx, kvs: KV[]) => {
-      for (let { key, value } of kvs) {
+      for (const { key, value } of kvs) {
         await apiObj["store.set"](ctx, key, value);
       }
     },
     "store.batchDelete": async (ctx, keys: string[]) => {
-      for (let key of keys) {
+      for (const key of keys) {
         await apiObj["store.delete"](ctx, key);
       }
     },
     "store.get": async (_ctx, key: string): Promise<any | null> => {
       const result = await asyncQuery<Item>(
         db,
-        dex(tableName).where({ key }).select("value"),
+        `SELECT value FROM ${tableName} WHERE key = ?`,
+        key,
       );
       if (result.length) {
         return JSON.parse(result[0].value);
@@ -146,13 +149,12 @@ export function storeSyscalls(
         return null;
       }
     },
-    "store.queryPrefix": async (ctx, prefix: string) => {
+    "store.queryPrefix": async (_ctx, prefix: string) => {
       return (
         await asyncQuery<Item>(
           db,
-          dex(tableName)
-            .andWhereRaw(`"key" LIKE "${prefix}%"`)
-            .select("key", "value"),
+          `SELECT key, value FROM ${tableName} WHERE key LIKE "?%"`,
+          prefix,
         )
       ).map(({ key, value }) => ({
         key,
@@ -160,10 +162,12 @@ export function storeSyscalls(
       }));
     },
     "store.query": async (_ctx, query: Query) => {
+      const { sql, params } = queryToSql(query);
       return (
         await asyncQuery<Item>(
           db,
-          queryToKnex(dex(tableName), query).select("key", "value"),
+          `SELECT key, value FROM ${tableName} ${sql}`,
+          ...params,
         )
       ).map(({ key, value }: { key: string; value: string }) => ({
         key,
