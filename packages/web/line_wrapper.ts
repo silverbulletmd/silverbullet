@@ -1,13 +1,13 @@
-import { syntaxTree } from "../../mod.ts";
+import { syntaxTree } from "../../dep_web.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
-} from "../../mod.ts";
+} from "../../dep_web.ts";
 
-import { Range } from "../../mod.ts";
+import { Range } from "../../dep_web.ts";
 
 interface WrapElement {
   selector: string;

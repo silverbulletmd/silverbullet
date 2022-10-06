@@ -1,20 +1,20 @@
 #!/usr/bin/env deno
 
 import { Manifest } from "../types.ts";
-import { YAML } from "../../../mod.ts";
+import { YAML } from "../../../dep_common.ts";
 import { compile, esbuild, sandboxCompileModule } from "../compile.ts";
-import { path } from "../../../mod.ts";
+import { path } from "../../../dep_server.ts";
 
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 
 async function bundle(
   manifestPath: string,
   debug: boolean,
-  excludeModules: string[]
+  excludeModules: string[],
 ) {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
-    await Deno.readTextFile(manifestPath)
+    await Deno.readTextFile(manifestPath),
   ) as Manifest<any>;
 
   if (!manifest.name) {
@@ -40,7 +40,7 @@ async function bundle(
       jsFunctionName,
       debug,
       allModulesToExclude,
-      true
+      true,
     );
     delete def.path;
   }
@@ -51,14 +51,13 @@ async function buildManifest(
   manifestPath: string,
   distPath: string,
   debug: boolean,
-  excludeModules: string[]
+  excludeModules: string[],
 ) {
   const generatedManifest = await bundle(manifestPath, debug, excludeModules);
-  const outFile =
-    manifestPath.substring(
-      0,
-      manifestPath.length - path.extname(manifestPath).length
-    ) + ".json";
+  const outFile = manifestPath.substring(
+    0,
+    manifestPath.length - path.extname(manifestPath).length,
+  ) + ".json";
   const outPath = path.join(distPath, path.basename(outFile));
   console.log("Emitting bundle to", outPath);
   await Deno.writeTextFile(outPath, JSON.stringify(generatedManifest, null, 2));
@@ -84,7 +83,7 @@ export async function run(args: BundleArgs) {
           manifestPath,
           args.dist!,
           !!args.debug,
-          args.exclude as string[]
+          args.exclude as string[],
         );
       } catch (e) {
         console.error(`Error building ${manifestPath}:`, e);
@@ -119,7 +118,7 @@ if (import.meta.main) {
 
   if (args._.length === 0) {
     console.log(
-      "Usage: plugos-bundle [--debug] [--dist <path>] [--exclude=package1,package2] <manifest.plug.yaml> <manifest2.plug.yaml> ..."
+      "Usage: plugos-bundle [--debug] [--dist <path>] [--exclude=package1,package2] <manifest.plug.yaml> <manifest2.plug.yaml> ...",
     );
     Deno.exit(1);
   }
@@ -128,8 +127,9 @@ if (import.meta.main) {
     args.dist = path.resolve("dist");
   }
 
-  args.exclude =
-    typeof args.exclude === "string" ? args.exclude.split(",") : [];
+  args.exclude = typeof args.exclude === "string"
+    ? args.exclude.split(",")
+    : [];
 
   await run(args);
   esbuild.stop();

@@ -1,5 +1,5 @@
-import { Tag } from "../../mod.ts";
-import type { MarkdownConfig } from "../../mod.ts";
+import { Tag } from "../../dep_common.ts";
+import type { MarkdownConfig } from "../../dep_common.ts";
 import { System } from "../plugos/system.ts";
 import { Manifest } from "./manifest.ts";
 

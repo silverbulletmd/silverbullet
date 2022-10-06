@@ -1,5 +1,5 @@
-import type { SyntaxNode } from "../../mod.ts";
-import type { Language } from "../../mod.ts";
+import type { SyntaxNode } from "../../dep_common.ts";
+import type { Language } from "../../dep_common.ts";
 import { ParseTree } from "./tree.ts";
 
 export function lezerToParseTree(

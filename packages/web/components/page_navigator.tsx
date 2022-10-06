@@ -1,7 +1,7 @@
 import { FilterList } from "./filter.tsx";
 import { FilterOption, PageMeta } from "../../common/types.ts";
 
-import {React} from "../../../mod.ts"
+import {React} from "../../../dep_web.ts"
 
 
 export function PageNavigator({

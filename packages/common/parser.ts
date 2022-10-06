@@ -1,4 +1,4 @@
-import { styleTags, tags as t } from "../../mod.ts";
+import { styleTags, tags as t } from "../../dep_common.ts";
 import {
   BlockContext,
   LeafBlock,
@@ -6,10 +6,10 @@ import {
   MarkdownConfig,
   Table,
   TaskList,
-} from "../../mod.ts";
+} from "../../dep_common.ts";
 import { markdown } from "./markdown/index.ts";
 import * as ct from "./customtags.ts";
-import { Language } from "../../mod.ts";
+import { Language } from "../../dep_common.ts";
 import {
   MDExt,
   mdExtensionStyleTags,

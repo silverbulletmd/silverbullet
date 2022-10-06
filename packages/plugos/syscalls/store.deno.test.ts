@@ -1,5 +1,5 @@
 import { assertEquals } from "../../../test_dep.ts";
-import { SQLite } from "../../../mod.ts";
+import { SQLite } from "../../../dep_server.ts";
 import { createSandbox } from "../environments/deno_sandbox.ts";
 import { System } from "../system.ts";
 import { ensureTable, storeSyscalls } from "./store.deno.ts";

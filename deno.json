@@ -4,7 +4,8 @@
     },
     "importMap": "import_map.json",
     "tasks": {
-      "watch": "deno bundle --unstable --config deno.json --watch main.ts bundle.js"
+      "test": "deno test -A --unstable",
+      "watch": "deno run -A build.ts"
     }
   }
   

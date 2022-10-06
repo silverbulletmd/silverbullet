@@ -1,7 +1,7 @@
 // import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
-import { path } from "../../../mod.ts";
-import { b64encode, b64decode } from "../../../mod.ts";
-import { readAll } from "../../../mod.ts";
+import { path } from "../../../dep_common.ts";
+import { b64decode, b64encode } from "../../../dep_common.ts";
+import { readAll } from "../../../dep_common.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { Plug } from "../../plugos/plug.ts";
@@ -36,7 +36,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     const localPath = this.filenameToPath(name);
     try {
@@ -86,7 +86,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     let localPath = this.filenameToPath(name);
     try {
@@ -101,7 +101,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         case "dataurl":
           await Deno.writeFile(
             localPath,
-            b64decode((data as string).split(",")[1])
+            b64decode((data as string).split(",")[1]),
           );
           break;
         case "arraybuffer":
@@ -180,7 +180,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     return plug.invoke(name, args);
   }

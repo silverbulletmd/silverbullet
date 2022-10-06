@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "../../../mod.ts";
+import { useEffect, useRef } from "../../../dep_web.ts";
 import { Editor } from "../editor.tsx";
 import { PanelConfig } from "../types.ts";
 
-import {React} from "../../../mod.ts";
+import {React} from "../../../dep_web.ts";
 
 const panelHtml = `<!DOCTYPE html>
 <html lang="en">

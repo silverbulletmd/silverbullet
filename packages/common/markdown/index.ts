@@ -2,29 +2,33 @@
 // * Disable HTML tags
 
 import { Prec } from "@codemirror/state";
-import { KeyBinding, keymap } from "../../../mod.ts";
+import { KeyBinding, keymap } from "../../../dep_common.ts";
 import {
   Language,
-  LanguageSupport,
   LanguageDescription,
-} from "../../../mod.ts";
-import { MarkdownExtension, MarkdownParser, parseCode } from "../../../mod.ts";
+  LanguageSupport,
+} from "../../../dep_common.ts";
+import {
+  MarkdownExtension,
+  MarkdownParser,
+  parseCode,
+} from "../../../dep_common.ts";
 // import { html } from "@codemirror/lang-html";
 import {
   commonmarkLanguage,
+  getCodeParser,
   markdownLanguage,
   mkLang,
-  getCodeParser,
 } from "./markdown.ts";
 import {
-  insertNewlineContinueMarkup,
   deleteMarkupBackward,
+  insertNewlineContinueMarkup,
 } from "./commands.ts";
 export {
   commonmarkLanguage,
-  markdownLanguage,
-  insertNewlineContinueMarkup,
   deleteMarkupBackward,
+  insertNewlineContinueMarkup,
+  markdownLanguage,
 };
 
 /// A small keymap with Markdown-specific bindings. Binds Enter to
@@ -63,7 +67,7 @@ export function markdown(
     /// The base language to use. Defaults to
     /// [`commonmarkLanguage`](#lang-markdown.commonmarkLanguage).
     base?: Language;
-  } = {}
+  } = {},
 ) {
   let {
     codeLanguages,
@@ -71,10 +75,11 @@ export function markdown(
     addKeymap = true,
     base: { parser } = commonmarkLanguage,
   } = config;
-  if (!(parser instanceof MarkdownParser))
+  if (!(parser instanceof MarkdownParser)) {
     throw new RangeError(
-      "Base parser provided to `markdown` should be a Markdown parser"
+      "Base parser provided to `markdown` should be a Markdown parser",
     );
+  }
   let extensions = config.extensions ? [config.extensions] : [];
   // let support = [htmlNoMatch.support],
   let support = [],
@@ -85,12 +90,11 @@ export function markdown(
   } else if (defaultCodeLanguage) {
     defaultCode = defaultCodeLanguage;
   }
-  let codeParser =
-    codeLanguages || defaultCode
-      ? getCodeParser(codeLanguages, defaultCode)
-      : undefined;
+  let codeParser = codeLanguages || defaultCode
+    ? getCodeParser(codeLanguages, defaultCode)
+    : undefined;
   extensions.push(
-    parseCode({ codeParser }) //, htmlParser: htmlNoMatch.language.parser })
+    parseCode({ codeParser }), //, htmlParser: htmlNoMatch.language.parser })
   );
   if (addKeymap) support.push(Prec.high(keymap.of(markdownKeymap)));
   return new LanguageSupport(mkLang(parser.configure(extensions)), support);

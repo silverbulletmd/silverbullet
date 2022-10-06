@@ -1,5 +1,5 @@
-import { HighlightStyle } from "../../mod.ts";
-import { tagHighlighter, tags as t } from "../../mod.ts";
+import { HighlightStyle } from "../../dep_web.ts";
+import { tagHighlighter, tags as t } from "../../dep_web.ts";
 import * as ct from "../common/customtags.ts";
 import { MDExt } from "../common/markdown_ext.ts";
 

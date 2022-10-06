@@ -1,20 +1,20 @@
 import {
-  Language,
   defineLanguageFacet,
-  languageDataProp,
   foldNodeProp,
   indentNodeProp,
+  Language,
+  languageDataProp,
   LanguageDescription,
   ParseContext,
-} from "../../../mod.ts";
+} from "../../../dep_common.ts";
 import {
   baseParser,
-  MarkdownParser,
+  Emoji,
   GFM,
+  MarkdownParser,
   Subscript,
   Superscript,
-  Emoji,
-} from "../../../mod.ts";
+} from "../../../dep_common.ts";
 
 const data = defineLanguageFacet({ block: { open: "<!--", close: "-->" } });
 
@@ -54,18 +54,18 @@ export function getCodeParser(
     | readonly LanguageDescription[]
     | ((info: string) => Language | LanguageDescription | null)
     | undefined,
-  defaultLanguage?: Language
+  defaultLanguage?: Language,
 ) {
   return (info: string) => {
     if (info && languages) {
       let found = null;
       if (typeof languages == "function") found = languages(info);
       else found = LanguageDescription.matchLanguageName(languages, info, true);
-      if (found instanceof LanguageDescription)
+      if (found instanceof LanguageDescription) {
         return found.support
           ? found.support.language.parser
           : ParseContext.getSkippingParser(found.load());
-      else if (found) return found.parser;
+      } else if (found) return found.parser;
     }
     return defaultLanguage ? defaultLanguage.parser : null;
   };

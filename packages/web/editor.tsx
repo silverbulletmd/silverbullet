@@ -1,10 +1,10 @@
-import { autocompletion, completionKeymap, CompletionResult } from "../../mod.ts";
-import { closeBrackets, closeBracketsKeymap } from "../../mod.ts";
-import { indentWithTab, standardKeymap } from "../../mod.ts";
-import { history, historyKeymap } from "../../mod.ts";
-import { syntaxHighlighting } from "../../mod.ts";
-import { searchKeymap } from "../../mod.ts";
-import { EditorSelection, EditorState } from "../../mod.ts";
+import { autocompletion, completionKeymap, CompletionResult } from "../../dep_web.ts";
+import { closeBrackets, closeBracketsKeymap } from "../../dep_web.ts";
+import { indentWithTab, standardKeymap } from "../../dep_web.ts";
+import { history, historyKeymap } from "../../dep_web.ts";
+import { syntaxHighlighting } from "../../dep_web.ts";
+import { searchKeymap } from "../../dep_web.ts";
+import { EditorSelection, EditorState } from "../../dep_web.ts";
 import {
   drawSelection,
   dropCursor,
@@ -15,7 +15,7 @@ import {
   runScopeHandlers,
   ViewPlugin,
   ViewUpdate,
-} from "../../mod.ts";
+} from "../../dep_web.ts";
 import React, { useEffect, useReducer } from "https://esm.sh/react@17";
 import ReactDOM from "https://esm.sh/react-dom@17";
 import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox.ts";
@@ -49,7 +49,7 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
 import { FilterList } from "./components/filter.tsx";
 import { FilterOption, PageMeta } from "../common/types.ts";
-import { syntaxTree } from "../../mod.ts";
+import { syntaxTree } from "../../dep_web.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { storeSyscalls } from "./syscalls/store.ts";

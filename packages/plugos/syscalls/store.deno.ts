@@ -1,4 +1,4 @@
-import { SQLite } from "../../../mod.ts";
+import { SQLite } from "../../../dep_server.ts";
 import { SysCallMapping } from "../system.ts";
 
 export type Item = {

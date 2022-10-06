@@ -1,4 +1,4 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "../../mod.ts";
+import { EditorView, ViewPlugin, ViewUpdate } from "../../dep_web.ts";
 import { safeRun } from "../plugos/util.ts";
 import { maximumAttachmentSize } from "../common/types.ts";
 import { Editor } from "./editor.tsx";

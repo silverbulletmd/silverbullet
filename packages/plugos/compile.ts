@@ -2,10 +2,11 @@
 import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
 import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
 
-export const esbuild: typeof esbuildWasm =
-  Deno.run === undefined ? esbuildWasm : esbuildNative;
+export const esbuild: typeof esbuildWasm = Deno.run === undefined
+  ? esbuildWasm
+  : esbuildNative;
 
-import { path } from "../../mod.ts";
+import { path } from "../../dep_server.ts";
 import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 
 export async function compile(
@@ -13,7 +14,7 @@ export async function compile(
   functionName: string | undefined = undefined,
   debug = false,
   excludeModules: string[] = [],
-  meta = false
+  meta = false,
 ): Promise<string> {
   let outFile = path.resolve(path.dirname(filePath), "_out.tmp");
   let inFile = filePath;
@@ -23,9 +24,11 @@ export async function compile(
     inFile = path.resolve(path.dirname(filePath), "_in.ts");
     await Deno.writeTextFile(
       inFile,
-      `import {${functionName}} from "./${path.basename(
-        filePath
-      )}";export default ${functionName};`
+      `import {${functionName}} from "./${
+        path.basename(
+          filePath,
+        )
+      }";export default ${functionName};`,
     );
   }
 
@@ -80,7 +83,7 @@ export async function compile(
 
 export async function compileModule(
   cwd: string,
-  moduleName: string
+  moduleName: string,
 ): Promise<string> {
   let inFile = path.resolve(cwd, "_in.ts");
   await Deno.writeTextFile(inFile, `export * from "${moduleName}";`);
@@ -131,11 +134,11 @@ export async function compileModule(
 
 export async function sandboxCompileModule(
   moduleUrl: string,
-  globalModules: string[] = []
+  globalModules: string[] = [],
 ): Promise<string> {
   await Deno.writeTextFile(
     "_mod.ts",
-    `module.exports = require("${moduleUrl}");`
+    `module.exports = require("${moduleUrl}");`,
   );
   let code = await compile("_mod.ts", undefined, false, globalModules);
   await Deno.remove("_mod.ts");
