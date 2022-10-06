@@ -77,7 +77,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         },
       };
     } catch (e) {
-      console.error("Error while reading file", name, e);
+      // console.error("Error while reading file", name, e);
       throw Error(`Could not read file ${name}`);
     }
   }

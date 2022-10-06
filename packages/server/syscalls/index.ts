@@ -83,8 +83,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
       return (
         await asyncQuery<Item>(
           db,
-          `SELECT key, page, value FROM ${tableName} WHERE key LIKE "?%"`,
-          prefix,
+          `SELECT key, page, value FROM ${tableName} WHERE key LIKE "${prefix}%"`,
         )
       ).map(({ key, value, page }) => ({
         key,
@@ -112,8 +111,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
     "index.deletePrefixForPage": async (ctx, page: string, prefix: string) => {
       await asyncExecute(
         db,
-        `DELETE FROM ${tableName} WHERE key LIKE "?%" AND page = ?`,
-        prefix,
+        `DELETE FROM ${tableName} WHERE key LIKE "${prefix}%" AND page = ?`,
         page,
       );
     },

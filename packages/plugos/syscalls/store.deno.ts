@@ -99,8 +99,7 @@ export function storeSyscalls(
     "store.deletePrefix": async (_ctx, prefix: string) => {
       await asyncExecute(
         db,
-        `DELETE FROM ${tableName} WHERE key LIKE "?%"`,
-        prefix,
+        `DELETE FROM ${tableName} WHERE key LIKE "${prefix}%"`,
       );
     },
     "store.deleteQuery": async (_ctx, query: Query) => {
@@ -153,8 +152,7 @@ export function storeSyscalls(
       return (
         await asyncQuery<Item>(
           db,
-          `SELECT key, value FROM ${tableName} WHERE key LIKE "?%"`,
-          prefix,
+          `SELECT key, value FROM ${tableName} WHERE key LIKE "${prefix}%"`,
         )
       ).map(({ key, value }) => ({
         key,

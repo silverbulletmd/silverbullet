@@ -354,7 +354,6 @@ export class ExpressServer {
 
     // Fallback, serve index.html
     this.app.use((ctx) => {
-      console.log("Here!!");
       return ctx.send({
         root: "/",
         path: `${this.distDir}/index.html`,
@@ -480,7 +479,7 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
   });
 
   fsRouter
-    .get("\/(.+)", async ({ params, request, response }, next) => {
+    .get("\/(.+)", async ({ params, request, response }) => {
       let name = params[0];
       console.log("Loading file", name);
       try {
@@ -496,9 +495,10 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         response.headers.set("X-Permission", attachmentData.meta.perm);
         response.headers.set("Content-Type", attachmentData.meta.contentType);
         response.body = attachmentData.data as ArrayBuffer;
-      } catch (e: any) {
-        console.error("Error in main router", e);
-        next();
+      } catch {
+        // console.error("Error in main router", e);
+        response.status = 404;
+        response.body = "";
       }
     })
     .put("\/(.+)", async ({ request, response, params }) => {
