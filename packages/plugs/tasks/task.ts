@@ -1,20 +1,17 @@
-import type { ClickEvent, IndexTreeEvent } from "@silverbulletmd/web/app_event";
+import type { ClickEvent, IndexTreeEvent } from "$sb/web/app_event.ts";
 
 import {
   batchSet,
   queryPrefix,
-} from "@silverbulletmd/plugos-silverbullet-syscall/index";
-import {
-  readPage,
-  writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+} from "$sb/plugos-silverbullet-syscall/index.ts";
+import { readPage, writePage } from "$sb/plugos-silverbullet-syscall/space.ts";
+import { parseMarkdown } from "$sb/plugos-silverbullet-syscall/markdown.ts";
 import {
   dispatch,
   filterBox,
   getCursor,
   getText,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+} from "$sb/plugos-silverbullet-syscall/editor.ts";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -24,10 +21,10 @@ import {
   ParseTree,
   renderToText,
   replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import { removeQueries } from "../query/util";
-import { applyQuery, QueryProviderEvent } from "../query/engine";
-import { niceDate } from "../core/dates";
+} from "$sb/common/tree.ts";
+import { removeQueries } from "../query/util.ts";
+import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+import { niceDate } from "../core/dates.ts";
 
 export type Task = {
   name: string;
@@ -111,7 +108,7 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
 
   let parentWikiLinks = collectNodesMatching(
     node.parent!,
-    (n) => n.type === "WikiLinkPage"
+    (n) => n.type === "WikiLinkPage",
   );
   for (let wikiLink of parentWikiLinks) {
     let ref = wikiLink.children![0].text!;
@@ -126,7 +123,7 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
       if (!taskMarkerNode || taskMarkerNode.type !== "TaskMarker") {
         console.error(
           "Reference not a task marker, out of date?",
-          taskMarkerNode
+          taskMarkerNode,
         );
         return;
       }
@@ -177,7 +174,7 @@ export async function postponeCommand() {
       { name: "a week", orderId: 2 },
       { name: "following Monday", orderId: 3 },
     ],
-    "Select the desired time span to delay this task"
+    "Select the desired time span to delay this task",
   );
   if (!option) {
     return;

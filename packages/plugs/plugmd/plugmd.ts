@@ -1,24 +1,21 @@
-import {
-  collectNodesOfType,
-  findNodeOfType,
-} from "@silverbulletmd/common/tree";
+import { collectNodesOfType, findNodeOfType } from "../../common/tree.ts";
 import {
   getText,
   hideBhs,
   showBhs,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
 import {
   readPage,
   writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
+} from "../../plugos-silverbullet-syscall/space.ts";
 import {
   invokeFunction,
   reloadPlugs,
-} from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import YAML from "yaml";
+} from "../../plugos-silverbullet-syscall/system.ts";
+import * as YAML from "yaml";
 
-import type { Manifest } from "@silverbulletmd/common/manifest";
+import type { Manifest } from "../../common/manifest.ts";
 
 export async function compileCommand() {
   let text = await getText();
@@ -26,7 +23,7 @@ export async function compileCommand() {
     let manifest = await compileDefinition(text);
     await writePage(
       `_plug/${manifest.name}`,
-      JSON.stringify(manifest, null, 2)
+      JSON.stringify(manifest, null, 2),
     );
     console.log("Wrote this plug", manifest);
     await hideBhs();
@@ -94,7 +91,7 @@ async function compileDefinition(text: string): Promise<Manifest> {
       `file.${language}`,
       code,
       name,
-      Object.keys(manifest.dependencies)
+      Object.keys(manifest.dependencies),
     );
     func.code = compiled;
   }
@@ -108,7 +105,7 @@ export async function compileJS(
   filename: string,
   code: string,
   functionName: string,
-  excludeModules: string[]
+  excludeModules: string[],
 ): Promise<string> {
   // console.log("Compiling JS", filename, excludeModules);
   return self.syscall(
@@ -116,7 +113,7 @@ export async function compileJS(
     filename,
     code,
     functionName,
-    excludeModules
+    excludeModules,
   );
 }
 

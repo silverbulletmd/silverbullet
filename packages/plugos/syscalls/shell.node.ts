@@ -1,19 +1,22 @@
-import { promisify } from "util";
-import { execFile } from "child_process";
-import type { SysCallMapping } from "../system";
-
-const execFilePromise = promisify(execFile);
+import type { SysCallMapping } from "../system.ts";
 
 export default function (cwd: string): SysCallMapping {
   return {
     "shell.run": async (
-      ctx,
+      _ctx,
       cmd: string,
-      args: string[]
+      args: string[],
     ): Promise<{ stdout: string; stderr: string }> => {
-      let { stdout, stderr } = await execFilePromise(cmd, args, {
+      const p = Deno.run({
+        cmd: [cmd, ...args],
         cwd: cwd,
+        stdout: "piped",
+        stderr: "piped",
       });
+      await p.status();
+      const stdout = new TextDecoder().decode(await p.output());
+      const stderr = new TextDecoder().decode(await p.stderrOutput());
+
       return { stdout, stderr };
     },
   };

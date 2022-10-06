@@ -1,39 +1,29 @@
 #!/usr/bin/env -S node --enable-source-maps
-import { nodeModulesDir } from "@plugos/plugos/environments/node_sandbox";
-import { realpathSync } from "fs";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
+import * as path from "https://deno.land/std@0.158.0/path/mod.ts";
+import { ExpressServer } from "./express_server.ts";
 
-import { ExpressServer } from "./express_server";
-
-let args = yargs(hideBin(process.argv))
-  .option("port", {
-    type: "number",
-    default: 3000,
-  })
-  .option("password", {
-    type: "string",
-  })
-  .parse();
+type ServerArgs = {
+  _: string[];
+  port: number;
+  password: string;
+};
+let args: ServerArgs = flags.parse(Deno.args);
 
 if (!args._.length) {
   console.error(
-    "Usage: silverbullet [--port 3000] [--password mysecretpassword] <path-to-pages>"
+    "Usage: silverbullet [--port 3000] [--password mysecretpassword] <path-to-pages>",
   );
-  process.exit(1);
+  Deno.exit(1);
 }
 
-const pagesPath = args._[0] as string;
-const port = args.port;
+const pagesPath = path.resolve(Deno.cwd(), args._[0] as string);
+const port = args.port ? +args.port : 3000;
 
-const webappDistDir = realpathSync(
-  `${nodeModulesDir}/node_modules/@silverbulletmd/web/dist`
-);
-// console.log("Webapp dist dir", webappDistDir);
-const plugDistDir = realpathSync(
-  `${nodeModulesDir}/node_modules/@silverbulletmd/plugs/dist`
-);
-// console.log("Builtin plug dist dir", plugDistDir);
+const webappDistDir = new URL("./../../dist", import.meta.url).pathname;
+console.log("Webapp dist dir", webappDistDir);
+const plugDistDir = new URL("./../plugs/dist", import.meta.url).pathname;
+console.log("Pages dir", pagesPath);
 
 const expressServer = new ExpressServer({
   port: port,

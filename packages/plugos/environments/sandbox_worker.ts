@@ -2,6 +2,22 @@ import { safeRun } from "../util.ts";
 import { ConsoleLogger } from "./custom_logger.ts";
 import { ControllerMessage, WorkerMessage } from "./worker.ts";
 
+if (typeof Deno === "undefined") {
+  // @ts-ignore: Deno hack
+  self.Deno = {
+    args: [],
+    // @ts-ignore: Deno hack
+    build: {
+      arch: "x86_64",
+    },
+    env: {
+      // @ts-ignore: Deno hack
+      get() {
+      },
+    },
+  };
+}
+
 let loadedFunctions = new Map<string, Function>();
 let pendingRequests = new Map<
   number,
@@ -43,7 +59,7 @@ let loadedModules = new Map<string, any>();
 
 // @ts-ignore
 self.require = (moduleName: string): any => {
-  console.log("Requiring", moduleName, loadedModules.get(moduleName));
+  // console.log("Requiring", moduleName, loadedModules.get(moduleName));
   return loadedModules.get(moduleName);
 };
 
@@ -73,7 +89,7 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         break;
       case "load-dependency":
         {
-          console.log("Received dep", data.name);
+          // console.log("Received dep", data.name);
           let fn3 = new Function(`return ${data.code!}`);
           let v = fn3();
           loadedModules.set(data.name!, v);
@@ -119,7 +135,7 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
               "Current outstanding requests",
               pendingRequests,
               "looking up",
-              syscallId
+              syscallId,
             );
             throw Error("Invalid request id");
           }

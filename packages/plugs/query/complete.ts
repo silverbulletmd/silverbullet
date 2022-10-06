@@ -1,6 +1,6 @@
-import { listEvents } from "@plugos/plugos-syscall/event";
-import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import { listPages } from "@silverbulletmd/plugos-silverbullet-syscall/space";
+import { listEvents } from "$sb/plugos-syscall/event.ts";
+import { matchBefore } from "$sb/plugos-silverbullet-syscall/editor.ts";
+import { listPages } from "$sb/plugos-silverbullet-syscall/space.ts";
 
 export async function queryComplete() {
   let prefix = await matchBefore("#query [\\w\\-_]*");

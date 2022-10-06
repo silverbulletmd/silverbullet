@@ -1,60 +1,45 @@
-import express, { Express } from "express";
-import { Manifest, SilverBulletHooks } from "@silverbulletmd/common/manifest";
-import { EndpointHook } from "@plugos/plugos/hooks/endpoint";
-import { readdir, readFile, rm } from "fs/promises";
-import { System } from "@plugos/plugos/system";
-import { DiskSpacePrimitives } from "@silverbulletmd/common/spaces/disk_space_primitives";
-import path from "path";
-import bodyParser from "body-parser";
-import { EventHook } from "@plugos/plugos/hooks/event";
-import spaceSyscalls from "./syscalls/space";
-import { eventSyscalls } from "@plugos/plugos/syscalls/event";
-import { ensureTable as ensureIndexTable, pageIndexSyscalls } from "./syscalls";
-import knex, { Knex } from "knex";
-import shellSyscalls from "@plugos/plugos/syscalls/shell.node";
-import { NodeCronHook } from "@plugos/plugos/hooks/node_cron";
-import { markdownSyscalls } from "@silverbulletmd/common/syscalls/markdown";
-import { EventedSpacePrimitives } from "@silverbulletmd/common/spaces/evented_space_primitives";
-import { Space } from "@silverbulletmd/common/spaces/space";
+import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
+import { EndpointHook } from "../plugos/hooks/endpoint.ts";
+import { System } from "../plugos/system.ts";
+import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
+import { path, SQLite } from "../../dep_server.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import spaceSyscalls from "./syscalls/space.ts";
+import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import {
-  createSandbox,
-  nodeModulesDir,
-} from "@plugos/plugos/environments/node_sandbox";
-import { jwtSyscalls } from "@plugos/plugos/syscalls/jwt";
-import buildMarkdown from "@silverbulletmd/common/parser";
-import { loadMarkdownExtensions } from "@silverbulletmd/common/markdown_ext";
-import http, { Server } from "http";
-import { esbuildSyscalls } from "@plugos/plugos/syscalls/esbuild";
-import { systemSyscalls } from "./syscalls/system";
-import { plugPrefix } from "@silverbulletmd/common/spaces/constants";
+  ensureTable as ensureIndexTable,
+  pageIndexSyscalls,
+} from "./syscalls/index.ts";
+import shellSyscalls from "../plugos/syscalls/shell.node.ts";
+import { NodeCronHook } from "../plugos/hooks/node_cron.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { Space } from "../common/spaces/space.ts";
+import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
+// import { jwtSyscalls } from "../plugos/syscalls/jwt.ts";
+import buildMarkdown from "../common/parser.ts";
+import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
+import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
+import { systemSyscalls } from "./syscalls/system.ts";
+import { plugPrefix } from "../common/spaces/constants.ts";
 
-import sandboxSyscalls from "@plugos/plugos/syscalls/sandbox";
-// @ts-ignore
-import settingsTemplate from "bundle-text:./SETTINGS_template.md";
-import { safeRun } from "./util";
+import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
+// import settingsTemplate from "bundle-text:./SETTINGS_template.md";
+import { safeRun } from "./util.ts";
 import {
   ensureFTSTable,
   fullTextSearchSyscalls,
-} from "@plugos/plugos/syscalls/fulltext.knex_sqlite";
-import { PlugSpacePrimitives } from "./hooks/plug_space_primitives";
-import { PageNamespaceHook } from "./hooks/page_namespace";
-import { readFileSync } from "fs";
-import fileSystemSyscalls from "@plugos/plugos/syscalls/fs.node";
+} from "../plugos/syscalls/fulltext.knex_sqlite.ts";
+import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
+import { PageNamespaceHook } from "./hooks/page_namespace.ts";
+import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
 import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
-} from "@plugos/plugos/syscalls/store.knex_node";
-import { parseYamlSettings } from "@silverbulletmd/common/util";
-import { SpacePrimitives } from "@silverbulletmd/common/spaces/space_primitives";
-
-import { version } from "./package.json";
-
-const globalModules: any = JSON.parse(
-  readFileSync(
-    nodeModulesDir + "/node_modules/@silverbulletmd/web/dist/global.plug.json",
-    "utf-8"
-  )
-);
+} from "../plugos/syscalls/store.deno.ts";
+import { parseYamlSettings } from "../common/util.ts";
+import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { Application, Router } from "../../dep_server.ts";
 
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
@@ -70,25 +55,30 @@ const storeVersionKey = "$silverBulletVersion";
 const indexRequiredKey = "$spaceIndexed";
 
 export class ExpressServer {
-  app: Express;
+  app: Application;
   system: System<SilverBulletHooks>;
   private space: Space;
   private distDir: string;
   private eventHook: EventHook;
-  private db: Knex<any, unknown[]>;
+  private db: SQLite;
   private port: number;
-  private server?: Server;
   builtinPlugDir: string;
   password?: string;
   settings: { [key: string]: any } = {};
   spacePrimitives: SpacePrimitives;
+  abortController?: AbortController;
+  globalModules: Manifest;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
-    this.app = express();
+    this.app = new Application();
     this.builtinPlugDir = options.builtinPlugDir;
     this.distDir = options.distDir;
     this.password = options.password;
+
+    this.globalModules = JSON.parse(
+      Deno.readTextFileSync(`${this.distDir}/global.plug.json`),
+    );
 
     // Set up the PlugOS System
     this.system = new System<SilverBulletHooks>("server");
@@ -105,20 +95,14 @@ export class ExpressServer {
     this.spacePrimitives = new EventedSpacePrimitives(
       new PlugSpacePrimitives(
         new DiskSpacePrimitives(options.pagesPath),
-        namespaceHook
+        namespaceHook,
       ),
-      this.eventHook
+      this.eventHook,
     );
     this.space = new Space(this.spacePrimitives);
 
     // The database used for persistence (SQLite)
-    this.db = knex({
-      client: "better-sqlite3",
-      connection: {
-        filename: path.join(options.pagesPath, "data.db"),
-      },
-      useNullAsDefault: true,
-    });
+    this.db = new SQLite(path.join(options.pagesPath, "data.db"));
 
     // The cron hook
     this.system.addHook(new NodeCronHook());
@@ -135,7 +119,7 @@ export class ExpressServer {
       esbuildSyscalls(),
       systemSyscalls(this),
       sandboxSyscalls(this.system),
-      jwtSyscalls()
+      // jwtSyscalls(),
     );
     // Danger zone
     this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
@@ -148,9 +132,11 @@ export class ExpressServer {
       plugLoaded: (plug) => {
         // Automatically inject some modules into each plug
         safeRun(async () => {
-          for (let [modName, code] of Object.entries(
-            globalModules.dependencies
-          )) {
+          for (
+            let [modName, code] of Object.entries(
+              this.globalModules.dependencies!,
+            )
+          ) {
             await plug.sandbox.loadDependency(modName, code as string);
           }
         });
@@ -166,15 +152,14 @@ export class ExpressServer {
           throw new Error(`Invalid plug name: ${plugName}`);
         }
         try {
-          let manifestJson = await readFile(
+          let manifestJson = await Deno.readTextFile(
             path.join(this.builtinPlugDir, `${plugName}.plug.json`),
-            "utf8"
           );
           return JSON.parse(manifestJson);
-        } catch (e) {
+        } catch {
           throw new Error(`No such builtin: ${plugName}`);
         }
-      }
+      },
     );
 
     // Second, for loading plug JSON files with absolute or relative (from CWD) paths
@@ -182,20 +167,20 @@ export class ExpressServer {
       "get-plug:file",
       async (plugPath: string): Promise<Manifest> => {
         let resolvedPath = path.resolve(plugPath);
-        if (!resolvedPath.startsWith(process.cwd())) {
+        if (!resolvedPath.startsWith(Deno.cwd())) {
           throw new Error(
-            `Plugin path outside working directory, this is disallowed: ${resolvedPath}`
+            `Plugin path outside working directory, this is disallowed: ${resolvedPath}`,
           );
         }
         try {
-          let manifestJson = await readFile(resolvedPath, "utf8");
+          let manifestJson = await Deno.readTextFile(resolvedPath);
           return JSON.parse(manifestJson);
         } catch (e) {
           throw new Error(
-            `No such file: ${resolvedPath} or could not parse as JSON`
+            `No such file: ${resolvedPath} or could not parse as JSON`,
           );
         }
-      }
+      },
     );
 
     // Rescan disk every 5s to detect any out-of-process file changes
@@ -207,26 +192,25 @@ export class ExpressServer {
   rebuildMdExtensions() {
     this.system.registerSyscalls(
       [],
-      markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system)))
+      markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system))),
     );
   }
 
   // In case of a new space with no `PLUGS` file, generate a default one based on all built-in plugs
   private async bootstrapBuiltinPlugs() {
-    let allPlugFiles = await readdir(this.builtinPlugDir);
+    let allPlugFiles = await Deno.readDir(this.builtinPlugDir);
     let pluginNames = [];
-    for (let file of allPlugFiles) {
-      if (file.endsWith(".plug.json")) {
-        let manifestJson = await readFile(
-          path.join(this.builtinPlugDir, file),
-          "utf8"
+    for await (let file of allPlugFiles) {
+      if (file.name.endsWith(".plug.json")) {
+        let manifestJson = await Deno.readTextFile(
+          path.join(this.builtinPlugDir, file.name),
         );
         let manifest: Manifest = JSON.parse(manifestJson);
         pluginNames.push(manifest.name);
         await this.spacePrimitives.writeFile(
-          `${plugPrefix}${file}`,
+          `${plugPrefix}${file.name}`,
           "string",
-          manifestJson
+          manifestJson,
         );
       }
     }
@@ -240,7 +224,7 @@ export class ExpressServer {
         "PLUGS",
         "This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` command to update and reload this list of plugs.\n\n```yaml\n- " +
           pluginNames.map((name) => `builtin:${name}`).join("\n- ") +
-          "\n```"
+          "\n```",
       );
     }
   }
@@ -250,31 +234,31 @@ export class ExpressServer {
     let lastRunningVersion = await this.system.localSyscall(
       "core",
       "store.get",
-      [storeVersionKey]
+      [storeVersionKey],
     );
     let upgrading = false;
-    if (lastRunningVersion !== version) {
-      upgrading = true;
-      console.log("Version change detected!");
-      console.log("Going to re-bootstrap with the builtin set of plugs...");
-      console.log("First removing existing plug files...");
-      const existingPlugFiles = (
-        await this.spacePrimitives.fetchFileList()
-      ).filter((meta) => meta.name.startsWith(plugPrefix));
-      for (let plugFile of existingPlugFiles) {
-        await this.spacePrimitives.deleteFile(plugFile.name);
-      }
-      console.log("Now writing the default set of plugs...");
-      await this.bootstrapBuiltinPlugs();
-      await this.system.localSyscall("core", "store.set", [
-        storeVersionKey,
-        version,
-      ]);
-      await this.system.localSyscall("core", "store.set", [
-        "$spaceIndexed",
-        false,
-      ]);
-    }
+    // if (lastRunningVersion !== version) {
+    //   upgrading = true;
+    //   console.log("Version change detected!");
+    //   console.log("Going to re-bootstrap with the builtin set of plugs...");
+    //   console.log("First removing existing plug files...");
+    //   const existingPlugFiles = (
+    //     await this.spacePrimitives.fetchFileList()
+    //   ).filter((meta) => meta.name.startsWith(plugPrefix));
+    //   for (let plugFile of existingPlugFiles) {
+    //     await this.spacePrimitives.deleteFile(plugFile.name);
+    //   }
+    //   console.log("Now writing the default set of plugs...");
+    //   await this.bootstrapBuiltinPlugs();
+    //   await this.system.localSyscall("core", "store.set", [
+    //     storeVersionKey,
+    //     version,
+    //   ]);
+    //   await this.system.localSyscall("core", "store.set", [
+    //     "$spaceIndexed",
+    //     false,
+    //   ]);
+    // }
 
     await this.space.updatePageList();
 
@@ -322,120 +306,142 @@ export class ExpressServer {
 
   async start() {
     const passwordMiddleware: (req: any, res: any, next: any) => void = this
-      .password
+        .password
       ? (req, res, next) => {
-          if (req.headers.authorization === `Bearer ${this.password}`) {
-            next();
-          } else {
-            res.status(401).send("Unauthorized");
-          }
-        }
-      : (req, res, next) => {
+        if (req.headers.authorization === `Bearer ${this.password}`) {
           next();
-        };
+        } else {
+          res.status(401).send("Unauthorized");
+        }
+      }
+      : (req, res, next) => {
+        next();
+      };
 
     await ensureIndexTable(this.db);
     await ensureStoreTable(this.db, "store");
-    await ensureFTSTable(this.db, "fts");
+    // await ensureFTSTable(this.db, "fts");
     await this.ensureAndLoadSettings();
 
     // Load plugs
     this.reloadPlugs().catch(console.error);
 
     // Serve static files (javascript, css, html)
-    this.app.use("/", express.static(this.distDir));
+    this.app.use(async (ctx, next) => {
+      if (ctx.request.url.pathname === "/") {
+        return ctx.send({
+          root: "/",
+          path: `${this.distDir}/index.html`,
+        });
+      }
+      const root = this.distDir;
+      try {
+        await ctx.send({ root });
+      } catch {
+        await next();
+      }
+    });
 
     // Pages API
-    this.app.use(
-      "/fs",
-      passwordMiddleware,
-      buildFsRouter(this.spacePrimitives)
-    );
+    const fsRouter = buildFsRouter(this.spacePrimitives);
+    this.app.use(fsRouter.routes());
+    this.app.use(fsRouter.allowedMethods());
 
     // Plug API
-    this.app.use("/plug", passwordMiddleware, this.buildPlugRouter());
+    const plugRouter = this.buildPlugRouter();
+    this.app.use(plugRouter.routes());
+    this.app.use(plugRouter.allowedMethods());
 
     // Fallback, serve index.html
-    this.app.get(/^(\/((?!fs\/).)+)$/, async (req, res) => {
-      res.sendFile(`${this.distDir}/index.html`, {});
+    this.app.use((ctx) => {
+      console.log("Here!!");
+      return ctx.send({
+        root: "/",
+        path: `${this.distDir}/index.html`,
+      });
     });
 
-    this.server = http.createServer(this.app);
-    this.server.listen(this.port, () => {
-      console.log(
-        `Silver Bullet is now running: http://localhost:${this.port}`
-      );
-      console.log("--------------");
-    });
+    this.abortController = new AbortController();
+    this.app.listen({ port: this.port, signal: this.abortController.signal })
+      .catch(console.error);
+    console.log(
+      `Silver Bullet is now running: http://localhost:${this.port}`,
+    );
+    console.log("--------------");
   }
 
-  private buildPlugRouter() {
-    let plugRouter = express.Router();
+  private buildPlugRouter(): Router {
+    let plugRouter = new Router();
 
     plugRouter.post(
       "/:plug/syscall/:name",
-      bodyParser.json(),
-      async (req, res) => {
-        const name = req.params.name;
-        const plugName = req.params.plug;
-        const args = req.body as any;
+      async (ctx) => {
+        const name = ctx.params.name;
+        const plugName = ctx.params.plug;
+        const args = await ctx.request.body().value;
         const plug = this.system.loadedPlugs.get(plugName);
         if (!plug) {
-          res.status(404);
-          return res.send(`Plug ${plugName} not found`);
+          ctx.response.status = 404;
+          ctx.response.body = `Plug ${plugName} not found`;
+          return;
         }
         try {
           const result = await this.system.syscallWithContext(
             { plug },
             name,
-            args
+            args,
           );
-          res.status(200);
-          res.header("Content-Type", "application/json");
-          res.send(JSON.stringify(result));
+          ctx.response.headers.set("Content-Type", "application/json");
+          ctx.response.body = JSON.stringify(result);
         } catch (e: any) {
-          res.status(500);
-          return res.send(e.message);
+          ctx.response.status = 500;
+          ctx.response.body = e.message;
+          return;
         }
-      }
+      },
     );
 
     plugRouter.post(
       "/:plug/function/:name",
-      bodyParser.json(),
-      async (req, res) => {
-        const name = req.params.name;
-        const plugName = req.params.plug;
-        const args = req.body as any[];
+      async (ctx) => {
+        const name = ctx.params.name;
+        const plugName = ctx.params.plug;
+        const args = await ctx.request.body().value;
         const plug = this.system.loadedPlugs.get(plugName);
         if (!plug) {
-          res.status(404);
-          return res.send(`Plug ${plugName} not found`);
+          ctx.response.status = 404;
+          ctx.response.body = `Plug ${plugName} not found`;
+          return;
         }
         try {
           const result = await plug.invoke(name, args);
-          res.status(200);
-          res.header("Content-Type", "application/json");
-          res.send(JSON.stringify(result));
+          ctx.response.headers.set("Content-Type", "application/json");
+          ctx.response.body = JSON.stringify(result);
         } catch (e: any) {
-          res.status(500);
+          ctx.response.status = 500;
           // console.log("Error invoking function", e);
-          return res.send(e.message);
+          ctx.response.body = e.message;
         }
-      }
+      },
     );
 
-    return plugRouter;
+    return new Router().use("/plug", plugRouter.routes());
   }
 
   async ensureAndLoadSettings() {
     try {
       await this.space.getPageMeta("SETTINGS");
     } catch (e) {
-      await this.space.writePage("SETTINGS", settingsTemplate, true);
+      await this.space.writePage(
+        "SETTINGS",
+        await Deno.readTextFile(
+          new URL("SETTINGS_template.md", import.meta.url).pathname,
+        ),
+        true,
+      );
     }
 
-    let { text: settingsText } = await this.space.readPage("SETTINGS");
+    const { text: settingsText } = await this.space.readPage("SETTINGS");
     this.settings = parseYamlSettings(settingsText);
     if (!this.settings.indexPage) {
       this.settings.indexPage = "index";
@@ -446,106 +452,102 @@ export class ExpressServer {
     } catch (e) {
       await this.space.writePage(
         this.settings.indexPage,
-        `Welcome to your new space!`
+        `Welcome to your new space!`,
       );
     }
   }
 
   async stop() {
-    if (this.server) {
+    if (this.abortController) {
       console.log("Stopping");
       await this.system.unloadAll();
       console.log("Stopped plugs");
-      return new Promise<void>((resolve, reject) => {
-        this.server!.close((err) => {
-          this.server = undefined;
-          console.log("stopped server");
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      this.abortController.abort();
+      console.log("stopped server");
     }
   }
 }
 
-function buildFsRouter(spacePrimitives: SpacePrimitives) {
-  let fsRouter = express.Router();
+function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
+  const fsRouter = new Router();
 
   // File list
-  fsRouter.route("/").get(async (req, res, next) => {
-    res.json(await spacePrimitives.fetchFileList());
+  fsRouter.get("/", async ({ response }) => {
+    const list = await spacePrimitives.fetchFileList();
+    // console.log("List", list);
+    response.headers.set("Content-type", "application/json");
+    response.body = JSON.stringify(list);
   });
 
   fsRouter
-    .route(/\/(.+)/)
-    .get(async (req, res, next) => {
-      let name = req.params[0];
+    .get("\/(.+)", async ({ params, request, response }, next) => {
+      let name = params[0];
       console.log("Loading file", name);
       try {
         let attachmentData = await spacePrimitives.readFile(
           name,
-          "arraybuffer"
+          "arraybuffer",
         );
-        res.status(200);
-        res.header("Last-Modified", "" + attachmentData.meta.lastModified);
-        res.header("X-Permission", attachmentData.meta.perm);
-        res.header("Content-Type", attachmentData.meta.contentType);
-        res.send(Buffer.from(attachmentData.data as ArrayBuffer));
-      } catch (e) {
+        response.status = 200;
+        response.headers.set(
+          "Last-Modified",
+          "" + attachmentData.meta.lastModified,
+        );
+        response.headers.set("X-Permission", attachmentData.meta.perm);
+        response.headers.set("Content-Type", attachmentData.meta.contentType);
+        response.body = attachmentData.data as ArrayBuffer;
+      } catch (e: any) {
+        console.error("Error in main router", e);
         next();
       }
     })
-    .put(bodyParser.raw({ type: "*/*", limit: "100mb" }), async (req, res) => {
-      let name = req.params[0];
+    .put("\/(.+)", async ({ request, response, params }) => {
+      let name = params[0];
       console.log("Saving file", name);
 
       try {
         let meta = await spacePrimitives.writeFile(
           name,
           "arraybuffer",
-          req.body,
-          false
+          await request.body().value,
+          false,
         );
-        res.status(200);
-        res.header("Last-Modified", "" + meta.lastModified);
-        res.header("Content-Type", meta.contentType);
-        res.header("Content-Length", "" + meta.size);
-        res.header("X-Permission", meta.perm);
-        res.send("OK");
+        response.status = 200;
+        response.headers.set("Last-Modified", "" + meta.lastModified);
+        response.headers.set("Content-Type", meta.contentType);
+        response.headers.set("Content-Length", "" + meta.size);
+        response.headers.set("X-Permission", meta.perm);
+        response.body = "OK";
       } catch (err) {
-        res.status(500);
-        res.send("Write failed");
+        response.status = 500;
+        response.body = "Write failed";
         console.error("Pipeline failed", err);
       }
     })
-    .options(async (req, res, next) => {
-      let name = req.params[0];
+    .options("\/(.+)", async ({ request, response, params }, next) => {
+      let name = params[0];
       try {
         const meta = await spacePrimitives.getFileMeta(name);
-        res.status(200);
-        res.header("Last-Modified", "" + meta.lastModified);
-        res.header("X-Permission", meta.perm);
-        res.header("Content-Length", "" + meta.size);
-        res.header("Content-Type", meta.contentType);
-        res.send("");
-      } catch (e) {
+        response.status = 200;
+        response.headers.set("Last-Modified", "" + meta.lastModified);
+        response.headers.set("Content-Type", meta.contentType);
+        response.headers.set("Content-Length", "" + meta.size);
+        response.headers.set("X-Permission", meta.perm);
+      } catch {
         next();
       }
     })
-    .delete(async (req, res) => {
-      let name = req.params[0];
+    .delete("\/(.+)", async ({ request, response, params }) => {
+      let name = params[0];
       try {
         await spacePrimitives.deleteFile(name);
-        res.status(200);
-        res.send("OK");
-      } catch (e) {
+        response.status = 200;
+        response.body = "OK";
+      } catch (e: any) {
         console.error("Error deleting attachment", e);
-        res.status(500);
-        res.send("OK");
+        response.status = 200;
+        response.body = e.message;
       }
     });
-  return fsRouter;
+  return new Router().use("/fs", fsRouter.routes());
 }

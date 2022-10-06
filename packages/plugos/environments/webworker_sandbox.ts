@@ -29,9 +29,13 @@ class WebWorkerWrapper implements WorkerLike {
 }
 
 export function createSandbox(plug: Plug<any>) {
-  // ParcelJS will build this file into a worker.
-  let worker = new Worker(new URL("sandbox_worker.ts", import.meta.url), {
-    type: "module",
-  });
+  const worker = new Worker(
+    import.meta.url
+      ? new URL("sandbox_worker.ts", import.meta.url)
+      : new URL("worker.js", location.origin),
+    {
+      type: "module",
+    },
+  );
   return new Sandbox(plug, new WebWorkerWrapper(worker));
 }

@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { Application } from "https://deno.land/x/oak@v10.2.1/application.ts";
+import { Application } from "../../../dep_server.ts";
 
 export type EndpointRequest = {
   method: string;
@@ -103,7 +103,7 @@ export class EndpointHook implements Hook<EndpointHookT> {
           }
         }
       }
-      console.log("Shouldn't get here");
+      // console.log("Shouldn't get here");
       next();
     });
   }

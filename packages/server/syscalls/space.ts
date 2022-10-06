@@ -1,10 +1,10 @@
-import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
-import { SysCallMapping } from "@plugos/plugos/system";
-import { Space } from "@silverbulletmd/common/spaces/space";
+import { AttachmentMeta, PageMeta } from "../../common/types.ts";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { Space } from "../../common/spaces/space.ts";
 import {
   FileData,
   FileEncoding,
-} from "@silverbulletmd/common/spaces/space_primitives";
+} from "../../common/spaces/space_primitives.ts";
 
 export default (space: Space): SysCallMapping => {
   return {
@@ -13,7 +13,7 @@ export default (space: Space): SysCallMapping => {
     },
     "space.readPage": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<{ text: string; meta: PageMeta }> => {
       return space.readPage(name);
     },
@@ -23,7 +23,7 @@ export default (space: Space): SysCallMapping => {
     "space.writePage": async (
       ctx,
       name: string,
-      text: string
+      text: string,
     ): Promise<PageMeta> => {
       return space.writePage(name, text);
     },
@@ -38,13 +38,13 @@ export default (space: Space): SysCallMapping => {
     },
     "space.readAttachment": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<{ data: FileData; meta: AttachmentMeta }> => {
       return await space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<AttachmentMeta> => {
       return await space.getAttachmentMeta(name);
     },
@@ -52,7 +52,7 @@ export default (space: Space): SysCallMapping => {
       ctx,
       name: string,
       encoding: FileEncoding,
-      data: string
+      data: string,
     ): Promise<AttachmentMeta> => {
       return await space.writeAttachment(name, encoding, data);
     },

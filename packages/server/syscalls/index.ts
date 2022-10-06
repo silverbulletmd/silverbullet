@@ -1,6 +1,12 @@
-import { Knex } from "knex";
-import { SysCallMapping } from "@plugos/plugos/system";
-import { Query, queryToKnex } from "@plugos/plugos/syscalls/store.knex_node";
+// import { Knex } from "knex";
+import { SysCallMapping } from "../../plugos/system.ts";
+import {
+  asyncExecute,
+  asyncQuery,
+  Query,
+  queryToSql,
+} from "../../plugos/syscalls/store.deno.ts";
+import { SQLite } from "../../../dep_server.ts";
 
 type Item = {
   page: string;
@@ -15,32 +21,41 @@ export type KV = {
 
 const tableName = "page_index";
 
-export async function ensureTable(db: Knex<any, unknown>) {
-  if (!(await db.schema.hasTable(tableName))) {
-    await db.schema.createTable(tableName, (table) => {
-      table.string("page");
-      table.string("key");
-      table.text("value");
-      table.primary(["page", "key"]);
-      table.index(["key"]);
-    });
-
+export function ensureTable(db: SQLite): Promise<void> {
+  const stmt = db.prepare(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+  );
+  const result = stmt.all(tableName);
+  if (result.length === 0) {
+    db.exec(
+      `CREATE TABLE ${tableName} (key STRING, page STRING, value TEXT, PRIMARY KEY (page, key));`,
+    );
+    db.exec(
+      `CREATE INDEX ${tableName}_idx ON ${tableName}(key);`,
+    );
     console.log(`Created table ${tableName}`);
   }
+  return Promise.resolve();
 }
 
-export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
+export function pageIndexSyscalls(db: SQLite): SysCallMapping {
   const apiObj: SysCallMapping = {
     "index.set": async (ctx, page: string, key: string, value: any) => {
-      let changed = await db<Item>(tableName)
-        .where({ key, page })
-        .update("value", JSON.stringify(value));
-      if (changed === 0) {
-        await db<Item>(tableName).insert({
+      await asyncExecute(
+        db,
+        `UPDATE ${tableName} SET value = ? WHERE key = ? AND page = ?`,
+        JSON.stringify(value),
+        key,
+        page,
+      );
+      if (db.changes === 0) {
+        await asyncExecute(
+          db,
+          `INSERT INTO ${tableName} (key, page, value) VALUES (?, ?, ?)`,
           key,
           page,
-          value: JSON.stringify(value),
-        });
+          JSON.stringify(value),
+        );
       }
     },
     "index.batchSet": async (ctx, page: string, kvs: KV[]) => {
@@ -52,9 +67,12 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
       await db<Item>(tableName).where({ key, page }).del();
     },
     "index.get": async (ctx, page: string, key: string) => {
-      let result = await db<Item>(tableName)
-        .where({ key, page })
-        .select("value");
+      const result = await asyncQuery<Item>(
+        db,
+        `SELECT value FROM ${tableName} WHERE key = ? AND page = ?`,
+        key,
+        page,
+      );
       if (result.length) {
         return JSON.parse(result[0].value);
       } else {
@@ -63,9 +81,11 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
     },
     "index.queryPrefix": async (ctx, prefix: string) => {
       return (
-        await db<Item>(tableName)
-          .andWhereLike("key", `${prefix}%`)
-          .select("key", "value", "page")
+        await asyncQuery<Item>(
+          db,
+          `SELECT key, page, value FROM ${tableName} WHERE key LIKE "?%"`,
+          prefix,
+        )
       ).map(({ key, value, page }) => ({
         key,
         page,
@@ -73,11 +93,12 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
       }));
     },
     "index.query": async (ctx, query: Query) => {
+      const { sql, params } = queryToSql(query);
       return (
-        await queryToKnex(db<Item>(tableName), query).select(
-          "key",
-          "value",
-          "page"
+        await asyncQuery<Item>(
+          db,
+          `SELECT key, value FROM ${tableName} ${sql}`,
+          ...params,
         )
       ).map(({ key, value, page }: any) => ({
         key,
@@ -89,13 +110,18 @@ export function pageIndexSyscalls(db: Knex<any, unknown>): SysCallMapping {
       await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
     "index.deletePrefixForPage": async (ctx, page: string, prefix: string) => {
-      return db<Item>(tableName)
-        .where({ page })
-        .andWhereLike("key", `${prefix}%`)
-        .del();
+      await asyncExecute(
+        db,
+        `DELETE FROM ${tableName} WHERE key LIKE "?%" AND page = ?`,
+        prefix,
+        page,
+      );
     },
     "index.clearPageIndex": async (ctx) => {
-      await db<Item>(tableName).del();
+      await asyncExecute(
+        db,
+        `DELETE FROM ${tableName}`,
+      );
     },
   };
   return apiObj;

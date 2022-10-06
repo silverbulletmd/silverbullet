@@ -1,41 +1,56 @@
-import { Knex } from "knex";
-import { SysCallMapping } from "../system";
+import { SQLite } from "../../../dep_server.ts";
+import { SysCallMapping } from "../system.ts";
+import { asyncExecute, asyncQuery } from "./store.deno.ts";
 
 type Item = {
   key: string;
   value: string;
 };
 
-export async function ensureFTSTable(
-  db: Knex<any, unknown>,
-  tableName: string
+export function ensureFTSTable(
+  db: SQLite,
+  tableName: string,
 ) {
-  if (!(await db.schema.hasTable(tableName))) {
-    await db.raw(`CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`);
+  const stmt = db.prepare(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+  );
+  const result = stmt.all(tableName);
+  if (result.length === 0) {
+    asyncExecute(
+      db,
+      `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
+    );
 
     console.log(`Created fts5 table ${tableName}`);
   }
+  return Promise.resolve();
 }
 
 export function fullTextSearchSyscalls(
-  db: Knex<any, unknown>,
-  tableName: string
+  db: SQLite,
+  tableName: string,
 ): SysCallMapping {
   return {
     "fulltext.index": async (ctx, key: string, value: string) => {
-      await db<Item>(tableName).where({ key }).del();
-      await db<Item>(tableName).insert({ key, value });
+      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
+      await asyncExecute(
+        db,
+        `INSERT INTO ${tableName} (key, value) VALUES (?, ?)`,
+        key,
+        value,
+      );
     },
     "fulltext.delete": async (ctx, key: string) => {
-      await db<Item>(tableName).where({ key }).del();
+      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
     },
     "fulltext.search": async (ctx, phrase: string, limit: number) => {
       return (
-        await db<any>(tableName)
-          .whereRaw(`value MATCH ?`, [phrase])
-          .select(["key", "rank"])
-          .orderBy("rank")
-          .limit(limit)
+        await asyncQuery<any>(
+          db,
+          `SELECT key, rank FROM ${tableName} WHERE value MATCH ? ORDER BY key, rank LIMIT ?`,
+          phrase,
+          limit,
+        )
       ).map((item) => ({ name: item.key, rank: item.rank }));
     },
   };

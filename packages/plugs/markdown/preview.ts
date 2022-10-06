@@ -1,14 +1,10 @@
-import MarkdownIt from "markdown-it";
+import MarkdownIt from "https://esm.sh/markdown-it@13.0.1";
 import {
   getText,
   showPanel,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import * as clientStore from "@silverbulletmd/plugos-silverbullet-syscall/clientStore";
-import { cleanMarkdown } from "./util";
-import {
-  readSettings,
-  writeSettings,
-} from "@silverbulletmd/plugs/lib/settings_page";
+} from "../../plugos-silverbullet-syscall/editor.ts";
+import * as clientStore from "../../plugos-silverbullet-syscall/clientStore.ts";
+import { cleanMarkdown } from "./util.ts";
 
 const css = `
 <style>
@@ -66,7 +62,7 @@ hr:after {
 </style>
 `;
 
-var taskLists = require("markdown-it-task-lists");
+import taskLists from "https://esm.sh/markdown-it-task-lists@2.1.1";
 
 const md = new MarkdownIt({
   linkify: true,
@@ -83,6 +79,6 @@ export async function updateMarkdownPreview() {
   await showPanel(
     "rhs",
     2,
-    `<html><head>${css}</head><body>${md.render(cleanMd)}</body></html>`
+    `<html><head>${css}</head><body>${md.render(cleanMd)}</body></html>`,
   );
 }

@@ -1,20 +1,16 @@
-import { Plug } from "@plugos/plugos/plug";
+import { Plug } from "../../plugos/plug.ts";
 import {
   FileData,
   FileEncoding,
   SpacePrimitives,
-} from "@silverbulletmd/common/spaces/space_primitives";
-import {
-  AttachmentMeta,
-  FileMeta,
-  PageMeta,
-} from "@silverbulletmd/common/types";
-import { PageNamespaceHook, NamespaceOperation } from "./page_namespace";
+} from "../../common/spaces/space_primitives.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "../../common/types.ts";
+import { NamespaceOperation, PageNamespaceHook } from "./page_namespace.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
-    private hook: PageNamespaceHook
+    private hook: PageNamespaceHook,
   ) {}
 
   performOperation(
@@ -52,7 +48,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   readFile(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     let result = this.performOperation("readFile", name);
     if (result) {
@@ -73,14 +69,14 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     let result = this.performOperation(
       "writeFile",
       name,
       encoding,
       data,
-      selfUpdate
+      selfUpdate,
     );
     if (result) {
       return result;
@@ -105,7 +101,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     return this.wrapped.invokeFunction(plug, env, name, args);
   }

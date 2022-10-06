@@ -2,23 +2,21 @@ import {
   getCurrentPage,
   reloadPage,
   save,
-} from "@silverbulletmd/plugos-silverbullet-syscall/editor";
-import Handlebars from "https://esm.sh/handlebars";
+} from "$sb/plugos-silverbullet-syscall/editor.ts";
 
-import {
-  readPage,
-  writePage,
-} from "@silverbulletmd/plugos-silverbullet-syscall/space";
-import { invokeFunction } from "@silverbulletmd/plugos-silverbullet-syscall/system";
-import { renderQuery } from "./engine";
-import { parseQuery } from "./parser";
-import { replaceTemplateVars } from "../core/template";
-import { jsonToMDTable, queryRegex } from "./util";
-import { dispatch } from "@plugos/plugos-syscall/event";
-import { replaceAsync } from "../lib/util";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
-import { nodeAtPos, renderToText } from "@silverbulletmd/common/tree";
-import { extractMeta } from "./data";
+import Handlebars from "handlebars";
+
+import { readPage, writePage } from "$sb/plugos-silverbullet-syscall/space.ts";
+import { invokeFunction } from "$sb/plugos-silverbullet-syscall/system.ts";
+import { renderQuery } from "./engine.ts";
+import { parseQuery } from "./parser.ts";
+import { replaceTemplateVars } from "../core/template.ts";
+import { jsonToMDTable, queryRegex } from "./util.ts";
+import { dispatch } from "$sb/plugos-syscall/event.ts";
+import { replaceAsync } from "../lib/util.ts";
+import { parseMarkdown } from "$sb/plugos-silverbullet-syscall/markdown.ts";
+import { nodeAtPos, renderToText } from "$sb/common/tree.ts";
+import { extractMeta } from "./data.ts";
 
 export async function updateMaterializedQueriesCommand() {
   const currentPage = await getCurrentPage();
@@ -27,7 +25,7 @@ export async function updateMaterializedQueriesCommand() {
     await invokeFunction(
       "server",
       "updateMaterializedQueriesOnPage",
-      currentPage
+      currentPage,
     )
   ) {
     await reloadPage();
@@ -39,7 +37,7 @@ export const templateInstRegex =
 
 async function updateTemplateInstantiations(
   text: string,
-  pageName: string
+  pageName: string,
 ): Promise<string> {
   return replaceAsync(
     text,
@@ -74,12 +72,12 @@ async function updateTemplateInstantiations(
         templateText = renderToText(tree);
         let templateFn = Handlebars.compile(
           replaceTemplateVars(templateText, pageName),
-          { noEscape: true }
+          { noEscape: true },
         );
         newBody = templateFn(parsedArgs);
       }
       return `${startInst}\n${newBody.trim()}\n${endInst}`;
-    }
+    },
   );
 }
 
@@ -95,20 +93,20 @@ async function cleanTemplateInstantiations(text: string): Promise<string> {
             fullMatch: string,
             startQuery: string,
             query: string,
-            body: string
+            body: string,
           ) => {
             return body.trim();
-          }
+          },
         );
       }
       return `${startInst}${body}${endInst}`;
-    }
+    },
   );
 }
 
 // Called from client, running on server
 export async function updateMaterializedQueriesOnPage(
-  pageName: string
+  pageName: string,
 ): Promise<boolean> {
   let text = "";
   try {
@@ -117,7 +115,7 @@ export async function updateMaterializedQueriesOnPage(
     console.warn(
       "Could not read page",
       pageName,
-      "perhaps it doesn't yet exist"
+      "perhaps it doesn't yet exist",
     );
     return false;
   }
@@ -147,7 +145,7 @@ export async function updateMaterializedQueriesOnPage(
       let results = await dispatch(
         `query:${parsedQuery.table}`,
         { query: parsedQuery, pageName: pageName },
-        10 * 1000
+        10 * 1000,
       );
       if (results.length === 0) {
         return `${startQuery}\n${endQuery}`;
@@ -162,7 +160,7 @@ export async function updateMaterializedQueriesOnPage(
         console.error("Too many query results", results);
         return fullMatch;
       }
-    }
+    },
   );
   newText = await cleanTemplateInstantiations(newText);
   if (text !== newText) {

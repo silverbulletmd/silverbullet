@@ -28,10 +28,13 @@ async function copyAssets(dest: string) {
   await Deno.writeTextFile("dist/main.css", compiler.to_string() as string);
 }
 
-async function bundle(appFile: string): Promise<void> {
+async function bundle(): Promise<void> {
   await Promise.all([
     esbuild.build({
-      entryPoints: [appFile],
+      entryPoints: {
+        "client": "packages/web/boot.ts",
+        "worker": "packages/plugos/environments/sandbox_worker.ts",
+      },
       outdir: "./dist",
       absWorkingDir: Deno.cwd(),
       bundle: true,
@@ -57,5 +60,5 @@ async function bundle(appFile: string): Promise<void> {
   await copyAssets("dist");
   console.log("Built!");
 }
-await bundle("packages/web/boot.ts");
+await bundle();
 // esbuild.stop();

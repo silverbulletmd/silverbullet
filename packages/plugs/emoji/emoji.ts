@@ -1,6 +1,5 @@
-// @ts-ignore
-import emojis from "./emoji.json";
-import { matchBefore } from "@silverbulletmd/plugos-silverbullet-syscall/editor";
+import emojis from "./emoji.json" assert { type: "json" };
+import { matchBefore } from "../../plugos-silverbullet-syscall/editor.ts";
 
 export async function emojiCompleter() {
   let prefix = await matchBefore(":[\\w]+");

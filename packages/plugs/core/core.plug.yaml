@@ -136,15 +136,15 @@ functions:
       - page:complete
 
   # Full text search
-  searchIndex:
-    path: ./search.ts:index
-    events:
-      - page:index
-  searchUnindex:
-    path: "./search.ts:unindex"
-    env: server
-    events:
-      - page:deleted
+  # searchIndex:
+  #   path: ./search.ts:index
+  #   events:
+  #     - page:index
+  # searchUnindex:
+  #   path: "./search.ts:unindex"
+  #   env: server
+  #   events:
+  #     - page:deleted
   searchQueryProvider:
     path: ./search.ts:queryProvider
     events:

@@ -2,8 +2,8 @@ import {
   findNodeOfType,
   renderToText,
   replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import { parseMarkdown } from "@silverbulletmd/plugos-silverbullet-syscall/markdown";
+} from "../../common/tree.ts";
+import { parseMarkdown } from "../../plugos-silverbullet-syscall/markdown.ts";
 
 export function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");
@@ -11,7 +11,7 @@ export function encodePageUrl(name: string): string {
 
 export async function cleanMarkdown(
   text: string,
-  validPages?: string[]
+  validPages?: string[],
 ): Promise<string> {
   let mdTree = await parseMarkdown(text);
   replaceNodesMatching(mdTree, (n) => {

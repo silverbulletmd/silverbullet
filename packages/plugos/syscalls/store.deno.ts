@@ -70,7 +70,7 @@ export function queryToSql(
   };
 }
 
-function asyncQuery<T extends Record<string, unknown>>(
+export function asyncQuery<T extends Record<string, unknown>>(
   db: SQLite,
   query: string,
   ...params: any[]
@@ -79,7 +79,7 @@ function asyncQuery<T extends Record<string, unknown>>(
   return Promise.resolve(db.prepare(query).all<T>(params));
 }
 
-function asyncExecute(
+export function asyncExecute(
   db: SQLite,
   query: string,
   ...params: any[]

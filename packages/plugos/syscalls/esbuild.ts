@@ -1,4 +1,4 @@
-import { sandboxCompile, sandboxCompileModule } from "../compile";
+import { sandboxCompileModule } from "../compile.ts";
 import { SysCallMapping } from "../system.ts";
 
 // TODO: FIgure out a better way to do this
@@ -11,22 +11,22 @@ export function esbuildSyscalls(): SysCallMapping {
       filename: string,
       code: string,
     ): Promise<any> => {},
-    "esbuild.compile": async (
-      ctx,
-      filename: string,
-      code: string,
-      functionName?: string,
-      excludeModules: string[] = [],
-    ): Promise<string> => {
-      return await sandboxCompile(
-        filename,
-        code,
-        functionName,
-        true,
-        [],
-        [...builtinModules, ...excludeModules],
-      );
-    },
+    // "esbuild.compile": async (
+    //   ctx,
+    //   filename: string,
+    //   code: string,
+    //   functionName?: string,
+    //   excludeModules: string[] = [],
+    // ): Promise<string> => {
+    //   return await sandboxCompile(
+    //     filename,
+    //     code,
+    //     functionName,
+    //     true,
+    //     [],
+    //     [...builtinModules, ...excludeModules],
+    //   );
+    // },
     "esbuild.compileModule": async (
       ctx,
       moduleName: string,

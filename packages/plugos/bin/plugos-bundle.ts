@@ -40,7 +40,7 @@ async function bundle(
       jsFunctionName,
       debug,
       allModulesToExclude,
-      true,
+      false,
     );
     delete def.path;
   }

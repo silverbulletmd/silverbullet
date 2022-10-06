@@ -65,7 +65,7 @@ export class Sandbox {
   }
 
   loadDependency(name: string, code: string): Promise<void> {
-    console.log("Loading dependency", name);
+    // console.log("Loading dependency", name);
     this.worker.postMessage({
       type: "load-dependency",
       name: name,
@@ -116,7 +116,7 @@ export class Sandbox {
         if (data.error) {
           resultCbs &&
             resultCbs.reject(
-              new Error(`${data.error}\nStack trace: ${data.stack}`)
+              new Error(`${data.error}\nStack trace: ${data.stack}`),
             );
         } else {
           resultCbs && resultCbs.resolve(data.result);
