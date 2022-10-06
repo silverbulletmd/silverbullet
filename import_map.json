@@ -1,6 +1,7 @@
 {
   "imports": {
     "@codemirror/state": "https://esm.sh/@codemirror/state",
-    "@codemirror/language": "https://esm.sh/@codemirror/language"
+    "@codemirror/language": "https://esm.sh/@codemirror/language",
+    "@lezer/lr": "https://esm.sh/@lezer/lr@1.2.3"
   }
 }

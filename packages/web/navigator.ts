@@ -1,4 +1,4 @@
-import { safeRun } from "../common/util";
+import { safeRun } from "../common/util.ts";
 
 function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");
@@ -22,19 +22,19 @@ export class PathPageNavigator {
       window.history.replaceState(
         { page, pos },
         page,
-        `${this.root}/${encodedPage}`
+        `${this.root}/${encodedPage}`,
       );
     } else {
       window.history.pushState(
         { page, pos },
         page,
-        `${this.root}/${encodedPage}`
+        `${this.root}/${encodedPage}`,
       );
     }
     window.dispatchEvent(
       new PopStateEvent("popstate", {
         state: { page, pos },
-      })
+      }),
     );
     await new Promise<void>((resolve) => {
       this.navigationResolve = resolve;
@@ -43,7 +43,7 @@ export class PathPageNavigator {
   }
 
   subscribe(
-    pageLoadCallback: (pageName: string, pos: number | string) => Promise<void>
+    pageLoadCallback: (pageName: string, pos: number | string) => Promise<void>,
   ): void {
     const cb = (event?: PopStateEvent) => {
       const gotoPage = this.getCurrentPage();
@@ -53,7 +53,7 @@ export class PathPageNavigator {
       safeRun(async () => {
         await pageLoadCallback(
           this.getCurrentPage(),
-          event?.state?.pos || this.getCurrentPos()
+          event?.state?.pos || this.getCurrentPos(),
         );
         if (this.navigationResolve) {
           this.navigationResolve();
@@ -66,7 +66,7 @@ export class PathPageNavigator {
 
   decodeURI(): [string, number | string] {
     let [page, pos] = decodeURI(
-      location.pathname.substring(this.root.length + 1)
+      location.pathname.substring(this.root.length + 1),
     ).split("@");
     if (pos) {
       if (pos.match(/^\d+$/)) {

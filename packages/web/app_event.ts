@@ -1,4 +1,4 @@
-import type { ParseTree } from "@silverbulletmd/common/tree";
+import type { ParseTree } from "../common/tree.ts";
 
 export type AppEvent =
   | "page:click"

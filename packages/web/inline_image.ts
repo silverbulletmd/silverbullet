@@ -1,5 +1,5 @@
-import { syntaxTree } from "@codemirror/language";
-import { Range } from "@codemirror/state";
+import { syntaxTree } from "../../mod.ts";
+import { Range } from "../../mod.ts";
 import {
   Decoration,
   DecorationSet,
@@ -7,7 +7,7 @@ import {
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "@codemirror/view";
+} from "../../mod.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {
@@ -48,7 +48,7 @@ const inlineImages = (view: EditorView) => {
         }
 
         const imageRexexResult = imageRegex.exec(
-          view.state.sliceDoc(node.from, node.to)
+          view.state.sliceDoc(node.from, node.to),
         );
         if (imageRexexResult === null || !imageRexexResult.groups) {
           return;
@@ -84,5 +84,5 @@ export const inlineImagesPlugin = () =>
     },
     {
       decorations: (v) => v.decorations,
-    }
+    },
   );

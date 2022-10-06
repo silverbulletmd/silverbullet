@@ -1,6 +1,6 @@
-import { SysCallMapping } from "@plugos/plugos/system";
-import type { Editor } from "../editor";
-import { CommandDef } from "../hooks/command";
+import { SysCallMapping } from "../../plugos/system.ts";
+import type { Editor } from "../editor.tsx";
+import { CommandDef } from "../hooks/command.ts";
 
 export function systemSyscalls(editor: Editor): SysCallMapping {
   return {
@@ -24,7 +24,7 @@ export function systemSyscalls(editor: Editor): SysCallMapping {
       return editor.runCommandByName(name);
     },
     "system.listCommands": async (
-      ctx
+      ctx,
     ): Promise<{ [key: string]: CommandDef }> => {
       let allCommands: { [key: string]: CommandDef } = {};
       for (let [cmd, def] of editor.commandHook.editorCommands) {

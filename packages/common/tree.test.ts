@@ -1,5 +1,4 @@
-import { expect, test } from "@jest/globals";
-import { parse } from "./parse_tree";
+import { parse } from "./parse_tree.ts";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -8,8 +7,9 @@ import {
   removeParentPointers,
   renderToText,
   replaceNodesMatching,
-} from "./tree";
-import wikiMarkdownLang from "@silverbulletmd/common/parser";
+} from "./tree.ts";
+import wikiMarkdownLang from "./parser.ts";
+import { assertEquals, assertNotEquals } from "../../test_dep.ts";
 
 const mdTest1 = `
 # Heading
@@ -46,22 +46,23 @@ name: something
 \`\`\`
 `;
 
-test("Run a Node sandbox", async () => {
+Deno.test("Run a Node sandbox", () => {
   const lang = wikiMarkdownLang([]);
   let mdTree = parse(lang, mdTest1);
   addParentPointers(mdTree);
   // console.log(JSON.stringify(mdTree, null, 2));
   let wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
-  expect(wikiLink.type).toBe("WikiLink");
-  expect(
-    findParentMatching(wikiLink, (n) => n.type === "BulletList")
-  ).toBeDefined();
+  assertEquals(wikiLink.type, "WikiLink");
+  assertNotEquals(
+    findParentMatching(wikiLink, (n) => n.type === "BulletList"),
+    null,
+  );
 
   let allTodos = collectNodesMatching(mdTree, (n) => n.type === "Task");
-  expect(allTodos.length).toBe(2);
+  assertEquals(allTodos.length, 2);
 
   // Render back into markdown should be equivalent
-  expect(renderToText(mdTree)).toBe(mdTest1);
+  assertEquals(renderToText(mdTree), mdTest1);
 
   removeParentPointers(mdTree);
   replaceNodesMatching(mdTree, (n) => {

@@ -1,4 +1,4 @@
-import { autocompletion, completionKeymap } from "../../mod.ts";
+import { autocompletion, completionKeymap, CompletionResult } from "../../mod.ts";
 import { closeBrackets, closeBracketsKeymap } from "../../mod.ts";
 import { indentWithTab, standardKeymap } from "../../mod.ts";
 import { history, historyKeymap } from "../../mod.ts";

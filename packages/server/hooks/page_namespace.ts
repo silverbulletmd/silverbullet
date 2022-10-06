@@ -1,7 +1,6 @@
-import { Plug } from "@plugos/plugos/plug";
-import { System } from "@plugos/plugos/system";
-import { Hook, Manifest } from "@plugos/plugos/types";
-import { Express, NextFunction, Request, Response, Router } from "express";
+import { Plug } from "../../plugos/plug.ts";
+import { System } from "../../plugos/system.ts";
+import { Hook, Manifest } from "../../plugos/types.ts";
 
 export type NamespaceOperation =
   | "readFile"
@@ -45,9 +44,11 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
     this.spaceFunctions = [];
     for (let plug of system.loadedPlugs.values()) {
       if (plug.manifest?.functions) {
-        for (let [funcName, funcDef] of Object.entries(
-          plug.manifest.functions
-        )) {
+        for (
+          let [funcName, funcDef] of Object.entries(
+            plug.manifest.functions,
+          )
+        ) {
           if (funcDef.pageNamespace) {
             this.spaceFunctions.push({
               operation: funcDef.pageNamespace.operation,
@@ -84,7 +85,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
           ].includes(funcDef.pageNamespace.operation)
         ) {
           errors.push(
-            `Function ${funcName} has an invalid operation ${funcDef.pageNamespace.operation}`
+            `Function ${funcName} has an invalid operation ${funcDef.pageNamespace.operation}`,
           );
         }
       }

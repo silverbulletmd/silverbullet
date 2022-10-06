@@ -1,6 +1,6 @@
-import { proxySyscalls } from "@plugos/plugos/syscalls/transport";
-import { SysCallMapping } from "@plugos/plugos/system";
-import { storeSyscalls } from "@plugos/plugos/syscalls/store.dexie_browser";
+import { proxySyscalls } from "../../plugos/syscalls/transport.ts";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { storeSyscalls } from "../../plugos/syscalls/store.dexie_browser.ts";
 
 export function clientStoreSyscalls(): SysCallMapping {
   const storeCalls = storeSyscalls("local", "localData");
@@ -8,6 +8,6 @@ export function clientStoreSyscalls(): SysCallMapping {
     ["clientStore.get", "clientStore.set", "clientStore.delete"],
     (ctx, name, ...args) => {
       return storeCalls[name.replace("clientStore.", "store.")](ctx, ...args);
-    }
+    },
   );
 }

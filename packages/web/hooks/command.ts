@@ -1,6 +1,6 @@
-import { Hook, Manifest } from "@plugos/plugos/types";
-import { System } from "@plugos/plugos/system";
-import { EventEmitter } from "@plugos/plugos/event";
+import { Hook, Manifest } from "../../plugos/types.ts";
+import { System } from "../../plugos/system.ts";
+import { EventEmitter } from "../../plugos/event.ts";
 
 export type CommandDef = {
   name: string;
@@ -25,18 +25,18 @@ export type CommandHookEvents = {
   commandsUpdated(commandMap: Map<string, AppCommand>): void;
 };
 
-export class CommandHook
-  extends EventEmitter<CommandHookEvents>
-  implements Hook<CommandHookT>
-{
+export class CommandHook extends EventEmitter<CommandHookEvents>
+  implements Hook<CommandHookT> {
   editorCommands = new Map<string, AppCommand>();
 
   buildAllCommands(system: System<CommandHookT>) {
     this.editorCommands.clear();
     for (let plug of system.loadedPlugs.values()) {
-      for (const [name, functionDef] of Object.entries(
-        plug.manifest!.functions
-      )) {
+      for (
+        const [name, functionDef] of Object.entries(
+          plug.manifest!.functions,
+        )
+      ) {
         if (!functionDef.command) {
           continue;
         }

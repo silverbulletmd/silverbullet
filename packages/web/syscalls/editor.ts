@@ -1,7 +1,7 @@
-import { Editor } from "../editor";
-import { SelectionRange, Transaction } from "@codemirror/state";
-import { SysCallMapping } from "@plugos/plugos/system";
-import { FilterOption } from "@silverbulletmd/common/types";
+import { Editor } from "../editor.tsx";
+import { Transaction } from "../../../mod.ts";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { FilterOption } from "../../common/types.ts";
 
 type SyntaxNode = {
   name: string;
@@ -22,7 +22,7 @@ function ensureAnchor(expr: any, start: boolean) {
       ? _a
       : expr.ignoreCase
       ? "i"
-      : ""
+      : "",
   );
 }
 
@@ -47,7 +47,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       ctx,
       name: string,
       pos: number | string,
-      replaceState = false
+      replaceState = false,
     ) => {
       await editor.navigate(name, pos, replaceState);
     },
@@ -63,7 +63,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.flashNotification": (
       ctx,
       message: string,
-      type: "error" | "info" = "info"
+      type: "error" | "info" = "info",
     ) => {
       editor.flashNotification(message, type);
     },
@@ -72,7 +72,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       label: string,
       options: FilterOption[],
       helpText: string = "",
-      placeHolder: string = ""
+      placeHolder: string = "",
     ): Promise<FilterOption | undefined> => {
       return editor.filterBox(label, options, helpText, placeHolder);
     },
@@ -81,7 +81,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       id: string,
       mode: number,
       html: string,
-      script: string
+      script: string,
     ) => {
       editor.viewDispatch({
         type: "show-panel",
@@ -164,7 +164,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
 
     "editor.matchBefore": (
       ctx,
-      regexp: string
+      regexp: string,
     ): { from: number; to: number; text: string } | null => {
       const editorState = editor.editorView!.state;
       let selection = editorState.selection.main;
@@ -187,7 +187,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.prompt": (
       ctx,
       message: string,
-      defaultValue = ""
+      defaultValue = "",
     ): string | null => {
       return prompt(message, defaultValue);
     },

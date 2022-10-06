@@ -1,6 +1,6 @@
-import { SysCallMapping } from "@plugos/plugos/system";
-import { proxySyscalls } from "@plugos/plugos/syscalls/transport";
-import { Space } from "@silverbulletmd/common/spaces/space";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { proxySyscalls } from "../../plugos/syscalls/transport.ts";
+import { Space } from "../../common/spaces/space.ts";
 
 export function indexerSyscalls(space: Space): SysCallMapping {
   return proxySyscalls(
@@ -11,6 +11,6 @@ export function indexerSyscalls(space: Space): SysCallMapping {
       "index.batchSet",
       "index.delete",
     ],
-    (ctx, name, ...args) => space.proxySyscall(ctx.plug, name, args)
+    (ctx, name, ...args) => space.proxySyscall(ctx.plug, name, args),
   );
 }

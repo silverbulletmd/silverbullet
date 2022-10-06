@@ -1,13 +1,13 @@
-import { syntaxTree } from "@codemirror/language";
+import { syntaxTree } from "../../mod.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
-} from "@codemirror/view";
+} from "../../mod.ts";
 
-import { Range } from "@codemirror/state";
+import { Range } from "../../mod.ts";
 
 interface WrapElement {
   selector: string;
@@ -41,7 +41,7 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
               widgets.push(
                 Decoration.line({
                   class: cls,
-                }).range(doc.lineAt(idx).from)
+                }).range(doc.lineAt(idx).from),
               );
               idx += line.length + 1;
             }
@@ -81,5 +81,5 @@ export const lineWrapper = (wrapElements: WrapElement[]) =>
     },
     {
       decorations: (v) => v.decorations,
-    }
+    },
   );

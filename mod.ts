@@ -1,6 +1,11 @@
 export {
   autocompletion,
+  CompletionContext,
   completionKeymap,
+} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
+export type {
+  Completion,
+  CompletionResult,
 } from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
 
 export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
@@ -17,6 +22,7 @@ export {
   defaultHighlightStyle,
   defineLanguageFacet,
   foldNodeProp,
+  HighlightStyle,
   indentNodeProp,
   Language,
   languageDataProp,
@@ -38,7 +44,12 @@ export {
   closeBracketsKeymap,
 } from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
 
-export { styleTags, Tag, tags } from "https://esm.sh/@lezer/highlight";
+export {
+  styleTags,
+  Tag,
+  tagHighlighter,
+  tags,
+} from "https://esm.sh/@lezer/highlight";
 
 export type {
   BlockContext,
@@ -46,8 +57,6 @@ export type {
   LeafBlockParser,
   MarkdownConfig,
   MarkdownExtension,
-  Table,
-  TaskList,
 } from "https://esm.sh/@lezer/markdown";
 
 export {
@@ -58,13 +67,15 @@ export {
   parser as baseParser,
   Subscript,
   Superscript,
+  Table,
+  TaskList,
 } from "https://esm.sh/@lezer/markdown";
 
 export type { SyntaxNode, Tree } from "https://esm.sh/@lezer/common";
 
 export { searchKeymap } from "https://esm.sh/@codemirror/search?external=@codemirror/state";
-
 export {
+  Decoration,
   drawSelection,
   dropCursor,
   EditorView,
@@ -73,10 +84,28 @@ export {
   runScopeHandlers,
   ViewPlugin,
   ViewUpdate,
+  WidgetType,
 } from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
-export type { KeyBinding } from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
+export type {
+  DecorationSet,
+  KeyBinding,
+} from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
 
-export { EditorSelection, EditorState, Text } from "@codemirror/state";
+export {
+  EditorSelection,
+  EditorState,
+  Range,
+  SelectionRange,
+  Text,
+  Transaction,
+} from "@codemirror/state";
 export type { ChangeSpec, StateCommand } from "@codemirror/state";
 
 export { Database as SQLite } from "https://deno.land/x/sqlite3@0.6.1/mod.ts";
+
+export {
+  default as React,
+  useEffect,
+  useRef,
+  useState,
+} from "https://esm.sh/react@17";

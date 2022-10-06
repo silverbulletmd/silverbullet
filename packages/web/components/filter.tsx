@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FilterOption } from "@silverbulletmd/common/types";
-import fuzzysort from "fuzzysort";
+import { React, useEffect, useRef, useState } from "../../../mod.ts";
+import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
+import { IconDefinition } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+import { FilterOption } from "../../common/types.ts";
+import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
 
 function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
@@ -46,7 +46,7 @@ function fuzzySorter(pattern: string, options: FilterOption[]): FilterResult[] {
       all: true,
       key: "name",
     })
-    .map((result) => ({ ...result.obj, result: result }))
+    .map((result: any) => ({ ...result.obj, result: result }))
     .sort(magicSorter);
 }
 

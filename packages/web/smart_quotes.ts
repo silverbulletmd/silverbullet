@@ -1,5 +1,5 @@
-import { KeyBinding } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
+import { KeyBinding } from "../../mod.ts";
+import { syntaxTree } from "../../mod.ts";
 
 const straightQuoteContexts = ["CommentBlock", "FencedCode", "InlineCode"];
 
@@ -7,7 +7,7 @@ const straightQuoteContexts = ["CommentBlock", "FencedCode", "InlineCode"];
 function keyBindingForQuote(
   quote: string,
   left: string,
-  right: string
+  right: string,
 ): KeyBinding {
   return {
     key: quote,

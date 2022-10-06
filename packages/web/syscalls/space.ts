@@ -1,19 +1,19 @@
-import { Editor } from "../editor";
-import { SysCallMapping } from "@plugos/plugos/system";
-import { AttachmentMeta, PageMeta } from "@silverbulletmd/common/types";
+import { Editor } from "../editor.tsx";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { AttachmentMeta, PageMeta } from "../../common/types.ts";
 import {
   FileData,
   FileEncoding,
-} from "@silverbulletmd/common/spaces/space_primitives";
+} from "../../common/spaces/space_primitives.ts";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   return {
-    "space.listPages": async (): Promise<PageMeta[]> => {
+    "space.listPages": (): PageMeta[] => {
       return [...editor.space.listPages()];
     },
     "space.readPage": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<{ text: string; meta: PageMeta }> => {
       return await editor.space.readPage(name);
     },
@@ -23,7 +23,7 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.writePage": async (
       ctx,
       name: string,
-      text: string
+      text: string,
     ): Promise<PageMeta> => {
       return await editor.space.writePage(name, text);
     },
@@ -45,13 +45,13 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     },
     "space.readAttachment": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<{ data: FileData; meta: AttachmentMeta }> => {
       return await editor.space.readAttachment(name, "dataurl");
     },
     "space.getAttachmentMeta": async (
       ctx,
-      name: string
+      name: string,
     ): Promise<AttachmentMeta> => {
       return await editor.space.getAttachmentMeta(name);
     },
@@ -59,7 +59,7 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
       ctx,
       name: string,
       encoding: FileEncoding,
-      data: FileData
+      data: FileData,
     ): Promise<AttachmentMeta> => {
       return await editor.space.writeAttachment(name, encoding, data);
     },

@@ -1,7 +1,7 @@
-import { HighlightStyle } from "@codemirror/language";
-import { tagHighlighter, tags as t } from "@lezer/highlight";
-import * as ct from "@silverbulletmd/common/customtags";
-import { MDExt } from "@silverbulletmd/common/markdown_ext";
+import { HighlightStyle } from "../../mod.ts";
+import { tagHighlighter, tags as t } from "../../mod.ts";
+import * as ct from "../common/customtags.ts";
+import { MDExt } from "../common/markdown_ext.ts";
 
 export default function highlightStyles(mdExtension: MDExt[]) {
   tagHighlighter;

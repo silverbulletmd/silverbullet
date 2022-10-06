@@ -1,5 +1,8 @@
-import { FilterList } from "./filter";
-import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
+import { FilterList } from "./filter.tsx";
+import { FilterOption, PageMeta } from "../../common/types.ts";
+
+import {React} from "../../../mod.ts"
+
 
 export function PageNavigator({
   allPages,

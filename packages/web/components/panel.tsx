@@ -1,8 +1,47 @@
-import { useEffect, useRef } from "react";
-// @ts-ignore
-import iframeHtml from "bundle-text:./panel.html";
-import { Editor } from "../editor";
-import { PanelConfig } from "../types";
+import { useEffect, useRef } from "../../../mod.ts";
+import { Editor } from "../editor.tsx";
+import { PanelConfig } from "../types.ts";
+
+import {React} from "../../../mod.ts";
+
+const panelHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <base target="_top">
+<script>
+window.addEventListener("message", (message) => {
+  const data = message.data;
+  switch (data.type) {
+    case "html":
+      document.body.innerHTML = data.html;
+      if (data.script) {
+        try {
+          eval(data.script);
+        } catch (e: any) {
+          console.error("Error evaling script", e);
+        }
+      }
+      break;
+  }
+});
+
+function sendEvent(name: string, ...args: any[]) {
+  window.parent.postMessage(
+    {
+      type: "event",
+      name,
+      args,
+    },
+    "*"
+  );
+}
+</script>
+</head>
+<body>
+Send me HTML
+</body>
+</html>`;
 
 export function Panel({
   config,
@@ -52,7 +91,7 @@ export function Panel({
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
-      <iframe srcDoc={iframeHtml} ref={iFrameRef} />
+      <iframe srcDoc={panelHtml} ref={iFrameRef} />
     </div>
   );
 }

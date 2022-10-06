@@ -1,12 +1,12 @@
-import { createSandbox } from "../environments/node_sandbox";
-import { expect, test } from "@jest/globals";
-import { Manifest } from "../types";
-import express from "express";
-import request from "supertest";
-import { EndpointHook, EndpointHookT } from "./endpoint";
-import { System } from "../system";
+import { createSandbox } from "../environments/deno_sandbox.ts";
+import { Manifest } from "../types.ts";
+import { EndpointHook, EndpointHookT } from "./endpoint.ts";
+import { System } from "../system.ts";
 
-test("Run a plugos endpoint server", async () => {
+import { Application } from "https://deno.land/x/oak/mod.ts";
+import { assertEquals } from "https://deno.land/std@0.123.0/testing/asserts.ts";
+
+Deno.test("Run a plugos endpoint server", async () => {
   let system = new System<EndpointHookT>("server");
   let plug = await system.load(
     {
@@ -27,24 +27,22 @@ test("Run a plugos endpoint server", async () => {
         },
       },
     } as Manifest<EndpointHookT>,
-    createSandbox
+    createSandbox,
   );
 
-  const app = express();
+  const app = new Application();
   const port = 3123;
 
   system.addHook(new EndpointHook(app, "/_"));
 
-  let server = app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
-  });
-  let resp = await request(app)
-    .get("/_/test/?name=Pete")
-    .expect((resp) => {
-      expect(resp.status).toBe(200);
-      expect(resp.header["content-type"]).toContain("application/json");
-      expect(resp.text).toBe(JSON.stringify([1, 2, 3]));
-    });
-  server.close();
+  const controller = new AbortController();
+  app.listen({ port: port, signal: controller.signal });
+
+  const res = await fetch(`http://localhost:${port}/_/test/?name=Pete`);
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("Content-type"), "application/json");
+  assertEquals(await res.json(), [1, 2, 3]);
+  console.log("Aborting");
+  controller.abort();
   await system.unloadAll();
 });

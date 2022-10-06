@@ -1,7 +1,7 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { safeRun } from "@plugos/plugos/util";
-import { maximumAttachmentSize } from "@silverbulletmd/common/types";
-import { Editor } from "./editor";
+import { EditorView, ViewPlugin, ViewUpdate } from "../../mod.ts";
+import { safeRun } from "../plugos/util.ts";
+import { maximumAttachmentSize } from "../common/types.ts";
+import { Editor } from "./editor.tsx";
 
 const urlRegexp =
   /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
@@ -30,10 +30,12 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
                     {
                       from: from,
                       to: to,
-                      insert: `[${update.startState.sliceDoc(
-                        selection.from,
-                        selection.to
-                      )}](${pastedString})`,
+                      insert: `[${
+                        update.startState.sliceDoc(
+                          selection.from,
+                          selection.to,
+                        )
+                      }](${pastedString})`,
                     },
                   ],
                 });
@@ -43,7 +45,7 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
         }
       });
     }
-  }
+  },
 );
 
 export function attachmentExtension(editor: Editor) {
@@ -99,21 +101,21 @@ export function attachmentExtension(editor: Editor) {
   async function saveFile(
     data: ArrayBuffer,
     suggestedName: string,
-    mimeType: string
+    mimeType: string,
   ) {
     if (data!.byteLength > maximumAttachmentSize) {
       editor.flashNotification(
         `Attachment is too large, maximum is ${
           maximumAttachmentSize / 1024 / 1024
         }MB`,
-        "error"
+        "error",
       );
       return;
     }
 
     let finalFileName = prompt(
       "File name for pasted attachment",
-      suggestedName
+      suggestedName,
     );
     if (!finalFileName) {
       return;

@@ -3,11 +3,12 @@ import {
   faHome,
   faSun,
   faMoon,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useState } from "react";
-import { Notification } from "../types";
-import { isMacLike } from "../../common/util";
+} from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
+import { useState } from "../../../mod.ts";
+import { Notification } from "../types.ts";
+import { isMacLike } from "../../common/util.ts";
+import {React} from "../../../mod.ts"
 
 function prettyName(s: string | undefined): string {
   if (!s) {

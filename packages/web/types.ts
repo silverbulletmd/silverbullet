@@ -1,5 +1,5 @@
-import { AppCommand } from "./hooks/command";
-import { FilterOption, PageMeta } from "@silverbulletmd/common/types";
+import { AppCommand } from "./hooks/command.ts";
+import { FilterOption, PageMeta } from "../common/types.ts";
 
 export type Notification = {
   id: number;
@@ -74,27 +74,27 @@ export type Action =
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | {
-      type: "update-commands";
-      commands: Map<string, AppCommand>;
-    }
+    type: "update-commands";
+    commands: Map<string, AppCommand>;
+  }
   | { type: "show-palette"; context?: string }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
   | {
-      type: "show-panel";
-      id: "rhs" | "lhs" | "bhs" | "modal";
-      config: PanelConfig;
-    }
+    type: "show-panel";
+    id: "rhs" | "lhs" | "bhs" | "modal";
+    config: PanelConfig;
+  }
   | { type: "hide-panel"; id: string }
   | { type: "command-run"; command: string }
   | {
-      type: "show-filterbox";
-      options: FilterOption[];
-      placeHolder: string;
-      helpText: string;
-      label: string;
-      onSelect: (option: FilterOption | undefined) => void;
-    }
+    type: "show-filterbox";
+    options: FilterOption[];
+    placeHolder: string;
+    helpText: string;
+    label: string;
+    onSelect: (option: FilterOption | undefined) => void;
+  }
   | { type: "hide-filterbox" }
   | { type: "set-editor-ro"; enabled: boolean };

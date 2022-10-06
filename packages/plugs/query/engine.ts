@@ -1,5 +1,4 @@
 import { collectNodesOfType, ParseTree } from "../../common/tree.ts";
-// import Handlebars from "handlebars";
 import Handlebars from "https://esm.sh/handlebars";
 import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
 
@@ -43,7 +42,8 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
   if (parsedQuery.filter.length === 0) {
     resultRecords = records.slice();
   } else {
-    recordLoop: for (let record of records) {
+    recordLoop:
+    for (let record of records) {
       const recordAny: any = record;
       for (let { op, prop, value } of parsedQuery.filter) {
         switch (op) {
@@ -143,23 +143,24 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
 
 export async function renderQuery(
   parsedQuery: ParsedQuery,
-  data: any[]
+  data: any[],
 ): Promise<string> {
   if (parsedQuery.render) {
-    Handlebars.registerHelper("json", (v) => JSON.stringify(v));
-    Handlebars.registerHelper("niceDate", (ts) => niceDate(new Date(ts)));
-    Handlebars.registerHelper("prefixLines", (v: string, prefix) =>
+    Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
+    Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
+    Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
       v
         .split("\n")
         .map((l) => prefix + l)
-        .join("\n")
+        .join("\n"));
+
+    Handlebars.registerHelper(
+      "substring",
+      (s: string, from: number, to: number, elipsis = "") =>
+        s.length > to - from ? s.substring(from, to) + elipsis : s,
     );
 
-    Handlebars.registerHelper("substring", (s, from, to, elipsis = "") =>
-      s.length > to - from ? s.substring(from, to) + elipsis : s
-    );
-
-    Handlebars.registerHelper("yaml", (v, prefix) => {
+    Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
       if (typeof prefix === "string") {
         let yaml = YAML.stringify(v)
           .split("\n")

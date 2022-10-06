@@ -1,11 +1,11 @@
-import { Action, AppViewState } from "./types";
+import { Action, AppViewState } from "./types.ts";
 
 let m = new Map();
 m.size;
 
 export default function reducer(
   state: AppViewState,
-  action: Action
+  action: Action,
 ): AppViewState {
   // console.log("Got action", action);
   switch (action.type) {
@@ -24,7 +24,7 @@ export default function reducer(
             pageMeta.name === action.meta.name
               ? { ...pageMeta, lastOpened: Date.now() }
               : pageMeta
-          )
+          ),
         ),
         perm: action.meta.perm,
         currentPage: action.meta.name,

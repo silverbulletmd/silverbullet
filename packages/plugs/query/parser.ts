@@ -2,12 +2,12 @@ import {
   collectNodesOfType,
   findNodeOfType,
   replaceNodesMatching,
-} from "@silverbulletmd/common/tree";
-import { lezerToParseTree } from "@silverbulletmd/common/parse_tree";
-import { valueNodeToVal } from "./engine";
+} from "../../common/tree.ts";
+import { lezerToParseTree } from "../../common/parse_tree.ts";
+import { valueNodeToVal } from "./engine.ts";
 
-// @ts-ignore
-import { parser } from "./parse-query";
+// @ts-ignore auto generated
+import { parser } from "./parse-query.js";
 
 export type Filter = {
   op: string;

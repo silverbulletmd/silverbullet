@@ -1,11 +1,11 @@
-import { LogEntry } from "../sandbox";
-import { SysCallMapping, System } from "../system";
+import { LogEntry } from "../sandbox.ts";
+import { SysCallMapping, System } from "../system.ts";
 
 export default function sandboxSyscalls(system: System<any>): SysCallMapping {
   return {
-    "sandbox.getLogs": async (ctx): Promise<LogEntry[]> => {
+    "sandbox.getLogs": (): LogEntry[] => {
       let allLogs: LogEntry[] = [];
-      for (let plug of system.loadedPlugs.values()) {
+      for (const plug of system.loadedPlugs.values()) {
         allLogs = allLogs.concat(plug.sandbox.logBuffer);
       }
       allLogs = allLogs.sort((a, b) => a.date - b.date);

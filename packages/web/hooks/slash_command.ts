@@ -1,13 +1,13 @@
-import { Hook, Manifest } from "@plugos/plugos/types";
-import { System } from "@plugos/plugos/system";
+import { Hook, Manifest } from "../../plugos/types.ts";
+import { System } from "../../plugos/system.ts";
 import {
   Completion,
   CompletionContext,
   CompletionResult,
-} from "@codemirror/autocomplete";
-import { safeRun } from "../../common/util";
-import { Editor } from "../editor";
-import { syntaxTree } from "@codemirror/language";
+} from "../../../mod.ts";
+import { safeRun } from "../../common/util.ts";
+import { Editor } from "../editor.tsx";
+import { syntaxTree } from "../../../mod.ts";
 
 export type SlashCommandDef = {
   name: string;
@@ -36,9 +36,11 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   buildAllCommands(system: System<SlashCommandHookT>) {
     this.slashCommands.clear();
     for (let plug of system.loadedPlugs.values()) {
-      for (const [name, functionDef] of Object.entries(
-        plug.manifest!.functions
-      )) {
+      for (
+        const [name, functionDef] of Object.entries(
+          plug.manifest!.functions,
+        )
+      ) {
         if (!functionDef.slashCommand) {
           continue;
         }
@@ -55,7 +57,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
 
   // Completer for CodeMirror
   public slashCommandCompleter(
-    ctx: CompletionContext
+    ctx: CompletionContext,
   ): CompletionResult | null {
     let prefix = ctx.matchBefore(slashCommandRegexp);
     if (!prefix) {

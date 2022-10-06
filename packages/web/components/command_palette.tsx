@@ -1,8 +1,11 @@
-import { isMacLike } from "../../common/util";
-import { FilterList } from "./filter";
-import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
-import { AppCommand } from "../hooks/command";
-import { FilterOption } from "@silverbulletmd/common/types";
+import { isMacLike } from "../../common/util.ts";
+import { FilterList } from "./filter.tsx";
+import { faPersonRunning } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+import { AppCommand } from "../hooks/command.ts";
+import { FilterOption } from "../../common/types.ts";
+
+import {React} from "../../../mod.ts"
+
 
 export function CommandPalette({
   commands,

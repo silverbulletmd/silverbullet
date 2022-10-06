@@ -1,4 +1,4 @@
-import { SyscallContext, SysCallMapping } from "../system";
+import { SyscallContext, SysCallMapping } from "../system.ts";
 
 export function proxySyscalls(
   names: string[],
@@ -6,7 +6,7 @@ export function proxySyscalls(
     ctx: SyscallContext,
     name: string,
     ...args: any[]
-  ) => Promise<any>
+  ) => Promise<any>,
 ): SysCallMapping {
   let syscalls: SysCallMapping = {};
 

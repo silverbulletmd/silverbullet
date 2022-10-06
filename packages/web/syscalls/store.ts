@@ -1,6 +1,6 @@
-import { SysCallMapping } from "@plugos/plugos/system";
-import { proxySyscalls } from "@plugos/plugos/syscalls/transport";
-import { Space } from "@silverbulletmd/common/spaces/space";
+import { SysCallMapping } from "../../plugos/system.ts";
+import { proxySyscalls } from "../../plugos/syscalls/transport.ts";
+import { Space } from "../../common/spaces/space.ts";
 
 export function storeSyscalls(space: Space): SysCallMapping {
   return proxySyscalls(
@@ -12,6 +12,6 @@ export function storeSyscalls(space: Space): SysCallMapping {
       "store.delete",
       "store.deletePrefix",
     ],
-    (ctx, name, ...args) => space.proxySyscall(ctx.plug, name, args)
+    (ctx, name, ...args) => space.proxySyscall(ctx.plug, name, args),
   );
 }

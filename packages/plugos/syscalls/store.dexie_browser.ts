@@ -1,5 +1,5 @@
-import Dexie from "dexie";
-import { SysCallMapping } from "../system";
+import Dexie from "https://esm.sh/dexie@3.2.2";
+import { SysCallMapping } from "../system.ts";
 
 export type KV = {
   key: string;
@@ -8,7 +8,7 @@ export type KV = {
 
 export function storeSyscalls(
   dbName: string,
-  tableName: string
+  tableName: string,
 ): SysCallMapping {
   const db = new Dexie(dbName);
   db.version(1).stores({
@@ -41,7 +41,7 @@ export function storeSyscalls(
         kvs.map(({ key, value }) => ({
           key,
           value,
-        }))
+        })),
       );
     },
 
@@ -54,7 +54,7 @@ export function storeSyscalls(
 
     "store.queryPrefix": async (
       ctx,
-      keyPrefix: string
+      keyPrefix: string,
     ): Promise<{ key: string; value: any }[]> => {
       let results = await items.where("key").startsWith(keyPrefix).toArray();
       return results.map((result) => ({

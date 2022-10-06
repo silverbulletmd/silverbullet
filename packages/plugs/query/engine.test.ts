@@ -1,81 +1,82 @@
-import { expect, test } from "@jest/globals";
-import { applyQuery } from "./engine";
-import { parseQuery } from "./parser";
+import { assertEquals } from "../../../test_dep.ts";
+import { applyQuery } from "./engine.ts";
+import { parseQuery } from "./parser.ts";
 
-test("Test parser", () => {
+Deno.test("Test parser", () => {
   let parsedBasicQuery = parseQuery(`page`);
-  expect(parsedBasicQuery.table).toBe("page");
+  assertEquals(parsedBasicQuery.table, "page");
 
   let parsedQuery1 = parseQuery(
-    `task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`
+    `task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`,
   );
-  expect(parsedQuery1.table).toBe("task");
-  expect(parsedQuery1.orderBy).toBe("dueDate");
-  expect(parsedQuery1.orderDesc).toBe(true);
-  expect(parsedQuery1.limit).toBe(5);
-  expect(parsedQuery1.filter.length).toBe(2);
-  expect(parsedQuery1.filter[0]).toStrictEqual({
+  assertEquals(parsedQuery1.table, "task");
+  assertEquals(parsedQuery1.orderBy, "dueDate");
+  assertEquals(parsedQuery1.orderDesc, true);
+  assertEquals(parsedQuery1.limit, 5);
+  assertEquals(parsedQuery1.filter.length, 2);
+  assertEquals(parsedQuery1.filter[0], {
     op: "=",
     prop: "completed",
     value: false,
   });
-  expect(parsedQuery1.filter[1]).toStrictEqual({
+  assertEquals(parsedQuery1.filter[1], {
     op: "<=",
     prop: "dueDate",
     value: "{{today}}",
   });
 
   let parsedQuery2 = parseQuery(`page where name =~ /interview\\/.*/"`);
-  expect(parsedQuery2.table).toBe("page");
-  expect(parsedQuery2.filter.length).toBe(1);
-  expect(parsedQuery2.filter[0]).toStrictEqual({
+  assertEquals(parsedQuery2.table, "page");
+  assertEquals(parsedQuery2.filter.length, 1);
+  assertEquals(parsedQuery2.filter[0], {
     op: "=~",
     prop: "name",
     value: "interview\\/.*",
   });
 
   let parsedQuery3 = parseQuery(`page where something != null`);
-  expect(parsedQuery3.table).toBe("page");
-  expect(parsedQuery3.filter.length).toBe(1);
-  expect(parsedQuery3.filter[0]).toStrictEqual({
+  assertEquals(parsedQuery3.table, "page");
+  assertEquals(parsedQuery3.filter.length, 1);
+  assertEquals(parsedQuery3.filter[0], {
     op: "!=",
     prop: "something",
     value: null,
   });
 
-  expect(parseQuery(`page select name`).select).toStrictEqual(["name"]);
-  expect(parseQuery(`page select name, age`).select).toStrictEqual([
+  assertEquals(parseQuery(`page select name`).select, ["name"]);
+  assertEquals(parseQuery(`page select name, age`).select, [
     "name",
     "age",
   ]);
 
-  expect(
-    parseQuery(`gh-events where type in ["PushEvent", "somethingElse"]`)
-  ).toStrictEqual({
-    table: "gh-events",
-    filter: [
-      {
-        op: "in",
-        prop: "type",
-        value: ["PushEvent", "somethingElse"],
-      },
-    ],
-  });
+  assertEquals(
+    parseQuery(`gh-events where type in ["PushEvent", "somethingElse"]`),
+    {
+      table: "gh-events",
+      filter: [
+        {
+          op: "in",
+          prop: "type",
+          value: ["PushEvent", "somethingElse"],
+        },
+      ],
+    },
+  );
 
-  expect(parseQuery(`something render [[template/table]]`)).toStrictEqual({
+  assertEquals(parseQuery(`something render [[template/table]]`), {
     table: "something",
     filter: [],
     render: "template/table",
   });
 
-  expect(parseQuery(`something render "template/table"`)).toStrictEqual({
+  assertEquals(parseQuery(`something render "template/table"`), {
     table: "something",
     filter: [],
     render: "template/table",
   });
 });
 
-test("Test applyQuery", () => {
+Deno.test("Test applyQuery", () => {
   let data: any[] = [
     { name: "interview/My Interview", lastModified: 1 },
     { name: "interview/My Interview 2", lastModified: 2 },
@@ -83,65 +84,73 @@ test("Test applyQuery", () => {
     { name: "Angie", age: 28 },
   ];
 
-  expect(
-    applyQuery(parseQuery(`page where name =~ /interview\\/.*/`), data)
-  ).toStrictEqual([
-    { name: "interview/My Interview", lastModified: 1 },
-    { name: "interview/My Interview 2", lastModified: 2 },
-  ]);
-  expect(
+  assertEquals(
+    applyQuery(parseQuery(`page where name =~ /interview\\/.*/`), data),
+    [
+      { name: "interview/My Interview", lastModified: 1 },
+      { name: "interview/My Interview 2", lastModified: 2 },
+    ],
+  );
+  assertEquals(
     applyQuery(
       parseQuery(`page where name =~ /interview\\/.*/ order by lastModified`),
-      data
-    )
-  ).toStrictEqual([
-    { name: "interview/My Interview", lastModified: 1 },
-    { name: "interview/My Interview 2", lastModified: 2 },
-  ]);
-  expect(
+      data,
+    ),
+    [
+      { name: "interview/My Interview", lastModified: 1 },
+      { name: "interview/My Interview 2", lastModified: 2 },
+    ],
+  );
+  assertEquals(
     applyQuery(
       parseQuery(
-        `page where name  =~ /interview\\/.*/ order by lastModified desc`
+        `page where name  =~ /interview\\/.*/ order by lastModified desc`,
       ),
-      data
-    )
-  ).toStrictEqual([
-    { name: "interview/My Interview 2", lastModified: 2 },
-    { name: "interview/My Interview", lastModified: 1 },
-  ]);
-  expect(applyQuery(parseQuery(`page where age > 30`), data)).toStrictEqual([
+      data,
+    ),
+    [
+      { name: "interview/My Interview 2", lastModified: 2 },
+      { name: "interview/My Interview", lastModified: 1 },
+    ],
+  );
+  assertEquals(applyQuery(parseQuery(`page where age > 30`), data), [
     { name: "Pete", age: 38 },
   ]);
-  expect(
-    applyQuery(parseQuery(`page where age > 28 and age < 38`), data)
-  ).toStrictEqual([]);
-  expect(
-    applyQuery(parseQuery(`page where age > 30 select name`), data)
-  ).toStrictEqual([{ name: "Pete" }]);
+  assertEquals(
+    applyQuery(parseQuery(`page where age > 28 and age < 38`), data),
+    [],
+  );
+  assertEquals(
+    applyQuery(parseQuery(`page where age > 30 select name`), data),
+    [{ name: "Pete" }],
+  );
 
-  expect(
-    applyQuery(parseQuery(`page where name in ["Pete"] select name`), data)
-  ).toStrictEqual([{ name: "Pete" }]);
+  assertEquals(
+    applyQuery(parseQuery(`page where name in ["Pete"] select name`), data),
+    [{ name: "Pete" }],
+  );
 });
 
-test("Test applyQuery with multi value", () => {
+Deno.test("Test applyQuery with multi value", () => {
   let data: any[] = [
     { name: "Pete", children: ["John", "Angie"] },
     { name: "Angie", children: ["Angie"] },
     { name: "Steve" },
   ];
 
-  expect(
-    applyQuery(parseQuery(`page where children = "Angie"`), data)
-  ).toStrictEqual([
-    { name: "Pete", children: ["John", "Angie"] },
-    { name: "Angie", children: ["Angie"] },
-  ]);
+  assertEquals(
+    applyQuery(parseQuery(`page where children = "Angie"`), data),
+    [
+      { name: "Pete", children: ["John", "Angie"] },
+      { name: "Angie", children: ["Angie"] },
+    ],
+  );
 
-  expect(
-    applyQuery(parseQuery(`page where children = ["Angie", "John"]`), data)
-  ).toStrictEqual([
-    { name: "Pete", children: ["John", "Angie"] },
-    { name: "Angie", children: ["Angie"] },
-  ]);
+  assertEquals(
+    applyQuery(parseQuery(`page where children = ["Angie", "John"]`), data),
+    [
+      { name: "Pete", children: ["John", "Angie"] },
+      { name: "Angie", children: ["Angie"] },
+    ],
+  );
 });
