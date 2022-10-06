@@ -143,8 +143,7 @@ export async function dailyNoteCommand() {
   } catch {
     console.warn(`No daily note template found at ${dailyNoteTemplate}`);
   }
-  let isoDate = new Date().toISOString();
-  let date = isoDate.split("T")[0];
+  let date = niceDate(new Date())
   let pageName = `${dailyNotePrefix}${date}`;
   if (dailyNoteTemplateText) {
     try {
