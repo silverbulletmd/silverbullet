@@ -1,9 +1,9 @@
 {
   "imports": {
     "@codemirror/state": "https://esm.sh/@codemirror/state@6.1.2",
-    "@lezer/lr": "https://esm.sh/@lezer/lr@1.2.3",
-    "yaml": "https://deno.land/std@0.158.0/encoding/yaml.ts",
     "$sb/": "./packages/",
-    "handlebars": "https://esm.sh/handlebars"
+    "handlebars": "https://esm.sh/handlebars",
+    "@lezer/lr": "https://esm.sh/@lezer/lr",
+    "yaml": "https://deno.land/std/encoding/yaml.ts"
   }
 }

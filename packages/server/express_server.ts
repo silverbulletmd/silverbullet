@@ -1,46 +1,41 @@
+import { Application, path, Router, SQLite } from "../../dep_server.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
-import { EndpointHook } from "../plugos/hooks/endpoint.ts";
-import { System } from "../plugos/system.ts";
+import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
+import buildMarkdown from "../common/parser.ts";
+import { plugPrefix } from "../common/spaces/constants.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
-import { path, SQLite } from "../../dep_server.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import spaceSyscalls from "./syscalls/space.ts";
-import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import {
-  ensureTable as ensureIndexTable,
-  pageIndexSyscalls,
-} from "./syscalls/index.ts";
-import shellSyscalls from "../plugos/syscalls/shell.node.ts";
-import { NodeCronHook } from "../plugos/hooks/node_cron.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { Space } from "../common/spaces/space.ts";
+import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
+import { parseYamlSettings } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
-// import { jwtSyscalls } from "../plugos/syscalls/jwt.ts";
-import buildMarkdown from "../common/parser.ts";
-import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
+import { EndpointHook } from "../plugos/hooks/endpoint.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { NodeCronHook } from "../plugos/hooks/node_cron.ts";
 import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
-import { plugPrefix } from "../common/spaces/constants.ts";
-
-import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
-// import settingsTemplate from "bundle-text:./SETTINGS_template.md";
-import { safeRun } from "./util.ts";
-import {
-  ensureFTSTable,
-  fullTextSearchSyscalls,
-} from "../plugos/syscalls/fulltext.knex_sqlite.ts";
-import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
-import { PageNamespaceHook } from "./hooks/page_namespace.ts";
+import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
+import { fullTextSearchSyscalls } from "../plugos/syscalls/fulltext.knex_sqlite.ts";
+import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
+import shellSyscalls from "../plugos/syscalls/shell.node.ts";
 import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
 } from "../plugos/syscalls/store.deno.ts";
-import { parseYamlSettings } from "../common/util.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { Application, Router } from "../../dep_server.ts";
+import { System } from "../plugos/system.ts";
+import { PageNamespaceHook } from "./hooks/page_namespace.ts";
+import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
+import {
+  ensureTable as ensureIndexTable,
+  pageIndexSyscalls,
+} from "./syscalls/index.ts";
+import spaceSyscalls from "./syscalls/space.ts";
+import { systemSyscalls } from "./syscalls/system.ts";
+import { safeRun } from "./util.ts";
 
+// import { jwtSyscalls } from "../plugos/syscalls/jwt.ts";
+// import settingsTemplate from "bundle-text:./SETTINGS_template.md";
 const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
 export type ServerOptions = {

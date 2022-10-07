@@ -9,24 +9,24 @@ safeRun(async () => {
 
   let httpPrimitives = new HttpSpacePrimitives("", password);
   let settingsPageText = "";
-  // while (true) {
-  //   try {
-  //     settingsPageText = (await (
-  //       await httpPrimitives.readFile("SETTINGS.md", "string")
-  //     ).data) as string;
-  //     break;
-  //   } catch (e: any) {
-  //     if (e.message === "Unauthorized") {
-  //       password = prompt("Password: ") || undefined;
-  //       if (!password) {
-  //         alert("Sorry, need a password");
-  //         return;
-  //       }
-  //       localStorage.setItem("password", password!);
-  //       httpPrimitives = new HttpSpacePrimitives("", password);
-  //     }
-  //   }
-  // }
+  while (true) {
+    try {
+      settingsPageText = (
+        await httpPrimitives.readFile("SETTINGS.md", "string")
+      ).data as string;
+      break;
+    } catch (e: any) {
+      if (e.message === "Unauthorized") {
+        password = prompt("Password: ") || undefined;
+        if (!password) {
+          alert("Sorry, need a password");
+          return;
+        }
+        localStorage.setItem("password", password!);
+        httpPrimitives = new HttpSpacePrimitives("", password);
+      }
+    }
+  }
   let serverSpace = new Space(httpPrimitives);
   serverSpace.watch();
 

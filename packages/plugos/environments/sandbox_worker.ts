@@ -57,10 +57,16 @@ self.syscall = async (name: string, ...args: any[]) => {
 
 let loadedModules = new Map<string, any>();
 
-// @ts-ignore
+// @ts-ignore: global to load dynamic imports
 self.require = (moduleName: string): any => {
   // console.log("Requiring", moduleName, loadedModules.get(moduleName));
-  return loadedModules.get(moduleName);
+  const mod = loadedModules.get(moduleName);
+  if (!mod) {
+    throw new Error(
+      `Dynamically importing non-preloaded library ${moduleName}`,
+    );
+  }
+  return mod;
 };
 
 // @ts-ignore

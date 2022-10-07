@@ -18,7 +18,7 @@ window.addEventListener("message", (message) => {
       if (data.script) {
         try {
           eval(data.script);
-        } catch (e: any) {
+        } catch (e) {
           console.error("Error evaling script", e);
         }
       }
@@ -26,7 +26,7 @@ window.addEventListener("message", (message) => {
   }
 });
 
-function sendEvent(name: string, ...args: any[]) {
+function sendEvent(name, ...args) {
   window.parent.postMessage(
     {
       type: "event",

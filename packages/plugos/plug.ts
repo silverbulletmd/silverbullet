@@ -27,7 +27,7 @@ export class Plug<HookT> {
     this.manifest = manifest;
     // TODO: These need to be explicitly granted, not just taken
     this.grantedPermissions = manifest.requiredPermissions || [];
-    for (let [dep, code] of Object.entries(manifest.dependencies || {})) {
+    for (const [dep, code] of Object.entries(manifest.dependencies || {})) {
       await this.sandbox.loadDependency(dep, code);
     }
   }

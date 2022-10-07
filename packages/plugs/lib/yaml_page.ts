@@ -4,11 +4,11 @@ import {
   readPage,
   writePage,
 } from "../../plugos-silverbullet-syscall/space.ts";
-import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
+import * as YAML from "yaml";
 
 export async function readYamlPage(
   pageName: string,
-  allowedLanguages = ["yaml"]
+  allowedLanguages = ["yaml"],
 ): Promise<any> {
   const { text } = await readPage(pageName);
   let tree = await parseMarkdown(text);
@@ -46,7 +46,7 @@ export async function readYamlPage(
 
 export async function writeYamlPage(
   pageName: string,
-  data: any
+  data: any,
 ): Promise<void> {
   const text = YAML.stringify(data);
   await writePage(pageName, "```yaml\n" + text + "\n```");

@@ -5,9 +5,7 @@ import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
 import { denoPlugin } from "./packages/esbuild_deno_loader/mod.ts";
 import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 
-// import { sassPlugin } from "https://esm.sh/esbuild-sass-plugin@2.3.3";
-
-import sass from "https://deno.land/x/denosass/mod.ts";
+import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined
@@ -25,7 +23,10 @@ async function copyAssets(dest: string) {
       load_paths: ["packages/web/styles"],
     },
   );
-  await Deno.writeTextFile("dist/main.css", compiler.to_string() as string);
+  await Deno.writeTextFile(
+    "dist/main.css",
+    compiler.to_string("expanded") as string,
+  );
 }
 
 async function bundle(): Promise<void> {

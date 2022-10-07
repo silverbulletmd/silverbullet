@@ -1,6 +1,6 @@
 import { collectNodesOfType, ParseTree } from "../../common/tree.ts";
-import Handlebars from "https://esm.sh/handlebars";
-import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
+import Handlebars from "handlebars";
+import * as YAML from "yaml";
 
 import { readPage } from "../../plugos-silverbullet-syscall/space.ts";
 import { niceDate } from "../core/dates.ts";
