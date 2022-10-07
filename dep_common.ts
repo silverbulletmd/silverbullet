@@ -2,11 +2,8 @@ export {
   autocompletion,
   CompletionContext,
   completionKeymap,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common";
-export type {
-  Completion,
-  CompletionResult,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common,@codemirror/view";
+} from "@codemirror/autocomplete";
+export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
 export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
 export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
@@ -85,11 +82,19 @@ export {
   foldNodeProp,
   HighlightStyle,
   indentNodeProp,
+  indentOnInput,
   Language,
   languageDataProp,
   LanguageDescription,
   LanguageSupport,
   ParseContext,
+  StreamLanguage,
   syntaxHighlighting,
   syntaxTree,
 } from "@codemirror/language";
+
+export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.1.0/mode/yaml?external=@codemirror/language";
+export {
+  javascriptLanguage,
+  typescriptLanguage,
+} from "https://esm.sh/@codemirror/lang-javascript@6.1.0?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";

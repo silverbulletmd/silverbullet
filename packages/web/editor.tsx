@@ -7,7 +7,6 @@ import {
   closeBracketsKeymap,
   completionKeymap,
   CompletionResult,
-  defaultHighlightStyle,
   drawSelection,
   dropCursor,
   EditorSelection,
@@ -16,16 +15,23 @@ import {
   highlightSpecialChars,
   history,
   historyKeymap,
+  indentOnInput,
   indentWithTab,
+  javascriptLanguage,
   KeyBinding,
   keymap,
+  LanguageDescription,
+  LanguageSupport,
   runScopeHandlers,
   searchKeymap,
   standardKeymap,
+  StreamLanguage,
   syntaxHighlighting,
   syntaxTree,
+  typescriptLanguage,
   ViewPlugin,
   ViewUpdate,
+  yamlLanguage,
 } from "../../dep_common.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 // import { markdown } from "../common/_markdown/index.ts";
@@ -413,6 +419,23 @@ export class Editor {
       extensions: [
         markdown({
           base: buildMarkdown(this.mdExtensions),
+          codeLanguages: [
+            LanguageDescription.of({
+              name: "yaml",
+              alias: ["meta", "data"],
+              support: new LanguageSupport(StreamLanguage.define(yamlLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "javascript",
+              alias: ["js"],
+              support: new LanguageSupport(javascriptLanguage),
+            }),
+            LanguageDescription.of({
+              name: "typescript",
+              alias: ["ts"],
+              support: new LanguageSupport(typescriptLanguage),
+            }),
+          ],
           addKeymap: true,
         }),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
@@ -429,6 +452,7 @@ export class Editor {
         history(),
         drawSelection(),
         dropCursor(),
+        indentOnInput(),
         EditorView.lineWrapping,
         lineWrapper([
           { selector: "ATXHeading1", class: "sb-line-h1" },

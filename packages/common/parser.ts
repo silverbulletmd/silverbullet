@@ -1,10 +1,13 @@
 import {
   BlockContext,
   Language,
+  LanguageDescription,
+  LanguageSupport,
   LeafBlock,
   LeafBlockParser,
   markdown,
   MarkdownConfig,
+  parseCode,
   styleTags,
   Table,
   tags as t,
@@ -17,7 +20,6 @@ import {
   mdExtensionSyntaxConfig,
 } from "./markdown_ext.ts";
 
-// import { markdown } from "./markdown/index.ts";
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
 const WikiLink: MarkdownConfig = {
