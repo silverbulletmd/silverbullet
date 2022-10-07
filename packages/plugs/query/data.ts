@@ -16,6 +16,7 @@ import {
 import type { QueryProviderEvent } from "./engine.ts";
 import { applyQuery } from "./engine.ts";
 import { removeQueries } from "./util.ts";
+import * as YAML from "yaml";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   let dataObjects: { key: string; value: Object }[] = [];
@@ -60,7 +61,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
 
 export function extractMeta(
   parseTree: ParseTree,
-  removeKeys: string[] = []
+  removeKeys: string[] = [],
 ): any {
   let data: any = {};
   addParentPointers(parseTree);
@@ -95,13 +96,13 @@ export function extractMeta(
       return;
     }
     let codeText = codeTextNode.children![0].text!;
-    data = parseYaml(codeText);
+    data = YAML.parse(codeText);
     if (removeKeys.length > 0) {
       let newData = { ...data };
       for (let key of removeKeys) {
         delete newData[key];
       }
-      codeTextNode.children![0].text = stringifyYaml(newData).trim();
+      codeTextNode.children![0].text = YAML.stringify(newData).trim();
       // If nothing is left, let's just delete this thing
       if (Object.keys(newData).length === 0) {
         return null;

@@ -2,11 +2,11 @@ export {
   autocompletion,
   CompletionContext,
   completionKeymap,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
+} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common";
 export type {
   Completion,
   CompletionResult,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
+} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common,@codemirror/view";
 
 export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
 export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
@@ -23,18 +23,13 @@ export {
   historyKeymap,
   indentWithTab,
   standardKeymap,
-} from "https://esm.sh/@codemirror/commands@6.1.1?external=@codemirror/state";
+} from "@codemirror/commands";
 export {
   closeBrackets,
   closeBracketsKeymap,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state";
+} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view";
 
-export {
-  styleTags,
-  Tag,
-  tagHighlighter,
-  tags,
-} from "https://esm.sh/@lezer/highlight@1.1.1";
+export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
 export type {
   BlockContext,
@@ -42,7 +37,7 @@ export type {
   LeafBlockParser,
   MarkdownConfig,
   MarkdownExtension,
-} from "https://esm.sh/@lezer/markdown@1.0.2";
+} from "@lezer/markdown";
 
 export {
   Emoji,
@@ -54,11 +49,11 @@ export {
   Superscript,
   Table,
   TaskList,
-} from "https://esm.sh/@lezer/markdown@1.0.2";
+} from "@lezer/markdown";
 
-export type { SyntaxNode, Tree } from "https://esm.sh/@lezer/common@1.0.1";
+export type { SyntaxNode, Tree } from "@lezer/common";
 
-export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.1?external=@codemirror/state";
+export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.1?external=@codemirror/state,@codemirror/view";
 export {
   Decoration,
   drawSelection,
@@ -70,11 +65,10 @@ export {
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
-export type {
-  DecorationSet,
-  KeyBinding,
-} from "https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state";
+} from "@codemirror/view";
+export type { DecorationSet, KeyBinding } from "@codemirror/view";
+
+export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight";
 
 export {
   EditorSelection,
@@ -86,11 +80,11 @@ export {
 } from "@codemirror/state";
 export type { ChangeSpec, StateCommand } from "@codemirror/state";
 export {
+  defaultHighlightStyle,
   defineLanguageFacet,
   foldNodeProp,
   HighlightStyle,
   indentNodeProp,
-  // bla
   Language,
   languageDataProp,
   LanguageDescription,
@@ -98,4 +92,4 @@ export {
   ParseContext,
   syntaxHighlighting,
   syntaxTree,
-} from "https://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state";
+} from "@codemirror/language";

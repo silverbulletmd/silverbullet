@@ -1,4 +1,8 @@
-import { Application, path, Router, SQLite } from "../../dep_server.ts";
+import { Application, mime, path, Router, SQLite } from "../../dep_server.ts";
+import {
+  assetReadFileSync,
+  assetReadTextFileSync,
+} from "../common/asset_bundle.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -41,7 +45,7 @@ const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 export type ServerOptions = {
   port: number;
   pagesPath: string;
-  distDir: string;
+  assetBundle: Record<string, string>;
   builtinPlugDir: string;
   password?: string;
 };
@@ -63,16 +67,17 @@ export class ExpressServer {
   spacePrimitives: SpacePrimitives;
   abortController?: AbortController;
   globalModules: Manifest;
+  assetBundle: Record<string, string>;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = new Application();
     this.builtinPlugDir = options.builtinPlugDir;
-    this.distDir = options.distDir;
+    this.assetBundle = options.assetBundle;
     this.password = options.password;
 
     this.globalModules = JSON.parse(
-      Deno.readTextFileSync(`${this.distDir}/global.plug.json`),
+      assetReadTextFileSync(this.assetBundle, `dist/global.plug.json`),
     );
 
     // Set up the PlugOS System
@@ -324,14 +329,22 @@ export class ExpressServer {
     // Serve static files (javascript, css, html)
     this.app.use(async (ctx, next) => {
       if (ctx.request.url.pathname === "/") {
-        return ctx.send({
-          root: "/",
-          path: `${this.distDir}/index.html`,
-        });
+        ctx.response.headers.set("Content-type", "text/html");
+        ctx.response.body = assetReadTextFileSync(
+          this.assetBundle,
+          "dist/index.html",
+        );
+        return;
       }
-      const root = this.distDir;
       try {
-        await ctx.send({ root });
+        ctx.response.body = assetReadFileSync(
+          this.assetBundle,
+          `dist${ctx.request.url.pathname}`,
+        );
+        ctx.response.headers.set(
+          "Content-type",
+          mime.getType(ctx.request.url.pathname)!,
+        );
       } catch {
         await next();
       }
@@ -349,10 +362,11 @@ export class ExpressServer {
 
     // Fallback, serve index.html
     this.app.use((ctx) => {
-      return ctx.send({
-        root: "/",
-        path: `${this.distDir}/index.html`,
-      });
+      ctx.response.headers.set("Content-type", "text/html");
+      ctx.response.body = assetReadTextFileSync(
+        this.assetBundle,
+        "dist/index.html",
+      );
     });
 
     this.abortController = new AbortController();

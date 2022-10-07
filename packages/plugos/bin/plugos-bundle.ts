@@ -71,7 +71,7 @@ type BundleArgs = {
   exclude?: string[] | string;
 };
 
-export async function run(args: BundleArgs) {
+export async function bundleRun(args: BundleArgs) {
   console.log("Args", args);
 
   async function buildAll() {
@@ -92,25 +92,6 @@ export async function run(args: BundleArgs) {
   }
 
   await buildAll();
-  // if (args.watch) {
-  //   console.log("Watching for changes...");
-  //   for await (const event of Deno.watchFs(".", {
-  //     recursive: true,
-  //   })) {
-  //     if (
-  //       event.filename.endsWith(".plug.yaml") ||
-  //       filename.endsWith(".js") ||
-  //       filename.endsWith(".css") ||
-  //       filename.endsWith(".png") ||
-  //       filename.endsWith(".jpg") ||
-  //       filename.endsWith(".gif") ||
-  //       (filename.endsWith(".ts") && !filename.endsWith("_in.ts"))
-  //     ) {
-  //       console.log("Change detected", eventType, filename);
-  //       await buildAll();
-  //     }
-  //   }
-  // }
 }
 
 if (import.meta.main) {
@@ -131,6 +112,6 @@ if (import.meta.main) {
     ? args.exclude.split(",")
     : [];
 
-  await run(args);
+  await bundleRun(args);
   esbuild.stop();
 }

@@ -7,6 +7,7 @@ import {
   closeBracketsKeymap,
   completionKeymap,
   CompletionResult,
+  defaultHighlightStyle,
   drawSelection,
   dropCursor,
   EditorSelection,
@@ -27,7 +28,9 @@ import {
   ViewUpdate,
 } from "../../dep_common.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
-import { markdown } from "../common/markdown/index.ts";
+// import { markdown } from "../common/_markdown/index.ts";
+import { markdown } from "../../dep_common.ts";
+
 import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
 import { Space } from "../common/spaces/space.ts";
@@ -39,6 +42,7 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
+
 import { AppEvent, ClickEvent } from "./app_event.ts";
 import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
@@ -409,7 +413,7 @@ export class Editor {
       extensions: [
         markdown({
           base: buildMarkdown(this.mdExtensions),
-          // addKeymap: true,
+          addKeymap: true,
         }),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
         autocompletion({

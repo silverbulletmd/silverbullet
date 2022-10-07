@@ -1,21 +1,23 @@
-import { styleTags, tags as t } from "../../dep_common.ts";
 import {
   BlockContext,
+  Language,
   LeafBlock,
   LeafBlockParser,
+  markdown,
   MarkdownConfig,
+  styleTags,
   Table,
+  tags as t,
   TaskList,
 } from "../../dep_common.ts";
-import { markdown } from "./markdown/index.ts";
 import * as ct from "./customtags.ts";
-import { Language } from "../../dep_common.ts";
 import {
   MDExt,
   mdExtensionStyleTags,
   mdExtensionSyntaxConfig,
 } from "./markdown_ext.ts";
 
+// import { markdown } from "./markdown/index.ts";
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
 const WikiLink: MarkdownConfig = {

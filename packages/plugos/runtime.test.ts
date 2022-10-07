@@ -2,8 +2,8 @@ import { createSandbox } from "./environments/deno_sandbox.ts";
 import { System } from "./system.ts";
 
 import {
-  assertEquals,
   assert,
+  assertEquals,
 } from "https://deno.land/std@0.158.0/testing/asserts.ts";
 import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 
@@ -88,7 +88,7 @@ Deno.test("Run a deno sandbox", async () => {
         },
       },
     },
-    createSandbox
+    createSandbox,
   );
   assertEquals(await plug.invoke("addTen", [10]), 20);
   for (let i = 0; i < 100; i++) {
@@ -112,8 +112,8 @@ Deno.test("Run a deno sandbox", async () => {
   } catch (e: any) {
     assert(
       e.message.indexOf(
-        "Missing permission 'restricted' for syscall restrictedSyscall"
-      ) !== -1
+        "Missing permission 'restricted' for syscall restrictedSyscall",
+      ) !== -1,
     );
   }
   assertEquals(await plug.invoke("dangerousTest", []), "yay");
@@ -121,9 +121,8 @@ Deno.test("Run a deno sandbox", async () => {
   await system.unloadAll();
 });
 
-import { run as bundleRun } from "./bin/plugos-bundle.ts";
+import { bundleRun } from "./bin/plugos-bundle.ts";
 import { esbuild } from "./compile.ts";
-import { safeRun } from "./util.ts";
 const __dirname = new URL(".", import.meta.url).pathname;
 
 Deno.test("Preload dependencies", async () => {
@@ -135,7 +134,7 @@ Deno.test("Preload dependencies", async () => {
     exclude: [],
   });
   const globalModules = JSON.parse(
-    Deno.readTextFileSync(`${tmpDist}/global.plug.json`)
+    Deno.readTextFileSync(`${tmpDist}/global.plug.json`),
   );
   await bundleRun({
     _: [`${__dirname}test.plug.yaml`],
@@ -158,7 +157,7 @@ Deno.test("Preload dependencies", async () => {
   console.log("Loading test module");
   const testPlug = await system.load(
     JSON.parse(Deno.readTextFileSync(`${tmpDist}/test.plug.json`)),
-    createSandbox
+    createSandbox,
   );
   console.log("Running");
 

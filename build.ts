@@ -6,13 +6,15 @@ import { denoPlugin } from "./packages/esbuild_deno_loader/mod.ts";
 import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
+import { bundleFolder } from "./json_bundle.ts";
+import { bundleRun } from "./packages/plugos/bin/plugos-bundle.ts";
 
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
   : esbuildNative;
 
-async function copyAssets(dest: string) {
+async function prepareAssets(dest: string) {
   await copy("packages/web/fonts", dest, { overwrite: true });
   await copy("packages/web/index.html", `${dest}/index.html`, {
     overwrite: true,
@@ -27,6 +29,14 @@ async function copyAssets(dest: string) {
     "dist/main.css",
     compiler.to_string("expanded") as string,
   );
+  // await bundleRun({
+  //   _: [`${__dirname}../plugs/global.plug.yaml`],
+  //   debug: true,
+  //   dist: tmpDist,
+  //   exclude: [],
+  // });
+
+  await bundleFolder("dist", "dist_bundle.json");
 }
 
 async function bundle(): Promise<void> {
@@ -48,7 +58,7 @@ async function bundle(): Promise<void> {
           } else {
             console.log("watch build succeeded.");
           }
-          copyAssets("dist").catch(console.error);
+          prepareAssets("dist").catch(console.error);
         },
       },
       plugins: [
@@ -58,7 +68,7 @@ async function bundle(): Promise<void> {
       ],
     }),
   ]);
-  await copyAssets("dist");
+  await prepareAssets("dist");
   console.log("Built!");
 }
 await bundle();
