@@ -1,5 +1,5 @@
 import { KeyBinding } from "../../dep_web.ts";
-import { syntaxTree } from "../../dep_web.ts";
+import { syntaxTree } from "../../dep_common.ts";
 
 const straightQuoteContexts = ["CommentBlock", "FencedCode", "InlineCode"];
 

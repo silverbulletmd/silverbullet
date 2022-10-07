@@ -1,7 +1,6 @@
 {
   "imports": {
-    "@codemirror/state": "https://esm.sh/@codemirror/state",
-    "@codemirror/language": "https://esm.sh/@codemirror/language",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.1.2",
     "@lezer/lr": "https://esm.sh/@lezer/lr@1.2.3",
     "yaml": "https://deno.land/std@0.158.0/encoding/yaml.ts",
     "$sb/": "./packages/",

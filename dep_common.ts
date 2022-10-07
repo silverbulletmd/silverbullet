@@ -19,21 +19,6 @@ export {
 } from "https://deno.land/std@0.158.0/encoding/base64.ts";
 
 export {
-  defaultHighlightStyle,
-  defineLanguageFacet,
-  foldNodeProp,
-  HighlightStyle,
-  indentNodeProp,
-  Language,
-  languageDataProp,
-  LanguageDescription,
-  LanguageSupport,
-  ParseContext,
-  syntaxHighlighting,
-  syntaxTree,
-} from "@codemirror/language";
-export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.1?external=@codemirror/state";
-export {
   history,
   historyKeymap,
   indentWithTab,
@@ -49,7 +34,7 @@ export {
   Tag,
   tagHighlighter,
   tags,
-} from "https://esm.sh/@lezer/highlight";
+} from "https://esm.sh/@lezer/highlight@1.1.1";
 
 export type {
   BlockContext,
@@ -57,7 +42,7 @@ export type {
   LeafBlockParser,
   MarkdownConfig,
   MarkdownExtension,
-} from "https://esm.sh/@lezer/markdown";
+} from "https://esm.sh/@lezer/markdown@1.0.2";
 
 export {
   Emoji,
@@ -69,11 +54,11 @@ export {
   Superscript,
   Table,
   TaskList,
-} from "https://esm.sh/@lezer/markdown";
+} from "https://esm.sh/@lezer/markdown@1.0.2";
 
-export type { SyntaxNode, Tree } from "https://esm.sh/@lezer/common";
+export type { SyntaxNode, Tree } from "https://esm.sh/@lezer/common@1.0.1";
 
-export { searchKeymap } from "https://esm.sh/@codemirror/search?external=@codemirror/state";
+export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.1?external=@codemirror/state";
 export {
   Decoration,
   drawSelection,
@@ -100,3 +85,17 @@ export {
   Transaction,
 } from "@codemirror/state";
 export type { ChangeSpec, StateCommand } from "@codemirror/state";
+export {
+  defineLanguageFacet,
+  foldNodeProp,
+  HighlightStyle,
+  indentNodeProp,
+  // bla
+  Language,
+  languageDataProp,
+  LanguageDescription,
+  LanguageSupport,
+  ParseContext,
+  syntaxHighlighting,
+  syntaxTree,
+} from "https://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state";

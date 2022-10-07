@@ -1,11 +1,11 @@
-import { syntaxTree } from "../../dep_web.ts";
+import { syntaxTree } from "../../dep_common.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
-} from "../../dep_web.ts";
+} from "../../dep_common.ts";
 
 import { Range } from "../../dep_web.ts";
 

@@ -1,60 +1,67 @@
-import { autocompletion, completionKeymap, CompletionResult } from "../../dep_web.ts";
-import { closeBrackets, closeBracketsKeymap } from "../../dep_web.ts";
-import { indentWithTab, standardKeymap } from "../../dep_web.ts";
-import { history, historyKeymap } from "../../dep_web.ts";
-import { syntaxHighlighting } from "../../dep_web.ts";
-import { searchKeymap } from "../../dep_web.ts";
-import { EditorSelection, EditorState } from "../../dep_web.ts";
+import ReactDOM from "https://esm.sh/react-dom@17";
+import React, { useEffect, useReducer } from "https://esm.sh/react@17";
+
 import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+  CompletionResult,
   drawSelection,
   dropCursor,
+  EditorSelection,
+  EditorState,
   EditorView,
   highlightSpecialChars,
+  history,
+  historyKeymap,
+  indentWithTab,
   KeyBinding,
   keymap,
   runScopeHandlers,
+  searchKeymap,
+  standardKeymap,
+  syntaxHighlighting,
+  syntaxTree,
   ViewPlugin,
   ViewUpdate,
-} from "../../dep_web.ts";
-import React, { useEffect, useReducer } from "https://esm.sh/react@17";
-import ReactDOM from "https://esm.sh/react-dom@17";
+} from "../../dep_common.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { markdown } from "../common/markdown/index.ts";
+import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
+import buildMarkdown from "../common/parser.ts";
+import { Space } from "../common/spaces/space.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
+import { FilterOption, PageMeta } from "../common/types.ts";
+import { safeRun, throttle } from "../common/util.ts";
 import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { eventSyscalls } from "../plugos/syscalls/event.ts";
+import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
+import { System } from "../plugos/system.ts";
 import { AppEvent, ClickEvent } from "./app_event.ts";
 import { CommandPalette } from "./components/command_palette.tsx";
+import { FilterList } from "./components/filter.tsx";
 import { PageNavigator } from "./components/page_navigator.tsx";
-import { TopBar } from "./components/top_bar.tsx";
-import { lineWrapper } from "./line_wrapper.ts";
-import { markdown } from "../common/markdown/index.ts";
-import { PathPageNavigator } from "./navigator.ts";
-import buildMarkdown from "../common/parser.ts";
-import reducer from "./reducer.ts";
-import { smartQuoteKeymap } from "./smart_quotes.ts";
-import { Space } from "../common/spaces/space.ts";
-import customMarkdownStyle from "./style.ts";
-import { editorSyscalls } from "./syscalls/editor.ts";
-import { indexerSyscalls } from "./syscalls/index.ts";
-import { spaceSyscalls } from "./syscalls/space.ts";
-import { Action, AppViewState, initialViewState } from "./types.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { safeRun, throttle } from "../common/util.ts";
-import { System } from "../plugos/system.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
 import { Panel } from "./components/panel.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+import { attachmentExtension, pasteLinkExtension } from "./editor_paste.ts";
 import { CommandHook } from "./hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
-import { attachmentExtension, pasteLinkExtension } from "./editor_paste.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
-import { FilterList } from "./components/filter.tsx";
-import { FilterOption, PageMeta } from "../common/types.ts";
-import { syntaxTree } from "../../dep_web.ts";
-import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
-import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { storeSyscalls } from "./syscalls/store.ts";
 import { inlineImagesPlugin } from "./inline_image.ts";
+import { lineWrapper } from "./line_wrapper.ts";
+import { PathPageNavigator } from "./navigator.ts";
+import reducer from "./reducer.ts";
+import { smartQuoteKeymap } from "./smart_quotes.ts";
+import customMarkdownStyle from "./style.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { editorSyscalls } from "./syscalls/editor.ts";
 import { fulltextSyscalls } from "./syscalls/fulltext.ts";
+import { indexerSyscalls } from "./syscalls/index.ts";
+import { spaceSyscalls } from "./syscalls/space.ts";
+import { storeSyscalls } from "./syscalls/store.ts";
+import { systemSyscalls } from "./syscalls/system.ts";
+import { Action, AppViewState, initialViewState } from "./types.ts";
 
 class PageState {
   constructor(
@@ -69,28 +76,28 @@ const saveInterval = 1000;
 // properly, no idea why
 
 // TODO: Remove at some point
-EditorState.prototype.languageDataAt = function (
-  name: string,
-  pos: number,
-  side = -1,
-) {
-  let values = [];
-  // console.log("Getting language data");
-  // @ts-ignore
-  for (let provider of this.facet(EditorState.languageData)) {
-    let providerResult = provider(this, pos, side);
-    if (!providerResult) {
-      // console.log("Empty provider result");
-      continue;
-    }
-    for (let result of providerResult) {
-      if (Object.prototype.hasOwnProperty.call(result, name)) {
-        values.push(result[name]);
-      }
-    }
-  }
-  return values;
-};
+// EditorState.prototype.languageDataAt = function (
+//   name: string,
+//   pos: number,
+//   side = -1,
+// ) {
+//   let values = [];
+//   // console.log("Getting language data");
+//   // @ts-ignore
+//   for (let provider of this.facet(EditorState.languageData)) {
+//     let providerResult = provider(this, pos, side);
+//     if (!providerResult) {
+//       // console.log("Empty provider result");
+//       continue;
+//     }
+//     for (let result of providerResult) {
+//       if (Object.prototype.hasOwnProperty.call(result, name)) {
+//         values.push(result[name]);
+//       }
+//     }
+//   }
+//   return values;
+// };
 
 export class Editor {
   readonly commandHook: CommandHook;
