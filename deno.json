@@ -9,7 +9,7 @@
       "watch-web": "deno run -A build.ts",
       "watch-server": "deno run -A --unstable --watch server/server.ts",
       "plugs": "./build_plugs.sh",
-      "compile": "deno compile --output silverbullet --importmap import_map.json -A --unstable server/server.ts"
+      "bundle": "deno bundle --importmap import_map.json server/server.ts dist/silverbullet.js"
     }
   }
   

@@ -46,7 +46,7 @@ export type ServerOptions = {
   port: number;
   pagesPath: string;
   assetBundle: Record<string, string>;
-  builtinPlugDir: string;
+  builtinPlugUrl: URL;
   password?: string;
 };
 
@@ -60,7 +60,7 @@ export class ExpressServer {
   private eventHook: EventHook;
   private db: SQLite;
   private port: number;
-  builtinPlugDir: string;
+  builtinPlugUrl: URL;
   password?: string;
   settings: { [key: string]: any } = {};
   spacePrimitives: SpacePrimitives;
@@ -71,7 +71,7 @@ export class ExpressServer {
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = new Application();
-    this.builtinPlugDir = options.builtinPlugDir;
+    this.builtinPlugUrl = options.builtinPlugUrl;
     this.assetBundle = options.assetBundle;
     this.password = options.password;
 
@@ -151,11 +151,15 @@ export class ExpressServer {
           throw new Error(`Invalid plug name: ${plugName}`);
         }
         try {
-          let manifestJson = await Deno.readTextFile(
-            path.join(this.builtinPlugDir, `${plugName}.plug.json`),
+          console.log(
+            "Fetching",
+            new URL(`${plugName}.plug.json`, this.builtinPlugUrl).toString(),
           );
-          return JSON.parse(manifestJson);
-        } catch {
+          return await (await fetch(
+            new URL(`${plugName}.plug.json`, this.builtinPlugUrl),
+          )).json();
+        } catch (e: any) {
+          console.error("FEtching builtin", e);
           throw new Error(`No such builtin: ${plugName}`);
         }
       },

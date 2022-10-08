@@ -3,12 +3,14 @@ import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 import * as path from "https://deno.land/std@0.158.0/path/mod.ts";
 import { ExpressServer } from "./express_server.ts";
 
-type ServerArgs = {
-  _: string[];
-  port: number;
-  password: string;
-};
-let args: ServerArgs = flags.parse(Deno.args);
+const args = flags.parse(Deno.args, {
+  string: ["port", "password", "builtins"],
+  alias: { p: "port" },
+  default: {
+    port: "3000",
+    builtins: new URL("./../plugs/dist/", import.meta.url).toString(),
+  },
+});
 
 if (!args._.length) {
   console.error(
@@ -18,21 +20,19 @@ if (!args._.length) {
 }
 
 const pagesPath = path.resolve(Deno.cwd(), args._[0] as string);
-const port = args.port ? +args.port : 3000;
-
-// const webappDistDir = new URL("./../../dist", import.meta.url).pathname;
-// console.log("Webapp dist dir", webappDistDir);
+const port = +args.port;
 
 import assetBundle from "../dist/web_bundle.json" assert { type: "json" };
 
-const plugDistDir = new URL("./../plugs/dist", import.meta.url).pathname;
+const plugDistUrl = args.builtins;
 console.log("Pages dir", pagesPath);
+console.log("Plugs url", plugDistUrl);
 
 const expressServer = new ExpressServer({
   port: port,
   pagesPath: pagesPath,
   assetBundle: assetBundle,
-  builtinPlugDir: plugDistDir,
+  builtinPlugUrl: new URL(plugDistUrl),
   password: args.password,
 });
 expressServer.start().catch((e) => {
