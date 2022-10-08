@@ -261,16 +261,14 @@ export class Editor {
     ).json();
 
     this.system.on({
-      plugLoaded: (plug) => {
-        safeRun(async () => {
-          for (
-            let [modName, code] of Object.entries(
-              globalModules.dependencies,
-            )
-          ) {
-            await plug.sandbox.loadDependency(modName, code as string);
-          }
-        });
+      plugLoaded: async (plug) => {
+        for (
+          let [modName, code] of Object.entries(
+            globalModules.dependencies,
+          )
+        ) {
+          await plug.sandbox.loadDependency(modName, code as string);
+        }
       },
     });
 

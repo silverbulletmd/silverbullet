@@ -8,7 +8,6 @@ const args = flags.parse(Deno.args, {
   alias: { p: "port" },
   default: {
     port: "3000",
-    builtins: new URL("./../plugs/dist/", import.meta.url).toString(),
   },
 });
 
@@ -24,15 +23,12 @@ const port = +args.port;
 
 import assetBundle from "../dist/web_bundle.json" assert { type: "json" };
 
-const plugDistUrl = args.builtins;
 console.log("Pages dir", pagesPath);
-console.log("Plugs url", plugDistUrl);
 
 const expressServer = new ExpressServer({
   port: port,
   pagesPath: pagesPath,
   assetBundle: assetBundle,
-  builtinPlugUrl: new URL(plugDistUrl),
   password: args.password,
 });
 expressServer.start().catch((e) => {

@@ -41,7 +41,7 @@ async function prepareAssets(dist: string) {
   bundleJs = patchDenoLibJS(bundleJs);
   await Deno.writeTextFile(`${dist}/web/client.js`, bundleJs);
 
-  await bundleFolder(`dist/web`, "dist/web_bundle.json");
+  await bundleFolder(dist, "dist/web_bundle.json");
 }
 
 async function bundle(): Promise<void> {
@@ -51,7 +51,7 @@ async function bundle(): Promise<void> {
         "client": "web/boot.ts",
         "worker": "plugos/environments/sandbox_worker.ts",
       },
-      outdir: "./dist/web",
+      outdir: "./dist_bundle/web",
       absWorkingDir: Deno.cwd(),
       bundle: true,
       treeShaking: true,
@@ -63,7 +63,7 @@ async function bundle(): Promise<void> {
           } else {
             console.log("watch build succeeded.");
           }
-          prepareAssets("dist").catch(console.error);
+          prepareAssets("dist_bundle").catch(console.error);
         },
       },
       plugins: [
@@ -73,7 +73,7 @@ async function bundle(): Promise<void> {
       ],
     }),
   ]);
-  await prepareAssets("dist");
+  await prepareAssets("dist_bundle");
   console.log("Built!");
 }
 await bundle();

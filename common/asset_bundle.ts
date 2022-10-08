@@ -1,6 +1,6 @@
 import { base64Decode } from "./base64.ts";
 
-type AssetBundle = Record<string, string>;
+export type AssetBundle = Record<string, string>;
 
 export function assetReadFileSync(
   bundle: AssetBundle,

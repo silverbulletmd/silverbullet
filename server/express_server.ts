@@ -37,6 +37,7 @@ import {
 import spaceSyscalls from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { safeRun } from "./util.ts";
+import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 
 // import { jwtSyscalls } from "../plugos/syscalls/jwt.ts";
 // import settingsTemplate from "bundle-text:./SETTINGS_template.md";
@@ -46,7 +47,6 @@ export type ServerOptions = {
   port: number;
   pagesPath: string;
   assetBundle: Record<string, string>;
-  builtinPlugUrl: URL;
   password?: string;
 };
 
@@ -60,7 +60,6 @@ export class ExpressServer {
   private eventHook: EventHook;
   private db: SQLite;
   private port: number;
-  builtinPlugUrl: URL;
   password?: string;
   settings: { [key: string]: any } = {};
   spacePrimitives: SpacePrimitives;
@@ -71,12 +70,11 @@ export class ExpressServer {
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = new Application();
-    this.builtinPlugUrl = options.builtinPlugUrl;
     this.assetBundle = options.assetBundle;
     this.password = options.password;
 
     this.globalModules = JSON.parse(
-      assetReadTextFileSync(this.assetBundle, `global.plug.json`),
+      assetReadTextFileSync(this.assetBundle, `web/global.plug.json`),
     );
 
     // Set up the PlugOS System
@@ -91,12 +89,15 @@ export class ExpressServer {
     this.system.addHook(namespaceHook);
 
     // The space
-    this.spacePrimitives = new EventedSpacePrimitives(
-      new PlugSpacePrimitives(
-        new DiskSpacePrimitives(options.pagesPath),
-        namespaceHook,
+    this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
+      new EventedSpacePrimitives(
+        new PlugSpacePrimitives(
+          new DiskSpacePrimitives(options.pagesPath),
+          namespaceHook,
+        ),
+        this.eventHook,
       ),
-      this.eventHook,
+      this.assetBundle,
     );
     this.space = new Space(this.spacePrimitives);
 
@@ -128,42 +129,16 @@ export class ExpressServer {
     this.system.addHook(new EndpointHook(this.app, "/_"));
 
     this.system.on({
-      plugLoaded: (plug) => {
-        // Automatically inject some modules into each plug
-        safeRun(async () => {
-          for (
-            let [modName, code] of Object.entries(
-              this.globalModules.dependencies!,
-            )
-          ) {
-            await plug.sandbox.loadDependency(modName, code as string);
-          }
-        });
+      plugLoaded: async (plug) => {
+        for (
+          let [modName, code] of Object.entries(
+            this.globalModules.dependencies!,
+          )
+        ) {
+          await plug.sandbox.loadDependency(modName, code as string);
+        }
       },
     });
-
-    // Hook into some "get-plug:" to allow loading plugs from disk (security of this TBD)
-    // First, for builtins (loaded from the packages/plugs/ folder)
-    this.eventHook.addLocalListener(
-      "get-plug:builtin",
-      async (plugName: string): Promise<Manifest> => {
-        if (!safeFilename.test(plugName)) {
-          throw new Error(`Invalid plug name: ${plugName}`);
-        }
-        try {
-          console.log(
-            "Fetching",
-            new URL(`${plugName}.plug.json`, this.builtinPlugUrl).toString(),
-          );
-          return await (await fetch(
-            new URL(`${plugName}.plug.json`, this.builtinPlugUrl),
-          )).json();
-        } catch (e: any) {
-          console.error("FEtching builtin", e);
-          throw new Error(`No such builtin: ${plugName}`);
-        }
-      },
-    );
 
     // Second, for loading plug JSON files with absolute or relative (from CWD) paths
     this.eventHook.addLocalListener(
@@ -199,80 +174,10 @@ export class ExpressServer {
     );
   }
 
-  // In case of a new space with no `PLUGS` file, generate a default one based on all built-in plugs
-  private async bootstrapBuiltinPlugs() {
-    let allPlugFiles = await Deno.readDir(this.builtinPlugDir);
-    let pluginNames = [];
-    for await (let file of allPlugFiles) {
-      if (file.name.endsWith(".plug.json")) {
-        let manifestJson = await Deno.readTextFile(
-          path.join(this.builtinPlugDir, file.name),
-        );
-        let manifest: Manifest = JSON.parse(manifestJson);
-        pluginNames.push(manifest.name);
-        await this.spacePrimitives.writeFile(
-          `${plugPrefix}${file.name}`,
-          "string",
-          manifestJson,
-        );
-      }
-    }
-    try {
-      await this.space.getPageMeta("PLUGS");
-      console.log("PLUGS file already exists, won't override it.");
-      return;
-    } catch {
-      console.log("Writing fresh PLUGS file.");
-      await this.space.writePage(
-        "PLUGS",
-        "This file lists all plugs that SilverBullet will load. Run the `Plugs: Update` command to update and reload this list of plugs.\n\n```yaml\n- " +
-          pluginNames.map((name) => `builtin:${name}`).join("\n- ") +
-          "\n```",
-      );
-    }
-  }
-
   async reloadPlugs() {
-    // Version check
-    let lastRunningVersion = await this.system.localSyscall(
-      "core",
-      "store.get",
-      [storeVersionKey],
-    );
-    let upgrading = false;
-    // if (lastRunningVersion !== version) {
-    //   upgrading = true;
-    //   console.log("Version change detected!");
-    //   console.log("Going to re-bootstrap with the builtin set of plugs...");
-    //   console.log("First removing existing plug files...");
-    //   const existingPlugFiles = (
-    //     await this.spacePrimitives.fetchFileList()
-    //   ).filter((meta) => meta.name.startsWith(plugPrefix));
-    //   for (let plugFile of existingPlugFiles) {
-    //     await this.spacePrimitives.deleteFile(plugFile.name);
-    //   }
-    //   console.log("Now writing the default set of plugs...");
-    //   await this.bootstrapBuiltinPlugs();
-    //   await this.system.localSyscall("core", "store.set", [
-    //     storeVersionKey,
-    //     version,
-    //   ]);
-    //   await this.system.localSyscall("core", "store.set", [
-    //     "$spaceIndexed",
-    //     false,
-    //   ]);
-    // }
-
     await this.space.updatePageList();
 
-    let allPlugs = await this.space.listPlugs();
-
-    // Sanity check: are there any plugs at all? If not, let's put back the core set
-    if (allPlugs.length === 0) {
-      await this.bootstrapBuiltinPlugs();
-      allPlugs = await this.space.listPlugs();
-    }
-    await this.system.unloadAll();
+    const allPlugs = await this.space.listPlugs();
 
     console.log("Loading plugs", allPlugs);
     for (let plugName of allPlugs) {
@@ -285,13 +190,6 @@ export class ExpressServer {
     if (!corePlug) {
       console.error("Something went very wrong, 'core' plug not found");
       return;
-    }
-
-    // If we're upgrading, update plugs from PLUGS file
-    // This will automatically reinvoke an plugReload() call
-    if (upgrading) {
-      console.log("Now updating plugs");
-      await corePlug.invoke("updatePlugs", []);
     }
 
     // Do we need to reindex this space?
@@ -335,14 +233,14 @@ export class ExpressServer {
         ctx.response.headers.set("Content-type", "text/html");
         ctx.response.body = assetReadTextFileSync(
           this.assetBundle,
-          "index.html",
+          "web/index.html",
         );
         return;
       }
       try {
         ctx.response.body = assetReadFileSync(
           this.assetBundle,
-          `${ctx.request.url.pathname.substring(1)}`,
+          `web${ctx.request.url.pathname}`,
         );
         ctx.response.headers.set(
           "Content-type",
@@ -368,7 +266,7 @@ export class ExpressServer {
       ctx.response.headers.set("Content-type", "text/html");
       ctx.response.body = assetReadTextFileSync(
         this.assetBundle,
-        "index.html",
+        "web/index.html",
       );
     });
 

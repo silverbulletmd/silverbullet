@@ -1,6 +1,7 @@
 pages
 test_space
 .DS_Store
+dist_bundle
 dist
 build
 generated
