@@ -1,3 +1,11 @@
 export function niceDate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  function pad(n: number) {
+    let s = String(n);
+    if (s.length === 1) {
+      s = '0' + s;
+    }
+    return s;
+  }
+
+  return d.getFullYear() + '-' + pad(d.getMonth() +  1) + '-' + pad(d.getDate())
 }
