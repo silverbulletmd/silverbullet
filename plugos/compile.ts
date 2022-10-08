@@ -6,7 +6,7 @@ export const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
   : esbuildNative;
 
-import { path } from "../dep_server.ts";
+import { path } from "../server/deps.ts";
 import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 import { patchDenoLibJS } from "../common/hack.ts";
 

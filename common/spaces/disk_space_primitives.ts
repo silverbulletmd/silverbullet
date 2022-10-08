@@ -1,6 +1,6 @@
 // import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
-import { path } from "../../dep_common.ts";
-import { readAll } from "../../dep_common.ts";
+import { path } from "../deps.ts";
+import { readAll } from "../deps.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { Plug } from "../../plugos/plug.ts";

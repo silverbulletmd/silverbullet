@@ -1,5 +1,5 @@
 import type { SysCallMapping } from "../system.ts";
-import { path } from "../../dep_server.ts";
+import { path } from "../../server/deps.ts";
 import { base64Decode, base64Encode } from "../../common/base64.ts";
 export type FileMeta = {
   name: string;

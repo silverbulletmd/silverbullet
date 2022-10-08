@@ -1,5 +1,5 @@
-import { syntaxTree } from "../dep_web.ts";
-import { Range } from "../dep_web.ts";
+import { syntaxTree } from "./deps.ts";
+import { Range } from "./deps.ts";
 import {
   Decoration,
   DecorationSet,
@@ -7,7 +7,7 @@ import {
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "../dep_web.ts";
+} from "./deps.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {

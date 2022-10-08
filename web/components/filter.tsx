@@ -1,4 +1,4 @@
-import { React, useEffect, useRef, useState } from "../../dep_web.ts";
+import { React, useEffect, useRef, useState } from "../deps.ts";
 import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
 import { IconDefinition } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
 import { FilterOption } from "../../common/types.ts";

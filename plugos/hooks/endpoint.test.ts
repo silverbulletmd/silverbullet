@@ -3,8 +3,8 @@ import { Manifest } from "../types.ts";
 import { EndpointHook, EndpointHookT } from "./endpoint.ts";
 import { System } from "../system.ts";
 
-import { Application } from "../../dep_server.ts";
-import { assertEquals } from "../../test_dep.ts";
+import { Application } from "../../server/deps.ts";
+import { assertEquals } from "../../test_deps.ts";
 
 Deno.test("Run a plugos endpoint server", async () => {
   let system = new System<EndpointHookT>("server");

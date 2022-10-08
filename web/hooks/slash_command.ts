@@ -4,10 +4,10 @@ import {
   Completion,
   CompletionContext,
   CompletionResult,
-} from "../../dep_web.ts";
+} from "../deps.ts";
 import { safeRun } from "../../common/util.ts";
 import { Editor } from "../editor.tsx";
-import { syntaxTree } from "../../dep_web.ts";
+import { syntaxTree } from "../deps.ts";
 
 export type SlashCommandDef = {
   name: string;

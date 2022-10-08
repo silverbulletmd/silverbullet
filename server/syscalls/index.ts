@@ -6,7 +6,7 @@ import {
   Query,
   queryToSql,
 } from "../../plugos/syscalls/store.deno.ts";
-import { SQLite } from "../../dep_server.ts";
+import { SQLite } from "../deps.ts";
 
 type Item = {
   page: string;

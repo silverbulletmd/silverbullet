@@ -1,4 +1,4 @@
-import { assertEquals } from "../../test_dep.ts";
+import { assertEquals } from "../../test_deps.ts";
 import { applyQuery } from "./engine.ts";
 import { parseQuery } from "./parser.ts";
 

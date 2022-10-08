@@ -1,13 +1,13 @@
-import { syntaxTree } from "../dep_common.ts";
+import { syntaxTree } from "../common/deps.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
-} from "../dep_common.ts";
+} from "../common/deps.ts";
 
-import { Range } from "../dep_web.ts";
+import { Range } from "./deps.ts";
 
 interface WrapElement {
   selector: string;

@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { Application } from "../../dep_server.ts";
+import { Application } from "../../server/deps.ts";
 
 export type EndpointRequest = {
   method: string;

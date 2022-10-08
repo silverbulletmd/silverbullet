@@ -1,4 +1,4 @@
-import { Application, mime, path, Router, SQLite } from "../dep_server.ts";
+import { Application, mime, path, Router, SQLite } from "./deps.ts";
 import {
   assetReadFileSync,
   assetReadTextFileSync,

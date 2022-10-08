@@ -32,10 +32,10 @@ import {
   ViewPlugin,
   ViewUpdate,
   yamlLanguage,
-} from "../dep_common.ts";
+} from "../common/deps.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 // import { markdown } from "../common/_markdown/index.ts";
-import { markdown } from "../dep_common.ts";
+import { markdown } from "../common/deps.ts";
 
 import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";

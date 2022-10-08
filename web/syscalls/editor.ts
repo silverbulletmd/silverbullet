@@ -1,5 +1,5 @@
 import { Editor } from "../editor.tsx";
-import { Transaction } from "../../dep_web.ts";
+import { Transaction } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { FilterOption } from "../../common/types.ts";
 

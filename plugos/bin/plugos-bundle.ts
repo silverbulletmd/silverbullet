@@ -1,9 +1,9 @@
 #!/usr/bin/env deno
 
 import { Manifest } from "../types.ts";
-import { YAML } from "../../dep_common.ts";
+import { YAML } from "../../common/deps.ts";
 import { compile, esbuild, sandboxCompileModule } from "../compile.ts";
-import { path } from "../../dep_server.ts";
+import { path } from "../../server/deps.ts";
 
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 

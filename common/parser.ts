@@ -12,7 +12,7 @@ import {
   Table,
   tags as t,
   TaskList,
-} from "../dep_common.ts";
+} from "./deps.ts";
 import * as ct from "./customtags.ts";
 import {
   MDExt,

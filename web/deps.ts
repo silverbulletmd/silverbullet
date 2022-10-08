@@ -1,4 +1,4 @@
-export * from "./dep_common.ts";
+export * from "../common/deps.ts";
 
 export {
   default as React,

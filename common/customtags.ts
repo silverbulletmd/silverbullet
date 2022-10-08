@@ -1,4 +1,4 @@
-import { Tag } from "../dep_common.ts";
+import { Tag } from "./deps.ts";
 
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();

@@ -1,4 +1,4 @@
-import { YAML } from "../dep_common.ts";
+import { YAML } from "./deps.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {

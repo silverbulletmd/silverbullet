@@ -5,10 +5,10 @@ import {
   faSun,
 } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
 import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
-import { useState } from "../../dep_web.ts";
+import { useState } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { isMacLike } from "../../common/util.ts";
-import { React } from "../../dep_web.ts";
+import { React } from "../deps.ts";
 
 function prettyName(s: string | undefined): string {
   if (!s) {

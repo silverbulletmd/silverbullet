@@ -4,7 +4,7 @@ import { faPersonRunning } from "https://esm.sh/@fortawesome/free-solid-svg-icon
 import { AppCommand } from "../hooks/command.ts";
 import { FilterOption } from "../../common/types.ts";
 
-import {React} from "../../dep_web.ts"
+import {React} from "../deps.ts"
 
 
 export function CommandPalette({

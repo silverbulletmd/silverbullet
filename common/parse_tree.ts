@@ -1,7 +1,7 @@
 import { ParseTree } from "./tree.ts";
 
-import type { SyntaxNode } from "../dep_common.ts";
-import type { Language } from "../dep_common.ts";
+import type { SyntaxNode } from "./deps.ts";
+import type { Language } from "./deps.ts";
 export function lezerToParseTree(
   text: string,
   n: SyntaxNode,

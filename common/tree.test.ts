@@ -9,7 +9,7 @@ import {
   replaceNodesMatching,
 } from "./tree.ts";
 import wikiMarkdownLang from "./parser.ts";
-import { assertEquals, assertNotEquals } from "../test_dep.ts";
+import { assertEquals, assertNotEquals } from "../test_deps.ts";
 
 const mdTest1 = `
 # Heading
