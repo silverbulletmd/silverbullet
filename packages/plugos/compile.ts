@@ -8,6 +8,7 @@ export const esbuild: typeof esbuildWasm = Deno.run === undefined
 
 import { path } from "../../dep_server.ts";
 import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
+import { patchDenoLibJS } from "../common/hack.ts";
 
 export async function compile(
   filePath: string,
@@ -72,6 +73,7 @@ export async function compile(
     }
 
     let jsCode = await Deno.readTextFile(outFile);
+    jsCode = patchDenoLibJS(jsCode);
     await Deno.remove(outFile);
     return `(() => { ${jsCode} return mod;})()`;
   } finally {

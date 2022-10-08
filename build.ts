@@ -7,7 +7,7 @@ import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 import { bundleFolder } from "./json_bundle.ts";
-import { bundleRun } from "./packages/plugos/bin/plugos-bundle.ts";
+import { patchDenoLibJS } from "./packages/common/hack.ts";
 
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined
@@ -35,6 +35,10 @@ async function prepareAssets(dest: string) {
   //   dist: tmpDist,
   //   exclude: [],
   // });
+
+  let bundleJs = await Deno.readTextFile("dist/client.js");
+  bundleJs = patchDenoLibJS(bundleJs);
+  await Deno.writeTextFile("dist/client.js", bundleJs);
 
   await bundleFolder("dist", "dist_bundle.json");
 }

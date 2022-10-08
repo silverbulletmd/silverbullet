@@ -1,11 +1,11 @@
 // import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import { path } from "../../../dep_common.ts";
-import { b64decode, b64encode } from "../../../dep_common.ts";
 import { readAll } from "../../../dep_common.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
+import { base64Decode, base64Encode } from "../base64.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -50,7 +50,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         case "dataurl":
           {
             const f = await Deno.open(localPath, { read: true });
-            const buf = b64encode(await readAll(f));
+            const buf = base64Encode(await readAll(f));
             Deno.close(f.rid);
 
             data = `data:${contentType};base64,${buf}`;
@@ -101,7 +101,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         case "dataurl":
           await Deno.writeFile(
             localPath,
-            b64decode((data as string).split(",")[1]),
+            base64Decode((data as string).split(",")[1]),
           );
           break;
         case "arraybuffer":

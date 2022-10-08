@@ -1,0 +1,1223 @@
+[0m[1mlocal:[0m /Users/zef/git/silverbullet/packages/web/boot.ts
+[0m[1mtype:[0m TypeScript
+[0m[1mdependencies:[0m 503 unique [0m[38;5;8m(total 6.84MB)[0m
+
+file:///Users/zef/git/silverbullet/packages/web/boot.ts [0m[38;5;8m(1.84KB)[0m
+[0m[38;5;8m├─┬[0m file:///Users/zef/git/silverbullet/packages/common/spaces/http_space_primitives.ts[0m[38;5;8m (5.25KB)[0m
+[0m[38;5;8m│ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[38;5;8m (1.92KB)[0m
+[0m[38;5;8m│ │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/sandbox.ts[0m[38;5;8m (4.31KB)[0m
+[0m[38;5;8m│ │ │ ├──[0m [0m[3mfile:///Users/zef/git/silverbullet/packages/plugos/environments/custom_logger.ts[0m[0m[38;5;8m (1.38KB)[0m
+[0m[38;5;8m│ │ │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/environments/worker.ts[0m[38;5;8m (795B)[0m
+[0m[38;5;8m│ │ │ │ └──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/environments/custom_logger.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[38;5;8m (4.11KB)[0m
+[0m[38;5;8m│ │ │ ├──[0m file:///Users/zef/git/silverbullet/packages/plugos/event.ts[0m[38;5;8m (514B)[0m
+[0m[38;5;8m│ │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/sandbox.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │ │ └─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[38;5;8m (530B)[0m
+[0m[38;5;8m│ │ │   └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ ├──[0m file:///Users/zef/git/silverbullet/packages/common/types.ts[0m[38;5;8m (550B)[0m
+[0m[38;5;8m│ └─┬[0m file:///Users/zef/git/silverbullet/packages/common/spaces/space_primitives.ts[0m[38;5;8m (805B)[0m
+[0m[38;5;8m│   ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│   └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m├─┬[0m file:///Users/zef/git/silverbullet/packages/common/spaces/space.ts[0m[38;5;8m (6.45KB)[0m
+[0m[38;5;8m│ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/util.ts[0m[38;5;8m (849B)[0m
+[0m[38;5;8m│ │ └─┬[0m file:///Users/zef/git/silverbullet/dep_common.ts[0m[38;5;8m (2.51KB)[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common[0m[38;5;8m (181B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/autocomplete@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/dist/index.d.ts[0m[0m[38;5;8m (19.45KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/@codemirror/state@6.1.2[0m[38;5;8m (113B)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[3mhttps://esm.sh/v96/@codemirror/state@6.1.2/dist/index.d.ts[0m[0m[38;5;8m (61.46KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://esm.sh/v96/@codemirror/state@6.1.2/deno/state.js[0m[38;5;8m (46.34KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/@lezer/common@1.0.1[0m[38;5;8m (106B)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/index.d.ts[0m[0m[38;5;8m (359B)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/common@1.0.1/dist/mix.d.ts[0m[38;5;8m (438B)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/common@1.0.1/dist/parse.d.ts[0m[38;5;8m (1.68KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ └─┬[0m https://esm.sh/v96/@lezer/common@1.0.1/dist/tree.d.ts[0m[38;5;8m (9.27KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/parse.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/tree.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/parse.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/tree.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://esm.sh/v96/@lezer/common@1.0.1/deno/common.js[0m[38;5;8m (25.33KB)[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/dist/index.d.ts[0m[38;5;8m (66.49KB)[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   └──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/src/style-mod.d.ts[0m[38;5;8m (395B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/autocomplete@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/autocomplete.js[0m[38;5;8m (31.53KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/v96/@codemirror/language@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/language.js[0m[38;5;8m (32.93KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/view.js[0m[38;5;8m (150.44KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/style-mod.js[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m https://esm.sh/v96/w3c-keyname@2.2.6/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/w3c-keyname.js[0m[38;5;8m (1.67KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/highlight@1.1.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/highlight.js[0m[38;5;8m (6.43KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/style-mod.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/view.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/commands@6.1.1?external=@codemirror/state,@codemirror/view[0m[38;5;8m (173B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/commands@6.1.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/dist/index.d.ts[0m[0m[38;5;8m (24.64KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[38;5;8m (157B)[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/dist/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/view.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/commands@6.1.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/commands.js[0m[38;5;8m (24.67KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/v96/@codemirror/language@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/language.js[0m[38;5;8m (32.94KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://esm.sh/v96/@lezer/common@1.0.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/common.js[0m[38;5;8m (25.33KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/highlight@1.1.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/highlight.js[0m[38;5;8m (6.5KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/common.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/style-mod.js[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/common.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[38;5;8m (228B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/language@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbHI/dist/index.d.ts[0m[0m[38;5;8m (38.02KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[38;5;8m (138B)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@lezer/highlight@1.1.1/X-ZS9AbGV6ZXIvY29tbW9u/dist/highlight.d.ts[0m[0m[38;5;8m (2.78KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/highlight@1.1.1/X-ZS9AbGV6ZXIvY29tbW9u/deno/highlight.js[0m[38;5;8m (6.43KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/@lezer/lr@1.2.3[0m[38;5;8m (94B)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@lezer/lr@1.2.3/dist/index.d.ts[0m[0m[38;5;8m (172B)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/dist/parse.d.ts[0m[38;5;8m (3.56KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/dist/stack.d.ts[0m[38;5;8m (982B)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/dist/parse.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/dist/token.d.ts[0m[38;5;8m (841B)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/dist/stack.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/dist/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/dist/stack.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/dist/token.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/deno/lr.js[0m[38;5;8m (24.66KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/common@1.0.1/deno/common.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/process.ts[0m[38;5;8m (17.04KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m https://deno.land/std@0.153.0/_deno_unstable.ts[0m[38;5;8m (6.09KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m https://deno.land/std@0.153.0/_util/assert.ts[0m[38;5;8m (443B)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/path/mod.ts[0m[38;5;8m (880B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/_util/os.ts[0m[38;5;8m (632B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/path/_interface.ts[0m[38;5;8m (728B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/path/common.ts[0m[38;5;8m (1.16KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └─┬[0m https://deno.land/std@0.153.0/path/separator.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/path/glob.ts[0m[38;5;8m (12.37KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/path/posix.ts[0m[38;5;8m (14.65KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m https://deno.land/std@0.153.0/path/_constants.ts[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └─┬[0m https://deno.land/std@0.153.0/path/_util.ts[0m[38;5;8m (3.69KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └─┬[0m https://deno.land/std@0.153.0/path/win32.ts[0m[38;5;8m (29.19KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/_util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/posix.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/path/win32.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m https://deno.land/std@0.153.0/node/_core.ts[0m[38;5;8m (839B)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/_next_tick.ts[0m[38;5;8m (4.84KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_core.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/_process/exiting.ts[0m[38;5;8m (138B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal/fixed_queue.ts[0m[38;5;8m (4.34KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └─┬[0m https://deno.land/std@0.153.0/node/internal/validators.mjs[0m[38;5;8m (8.05KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │   ├──[0m https://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[38;5;8m (322B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │   ├──[0m https://deno.land/std@0.153.0/node/internal/hide_stack_frames.ts[0m[38;5;8m (550B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │   ├──[0m https://deno.land/std@0.153.0/node/internal/normalize_encoding.mjs[0m[38;5;8m (2.02KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │   └─┬[0m https://deno.land/std@0.153.0/node/internal/util/types.ts[0m[38;5;8m (3.62KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │     ├──[0m https://deno.land/std@0.153.0/node/internal_binding/types.ts[0m[38;5;8m (5.49KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │     └─┬[0m https://deno.land/std@0.153.0/node/internal/crypto/_keys.ts[0m[38;5;8m (463B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │       └──[0m https://deno.land/std@0.153.0/node/internal/crypto/constants.ts[0m[38;5;8m (252B)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/exiting.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/_process/process.ts[0m[38;5;8m (3.51KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_next_tick.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/exiting.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/_process/streams.mjs[0m[38;5;8m (4.02KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_deno_unstable.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/buffer.ts[0m[38;5;8m (246B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/node/_buffer.mjs[0m[38;5;8m (47.25KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m https://deno.land/std@0.153.0/encoding/base64.ts[0m[38;5;8m (2.15KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/encoding/base64url.ts[0m[38;5;8m (1.59KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/encoding/base64.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/buffer.mjs[0m[38;5;8m (21.77KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/_utils.ts[0m[38;5;8m (2.39KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/encoding/base64.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/encoding/base64url.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/buffer.ts[0m[38;5;8m (3.42KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/bytes/mod.ts[0m[38;5;8m (7.37KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ └──[0m https://deno.land/std@0.153.0/bytes/equals.ts[0m[38;5;8m (1.47KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m https://deno.land/std@0.153.0/node/internal_binding/_node.ts[0m[38;5;8m (443B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/string_decoder.ts[0m[38;5;8m (504B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/_node.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/util.mjs[0m[38;5;8m (4.31KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/normalize_encoding.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m [0m[3mhttps://deno.land/std@0.153.0/node/_buffer.d.ts[0m[0m[38;5;8m (71.83KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/readline/callbacks.mjs[0m[38;5;8m (3.68KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/errors.ts[0m[38;5;8m (76.23KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/util/inspect.mjs[0m[38;5;8m (69.83KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/util.ts[0m[38;5;8m (3.92KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/_utils.ts[0m[38;5;8m (7.77KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/async/mod.ts[0m[38;5;8m (437B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/async/abortable.ts[0m[38;5;8m (2KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ │ └──[0m https://deno.land/std@0.153.0/async/deferred.ts[0m[38;5;8m (1.49KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/async/deadline.ts[0m[38;5;8m (618B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/async/deferred.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/async/debounce.ts[0m[38;5;8m (2.05KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/async/deferred.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/async/delay.ts[0m[38;5;8m (1.06KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_deno_unstable.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/async/mux_async_iterator.ts[0m[38;5;8m (1.95KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/async/deferred.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/async/pool.ts[0m[38;5;8m (2.83KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ └──[0m https://deno.land/std@0.153.0/async/tee.ts[0m[38;5;8m (2.11KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/streams/conversion.ts[0m[38;5;8m (17.03KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │ └─┬[0m https://deno.land/std@0.153.0/io/buffer.ts[0m[38;5;8m (30.82KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │   ├──[0m https://deno.land/std@0.153.0/bytes/bytes_list.ts[0m[38;5;8m (4KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/bytes/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   │   └──[0m [0m[3mhttps://deno.land/std@0.153.0/io/types.d.ts[0m[0m[38;5;8m (3.3KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   └─┬[0m https://deno.land/std@0.153.0/testing/asserts.ts[0m[38;5;8m (23.1KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │     ├──[0m https://deno.land/std@0.153.0/fmt/colors.ts[0m[38;5;8m (11.62KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │     ├─┬[0m https://deno.land/std@0.153.0/testing/_diff.ts[0m[38;5;8m (11.11KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │     │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/fmt/colors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │     └──[0m https://deno.land/std@0.153.0/testing/_format.ts[0m[38;5;8m (705B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/constants.ts[0m[38;5;8m (10.49KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[38;5;8m (15.39KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/_libuv_winerror.ts[0m[38;5;8m (7.57KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m https://deno.land/std@0.153.0/node/internal_binding/_winerror.ts[0m[38;5;8m (346.06KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/util.ts[0m[38;5;8m (6.55KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/_util/_util_callbackify.ts[0m[38;5;8m (4.23KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_next_tick.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/util/comparisons.ts[0m[38;5;8m (16.25KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_buffer.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/util/debuglog.ts[0m[38;5;8m (3.13KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m https://deno.land/std@0.153.0/fmt/printf.ts[0m[38;5;8m (20.33KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/inspect.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/inspect.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/util/types.ts[0m[38;5;8m (199B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/error_codes.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/hide_stack_frames.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m https://deno.land/std@0.153.0/node/internal/readline/utils.mjs[0m[38;5;8m (14KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/stream.ts[0m[38;5;8m (491B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/node/_stream.mjs[0m[38;5;8m (2.17KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/_utils.ts[0m[38;5;8m (266B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/add-abort-signal.mjs[0m[38;5;8m (1.45KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/internal/streams/end-of-stream.mjs[0m[38;5;8m (6.95KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/compose.mjs[0m[38;5;8m (4.08KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[38;5;8m (6.72KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/duplex.mjs[0m[38;5;8m (15.45KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m https://deno.land/std@0.153.0/node/internal/blob.mjs[0m[38;5;8m (321B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/end-of-stream.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/from.mjs[0m[38;5;8m (2.65KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/readable.mjs[0m[38;5;8m (40.83KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_next_tick.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m https://deno.land/std@0.153.0/node/_process/stdio.mjs[0m[38;5;8m (336B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/events.ts[0m[38;5;8m (303B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/_events.mjs[0m[38;5;8m (27.38KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/inspect.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ └──[0m [0m[3mhttps://deno.land/std@0.153.0/node/_events.d.ts[0m[0m[38;5;8m (26.55KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/string_decoder.ts[0m[38;5;8m (9.39KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/debuglog.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/add-abort-signal.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/buffer_list.mjs[0m[38;5;8m (3.95KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/inspect.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/from.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/legacy.mjs[0m[38;5;8m (3.01KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/events.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/state.mjs[0m[38;5;8m (1.04KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ └──[0m https://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[38;5;8m (6.1KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/internal/streams/writable.mjs[0m[38;5;8m (27.41KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/events.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/add-abort-signal.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/legacy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/readable.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/state.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/pipeline.mjs[0m[38;5;8m (7.76KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/stdio.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/duplex.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/end-of-stream.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/streams/passthrough.mjs[0m[38;5;8m (604B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/internal/streams/transform.mjs[0m[38;5;8m (4.48KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/duplex.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/readable.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/destroy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/duplex.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/end-of-stream.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/legacy.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/passthrough.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/pipeline.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/readable.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/transform.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/writable.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/stream/promises.mjs[0m[38;5;8m (1.14KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/end-of-stream.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/pipeline.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/utils.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └─┬[0m [0m[3mhttps://deno.land/std@0.153.0/node/_stream.d.ts[0m[0m[38;5;8m (51.78KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_events.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├─┬[0m https://deno.land/std@0.153.0/node/_global.d.ts[0m[38;5;8m (1.68KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_events.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/streams/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/util/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_process/stdio.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/events.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/internal/options.ts[0m[38;5;8m (1.7KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └─┬[0m https://deno.land/std@0.153.0/node/internal_binding/node_options.ts[0m[38;5;8m (1.63KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │   └─┬[0m https://deno.land/std@0.153.0/flags/mod.ts[0m[38;5;8m (18.38KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │     └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m https://deno.land/std@0.153.0/node/internal/process/per_thread.mjs[0m[38;5;8m (7.57KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/validators.mjs[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/mod.ts[0m[38;5;8m (3.06KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[38;5;8m (3.89KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/cares_wrap.ts[0m[38;5;8m (14.83KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal/net.ts[0m[38;5;8m (3.05KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/node_file.ts[0m[38;5;8m (2.87KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/ares.ts[0m[38;5;8m (2.36KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/config.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/contextify.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/credentials.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/crypto.ts[0m[38;5;8m (448B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └─┬[0m https://deno.land/std@0.153.0/node/internal_binding/_timingSafeEqual.ts[0m[38;5;8m (479B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   ├─┬[0m https://deno.land/std@0.153.0/crypto/timing_safe_equal.ts[0m[38;5;8m (877B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/errors.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/fs.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/fs_dir.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/fs_event_wrap.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/heap_utils.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/http_parser.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/icu.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/inspector.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/js_stream.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/messaging.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/module_wrap.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/native_module.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/natives.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/options.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/os.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/performance.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/pipe_wrap.ts[0m[38;5;8m (10.25KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_deno_unstable.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/async/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/_listen.ts[0m[38;5;8m (561B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/connection_wrap.ts[0m[38;5;8m (2.48KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │ └─┬[0m https://deno.land/std@0.153.0/node/internal_binding/stream_wrap.ts[0m[38;5;8m (8.98KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/streams/conversion.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/handle_wrap.ts[0m[38;5;8m (1.75KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/stream_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/process_methods.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/report.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/serdes.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/signal_wrap.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/spawn_sync.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/stream_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/string_decoder.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/symbols.ts[0m[38;5;8m (1.4KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/task_queue.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/tcp_wrap.ts[0m[38;5;8m (12.7KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_deno_unstable.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/async/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/testing/asserts.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/net.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/_listen.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/connection_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/stream_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/symbols.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/timers.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/tls_wrap.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/trace_events.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/tty_wrap.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├─┬[0m https://deno.land/std@0.153.0/node/internal_binding/udp_wrap.ts[0m[38;5;8m (12.01KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_deno_unstable.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/_utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/errors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal/net.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/async_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/cares_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/handle_wrap.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/symbols.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/url.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/uv.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/v8.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ ├──[0m https://deno.land/std@0.153.0/node/internal_binding/worker.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   │ └──[0m https://deno.land/std@0.153.0/node/internal_binding/zlib.ts[0m[38;5;8m (87B)[0m
+[0m[38;5;8m│ │   │ │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.153.0/node/internal_binding/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbHI/src/style-mod.d.ts[0m[38;5;8m (395B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/language@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbHI/deno/language.js[0m[38;5;8m (32.84KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbHI/deno/style-mod.js[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight[0m[38;5;8m (186B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/index.d.ts[0m[0m[38;5;8m (361B)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/extension.d.ts[0m[38;5;8m (379B)[0m
+[0m[38;5;8m│ │   │ │ │ └─┬[0m https://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/markdown.d.ts[0m[38;5;8m (4.89KB)[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/markdown.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/nest.d.ts[0m[38;5;8m (235B)[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/markdown.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@lezer/markdown@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/deno/markdown.js[0m[38;5;8m (32.87KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├──[0m [0m[3m[38;5;8mhttps://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://deno.land/std@0.158.0/encoding/yaml.ts[0m[38;5;8m (931B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/parse.ts[0m[38;5;8m (1.26KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/loader/loader.ts[0m[38;5;8m (45.42KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/error.ts[0m[38;5;8m (638B)[0m
+[0m[38;5;8m│ │   │ │ │ │ └─┬[0m [0m[3mhttps://deno.land/std@0.158.0/encoding/_yaml/mark.ts[0m[0m[38;5;8m (1.76KB)[0m
+[0m[38;5;8m│ │   │ │ │ │   └──[0m https://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[38;5;8m (2.08KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/mark.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m [0m[3mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m (1.92KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/loader/loader_state.ts[0m[38;5;8m (2.21KB)[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/error.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   ├─┬[0m [0m[3mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m (3.04KB)[0m
+[0m[38;5;8m│ │   │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/error.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/state.ts[0m[38;5;8m (471B)[0m
+[0m[38;5;8m│ │   │ │ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │ └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/mod.ts[0m[38;5;8m (542B)[0m
+[0m[38;5;8m│ │   │ │ │   │   ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/core.ts[0m[38;5;8m (482B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │ └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/json.ts[0m[38;5;8m (587B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/mod.ts[0m[38;5;8m (842B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/binary.ts[0m[38;5;8m (3.36KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├─┬[0m https://deno.land/std@0.158.0/io/buffer.ts[0m[38;5;8m (30.75KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ │ ├──[0m https://deno.land/std@0.158.0/_util/assert.ts[0m[38;5;8m (443B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ │ ├──[0m https://deno.land/std@0.158.0/bytes/bytes_list.ts[0m[38;5;8m (4KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ │ ├─┬[0m https://deno.land/std@0.158.0/bytes/mod.ts[0m[38;5;8m (7.37KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ │ │ └──[0m https://deno.land/std@0.158.0/bytes/equals.ts[0m[38;5;8m (1.47KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ │ └──[0m [0m[3mhttps://deno.land/std@0.158.0/io/types.d.ts[0m[0m[38;5;8m (3.3KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/bool.ts[0m[38;5;8m (1.18KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/float.ts[0m[38;5;8m (3.14KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/function.ts[0m[38;5;8m (1.24KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/int.ts[0m[38;5;8m (4.31KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/map.ts[0m[38;5;8m (490B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/merge.ts[0m[38;5;8m (509B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/nil.ts[0m[38;5;8m (1.04KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/omap.ts[0m[38;5;8m (1.17KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/pairs.ts[0m[38;5;8m (1.26KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/regexp.ts[0m[38;5;8m (1.3KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/seq.ts[0m[38;5;8m (491B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/set.ts[0m[38;5;8m (805B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/str.ts[0m[38;5;8m (377B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/timestamp.ts[0m[38;5;8m (2.65KB)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │ └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/type/undefined.ts[0m[38;5;8m (611B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │   │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │   └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/failsafe.ts[0m[38;5;8m (514B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │     ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │     └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/default.ts[0m[38;5;8m (649B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema/core.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/schema/extended.ts[0m[38;5;8m (421B)[0m
+[0m[38;5;8m│ │   │ │ │   │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema/default.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema/failsafe.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema/json.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/loader/loader_state.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/parse.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/stringify.ts[0m[38;5;8m (681B)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/dumper/dumper.ts[0m[38;5;8m (25.65KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/error.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └─┬[0m https://deno.land/std@0.158.0/encoding/_yaml/dumper/dumper_state.ts[0m[38;5;8m (4.43KB)[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/schema.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/state.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/utils.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/dumper/dumper_state.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/stringify.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/encoding/_yaml/type.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://deno.land/std@0.158.0/path/mod.ts[0m[38;5;8m (880B)[0m
+[0m[38;5;8m│ │   │ ├──[0m https://deno.land/std@0.158.0/_util/os.ts[0m[38;5;8m (644B)[0m
+[0m[38;5;8m│ │   │ ├──[0m https://deno.land/std@0.158.0/path/_interface.ts[0m[38;5;8m (728B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://deno.land/std@0.158.0/path/common.ts[0m[38;5;8m (1.16KB)[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://deno.land/std@0.158.0/path/separator.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m│ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://deno.land/std@0.158.0/path/glob.ts[0m[38;5;8m (12.37KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://deno.land/std@0.158.0/path/posix.ts[0m[38;5;8m (14.65KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://deno.land/std@0.158.0/path/_constants.ts[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └─┬[0m https://deno.land/std@0.158.0/path/_util.ts[0m[38;5;8m (3.69KB)[0m
+[0m[38;5;8m│ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://deno.land/std@0.158.0/path/win32.ts[0m[38;5;8m (29.19KB)[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.158.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/_util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/posix.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/path/win32.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://deno.land/std@0.158.0/streams/conversion.ts[0m[38;5;8m (17.03KB)[0m
+[0m[38;5;8m│ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.158.0/io/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view[0m[38;5;8m (232B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/autocomplete@6.3.0/X-ZS9AY29kZW1pcnJvci9jb21tYW5kcyxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24/dist/index.d.ts[0m[0m[38;5;8m (19.36KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/autocomplete@6.3.0/X-ZS9AY29kZW1pcnJvci9jb21tYW5kcyxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24/deno/autocomplete.js[0m[38;5;8m (31.51KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/v96/@codemirror/language@6.2.1/X-ZS9AY29kZW1pcnJvci9jb21tYW5kcyxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24/deno/language.js[0m[38;5;8m (32.96KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/highlight@1.1.1/X-ZS9AY29kZW1pcnJvci9jb21tYW5kcyxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24/deno/highlight.js[0m[38;5;8m (6.43KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m https://esm.sh/v96/style-mod@4.0.0/X-ZS9AY29kZW1pcnJvci9jb21tYW5kcyxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24/deno/style-mod.js[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/lang-javascript@6.1.0?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands[0m[38;5;8m (362B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/lang-javascript@6.1.0/X-ZS9AY29kZW1pcnJvci9hdXRvY29tcGxldGUsQGNvZGVtaXJyb3IvY29tbWFuZHMsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3IvbGludCxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2phdmFzY3JpcHQsQGxlemVyL2xy/dist/index.d.ts[0m[0m[38;5;8m (3.36KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/@codemirror/lint@6.0.0?external=@codemirror/state,@lezer/common[0m[38;5;8m (157B)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/lint@6.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/dist/index.d.ts[0m[0m[38;5;8m (4.81KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/dist/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@codemirror/lint@6.0.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/lint.js[0m[38;5;8m (12.99KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@codemirror/view@6.3.0/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/view.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m https://esm.sh/v96/crelt@1.0.5/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/deno/crelt.js[0m[38;5;8m (688B)[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/lang-javascript@6.1.0/X-ZS9AY29kZW1pcnJvci9hdXRvY29tcGxldGUsQGNvZGVtaXJyb3IvY29tbWFuZHMsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3IvbGludCxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2phdmFzY3JpcHQsQGxlemVyL2xy/deno/lang-javascript.js[0m[38;5;8m (7.87KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └─┬[0m https://esm.sh/@lezer/javascript@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight[0m[38;5;8m (192B)[0m
+[0m[38;5;8m│ │   │ │   ├─┬[0m [0m[3mhttps://esm.sh/v96/@lezer/javascript@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/index.d.ts[0m[0m[38;5;8m (181B)[0m
+[0m[38;5;8m│ │   │ │   │ └─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/index.d.ts[0m[38;5;8m (172B)[0m
+[0m[38;5;8m│ │   │ │   │   ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/parse.d.ts[0m[38;5;8m (3.52KB)[0m
+[0m[38;5;8m│ │   │ │   │   │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/stack.d.ts[0m[38;5;8m (941B)[0m
+[0m[38;5;8m│ │   │ │   │   │ │ ├──[0m [0m[3m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/parse.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │   │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/token.d.ts[0m[38;5;8m (841B)[0m
+[0m[38;5;8m│ │   │ │   │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/stack.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │   │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │   ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/stack.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │   └──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/dist/token.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   ├─┬[0m https://esm.sh/v96/@lezer/javascript@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/deno/javascript.js[0m[38;5;8m (57.58KB)[0m
+[0m[38;5;8m│ │   │ │   │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQ/deno/lr.js[0m[38;5;8m (24.63KB)[0m
+[0m[38;5;8m│ │   │ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │   │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/lang-markdown@6.0.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight[0m[38;5;8m (279B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/lang-markdown@6.0.1/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/dist/index.d.ts[0m[0m[38;5;8m (3.34KB)[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├─┬[0m https://esm.sh/v96/@codemirror/lang-markdown@6.0.1/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lang-markdown.js[0m[38;5;8m (6.04KB)[0m
+[0m[38;5;8m│ │   │ │ ├─┬[0m https://esm.sh/v96/@codemirror/lang-html@6.1.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lang-html.js[0m[38;5;8m (13.46KB)[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@codemirror/lang-css@6.0.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lang-css.js[0m[38;5;8m (9.21KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/css@1.0.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/css.js[0m[38;5;8m (9.92KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lr.js[0m[38;5;8m (24.63KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.153.0/node/process.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@codemirror/lang-javascript@6.1.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lang-javascript.js[0m[38;5;8m (8.21KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├─┬[0m https://esm.sh/v96/@codemirror/autocomplete@6.3.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/autocomplete.js[0m[38;5;8m (31.39KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/javascript@1.0.2/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/javascript.js[0m[38;5;8m (57.65KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lr.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├─┬[0m https://esm.sh/v96/@lezer/html@1.0.1/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/html.js[0m[38;5;8m (10.74KB)[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@lezer/lr@1.2.3/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZSxAY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3LEBsZXplci9jb21tb24sQGxlemVyL2hpZ2hsaWdodCxAbGV6ZXIvbWFya2Rvd24/deno/lr.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@lezer/common@1.0.1[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   ├─┬[0m https://esm.sh/@codemirror/legacy-modes@6.1.0/mode/yaml?external=@codemirror/language[0m[38;5;8m (174B)[0m
+[0m[38;5;8m│ │   │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/legacy-modes@6.1.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZQ/mode/yaml.d.ts[0m[0m[38;5;8m (99B)[0m
+[0m[38;5;8m│ │   │ │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/language@6.2.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │   │ ├──[0m https://esm.sh/v96/@codemirror/legacy-modes@6.1.0/X-ZS9AY29kZW1pcnJvci9sYW5ndWFnZQ/deno/mode/yaml.js[0m[38;5;8m (1.55KB)[0m
+[0m[38;5;8m│ │   └─┬[0m https://esm.sh/@codemirror/search@6.2.1?external=@codemirror/state,@codemirror/view[0m[38;5;8m (167B)[0m
+[0m[38;5;8m│ │     ├─┬[0m [0m[3mhttps://esm.sh/v96/@codemirror/search@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/dist/index.d.ts[0m[0m[38;5;8m (11.57KB)[0m
+[0m[38;5;8m│ │     │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │     │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │     ├─┬[0m https://esm.sh/v96/@codemirror/search@6.2.1/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/search.js[0m[38;5;8m (20KB)[0m
+[0m[38;5;8m│ │     │ ├──[0m https://esm.sh/v96/crelt@1.0.5/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAY29kZW1pcnJvci92aWV3/deno/crelt.js[0m[38;5;8m (688B)[0m
+[0m[38;5;8m│ │     │ ├──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/state@6.1.2[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ │     │ └──[0m [0m[38;5;8mhttps://esm.sh/@codemirror/view@6.3.0?external=@codemirror/state,@lezer/common[0m[0m[38;5;8m *[0m
+[0m[38;5;8m│ ├──[0m file:///Users/zef/git/silverbullet/packages/common/spaces/constants.ts[0m[38;5;8m (36B)[0m
+[0m[38;5;8m│ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space_primitives.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m└─┬[0m file:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[38;5;8m (25.84KB)[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/manifest.ts[0m[38;5;8m (846B)[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/hooks/endpoint.ts[0m[38;5;8m (4.05KB)[0m
+[0m[38;5;8m  │ │ ├─┬[0m file:///Users/zef/git/silverbullet/dep_server.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m  │ │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ ├─┬[0m https://deno.land/x/mimetypes@v1.0.0/mod.ts[0m[38;5;8m (29B)[0m
+[0m[38;5;8m  │ │ │ │ └──[0m https://deno.land/x/mimetypes@v1.0.0/src/mime.ts[0m[38;5;8m (36.56KB)[0m
+[0m[38;5;8m  │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/mod.ts[0m[38;5;8m (3.92KB)[0m
+[0m[38;5;8m  │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/application.ts[0m[38;5;8m (22.57KB)[0m
+[0m[38;5;8m  │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/context.ts[0m[38;5;8m (10.08KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/cookies.ts[0m[38;5;8m (10.93KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├─┬[0m [0m[3mhttps://deno.land/x/oak@v11.1.0/keyStack.ts[0m[0m[38;5;8m (3.87KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/deps.ts[0m[38;5;8m (1.52KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/async/deferred.ts[0m[38;5;8m (1.49KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/bytes/mod.ts[0m[38;5;8m (7.37KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/std@0.152.0/bytes/equals.ts[0m[38;5;8m (1.47KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/crypto/timing_safe_equal.ts[0m[38;5;8m (877B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/testing/asserts.ts[0m[38;5;8m (22.82KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   ├──[0m https://deno.land/std@0.152.0/fmt/colors.ts[0m[38;5;8m (11.63KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   ├─┬[0m https://deno.land/std@0.152.0/testing/_diff.ts[0m[38;5;8m (11.12KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/fmt/colors.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   └──[0m https://deno.land/std@0.152.0/testing/_format.ts[0m[38;5;8m (635B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/encoding/base64.ts[0m[38;5;8m (2.15KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/http/http_errors.ts[0m[38;5;8m (5.12KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/std@0.152.0/http/http_status.ts[0m[38;5;8m (9.97KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/http/http_status.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/http/negotiation.ts[0m[38;5;8m (3.21KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/http/_negotiation/encoding.ts[0m[38;5;8m (4.19KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/std@0.152.0/http/_negotiation/common.ts[0m[38;5;8m (1.76KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/http/_negotiation/language.ts[0m[38;5;8m (4KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/http/_negotiation/common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/http/_negotiation/media_type.ts[0m[38;5;8m (5.63KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/http/_negotiation/common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/io/readers.ts[0m[38;5;8m (1.71KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/io/buffer.ts[0m[38;5;8m (30.87KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   ├──[0m https://deno.land/std@0.152.0/_util/assert.ts[0m[38;5;8m (443B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   ├──[0m https://deno.land/std@0.152.0/bytes/bytes_list.ts[0m[38;5;8m (4KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/bytes/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │   └──[0m [0m[3mhttps://deno.land/std@0.152.0/io/types.d.ts[0m[0m[38;5;8m (3.3KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/media_types/mod.ts[0m[38;5;8m (11.86KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/media_types/_util.ts[0m[38;5;8m (3.05KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/std@0.152.0/media_types/vendor/mime-db.v1.52.0.ts[0m[38;5;8m (182.13KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/path/mod.ts[0m[38;5;8m (880B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/_util/os.ts[0m[38;5;8m (632B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/path/_interface.ts[0m[38;5;8m (728B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/path/common.ts[0m[38;5;8m (1.16KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/path/separator.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/path/glob.ts[0m[38;5;8m (12.37KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.152.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/path/posix.ts[0m[38;5;8m (14.65KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ │ ├──[0m https://deno.land/std@0.152.0/path/_constants.ts[0m[38;5;8m (1.97KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.152.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/path/_util.ts[0m[38;5;8m (3.69KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.152.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/std@0.152.0/path/win32.ts[0m[38;5;8m (29.19KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/_util/assert.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.152.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/_util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/posix.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/win32.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/std@0.152.0/streams/conversion.ts[0m[38;5;8m (17.03KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/io/buffer.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/x/path_to_regexp@v6.2.1/index.ts[0m[38;5;8m (15.01KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├─┬[0m [0m[3mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m (3.58KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/x/oak@v11.1.0/util.ts[0m[38;5;8m (14.01KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   ├─┬[0m [0m[3mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m (39.77KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ ├─┬[0m https://deno.land/x/oak@v11.1.0/middleware.ts[0m[38;5;8m (1.27KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├─┬[0m [0m[3mhttps://deno.land/x/oak@v11.1.0/request.ts[0m[0m[38;5;8m (8.86KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/body.ts[0m[38;5;8m (12.87KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/isMediaType.ts[0m[38;5;8m (2.11KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m https://deno.land/x/oak@v11.1.0/mediaTyper.ts[0m[38;5;8m (1.98KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/multipart.ts[0m[38;5;8m (16.34KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/buf_reader.ts[0m[38;5;8m (4.77KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/content_disposition.ts[0m[38;5;8m (3.95KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │ └─┬[0m https://deno.land/x/oak@v11.1.0/headers.ts[0m[38;5;8m (2.26KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/buf_reader.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/headers.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/body.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ └─┬[0m [0m[3mhttps://deno.land/x/oak@v11.1.0/response.ts[0m[0m[38;5;8m (10.63KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │   ├─┬[0m https://deno.land/x/oak@v11.1.0/http_server_native_request.ts[0m[38;5;8m (3.78KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │   │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/keyStack.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/response.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/send.ts[0m[38;5;8m (10.23KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/etag.ts[0m[38;5;8m (5.26KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/range.ts[0m[38;5;8m (4.86KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/etag.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/etag.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/response.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/server_sent_event.ts[0m[38;5;8m (10.75KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/server_sent_event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/http_server_flash.ts[0m[38;5;8m (3.77KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/http_request.ts[0m[38;5;8m (2.73KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/http_server_native.ts[0m[38;5;8m (4.61KB)[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_server_native_request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_server_native_request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/keyStack.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m https://deno.land/x/oak@v11.1.0/structured_clone.ts[0m[38;5;8m (4.82KB)[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/body.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/cookies.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/etag.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/helpers.ts[0m[38;5;8m (1.67KB)[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_server_flash.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_server_native.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/http_server_native_request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/middleware/proxy.ts[0m[38;5;8m (8.42KB)[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/context.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/middleware/proxy.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/multipart.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/multipart.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/range.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/range.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/response.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/send.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/send.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/server_sent_event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/server_sent_event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├─┬[0m https://deno.land/x/oak@v11.1.0/testing.ts[0m[38;5;8m (4.53KB)[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/application.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/cookies.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/request.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/response.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/router.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/oak@v11.1.0/types.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/oak@v11.1.0/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ └─┬[0m https://deno.land/x/sqlite3@0.6.1/mod.ts[0m[38;5;8m (147B)[0m
+[0m[38;5;8m  │ │ │   ├─┬[0m https://deno.land/x/sqlite3@0.6.1/src/blob.ts[0m[38;5;8m (4.8KB)[0m
+[0m[38;5;8m  │ │ │   │ ├─┬[0m [0m[3mhttps://deno.land/x/sqlite3@0.6.1/src/database.ts[0m[0m[38;5;8m (11.32KB)[0m
+[0m[38;5;8m  │ │ │   │ │ ├─┬[0m https://deno.land/x/sqlite3@0.6.1/deps.ts[0m[38;5;8m (73B)[0m
+[0m[38;5;8m  │ │ │   │ │ │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.152.0/path/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/blob.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ ├──[0m https://deno.land/x/sqlite3@0.6.1/src/constants.ts[0m[38;5;8m (2.42KB)[0m
+[0m[38;5;8m  │ │ │   │ │ ├─┬[0m https://deno.land/x/sqlite3@0.6.1/src/ffi.ts[0m[38;5;8m (8.64KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │ └─┬[0m https://deno.land/x/plug@0.5.2/plug.ts[0m[38;5;8m (2.64KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │   └─┬[0m https://deno.land/x/plug@0.5.2/deps.ts[0m[38;5;8m (205B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     ├──[0m https://deno.land/std@0.122.0/fmt/colors.ts[0m[38;5;8m (11.53KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     ├─┬[0m https://deno.land/std@0.122.0/path/mod.ts[0m[38;5;8m (725B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├──[0m https://deno.land/std@0.122.0/_util/os.ts[0m[38;5;8m (598B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├──[0m https://deno.land/std@0.122.0/path/_interface.ts[0m[38;5;8m (728B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├─┬[0m https://deno.land/std@0.122.0/path/common.ts[0m[38;5;8m (1.16KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ └─┬[0m https://deno.land/std@0.122.0/path/separator.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├─┬[0m https://deno.land/std@0.122.0/path/glob.ts[0m[38;5;8m (12.37KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.122.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ ├─┬[0m https://deno.land/std@0.122.0/path/posix.ts[0m[38;5;8m (14.49KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ │ ├──[0m https://deno.land/std@0.122.0/path/_constants.ts[0m[38;5;8m (1.9KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.122.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ │ └─┬[0m https://deno.land/std@0.122.0/path/_util.ts[0m[38;5;8m (3.62KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.122.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │ └─┬[0m https://deno.land/std@0.122.0/path/win32.ts[0m[38;5;8m (29.03KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │   ├──[0m https://deno.land/std@0.122.0/_util/assert.ts[0m[38;5;8m (405B)[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.122.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/_util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/posix.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.122.0/path/win32.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │     └─┬[0m https://deno.land/x/cache@0.2.13/mod.ts[0m[38;5;8m (28B)[0m
+[0m[38;5;8m  │ │ │   │ │ │       └─┬[0m https://deno.land/x/cache@0.2.13/cache.ts[0m[38;5;8m (2.19KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         ├─┬[0m https://deno.land/x/cache@0.2.13/deps.ts[0m[38;5;8m (357B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ ├─┬[0m https://deno.land/std@0.97.0/fs/ensure_dir.ts[0m[38;5;8m (1.39KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ └─┬[0m https://deno.land/std@0.97.0/fs/_util.ts[0m[38;5;8m (975B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │   └─┬[0m https://deno.land/std@0.97.0/path/mod.ts[0m[38;5;8m (725B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├──[0m https://deno.land/std@0.97.0/_util/os.ts[0m[38;5;8m (456B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├──[0m https://deno.land/std@0.97.0/path/_interface.ts[0m[38;5;8m (728B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├─┬[0m https://deno.land/std@0.97.0/path/common.ts[0m[38;5;8m (1.14KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ └─┬[0m https://deno.land/std@0.97.0/path/separator.ts[0m[38;5;8m (259B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├─┬[0m https://deno.land/std@0.97.0/path/glob.ts[0m[38;5;8m (12.28KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/_util/os.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ ├─┬[0m https://deno.land/std@0.97.0/path/posix.ts[0m[38;5;8m (14.28KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ │ ├──[0m https://deno.land/std@0.97.0/path/_constants.ts[0m[38;5;8m (1.9KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.97.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ │ └─┬[0m https://deno.land/std@0.97.0/path/_util.ts[0m[38;5;8m (3.62KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ │   └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.97.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │ └─┬[0m https://deno.land/std@0.97.0/path/win32.ts[0m[38;5;8m (29.13KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │   ├──[0m https://deno.land/std@0.97.0/_util/assert.ts[0m[38;5;8m (405B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │   ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/_constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │   ├──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.97.0/path/_interface.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/_util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/posix.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     ├──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/separator.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │     └──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/win32.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ ├──[0m https://deno.land/std@0.97.0/fs/exists.ts[0m[38;5;8m (708B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ ├─┬[0m https://deno.land/std@0.97.0/hash/mod.ts[0m[38;5;8m (757B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ ├─┬[0m https://deno.land/std@0.97.0/hash/_wasm/hash.ts[0m[38;5;8m (1.81KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ │ ├──[0m https://deno.land/std@0.97.0/encoding/base64.ts[0m[38;5;8m (1.88KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ │ ├──[0m https://deno.land/std@0.97.0/encoding/hex.ts[0m[38;5;8m (3.1KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ │ ├──[0m [0m[3mhttps://deno.land/std@0.97.0/hash/hasher.ts[0m[0m[38;5;8m (293B)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ │ └─┬[0m https://deno.land/std@0.97.0/hash/_wasm/wasm.js[0m[38;5;8m (149.25KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/encoding/base64.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ │ └──[0m [0m[3m[38;5;8mhttps://deno.land/std@0.97.0/hash/hasher.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ └──[0m [0m[38;5;8mhttps://deno.land/std@0.97.0/path/mod.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         ├─┬[0m https://deno.land/x/cache@0.2.13/directories.ts[0m[38;5;8m (1.18KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ └──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         ├─┬[0m https://deno.land/x/cache@0.2.13/file.ts[0m[38;5;8m (3.12KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ ├──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/cache.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ ├──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │ └─┬[0m https://deno.land/x/cache@0.2.13/file_fetcher.ts[0m[38;5;8m (1.27KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │         │   ├──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/cache.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │   ├──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         │   └──[0m [0m[3m[38;5;8mhttps://deno.land/x/cache@0.2.13/file.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │         └─┬[0m https://deno.land/x/cache@0.2.13/helpers.ts[0m[38;5;8m (443B)[0m
+[0m[38;5;8m  │ │ │   │ │ │           └──[0m [0m[38;5;8mhttps://deno.land/x/cache@0.2.13/deps.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ ├─┬[0m https://deno.land/x/sqlite3@0.6.1/src/statement.ts[0m[38;5;8m (17.08KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │ ├──[0m [0m[3m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/database.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │ ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/ffi.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │ └─┬[0m https://deno.land/x/sqlite3@0.6.1/src/util.ts[0m[38;5;8m (1.15KB)[0m
+[0m[38;5;8m  │ │ │   │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/constants.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/ffi.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ │ └──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/ffi.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   │ └──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/database.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   ├──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/statement.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │   └──[0m [0m[38;5;8mhttps://deno.land/x/sqlite3@0.6.1/src/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/hooks/event.ts[0m[38;5;8m (2.8KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m file:///Users/zef/git/silverbullet/packages/plugos/util.ts[0m[38;5;8m (148B)[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/hooks/node_cron.ts[0m[38;5;8m (2.04KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └─┬[0m https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/croner.js[0m[38;5;8m (8.85KB)[0m
+[0m[38;5;8m  │ │   ├─┬[0m https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/date.js[0m[38;5;8m (10.33KB)[0m
+[0m[38;5;8m  │ │   │ ├─┬[0m https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/options.js[0m[38;5;8m (2.09KB)[0m
+[0m[38;5;8m  │ │   │ │ └──[0m [0m[38;5;8mhttps://cdn.jsdelivr.net/gh/hexagon/croner@4/src/date.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │   │ └──[0m https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/tz.js[0m[38;5;8m (4.91KB)[0m
+[0m[38;5;8m  │ │   ├──[0m [0m[38;5;8mhttps://cdn.jsdelivr.net/gh/hexagon/croner@4/src/options.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │   └─┬[0m https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/pattern.js[0m[38;5;8m (11.67KB)[0m
+[0m[38;5;8m  │ │     └──[0m [0m[38;5;8mhttps://cdn.jsdelivr.net/gh/hexagon/croner@4/src/date.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/server/hooks/page_namespace.ts[0m[38;5;8m (2.4KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/hooks/command.ts[0m[38;5;8m (1.81KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └─┬[0m file:///Users/zef/git/silverbullet/packages/web/hooks/slash_command.ts[0m[38;5;8m (3.18KB)[0m
+[0m[38;5;8m  │   ├─┬[0m file:///Users/zef/git/silverbullet/dep_web.ts[0m[38;5;8m (132B)[0m
+[0m[38;5;8m  │   │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │   │ └─┬[0m https://esm.sh/react@17.0.2[0m[38;5;8m (170B)[0m
+[0m[38;5;8m  │   │   ├─┬[0m [0m[3mhttps://esm.sh/v96/@types/react@17.0.50/index.d.ts[0m[0m[38;5;8m (148.26KB)[0m
+[0m[38;5;8m  │   │   │ ├──[0m https://esm.sh/v96/@types/react@17.0.50/global.d.ts[0m[38;5;8m (7.21KB)[0m
+[0m[38;5;8m  │   │   │ ├──[0m https://esm.sh/v96/@types/prop-types@15.7.5/index.d.ts[0m[38;5;8m (3.58KB)[0m
+[0m[38;5;8m  │   │   │ ├──[0m https://esm.sh/v96/@types/scheduler@0.16.2/tracing.d.ts[0m[38;5;8m (4.03KB)[0m
+[0m[38;5;8m  │   │   │ └──[0m https://esm.sh/v96/csstype@3.1.1/index.d.ts[0m[38;5;8m (837.78KB)[0m
+[0m[38;5;8m  │   │   ├──[0m https://esm.sh/stable/react@17.0.2/deno/react.js[0m[38;5;8m (7.97KB)[0m
+[0m[38;5;8m  │   ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │   ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │   ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │   └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/markdown_ext.ts[0m[38;5;8m (1.71KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/manifest.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/parser.ts[0m[38;5;8m (3.78KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/customtags.ts[0m[38;5;8m (504B)[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/markdown_ext.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/syscalls/markdown.ts[0m[38;5;8m (387B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/common/parse_tree.ts[0m[38;5;8m (2.26KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m file:///Users/zef/git/silverbullet/packages/common/tree.ts[0m[38;5;8m (3.4KB)[0m
+[0m[38;5;8m  │ └──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/tree.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/environments/webworker_sandbox.ts[0m[38;5;8m (1.01KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/plug.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/sandbox.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/environments/worker.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/hooks/event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/syscalls/event.ts[0m[38;5;8m (378B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/hooks/event.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/syscalls/sandbox.ts[0m[38;5;8m (482B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/sandbox.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/app_event.ts[0m[38;5;8m (421B)[0m
+[0m[38;5;8m  │ └──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/tree.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/components/command_palette.tsx[0m[38;5;8m (1.28KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/hooks/command.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/components/filter.tsx[0m[38;5;8m (6.67KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ ├─┬[0m https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0[0m[38;5;8m (160B)[0m
+[0m[38;5;8m  │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@fortawesome/free-solid-svg-icons@6.2.0/index.d.ts[0m[0m[38;5;8m (82.7KB)[0m
+[0m[38;5;8m  │ │ │ │ └──[0m https://esm.sh/v96/@fortawesome/fontawesome-common-types@6.2.0/index.d.ts[0m[38;5;8m (464.37KB)[0m
+[0m[38;5;8m  │ │ │ ├──[0m https://esm.sh/v96/@fortawesome/free-solid-svg-icons@6.2.0/deno/free-solid-svg-icons.js[0m[38;5;8m (948.8KB)[0m
+[0m[38;5;8m  │ │ ├─┬[0m https://esm.sh/@fortawesome/react-fontawesome@0.2.0[0m[38;5;8m (151B)[0m
+[0m[38;5;8m  │ │ │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@fortawesome/react-fontawesome@0.2.0/index.d.ts[0m[0m[38;5;8m (1.46KB)[0m
+[0m[38;5;8m  │ │ │ │ ├─┬[0m https://esm.sh/v96/@fortawesome/fontawesome-svg-core@6.2.0/index.d.ts[0m[38;5;8m (3.58KB)[0m
+[0m[38;5;8m  │ │ │ │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@fortawesome/fontawesome-common-types@6.2.0/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │ └─┬[0m https://esm.sh/v96/@types/react@18.0.21/index.d.ts[0m[38;5;8m (150.57KB)[0m
+[0m[38;5;8m  │ │ │ │   ├──[0m https://esm.sh/v96/@types/react@18.0.21/global.d.ts[0m[38;5;8m (7.21KB)[0m
+[0m[38;5;8m  │ │ │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@types/prop-types@15.7.5/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │   ├──[0m [0m[38;5;8mhttps://esm.sh/v96/@types/scheduler@0.16.2/tracing.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ │   └──[0m [0m[38;5;8mhttps://esm.sh/v96/csstype@3.1.1/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ │ ├─┬[0m https://esm.sh/v96/@fortawesome/react-fontawesome@0.2.0/deno/react-fontawesome.js[0m[38;5;8m (6.25KB)[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m https://esm.sh/stable/react@18.2.0/deno/react.js[0m[38;5;8m (8.41KB)[0m
+[0m[38;5;8m  │ │ │ │ ├──[0m https://esm.sh/v96/@fortawesome/fontawesome-svg-core@6.2.0/deno/fontawesome-svg-core.js[0m[38;5;8m (60.22KB)[0m
+[0m[38;5;8m  │ │ │ │ └──[0m https://esm.sh/v96/prop-types@15.8.1/deno/prop-types.js[0m[38;5;8m (1.94KB)[0m
+[0m[38;5;8m  │ │ └─┬[0m https://esm.sh/fuzzysort@2.0.1[0m[38;5;8m (181B)[0m
+[0m[38;5;8m  │ │   ├──[0m [0m[3mhttps://esm.sh/v96/fuzzysort@2.0.1/index.d.ts[0m[0m[38;5;8m (2.63KB)[0m
+[0m[38;5;8m  │ │   ├──[0m https://esm.sh/v96/fuzzysort@2.0.1/deno/fuzzysort.js[0m[38;5;8m (6.92KB)[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mhttps://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/components/filter.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/components/page_navigator.tsx[0m[38;5;8m (1.56KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/components/filter.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/components/panel.tsx[0m[38;5;8m (2.04KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └─┬[0m file:///Users/zef/git/silverbullet/packages/web/types.ts[0m[38;5;8m (2.42KB)[0m
+[0m[38;5;8m  │   ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │   └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/hooks/command.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/components/top_bar.tsx[0m[38;5;8m (2.85KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mhttps://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mhttps://esm.sh/@fortawesome/react-fontawesome@0.2.0[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/editor_paste.ts[0m[38;5;8m (4.02KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/hooks/command.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/hooks/slash_command.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/inline_image.ts[0m[38;5;8m (2KB)[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/line_wrapper.ts[0m[38;5;8m (2.31KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/navigator.ts[0m[38;5;8m (2.13KB)[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/util.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/reducer.ts[0m[38;5;8m (3.59KB)[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/smart_quotes.ts[0m[38;5;8m (1.41KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/style.ts[0m[38;5;8m (2.42KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_common.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/customtags.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/markdown_ext.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/clientStore.ts[0m[38;5;8m (531B)[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/syscalls/store.dexie_browser.ts[0m[38;5;8m (1.43KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └─┬[0m https://esm.sh/dexie@3.2.2[0m[38;5;8m (161B)[0m
+[0m[38;5;8m  │ │   ├──[0m [0m[3mhttps://esm.sh/v96/dexie@3.2.2/dist/dexie.d.ts[0m[0m[38;5;8m (35.3KB)[0m
+[0m[38;5;8m  │ │   ├──[0m https://esm.sh/v96/dexie@3.2.2/deno/dexie.js[0m[38;5;8m (72.42KB)[0m
+[0m[38;5;8m  │ ├─┬[0m file:///Users/zef/git/silverbullet/packages/plugos/syscalls/transport.ts[0m[38;5;8m (431B)[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/editor.ts[0m[38;5;8m (5.56KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/dep_web.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/fulltext.ts[0m[38;5;8m (408B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/syscalls/transport.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/index.ts[0m[38;5;8m (469B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/syscalls/transport.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/space.ts[0m[38;5;8m (2.2KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space_primitives.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/store.ts[0m[38;5;8m (495B)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/common/spaces/space.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/syscalls/transport.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m file:///Users/zef/git/silverbullet/packages/web/syscalls/system.ts[0m[38;5;8m (1.2KB)[0m
+[0m[38;5;8m  │ ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/plugos/system.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├──[0m [0m[3m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/editor.tsx[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ └──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/hooks/command.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├──[0m [0m[38;5;8mfile:///Users/zef/git/silverbullet/packages/web/types.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  ├─┬[0m https://esm.sh/react-dom@17.0.2[0m[38;5;8m (184B)[0m
+[0m[38;5;8m  │ ├─┬[0m [0m[3mhttps://esm.sh/v96/@types/react-dom@17.0.17/index.d.ts[0m[0m[38;5;8m (3.62KB)[0m
+[0m[38;5;8m  │ │ └──[0m [0m[38;5;8mhttps://esm.sh/v96/@types/react@17.0.50/index.d.ts[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ ├─┬[0m https://esm.sh/v96/react-dom@17.0.2/deno/react-dom.js[0m[38;5;8m (118.17KB)[0m
+[0m[38;5;8m  │ │ ├──[0m [0m[38;5;8mhttps://esm.sh/stable/react@17.0.2/deno/react.js[0m[0m[38;5;8m *[0m
+[0m[38;5;8m  │ │ └──[0m https://esm.sh/v96/scheduler@0.20.2/deno/scheduler.js[0m[38;5;8m (6.21KB)[0m
+[0m[38;5;8m  └──[0m [0m[38;5;8mhttps://esm.sh/react@17.0.2[0m[0m[38;5;8m *[0m

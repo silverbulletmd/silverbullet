@@ -11,11 +11,6 @@ export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
 export { readAll } from "https://deno.land/std@0.158.0/streams/conversion.ts";
 
 export {
-  decode as b64decode,
-  encode as b64encode,
-} from "https://deno.land/std@0.158.0/encoding/base64.ts";
-
-export {
   history,
   historyKeymap,
   indentWithTab,

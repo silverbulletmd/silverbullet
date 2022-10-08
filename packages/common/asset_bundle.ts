@@ -1,4 +1,4 @@
-import { b64decode } from "../../dep_common.ts";
+import { base64Decode } from "./base64.ts";
 
 type AssetBundle = Record<string, string>;
 
@@ -10,7 +10,7 @@ export function assetReadFileSync(
   if (!content) {
     throw new Error(`No such file ${path}`);
   }
-  return b64decode(content);
+  return base64Decode(content);
 }
 
 export function assetReadTextFileSync(
