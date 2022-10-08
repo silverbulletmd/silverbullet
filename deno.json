@@ -5,9 +5,10 @@
     "importMap": "import_map.json",
     "tasks": {
       "test": "deno test -A --unstable",
-      "watch": "deno run -A build.ts",
-      "server": "deno run -A --unstable --watch server/server.ts",
-      "plugs": "deno run -A --unstable plugos/bin/plugos-bundle.ts --dist plugs/dist --exclude=https://esm.sh/handlebars,https://deno.land/std@0.158.0/encoding/yaml.ts plugs/*/*.plug.yaml",
+      "install": "deno install -f -A --unstable plugos/bin/plugos-bundle.ts && deno install -f -n silverbullet -A --unstable server/server.ts",
+      "watch-web": "deno run -A build.ts",
+      "watch-server": "deno run -A --unstable --watch server/server.ts",
+      "plugs": "./build_plugs.sh",
       "compile": "deno compile --output silverbullet --importmap import_map.json -A --unstable server/server.ts"
     }
   }
