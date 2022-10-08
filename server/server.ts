@@ -23,7 +23,7 @@ const port = args.port ? +args.port : 3000;
 // const webappDistDir = new URL("./../../dist", import.meta.url).pathname;
 // console.log("Webapp dist dir", webappDistDir);
 
-import assetBundle from "../dist_bundle.json" assert { type: "json" };
+import assetBundle from "../dist/web_bundle.json" assert { type: "json" };
 
 const plugDistDir = new URL("./../plugs/dist", import.meta.url).pathname;
 console.log("Pages dir", pagesPath);

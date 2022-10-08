@@ -76,7 +76,7 @@ export class ExpressServer {
     this.password = options.password;
 
     this.globalModules = JSON.parse(
-      assetReadTextFileSync(this.assetBundle, `dist/global.plug.json`),
+      assetReadTextFileSync(this.assetBundle, `global.plug.json`),
     );
 
     // Set up the PlugOS System
@@ -331,14 +331,14 @@ export class ExpressServer {
         ctx.response.headers.set("Content-type", "text/html");
         ctx.response.body = assetReadTextFileSync(
           this.assetBundle,
-          "dist/index.html",
+          "index.html",
         );
         return;
       }
       try {
         ctx.response.body = assetReadFileSync(
           this.assetBundle,
-          `dist${ctx.request.url.pathname}`,
+          `${ctx.request.url.pathname.substring(1)}`,
         );
         ctx.response.headers.set(
           "Content-type",
@@ -364,7 +364,7 @@ export class ExpressServer {
       ctx.response.headers.set("Content-type", "text/html");
       ctx.response.body = assetReadTextFileSync(
         this.assetBundle,
-        "dist/index.html",
+        "index.html",
       );
     });
 
