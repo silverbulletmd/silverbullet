@@ -1,0 +1,16 @@
+name: markdown
+functions:
+  toggle:
+    path: "./markdown.ts:togglePreview"
+    command:
+      name: "Markdown Preview: Toggle"
+      key: Ctrl-p
+      mac: Cmd-p
+  preview:
+    path: "./preview.ts:updateMarkdownPreview"
+    env: client
+    events:
+      - plug:load
+      - editor:updated
+      - editor:pageLoaded
+      - editor:pageReloaded

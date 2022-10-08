@@ -10,7 +10,7 @@
     "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.0.0?external=@codemirror/state,@lezer/common",
-    "$sb/": "./packages/",
+    "$sb/": "./syscall/",
     "handlebars": "https://esm.sh/handlebars",
     "@lezer/lr": "https://esm.sh/@lezer/lr",
     "yaml": "https://deno.land/std/encoding/yaml.ts"

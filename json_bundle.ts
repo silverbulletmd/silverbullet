@@ -1,5 +1,5 @@
 import { walk } from "https://deno.land/std@0.159.0/fs/mod.ts";
-import { base64Encode } from "./packages/common/base64.ts";
+import { base64Encode } from "./common/base64.ts";
 
 export async function bundleFolder(path: string, bundlePath: string) {
   const bundle: Record<string, string> = {};
