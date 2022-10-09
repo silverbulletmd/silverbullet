@@ -121,33 +121,31 @@ Deno.test("Run a deno sandbox", async () => {
   await system.unloadAll();
 });
 
-import { bundleRun } from "./bin/plugos-bundle.ts";
+import { bundle as plugOsBundle } from "./bin/plugos-bundle.ts";
 import { esbuild } from "./compile.ts";
 const __dirname = new URL(".", import.meta.url).pathname;
 
 Deno.test("Preload dependencies", async () => {
   const tmpDist = `${__dirname}tmp_dist`;
-  await bundleRun({
-    _: [`${__dirname}../plugs/global.plug.yaml`],
-    debug: true,
-    dist: tmpDist,
-    exclude: [],
-  });
-  const globalModules = JSON.parse(
-    Deno.readTextFileSync(`${tmpDist}/global.plug.json`),
+  const globalModules = await plugOsBundle(
+    `${__dirname}../plugs/global.plug.yaml`,
+    false,
+    [],
   );
-  await bundleRun({
-    _: [`${__dirname}test.plug.yaml`],
-    debug: true,
-    dist: tmpDist,
-    exclude: Object.keys(globalModules.dependencies),
-  });
+  // const globalModules = JSON.parse(
+  //   Deno.readTextFileSync(`${tmpDist}/global.plug.json`),
+  // );
+  const testPlugManifest = await plugOsBundle(
+    `${__dirname}test.plug.yaml`,
+    false,
+    Object.keys(globalModules.dependencies!),
+  );
   esbuild.stop();
 
   const system = new System("server");
   system.on({
     plugLoaded: async (plug) => {
-      for (let [modName, code] of Object.entries(globalModules.dependencies)) {
+      for (let [modName, code] of Object.entries(globalModules.dependencies!)) {
         await plug.sandbox.loadDependency(modName, code as string);
       }
     },
@@ -156,7 +154,7 @@ Deno.test("Preload dependencies", async () => {
   // Load test module
   console.log("Loading test module");
   const testPlug = await system.load(
-    JSON.parse(Deno.readTextFileSync(`${tmpDist}/test.plug.json`)),
+    testPlugManifest,
     createSandbox,
   );
   console.log("Running");
@@ -166,6 +164,4 @@ Deno.test("Preload dependencies", async () => {
   console.log("Result", result);
 
   await system.unloadAll();
-
-  Deno.removeSync(tmpDist, { recursive: true });
 });

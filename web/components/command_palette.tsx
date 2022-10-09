@@ -1,6 +1,6 @@
 import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
-import { faPersonRunning } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+import { faPersonRunning } from "../deps.ts";
 import { AppCommand } from "../hooks/command.ts";
 import { FilterOption } from "../../common/types.ts";
 

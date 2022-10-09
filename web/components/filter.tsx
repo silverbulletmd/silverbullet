@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "../deps.ts";
 import { FontAwesomeIcon } from "../deps.ts";
-import { IconDefinition } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+import type { IconDefinition } from "../deps.ts";
 import { FilterOption } from "../../common/types.ts";
 import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
 

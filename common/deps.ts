@@ -5,11 +5,6 @@ export {
 } from "@codemirror/autocomplete";
 export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
-export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
-export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
-
-export { readAll } from "https://deno.land/std@0.158.0/streams/conversion.ts";
-
 export {
   history,
   historyKeymap,
@@ -22,6 +17,11 @@ export {
 } from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view";
 
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
+
+export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
+export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
+
+export { readAll } from "https://deno.land/std@0.158.0/streams/conversion.ts";
 
 export type {
   BlockContext,
