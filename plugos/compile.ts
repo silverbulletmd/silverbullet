@@ -94,45 +94,26 @@ export async function compileModule(
   return code;
 }
 
-// export async function sandboxCompile(
-//   filename: string,
-//   code: string,
-//   functionName?: string,
-//   debug: boolean = false,
-//   installModules: string[] = [],
-//   globalModules: string[] = []
-// ): Promise<string> {
-//   let tmpDir = `${tmpdir()}/plugos-${Math.random()}`;
-//   await mkdir(tmpDir, { recursive: true });
+export async function sandboxCompile(
+  filename: string,
+  code: string,
+  functionName?: string,
+  debug: boolean = false,
+  globalModules: string[] = [],
+): Promise<string> {
+  let tmpDir = await Deno.makeTempDir();
+  // await Deno.mkdir(tmpDir, { recursive: true });
 
-//   const srcNodeModules = `${nodeModulesDir}/node_modules`;
-//   const targetNodeModules = `${tmpDir}/node_modules`;
-
-//   await mkdir(`${targetNodeModules}/@silverbulletmd`, { recursive: true });
-//   await mkdir(`${targetNodeModules}/@plugos`, { recursive: true });
-//   for (const exposedModule of exposedModules) {
-//     await symlink(
-//       `${srcNodeModules}/${exposedModule}`,
-//       `${targetNodeModules}/${exposedModule}`,
-//       "dir"
-//     );
-//   }
-//   for (let moduleName of installModules) {
-//     await execFilePromise("npm", ["install", moduleName], {
-//       cwd: tmpDir,
-//     });
-//   }
-
-//   await writeFile(`${tmpDir}/${filename}`, code);
-//   let jsCode = await compile(
-//     `${tmpDir}/${filename}`,
-//     functionName,
-//     debug,
-//     globalModules
-//   );
-//   await rm(tmpDir, { recursive: true });
-//   return jsCode;
-// }
+  await Deno.writeTextFile(`${tmpDir}/${filename}`, code);
+  let jsCode = await compile(
+    `${tmpDir}/${filename}`,
+    functionName,
+    debug,
+    globalModules,
+  );
+  await Deno.remove(tmpDir, { recursive: true });
+  return jsCode;
+}
 
 export async function sandboxCompileModule(
   moduleUrl: string,
