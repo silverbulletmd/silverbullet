@@ -32,7 +32,7 @@ export function save(): Promise<void> {
 export function navigate(
   name: string,
   pos?: string | number,
-  replaceState = false
+  replaceState = false,
 ): Promise<void> {
   return syscall("editor.navigate", name, pos, replaceState);
 }
@@ -47,7 +47,7 @@ export function openUrl(url: string): Promise<void> {
 
 export function flashNotification(
   message: string,
-  type: "info" | "error" = "info"
+  type: "info" | "error" = "info",
 ): Promise<void> {
   return syscall("editor.flashNotification", message, type);
 }
@@ -55,8 +55,8 @@ export function flashNotification(
 export function filterBox(
   label: string,
   options: FilterOption[],
-  helpText: string = "",
-  placeHolder: string = ""
+  helpText = "",
+  placeHolder = "",
 ): Promise<FilterOption | undefined> {
   return syscall("editor.filterBox", label, options, helpText, placeHolder);
 }
@@ -65,7 +65,7 @@ export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
   mode: number,
   html: string,
-  script: string = ""
+  script = "",
 ): Promise<void> {
   return syscall("editor.showPanel", id, mode, html, script);
 }
@@ -81,7 +81,7 @@ export function insertAtPos(text: string, pos: number): Promise<void> {
 export function replaceRange(
   from: number,
   to: number,
-  text: string
+  text: string,
 ): Promise<void> {
   return syscall("editor.replaceRange", from, to, text);
 }
@@ -95,7 +95,7 @@ export function insertAtCursor(text: string): Promise<void> {
 }
 
 export function matchBefore(
-  re: string
+  re: string,
 ): Promise<{ from: number; to: number; text: string } | null> {
   return syscall("editor.matchBefore", re);
 }
@@ -106,7 +106,7 @@ export function dispatch(change: any): Promise<void> {
 
 export function prompt(
   message: string,
-  defaultValue = ""
+  defaultValue = "",
 ): Promise<string | undefined> {
   return syscall("editor.prompt", message, defaultValue);
 }
@@ -120,7 +120,7 @@ export function enableReadOnlyMode(enabled: boolean) {
 export function showRhs(
   html: string,
   script?: string,
-  flex = 1
+  flex = 1,
 ): Promise<void> {
   return syscall("editor.showRhs", html, script, flex);
 }
@@ -132,7 +132,7 @@ export function hideRhs(): Promise<void> {
 export function showLhs(
   html: string,
   script?: string,
-  flex = 1
+  flex = 1,
 ): Promise<void> {
   return syscall("editor.showLhs", html, script, flex);
 }
@@ -144,7 +144,7 @@ export function hideLhs(): Promise<void> {
 export function showBhs(
   html: string,
   script?: string,
-  flex = 1
+  flex = 1,
 ): Promise<void> {
   return syscall("editor.showBhs", html, script, flex);
 }

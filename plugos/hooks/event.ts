@@ -25,17 +25,17 @@ export class EventHook implements Hook<EventHookT> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    let eventNames = new Set<string>();
+    const eventNames = new Set<string>();
     for (const plug of this.system.loadedPlugs.values()) {
       for (const functionDef of Object.values(plug.manifest!.functions)) {
         if (functionDef.events) {
-          for (let eventName of functionDef.events) {
+          for (const eventName of functionDef.events) {
             eventNames.add(eventName);
           }
         }
       }
     }
-    for (let eventName of this.localListeners.keys()) {
+    for (const eventName of this.localListeners.keys()) {
       eventNames.add(eventName);
     }
 
@@ -46,15 +46,17 @@ export class EventHook implements Hook<EventHookT> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    let responses: any[] = [];
+    const responses: any[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
-      for (const [name, functionDef] of Object.entries(
-        plug.manifest!.functions
-      )) {
+      for (
+        const [name, functionDef] of Object.entries(
+          plug.manifest!.functions,
+        )
+      ) {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
           if (plug.canInvoke(name)) {
-            let result = await plug.invoke(name, [data]);
+            const result = await plug.invoke(name, [data]);
             if (result !== undefined) {
               responses.push(result);
             }
@@ -62,10 +64,10 @@ export class EventHook implements Hook<EventHookT> {
         }
       }
     }
-    let localListeners = this.localListeners.get(eventName);
+    const localListeners = this.localListeners.get(eventName);
     if (localListeners) {
-      for (let localListener of localListeners) {
-        let result = await Promise.resolve(localListener(data));
+      for (const localListener of localListeners) {
+        const result = await Promise.resolve(localListener(data));
         if (result) {
           responses.push(result);
         }
@@ -87,10 +89,12 @@ export class EventHook implements Hook<EventHookT> {
   }
 
   validateManifest(manifest: Manifest<EventHookT>): string[] {
-    let errors = [];
-    for (const [name, functionDef] of Object.entries(
-      manifest.functions || {}
-    )) {
+    const errors = [];
+    for (
+      const [_, functionDef] of Object.entries(
+        manifest.functions || {},
+      )
+    ) {
       if (functionDef.events && !Array.isArray(functionDef.events)) {
         errors.push("'events' key must be an array of strings");
       }

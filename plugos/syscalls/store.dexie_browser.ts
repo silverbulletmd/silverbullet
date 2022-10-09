@@ -17,11 +17,11 @@ export function storeSyscalls(
   const items = db.table(tableName);
 
   return {
-    "store.delete": async (ctx, key: string) => {
+    "store.delete": async (_ctx, key: string) => {
       await items.delete(key);
     },
 
-    "store.deletePrefix": async (ctx, prefix: string) => {
+    "store.deletePrefix": async (_ctx, prefix: string) => {
       await items.where("key").startsWith(prefix).delete();
     },
 
@@ -29,14 +29,14 @@ export function storeSyscalls(
       await items.clear();
     },
 
-    "store.set": async (ctx, key: string, value: any) => {
+    "store.set": async (_ctx, key: string, value: any) => {
       await items.put({
         key,
         value,
       });
     },
 
-    "store.batchSet": async (ctx, kvs: KV[]) => {
+    "store.batchSet": async (_ctx, kvs: KV[]) => {
       await items.bulkPut(
         kvs.map(({ key, value }) => ({
           key,
@@ -45,18 +45,18 @@ export function storeSyscalls(
       );
     },
 
-    "store.get": async (ctx, key: string): Promise<any | null> => {
-      let result = await items.get({
+    "store.get": async (_ctx, key: string): Promise<any | null> => {
+      const result = await items.get({
         key,
       });
       return result ? result.value : null;
     },
 
     "store.queryPrefix": async (
-      ctx,
+      _ctx,
       keyPrefix: string,
     ): Promise<{ key: string; value: any }[]> => {
-      let results = await items.where("key").startsWith(keyPrefix).toArray();
+      const results = await items.where("key").startsWith(keyPrefix).toArray();
       return results.map((result) => ({
         key: result.key,
         value: result.value,

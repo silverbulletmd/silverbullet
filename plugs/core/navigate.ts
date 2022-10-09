@@ -25,7 +25,7 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
   }
   // console.log("Attempting to navigate based on syntax node", mdTree);
   switch (mdTree.type) {
-    case "WikiLinkPage":
+    case "WikiLinkPage": {
       let pageLink = mdTree.children![0].text!;
       let pos;
       if (pageLink.includes("@")) {
@@ -39,30 +39,33 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       }
       await navigateTo(pageLink, pos);
       break;
+    }
     case "URL":
     case "NakedURL":
       await openUrl(patchUrl(mdTree.children![0].text!));
       break;
-    case "Link":
+    case "Link": {
       const url = patchUrl(mdTree.children![4].children![0].text!);
       if (url.length <= 1) {
         return flashNotification("Empty link, ignoring", "error");
       }
       await openUrl(url);
       break;
-    case "CommandLink":
-      let command = mdTree
+    }
+    case "CommandLink": {
+      const command = mdTree
         .children![0].text!.substring(2, mdTree.children![0].text!.length - 2)
         .trim();
       console.log("Got command link", command);
       await invokeCommand(command);
       break;
+    }
   }
 }
 
 export async function linkNavigate() {
-  let mdTree = await parseMarkdown(await getText());
-  let newNode = nodeAtPos(mdTree, await getCursor());
+  const mdTree = await parseMarkdown(await getText());
+  const newNode = nodeAtPos(mdTree, await getCursor());
   await actionClickOrActionEnter(newNode);
 }
 
@@ -71,8 +74,8 @@ export async function clickNavigate(event: ClickEvent) {
   if (event.ctrlKey || event.metaKey) {
     return;
   }
-  let mdTree = await parseMarkdown(await getText());
-  let newNode = nodeAtPos(mdTree, event.pos);
+  const mdTree = await parseMarkdown(await getText());
+  const newNode = nodeAtPos(mdTree, event.pos);
   await actionClickOrActionEnter(newNode);
 }
 

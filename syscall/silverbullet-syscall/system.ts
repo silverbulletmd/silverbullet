@@ -1,7 +1,7 @@
 import type { CommandDef } from "../../web/hooks/command.ts";
 import { syscall } from "./syscall.ts";
 
-export async function invokeFunction(
+export function invokeFunction(
   env: string,
   name: string,
   ...args: any[]
@@ -10,15 +10,15 @@ export async function invokeFunction(
 }
 
 // Only available on the client
-export async function invokeCommand(name: string): Promise<any> {
+export function invokeCommand(name: string): Promise<any> {
   return syscall("system.invokeCommand", name);
 }
 
 // Only available on the client
-export async function listCommands(): Promise<{ [key: string]: CommandDef }> {
+export function listCommands(): Promise<{ [key: string]: CommandDef }> {
   return syscall("system.listCommands");
 }
 
-export async function reloadPlugs() {
+export function reloadPlugs() {
   syscall("system.reloadPlugs");
 }

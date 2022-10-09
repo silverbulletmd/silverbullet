@@ -31,7 +31,7 @@ export function fullTextSearchSyscalls(
   tableName: string,
 ): SysCallMapping {
   return {
-    "fulltext.index": async (ctx, key: string, value: string) => {
+    "fulltext.index": async (_ctx, key: string, value: string) => {
       await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
       await asyncExecute(
         db,
@@ -40,10 +40,10 @@ export function fullTextSearchSyscalls(
         value,
       );
     },
-    "fulltext.delete": async (ctx, key: string) => {
+    "fulltext.delete": async (_ctx, key: string) => {
       await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
     },
-    "fulltext.search": async (ctx, phrase: string, limit: number) => {
+    "fulltext.search": async (_ctx, phrase: string, limit: number) => {
       return (
         await asyncQuery<any>(
           db,

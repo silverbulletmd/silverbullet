@@ -4,9 +4,10 @@ declare global {
 
 // This is the case when running tests only, so giving it a dummy syscall function
 if (typeof self === "undefined") {
-  // @ts-ignore
+  // @ts-ignore: test
+  // deno-lint-ignore no-global-assign
   self = {
-    syscall: (name: string, ...args: any[]) => {
+    syscall: () => {
       throw new Error("Not implemented here");
     },
   };

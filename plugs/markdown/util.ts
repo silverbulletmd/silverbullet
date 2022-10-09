@@ -13,7 +13,7 @@ export async function cleanMarkdown(
   text: string,
   validPages?: string[],
 ): Promise<string> {
-  let mdTree = await parseMarkdown(text);
+  const mdTree = await parseMarkdown(text);
   replaceNodesMatching(mdTree, (n) => {
     if (n.type === "WikiLink") {
       const page = n.children![1].children![0].text!;
@@ -49,7 +49,7 @@ export async function cleanMarkdown(
       console.log("Link", url);
     }
     if (n.type === "FencedCode") {
-      let codeInfoNode = findNodeOfType(n, "CodeInfo");
+      const codeInfoNode = findNodeOfType(n, "CodeInfo");
       if (!codeInfoNode) {
         return;
       }

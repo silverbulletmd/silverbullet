@@ -2,10 +2,10 @@ import { listEvents } from "$sb/plugos-syscall/event.ts";
 import { matchBefore } from "$sb/silverbullet-syscall/editor.ts";
 
 export async function queryComplete() {
-  let prefix = await matchBefore("#query [\\w\\-_]*");
+  const prefix = await matchBefore("#query [\\w\\-_]*");
 
   if (prefix) {
-    let allEvents = await listEvents();
+    const allEvents = await listEvents();
     //   console.log("All events", allEvents);
 
     return {

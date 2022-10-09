@@ -7,10 +7,10 @@ import { ensureTable, storeSyscalls } from "./store.deno.ts";
 Deno.test("Test store", async () => {
   const db = new SQLite(":memory:");
   await ensureTable(db, "test_table");
-  let system = new System("server");
-  let syscalls = storeSyscalls(db, "test_table");
+  const system = new System("server");
+  const syscalls = storeSyscalls(db, "test_table");
   system.registerSyscalls([], syscalls);
-  let plug = await system.load(
+  const plug = await system.load(
     {
       name: "test",
       functions: {
@@ -31,7 +31,7 @@ Deno.test("Test store", async () => {
   assertEquals(await plug.invoke("test1", []), "Pete");
   await system.unloadAll();
 
-  let dummyCtx: any = {};
+  const dummyCtx: any = {};
 
   await syscalls["store.deleteAll"](dummyCtx);
   await syscalls["store.batchSet"](dummyCtx, [

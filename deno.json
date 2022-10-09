@@ -6,6 +6,11 @@
     },
     "importMap": "import_map.json",
     "lint": {
+      "files": {
+        "exclude": [
+          "dist", "dist_bundle"
+        ]
+      },
       "rules": {
         "exclude": ["no-explicit-any"]
       }

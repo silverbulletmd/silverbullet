@@ -8,9 +8,9 @@ export function proxySyscalls(
     ...args: any[]
   ) => Promise<any>,
 ): SysCallMapping {
-  let syscalls: SysCallMapping = {};
+  const syscalls: SysCallMapping = {};
 
-  for (let name of names) {
+  for (const name of names) {
     syscalls[name] = (ctx, ...args: any[]) => {
       return transportCall(ctx, name, ...args);
     };

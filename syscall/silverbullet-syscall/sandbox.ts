@@ -1,5 +1,5 @@
-import type { LogEntry } from "@plugos/plugos/sandbox";
+import type { LogEntry } from "../../plugos/sandbox.ts";
 
-export async function getServerLogs(): Promise<LogEntry[]> {
+export function getServerLogs(): Promise<LogEntry[]> {
   return syscall("sandbox.getServerLogs");
 }

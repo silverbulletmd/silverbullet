@@ -53,7 +53,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     ...registrationObjects: SysCallMapping[]
   ) {
     for (const registrationObject of registrationObjects) {
-      for (let [name, callback] of Object.entries(registrationObject)) {
+      for (const [name, callback] of Object.entries(registrationObject)) {
         this.registeredSyscalls.set(name, {
           requiredPermissions: requiredCapabilities,
           callback,
@@ -65,7 +65,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   syscallWithContext(
     ctx: SyscallContext,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     const syscall = this.registeredSyscalls.get(name);
     if (!syscall) {
@@ -85,19 +85,19 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   localSyscall(
     contextPlugName: string,
     syscallName: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     return this.syscallWithContext(
       // Mock the plug
       { plug: { name: contextPlugName } as any },
       syscallName,
-      args
+      args,
     );
   }
 
   async load(
     manifest: Manifest<HookT>,
-    sandboxFactory: SandboxFactory<HookT>
+    sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
     const name = manifest.name;
     if (this.plugs.has(name)) {
@@ -132,8 +132,8 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   toJSON(): SystemJSON<HookT> {
-    let plugJSON: Manifest<HookT>[] = [];
-    for (let [name, plug] of this.plugs) {
+    const plugJSON: Manifest<HookT>[] = [];
+    for (const [_, plug] of this.plugs) {
       if (!plug.manifest) {
         continue;
       }
@@ -144,18 +144,18 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
   async replaceAllFromJSON(
     json: SystemJSON<HookT>,
-    sandboxFactory: SandboxFactory<HookT>
+    sandboxFactory: SandboxFactory<HookT>,
   ) {
     await this.unloadAll();
-    for (let manifest of json) {
+    for (const manifest of json) {
       // console.log("Loading plug", manifest.name);
       await this.load(manifest, sandboxFactory);
     }
   }
 
-  async unloadAll(): Promise<void[]> {
+  unloadAll(): Promise<void[]> {
     return Promise.all(
-      Array.from(this.plugs.keys()).map(this.unload.bind(this))
+      Array.from(this.plugs.keys()).map(this.unload.bind(this)),
     );
   }
 }
