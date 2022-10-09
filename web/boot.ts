@@ -27,21 +27,21 @@ safeRun(async () => {
       }
     }
   }
-  let serverSpace = new Space(httpPrimitives);
+  const serverSpace = new Space(httpPrimitives);
   serverSpace.watch();
 
   console.log("Booting...");
 
-  let settings = parseYamlSettings(settingsPageText);
+  const settings = parseYamlSettings(settingsPageText);
 
-  let editor = new Editor(
+  const editor = new Editor(
     serverSpace,
     document.getElementById("sb-root")!,
     "",
     settings.indexPage || "index",
   );
   await editor.init();
-  // @ts-ignore
+  // @ts-ignore: for convenience
   window.editor = editor;
 });
 

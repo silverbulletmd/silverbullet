@@ -5,12 +5,11 @@ import {
   assert,
   assertEquals,
 } from "https://deno.land/std@0.158.0/testing/asserts.ts";
-import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
   system.registerSyscalls([], {
-    addNumbers: (ctx, a, b) => {
+    addNumbers: (_ctx, a, b) => {
       return a + b;
     },
     failingSyscall: () => {
@@ -27,7 +26,7 @@ Deno.test("Run a deno sandbox", async () => {
       return "yay";
     },
   });
-  let plug = await system.load(
+  const plug = await system.load(
     {
       name: "test",
       requiredPermissions: ["dangerous"],
@@ -126,7 +125,6 @@ import { esbuild } from "./compile.ts";
 const __dirname = new URL(".", import.meta.url).pathname;
 
 Deno.test("Preload dependencies", async () => {
-  const tmpDist = `${__dirname}tmp_dist`;
   const globalModules = await plugOsBundle(
     `${__dirname}../plugs/global.plug.yaml`,
     false,
@@ -145,7 +143,9 @@ Deno.test("Preload dependencies", async () => {
   const system = new System("server");
   system.on({
     plugLoaded: async (plug) => {
-      for (let [modName, code] of Object.entries(globalModules.dependencies!)) {
+      for (
+        const [modName, code] of Object.entries(globalModules.dependencies!)
+      ) {
         await plug.sandbox.loadDependency(modName, code as string);
       }
     },

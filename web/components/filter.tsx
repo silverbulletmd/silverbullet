@@ -80,11 +80,11 @@ export function FilterList({
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
-  let selectedElementRef = useRef<HTMLDivElement>(null);
+  const selectedElementRef = useRef<HTMLDivElement>(null);
 
   function updateFilter(originalPhrase: string) {
-    let foundExactMatch = false;
-    let results = fuzzySorter(originalPhrase, options);
+    const foundExactMatch = false;
+    const results = fuzzySorter(originalPhrase, options);
     if (allowNew && !foundExactMatch && originalPhrase) {
       results.push({
         name: originalPhrase,

@@ -30,7 +30,7 @@ async function prepareAssets(dist: string) {
     `${dist}/web/main.css`,
     compiler.to_string("expanded") as string,
   );
-  let globalManifest = await plugOsBundle(
+  const globalManifest = await plugOsBundle(
     new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname,
     false,
     [],

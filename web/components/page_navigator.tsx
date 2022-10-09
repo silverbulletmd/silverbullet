@@ -10,8 +10,8 @@ export function PageNavigator({
   onNavigate: (page: string | undefined) => void;
   currentPage?: string;
 }) {
-  let options: FilterOption[] = [];
-  for (let pageMeta of allPages) {
+  const options: FilterOption[] = [];
+  for (const pageMeta of allPages) {
     // Order by last modified date in descending order
     let orderId = -pageMeta.lastModified;
     // Unless it was opened in this session

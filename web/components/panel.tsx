@@ -62,7 +62,7 @@ export function Panel({
     if (!iFrameRef.current) {
       return;
     }
-    let iframe = iFrameRef.current;
+    const iframe = iFrameRef.current;
     iframe.onload = loadContent;
     loadContent();
     return () => {
@@ -71,19 +71,21 @@ export function Panel({
   }, [config.html, config.script]);
 
   useEffect(() => {
-    let messageListener = (evt: any) => {
+    const messageListener = (evt: any) => {
       if (evt.source !== iFrameRef.current!.contentWindow) {
         return;
       }
-      let data = evt.data;
-      if (!data) return;
+      const data = evt.data;
+      if (!data) {
+        return;
+      }
       if (data.type === "event") {
         editor.dispatchAppEvent(data.name, ...data.args);
       }
     };
-    window.addEventListener("message", messageListener);
+    globalThis.addEventListener("message", messageListener);
     return () => {
-      window.removeEventListener("message", messageListener);
+      globalThis.removeEventListener("message", messageListener);
     };
   }, []);
 

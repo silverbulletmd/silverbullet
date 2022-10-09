@@ -1,4 +1,4 @@
-import { Application, mime, path, Router, SQLite } from "./deps.ts";
+import { Application, path, Router, SQLite } from "./deps.ts";
 import {
   AssetBundle,
   assetReadFileSync,
@@ -8,7 +8,6 @@ import {
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
-import { plugPrefix } from "../common/spaces/constants.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { Space } from "../common/spaces/space.ts";
@@ -38,12 +37,7 @@ import {
 } from "./syscalls/index.ts";
 import spaceSyscalls from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { safeRun } from "./util.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-
-// import { jwtSyscalls } from "../plugos/syscalls/jwt.ts";
-// import settingsTemplate from "bundle-text:./SETTINGS_template.md";
-const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 
 export type ServerOptions = {
   port: number;
@@ -86,7 +80,7 @@ export class ExpressServer {
     this.system.addHook(this.eventHook);
 
     // And the page namespace hook
-    let namespaceHook = new PageNamespaceHook();
+    const namespaceHook = new PageNamespaceHook();
     this.system.addHook(namespaceHook);
 
     // The space
@@ -132,7 +126,7 @@ export class ExpressServer {
     this.system.on({
       plugLoaded: async (plug) => {
         for (
-          let [modName, code] of Object.entries(
+          const [modName, code] of Object.entries(
             this.globalModules.dependencies!,
           )
         ) {
@@ -145,16 +139,16 @@ export class ExpressServer {
     this.eventHook.addLocalListener(
       "get-plug:file",
       async (plugPath: string): Promise<Manifest> => {
-        let resolvedPath = path.resolve(plugPath);
+        const resolvedPath = path.resolve(plugPath);
         if (!resolvedPath.startsWith(Deno.cwd())) {
           throw new Error(
             `Plugin path outside working directory, this is disallowed: ${resolvedPath}`,
           );
         }
         try {
-          let manifestJson = await Deno.readTextFile(resolvedPath);
+          const manifestJson = await Deno.readTextFile(resolvedPath);
           return JSON.parse(manifestJson);
-        } catch (e) {
+        } catch {
           throw new Error(
             `No such file: ${resolvedPath} or could not parse as JSON`,
           );
@@ -181,13 +175,13 @@ export class ExpressServer {
     const allPlugs = await this.space.listPlugs();
 
     console.log("Loading plugs", allPlugs);
-    for (let plugName of allPlugs) {
-      let { data } = await this.space.readAttachment(plugName, "string");
+    for (const plugName of allPlugs) {
+      const { data } = await this.space.readAttachment(plugName, "string");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }
     this.rebuildMdExtensions();
 
-    let corePlug = this.system.loadedPlugs.get("core");
+    const corePlug = this.system.loadedPlugs.get("core");
     if (!corePlug) {
       console.error("Something went very wrong, 'core' plug not found");
       return;
@@ -207,19 +201,6 @@ export class ExpressServer {
   }
 
   async start() {
-    const passwordMiddleware: (req: any, res: any, next: any) => void = this
-        .password
-      ? (req, res, next) => {
-        if (req.headers.authorization === `Bearer ${this.password}`) {
-          next();
-        } else {
-          res.status(401).send("Unauthorized");
-        }
-      }
-      : (req, res, next) => {
-        next();
-      };
-
     await ensureIndexTable(this.db);
     await ensureStoreTable(this.db, "store");
     // await ensureFTSTable(this.db, "fts");
@@ -262,6 +243,20 @@ export class ExpressServer {
       }
     });
 
+    // Simple password authentication
+    if (this.password) {
+      this.app.use(({ request, response }, next) => {
+        if (
+          request.headers.get("Authorization") === `Bearer ${this.password}`
+        ) {
+          return next();
+        } else {
+          response.status = 401;
+          response.body = "Unauthorized";
+        }
+      });
+    }
+
     // Pages API
     const fsRouter = buildFsRouter(this.spacePrimitives);
     this.app.use(fsRouter.routes());
@@ -291,7 +286,7 @@ export class ExpressServer {
   }
 
   private buildPlugRouter(): Router {
-    let plugRouter = new Router();
+    const plugRouter = new Router();
 
     plugRouter.post(
       "/:plug/syscall/:name",
@@ -351,7 +346,7 @@ export class ExpressServer {
   async ensureAndLoadSettings() {
     try {
       await this.space.getPageMeta("SETTINGS");
-    } catch (e) {
+    } catch {
       await this.space.writePage(
         "SETTINGS",
         await Deno.readTextFile(
@@ -369,7 +364,7 @@ export class ExpressServer {
 
     try {
       await this.space.getPageMeta(this.settings.indexPage);
-    } catch (e) {
+    } catch {
       await this.space.writePage(
         this.settings.indexPage,
         `Welcome to your new space!`,
@@ -400,11 +395,11 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
   });
 
   fsRouter
-    .get("\/(.+)", async ({ params, request, response }) => {
-      let name = params[0];
+    .get("\/(.+)", async ({ params, response }) => {
+      const name = params[0];
       console.log("Loading file", name);
       try {
-        let attachmentData = await spacePrimitives.readFile(
+        const attachmentData = await spacePrimitives.readFile(
           name,
           "arraybuffer",
         );
@@ -423,11 +418,11 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
       }
     })
     .put("\/(.+)", async ({ request, response, params }) => {
-      let name = params[0];
+      const name = params[0];
       console.log("Saving file", name);
 
       try {
-        let meta = await spacePrimitives.writeFile(
+        const meta = await spacePrimitives.writeFile(
           name,
           "arraybuffer",
           await request.body().value,
@@ -445,8 +440,8 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         console.error("Pipeline failed", err);
       }
     })
-    .options("\/(.+)", async ({ request, response, params }, next) => {
-      let name = params[0];
+    .options("\/(.+)", async ({ response, params }, next) => {
+      const name = params[0];
       try {
         const meta = await spacePrimitives.getFileMeta(name);
         response.status = 200;
@@ -458,8 +453,8 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         next();
       }
     })
-    .delete("\/(.+)", async ({ request, response, params }) => {
-      let name = params[0];
+    .delete("\/(.+)", async ({ response, params }) => {
+      const name = params[0];
       try {
         await spacePrimitives.deleteFile(name);
         response.status = 200;

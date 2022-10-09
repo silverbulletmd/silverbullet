@@ -17,7 +17,7 @@ export async function compile(
   excludeModules: string[] = [],
   meta = false,
 ): Promise<string> {
-  let outFile = path.resolve(path.dirname(filePath), "_out.tmp");
+  const outFile = path.resolve(path.dirname(filePath), "_out.tmp");
   let inFile = filePath;
 
   if (functionName) {
@@ -37,7 +37,7 @@ export async function compile(
 
   try {
     // TODO: Figure out how to make source maps work correctly with eval() code
-    let result = await esbuild.build({
+    const result = await esbuild.build({
       entryPoints: [path.basename(inFile)],
       bundle: true,
       format: "iife",
@@ -68,7 +68,7 @@ export async function compile(
     });
 
     if (meta) {
-      let text = await esbuild.analyzeMetafile(result.metafile);
+      const text = await esbuild.analyzeMetafile(result.metafile);
       console.log("Bundle info for", functionName, text);
     }
 
@@ -87,9 +87,9 @@ export async function compileModule(
   cwd: string,
   moduleName: string,
 ): Promise<string> {
-  let inFile = path.resolve(cwd, "_in.ts");
+  const inFile = path.resolve(cwd, "_in.ts");
   await Deno.writeTextFile(inFile, `export * from "${moduleName}";`);
-  let code = await compile(inFile);
+  const code = await compile(inFile);
   await Deno.remove(inFile);
   return code;
 }
@@ -98,14 +98,13 @@ export async function sandboxCompile(
   filename: string,
   code: string,
   functionName?: string,
-  debug: boolean = false,
+  debug = false,
   globalModules: string[] = [],
 ): Promise<string> {
-  let tmpDir = await Deno.makeTempDir();
-  // await Deno.mkdir(tmpDir, { recursive: true });
+  const tmpDir = await Deno.makeTempDir();
 
   await Deno.writeTextFile(`${tmpDir}/${filename}`, code);
-  let jsCode = await compile(
+  const jsCode = await compile(
     `${tmpDir}/${filename}`,
     functionName,
     debug,
@@ -123,7 +122,7 @@ export async function sandboxCompileModule(
     "_mod.ts",
     `module.exports = require("${moduleUrl}");`,
   );
-  let code = await compile("_mod.ts", undefined, false, globalModules);
+  const code = await compile("_mod.ts", undefined, false, globalModules);
   await Deno.remove("_mod.ts");
   return code;
 }

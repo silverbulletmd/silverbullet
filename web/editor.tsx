@@ -183,7 +183,7 @@ export class Editor {
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
-    window.addEventListener("keydown", (ev) => {
+    globalThis.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
         // console.log(
         //   "Window-level keyboard event",
@@ -199,7 +199,7 @@ export class Editor {
       }
     });
 
-    window.addEventListener("touchstart", (ev) => {
+    globalThis.addEventListener("touchstart", (ev) => {
       // Launch the command palette using a three-finger tap
       if (ev.touches.length > 2) {
         ev.stopPropagation();
@@ -223,16 +223,20 @@ export class Editor {
         return;
       }
 
-      let stateRestored = await this.loadPage(pageName);
+      const stateRestored = await this.loadPage(pageName);
       if (pos) {
         if (typeof pos === "string") {
           // console.log("Navigating to anchor", pos);
 
           // We're going to look up the anchor through a direct page store query...
-          let posLookup = await this.system.localSyscall("core", "index.get", [
-            pageName,
-            `a:${pageName}:@${pos}`,
-          ]);
+          const posLookup = await this.system.localSyscall(
+            "core",
+            "index.get",
+            [
+              pageName,
+              `a:${pageName}:@${pos}`,
+            ],
+          );
 
           if (!posLookup) {
             return this.flashNotification(
@@ -255,14 +259,14 @@ export class Editor {
       }
     });
 
-    let globalModules: any = await (
+    const globalModules: any = await (
       await fetch(`${this.urlPrefix}/global.plug.json`)
     ).json();
 
     this.system.on({
       plugLoaded: async (plug) => {
         for (
-          let [modName, code] of Object.entries(
+          const [modName, code] of Object.entries(
             globalModules.dependencies,
           )
         ) {
@@ -291,7 +295,7 @@ export class Editor {
     await this.dispatchAppEvent("editor:init");
   }
 
-  async save(immediate: boolean = false): Promise<void> {
+  save(immediate = false): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.viewState.unsavedChanges) {
         return resolve();
@@ -331,7 +335,7 @@ export class Editor {
   }
 
   flashNotification(message: string, type: "info" | "error" = "info") {
-    let id = Math.floor(Math.random() * 1000000);
+    const id = Math.floor(Math.random() * 1000000);
     this.viewDispatch({
       type: "show-notification",
       notification: {
@@ -355,8 +359,8 @@ export class Editor {
   filterBox(
     label: string,
     options: FilterOption[],
-    helpText: string = "",
-    placeHolder: string = "",
+    helpText = "",
+    placeHolder = "",
   ): Promise<FilterOption | undefined> {
     return new Promise((resolve) => {
       this.viewDispatch({
@@ -374,20 +378,20 @@ export class Editor {
     });
   }
 
-  async dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
+  dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, data);
   }
 
   createEditorState(pageName: string, text: string): EditorState {
-    let commandKeyBindings: KeyBinding[] = [];
-    for (let def of this.commandHook.editorCommands.values()) {
+    const commandKeyBindings: KeyBinding[] = [];
+    for (const def of this.commandHook.editorCommands.values()) {
       if (def.command.key) {
         commandKeyBindings.push({
           key: def.command.key,
           mac: def.command.mac,
           run: (): boolean => {
             if (def.command.contexts) {
-              let context = this.getContext();
+              const context = this.getContext();
               if (!context || !def.command.contexts.includes(context)) {
                 return false;
               }
@@ -410,6 +414,7 @@ export class Editor {
         });
       }
     }
+    // deno-lint-ignore no-this-alias
     const editor = this;
     return EditorState.create({
       doc: text,
@@ -487,10 +492,9 @@ export class Editor {
             key: "Ctrl-/",
             mac: "Cmd-/",
             run: (): boolean => {
-              let context = this.getContext();
               this.viewDispatch({
                 type: "show-palette",
-                context,
+                context: this.getContext(),
               });
               return true;
             },
@@ -517,7 +521,7 @@ export class Editor {
         EditorView.domEventHandlers({
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
-              let clickEvent: ClickEvent = {
+              const clickEvent: ClickEvent = {
                 page: pageName,
                 ctrlKey: event.ctrlKey,
                 metaKey: event.metaKey,
@@ -551,9 +555,9 @@ export class Editor {
     await this.space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    for (let plugName of await this.space.listPlugs()) {
+    for (const plugName of await this.space.listPlugs()) {
       // console.log("Loading plug", pageInfo.name);
-      let { data } = await this.space.readAttachment(plugName, "string");
+      const { data } = await this.space.readAttachment(plugName, "string");
       await this.system.load(JSON.parse(data as string), createIFrameSandbox);
     }
     this.rebuildEditorState();
@@ -590,7 +594,7 @@ export class Editor {
   }
 
   async completer(): Promise<CompletionResult | null> {
-    let results = await this.dispatchAppEvent("page:complete");
+    const results = await this.dispatchAppEvent("page:complete");
     let actualResult = null;
     for (const result of results) {
       if (result) {
@@ -659,12 +663,12 @@ export class Editor {
       };
     }
 
-    let editorState = this.createEditorState(pageName, doc.text);
+    const editorState = this.createEditorState(pageName, doc.text);
     editorView.setState(editorState);
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM, doc.meta.perm === "ro");
     }
-    let stateRestored = this.restoreState(pageName);
+    const stateRestored = this.restoreState(pageName);
     this.space.watchPage(pageName);
 
     this.viewDispatch({
@@ -706,7 +710,7 @@ export class Editor {
   }
 
   private restoreState(pageName: string): boolean {
-    let pageState = this.openPages.get(pageName);
+    const pageState = this.openPages.get(pageName);
     const editorView = this.editorView!;
     if (pageState) {
       // Restore state
@@ -742,6 +746,7 @@ export class Editor {
     this.viewState = viewState;
     this.viewDispatch = dispatch;
 
+    // deno-lint-ignore no-this-alias
     const editor = this;
 
     useEffect(() => {
@@ -882,8 +887,8 @@ export class Editor {
   }
 
   private getContext(): string | undefined {
-    let state = this.editorView!.state;
-    let selection = state.selection.main;
+    const state = this.editorView!.state;
+    const selection = state.selection.main;
     if (selection.empty) {
       return syntaxTree(state).resolveInner(selection.from).name;
     }

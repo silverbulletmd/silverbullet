@@ -2,9 +2,14 @@
     "compilerOptions": {
       "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
       "jsx": "react-jsx",
-      "jsxImportSource": "https://esm.sh/preact"
+      "jsxImportSource": "https://esm.sh/preact@10.11.1"
     },
     "importMap": "import_map.json",
+    "lint": {
+      "rules": {
+        "exclude": ["no-explicit-any"]
+      }
+    },
     "tasks": {
       "test": "deno test -A --unstable",
       "install": "deno install -f -A --unstable plugos/bin/plugos-bundle.ts && deno install -f -n silverbullet -A --unstable server/server.ts",

@@ -7,7 +7,7 @@ const builtinModules = ["yaml", "handlebars"];
 export function esbuildSyscalls(): SysCallMapping {
   return {
     "esbuild.compile": async (
-      ctx,
+      _ctx,
       filename: string,
       code: string,
       functionName?: string,
@@ -22,7 +22,7 @@ export function esbuildSyscalls(): SysCallMapping {
       );
     },
     "esbuild.compileModule": async (
-      ctx,
+      _ctx,
       moduleName: string,
     ): Promise<string> => {
       return await sandboxCompileModule(moduleName, builtinModules);

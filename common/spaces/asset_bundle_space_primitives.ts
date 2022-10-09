@@ -12,7 +12,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const l = await this.wrapped.fetchFileList();
-    return Object.entries(this.assetBundle).filter(([k, v]) =>
+    return Object.entries(this.assetBundle).filter(([k]) =>
       k.startsWith("_plug/")
     ).map(([_, v]) => v.meta).concat(l);
   }
@@ -67,6 +67,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     return this.wrapped.deleteFile(name);
   }
 
+  // deno-lint-ignore no-explicit-any
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
     return this.wrapped.proxySyscall(plug, name, args);
   }
