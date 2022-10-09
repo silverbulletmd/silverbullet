@@ -6,7 +6,7 @@
     "tasks": {
       "test": "deno test -A --unstable",
       "install": "deno install -f -A --unstable plugos/bin/plugos-bundle.ts && deno install -f -n silverbullet -A --unstable server/server.ts",
-      "watch-web": "deno run -A build.ts",
+      "watch-web": "deno run -A --unstable build.ts",
       "watch-server": "deno run -A --unstable --watch server/server.ts",
       "plugs": "./build_plugs.sh",
       "bundle": "deno bundle --importmap import_map.json server/server.ts dist/silverbullet.js"

@@ -7,11 +7,11 @@ import { path } from "../../server/deps.ts";
 
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 
-async function bundle(
+export async function bundle(
   manifestPath: string,
   debug: boolean,
   excludeModules: string[],
-) {
+): Promise<Manifest<any>> {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
     await Deno.readTextFile(manifestPath),
@@ -71,7 +71,7 @@ type BundleArgs = {
   exclude?: string[] | string;
 };
 
-export async function bundleRun(args: BundleArgs) {
+async function bundleRun(args: BundleArgs) {
   console.log("Args", args);
 
   async function buildAll() {

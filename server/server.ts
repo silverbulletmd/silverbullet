@@ -21,7 +21,7 @@ if (!args._.length) {
 const pagesPath = path.resolve(Deno.cwd(), args._[0] as string);
 const port = +args.port;
 
-import assetBundle from "../dist/web_bundle.json" assert { type: "json" };
+import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 
 console.log("Pages dir", pagesPath);
 

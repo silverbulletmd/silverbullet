@@ -8,6 +8,7 @@ import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 import { bundleFolder } from "./common/json_bundle.ts";
 import { patchDenoLibJS } from "./common/hack.ts";
+import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined
@@ -29,19 +30,22 @@ async function prepareAssets(dist: string) {
     `${dist}/web/main.css`,
     compiler.to_string("expanded") as string,
   );
-  // await bundleRun({
-  //   _: [`${__dirname}../plugs/global.plug.yaml`],
-  //   debug: true,
-  //   dist: tmpDist,
-  //   exclude: [],
-  // });
+  let globalManifest = await plugOsBundle(
+    new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname,
+    false,
+    [],
+  );
+  await Deno.writeTextFile(
+    `${dist}/web/global.plug.json`,
+    JSON.stringify(globalManifest, null, 2),
+  );
 
   // HACK: Patch the JS by removing an invalid regex
   let bundleJs = await Deno.readTextFile(`${dist}/web/client.js`);
   bundleJs = patchDenoLibJS(bundleJs);
   await Deno.writeTextFile(`${dist}/web/client.js`, bundleJs);
 
-  await bundleFolder(dist, "dist/web_bundle.json");
+  await bundleFolder(dist, "dist/asset_bundle.json");
 }
 
 async function bundle(): Promise<void> {
@@ -56,6 +60,7 @@ async function bundle(): Promise<void> {
       bundle: true,
       treeShaking: true,
       sourcemap: "linked",
+      minify: true,
       watch: {
         onRebuild(error) {
           if (error) {

@@ -1,7 +1,9 @@
 import { Application, mime, path, Router, SQLite } from "./deps.ts";
 import {
+  AssetBundle,
   assetReadFileSync,
   assetReadTextFileSync,
+  assetStatSync,
 } from "../common/asset_bundle.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
@@ -46,11 +48,10 @@ const safeFilename = /^[a-zA-Z0-9_\-\.]+$/;
 export type ServerOptions = {
   port: number;
   pagesPath: string;
-  assetBundle: Record<string, string>;
+  assetBundle: AssetBundle;
   password?: string;
 };
 
-const storeVersionKey = "$silverBulletVersion";
 const indexRequiredKey = "$spaceIndexed";
 
 export class ExpressServer {
@@ -65,7 +66,7 @@ export class ExpressServer {
   spacePrimitives: SpacePrimitives;
   abortController?: AbortController;
   globalModules: Manifest;
-  assetBundle: Record<string, string>;
+  assetBundle: AssetBundle;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
@@ -228,24 +229,34 @@ export class ExpressServer {
     this.reloadPlugs().catch(console.error);
 
     // Serve static files (javascript, css, html)
-    this.app.use(async (ctx, next) => {
-      if (ctx.request.url.pathname === "/") {
-        ctx.response.headers.set("Content-type", "text/html");
-        ctx.response.body = assetReadTextFileSync(
+    this.app.use(async ({ request, response }, next) => {
+      if (request.url.pathname === "/") {
+        response.headers.set("Content-type", "text/html");
+        response.body = assetReadTextFileSync(
           this.assetBundle,
           "web/index.html",
         );
         return;
       }
       try {
-        ctx.response.body = assetReadFileSync(
-          this.assetBundle,
-          `web${ctx.request.url.pathname}`,
-        );
-        ctx.response.headers.set(
+        const assetName = `web${request.url.pathname}`;
+        const meta = assetStatSync(this.assetBundle, assetName);
+        response.status = 200;
+        response.headers.set(
           "Content-type",
-          mime.getType(ctx.request.url.pathname)!,
+          meta.contentType,
         );
+        response.headers.set("Content-length", "" + meta.size);
+        response.headers.set(
+          "Last-Modified",
+          new Date(meta.lastModified).toUTCString(),
+        );
+        if (request.method === "GET") {
+          response.body = assetReadFileSync(
+            this.assetBundle,
+            assetName,
+          );
+        }
       } catch {
         await next();
       }
