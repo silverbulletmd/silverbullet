@@ -14,13 +14,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     const l = await this.wrapped.fetchFileList();
     return Object.entries(this.assetBundle).filter(([k, v]) =>
       k.startsWith("_plug/")
-    ).map(([name, v]) => ({
-      name: name,
-      lastModified: 0,
-      size: v.length,
-      perm: "ro",
-      contentType: "application/json",
-    } as FileMeta)).concat(l);
+    ).map(([_, v]) => v.meta).concat(l);
   }
 
   readFile(

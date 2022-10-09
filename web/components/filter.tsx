@@ -1,5 +1,5 @@
-import { React, useEffect, useRef, useState } from "../deps.ts";
-import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
+import { useEffect, useRef, useState } from "../deps.ts";
+import { FontAwesomeIcon } from "../deps.ts";
 import { IconDefinition } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
 import { FilterOption } from "../../common/types.ts";
 import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
@@ -23,7 +23,7 @@ type FilterResult = FilterOption & {
 
 function simpleFilter(
   pattern: string,
-  options: FilterOption[]
+  options: FilterOption[],
 ): FilterOption[] {
   const lowerPattern = pattern.toLowerCase();
   return options.filter((option) => {
@@ -76,15 +76,11 @@ export function FilterList({
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    fuzzySorter("", options)
+    fuzzySorter("", options),
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
   let selectedElementRef = useRef<HTMLDivElement>(null);
-
-  function filterUpdate(e: React.ChangeEvent<HTMLInputElement>) {
-    updateFilter(e.target.value);
-  }
 
   function updateFilter(originalPhrase: string) {
     let foundExactMatch = false;
@@ -133,14 +129,14 @@ export function FilterList({
             value={text}
             placeholder={placeholder}
             ref={searchBoxRef}
-            onChange={filterUpdate}
+            // onChange={filterUpdate}
             onBlur={(e) => {
               if (!exiting) {
                 searchBoxRef.current!.focus();
               }
             }}
-            onKeyDown={(e: React.KeyboardEvent) => {
-              // console.log("Key up", e);
+            onKeyDown={(e) => {
+              // console.log("Key up", / e);
               if (onKeyPress) {
                 onKeyPress(e.key, text);
               }
@@ -150,7 +146,7 @@ export function FilterList({
                   break;
                 case "ArrowDown":
                   setSelectionOption(
-                    Math.min(matchingOptions.length - 1, selectedOption + 1)
+                    Math.min(matchingOptions.length - 1, selectedOption + 1),
                   );
                   break;
                 case "Enter":
@@ -181,6 +177,10 @@ export function FilterList({
                     e.preventDefault();
                   }
                   break;
+                default:
+                  setTimeout(() => {
+                    updateFilter((e.target as any).value);
+                  });
               }
               e.stopPropagation();
             }}
@@ -190,40 +190,40 @@ export function FilterList({
         <div
           className="sb-help-text"
           dangerouslySetInnerHTML={{ __html: helpText }}
-        ></div>
+        >
+        </div>
         <div className="sb-result-list">
           {matchingOptions && matchingOptions.length > 0
             ? matchingOptions.map((option, idx) => (
-                <div
-                  key={"" + idx}
-                  ref={selectedOption === idx ? selectedElementRef : undefined}
-                  className={
-                    selectedOption === idx ? "sb-selected-option" : "sb-option"
-                  }
-                  onMouseOver={(e) => {
-                    setSelectionOption(idx);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onSelect(option);
+              <div
+                key={"" + idx}
+                ref={selectedOption === idx ? selectedElementRef : undefined}
+                className={selectedOption === idx
+                  ? "sb-selected-option"
+                  : "sb-option"}
+                onMouseOver={(e) => {
+                  setSelectionOption(idx);
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelect(option);
+                }}
+              >
+                <span className="sb-icon">
+                  {icon && <FontAwesomeIcon icon={icon} />}
+                </span>
+                <span
+                  className="sb-name"
+                  dangerouslySetInnerHTML={{
+                    __html: option?.result?.indexes
+                      ? fuzzysort.highlight(option.result, "<b>", "</b>")!
+                      : escapeHtml(option.name),
                   }}
                 >
-                  <span className="sb-icon">
-                    {icon && <FontAwesomeIcon icon={icon} />}
-                  </span>
-                  <span
-                    className="sb-name"
-                    dangerouslySetInnerHTML={{
-                      __html: option?.result?.indexes
-                        ? fuzzysort.highlight(option.result, "<b>", "</b>")!
-                        : escapeHtml(option.name),
-                    }}
-                  ></span>
-                  {option.hint && (
-                    <span className="sb-hint">{option.hint}</span>
-                  )}
-                </div>
-              ))
+                </span>
+                {option.hint && <span className="sb-hint">{option.hint}</span>}
+              </div>
+            ))
             : null}
         </div>
       </div>

@@ -1,14 +1,16 @@
+// import { Fragment, h } from "../deps.ts";
+
 import {
   faHome,
   faMoon,
   faRunning,
   faSun,
 } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
-import { FontAwesomeIcon } from "https://esm.sh/@fortawesome/react-fontawesome@0.2.0";
-import { useState } from "../deps.ts";
+import { FontAwesomeIcon } from "../deps.ts";
+
+import { ComponentChildren, useState } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { isMacLike } from "../../common/util.ts";
-import { React } from "../deps.ts";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -37,8 +39,8 @@ export function TopBar({
   onThemeClick: () => void;
   onHomeClick: () => void;
   onActionClick: () => void;
-  lhs?: React.ReactNode;
-  rhs?: React.ReactNode;
+  lhs?: ComponentChildren;
+  rhs?: ComponentChildren;
 }) {
   const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
 

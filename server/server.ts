@@ -22,13 +22,14 @@ const pagesPath = path.resolve(Deno.cwd(), args._[0] as string);
 const port = +args.port;
 
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
+import { AssetBundle } from "../common/asset_bundle.ts";
 
 console.log("Pages dir", pagesPath);
 
 const expressServer = new ExpressServer({
   port: port,
   pagesPath: pagesPath,
-  assetBundle: assetBundle,
+  assetBundle: assetBundle as AssetBundle,
   password: args.password,
 });
 expressServer.start().catch((e) => {

@@ -1,9 +1,6 @@
 import { FilterList } from "./filter.tsx";
 import { FilterOption, PageMeta } from "../../common/types.ts";
 
-import {React} from "../deps.ts"
-
-
 export function PageNavigator({
   allPages,
   onNavigate,

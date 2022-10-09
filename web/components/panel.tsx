@@ -2,8 +2,6 @@ import { useEffect, useRef } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import { PanelConfig } from "../types.ts";
 
-import {React} from "../deps.ts";
-
 const panelHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>

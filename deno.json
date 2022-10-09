@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-      "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"]
+      "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
     },
     "importMap": "import_map.json",
     "tasks": {

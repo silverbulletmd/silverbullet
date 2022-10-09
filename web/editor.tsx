@@ -1,5 +1,4 @@
-import ReactDOM from "https://esm.sh/react-dom@17";
-import React, { useEffect, useReducer } from "https://esm.sh/react@17";
+import { preactRender, useEffect, useReducer } from "./deps.ts";
 
 import {
   autocompletion,
@@ -738,7 +737,7 @@ export class Editor {
     );
   }
 
-  ViewComponent(): React.ReactElement {
+  ViewComponent() {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
     this.viewState = viewState;
     this.viewDispatch = dispatch;
@@ -876,9 +875,10 @@ export class Editor {
     }
   }
 
-  render(container: ReactDOM.Container) {
+  render(container: Element) {
     const ViewComponent = this.ViewComponent.bind(this);
-    ReactDOM.render(<ViewComponent />, container);
+    // console.log(<ViewComponent />);
+    preactRender(<ViewComponent />, container);
   }
 
   private getContext(): string | undefined {

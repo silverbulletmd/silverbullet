@@ -61,6 +61,10 @@ async function bundle(): Promise<void> {
       treeShaking: true,
       sourcemap: "linked",
       minify: true,
+      jsxFactory: "h",
+      jsx: "automatic",
+      jsxFragment: "Fragment",
+      jsxImportSource: "https://esm.sh/preact@10.11.1",
       watch: {
         onRebuild(error) {
           if (error) {
