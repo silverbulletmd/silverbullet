@@ -1,4 +1,3 @@
-#!/usr/bin/env -S node --enable-source-maps
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 import * as path from "https://deno.land/std@0.158.0/path/mod.ts";
 import { HttpServer } from "./http_server.ts";
@@ -26,12 +25,12 @@ import { AssetBundle } from "../plugos/asset_bundle_reader.ts";
 
 console.log("Pages dir", pagesPath);
 
-const expressServer = new HttpServer({
+const httpServer = new HttpServer({
   port: port,
   pagesPath: pagesPath,
   assetBundle: assetBundle as AssetBundle,
   password: args.password,
 });
-expressServer.start().catch((e) => {
+httpServer.start().catch((e) => {
   console.error(e);
 });

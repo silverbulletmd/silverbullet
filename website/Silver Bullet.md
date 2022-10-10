@@ -23,7 +23,7 @@ Here’s a list of (non-built-in) plugs documented in this space (note the `#que
 * [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 * [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
 * [[🔌 Query]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
-<!-- /query -->.
+<!-- /query -->
 
 In a regular SB installation, the body of this query 👆 (in between the placeholders) would automatically be kept up to date as new pages are added to the space that match the query. 🤯 Have a look at the [[template/plug]] _template_ (referenced in the `render` clause) to see how the results are rendered using handlebars syntax and have a look at one of the linked pages to see how the _metadata_ is specified, which is subsequently used to query and render in this page. And to learn about the specific plug, of course.
 
@@ -51,15 +51,26 @@ Some core principles that underly Silver Bullet’s philosophy:
 * **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
 
 ## Installing Silver Bullet
-For this you will need to have a recent version of [node.js installed](https://nodejs.org/en/) (16+). Silver Bullet has only been tested on MacOS and Linux thus far. It could also run on Windows, let me know if it does.
+Silver Bullet is built using [Deno](https://deno.land). To install it, you will need to have Deno installed (tested on 1.26 or later). If you have homebrew on a Mac, this is just a single `brew install deno` away.
 
-To install and run SB, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
+To run Silver Bullet create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
 
-    npx @silverbulletmd/server <path-to-folder>
+    deno run -A --unstable https://get.silverbullet.md <pages-path>
 
-Optionally you can use the `--port` argument to specify a HTTP port (defaults to `3000`) and you can pass a `--password` flag to require a password to access. Note this is a rather weak security mechanism, so it’s recommended to add additional layers of security on top of this if you run this on a public server somewhere (at least add TLS). Personally, I run it on a tiny Linux VM on my server at home and use a VPN (Tailscale) to access it from outside my home.
+However, because this command is not super easy to remember, you may install it as well:
 
-Once downloaded and booted, you will be provided with a URL to open SB in your browser (spoiler alert: by default this will be http://localhost:3000 ).
+    deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+
+This will create a `silverbullet` (feel free to replace `silverbullet` in this command with whatever you like) alias in your `~/.deno/bin` folder. Make sure this path is in your `PATH` environment variable.
+
+This allows you to install Silver Bullet simply as follows:
+
+    silverbullet <pages-path>
+
+By default, SB will bind to port `3000`, to use a different port use the
+`--port` flag. By default SB doesn’t offer any sort of authentication, to add basic password authentication, pass the `--password` flag.
+
+Once downloaded and booted, SB will print out a URL to open SB in your browser (spoiler alert: by default this will be http://localhost:3000 ).
 
 That’s it! Enjoy.
 
