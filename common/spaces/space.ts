@@ -96,7 +96,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   async getPageMeta(name: string): Promise<PageMeta> {
     let oldMeta = this.pageMetaCache.get(name);
     let newMeta = fileMetaToPageMeta(
-      await this.space.getFileMeta(`${name}.md`)
+      await this.space.getFileMeta(`${name}.md`),
     );
     if (oldMeta) {
       if (oldMeta.lastModified !== newMeta.lastModified) {
@@ -111,7 +111,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     return this.space.invokeFunction(plug, env, name, args);
   }
@@ -159,12 +159,12 @@ export class Space extends EventEmitter<SpaceEvents> {
   async writePage(
     name: string,
     text: string,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
   ): Promise<PageMeta> {
     try {
       this.saving = true;
-      let pageMeta = fileMetaToPageMeta(
-        await this.space.writeFile(`${name}.md`, "string", text, selfUpdate)
+      const pageMeta = fileMetaToPageMeta(
+        await this.space.writeFile(`${name}.md`, "string", text, selfUpdate),
       );
       if (!selfUpdate) {
         this.emit("pageChanged", pageMeta);
@@ -184,13 +184,13 @@ export class Space extends EventEmitter<SpaceEvents> {
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
     return (await this.space.fetchFileList()).filter(
       (fileMeta) =>
-        !fileMeta.name.endsWith(".md") && !fileMeta.name.endsWith(".plug.json")
+        !fileMeta.name.endsWith(".md") && !fileMeta.name.endsWith(".plug.json"),
     );
   }
 
   readAttachment(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: AttachmentMeta }> {
     return this.space.readFile(name, encoding);
   }
@@ -203,7 +203,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean | undefined
+    selfUpdate?: boolean | undefined,
   ): Promise<AttachmentMeta> {
     return this.space.writeFile(name, encoding, data, selfUpdate);
   }

@@ -86,9 +86,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean,
   ): Promise<FileMeta> {
-    let localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await Deno.mkdir(path.dirname(localPath), { recursive: true });
@@ -96,7 +95,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       // Actually write the file
       switch (encoding) {
         case "string":
-          await Deno.writeTextFile(localPath, data as string);
+          await Deno.writeTextFile(`${localPath}`, data as string);
           break;
         case "dataurl":
           await Deno.writeFile(

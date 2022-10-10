@@ -28,6 +28,7 @@ export async function updateMaterializedQueriesCommand() {
       currentPage,
     )
   ) {
+    console.log("Going reload the page");
     await reloadPage();
   }
 }
@@ -35,7 +36,7 @@ export async function updateMaterializedQueriesCommand() {
 export const templateInstRegex =
   /(<!--\s*#(use|use-verbose|include)\s+\[\[([^\]]+)\]\](.*?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
 
-async function updateTemplateInstantiations(
+function updateTemplateInstantiations(
   text: string,
   pageName: string,
 ): Promise<string> {
@@ -81,11 +82,19 @@ async function updateTemplateInstantiations(
   );
 }
 
-async function cleanTemplateInstantiations(text: string): Promise<string> {
+function cleanTemplateInstantiations(text: string): Promise<string> {
   return replaceAsync(
     text,
     templateInstRegex,
-    async (fullMatch, startInst, type, template, args, body, endInst) => {
+    (
+      fullMatch,
+      startInst,
+      type,
+      template,
+      args,
+      body,
+      endInst,
+    ): Promise<string> => {
       if (type === "use") {
         body = body.replaceAll(
           queryRegex,
@@ -99,7 +108,7 @@ async function cleanTemplateInstantiations(text: string): Promise<string> {
           },
         );
       }
-      return `${startInst}${body}${endInst}`;
+      return Promise.resolve(`${startInst}${body}${endInst}`);
     },
   );
 }
@@ -108,6 +117,7 @@ async function cleanTemplateInstantiations(text: string): Promise<string> {
 export async function updateMaterializedQueriesOnPage(
   pageName: string,
 ): Promise<boolean> {
+  // console.log("Updating queries");
   let text = "";
   try {
     text = (await readPage(pageName)).text;

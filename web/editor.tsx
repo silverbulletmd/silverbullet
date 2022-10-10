@@ -582,12 +582,10 @@ export class Editor {
     return actualResult;
   }
 
-  reloadPage() {
+  async reloadPage() {
     console.log("Reloading page");
-    safeRun(async () => {
-      clearTimeout(this.saveTimeout);
-      await this.loadPage(this.currentPage!);
-    });
+    clearTimeout(this.saveTimeout);
+    await this.loadPage(this.currentPage!);
   }
 
   focus() {
@@ -614,7 +612,9 @@ export class Editor {
     if (previousPage) {
       this.saveState(previousPage);
       this.space.unwatchPage(previousPage);
-      await this.save(true);
+      if (previousPage !== pageName) {
+        await this.save(true);
+      }
     }
 
     this.viewDispatch({
