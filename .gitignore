@@ -7,3 +7,4 @@ dist
 website_build
 data.db
 /index.json
+.idea

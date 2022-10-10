@@ -1,9 +1,9 @@
 import {
+  getPageMeta,
   listPages,
   readPage,
   writePage,
-  getPageMeta,
-} from "../../syscall/silverbullet-syscall/space.ts";
+} from "$sb/silverbullet-syscall/space.ts";
 import {
   filterBox,
   getCurrentPage,
@@ -20,12 +20,12 @@ import { niceDate } from "./dates.ts";
 import { readSettings } from "../lib/settings_page.ts";
 
 export async function instantiateTemplateCommand() {
-  let allPages = await listPages();
-  let { pageTemplatePrefix } = await readSettings({
+  const allPages = await listPages();
+  const { pageTemplatePrefix } = await readSettings({
     pageTemplatePrefix: "template/page/",
   });
 
-  let selectedTemplate = await filterBox(
+  const selectedTemplate = await filterBox(
     "Template",
     allPages
       .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
@@ -33,7 +33,7 @@ export async function instantiateTemplateCommand() {
         ...pageMeta,
         name: pageMeta.name.slice(pageTemplatePrefix.length),
       })),
-    `Select the template to create a new page from (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`
+    `Select the template to create a new page from (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`,
   );
 
   if (!selectedTemplate) {
@@ -41,21 +41,21 @@ export async function instantiateTemplateCommand() {
   }
   console.log("Selected template", selectedTemplate);
 
-  let { text } = await readPage(
-    `${pageTemplatePrefix}${selectedTemplate.name}`
+  const { text } = await readPage(
+    `${pageTemplatePrefix}${selectedTemplate.name}`,
   );
 
-  let parseTree = await parseMarkdown(text);
-  let additionalPageMeta = extractMeta(parseTree, [
+  const parseTree = await parseMarkdown(text);
+  const additionalPageMeta = extractMeta(parseTree, [
     "$name",
     "$disableDirectives",
   ]);
 
-  let pageName = await prompt("Name of new page", additionalPageMeta.$name);
+  const pageName = await prompt("Name of new page", additionalPageMeta.$name);
   if (!pageName) {
     return;
   }
-  let pageText = replaceTemplateVars(renderToText(parseTree), pageName);
+  const pageText = replaceTemplateVars(renderToText(parseTree), pageName);
   await writePage(pageName, pageText);
   await navigate(pageName);
 }
@@ -77,7 +77,7 @@ export async function insertSnippet() {
   let selectedSnippet = await filterBox(
     "Snippet",
     allSnippets,
-    `Select the snippet to insert (listing any page starting with <tt>${snippetPrefix}</tt>)`
+    `Select the snippet to insert (listing any page starting with <tt>${snippetPrefix}</tt>)`,
   );
 
   if (!selectedSnippet) {
@@ -143,7 +143,7 @@ export async function dailyNoteCommand() {
   } catch {
     console.warn(`No daily note template found at ${dailyNoteTemplate}`);
   }
-  let date = niceDate(new Date())
+  let date = niceDate(new Date());
   let pageName = `${dailyNotePrefix}${date}`;
   if (dailyNoteTemplateText) {
     try {
@@ -152,7 +152,7 @@ export async function dailyNoteCommand() {
       // Doesn't exist, let's create
       await writePage(
         pageName,
-        replaceTemplateVars(dailyNoteTemplateText, pageName)
+        replaceTemplateVars(dailyNoteTemplateText, pageName),
       );
     }
     await navigate(pageName);

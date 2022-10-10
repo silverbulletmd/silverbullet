@@ -10,6 +10,8 @@ import { bundleFolder } from "./common/json_bundle.ts";
 import { patchDenoLibJS } from "./common/hack.ts";
 import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
+import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
+
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
@@ -18,6 +20,15 @@ const esbuild: typeof esbuildWasm = Deno.run === undefined
 async function prepareAssets(dist: string) {
   await copy("web/fonts", `${dist}/web`, { overwrite: true });
   await copy("web/index.html", `${dist}/web/index.html`, {
+    overwrite: true,
+  });
+  await copy("web/images/favicon.gif", `${dist}/web/favicon.gif`, {
+    overwrite: true,
+  });
+  await copy("web/images/logo.png", `${dist}/web/logo.png`, {
+    overwrite: true,
+  });
+  await copy("web/manifest.json", `${dist}/web/manifest.json`, {
     overwrite: true,
   });
   const compiler = sass(
@@ -48,12 +59,13 @@ async function prepareAssets(dist: string) {
   await bundleFolder(dist, "dist/asset_bundle.json");
 }
 
-async function bundle(): Promise<void> {
+async function bundle(watch: boolean): Promise<void> {
   await Promise.all([
     esbuild.build({
       entryPoints: {
-        "client": "web/boot.ts",
-        "worker": "plugos/environments/sandbox_worker.ts",
+        client: "web/boot.ts",
+        worker: "plugos/environments/sandbox_worker.ts",
+        service_worker: "web/service_worker.ts",
       },
       outdir: "./dist_bundle/web",
       absWorkingDir: Deno.cwd(),
@@ -65,7 +77,7 @@ async function bundle(): Promise<void> {
       jsx: "automatic",
       jsxFragment: "Fragment",
       jsxImportSource: "https://esm.sh/preact@10.11.1",
-      watch: {
+      watch: watch && {
         onRebuild(error) {
           if (error) {
             console.error("watch build failed:", error);
@@ -85,5 +97,16 @@ async function bundle(): Promise<void> {
   await prepareAssets("dist_bundle");
   console.log("Built!");
 }
-await bundle();
-// esbuild.stop();
+
+const args = flags.parse(Deno.args, {
+  boolean: ["watch"],
+  alias: { w: "watch" },
+  default: {
+    watch: false,
+  },
+});
+
+await bundle(args.watch);
+if (!args.watch) {
+  esbuild.stop();
+}

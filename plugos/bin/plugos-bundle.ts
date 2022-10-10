@@ -64,38 +64,57 @@ async function buildManifest(
   return { generatedManifest, outPath };
 }
 
-type BundleArgs = {
-  _: string[];
-  dist?: string;
-  debug?: boolean;
-  exclude?: string[] | string;
-};
-
-async function bundleRun(args: BundleArgs) {
-  console.log("Args", args);
-
+async function bundleRun(
+  manifestFiles: string[],
+  dist: string,
+  debug: boolean,
+  exclude: string[],
+  watch: boolean,
+) {
+  // console.log("Args", arguments);
+  let building = false;
   async function buildAll() {
-    Deno.mkdirSync(args.dist!, { recursive: true });
-    for (const plugManifestPath of args._) {
+    if (building) {
+      return;
+    }
+    console.log("Building", manifestFiles);
+    building = true;
+    Deno.mkdirSync(dist, { recursive: true });
+    for (const plugManifestPath of manifestFiles) {
       const manifestPath = plugManifestPath as string;
       try {
         await buildManifest(
           manifestPath,
-          args.dist!,
-          !!args.debug,
-          args.exclude as string[],
+          dist,
+          debug,
+          exclude,
         );
       } catch (e) {
         console.error(`Error building ${manifestPath}:`, e);
       }
     }
+    console.log("Done.");
+    building = false;
   }
 
   await buildAll();
+
+  if (watch) {
+    const watcher = Deno.watchFs(manifestFiles.map((p) => path.dirname(p)));
+    for await (const event of watcher) {
+      console.log("Change detected, rebuilding...");
+      buildAll();
+    }
+  }
 }
 
 if (import.meta.main) {
-  let args: BundleArgs = flags.parse(Deno.args);
+  const args = flags.parse(Deno.args, {
+    boolean: ["debug", "watch"],
+    string: ["dist", "exclude"],
+    alias: { w: "watch" },
+    // collect: ["exclude"],
+  });
 
   if (args._.length === 0) {
     console.log(
@@ -108,10 +127,12 @@ if (import.meta.main) {
     args.dist = path.resolve("dist");
   }
 
-  args.exclude = typeof args.exclude === "string"
-    ? args.exclude.split(",")
-    : [];
-
-  await bundleRun(args);
+  await bundleRun(
+    args._ as string[],
+    args.dist,
+    args.debug,
+    typeof args.exclude === "string" ? args.exclude.split(",") : [],
+    args.watch,
+  );
   esbuild.stop();
 }
