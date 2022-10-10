@@ -23,7 +23,7 @@ const port = +args.port;
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 import { AssetBundle } from "../plugos/asset_bundle_reader.ts";
 
-console.log("Pages dir", pagesPath);
+console.log("Pages folder:", pagesPath);
 
 const httpServer = new HttpServer({
   port: port,

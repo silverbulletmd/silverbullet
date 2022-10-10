@@ -1,6 +1,26 @@
 An attempt at documenting of the changes/new features introduced in each release.
 
 ---
+## Deno release
+* The entire repo has been migrated to [Deno](https://deno.land)
+* This may temporarily break some things.
+* If somehow you’re experiencing trouble, try the following:
+  * Delete all files under `_plug` in your pages folder, e.g. with `rm -rf pages/_plug`.
+  * Delete your `data.db`
+* Changes:
+  * `PLUGS` is now longer required
+  * `PLUGS` no longer supports `builtin:` plug URLs, all builtins are automatically loaded and no longer should be listed.
+* Plugs no longer should be built with node and npm, PRs will be issued to all existing plugs later to help with this transition.
+* Know breakages:
+  * Full text search is not yet implemented (the SQLite used does not support it right now)
+  * Github auth has not been ported (yet)
+* Technical changes:
+  * Server runs on Deno (and Oak instead of Express)
+  * Client is now built with ESBuild
+  * React has been replaced with Preact
+  * Package management in Deno works based on http imports, so npm is no longer used.
+
+---
 
 ## 0.0.35
 * Big refactor of the internal Space API unifying attachment and page handling. This shouldn't affect (most) existing code and plugs (except some more exotic areas), but if stuff breaks, please report it.
@@ -66,4 +86,4 @@ An attempt at documenting of the changes/new features introduced in each release
   4. The currently open page (at the bottom)
 * Filter boxes (used for the page switching and command palette among other things) now also support PgUp, PgDown, Home and End and have some visual glitches fixed as well.
 * Reverted exposing an empty `window` object to sandboxes running in workers and node.js (introduced in 0.0.28)
-* Renamed Markdown-preview related commands to something more consistent
+* Renamed Markdown-preview related commands to something more consistentnt

@@ -15,7 +15,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   private async authenticatedFetch(
     url: string,
-    options: any
+    options: any,
   ): Promise<Response> {
     if (this.token) {
       options.headers = options.headers || {};
@@ -40,7 +40,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "GET",
@@ -76,7 +76,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     let body: any = null;
 
@@ -122,9 +122,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   private responseToMeta(name: string, res: Response): FileMeta {
     return {
       name,
-      size: +res.headers.get("Content-length")!,
+      size: +res.headers.get("X-Content-Length")!,
       contentType: res.headers.get("Content-type")!,
-      lastModified: +(res.headers.get("Last-Modified") || "0"),
+      lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
   }
@@ -140,7 +140,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           "Content-type": "application/json",
         },
         body: JSON.stringify(args),
-      }
+      },
     );
     if (req.status !== 200) {
       let error = await req.text();
@@ -156,7 +156,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     // Invoke locally
     if (!env || env === "client") {
@@ -171,7 +171,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           "Content-type": "application/json",
         },
         body: JSON.stringify(args),
-      }
+      },
     );
     if (req.status !== 200) {
       let error = await req.text();

@@ -272,9 +272,6 @@ export class Editor {
 
   save(immediate = false): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.viewState.unsavedChanges) {
-        return resolve();
-      }
       if (this.saveTimeout) {
         clearTimeout(this.saveTimeout);
       }

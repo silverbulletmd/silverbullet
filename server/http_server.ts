@@ -39,6 +39,7 @@ import spaceSyscalls from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
+import { FlashServer } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 
 export type ServerOptions = {
   port: number;
@@ -65,7 +66,7 @@ export class HttpServer {
 
   constructor(options: ServerOptions) {
     this.port = options.port;
-    this.app = new Application();
+    this.app = new Application(); //{ serverConstructor: FlashServer });
     this.assetBundle = options.assetBundle;
     this.password = options.password;
 
@@ -247,11 +248,11 @@ export class HttpServer {
 
     // Simple password authentication
     if (this.password) {
-      this.app.use(({ request, response }, next) => {
+      this.app.use(async ({ request, response }, next) => {
         if (
           request.headers.get("Authorization") === `Bearer ${this.password}`
         ) {
-          return next();
+          await next();
         } else {
           response.status = 401;
           response.body = "Unauthorized";
@@ -407,7 +408,7 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         );
         response.status = 200;
         response.headers.set(
-          "Last-Modified",
+          "X-Last-Modified",
           "" + attachmentData.meta.lastModified,
         );
         response.headers.set("X-Permission", attachmentData.meta.perm);
@@ -431,9 +432,9 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
           false,
         );
         response.status = 200;
-        response.headers.set("Last-Modified", "" + meta.lastModified);
         response.headers.set("Content-Type", meta.contentType);
-        response.headers.set("Content-Length", "" + meta.size);
+        response.headers.set("X-Last-Modified", "" + meta.lastModified);
+        response.headers.set("X-Content-Length", "" + meta.size);
         response.headers.set("X-Permission", meta.perm);
         response.body = "OK";
       } catch (err) {
@@ -441,18 +442,21 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         response.body = "Write failed";
         console.error("Pipeline failed", err);
       }
+      console.log("Done with put", name);
     })
-    .options("\/(.+)", async ({ response, params }, next) => {
+    .options("\/(.+)", async ({ response, params }) => {
       const name = params[0];
       try {
         const meta = await spacePrimitives.getFileMeta(name);
         response.status = 200;
-        response.headers.set("Last-Modified", "" + meta.lastModified);
         response.headers.set("Content-Type", meta.contentType);
-        response.headers.set("Content-Length", "" + meta.size);
+        response.headers.set("X-Last-Modified", "" + meta.lastModified);
+        response.headers.set("X-Content-Length", "" + meta.size);
         response.headers.set("X-Permission", meta.perm);
-      } catch {
-        next();
+      } catch (err) {
+        response.status = 500;
+        response.body = "Options failed";
+        console.error("Options failed", err);
       }
     })
     .delete("\/(.+)", async ({ response, params }) => {
