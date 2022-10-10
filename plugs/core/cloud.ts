@@ -10,11 +10,11 @@ const pagePrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
-  encoding: FileEncoding
+  encoding: FileEncoding,
 ): Promise<{ data: FileData; meta: FileMeta } | undefined> {
   let originalUrl = name.substring(
     pagePrefix.length,
-    name.length - ".md".length
+    name.length - ".md".length,
   );
   let url = originalUrl;
   if (!url.includes("/")) {
@@ -39,7 +39,7 @@ export async function readFileCloud(
   return {
     data: await translateLinksWithPrefix(
       text,
-      `${pagePrefix}${originalUrl.split("/")[0]}/`
+      `${pagePrefix}${originalUrl.split("/")[0]}/`,
     ),
     meta: {
       name,
@@ -53,7 +53,7 @@ export async function readFileCloud(
 
 async function translateLinksWithPrefix(
   text: string,
-  prefix: string
+  prefix: string,
 ): Promise<string> {
   let tree = await parseMarkdown(text);
   replaceNodesMatching(tree, (tree) => {

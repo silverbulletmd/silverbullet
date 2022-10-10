@@ -5,7 +5,7 @@ import {
   moveCursor,
   replaceRange,
   setSelection,
-} from "../../syscall/silverbullet-syscall/editor.ts";
+} from "$sb/silverbullet-syscall/editor.ts";
 
 export async function quoteSelection() {
   let text = await getText();
@@ -49,10 +49,12 @@ export async function numberListifySelection() {
   from++;
   text = text.slice(from, selection.to);
   let counter = 1;
-  text = `1. ${text.replaceAll(/\n(?!\n)/g, () => {
-    counter++;
-    return `\n${counter}. `;
-  })}`;
+  text = `1. ${
+    text.replaceAll(/\n(?!\n)/g, () => {
+      counter++;
+      return `\n${counter}. `;
+    })
+  }`;
   await replaceRange(from, selection.to, text);
 }
 
@@ -108,18 +110,18 @@ async function insertMarker(marker: string) {
       await replaceRange(
         selection.from,
         selection.to,
-        marker + text.slice(selection.from, selection.to) + marker
+        marker + text.slice(selection.from, selection.to) + marker,
       );
       await setSelection(
         selection.from + marker.length,
-        selection.to + marker.length
+        selection.to + marker.length,
       );
     } else {
       // Removing
       await replaceRange(
         from,
         to,
-        text.substring(from + marker.length, to - marker.length)
+        text.substring(from + marker.length, to - marker.length),
       );
       await setSelection(from, to - marker.length * 2);
     }

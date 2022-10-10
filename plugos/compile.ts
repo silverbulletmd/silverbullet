@@ -17,18 +17,16 @@ export async function compile(
   excludeModules: string[] = [],
   meta = false,
 ): Promise<string> {
-  const outFile = path.resolve(path.dirname(filePath), "_out.tmp");
+  const outFile = await Deno.makeTempFile({ suffix: ".js" });
   let inFile = filePath;
 
   if (functionName) {
     // Generate a new file importing just this one function and exporting it
-    inFile = path.resolve(path.dirname(filePath), "_in.ts");
+    inFile = await Deno.makeTempFile({ suffix: ".ts" });
     await Deno.writeTextFile(
       inFile,
-      `import {${functionName}} from "./${
-        path.basename(
-          filePath,
-        )
+      `import {${functionName}} from "${
+        path.resolve(filePath)
       }";export default ${functionName};`,
     );
   }

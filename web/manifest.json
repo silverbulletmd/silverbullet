@@ -3,7 +3,7 @@
   "name": "Silver Bullet",
   "icons": [
     {
-      "src": "./images/logo.png",
+      "src": "/logo.png",
       "type": "image/png",
       "sizes": "1024x1024"
     }
@@ -13,5 +13,5 @@
   "display": "standalone",
   "scope": "/",
   "theme_color": "#000",
-  "description": "Note taking for winners"
+  "description": "Markdown as a platform"
 }

@@ -8,6 +8,7 @@ import {
 import { load as nativeLoad } from "./src/native_loader.ts";
 import { load as portableLoad } from "./src/portable_loader.ts";
 import { ModuleEntry } from "./src/deno.ts";
+import { resolve } from "https://deno.land/std@0.122.0/path/win32.ts";
 
 export interface DenoPluginOptions {
   /**
@@ -79,10 +80,15 @@ export function denoPlugin(options: DenoPluginOptions = {}): esbuild.Plugin {
               }
             }
           }
-          if (resolved.href.endsWith(".css")) {
-            return {
-              path: resolved.href.substring("file://".length),
-            };
+          const href = resolved.href;
+          // Don't use the deno loader for any of the specific loader file extensions
+          const loaderExts = Object.keys(build.initialOptions.loader || {});
+          for (const ext of loaderExts) {
+            if (href.endsWith(ext)) {
+              return {
+                path: resolved.href.substring("file://".length),
+              };
+            }
           }
           return { path: resolved.href, namespace: "deno" };
         },
