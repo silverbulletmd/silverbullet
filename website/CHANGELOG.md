@@ -4,7 +4,7 @@ An attempt at documenting of the changes/new features introduced in each release
 
 ## 0.0.35
 * Big refactor of the internal Space API unifying attachment and page handling. This shouldn't affect (most) existing code and plugs (except some more exotic areas), but if stuff breaks, please report it.
-* Technical change: Upgrades are now detected on the server-side, and plugs re-loaded and pages indexes upon every upgrade.
+* Technical change: Upgrades are now detected on the server-side, and plugs re-loaded and pages indexed upon every upgrade.
 * Various bug fixes (e.g. using HTML tags in a page before completely broke syntax highlighting)
 * Exposed `fulltext.*` syscalls on the client
 
@@ -36,13 +36,13 @@ An attempt at documenting of the changes/new features introduced in each release
 * Updates to templates:
   * For the `Template: Instantiate Page` command, the page meta value `$name` is now used to configure the page name (was `name` before). Also if `$name` is the only page meta defined, it will remove the page meta entirely when instantiating.
   * You can now configure a daily note prefix with `dailyNotePrefix` in `SETTINGS` and create a template for your daily note under `template/page/Daily Note` (configurable via the `dailyNoteTemplate` setting).
-  * You can now a quick note prefix with `quickNotePrefix` in `SETTINGS`.
+  * You can now set a quick note prefix with `quickNotePrefix` in `SETTINGS`.
 * Directives (e.g. `#query`, `#import`, `#use`) changes:
   * Renamed `#template` directive to `#use-verbose`
   * New `#use` directive will clean all the embedded queries and templates in its scope
   * All directives now use the page reference syntax `[[page name]]` instead of `"page name"`, this includes `#use` and `#use-verbose` as well as `#import`.
   * The `link` query provider now also returns the `pos` of a link (in addition to the `page`)
-  * New `$disableDirectives` page meta data attribute can be used to disable directives processing in a page (useful for templates)
+  * New `$disableDirectives` page metadata attribute can be used to disable directives processing in a page (useful for templates)
 * Added a new `/hr` slash command to insert a horizontal rule (`---`) useful for mobile devices (where these are harder to type)
 
 ---
@@ -50,7 +50,7 @@ An attempt at documenting of the changes/new features introduced in each release
 * Slash commands now only trigger after a non-word character to avoid "false positives" like "hello/world".
 * Page auto complete now works with slashes in the name.
 * Having a `SETTINGS` page is now mandatory. One is auto generated if none is present.
-* Added a `indexPage` setting to set the index page for the space (which by default is `index`). When navigating to this page, the page name will "disappear" from the URL. That is, the index URL will simply be `http://localhost:3000/`.
+* Added an `indexPage` setting to set the index page for the space (which by default is `index`). When navigating to this page, the page name will "disappear" from the URL. That is, the index URL will simply be `http://localhost:3000/`.
   * This feature is now used in `website` and set to `Silver Bullet` there. To also make the title look nicer when visiting https://silverbullet.md
 
 ---

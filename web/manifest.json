@@ -1,0 +1,17 @@
+{
+  "short_name": "Silver Bullet",
+  "name": "Silver Bullet",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "1024x1024"
+    }
+  ],
+  "capture_links": "new-client",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000",
+  "description": "Markdown as a platform"
+}

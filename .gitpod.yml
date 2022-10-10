@@ -1,3 +1,4 @@
+
 image:
   file: .gitpod.Dockerfile
 
@@ -15,17 +16,21 @@ github:
 tasks:
   - name: Setup
     init: |
-      npm install
-      npm run clean-build
+      deno task install
+      deno task build
       gp sync-done setup
-  - name: Run Silverbullet server
+  - name: Server watcher
     init: |      
       gp sync-await setup
       mkdir pages
-    command: npm run server -- ./pages
-  - name: Run ParcelJS
+    command: deno task watch-server -- pages
+  - name: Web watcher
     init: gp sync-await setup
-    command: npm run watch
-  - name: Build plugins
+    command: deno task watch-web
+  - name: Plug watcher
     init: gp sync-await setup
-    command: npm run plugs
+    command: deno task watch-plugs
+
+vscode:
+  extensions:
+    - denoland.vscode-deno

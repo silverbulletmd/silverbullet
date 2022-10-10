@@ -14,11 +14,11 @@ The core plug implements a few templating mechanisms.
 ### Page Templates
 The {[Template: Instantiate Page]} command enables you to create a new page based on a page template. 
 
-Page templates, by default, are looked for in the `template/page/` prefix. So creating e.g. a `template/page/Meeting Notes` page, will create a “Meeting Notes” template. You can override this prefix by setting the `pageTemplatePrefix` in `SETTINGS`.
+Page templates, by default, are looked for in the `template/page/` prefix. So creating e.g. a `template/page/Meeting Notes` page will create a “Meeting Notes” template. You can override this prefix by setting the `pageTemplatePrefix` in `SETTINGS`.
 
-Page template have one “magic” type of page meta data that is used during instantiation:
+Page templates have one “magic” type of page metadata that is used during instantiation:
 
-* `$name` is used as a default value for a new page based on this template
+* `$name` is used as the default value for a new page based on this template
 
 In addition, any standard template placeholders are available (see below)
 
@@ -85,10 +85,10 @@ You can reference and instantiate as follows:
 If a template contains any dynamic sections with directives, these will all be removed before injecting the content into the page. This makes things look cleaner. If you want to preserve them, use `#use-verbose` instead of `#use`.
 
 ### Daily Note
-The {[Open Daily Note]} command navigates (or creates) a daily note prefixed with a 📅 emoji by default, but this is configurable via the `dailyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `Daily Note` it will use this as a template, otherwise the page will just be empty. 
+The {[Open Daily Note]} command navigates (or creates) a daily note prefixed with a 📅 emoji by default, but this is configurable via the `dailyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `Daily Note` it will use this as a template, otherwise, the page will just be empty. 
 
 ### Quick Note
-The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of you current context. 
+The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context. 
 
 ### Template placeholders
 Currently supported (hardcoded in the code):

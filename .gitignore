@@ -1,14 +1,10 @@
 pages
+test_space
 .DS_Store
-node_modules
-.parcel-cache
+dist_bundle
 dist
-build
-generated
-.yarnrc.yml
-*.test.js
 *.js.map
-.vscode
 website_build
 data.db
 /index.json
+.idea

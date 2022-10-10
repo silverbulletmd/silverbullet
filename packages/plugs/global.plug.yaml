@@ -1,5 +1,0 @@
-name: global
-dependencies:
-  yaml: "yaml@2"
-  handlebars: "handlebars@4.7.7:/dist/handlebars"
-  "@lezer/lr": "@lezer/lr@1.0.0"
