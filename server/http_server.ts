@@ -143,11 +143,6 @@ export class HttpServer {
       "get-plug:file",
       async (plugPath: string): Promise<Manifest> => {
         const resolvedPath = path.resolve(plugPath);
-        if (!resolvedPath.startsWith(Deno.cwd())) {
-          throw new Error(
-            `Plugin path outside working directory, this is disallowed: ${resolvedPath}`,
-          );
-        }
         try {
           const manifestJson = await Deno.readTextFile(resolvedPath);
           return JSON.parse(manifestJson);

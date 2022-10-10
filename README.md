@@ -96,13 +96,6 @@ component. Additional UI is built using React.js.
 back-end bundles. The server backend runs as a HTTP server on node.js using
 express.
 
-After cloning the repo, run the following command to install some convenience
-scripts (`silverbullet` and `plugos-bundle` into your `~/.deno/bin`):
-
-```shell
-deno task install
-```
-
 To prepare the initial web and plug build run:
 
 ```shell
