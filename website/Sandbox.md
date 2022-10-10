@@ -7,7 +7,7 @@ So, feel free to make some edits in this space. Don’t worry, you won’t break
 
 Here are some things to try:
 
-* Click on the page title (`index` for this particular one) at the top, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the a name of a non-existing page to create it (although it won’t save in this environment).
+* Click on the page title (`index` for this particular one) at the top, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a nonexistent page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note not all commands will work in this quasi read-only mode).
 * Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` to make it **bold**.
 * Click a link somewhere in this page to navigate there.

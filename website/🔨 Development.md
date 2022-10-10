@@ -21,7 +21,7 @@ npm run build-plugs
 npm run server -- <PATH-TO-YOUR-SPACE>
 ```
 
-This `<PATH-TO-YOUR-SPACE>` can be any folder with markdown files, upon first boot SB will ensure there is an `index.md` file (root page) and `PLUGS.md` file (with default list of plugs to load). SB will also create a SQLite `data.db` file with various data caches and indices (you can delete this file at any time and use the `Space: Reindex` command to reindex everything).
+This `<PATH-TO-YOUR-SPACE>` can be any folder with markdown files, upon first boot SB will ensure there is an `index.md` file (root page) and `PLUGS.md` file (with the default list of plugs to load). SB will also create an SQLite `data.db` file with various data caches and indices (you can delete this file at any time and use the `Space: Reindex` command to reindex everything).
 
 Open SB at http://localhost:3000 If you're using a browser supporting PWAs, you can install this page as a PWA. This also works on iOS (use the "Add to homescreen" option in the share menu).
 
