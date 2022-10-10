@@ -6,7 +6,7 @@ import { denoPlugin } from "./esbuild_deno_loader/mod.ts";
 import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
-import { bundleFolder } from "./common/json_bundle.ts";
+import { bundleFolder } from "./plugos/asset_bundle.ts";
 import { patchDenoLibJS } from "./common/hack.ts";
 import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
@@ -43,8 +43,6 @@ async function prepareAssets(dist: string) {
   );
   const globalManifest = await plugOsBundle(
     new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname,
-    false,
-    [],
   );
   await Deno.writeTextFile(
     `${dist}/web/global.plug.json`,

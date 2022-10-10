@@ -1,7 +1,7 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import type { ExpressServer } from "../express_server.ts";
+import type { HttpServer } from "../http_server.ts";
 
-export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
+export function systemSyscalls(httpServer: HttpServer): SysCallMapping {
   return {
     "system.invokeFunction": (
       ctx,
@@ -15,7 +15,7 @@ export function systemSyscalls(expressServer: ExpressServer): SysCallMapping {
       return ctx.plug.invoke(name, args);
     },
     "system.reloadPlugs": () => {
-      return expressServer.reloadPlugs();
+      return httpServer.reloadPlugs();
     },
   };
 }

@@ -7,7 +7,7 @@ export type CronHookT = {
   cron?: string | string[];
 };
 
-export class NodeCronHook implements Hook<CronHookT> {
+export class DenoCronHook implements Hook<CronHookT> {
   apply(system: System<CronHookT>): void {
     let tasks: Cron[] = [];
     system.on({
@@ -28,9 +28,11 @@ export class NodeCronHook implements Hook<CronHookT> {
         if (!plug.manifest) {
           continue;
         }
-        for (const [name, functionDef] of Object.entries(
-          plug.manifest.functions
-        )) {
+        for (
+          const [name, functionDef] of Object.entries(
+            plug.manifest.functions,
+          )
+        ) {
           if (!functionDef.cron) {
             continue;
           }
@@ -48,7 +50,7 @@ export class NodeCronHook implements Hook<CronHookT> {
                     console.error("Execution of cron function failed", e);
                   }
                 });
-              })
+              }),
             );
           }
         }

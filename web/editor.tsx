@@ -71,6 +71,7 @@ import { spaceSyscalls } from "./syscalls/space.ts";
 import { storeSyscalls } from "./syscalls/store.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
+import assetSyscalls from "../plugos/syscalls/asset.ts";
 
 class PageState {
   constructor(
@@ -80,33 +81,6 @@ class PageState {
 }
 
 const saveInterval = 1000;
-
-// Monkey patching the languageDataAt, somehow the languageData facet is not set
-// properly, no idea why
-
-// TODO: Remove at some point
-// EditorState.prototype.languageDataAt = function (
-//   name: string,
-//   pos: number,
-//   side = -1,
-// ) {
-//   let values = [];
-//   // console.log("Getting language data");
-//   // @ts-ignore
-//   for (let provider of this.facet(EditorState.languageData)) {
-//     let providerResult = provider(this, pos, side);
-//     if (!providerResult) {
-//       // console.log("Empty provider result");
-//       continue;
-//     }
-//     for (let result of providerResult) {
-//       if (Object.prototype.hasOwnProperty.call(result, name)) {
-//         values.push(result[name]);
-//       }
-//     }
-//   }
-//   return values;
-// };
 
 export class Editor {
   readonly commandHook: CommandHook;
@@ -180,6 +154,7 @@ export class Editor {
       clientStoreSyscalls(),
       storeSyscalls(this.space),
       sandboxSyscalls(this.system),
+      assetSyscalls(this.system),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused

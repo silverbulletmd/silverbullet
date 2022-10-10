@@ -17,15 +17,19 @@ export function esbuildSyscalls(): SysCallMapping {
         filename,
         code,
         functionName,
-        true,
-        [...builtinModules, ...excludeModules],
+        {
+          debug: true,
+          excludeModules: [...builtinModules, ...excludeModules],
+        },
       );
     },
     "esbuild.compileModule": async (
       _ctx,
       moduleName: string,
     ): Promise<string> => {
-      return await sandboxCompileModule(moduleName, builtinModules);
+      return await sandboxCompileModule(moduleName, {
+        excludeModules: builtinModules,
+      });
     },
   };
 }

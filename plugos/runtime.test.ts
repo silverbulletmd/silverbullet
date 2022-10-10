@@ -127,16 +127,13 @@ const __dirname = new URL(".", import.meta.url).pathname;
 Deno.test("Preload dependencies", async () => {
   const globalModules = await plugOsBundle(
     `${__dirname}../plugs/global.plug.yaml`,
-    false,
-    [],
   );
   // const globalModules = JSON.parse(
   //   Deno.readTextFileSync(`${tmpDist}/global.plug.json`),
   // );
   const testPlugManifest = await plugOsBundle(
     `${__dirname}test.plug.yaml`,
-    false,
-    Object.keys(globalModules.dependencies!),
+    { excludeModules: Object.keys(globalModules.dependencies!) },
   );
   esbuild.stop();
 

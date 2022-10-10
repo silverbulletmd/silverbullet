@@ -1,8 +1,10 @@
+import { AssetBundle } from "../plugos/asset_bundle_reader.ts";
 import { System } from "./system.ts";
 
 export interface Manifest<HookT> {
   name: string;
   requiredPermissions?: string[];
+  assets?: string[] | AssetBundle;
   dependencies?: {
     [key: string]: string;
   };

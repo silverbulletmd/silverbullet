@@ -1,10 +1,7 @@
 import type { SysCallMapping } from "../system.ts";
-import { path } from "../../server/deps.ts";
-import { base64Decode, base64Encode } from "../../common/base64.ts";
-export type FileMeta = {
-  name: string;
-  lastModified: number;
-};
+import { mime, path } from "../../server/deps.ts";
+import { base64Decode, base64Encode } from "../../plugos/base64.ts";
+import type { FileMeta } from "../asset_bundle_reader.ts";
 
 export default function fileSystemSyscalls(root = "/"): SysCallMapping {
   function resolvedPath(p: string): string {
@@ -36,6 +33,9 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
         meta: {
           name: filePath,
           lastModified: s.mtime!.getTime(),
+          contentType: mime.getType(filePath) || "application/octet-stream",
+          size: s.size,
+          perm: "rw",
         },
       };
     },
@@ -45,6 +45,9 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       return {
         name: filePath,
         lastModified: s.mtime!.getTime(),
+        contentType: mime.getType(filePath) || "application/octet-stream",
+        size: s.size,
+        perm: "rw",
       };
     },
     "fs.writeFile": async (
@@ -64,6 +67,9 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       return {
         name: filePath,
         lastModified: s.mtime!.getTime(),
+        contentType: mime.getType(filePath) || "application/octet-stream",
+        size: s.size,
+        perm: "rw",
       };
     },
     "fs.deleteFile": async (_ctx, filePath: string): Promise<void> => {
@@ -88,6 +94,9 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
             allFiles.push({
               name: fullPath.substring(dirPath.length + 1),
               lastModified: s.mtime!.getTime(),
+              contentType: mime.getType(fullPath) || "application/octet-stream",
+              size: s.size,
+              perm: "rw",
             });
           }
         }

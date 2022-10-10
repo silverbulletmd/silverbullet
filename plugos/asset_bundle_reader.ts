@@ -1,5 +1,12 @@
 import { base64Decode } from "./base64.ts";
-import { FileMeta } from "./types.ts";
+
+export type FileMeta = {
+  name: string;
+  lastModified: number;
+  contentType: string;
+  size: number;
+  perm: "ro" | "rw";
+};
 
 export type AssetBundle = Record<string, { meta: FileMeta; data: string }>;
 

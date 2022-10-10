@@ -85,6 +85,7 @@ export function denoPlugin(options: DenoPluginOptions = {}): esbuild.Plugin {
           const loaderExts = Object.keys(build.initialOptions.loader || {});
           for (const ext of loaderExts) {
             if (href.endsWith(ext)) {
+              console.log("Skipping", href);
               return {
                 path: resolved.href.substring("file://".length),
               };

@@ -1,6 +1,6 @@
 import { readYamlPage } from "./yaml_page.ts";
 import { notifyUser } from "./util.ts";
-import * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
+import * as YAML from "yaml";
 
 import { writePage } from "../../syscall/silverbullet-syscall/space.ts";
 
@@ -53,8 +53,11 @@ export async function writeSettings<T extends object>(settings: T) {
   const writeSettings = { ...readSettings, ...settings };
   // const doc = new YAML.Document();
   // doc.contents = writeSettings;
-  const contents = `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${YAML.stringify(
-    writeSettings
-  )}\n\`\`\``; // might need \r\n for windows?
+  const contents =
+    `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${
+      YAML.stringify(
+        writeSettings,
+      )
+    }\n\`\`\``; // might need \r\n for windows?
   await writePage(SETTINGS_PAGE, contents);
 }

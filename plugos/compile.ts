@@ -10,12 +10,17 @@ import { path } from "../server/deps.ts";
 import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
 import { patchDenoLibJS } from "../common/hack.ts";
 
+export type CompileOptions = {
+  debug?: boolean;
+  excludeModules?: string[];
+  meta?: boolean;
+  importMap?: URL;
+};
+
 export async function compile(
   filePath: string,
   functionName: string | undefined = undefined,
-  debug = false,
-  excludeModules: string[] = [],
-  meta = false,
+  options: CompileOptions = {},
 ): Promise<string> {
   const outFile = await Deno.makeTempFile({ suffix: ".js" });
   let inFile = filePath;
@@ -42,14 +47,15 @@ export async function compile(
       globalName: "mod",
       platform: "browser",
       sourcemap: false, //debug ? "inline" : false,
-      minify: !debug,
+      minify: !options.debug,
       outfile: outFile,
       metafile: true,
-      external: excludeModules,
+      external: options.excludeModules || [],
       treeShaking: true,
       plugins: [
         denoPlugin({
-          importMapURL: new URL("./../import_map.json", import.meta.url),
+          importMapURL: options.importMap ||
+            new URL("./../import_map.json", import.meta.url),
         }),
       ],
       loader: {
@@ -65,7 +71,7 @@ export async function compile(
       absWorkingDir: path.resolve(path.dirname(inFile)),
     });
 
-    if (meta) {
+    if (options.meta) {
       const text = await esbuild.analyzeMetafile(result.metafile);
       console.log("Bundle info for", functionName, text);
     }
@@ -84,10 +90,11 @@ export async function compile(
 export async function compileModule(
   cwd: string,
   moduleName: string,
+  options: CompileOptions = {},
 ): Promise<string> {
   const inFile = path.resolve(cwd, "_in.ts");
   await Deno.writeTextFile(inFile, `export * from "${moduleName}";`);
-  const code = await compile(inFile);
+  const code = await compile(inFile, undefined, options);
   await Deno.remove(inFile);
   return code;
 }
@@ -96,8 +103,7 @@ export async function sandboxCompile(
   filename: string,
   code: string,
   functionName?: string,
-  debug = false,
-  globalModules: string[] = [],
+  options: CompileOptions = {},
 ): Promise<string> {
   const tmpDir = await Deno.makeTempDir();
 
@@ -105,8 +111,7 @@ export async function sandboxCompile(
   const jsCode = await compile(
     `${tmpDir}/${filename}`,
     functionName,
-    debug,
-    globalModules,
+    options,
   );
   await Deno.remove(tmpDir, { recursive: true });
   return jsCode;
@@ -114,13 +119,13 @@ export async function sandboxCompile(
 
 export async function sandboxCompileModule(
   moduleUrl: string,
-  globalModules: string[] = [],
+  options: CompileOptions = {},
 ): Promise<string> {
   await Deno.writeTextFile(
     "_mod.ts",
     `module.exports = require("${moduleUrl}");`,
   );
-  const code = await compile("_mod.ts", undefined, false, globalModules);
+  const code = await compile("_mod.ts", undefined, options);
   await Deno.remove("_mod.ts");
   return code;
 }

@@ -4,7 +4,7 @@ import {
   assetReadFileSync,
   assetReadTextFileSync,
   assetStatSync,
-} from "../common/asset_bundle.ts";
+} from "../plugos/asset_bundle_reader.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -17,7 +17,7 @@ import { parseYamlSettings } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { NodeCronHook } from "../plugos/hooks/node_cron.ts";
+import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
 import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
@@ -38,6 +38,7 @@ import {
 import spaceSyscalls from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import assetSyscalls from "../plugos/syscalls/asset.ts";
 
 export type ServerOptions = {
   port: number;
@@ -48,7 +49,7 @@ export type ServerOptions = {
 
 const indexRequiredKey = "$spaceIndexed";
 
-export class ExpressServer {
+export class HttpServer {
   app: Application;
   system: System<SilverBulletHooks>;
   private space: Space;
@@ -100,7 +101,7 @@ export class ExpressServer {
     this.db = new SQLite(path.join(options.pagesPath, "data.db"));
 
     // The cron hook
-    this.system.addHook(new NodeCronHook());
+    this.system.addHook(new DenoCronHook());
 
     // Register syscalls available on the server side
     this.system.registerSyscalls(
@@ -114,6 +115,7 @@ export class ExpressServer {
       esbuildSyscalls(),
       systemSyscalls(this),
       sandboxSyscalls(this.system),
+      assetSyscalls(this.system),
       // jwtSyscalls(),
     );
     // Danger zone

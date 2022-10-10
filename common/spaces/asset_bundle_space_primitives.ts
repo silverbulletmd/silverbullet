@@ -1,5 +1,8 @@
 import { Plug } from "../../plugos/plug.ts";
-import { AssetBundle, assetReadFileSync } from "../asset_bundle.ts";
+import {
+  AssetBundle,
+  assetReadFileSync,
+} from "../../plugos/asset_bundle_reader.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 
