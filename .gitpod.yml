@@ -1,3 +1,4 @@
+
 image:
   file: .gitpod.Dockerfile
 
@@ -29,3 +30,7 @@ tasks:
   - name: Plug watcher
     init: gp sync-await setup
     command: deno task watch-plugs
+
+vscode:
+  extensions:
+    - denoland.vscode-deno
