@@ -7,7 +7,7 @@ author: Zef Hemel
 <!-- #include "https://raw.githubusercontent.com/silverbulletmd/silverbullet-ghost/main/README.md" -->
 # Ghost plug for Silver Bullet
 
-Note: Still very basic, to use:
+Note: Still very basic. To use:
 
 In your `SETTINGS` specify the following settings:
 

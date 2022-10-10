@@ -12,7 +12,7 @@ Or checkout these two videos:
 
 ## Features
 * **Free and open source**. Silver Bullet is MIT licensed.
-* **The truth is in the markdown.** Silver Bullet doesn’t use proprietary file formats. It keeps it data as plain markdown files on disk. While SB uses a database for indexing and caching some indexes, all of that can be rebuilt from its markdown source at any time. If SB would ever go away, you can still read your pages with any text editor.
+* **The truth is in the markdown.** Silver Bullet doesn’t use proprietary file formats. It keeps its data as plain markdown files on disk. While SB uses a database for indexing and caching some indexes, all of that can be rebuilt from its markdown source at any time. If SB would ever go away, you can still read your pages with any text editor.
 * **One single, distraction free mode.** SB doesn’t have a separate view and edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode, why wouldn’t you?
 * **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
 * **Extend it your way**. SB is highly extensible with [plugs](https://silverbullet.md/🔌_Plugs), and you can customize it to your liking and your workflows.
