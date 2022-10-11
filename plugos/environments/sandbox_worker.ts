@@ -1,6 +1,6 @@
 import { safeRun } from "../util.ts";
 import { ConsoleLogger } from "./custom_logger.ts";
-import { ControllerMessage, WorkerMessage } from "./worker.ts";
+import type { ControllerMessage, WorkerMessage } from "./worker.ts";
 
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack

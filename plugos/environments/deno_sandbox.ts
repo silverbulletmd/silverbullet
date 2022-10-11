@@ -1,10 +1,9 @@
 import { safeRun } from "../util.ts";
 
-// @ts-ignore
-// import workerCode from "bundle-text:./node_worker.ts";
 import { Sandbox } from "../sandbox.ts";
 import { WorkerLike } from "./worker.ts";
 import { Plug } from "../plug.ts";
+import { AssetBundle, assetReadTextFileSync } from "../asset_bundle_reader.ts";
 
 class DenoWorkerWrapper implements WorkerLike {
   private worker: Worker;
@@ -31,12 +30,23 @@ class DenoWorkerWrapper implements WorkerLike {
   }
 }
 
-export function createSandbox(plug: Plug<any>) {
-  let worker = new Worker(
-    new URL("./sandbox_worker.ts", import.meta.url).href,
-    {
-      type: "module",
-    }
-  );
-  return new Sandbox(plug, new DenoWorkerWrapper(worker));
+export function sanboxFactory(
+  assetBundle: AssetBundle,
+): (plug: Plug<any>) => Sandbox {
+  return (plug: Plug<any>) => {
+    const workerHref = URL.createObjectURL(
+      new Blob([
+        assetReadTextFileSync(assetBundle, "web/worker.js"),
+      ], {
+        type: "application/javascript",
+      }),
+    );
+    let worker = new Worker(
+      workerHref,
+      {
+        type: "module",
+      },
+    );
+    return new Sandbox(plug, new DenoWorkerWrapper(worker));
+  };
 }

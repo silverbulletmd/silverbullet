@@ -14,7 +14,7 @@ import { Space } from "../common/spaces/space.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { parseYamlSettings } from "../common/util.ts";
-import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
+import { sanboxFactory } from "../plugos/environments/deno_sandbox.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
@@ -175,7 +175,10 @@ export class HttpServer {
     console.log("Loading plugs", allPlugs);
     for (const plugName of allPlugs) {
       const { data } = await this.space.readAttachment(plugName, "string");
-      await this.system.load(JSON.parse(data as string), createSandbox);
+      await this.system.load(
+        JSON.parse(data as string),
+        sanboxFactory(this.assetBundle),
+      );
     }
     this.rebuildMdExtensions();
 
@@ -347,9 +350,7 @@ export class HttpServer {
     } catch {
       await this.space.writePage(
         "SETTINGS",
-        await Deno.readTextFile(
-          new URL("SETTINGS_template.md", import.meta.url).pathname,
-        ),
+        assetReadTextFileSync(this.assetBundle, "SETTINGS_template.md"),
         true,
       );
     }
