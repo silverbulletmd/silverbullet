@@ -30,7 +30,7 @@ class DenoWorkerWrapper implements WorkerLike {
   }
 }
 
-export function sanboxFactory(
+export function sandboxFactory(
   assetBundle: AssetBundle,
 ): (plug: Plug<any>) => Sandbox {
   return (plug: Plug<any>) => {

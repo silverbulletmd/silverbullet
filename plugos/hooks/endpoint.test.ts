@@ -1,4 +1,4 @@
-import { createSandbox } from "../environments/deno_sandbox.ts";
+import { sandboxFactory } from "../environments/deno_sandbox.ts";
 import { Manifest } from "../types.ts";
 import { EndpointHook, EndpointHookT } from "./endpoint.ts";
 import { System } from "../system.ts";
@@ -6,7 +6,11 @@ import { System } from "../system.ts";
 import { Application } from "../../server/deps.ts";
 import { assertEquals } from "../../test_deps.ts";
 
+import assetBundle from "../../dist/asset_bundle.json" assert { type: "json" };
+import { AssetBundle } from "../asset_bundle_reader.ts";
+
 Deno.test("Run a plugos endpoint server", async () => {
+  const createSandbox = sandboxFactory(assetBundle as AssetBundle);
   let system = new System<EndpointHookT>("server");
   let plug = await system.load(
     {

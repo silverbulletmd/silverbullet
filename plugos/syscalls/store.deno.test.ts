@@ -1,10 +1,14 @@
 import { assertEquals } from "../../test_deps.ts";
 import { SQLite } from "../../server/deps.ts";
-import { createSandbox } from "../environments/deno_sandbox.ts";
+import { sandboxFactory } from "../environments/deno_sandbox.ts";
 import { System } from "../system.ts";
 import { ensureTable, storeSyscalls } from "./store.deno.ts";
 
+import assetBundle from "../../dist/asset_bundle.json" assert { type: "json" };
+import { AssetBundle } from "../asset_bundle_reader.ts";
+
 Deno.test("Test store", async () => {
+  const createSandbox = sandboxFactory(assetBundle as AssetBundle);
   const db = new SQLite(":memory:");
   await ensureTable(db, "test_table");
   const system = new System("server");
