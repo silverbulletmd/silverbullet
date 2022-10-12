@@ -5,7 +5,10 @@ import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import { base64Decode, base64Encode } from "../../plugos/base64.ts";
+import {
+  base64Decode,
+  base64Encode,
+} from "../../plugos/asset_bundle/base64.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";

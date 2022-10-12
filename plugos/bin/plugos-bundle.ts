@@ -11,7 +11,7 @@ import {
 import { path } from "../../server/deps.ts";
 
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
-import { bundleAssets } from "../../plugos/asset_bundle.ts";
+import { bundleAssets } from "../asset_bundle/builder.ts";
 
 export async function bundle(
   manifestPath: string,
@@ -41,7 +41,7 @@ export async function bundle(
     rootPath,
     manifest.assets as string[] || [],
   );
-  manifest.assets = assetsBundle;
+  manifest.assets = assetsBundle.toJSON();
 
   // Functions
 

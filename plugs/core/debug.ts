@@ -10,7 +10,7 @@ import { getServerLogs } from "../../syscall/silverbullet-syscall/sandbox.ts";
 export async function parsePageCommand() {
   console.log(
     "AST",
-    JSON.stringify(await parseMarkdown(await getText()), null, 2)
+    JSON.stringify(await parseMarkdown(await getText()), null, 2),
   );
 }
 
@@ -53,15 +53,19 @@ export async function showLogsCommand() {
     </style>
     <div id="client-log-header">Client logs (max 100)</div>
     <div id="client-log">
-      <pre>${clientLogs
+      <pre>${
+      clientLogs
         .map((le) => `[${le.level}] ${le.message}`)
-        .join("\n")}</pre>
+        .join("\n")
+    }</pre>
     </div>
     <div id="server-log-header">Server logs (max 100)</div>
     <div id="server-log">
-      <pre>${serverLogs
+      <pre>${
+      serverLogs
         .map((le) => `[${le.level}] ${le.message}`)
-        .join("\n")}</pre>
+        .join("\n")
+    }</pre>
     </div>`,
     `
       var clientDiv = document.getElementById("client-log");
@@ -74,7 +78,7 @@ export async function showLogsCommand() {
       window.reloadInterval = setInterval(() => {
         sendEvent("log:reload");
       }, 1000);
-      `
+      `,
   );
 }
 

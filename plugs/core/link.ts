@@ -28,7 +28,7 @@ export async function unfurlCommand() {
   let selectedUnfurl: any = await filterBox(
     "Unfurl",
     options,
-    "Select the unfurl strategy of your choice"
+    "Select the unfurl strategy of your choice",
   );
   if (!selectedUnfurl) {
     return;
@@ -38,7 +38,7 @@ export async function unfurlCommand() {
       "server",
       "unfurlExec",
       selectedUnfurl.id,
-      url
+      url,
     );
     await replaceRange(nakedUrlNode?.from!, nakedUrlNode?.to!, replacement);
   } catch (e: any) {

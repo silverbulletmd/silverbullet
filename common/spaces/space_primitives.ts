@@ -8,14 +8,14 @@ export interface SpacePrimitives {
   fetchFileList(): Promise<FileMeta[]>;
   readFile(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }>;
   getFileMeta(name: string): Promise<FileMeta>;
   writeFile(
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean
+    selfUpdate?: boolean,
   ): Promise<FileMeta>;
   deleteFile(name: string): Promise<void>;
 
@@ -25,6 +25,6 @@ export interface SpacePrimitives {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any>;
 }

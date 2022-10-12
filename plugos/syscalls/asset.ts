@@ -1,14 +1,14 @@
 import { SysCallMapping, System } from "../system.ts";
-import type { AssetBundle, FileMeta } from "../asset_bundle_reader.ts";
+import { AssetBundle } from "../asset_bundle/bundle.ts";
 
 export default function assetSyscalls(system: System<any>): SysCallMapping {
   return {
     "asset.readAsset": (
       ctx,
       name: string,
-    ): { data: string; meta: FileMeta } => {
+    ): string => {
       return (system.loadedPlugs.get(ctx.plug.name)!.manifest!
-        .assets as AssetBundle)[name];
+        .assets as AssetBundle).readFileAsDataUrl(name);
     },
   };
 }

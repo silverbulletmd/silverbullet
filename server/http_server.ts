@@ -1,10 +1,4 @@
 import { Application, path, Router, SQLite } from "./deps.ts";
-import {
-  AssetBundle,
-  assetReadFileSync,
-  assetReadTextFileSync,
-  assetStatSync,
-} from "../plugos/asset_bundle_reader.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -14,7 +8,7 @@ import { Space } from "../common/spaces/space.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { parseYamlSettings } from "../common/util.ts";
-import { sandboxFactory } from "../plugos/environments/deno_sandbox.ts";
+import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
@@ -39,7 +33,7 @@ import spaceSyscalls from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
-import { FlashServer } from "https://deno.land/x/oak@v11.1.0/mod.ts";
+import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 
 export type ServerOptions = {
   port: number;
@@ -71,7 +65,7 @@ export class HttpServer {
     this.password = options.password;
 
     this.globalModules = JSON.parse(
-      assetReadTextFileSync(this.assetBundle, `web/global.plug.json`),
+      this.assetBundle.readTextFileSync(`web/global.plug.json`),
     );
 
     // Set up the PlugOS System
@@ -177,7 +171,7 @@ export class HttpServer {
       const { data } = await this.space.readAttachment(plugName, "string");
       await this.system.load(
         JSON.parse(data as string),
-        sandboxFactory(this.assetBundle),
+        createSandbox,
       );
     }
     this.rebuildMdExtensions();
@@ -214,30 +208,25 @@ export class HttpServer {
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
         response.headers.set("Content-type", "text/html");
-        response.body = assetReadTextFileSync(
-          this.assetBundle,
+        response.body = this.assetBundle.readTextFileSync(
           "web/index.html",
         );
         return;
       }
       try {
         const assetName = `web${request.url.pathname}`;
-        const meta = assetStatSync(this.assetBundle, assetName);
         response.status = 200;
         response.headers.set(
           "Content-type",
-          meta.contentType,
+          this.assetBundle.getMimeType(assetName),
         );
-        response.headers.set("Content-length", "" + meta.size);
-        response.headers.set(
-          "Last-Modified",
-          new Date(meta.lastModified).toUTCString(),
+        const data = this.assetBundle.readFileSync(
+          assetName,
         );
+        response.headers.set("Content-length", "" + data.length);
+
         if (request.method === "GET") {
-          response.body = assetReadFileSync(
-            this.assetBundle,
-            assetName,
-          );
+          response.body = data;
         }
       } catch {
         await next();
@@ -271,8 +260,7 @@ export class HttpServer {
     // Fallback, serve index.html
     this.app.use((ctx) => {
       ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = assetReadTextFileSync(
-        this.assetBundle,
+      ctx.response.body = this.assetBundle.readTextFileSync(
         "web/index.html",
       );
     });
@@ -350,7 +338,7 @@ export class HttpServer {
     } catch {
       await this.space.writePage(
         "SETTINGS",
-        assetReadTextFileSync(this.assetBundle, "SETTINGS_template.md"),
+        this.assetBundle.readTextFileSync("SETTINGS_template.md"),
         true,
       );
     }

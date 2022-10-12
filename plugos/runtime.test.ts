@@ -1,4 +1,4 @@
-import { sandboxFactory } from "./environments/deno_sandbox.ts";
+import { createSandbox } from "./environments/deno_sandbox.ts";
 import { System } from "./system.ts";
 
 import {
@@ -6,10 +6,7 @@ import {
   assertEquals,
 } from "https://deno.land/std@0.158.0/testing/asserts.ts";
 
-import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 Deno.test("Run a deno sandbox", async () => {
-  const createSandbox = sandboxFactory(assetBundle as AssetBundle);
-
   const system = new System("server");
   system.registerSyscalls([], {
     addNumbers: (_ctx, a, b) => {
@@ -125,12 +122,10 @@ Deno.test("Run a deno sandbox", async () => {
 
 import { bundle as plugOsBundle } from "./bin/plugos-bundle.ts";
 import { esbuild } from "./compile.ts";
-import { AssetBundle } from "./asset_bundle_reader.ts";
+import { AssetBundle } from "./asset_bundle/bundle.ts";
 const __dirname = new URL(".", import.meta.url).pathname;
 
 Deno.test("Preload dependencies", async () => {
-  const createSandbox = sandboxFactory(assetBundle as AssetBundle);
-
   const globalModules = await plugOsBundle(
     `${__dirname}../plugs/global.plug.yaml`,
   );

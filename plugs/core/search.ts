@@ -33,7 +33,7 @@ export async function queryProvider({
   let results = await fullTextSearch(phraseFilter.value, 100);
 
   let allPageMap: Map<string, any> = new Map(
-    results.map((r: any) => [r.name, r])
+    results.map((r: any) => [r.name, r]),
   );
   for (let { page, value } of await queryPrefix("meta:")) {
     let p = allPageMap.get(page);
@@ -59,13 +59,15 @@ export async function searchCommand() {
 }
 
 export async function readPageSearch(
-  name: string
+  name: string,
 ): Promise<{ text: string; meta: PageMeta }> {
   let phrase = name.substring(searchPrefix.length);
   let results = await fullTextSearch(phrase, 100);
-  const text = `# Search results for "${phrase}"\n${results
-    .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)
-    .join("\n")}
+  const text = `# Search results for "${phrase}"\n${
+    results
+      .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)
+      .join("\n")
+  }
   `;
   return {
     text: text,

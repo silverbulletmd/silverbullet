@@ -1,4 +1,4 @@
-import { base64Decode } from "../../plugos/base64.ts";
+import { base64Decode } from "../../plugos/asset_bundle/base64.ts";
 import type { FileMeta } from "./fs.ts";
 import { syscall } from "./syscall.ts";
 

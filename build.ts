@@ -2,12 +2,12 @@
 // @deno-types="https://deno.land/x/esbuild@v0.14.54/mod.d.ts"
 import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
 import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
-import { denoPlugin } from "./esbuild_deno_loader/mod.ts";
+import { denoPlugin } from "https://deno.land/x/esbuild_deno_loader@0.6.0/mod.ts"; //"./esbuild_deno_loader/mod.ts";
 import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
-import { bundleFolder } from "./plugos/asset_bundle.ts";
-import { patchDenoLibJS } from "./common/hack.ts";
+import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
+import { patchDenoLibJS } from "./plugos/hack.ts";
 import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
 import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
@@ -65,7 +65,6 @@ async function bundle(watch: boolean): Promise<void> {
     esbuild.build({
       entryPoints: {
         client: "web/boot.ts",
-        worker: "plugos/environments/sandbox_worker.ts",
         service_worker: "web/service_worker.ts",
       },
       outdir: "./dist_bundle/web",

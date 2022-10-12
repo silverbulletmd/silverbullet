@@ -3,7 +3,7 @@ import { flashNotification } from "../../syscall/silverbullet-syscall/editor.ts"
 export async function replaceAsync(
   str: string,
   regex: RegExp,
-  asyncFn: (match: string, ...args: any[]) => Promise<string>
+  asyncFn: (match: string, ...args: any[]) => Promise<string>,
 ) {
   const promises: Promise<string>[] = [];
   str.replace(regex, (match: string, ...args: any[]): string => {

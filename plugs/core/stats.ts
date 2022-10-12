@@ -20,6 +20,6 @@ export async function statsCommand() {
   const wordCount = countWords(text);
   const time = readingTime(wordCount);
   await flashNotification(
-    `${wordCount} words; ${time} minutes read; ${allPages.length} total pages in space.`
+    `${wordCount} words; ${time} minutes read; ${allPages.length} total pages in space.`,
   );
 }

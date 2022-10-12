@@ -6,7 +6,7 @@ export class ConsoleLogger {
 
   constructor(
     callback: (level: LogLevel, entry: string) => void,
-    print: boolean = true
+    print: boolean = true,
   ) {
     this.print = print;
     this.callback = callback;

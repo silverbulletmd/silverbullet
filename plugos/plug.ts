@@ -14,7 +14,7 @@ export class Plug<HookT> {
   constructor(
     system: System<HookT>,
     name: string,
-    sandboxFactory: (plug: Plug<HookT>) => Sandbox
+    sandboxFactory: (plug: Plug<HookT>) => Sandbox,
   ) {
     this.system = system;
     this.name = name;
@@ -55,7 +55,7 @@ export class Plug<HookT> {
       }
       if (!this.canInvoke(name)) {
         throw new Error(
-          `Function ${name} is not available in ${this.runtimeEnv}`
+          `Function ${name} is not available in ${this.runtimeEnv}`,
         );
       }
       await this.sandbox.load(name, funDef.code!);

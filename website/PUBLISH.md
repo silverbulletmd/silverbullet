@@ -4,4 +4,3 @@ publishAll: true
 indexPage: Silver Bullet
 footerPage: website-footer
 ```
-

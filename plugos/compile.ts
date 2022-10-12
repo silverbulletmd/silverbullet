@@ -6,9 +6,9 @@ export const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
   : esbuildNative;
 
-import { path } from "../server/deps.ts";
-import { denoPlugin } from "../esbuild_deno_loader/mod.ts";
-import { patchDenoLibJS } from "../common/hack.ts";
+import { path } from "./deps.ts";
+import { denoPlugin } from "./forked/esbuild_deno_loader/mod.ts";
+import { patchDenoLibJS } from "./hack.ts";
 
 export type CompileOptions = {
   debug?: boolean;
@@ -54,20 +54,11 @@ export async function compile(
       treeShaking: true,
       plugins: [
         denoPlugin({
+          // TODO do this differently
           importMapURL: options.importMap ||
             new URL("./../import_map.json", import.meta.url),
         }),
       ],
-      loader: {
-        ".css": "text",
-        ".md": "text",
-        ".txt": "text",
-        ".html": "text",
-        ".hbs": "text",
-        ".png": "dataurl",
-        ".gif": "dataurl",
-        ".jpg": "dataurl",
-      },
       absWorkingDir: path.resolve(path.dirname(inFile)),
     });
 

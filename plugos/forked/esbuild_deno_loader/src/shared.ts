@@ -22,7 +22,7 @@ export function mediaTypeToLoader(mediaType: MediaType): esbuild.Loader {
 
 export function transformRawIntoContent(
   raw: Uint8Array,
-  mediaType: MediaType
+  mediaType: MediaType,
 ): string | Uint8Array {
   switch (mediaType) {
     case "Json":

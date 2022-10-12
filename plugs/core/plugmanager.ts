@@ -35,7 +35,7 @@ export async function updatePlugs() {
     plugList = plugListRead.filter((plug) => typeof plug === "string");
     if (plugList.length !== plugListRead.length) {
       throw new Error(
-        `Some of the plugs were not in a yaml list format, they were ignored`
+        `Some of the plugs were not in a yaml list format, they were ignored`,
       );
     }
   } catch (e: any) {
@@ -56,7 +56,7 @@ export async function updatePlugs() {
     await writeAttachment(
       `_plug/${manifest.name}.plug.json`,
       "string",
-      JSON.stringify(manifest)
+      JSON.stringify(manifest),
     );
   }
 
@@ -64,7 +64,7 @@ export async function updatePlugs() {
   for (let existingPlug of await listPlugs()) {
     let plugName = existingPlug.substring(
       "_plug/".length,
-      existingPlug.length - ".plug.json".length
+      existingPlug.length - ".plug.json".length,
     );
     console.log("Considering", plugName);
     if (!allPlugNames.includes(plugName)) {
@@ -94,27 +94,28 @@ export async function getPlugGithub(identifier: string): Promise<Manifest> {
     branch = "main"; // or "master"?
   }
   return getPlugHTTPS(
-    `//raw.githubusercontent.com/${owner}/${repoClean}/${branch}/${path}`
+    `//raw.githubusercontent.com/${owner}/${repoClean}/${branch}/${path}`,
   );
 }
 
 export async function getPlugGithubRelease(
-  identifier: string
+  identifier: string,
 ): Promise<Manifest> {
   let [owner, repo, version] = identifier.split("/");
   if (!version || version === "latest") {
     console.log("fetching the latest version");
     const req = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/releases/latest`
+      `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
     );
     if (req.status !== 200) {
       throw new Error(
-        `Could not fetch latest relase manifest from ${identifier}}`
+        `Could not fetch latest relase manifest from ${identifier}}`,
       );
     }
     const result = await req.json();
     version = result.name;
   }
-  const finalUrl = `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.json`;
+  const finalUrl =
+    `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.json`;
   return getPlugHTTPS(finalUrl);
 }

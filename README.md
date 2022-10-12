@@ -102,6 +102,13 @@ To prepare the initial web and plug build run:
 deno task build
 ```
 
+For convenience, you can install `plugons-bundle` and `silverbullet` into your
+`~/.deno/bin` folder:
+
+```shell
+deno task install
+```
+
 You can then run the server in “watch mode” (automatically restarting when you
 change source files) with:
 

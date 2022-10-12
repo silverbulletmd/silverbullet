@@ -9,7 +9,7 @@ export interface LoadOptions {
 export async function load(
   infoCache: Map<string, deno.ModuleEntry>,
   url: URL,
-  options: LoadOptions
+  options: LoadOptions,
 ): Promise<esbuild.OnLoadResult | null> {
   switch (url.protocol) {
     case "http:":
@@ -28,7 +28,7 @@ export async function load(
 async function loadFromCLI(
   infoCache: Map<string, deno.ModuleEntry>,
   specifier: URL,
-  options: LoadOptions
+  options: LoadOptions,
 ): Promise<esbuild.OnLoadResult> {
   const specifierRaw = specifier.href;
   if (!infoCache.has(specifierRaw)) {

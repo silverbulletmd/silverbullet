@@ -75,7 +75,7 @@ export async function pageQueryProvider({
 }: QueryProviderEvent): Promise<any[]> {
   let allPages = await listPages();
   let allPageMap: Map<string, any> = new Map(
-    allPages.map((pm) => [pm.name, pm])
+    allPages.map((pm) => [pm.name, pm]),
   );
   for (let { page, value } of await queryPrefix("meta:")) {
     let p = allPageMap.get(page);

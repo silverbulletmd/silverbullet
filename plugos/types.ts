@@ -1,10 +1,10 @@
-import { AssetBundle } from "../plugos/asset_bundle_reader.ts";
 import { System } from "./system.ts";
+import { AssetJson } from "./asset_bundle/bundle.ts";
 
 export interface Manifest<HookT> {
   name: string;
   requiredPermissions?: string[];
-  assets?: string[] | AssetBundle;
+  assets?: string[] | AssetJson;
   dependencies?: {
     [key: string]: string;
   };

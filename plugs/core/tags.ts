@@ -19,7 +19,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
   });
   batchSet(
     name,
-    [...allTags].map((t) => ({ key: `tag:${t}`, value: t }))
+    [...allTags].map((t) => ({ key: `tag:${t}`, value: t })),
   );
 }
 
@@ -58,6 +58,6 @@ export async function tagProvider({ query }: QueryProviderEvent) {
     [...allTags.entries()].map(([name, freq]) => ({
       name,
       freq,
-    }))
+    })),
   );
 }

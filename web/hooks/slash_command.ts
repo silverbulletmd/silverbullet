@@ -1,10 +1,6 @@
 import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
-import {
-  Completion,
-  CompletionContext,
-  CompletionResult,
-} from "../deps.ts";
+import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
 import { safeRun } from "../../common/util.ts";
 import { Editor } from "../editor.tsx";
 import { syntaxTree } from "../deps.ts";

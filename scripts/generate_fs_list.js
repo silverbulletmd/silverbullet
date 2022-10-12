@@ -8,7 +8,7 @@ async function getFiles(dir) {
     dirents.map((dirent) => {
       const res = resolve(dir, dirent.name);
       return dirent.isDirectory() ? getFiles(res) : res;
-    })
+    }),
   );
   return Array.prototype.concat(...files);
 }

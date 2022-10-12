@@ -13,27 +13,27 @@ export function insertMarker(marker: string): StateCommand {
       changes.push(
         isBoldBefore
           ? {
-              from: range.from - marker.length,
-              to: range.from,
-              insert: Text.of([""]),
-            }
+            from: range.from - marker.length,
+            to: range.from,
+            insert: Text.of([""]),
+          }
           : {
-              from: range.from,
-              insert: Text.of([marker]),
-            }
+            from: range.from,
+            insert: Text.of([marker]),
+          },
       );
 
       changes.push(
         isBoldAfter
           ? {
-              from: range.to,
-              to: range.to + marker.length,
-              insert: Text.of([""]),
-            }
+            from: range.to,
+            to: range.to + marker.length,
+            insert: Text.of([""]),
+          }
           : {
-              from: range.to,
-              insert: Text.of([marker]),
-            }
+            from: range.to,
+            insert: Text.of([marker]),
+          },
       );
 
       const extendBefore = isBoldBefore ? -marker.length : marker.length;
@@ -43,7 +43,7 @@ export function insertMarker(marker: string): StateCommand {
         changes,
         range: EditorSelection.range(
           range.from + extendBefore,
-          range.to + extendAfter
+          range.to + extendAfter,
         ),
       };
     });
@@ -52,7 +52,7 @@ export function insertMarker(marker: string): StateCommand {
       state.update(changes, {
         scrollIntoView: true,
         annotations: Transaction.userEvent.of("input"),
-      })
+      }),
     );
 
     return true;

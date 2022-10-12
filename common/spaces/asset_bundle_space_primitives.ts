@@ -1,10 +1,7 @@
 import { Plug } from "../../plugos/plug.ts";
-import {
-  AssetBundle,
-  assetReadFileSync,
-} from "../../plugos/asset_bundle_reader.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
 
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -15,17 +12,22 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const l = await this.wrapped.fetchFileList();
-    return Object.entries(this.assetBundle).filter(([k]) =>
-      k.startsWith("_plug/")
-    ).map(([_, v]) => v.meta).concat(l);
+    return this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
+      .map((p) => ({
+        name: p,
+        contentType: "application/json",
+        lastModified: 0,
+        perm: "ro",
+        size: -1,
+      } as FileMeta)).concat(l);
   }
 
   readFile(
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
-    if (this.assetBundle[name]) {
-      const data = assetReadFileSync(this.assetBundle, name);
+    if (this.assetBundle.has(name)) {
+      const data = this.assetBundle.readFileSync(name);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
         data: encoding === "string" ? new TextDecoder().decode(data) : data,
@@ -41,8 +43,8 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
-    if (this.assetBundle[name]) {
-      const data = assetReadFileSync(this.assetBundle, name);
+    if (this.assetBundle.has(name)) {
+      const data = this.assetBundle.readFileSync(name);
       return Promise.resolve({
         lastModified: 0,
         size: data.byteLength,
@@ -63,7 +65,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   }
 
   deleteFile(name: string): Promise<void> {
-    if (this.assetBundle[name]) {
+    if (this.assetBundle.has(name)) {
       // Quietly ignore
       return Promise.resolve();
     }

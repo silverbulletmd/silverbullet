@@ -1,7 +1,7 @@
 import type { SysCallMapping } from "../system.ts";
-import { mime, path } from "../../server/deps.ts";
-import { base64Decode, base64Encode } from "../../plugos/base64.ts";
-import type { FileMeta } from "../asset_bundle_reader.ts";
+import { mime, path } from "../deps.ts";
+import { base64Decode, base64Encode } from "../asset_bundle/base64.ts";
+import { FileMeta } from "../../common/types.ts";
 
 export default function fileSystemSyscalls(root = "/"): SysCallMapping {
   function resolvedPath(p: string): string {

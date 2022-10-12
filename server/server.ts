@@ -21,14 +21,14 @@ const pagesPath = path.resolve(Deno.cwd(), args._[0] as string);
 const port = +args.port;
 
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
-import { AssetBundle } from "../plugos/asset_bundle_reader.ts";
+import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 
 console.log("Pages folder:", pagesPath);
 
 const httpServer = new HttpServer({
   port: port,
   pagesPath: pagesPath,
-  assetBundle: assetBundle as AssetBundle,
+  assetBundle: new AssetBundle(assetBundle as AssetJson),
   password: args.password,
 });
 httpServer.start().catch((e) => {

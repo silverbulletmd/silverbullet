@@ -34,7 +34,7 @@ export function removeParentPointers(tree: ParseTree) {
 
 export function findParentMatching(
   tree: ParseTree,
-  matchFn: (tree: ParseTree) => boolean
+  matchFn: (tree: ParseTree) => boolean,
 ): ParseTree | null {
   let node = tree.parent;
   while (node) {
@@ -48,14 +48,14 @@ export function findParentMatching(
 
 export function collectNodesOfType(
   tree: ParseTree,
-  nodeType: string
+  nodeType: string,
 ): ParseTree[] {
   return collectNodesMatching(tree, (n) => n.type === nodeType);
 }
 
 export function collectNodesMatching(
   tree: ParseTree,
-  matchFn: (tree: ParseTree) => boolean
+  matchFn: (tree: ParseTree) => boolean,
 ): ParseTree[] {
   if (matchFn(tree)) {
     return [tree];
@@ -72,7 +72,7 @@ export function collectNodesMatching(
 // return value: returning undefined = not matched, continue, null = delete, new node = replace
 export function replaceNodesMatching(
   tree: ParseTree,
-  substituteFn: (tree: ParseTree) => ParseTree | null | undefined
+  substituteFn: (tree: ParseTree) => ParseTree | null | undefined,
 ) {
   if (tree.children) {
     let children = tree.children.slice();
@@ -95,14 +95,14 @@ export function replaceNodesMatching(
 
 export function findNodeMatching(
   tree: ParseTree,
-  matchFn: (tree: ParseTree) => boolean
+  matchFn: (tree: ParseTree) => boolean,
 ): ParseTree | null {
   return collectNodesMatching(tree, matchFn)[0];
 }
 
 export function findNodeOfType(
   tree: ParseTree,
-  nodeType: string
+  nodeType: string,
 ): ParseTree | null {
   return collectNodesMatching(tree, (n) => n.type === nodeType)[0];
 }
@@ -110,7 +110,7 @@ export function findNodeOfType(
 export function traverseTree(
   tree: ParseTree,
   // Return value = should stop traversal?
-  matchFn: (tree: ParseTree) => boolean
+  matchFn: (tree: ParseTree) => boolean,
 ): void {
   // Do a collect, but ignore the result
   collectNodesMatching(tree, matchFn);

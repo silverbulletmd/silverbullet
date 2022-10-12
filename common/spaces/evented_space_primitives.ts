@@ -19,14 +19,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     plug: Plug<any>,
     env: string,
     name: string,
-    args: any[]
+    args: any[],
   ): Promise<any> {
     return this.wrapped.invokeFunction(plug, env, name, args);
   }
 
   readFile(
     name: string,
-    encoding: FileEncoding
+    encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     return this.wrapped.readFile(name, encoding);
   }
@@ -35,13 +35,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate: boolean
+    selfUpdate: boolean,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
       encoding,
       data,
-      selfUpdate
+      selfUpdate,
     );
     // This can happen async
     if (name.endsWith(".md")) {

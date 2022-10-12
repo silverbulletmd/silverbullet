@@ -1,4 +1,4 @@
-import { assertEquals } from "../test_deps.ts";
+import { assertEquals } from "../../test_deps.ts";
 import { base64Decode } from "./base64.ts";
 import { base64Encode } from "./base64.ts";
 
