@@ -107,7 +107,7 @@ export class HttpServer {
       spaceSyscalls(this.space),
       eventSyscalls(this.eventHook),
       markdownSyscalls(buildMarkdown([])),
-      esbuildSyscalls(),
+      esbuildSyscalls([this.globalModules]),
       systemSyscalls(this),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),

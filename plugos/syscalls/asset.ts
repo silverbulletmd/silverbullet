@@ -1,5 +1,4 @@
 import { SysCallMapping, System } from "../system.ts";
-import { AssetBundle } from "../asset_bundle/bundle.ts";
 
 export default function assetSyscalls(system: System<any>): SysCallMapping {
   return {
@@ -7,8 +6,9 @@ export default function assetSyscalls(system: System<any>): SysCallMapping {
       ctx,
       name: string,
     ): string => {
-      return (system.loadedPlugs.get(ctx.plug.name)!.manifest!
-        .assets as AssetBundle).readFileAsDataUrl(name);
+      return system.loadedPlugs.get(ctx.plug.name)!.assets!.readFileAsDataUrl(
+        name,
+      );
     },
   };
 }

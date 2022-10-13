@@ -1,4 +1,6 @@
 name: query
+imports:
+  - https://get.silverbullet.md/global.plug.json
 functions:
   updateMaterializedQueriesOnPage:
     path: ./materialized_queries.ts:updateMaterializedQueriesOnPage

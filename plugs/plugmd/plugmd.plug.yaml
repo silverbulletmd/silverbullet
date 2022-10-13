@@ -1,4 +1,6 @@
 name: plugmd
+imports:
+  - https://get.silverbullet.md/global.plug.json
 functions:
   check:
     path: "./plugmd.ts:checkCommand"

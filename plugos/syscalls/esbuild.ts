@@ -1,17 +1,16 @@
 import { sandboxCompile, sandboxCompileModule } from "../compile.ts";
 import { SysCallMapping } from "../system.ts";
+import { Manifest } from "../types.ts";
 
-// TODO: FIgure out a better way to do this
-const builtinModules = ["yaml", "handlebars"];
-
-export function esbuildSyscalls(): SysCallMapping {
+export function esbuildSyscalls(
+  imports: Manifest<any>[],
+): SysCallMapping {
   return {
     "esbuild.compile": async (
       _ctx,
       filename: string,
       code: string,
       functionName?: string,
-      excludeModules: string[] = [],
     ): Promise<string> => {
       return await sandboxCompile(
         filename,
@@ -19,7 +18,7 @@ export function esbuildSyscalls(): SysCallMapping {
         functionName,
         {
           debug: true,
-          excludeModules: [...builtinModules, ...excludeModules],
+          imports,
         },
       );
     },
@@ -28,7 +27,7 @@ export function esbuildSyscalls(): SysCallMapping {
       moduleName: string,
     ): Promise<string> => {
       return await sandboxCompileModule(moduleName, {
-        excludeModules: builtinModules,
+        imports,
       });
     },
   };

@@ -8,9 +8,8 @@ import {
   esbuild,
   sandboxCompileModule,
 } from "../compile.ts";
-import { path } from "../../server/deps.ts";
+import { cacheDir, flags, path } from "../deps.ts";
 
-import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 
 export async function bundle(
@@ -26,14 +25,9 @@ export async function bundle(
     throw new Error(`Missing 'name' in ${manifestPath}`);
   }
 
-  const allModulesToExclude = options.excludeModules
-    ? options.excludeModules.slice()
-    : [];
-
   // Dependencies
   for (let [name, moduleSpec] of Object.entries(manifest.dependencies || {})) {
     manifest.dependencies![name] = await sandboxCompileModule(moduleSpec);
-    allModulesToExclude.push(name);
   }
 
   // Assets
@@ -43,9 +37,38 @@ export async function bundle(
   );
   manifest.assets = assetsBundle.toJSON();
 
-  // Functions
+  // Imports
+  // Imports currently only "import" dependencies at this point, importing means: assume they're preloaded so we don't need to bundle them
+  const plugCache = path.join(cacheDir()!, "plugos");
+  await Deno.mkdir(plugCache, { recursive: true });
+  const imports: Manifest<any>[] = [];
+  for (const manifestUrl of manifest.imports || []) {
+    // Safe file name
+    const cachedManifestPath = manifestUrl.replaceAll(/[^a-zA-Z0-9]/g, "_");
+    try {
+      if (options.reload) {
+        throw new Error("Forced reload");
+      }
+      // Try to just load from the cache
+      const cachedManifest = JSON.parse(
+        await Deno.readTextFile(path.join(plugCache, cachedManifestPath)),
+      ) as Manifest<any>;
+      imports.push(cachedManifest);
+    } catch {
+      // Otherwise, download and cache
+      console.log("Caching plug", manifestUrl, "to", plugCache);
+      const cachedManifest = await (await fetch(manifestUrl))
+        .json() as Manifest<any>;
+      await Deno.writeTextFile(
+        path.join(plugCache, cachedManifestPath),
+        JSON.stringify(cachedManifest),
+      );
+      imports.push(cachedManifest);
+    }
+  }
 
-  for (let [name, def] of Object.entries(manifest.functions || {})) {
+  // Functions
+  for (const def of Object.values(manifest.functions || {})) {
     let jsFunctionName = "default",
       filePath = path.join(rootPath, def.path!);
     if (filePath.indexOf(":") !== -1) {
@@ -57,7 +80,12 @@ export async function bundle(
       jsFunctionName,
       {
         ...options,
-        excludeModules: allModulesToExclude,
+        imports: [
+          manifest,
+          ...imports,
+          // This is mostly for testing
+          ...options.imports || [],
+        ],
       },
     );
     delete def.path;
@@ -130,15 +158,14 @@ async function bundleRun(
 
 if (import.meta.main) {
   const args = flags.parse(Deno.args, {
-    boolean: ["debug", "watch"],
-    string: ["dist", "exclude", "importmap"],
+    boolean: ["debug", "watch", "reload", "info"],
+    string: ["dist", "importmap"],
     alias: { w: "watch" },
-    // collect: ["exclude"],
   });
 
   if (args._.length === 0) {
     console.log(
-      "Usage: plugos-bundle [--debug] [--dist <path>] [--importmap import_map.json] [--exclude=package1,package2] <manifest.plug.yaml> <manifest2.plug.yaml> ...",
+      "Usage: plugos-bundle [--debug] [--reload] [--dist <path>] [--info] [--importmap import_map.json] [--exclude=package1,package2] <manifest.plug.yaml> <manifest2.plug.yaml> ...",
     );
     Deno.exit(1);
   }
@@ -153,7 +180,8 @@ if (import.meta.main) {
     args.watch,
     {
       debug: args.debug,
-      excludeModules: args.exclude ? args.exclude.split(",") : undefined,
+      reload: args.reload,
+      info: args.info,
       importMap: args.importmap
         ? new URL(args.importmap, `file://${Deno.cwd()}/`)
         : undefined,

@@ -16,8 +16,8 @@ github:
 tasks:
   - name: Setup
     init: |
-      deno task install
       deno task build
+      deno task install
       gp sync-done setup
   - name: Server watcher
     init: |      

@@ -1,4 +1,6 @@
 name: tasks
+imports:
+  - https://get.silverbullet.md/global.plug.json
 syntax:
   DeadlineDate:
     firstCharacters:

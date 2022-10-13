@@ -1,11 +1,13 @@
 import { Manifest, RuntimeEnvironment } from "./types.ts";
 import { Sandbox } from "./sandbox.ts";
 import { System } from "./system.ts";
+import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export class Plug<HookT> {
   system: System<HookT>;
   sandbox: Sandbox;
   public manifest?: Manifest<HookT>;
+  public assets?: AssetBundle;
   readonly runtimeEnv: RuntimeEnvironment;
   grantedPermissions: string[] = [];
   name: string;
@@ -25,6 +27,9 @@ export class Plug<HookT> {
 
   async load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
+    this.assets = new AssetBundle(
+      manifest.assets ? manifest.assets as AssetJson : {},
+    );
     // TODO: These need to be explicitly granted, not just taken
     this.grantedPermissions = manifest.requiredPermissions || [];
     for (const [dep, code] of Object.entries(manifest.dependencies || {})) {

@@ -1,4 +1,6 @@
 name: markdown
+imports:
+  - https://get.silverbullet.md/global.plug.json
 functions:
   toggle:
     path: "./markdown.ts:togglePreview"

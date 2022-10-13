@@ -1,3 +1,4 @@
+// IMPORTANT: After modifiying this file, run `deno task generate` in the SB root to regenerate the asset bundle (`worker_bundle.json`), which will be imported for the runtime.
 import { safeRun } from "../util.ts";
 import { ConsoleLogger } from "./custom_logger.ts";
 import type { ControllerMessage, WorkerMessage } from "./worker.ts";
@@ -18,8 +19,9 @@ if (typeof Deno === "undefined") {
   };
 }
 
-let loadedFunctions = new Map<string, Function>();
-let pendingRequests = new Map<
+// deno-lint-ignore ban-types
+const loadedFunctions = new Map<string, Function>();
+const pendingRequests = new Map<
   number,
   {
     resolve: (result: unknown) => void;
@@ -55,7 +57,7 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
-let loadedModules = new Map<string, any>();
+const loadedModules = new Map<string, any>();
 
 // @ts-ignore: global to load dynamic imports
 self.require = (moduleName: string): any => {
@@ -69,7 +71,7 @@ self.require = (moduleName: string): any => {
   return mod;
 };
 
-// @ts-ignore
+// @ts-ignore: global overwrite on purpose
 self.console = new ConsoleLogger((level, message) => {
   workerPostMessage({ type: "log", level, message });
 }, false);
@@ -80,7 +82,7 @@ function wrapScript(code: string) {
 
 self.addEventListener("message", (event: { data: WorkerMessage }) => {
   safeRun(async () => {
-    let data = event.data;
+    const data = event.data;
     switch (data.type) {
       case "load":
         {

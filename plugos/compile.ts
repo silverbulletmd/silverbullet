@@ -9,13 +9,32 @@ export const esbuild: typeof esbuildWasm = Deno.run === undefined
 import { path } from "./deps.ts";
 import { denoPlugin } from "./forked/esbuild_deno_loader/mod.ts";
 import { patchDenoLibJS } from "./hack.ts";
+import { Manifest } from "./types.ts";
 
 export type CompileOptions = {
   debug?: boolean;
-  excludeModules?: string[];
-  meta?: boolean;
+  imports?: Manifest<any>[];
   importMap?: URL;
+  // Reload plug import cache
+  reload?: boolean;
+  // Print info on bundle size
+  info?: boolean;
 };
+
+function esBuildExternals(imports?: Manifest<any>[]) {
+  if (!imports) {
+    return [];
+  }
+  const externals: string[] = [];
+  for (const manifest of imports) {
+    for (const dep of Object.keys(manifest.dependencies || {})) {
+      if (!externals.includes(dep)) {
+        externals.push(dep);
+      }
+    }
+  }
+  return externals;
+}
 
 export async function compile(
   filePath: string,
@@ -49,8 +68,8 @@ export async function compile(
       sourcemap: false, //debug ? "inline" : false,
       minify: !options.debug,
       outfile: outFile,
-      metafile: true,
-      external: options.excludeModules || [],
+      metafile: options.info,
+      external: esBuildExternals(options.imports),
       treeShaking: true,
       plugins: [
         denoPlugin({
@@ -62,8 +81,8 @@ export async function compile(
       absWorkingDir: path.resolve(path.dirname(inFile)),
     });
 
-    if (options.meta) {
-      const text = await esbuild.analyzeMetafile(result.metafile);
+    if (options.info) {
+      const text = await esbuild.analyzeMetafile(result.metafile!);
       console.log("Bundle info for", functionName, text);
     }
 

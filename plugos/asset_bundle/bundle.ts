@@ -1,7 +1,10 @@
 import { base64Decode, base64Encode } from "./base64.ts";
 import { mime } from "../deps.ts";
 
-export type AssetJson = Record<string, string>;
+type DataUrl = string;
+
+// Mapping from path -> `data:mimetype;base64,base64-encoded-data` strings
+export type AssetJson = Record<string, DataUrl>;
 
 export class AssetBundle {
   readonly bundle: AssetJson;
