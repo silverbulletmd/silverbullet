@@ -1,14 +1,17 @@
-import type { ClickEvent, IndexTreeEvent } from "../../web/app_event.ts";
+import type {
+  ClickEvent,
+  IndexTreeEvent,
+  QueryProviderEvent,
+} from "$sb/app_event.ts";
 
-import { batchSet, queryPrefix } from "$sb/silverbullet-syscall/index.ts";
-import { readPage, writePage } from "$sb/silverbullet-syscall/space.ts";
-import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import {
-  dispatch,
-  filterBox,
-  getCursor,
-  getText,
-} from "$sb/silverbullet-syscall/editor.ts";
+  editor,
+  index,
+  markdown,
+  space,
+} from "$sb/silverbullet-syscall/mod.ts";
+
+import { events } from "$sb/plugos-syscall/mod.ts";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -18,10 +21,9 @@ import {
   ParseTree,
   renderToText,
   replaceNodesMatching,
-} from "../../common/tree.ts";
-import { removeQueries } from "../query/util.ts";
-import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
-import { niceDate } from "../core/dates.ts";
+} from "$sb/lib/tree.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { niceDate } from "$sb/lib/dates.ts";
 
 export type Task = {
   name: string;
@@ -40,11 +42,11 @@ function getDeadline(deadlineNode: ParseTree): string {
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
   // console.log("Indexing tasks");
-  let tasks: { key: string; value: Task }[] = [];
+  const tasks: { key: string; value: Task }[] = [];
   removeQueries(tree);
   collectNodesOfType(tree, "Task").forEach((n) => {
-    let complete = n.children![0].children![0].text! !== "[ ]";
-    let task: Task = {
+    const complete = n.children![0].children![0].text! !== "[ ]";
+    const task: Task = {
       name: "",
       done: complete,
     };
@@ -67,8 +69,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
-    let taskIndex = n.parent!.children!.indexOf(n);
-    let nestedItems = n.parent!.children!.slice(taskIndex + 1);
+    const taskIndex = n.parent!.children!.indexOf(n);
+    const nestedItems = n.parent!.children!.slice(taskIndex + 1);
     if (nestedItems.length > 0) {
       task.nested = nestedItems.map(renderToText).join("").trim();
     }
@@ -80,10 +82,10 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   });
 
   console.log("Found", tasks.length, "task(s)");
-  await batchSet(name, tasks);
+  await index.batchSet(name, tasks);
 }
 
-export async function taskToggle(event: ClickEvent) {
+export function taskToggle(event: ClickEvent) {
   return taskToggleAtPos(event.pos);
 }
 
@@ -92,7 +94,7 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
   if (node.children![0].text === "[x]" || node.children![0].text === "[X]") {
     changeTo = "[ ]";
   }
-  await dispatch({
+  await editor.dispatch({
     changes: {
       from: node.from,
       to: node.to,
@@ -103,19 +105,19 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
     },
   });
 
-  let parentWikiLinks = collectNodesMatching(
+  const parentWikiLinks = collectNodesMatching(
     node.parent!,
     (n) => n.type === "WikiLinkPage",
   );
-  for (let wikiLink of parentWikiLinks) {
-    let ref = wikiLink.children![0].text!;
+  for (const wikiLink of parentWikiLinks) {
+    const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
-      let [page, pos] = ref.split("@");
-      let text = (await readPage(page)).text;
+      const [page, pos] = ref.split("@");
+      let text = (await space.readPage(page));
 
-      let referenceMdTree = await parseMarkdown(text);
+      const referenceMdTree = await markdown.parseMarkdown(text);
       // Adding +1 to immediately hit the task marker
-      let taskMarkerNode = nodeAtPos(referenceMdTree, +pos + 1);
+      const taskMarkerNode = nodeAtPos(referenceMdTree, +pos + 1);
 
       if (!taskMarkerNode || taskMarkerNode.type !== "TaskMarker") {
         console.error(
@@ -127,44 +129,44 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
       taskMarkerNode.children![0].text = changeTo;
       text = renderToText(referenceMdTree);
       console.log("Updated reference paged text", text);
-      await writePage(page, text);
+      await space.writePage(page, text);
     }
   }
 }
 
 export async function taskToggleAtPos(pos: number) {
-  let text = await getText();
-  let mdTree = await parseMarkdown(text);
+  const text = await editor.getText();
+  const mdTree = await markdown.parseMarkdown(text);
   addParentPointers(mdTree);
 
-  let node = nodeAtPos(mdTree, pos);
+  const node = nodeAtPos(mdTree, pos);
   if (node && node.type === "TaskMarker") {
     await toggleTaskMarker(node, pos);
   }
 }
 
 export async function taskToggleCommand() {
-  let text = await getText();
-  let pos = await getCursor();
-  let tree = await parseMarkdown(text);
+  const text = await editor.getText();
+  const pos = await editor.getCursor();
+  const tree = await markdown.parseMarkdown(text);
   addParentPointers(tree);
 
-  let node = nodeAtPos(tree, pos);
+  const node = nodeAtPos(tree, pos);
   // We kwow node.type === Task (due to the task context)
-  let taskMarker = findNodeOfType(node!, "TaskMarker");
+  const taskMarker = findNodeOfType(node!, "TaskMarker");
   await toggleTaskMarker(taskMarker!, pos);
 }
 
 export async function postponeCommand() {
-  let text = await getText();
-  let pos = await getCursor();
-  let tree = await parseMarkdown(text);
+  const text = await editor.getText();
+  const pos = await editor.getCursor();
+  const tree = await markdown.parseMarkdown(text);
   addParentPointers(tree);
 
-  let node = nodeAtPos(tree, pos)!;
+  const node = nodeAtPos(tree, pos)!;
   // We kwow node.type === DeadlineDate (due to the task context)
-  let date = getDeadline(node);
-  let option = await filterBox(
+  const date = getDeadline(node);
+  const option = await editor.filterBox(
     "Postpone for...",
     [
       { name: "a day", orderId: 1 },
@@ -188,7 +190,7 @@ export async function postponeCommand() {
       d.setDate(d.getDate() + ((7 - d.getDay() + 1) % 7 || 7));
       break;
   }
-  await dispatch({
+  await editor.dispatch({
     changes: {
       from: node.from,
       to: node.to,
@@ -204,8 +206,8 @@ export async function postponeCommand() {
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<Task[]> {
-  let allTasks: Task[] = [];
-  for (let { key, page, value } of await queryPrefix("task:")) {
+  const allTasks: Task[] = [];
+  for (let { key, page, value } of await index.queryPrefix("task:")) {
     let [, pos] = key.split(":");
     allTasks.push({
       ...value,

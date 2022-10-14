@@ -50,7 +50,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
-    let result = this.performOperation("readFile", name);
+    const result = this.performOperation("readFile", name);
     if (result) {
       return result;
     }

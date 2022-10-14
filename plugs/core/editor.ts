@@ -1,16 +1,15 @@
-import * as clientStore from "../../syscall/silverbullet-syscall/clientStore.ts";
-import { enableReadOnlyMode } from "../../syscall/silverbullet-syscall/editor.ts";
+import { clientStore, editor } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function editorLoad() {
-  let readOnlyMode = await clientStore.get("readOnlyMode");
+  const readOnlyMode = await clientStore.get("readOnlyMode");
   if (readOnlyMode) {
-    await enableReadOnlyMode(true);
+    await editor.enableReadOnlyMode(true);
   }
 }
 
 export async function toggleReadOnlyMode() {
   let readOnlyMode = await clientStore.get("readOnlyMode");
   readOnlyMode = !readOnlyMode;
-  await enableReadOnlyMode(readOnlyMode);
+  await editor.enableReadOnlyMode(readOnlyMode);
   await clientStore.set("readOnlyMode", readOnlyMode);
 }

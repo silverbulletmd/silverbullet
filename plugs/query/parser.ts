@@ -2,35 +2,20 @@ import {
   collectNodesOfType,
   findNodeOfType,
   replaceNodesMatching,
-} from "../../common/tree.ts";
+} from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/parse_tree.ts";
 import { valueNodeToVal } from "./engine.ts";
 
 // @ts-ignore auto generated
 import { parser } from "./parse-query.js";
-
-export type Filter = {
-  op: string;
-  prop: string;
-  value: any;
-};
-
-export type ParsedQuery = {
-  table: string;
-  orderBy?: string;
-  orderDesc?: boolean;
-  limit?: number;
-  filter: Filter[];
-  select?: string[];
-  render?: string;
-};
+import { ParsedQuery, QueryFilter } from "$sb/lib/query.ts";
 
 export function parseQuery(query: string): ParsedQuery {
-  let n = lezerToParseTree(query, parser.parse(query).topNode);
+  const n = lezerToParseTree(query, parser.parse(query).topNode);
   // Clean the tree a bit
   replaceNodesMatching(n, (n) => {
     if (!n.type) {
-      let trimmed = n.text!.trim();
+      const trimmed = n.text!.trim();
       if (!trimmed) {
         return null;
       }
@@ -39,50 +24,47 @@ export function parseQuery(query: string): ParsedQuery {
   });
 
   // console.log("Parsed", JSON.stringify(n, null, 2));
-  let queryNode = n.children![0];
-  let parsedQuery: ParsedQuery = {
+  const queryNode = n.children![0];
+  const parsedQuery: ParsedQuery = {
     table: queryNode.children![0].children![0].text!,
     filter: [],
   };
-  let orderByNode = findNodeOfType(queryNode, "OrderClause");
+  const orderByNode = findNodeOfType(queryNode, "OrderClause");
   if (orderByNode) {
-    let nameNode = findNodeOfType(orderByNode, "Name");
+    const nameNode = findNodeOfType(orderByNode, "Name");
     parsedQuery.orderBy = nameNode!.children![0].text!;
-    let orderNode = findNodeOfType(orderByNode, "Order");
+    const orderNode = findNodeOfType(orderByNode, "Order");
     parsedQuery.orderDesc = orderNode
       ? orderNode.children![0].text! === "desc"
       : false;
   }
-  let limitNode = findNodeOfType(queryNode, "LimitClause");
+  const limitNode = findNodeOfType(queryNode, "LimitClause");
   if (limitNode) {
-    let nameNode = findNodeOfType(limitNode, "Number");
+    const nameNode = findNodeOfType(limitNode, "Number");
     parsedQuery.limit = valueNodeToVal(nameNode!);
   }
 
-  let filterNodes = collectNodesOfType(queryNode, "FilterExpr");
-  for (let filterNode of filterNodes) {
+  const filterNodes = collectNodesOfType(queryNode, "FilterExpr");
+  for (const filterNode of filterNodes) {
     let val: any = undefined;
-    let valNode = filterNode.children![2].children![0];
+    const valNode = filterNode.children![2].children![0];
     val = valueNodeToVal(valNode);
-    let f: Filter = {
+    const f: QueryFilter = {
       prop: filterNode.children![0].children![0].text!,
       op: filterNode.children![1].text!,
       value: val,
     };
     parsedQuery.filter.push(f);
   }
-  let selectNode = findNodeOfType(queryNode, "SelectClause");
+  const selectNode = findNodeOfType(queryNode, "SelectClause");
   if (selectNode) {
-    // console.log("Select node", JSON.stringify(selectNode));
     parsedQuery.select = [];
     collectNodesOfType(selectNode, "Name").forEach((t) => {
       parsedQuery.select!.push(t.children![0].text!);
     });
-    // let nameNode = findNodeOfType(selectNode, "Number");
-    // parsedQuery.limit = +nameNode!.children![0].text!;
   }
 
-  let renderNode = findNodeOfType(queryNode, "RenderClause");
+  const renderNode = findNodeOfType(queryNode, "RenderClause");
   if (renderNode) {
     let renderNameNode = findNodeOfType(renderNode, "PageRef");
     if (!renderNameNode) {
@@ -91,6 +73,5 @@ export function parseQuery(query: string): ParsedQuery {
     parsedQuery.render = valueNodeToVal(renderNameNode!);
   }
 
-  // console.log(JSON.stringify(queryNode, null, 2));
   return parsedQuery;
 }

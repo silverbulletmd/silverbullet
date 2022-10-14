@@ -1,13 +1,11 @@
-import { hideLhs, hideRhs } from "../../syscall/silverbullet-syscall/editor.ts";
-import { invokeFunction } from "../../syscall/silverbullet-syscall/system.ts";
-import * as clientStore from "../../syscall/silverbullet-syscall/clientStore.ts";
-import { readSettings } from "../lib/settings_page.ts";
+import { clientStore, editor, system } from "$sb/silverbullet-syscall/mod.ts";
+import { readSettings } from "$sb/lib/settings_page.ts";
 
 export async function togglePreview() {
-  let currentValue = !!(await clientStore.get("enableMarkdownPreview"));
+  const currentValue = !!(await clientStore.get("enableMarkdownPreview"));
   await clientStore.set("enableMarkdownPreview", !currentValue);
   if (!currentValue) {
-    await invokeFunction("client", "preview");
+    await system.invokeFunction("client", "preview");
   } else {
     await hideMarkdownPreview();
   }
@@ -15,6 +13,6 @@ export async function togglePreview() {
 
 async function hideMarkdownPreview() {
   const setting = await readSettings({ previewOnRHS: true });
-  const hide = setting.previewOnRHS ? hideRhs : hideLhs;
+  const hide = setting.previewOnRHS ? editor.hideRhs : editor.hideLhs;
   await hide();
 }

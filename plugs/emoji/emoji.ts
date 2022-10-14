@@ -1,8 +1,8 @@
 import emojis from "./emoji.json" assert { type: "json" };
-import { matchBefore } from "$sb/silverbullet-syscall/editor.ts";
+import { editor } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function emojiCompleter() {
-  const prefix = await matchBefore(":[\\w]+");
+  const prefix = await editor.matchBefore(":[\\w]+");
   if (!prefix) {
     return null;
   }

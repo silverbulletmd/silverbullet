@@ -14,8 +14,8 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.readPage": async (
       _ctx,
       name: string,
-    ): Promise<{ text: string; meta: PageMeta }> => {
-      return await editor.space.readPage(name);
+    ): Promise<string> => {
+      return (await editor.space.readPage(name)).text;
     },
     "space.getPageMeta": async (_ctx, name: string): Promise<PageMeta> => {
       return await editor.space.getPageMeta(name);
@@ -46,8 +46,8 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.readAttachment": async (
       _ctx,
       name: string,
-    ): Promise<{ data: FileData; meta: AttachmentMeta }> => {
-      return await editor.space.readAttachment(name, "dataurl");
+    ): Promise<FileData> => {
+      return (await editor.space.readAttachment(name, "dataurl")).data;
     },
     "space.getAttachmentMeta": async (
       _ctx,

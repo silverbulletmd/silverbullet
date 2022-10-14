@@ -1,6 +1,6 @@
 import { syscall } from "./syscall.ts";
 
-export function dispatch(
+export function dispatchEvent(
   eventName: string,
   data: any,
   timeout?: number,

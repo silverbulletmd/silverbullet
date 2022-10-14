@@ -139,11 +139,11 @@ functions:
 
   # Full text search
   # searchIndex:
-  #   path: ./search.ts:index
+  #   path: ./search.ts:pageIndex
   #   events:
   #     - page:index
   # searchUnindex:
-  #   path: "./search.ts:unindex"
+  #   path: "./search.ts:pageUnindex"
   #   env: server
   #   events:
   #     - page:deleted

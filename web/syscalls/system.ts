@@ -4,7 +4,7 @@ import { CommandDef } from "../hooks/command.ts";
 
 export function systemSyscalls(editor: Editor): SysCallMapping {
   return {
-    "system.invokeFunction": async (
+    "system.invokeFunction": (
       ctx,
       env: string,
       name: string,
@@ -20,23 +20,20 @@ export function systemSyscalls(editor: Editor): SysCallMapping {
 
       return editor.space.invokeFunction(ctx.plug, env, name, args);
     },
-    "system.invokeCommand": async (ctx, name: string) => {
+    "system.invokeCommand": (ctx, name: string) => {
       return editor.runCommandByName(name);
     },
-    "system.listCommands": async (
-      ctx,
-    ): Promise<{ [key: string]: CommandDef }> => {
-      let allCommands: { [key: string]: CommandDef } = {};
+    "system.listCommands": (): { [key: string]: CommandDef } => {
+      const allCommands: { [key: string]: CommandDef } = {};
       for (let [cmd, def] of editor.commandHook.editorCommands) {
         allCommands[cmd] = def.command;
       }
       return allCommands;
     },
-    "system.reloadPlugs": async () => {
+    "system.reloadPlugs": () => {
       return editor.reloadPlugs();
     },
-
-    "sandbox.getServerLogs": async (ctx) => {
+    "sandbox.getServerLogs": (ctx) => {
       return editor.space.proxySyscall(ctx.plug, "sandbox.getLogs", []);
     },
   };

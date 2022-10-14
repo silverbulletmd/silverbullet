@@ -17,7 +17,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       _ctx,
       filePath: string,
       encoding: "utf8" | "dataurl" = "utf8",
-    ): Promise<{ text: string; meta: FileMeta }> => {
+    ): Promise<string> => {
       const p = resolvedPath(filePath);
       let text = "";
       if (encoding === "utf8") {
@@ -27,17 +27,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
           base64Encode(await Deno.readFile(p))
         }`;
       }
-      const s = await Deno.stat(p);
-      return {
-        text,
-        meta: {
-          name: filePath,
-          lastModified: s.mtime!.getTime(),
-          contentType: mime.getType(filePath) || "application/octet-stream",
-          size: s.size,
-          perm: "rw",
-        },
-      };
+      return text;
     },
     "fs.getFileMeta": async (_ctx, filePath: string): Promise<FileMeta> => {
       const p = resolvedPath(filePath);

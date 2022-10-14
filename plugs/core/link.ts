@@ -1,14 +1,6 @@
-import { nodeAtPos } from "../../common/tree.ts";
-import {
-  filterBox,
-  flashNotification,
-  getCursor,
-  getText,
-  replaceRange,
-} from "../../syscall/silverbullet-syscall/editor.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
-import { dispatch as dispatchEvent } from "../../syscall/plugos-syscall/event.ts";
-import { invokeFunction } from "../../syscall/silverbullet-syscall/system.ts";
+import { nodeAtPos } from "$sb/lib/tree.ts";
+import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
+import { events } from "$sb/plugos-syscall/mod.ts";
 
 type UnfurlOption = {
   id: string;
@@ -16,16 +8,16 @@ type UnfurlOption = {
 };
 
 export async function unfurlCommand() {
-  let mdTree = await parseMarkdown(await getText());
-  let nakedUrlNode = nodeAtPos(mdTree, await getCursor());
-  let url = nakedUrlNode!.children![0].text!;
+  const mdTree = await markdown.parseMarkdown(await editor.getText());
+  const nakedUrlNode = nodeAtPos(mdTree, await editor.getCursor());
+  const url = nakedUrlNode!.children![0].text!;
   console.log("Got URL to unfurl", url);
-  let optionResponses = await dispatchEvent("unfurl:options", url);
-  let options: UnfurlOption[] = [];
-  for (let resp of optionResponses) {
+  const optionResponses = await events.dispatchEvent("unfurl:options", url);
+  const options: UnfurlOption[] = [];
+  for (const resp of optionResponses) {
     options.push(...resp);
   }
-  let selectedUnfurl: any = await filterBox(
+  const selectedUnfurl: any = await editor.filterBox(
     "Unfurl",
     options,
     "Select the unfurl strategy of your choice",
@@ -34,19 +26,23 @@ export async function unfurlCommand() {
     return;
   }
   try {
-    let replacement = await invokeFunction(
+    const replacement = await system.invokeFunction(
       "server",
       "unfurlExec",
       selectedUnfurl.id,
       url,
     );
-    await replaceRange(nakedUrlNode?.from!, nakedUrlNode?.to!, replacement);
+    await editor.replaceRange(
+      nakedUrlNode?.from!,
+      nakedUrlNode?.to!,
+      replacement,
+    );
   } catch (e: any) {
-    await flashNotification(e.message, "error");
+    await editor.flashNotification(e.message, "error");
   }
 }
 
-export async function titleUnfurlOptions(url: string): Promise<UnfurlOption[]> {
+export function titleUnfurlOptions(): UnfurlOption[] {
   return [
     {
       id: "title-unfurl",
@@ -57,7 +53,7 @@ export async function titleUnfurlOptions(url: string): Promise<UnfurlOption[]> {
 
 // Run on the server because plugs will likely rely on fetch for this
 export async function unfurlExec(id: string, url: string): Promise<string> {
-  let replacement = await dispatchEvent(`unfurl:${id}`, url);
+  const replacement = await events.dispatchEvent(`unfurl:${id}`, url);
   if (replacement.length === 0) {
     throw new Error("Unfurl failed");
   } else {
@@ -68,13 +64,13 @@ export async function unfurlExec(id: string, url: string): Promise<string> {
 const titleRegex = /<title[^>]*>\s*([^<]+)\s*<\/title\s*>/i;
 
 export async function titleUnfurl(url: string): Promise<string> {
-  let response = await fetch(url);
+  const response = await fetch(url);
   if (response.status < 200 || response.status >= 300) {
     console.error("Unfurl failed", await response.text());
     throw new Error(`Failed to fetch: ${await response.statusText}`);
   }
-  let body = await response.text();
-  let match = titleRegex.exec(body);
+  const body = await response.text();
+  const match = titleRegex.exec(body);
   if (match) {
     return `[${match[1]}](${url})`;
   } else {

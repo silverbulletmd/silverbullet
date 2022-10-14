@@ -2,7 +2,7 @@ import { readYamlPage } from "./yaml_page.ts";
 import { notifyUser } from "./util.ts";
 import * as YAML from "yaml";
 
-import { writePage } from "../../syscall/silverbullet-syscall/space.ts";
+import { space } from "$sb/silverbullet-syscall/mod.ts";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
@@ -18,9 +18,9 @@ const SETTINGS_PAGE = "SETTINGS";
 
 export async function readSettings<T extends object>(settings: T): Promise<T> {
   try {
-    let allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
+    const allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
     // TODO: I'm sure there's a better way to type this than "any"
-    let collectedSettings: any = {};
+    const collectedSettings: any = {};
     for (let [key, defaultVal] of Object.entries(settings)) {
       if (key in allSettings) {
         collectedSettings[key] = allSettings[key];
@@ -47,10 +47,10 @@ export async function writeSettings<T extends object>(settings: T) {
   let readSettings = {};
   try {
     readSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
-  } catch (e: any) {
+  } catch {
     await notifyUser("Creating a new SETTINGS page...", "info");
   }
-  const writeSettings = { ...readSettings, ...settings };
+  const writeSettings: any = { ...readSettings, ...settings };
   // const doc = new YAML.Document();
   // doc.contents = writeSettings;
   const contents =
@@ -59,5 +59,5 @@ export async function writeSettings<T extends object>(settings: T) {
         writeSettings,
       )
     }\n\`\`\``; // might need \r\n for windows?
-  await writePage(SETTINGS_PAGE, contents);
+  await space.writePage(SETTINGS_PAGE, contents);
 }

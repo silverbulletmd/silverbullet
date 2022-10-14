@@ -1,26 +1,22 @@
-import {
-  getCurrentPage,
-  reloadPage,
-  save,
-} from "$sb/silverbullet-syscall/editor.ts";
+import { editor } from "$sb/silverbullet-syscall/mod.ts";
 
 import Handlebars from "handlebars";
 
-import { readPage, writePage } from "$sb/silverbullet-syscall/space.ts";
+import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 import { renderQuery } from "./engine.ts";
 import { parseQuery } from "./parser.ts";
 import { replaceTemplateVars } from "../core/template.ts";
-import { jsonToMDTable, queryRegex } from "./util.ts";
-import { dispatch } from "$sb/plugos-syscall/event.ts";
-import { replaceAsync } from "../lib/util.ts";
-import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
-import { nodeAtPos, renderToText } from "../../common/tree.ts";
+import { jsonToMDTable } from "./util.ts";
+import { queryRegex } from "$sb/lib/query.ts";
+import { events } from "$sb/plugos-syscall/mod.ts";
+import { replaceAsync } from "$sb/lib/util.ts";
+import { nodeAtPos, renderToText } from "$sb/lib/tree.ts";
 import { extractMeta } from "./data.ts";
 
 export async function updateMaterializedQueriesCommand() {
-  const currentPage = await getCurrentPage();
-  await save();
+  const currentPage = await editor.getCurrentPage();
+  await editor.save();
   if (
     await invokeFunction(
       "server",
@@ -29,7 +25,7 @@ export async function updateMaterializedQueriesCommand() {
     )
   ) {
     console.log("Going reload the page");
-    await reloadPage();
+    await editor.reloadPage();
   }
 }
 
@@ -43,13 +39,13 @@ function updateTemplateInstantiations(
   return replaceAsync(
     text,
     templateInstRegex,
-    async (fullMatch, startInst, type, template, args, body, endInst) => {
+    async (fullMatch, startInst, type, template, args, _body, endInst) => {
       args = args.trim();
       let parsedArgs = {};
       if (args) {
         try {
           parsedArgs = JSON.parse(args);
-        } catch (e) {
+        } catch {
           console.error("Failed to parse template instantiation args", args);
           return fullMatch;
         }
@@ -57,21 +53,21 @@ function updateTemplateInstantiations(
       let templateText = "";
       if (template.startsWith("http://") || template.startsWith("https://")) {
         try {
-          let req = await fetch(template);
+          const req = await fetch(template);
           templateText = await req.text();
         } catch (e: any) {
           templateText = `ERROR: ${e.message}`;
         }
       } else {
-        templateText = (await readPage(template)).text;
+        templateText = await space.readPage(template);
       }
       let newBody = templateText;
       // if it's a template injection (not a literal "include")
       if (type === "use" || type === "use-verbose") {
-        let tree = await parseMarkdown(templateText);
+        const tree = await markdown.parseMarkdown(templateText);
         extractMeta(tree, ["$disableDirectives"]);
         templateText = renderToText(tree);
-        let templateFn = Handlebars.compile(
+        const templateFn = Handlebars.compile(
           replaceTemplateVars(templateText, pageName),
           { noEscape: true },
         );
@@ -87,11 +83,11 @@ function cleanTemplateInstantiations(text: string): Promise<string> {
     text,
     templateInstRegex,
     (
-      fullMatch,
+      _fullMatch,
       startInst,
       type,
-      template,
-      args,
+      _template,
+      _args,
       body,
       endInst,
     ): Promise<string> => {
@@ -99,9 +95,9 @@ function cleanTemplateInstantiations(text: string): Promise<string> {
         body = body.replaceAll(
           queryRegex,
           (
-            fullMatch: string,
-            startQuery: string,
-            query: string,
+            _fullMatch: string,
+            _startQuery: string,
+            _query: string,
             body: string,
           ) => {
             return body.trim();
@@ -120,7 +116,7 @@ export async function updateMaterializedQueriesOnPage(
   // console.log("Updating queries");
   let text = "";
   try {
-    text = (await readPage(pageName)).text;
+    text = await space.readPage(pageName);
   } catch {
     console.warn(
       "Could not read page",
@@ -130,8 +126,8 @@ export async function updateMaterializedQueriesOnPage(
     return false;
   }
   let newText = await updateTemplateInstantiations(text, pageName);
-  let tree = await parseMarkdown(newText);
-  let metaData = extractMeta(tree, ["$disableDirectives"]);
+  const tree = await markdown.parseMarkdown(newText);
+  const metaData = extractMeta(tree, ["$disableDirectives"]);
   if (metaData.$disableDirectives) {
     console.log("Directives disabled, skipping");
     return false;
@@ -141,18 +137,18 @@ export async function updateMaterializedQueriesOnPage(
   newText = await replaceAsync(
     newText,
     queryRegex,
-    async (fullMatch, startQuery, query, body, endQuery, index) => {
-      let currentNode = nodeAtPos(tree, index + 1);
+    async (fullMatch, startQuery, query, _body, endQuery, index) => {
+      const currentNode = nodeAtPos(tree, index + 1);
       if (currentNode?.type !== "CommentBlock") {
         // If not a comment block, it's likely a code block, ignore
         return fullMatch;
       }
 
-      let parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
+      const parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
       // console.log("Parsed query", parsedQuery);
       // Let's dispatch an event and see what happens
-      let results = await dispatch(
+      const results = await events.dispatchEvent(
         `query:${parsedQuery.table}`,
         { query: parsedQuery, pageName: pageName },
         10 * 1000,
@@ -161,7 +157,7 @@ export async function updateMaterializedQueriesOnPage(
         return `${startQuery}\n${endQuery}`;
       } else if (results.length === 1) {
         if (parsedQuery.render) {
-          let rendered = await renderQuery(parsedQuery, results[0]);
+          const rendered = await renderQuery(parsedQuery, results[0]);
           return `${startQuery}\n${rendered.trim()}\n${endQuery}`;
         } else {
           return `${startQuery}\n${jsonToMDTable(results[0])}\n${endQuery}`;
@@ -174,7 +170,7 @@ export async function updateMaterializedQueriesOnPage(
   );
   newText = await cleanTemplateInstantiations(newText);
   if (text !== newText) {
-    await writePage(pageName, newText);
+    await space.writePage(pageName, newText);
     return true;
   }
   return false;

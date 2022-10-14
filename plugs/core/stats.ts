@@ -1,8 +1,4 @@
-import {
-  flashNotification,
-  getText,
-} from "../../syscall/silverbullet-syscall/editor.ts";
-import { listPages } from "../../syscall/silverbullet-syscall/space.ts";
+import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
 
 function countWords(str: string): number {
   const matches = str.match(/[\w\d\'-]+/gi);
@@ -15,11 +11,11 @@ function readingTime(wordCount: number): number {
 }
 
 export async function statsCommand() {
-  const text = await getText();
-  const allPages = await listPages();
+  const text = await editor.getText();
+  const allPages = await space.listPages();
   const wordCount = countWords(text);
   const time = readingTime(wordCount);
-  await flashNotification(
+  await editor.flashNotification(
     `${wordCount} words; ${time} minutes read; ${allPages.length} total pages in space.`,
   );
 }

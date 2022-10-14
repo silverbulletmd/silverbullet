@@ -1,39 +1,26 @@
-import type { IndexEvent, IndexTreeEvent } from "../../web/app_event.ts";
+import type {
+  IndexEvent,
+  IndexTreeEvent,
+  QueryProviderEvent,
+} from "$sb/app_event.ts";
 import {
-  batchSet,
-  clearPageIndex as clearPageIndexSyscall,
-  clearPageIndexForPage,
-  queryPrefix,
-  set,
-} from "../../syscall/silverbullet-syscall/index.ts";
+  editor,
+  index,
+  markdown,
+  space,
+  system,
+} from "$sb/silverbullet-syscall/mod.ts";
 
-import {
-  flashNotification,
-  getCurrentPage,
-  getCursor,
-  getText,
-  matchBefore,
-  navigate,
-  prompt,
-} from "../../syscall/silverbullet-syscall/editor.ts";
+import { events, store } from "$sb/plugos-syscall/mod.ts";
 
-import { dispatch } from "../../syscall/plugos-syscall/event.ts";
-import {
-  deletePage as deletePageSyscall,
-  listPages,
-  readPage,
-  writePage,
-} from "../../syscall/silverbullet-syscall/space.ts";
-import { invokeFunction } from "../../syscall/silverbullet-syscall/system.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
 import {
   addParentPointers,
   collectNodesMatching,
   ParseTree,
   renderToText,
   replaceNodesMatching,
-} from "../../common/tree.ts";
-import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+} from "$sb/lib/tree.ts";
+import { applyQuery } from "$sb/lib/query.ts";
 import { extractMeta } from "../query/data.ts";
 
 // Key space:
@@ -41,19 +28,19 @@ import { extractMeta } from "../query/data.ts";
 //   meta => metaJson
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
-  let backLinks: { key: string; value: string }[] = [];
+  const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   console.log("Now indexing", name);
-  let pageMeta = extractMeta(tree);
+  const pageMeta = extractMeta(tree);
   if (Object.keys(pageMeta).length > 0) {
     console.log("Extracted page meta data", pageMeta);
     // Don't index meta data starting with $
-    for (let key in pageMeta) {
+    for (const key in pageMeta) {
       if (key.startsWith("$")) {
         delete pageMeta[key];
       }
     }
-    await set(name, "meta:", pageMeta);
+    await index.set(name, "meta:", pageMeta);
   }
 
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
@@ -67,18 +54,18 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     });
   });
   console.log("Found", backLinks.length, "wiki link(s)");
-  await batchSet(name, backLinks);
+  await index.batchSet(name, backLinks);
 }
 
 export async function pageQueryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let allPages = await listPages();
-  let allPageMap: Map<string, any> = new Map(
+  let allPages = await space.listPages();
+  const allPageMap: Map<string, any> = new Map(
     allPages.map((pm) => [pm.name, pm]),
   );
-  for (let { page, value } of await queryPrefix("meta:")) {
-    let p = allPageMap.get(page);
+  for (const { page, value } of await index.queryPrefix("meta:")) {
+    const p = allPageMap.get(page);
     if (p) {
       for (let [k, v] of Object.entries(value)) {
         p[k] = v;
@@ -93,8 +80,10 @@ export async function linkQueryProvider({
   query,
   pageName,
 }: QueryProviderEvent): Promise<any[]> {
-  let links: any[] = [];
-  for (let { value: name, key } of await queryPrefix(`pl:${pageName}:`)) {
+  const links: any[] = [];
+  for (
+    const { value: name, key } of await index.queryPrefix(`pl:${pageName}:`)
+  ) {
     const [, , pos] = key.split(":"); // Key: pl:page:pos
     links.push({ name, pos });
   }
@@ -102,18 +91,18 @@ export async function linkQueryProvider({
 }
 
 export async function deletePage() {
-  let pageName = await getCurrentPage();
+  const pageName = await editor.getCurrentPage();
   console.log("Navigating to index page");
-  await navigate("");
+  await editor.navigate("");
   console.log("Deleting page from space");
-  await deletePageSyscall(pageName);
+  await space.deletePage(pageName);
 }
 
 export async function renamePage() {
-  const oldName = await getCurrentPage();
-  const cursor = await getCursor();
+  const oldName = await editor.getCurrentPage();
+  const cursor = await editor.getCursor();
   console.log("Old name is", oldName);
-  const newName = await prompt(`Rename ${oldName} to:`, oldName);
+  const newName = await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return;
   }
@@ -123,45 +112,45 @@ export async function renamePage() {
   }
   console.log("New name", newName);
 
-  let pagesToUpdate = await getBackLinks(oldName);
+  const pagesToUpdate = await getBackLinks(oldName);
   console.log("All pages containing backlinks", pagesToUpdate);
 
-  let text = await getText();
+  const text = await editor.getText();
   console.log("Writing new page to space");
-  await writePage(newName, text);
+  await space.writePage(newName, text);
   console.log("Navigating to new page");
-  await navigate(newName, cursor, true);
+  await editor.navigate(newName, cursor, true);
   console.log("Deleting page from space");
-  await deletePageSyscall(oldName);
+  await space.deletePage(oldName);
 
-  let pageToUpdateSet = new Set<string>();
-  for (let pageToUpdate of pagesToUpdate) {
+  const pageToUpdateSet = new Set<string>();
+  for (const pageToUpdate of pagesToUpdate) {
     pageToUpdateSet.add(pageToUpdate.page);
   }
 
-  for (let pageToUpdate of pageToUpdateSet) {
+  for (const pageToUpdate of pageToUpdateSet) {
     if (pageToUpdate === oldName) {
       continue;
     }
     console.log("Now going to update links in", pageToUpdate);
-    let { text } = await readPage(pageToUpdate);
+    const text = await space.readPage(pageToUpdate);
     // console.log("Received text", text);
     if (!text) {
       // Page likely does not exist, but at least we can skip it
       continue;
     }
-    let mdTree = await parseMarkdown(text);
+    const mdTree = await markdown.parseMarkdown(text);
     addParentPointers(mdTree);
     replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
-        let pageName = n.children![0].text!;
+        const pageName = n.children![0].text!;
         if (pageName === oldName) {
           n.children![0].text = newName;
           return n;
         }
         // page name with @pos position
         if (pageName.startsWith(`${oldName}@`)) {
-          let [, pos] = pageName.split("@");
+          const [, pos] = pageName.split("@");
           n.children![0].text = `${newName}@${pos}`;
           return n;
         }
@@ -169,10 +158,10 @@ export async function renamePage() {
       return;
     });
     // let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
-    let newText = renderToText(mdTree);
+    const newText = renderToText(mdTree);
     if (text !== newText) {
       console.log("Changes made, saving...");
-      await writePage(pageToUpdate, newText);
+      await space.writePage(pageToUpdate, newText);
     }
   }
 }
@@ -183,10 +172,10 @@ type BackLink = {
 };
 
 async function getBackLinks(pageName: string): Promise<BackLink[]> {
-  let allBackLinks = await queryPrefix(`pl:${pageName}:`);
-  let pagesToUpdate: BackLink[] = [];
-  for (let { key, value } of allBackLinks) {
-    let keyParts = key.split(":");
+  const allBackLinks = await index.queryPrefix(`pl:${pageName}:`);
+  const pagesToUpdate: BackLink[] = [];
+  for (const { key, value } of allBackLinks) {
+    const keyParts = key.split(":");
     pagesToUpdate.push({
       page: value,
       pos: +keyParts[keyParts.length - 1],
@@ -196,18 +185,18 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 }
 
 export async function reindexCommand() {
-  await flashNotification("Reindexing...");
-  await invokeFunction("server", "reindexSpace");
-  await flashNotification("Reindexing done");
+  await editor.flashNotification("Reindexing...");
+  await system.invokeFunction("server", "reindexSpace");
+  await editor.flashNotification("Reindexing done");
 }
 
 // Completion
 export async function pageComplete() {
-  let prefix = await matchBefore("\\[\\[[^\\]@:]*");
+  const prefix = await editor.matchBefore("\\[\\[[^\\]@:]*");
   if (!prefix) {
     return null;
   }
-  let allPages = await listPages();
+  const allPages = await space.listPages();
   return {
     from: prefix.from + 2,
     options: allPages.map((pageMeta) => ({
@@ -220,14 +209,14 @@ export async function pageComplete() {
 // Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");
-  await clearPageIndexSyscall();
+  await index.clearPageIndex();
   console.log("Listing all pages");
-  let pages = await listPages();
-  for (let { name } of pages) {
+  const pages = await space.listPages();
+  for (const { name } of pages) {
     console.log("Indexing", name);
-    const { text } = await readPage(name);
-    let parsed = await parseMarkdown(text);
-    await dispatch("page:index", {
+    const text = await space.readPage(name);
+    const parsed = await markdown.parseMarkdown(text);
+    await events.dispatchEvent("page:index", {
       name,
       tree: parsed,
     });
@@ -237,12 +226,12 @@ export async function reindexSpace() {
 
 export async function clearPageIndex(page: string) {
   console.log("Clearing page index for page", page);
-  await clearPageIndexForPage(page);
+  await index.clearPageIndexForPage(page);
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
-  await dispatch("page:index", {
+  await events.dispatchEvent("page:index", {
     name,
-    tree: await parseMarkdown(text),
+    tree: await markdown.parseMarkdown(text),
   });
 }

@@ -2,9 +2,9 @@ import type {
   FileData,
   FileEncoding,
 } from "../../common/spaces/space_primitives.ts";
-import { renderToText, replaceNodesMatching } from "../../common/tree.ts";
+import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
+import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 
 const pagePrefix = "💭 ";
 
@@ -55,7 +55,7 @@ async function translateLinksWithPrefix(
   text: string,
   prefix: string,
 ): Promise<string> {
-  let tree = await parseMarkdown(text);
+  const tree = await parseMarkdown(text);
   replaceNodesMatching(tree, (tree) => {
     if (tree.type === "WikiLinkPage") {
       // Add the prefix in the link text
@@ -67,12 +67,12 @@ async function translateLinksWithPrefix(
   return text;
 }
 
-export async function getFileMetaCloud(name: string): Promise<FileMeta> {
-  return {
+export function getFileMetaCloud(name: string): Promise<FileMeta> {
+  return Promise.resolve({
     name,
     size: 0,
     contentType: "text/markdown",
     lastModified: 0,
     perm: "ro",
-  };
+  });
 }

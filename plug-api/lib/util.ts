@@ -1,4 +1,4 @@
-import { flashNotification } from "../../syscall/silverbullet-syscall/editor.ts";
+import { editor } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function replaceAsync(
   str: string,
@@ -26,9 +26,9 @@ export function isBrowser() {
   return !isServer();
 }
 
-export async function notifyUser(message: string, type?: "info" | "error") {
+export function notifyUser(message: string, type?: "info" | "error") {
   if (isBrowser()) {
-    return flashNotification(message, type);
+    return editor.flashNotification(message, type);
   }
   const log = type === "error" ? console.error : console.log;
   log(message); // we should end up sending the message to the user, users dont read logs.

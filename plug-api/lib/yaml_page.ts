@@ -1,17 +1,13 @@
-import { findNodeOfType, traverseTree } from "../../common/tree.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
-import {
-  readPage,
-  writePage,
-} from "../../syscall/silverbullet-syscall/space.ts";
+import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
+import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import * as YAML from "yaml";
 
 export async function readYamlPage(
   pageName: string,
   allowedLanguages = ["yaml"],
 ): Promise<any> {
-  const { text } = await readPage(pageName);
-  let tree = await parseMarkdown(text);
+  const text = await space.readPage(pageName);
+  const tree = await markdown.parseMarkdown(text);
   let data: any = {};
 
   traverseTree(tree, (t): boolean => {
@@ -19,19 +15,19 @@ export async function readYamlPage(
     if (t.type !== "FencedCode") {
       return false;
     }
-    let codeInfoNode = findNodeOfType(t, "CodeInfo");
+    const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
       return false;
     }
     if (!allowedLanguages.includes(codeInfoNode.children![0].text!)) {
       return false;
     }
-    let codeTextNode = findNodeOfType(t, "CodeText");
+    const codeTextNode = findNodeOfType(t, "CodeText");
     if (!codeTextNode) {
       // Honestly, this shouldn't happen
       return false;
     }
-    let codeText = codeTextNode.children![0].text!;
+    const codeText = codeTextNode.children![0].text!;
     try {
       data = YAML.parse(codeText);
     } catch (e: any) {
@@ -49,5 +45,5 @@ export async function writeYamlPage(
   data: any,
 ): Promise<void> {
   const text = YAML.stringify(data);
-  await writePage(pageName, "```yaml\n" + text + "\n```");
+  await space.writePage(pageName, "```yaml\n" + text + "\n```");
 }

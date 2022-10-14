@@ -1,4 +1,4 @@
-import { ParseTree } from "./tree.ts";
+import { ParseTree } from "$sb/lib/tree.ts";
 
 import type { SyntaxNode } from "./deps.ts";
 import type { Language } from "./deps.ts";

@@ -48,7 +48,7 @@ import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
 
-import { AppEvent, ClickEvent } from "./app_event.ts";
+import { AppEvent, ClickEvent } from "../plug-api/app_event.ts";
 import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
 import { PageNavigator } from "./components/page_navigator.tsx";

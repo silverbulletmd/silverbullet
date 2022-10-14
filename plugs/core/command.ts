@@ -1,12 +1,11 @@
-import { matchBefore } from "../../syscall/silverbullet-syscall/editor.ts";
-import { listCommands } from "../../syscall/silverbullet-syscall/system.ts";
+import { editor, system } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function commandComplete() {
-  let prefix = await matchBefore("\\{\\[[^\\]]*");
+  const prefix = await editor.matchBefore("\\{\\[[^\\]]*");
   if (!prefix) {
     return null;
   }
-  let allCommands = await listCommands();
+  const allCommands = await system.listCommands();
 
   return {
     from: prefix.from + 2,

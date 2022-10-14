@@ -1,16 +1,8 @@
-import type { IndexTreeEvent } from "../../web/app_event.ts";
+import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 
-import {
-  batchSet,
-  queryPrefix,
-} from "../../syscall/silverbullet-syscall/index.ts";
-import {
-  collectNodesOfType,
-  ParseTree,
-  renderToText,
-} from "../../common/tree.ts";
-import { removeQueries } from "../query/util.ts";
-import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
+import { index } from "$sb/silverbullet-syscall/mod.ts";
+import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 
 export type Item = {
   name: string;
@@ -22,12 +14,12 @@ export type Item = {
 };
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
-  let items: { key: string; value: Item }[] = [];
+  const items: { key: string; value: Item }[] = [];
   removeQueries(tree);
 
   console.log("Indexing items", name);
 
-  let coll = collectNodesOfType(tree, "ListItem");
+  const coll = collectNodesOfType(tree, "ListItem");
 
   coll.forEach((n) => {
     if (!n.children) {
@@ -38,9 +30,9 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       return;
     }
 
-    let textNodes: ParseTree[] = [];
+    const textNodes: ParseTree[] = [];
     let nested: string | undefined;
-    for (let child of n.children!.slice(1)) {
+    for (const child of n.children!.slice(1)) {
       if (child.type === "OrderedList" || child.type === "BulletList") {
         nested = renderToText(child);
         break;
@@ -48,8 +40,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       textNodes.push(child);
     }
 
-    let itemText = textNodes.map(renderToText).join("").trim();
-    let item: Item = {
+    const itemText = textNodes.map(renderToText).join("").trim();
+    const item: Item = {
       name: itemText,
     };
     if (nested) {
@@ -68,15 +60,15 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     });
   });
   console.log("Found", items.length, "item(s)");
-  await batchSet(name, items);
+  await index.batchSet(name, items);
 }
 
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let allItems: Item[] = [];
-  for (let { key, page, value } of await queryPrefix("it:")) {
-    let [, pos] = key.split(":");
+  const allItems: Item[] = [];
+  for (const { key, page, value } of await index.queryPrefix("it:")) {
+    const [, pos] = key.split(":");
     allItems.push({
       ...value,
       page: page,

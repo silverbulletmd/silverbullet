@@ -11,7 +11,7 @@ export function getPageMeta(name: string): Promise<PageMeta> {
 
 export function readPage(
   name: string,
-): Promise<{ text: string; meta: PageMeta }> {
+): Promise<string> {
   return syscall("space.readPage", name);
 }
 
@@ -37,7 +37,7 @@ export function getAttachmentMeta(name: string): Promise<AttachmentMeta> {
 
 export function readAttachment(
   name: string,
-): Promise<{ data: string; meta: AttachmentMeta }> {
+): Promise<string> {
   return syscall("space.readAttachment", name);
 }
 

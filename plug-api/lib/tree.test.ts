@@ -1,4 +1,4 @@
-import { parse } from "./parse_tree.ts";
+// import { parse } from "./parse_tree.ts";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -8,8 +8,9 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import wikiMarkdownLang from "./parser.ts";
-import { assertEquals, assertNotEquals } from "../test_deps.ts";
+import wikiMarkdownLang from "../../common/parser.ts";
+import { assertEquals, assertNotEquals } from "../../test_deps.ts";
+import { parse } from "../../common/parse_tree.ts";
 
 const mdTest1 = `
 # Heading

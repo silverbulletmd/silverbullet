@@ -1,30 +1,18 @@
-import { dispatch } from "../../syscall/plugos-syscall/event.ts";
-import { Manifest } from "../../common/manifest.ts";
-import {
-  flashNotification,
-  save,
-} from "../../syscall/silverbullet-syscall/editor.ts";
-import {
-  deleteAttachment,
-  listPlugs,
-  writeAttachment,
-} from "../../syscall/silverbullet-syscall/space.ts";
-import {
-  invokeFunction,
-  reloadPlugs,
-} from "../../syscall/silverbullet-syscall/system.ts";
+import { events } from "$sb/plugos-syscall/mod.ts";
+import type { Manifest } from "../../common/manifest.ts";
+import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
 
-import { readYamlPage } from "../lib/yaml_page.ts";
+import { readYamlPage } from "$sb/lib/yaml_page.ts";
 
 export async function updatePlugsCommand() {
-  await save();
-  flashNotification("Updating plugs...");
+  await editor.save();
+  await editor.flashNotification("Updating plugs...");
   try {
-    await invokeFunction("server", "updatePlugs");
-    flashNotification("And... done!");
-    await reloadPlugs();
+    await system.invokeFunction("server", "updatePlugs");
+    await editor.flashNotification("And... done!");
+    system.reloadPlugs();
   } catch (e: any) {
-    flashNotification("Error updating plugs: " + e.message, "error");
+    editor.flashNotification("Error updating plugs: " + e.message, "error");
   }
 }
 
@@ -42,18 +30,21 @@ export async function updatePlugs() {
     throw new Error(`Error processing PLUGS: ${e.message}`);
   }
   console.log("Plug YAML", plugList);
-  let allPlugNames: string[] = [];
-  for (let plugUri of plugList) {
-    let [protocol, ...rest] = plugUri.split(":");
-    let manifests = await dispatch(`get-plug:${protocol}`, rest.join(":"));
+  const allPlugNames: string[] = [];
+  for (const plugUri of plugList) {
+    const [protocol, ...rest] = plugUri.split(":");
+    const manifests = await events.dispatchEvent(
+      `get-plug:${protocol}`,
+      rest.join(":"),
+    );
     if (manifests.length === 0) {
       console.error("Could not resolve plug", plugUri);
     }
     // console.log("Got manifests", plugUri, protocol, manifests);
-    let manifest = manifests[0];
+    const manifest = manifests[0];
     allPlugNames.push(manifest.name);
     // console.log("Writing", `_plug/${manifest.name}`);
-    await writeAttachment(
+    await space.writeAttachment(
       `_plug/${manifest.name}.plug.json`,
       "string",
       JSON.stringify(manifest),
@@ -61,34 +52,32 @@ export async function updatePlugs() {
   }
 
   // And delete extra ones
-  for (let existingPlug of await listPlugs()) {
-    let plugName = existingPlug.substring(
+  for (const existingPlug of await space.listPlugs()) {
+    const plugName = existingPlug.substring(
       "_plug/".length,
       existingPlug.length - ".plug.json".length,
     );
     console.log("Considering", plugName);
     if (!allPlugNames.includes(plugName)) {
       console.log("Removing plug", plugName);
-      await deleteAttachment(existingPlug);
+      await space.deleteAttachment(existingPlug);
     }
   }
-  await reloadPlugs();
+  await system.reloadPlugs();
 }
 
 export async function getPlugHTTPS(url: string): Promise<Manifest> {
-  let fullUrl = `https:${url}`;
+  const fullUrl = `https:${url}`;
   console.log("Now fetching plug manifest from", fullUrl);
-  let req = await fetch(fullUrl);
+  const req = await fetch(fullUrl);
   if (req.status !== 200) {
     throw new Error(`Could not fetch plug manifest from ${fullUrl}`);
   }
-  let json = await req.json();
-
-  return json;
+  return req.json();
 }
 
-export async function getPlugGithub(identifier: string): Promise<Manifest> {
-  let [owner, repo, path] = identifier.split("/");
+export function getPlugGithub(identifier: string): Promise<Manifest> {
+  const [owner, repo, path] = identifier.split("/");
   let [repoClean, branch] = repo.split("@");
   if (!branch) {
     branch = "main"; // or "master"?

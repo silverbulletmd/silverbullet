@@ -1,15 +1,8 @@
-import {
-  getSelection,
-  getText,
-  insertAtCursor,
-  moveCursor,
-  replaceRange,
-  setSelection,
-} from "$sb/silverbullet-syscall/editor.ts";
+import { editor } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function quoteSelection() {
-  let text = await getText();
-  const selection = await getSelection();
+  let text = await editor.getText();
+  const selection = await editor.getSelection();
   let from = selection.from;
   while (from >= 0 && text[from] !== "\n") {
     from--;
@@ -23,12 +16,12 @@ export async function quoteSelection() {
     text = text.slice(from, selection.to);
     text = `> ${text.replaceAll("\n", "\n> ")}`;
   }
-  await replaceRange(from, selection.to, text);
+  await editor.replaceRange(from, selection.to, text);
 }
 
 export async function listifySelection() {
-  let text = await getText();
-  const selection = await getSelection();
+  let text = await editor.getText();
+  const selection = await editor.getSelection();
   let from = selection.from;
   while (from >= 0 && text[from] !== "\n") {
     from--;
@@ -36,12 +29,12 @@ export async function listifySelection() {
   from++;
   text = text.slice(from, selection.to);
   text = `* ${text.replaceAll(/\n(?!\n)/g, "\n* ")}`;
-  await replaceRange(from, selection.to, text);
+  await editor.replaceRange(from, selection.to, text);
 }
 
 export async function numberListifySelection() {
-  let text = await getText();
-  const selection = await getSelection();
+  let text = await editor.getText();
+  const selection = await editor.getSelection();
   let from = selection.from;
   while (from >= 0 && text[from] !== "\n") {
     from--;
@@ -55,12 +48,12 @@ export async function numberListifySelection() {
       return `\n${counter}. `;
     })
   }`;
-  await replaceRange(from, selection.to, text);
+  await editor.replaceRange(from, selection.to, text);
 }
 
 export async function linkSelection() {
-  const text = await getText();
-  const selection = await getSelection();
+  const text = await editor.getText();
+  const selection = await editor.getSelection();
   const textSelection = text.slice(selection.from, selection.to);
   let linkedText = `[]()`;
   let pos = 1;
@@ -73,8 +66,8 @@ export async function linkSelection() {
       pos = linkedText.length - 1;
     }
   }
-  await replaceRange(selection.from, selection.to, linkedText);
-  await moveCursor(selection.from + pos);
+  await editor.replaceRange(selection.from, selection.to, linkedText);
+  await editor.moveCursor(selection.from + pos);
 }
 
 export function wrapSelection(cmdDef: any) {
@@ -82,17 +75,17 @@ export function wrapSelection(cmdDef: any) {
 }
 
 async function insertMarker(marker: string) {
-  let text = await getText();
-  const selection = await getSelection();
+  const text = await editor.getText();
+  const selection = await editor.getSelection();
   if (selection.from === selection.to) {
     // empty selection
     if (markerAt(selection.from)) {
       // Already there, skipping ahead
-      await moveCursor(selection.from + marker.length);
+      await editor.moveCursor(selection.from + marker.length);
     } else {
       // Not there, inserting
-      await insertAtCursor(marker + marker);
-      await moveCursor(selection.from + marker.length);
+      await editor.insertAtCursor(marker + marker);
+      await editor.moveCursor(selection.from + marker.length);
     }
   } else {
     let from = selection.from;
@@ -107,28 +100,28 @@ async function insertMarker(marker: string) {
 
     if (!hasMarker) {
       // Adding
-      await replaceRange(
+      await editor.replaceRange(
         selection.from,
         selection.to,
         marker + text.slice(selection.from, selection.to) + marker,
       );
-      await setSelection(
+      await editor.setSelection(
         selection.from + marker.length,
         selection.to + marker.length,
       );
     } else {
       // Removing
-      await replaceRange(
+      await editor.replaceRange(
         from,
         to,
         text.substring(from + marker.length, to - marker.length),
       );
-      await setSelection(from, to - marker.length * 2);
+      await editor.setSelection(from, to - marker.length * 2);
     }
   }
 
   function markerAt(pos: number) {
-    for (var i = 0; i < marker.length; i++) {
+    for (let i = 0; i < marker.length; i++) {
       if (text[pos + i] !== marker[i]) {
         return false;
       }

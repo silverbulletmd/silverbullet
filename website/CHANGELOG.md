@@ -3,7 +3,16 @@ release.
 
 ---
 
-## Deno release
+## 0.1.2
+
+- Breaking plugs API change: `readPage`, `readAttachment`, `readFile` now return
+  the read data object directly, without it being wrapped with a text object.
+- Also some syscalls have been renamed, e.g. store-related one now all have a
+  `store` prefix, such as `get` become `storeGet`.
+
+---
+
+## 0.1.0 First Deno release
 
 - The entire repo has been migrated to [Deno](https://deno.land)
 - This may temporarily break some things.

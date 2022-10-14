@@ -8,7 +8,7 @@ export type FileMeta = {
 export function readFile(
   path: string,
   encoding: "utf8" | "dataurl" = "utf8",
-): Promise<{ text: string; meta: FileMeta }> {
+): Promise<string> {
   return syscall("fs.readFile", path, encoding);
 }
 

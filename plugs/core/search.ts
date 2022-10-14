@@ -1,42 +1,36 @@
-import {
-  fullTextDelete,
-  fullTextIndex,
-  fullTextSearch,
-} from "../../syscall/plugos-syscall/fulltext.ts";
-import { renderToText } from "../../common/tree.ts";
-import { PageMeta } from "../../common/types.ts";
-import { queryPrefix } from "../../syscall/silverbullet-syscall/index.ts";
-import { navigate, prompt } from "../../syscall/silverbullet-syscall/editor.ts";
-import { IndexTreeEvent } from "../../web/app_event.ts";
-import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
-import { removeQueries } from "../query/util.ts";
+import { fulltext } from "$sb/plugos-syscall/mod.ts";
+import { renderToText } from "$sb/lib/tree.ts";
+import type { PageMeta } from "../../common/types.ts";
+import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 
 const searchPrefix = "🔍 ";
 
-export async function index(data: IndexTreeEvent) {
+export async function pageIndex(data: IndexTreeEvent) {
   removeQueries(data.tree);
-  let cleanText = renderToText(data.tree);
-  await fullTextIndex(data.name, cleanText);
+  const cleanText = renderToText(data.tree);
+  await fulltext.fullTextIndex(data.name, cleanText);
 }
 
-export async function unindex(pageName: string) {
-  await fullTextDelete(pageName);
+export async function pageUnindex(pageName: string) {
+  await fulltext.fullTextDelete(pageName);
 }
 
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let phraseFilter = query.filter.find((f) => f.prop === "phrase");
+  const phraseFilter = query.filter.find((f) => f.prop === "phrase");
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  let results = await fullTextSearch(phraseFilter.value, 100);
+  let results = await fulltext.fullTextSearch(phraseFilter.value, 100);
 
-  let allPageMap: Map<string, any> = new Map(
+  const allPageMap: Map<string, any> = new Map(
     results.map((r: any) => [r.name, r]),
   );
-  for (let { page, value } of await queryPrefix("meta:")) {
-    let p = allPageMap.get(page);
+  for (const { page, value } of await index.queryPrefix("meta:")) {
+    const p = allPageMap.get(page);
     if (p) {
       for (let [k, v] of Object.entries(value)) {
         p[k] = v;
@@ -52,17 +46,17 @@ export async function queryProvider({
 }
 
 export async function searchCommand() {
-  let phrase = await prompt("Search for: ");
+  const phrase = await prompt("Search for: ");
   if (phrase) {
-    await navigate(`${searchPrefix}${phrase}`);
+    await editor.navigate(`${searchPrefix}${phrase}`);
   }
 }
 
 export async function readPageSearch(
   name: string,
 ): Promise<{ text: string; meta: PageMeta }> {
-  let phrase = name.substring(searchPrefix.length);
-  let results = await fullTextSearch(phrase, 100);
+  const phrase = name.substring(searchPrefix.length);
+  const results = await fulltext.fullTextSearch(phrase, 100);
   const text = `# Search results for "${phrase}"\n${
     results
       .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)
@@ -79,7 +73,7 @@ export async function readPageSearch(
   };
 }
 
-export async function getPageMetaSearch(name: string): Promise<PageMeta> {
+export function getPageMetaSearch(name: string): PageMeta {
   return {
     name,
     lastModified: 0,

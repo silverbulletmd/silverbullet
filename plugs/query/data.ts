@@ -1,52 +1,48 @@
 // Index key space:
 // data:page@pos
 
-import type { IndexTreeEvent } from "../../web/app_event.ts";
-import {
-  batchSet,
-  queryPrefix,
-} from "../../syscall/silverbullet-syscall/index.ts";
+import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import { index } from "$sb/silverbullet-syscall/mod.ts";
 import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
   replaceNodesMatching,
-} from "../../common/tree.ts";
-import type { QueryProviderEvent } from "./engine.ts";
-import { applyQuery } from "./engine.ts";
-import { removeQueries } from "./util.ts";
+} from "$sb/lib/tree.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import * as YAML from "yaml";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
-  let dataObjects: { key: string; value: Object }[] = [];
+  const dataObjects: { key: string; value: any }[] = [];
 
   removeQueries(tree);
 
   collectNodesOfType(tree, "FencedCode").forEach((t) => {
-    let codeInfoNode = findNodeOfType(t, "CodeInfo");
+    const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
       return;
     }
     if (codeInfoNode.children![0].text !== "data") {
       return;
     }
-    let codeTextNode = findNodeOfType(t, "CodeText");
+    const codeTextNode = findNodeOfType(t, "CodeText");
     if (!codeTextNode) {
       // Honestly, this shouldn't happen
       return;
     }
-    let codeText = codeTextNode.children![0].text!;
+    const codeText = codeTextNode.children![0].text!;
     try {
+      const docs = codeText.split("---").map((d) => YAML.parse(d));
       // We support multiple YAML documents in one block
-      for (let doc of parseAllDocuments(codeText)) {
-        if (!doc.contents) {
+      for (let i = 0; i < docs.length; i++) {
+        const doc = docs[i];
+        if (!doc) {
           continue;
         }
-        console.log(doc.contents.toJSON());
         dataObjects.push({
-          key: `data:${name}@${t.from! + doc.range[0]}`,
-          value: doc.contents.toJSON(),
+          key: `data:${name}@${i}`,
+          value: doc,
         });
       }
       // console.log("Parsed data", parsedData);
@@ -56,7 +52,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
     }
   });
   console.log("Found", dataObjects.length, "data objects");
-  await batchSet(name, dataObjects);
+  await index.batchSet(name, dataObjects);
 }
 
 export function extractMeta(
@@ -83,23 +79,23 @@ export function extractMeta(
     if (t.type !== "FencedCode") {
       return;
     }
-    let codeInfoNode = findNodeOfType(t, "CodeInfo");
+    const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
       return;
     }
     if (codeInfoNode.children![0].text !== "meta") {
       return;
     }
-    let codeTextNode = findNodeOfType(t, "CodeText");
+    const codeTextNode = findNodeOfType(t, "CodeText");
     if (!codeTextNode) {
       // Honestly, this shouldn't happen
       return;
     }
-    let codeText = codeTextNode.children![0].text!;
+    const codeText = codeTextNode.children![0].text!;
     data = YAML.parse(codeText);
     if (removeKeys.length > 0) {
-      let newData = { ...data };
-      for (let key of removeKeys) {
+      const newData = { ...data };
+      for (const key of removeKeys) {
         delete newData[key];
       }
       codeTextNode.children![0].text = YAML.stringify(newData).trim();
@@ -117,9 +113,9 @@ export function extractMeta(
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let allData: any[] = [];
-  for (let { key, page, value } of await queryPrefix("data:")) {
-    let [, pos] = key.split("@");
+  const allData: any[] = [];
+  for (const { key, page, value } of await index.queryPrefix("data:")) {
+    const [, pos] = key.split("@");
     allData.push({
       ...value,
       page: page,

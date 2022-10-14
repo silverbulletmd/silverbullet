@@ -54,7 +54,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.reloadPage": async () => {
       await editor.reloadPage();
     },
-    "editor.openUrl": async (ctx, url: string) => {
+    "editor.openUrl": (_ctx, url: string) => {
       let win = window.open(url, "_blank");
       if (win) {
         win.focus();
@@ -94,25 +94,6 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         type: "hide-panel",
         id: id as any,
       });
-    },
-    // Deprecated in favor of using "hidePanel" and "showPanel"
-    "editor.showRhs": (ctx, html: string, script: string, flex: number) => {
-      syscalls["editor.showPanel"](ctx, "rhs", flex, html, script);
-    },
-    "editor.hideRhs": (ctx) => {
-      syscalls["editor.hidePanel"](ctx, "rhs");
-    },
-    "editor.showLhs": (ctx, html: string, script: string, flex: number) => {
-      syscalls["editor.showPanel"](ctx, "lhs", flex, html, script);
-    },
-    "editor.hideLhs": (ctx) => {
-      syscalls["editor.hidePanel"](ctx, "lhs");
-    },
-    "editor.showBhs": (ctx, html: string, script: string, flex: number) => {
-      syscalls["editor.showPanel"](ctx, "bhs", flex, html, script);
-    },
-    "editor.hideBhs": (ctx) => {
-      syscalls["editor.hidePanel"](ctx, "bhs");
     },
     "editor.insertAtPos": (ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({

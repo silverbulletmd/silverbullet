@@ -1,31 +1,16 @@
-import {
-  getPageMeta,
-  listPages,
-  readPage,
-  writePage,
-} from "$sb/silverbullet-syscall/space.ts";
-import {
-  filterBox,
-  getCurrentPage,
-  getCursor,
-  insertAtCursor,
-  moveCursor,
-  navigate,
-  prompt,
-} from "../../syscall/silverbullet-syscall/editor.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
+import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import { extractMeta } from "../query/data.ts";
-import { renderToText } from "../../common/tree.ts";
-import { niceDate } from "./dates.ts";
-import { readSettings } from "../lib/settings_page.ts";
+import { renderToText } from "$sb/lib/tree.ts";
+import { niceDate } from "$sb/lib/dates.ts";
+import { readSettings } from "$sb/lib/settings_page.ts";
 
 export async function instantiateTemplateCommand() {
-  const allPages = await listPages();
+  const allPages = await space.listPages();
   const { pageTemplatePrefix } = await readSettings({
     pageTemplatePrefix: "template/page/",
   });
 
-  const selectedTemplate = await filterBox(
+  const selectedTemplate = await editor.filterBox(
     "Template",
     allPages
       .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
@@ -41,40 +26,43 @@ export async function instantiateTemplateCommand() {
   }
   console.log("Selected template", selectedTemplate);
 
-  const { text } = await readPage(
+  const text = await space.readPage(
     `${pageTemplatePrefix}${selectedTemplate.name}`,
   );
 
-  const parseTree = await parseMarkdown(text);
+  const parseTree = await markdown.parseMarkdown(text);
   const additionalPageMeta = extractMeta(parseTree, [
     "$name",
     "$disableDirectives",
   ]);
 
-  const pageName = await prompt("Name of new page", additionalPageMeta.$name);
+  const pageName = await editor.prompt(
+    "Name of new page",
+    additionalPageMeta.$name,
+  );
   if (!pageName) {
     return;
   }
   const pageText = replaceTemplateVars(renderToText(parseTree), pageName);
-  await writePage(pageName, pageText);
-  await navigate(pageName);
+  await space.writePage(pageName, pageText);
+  await editor.navigate(pageName);
 }
 
 export async function insertSnippet() {
-  let allPages = await listPages();
-  let { snippetPrefix } = await readSettings({
+  const allPages = await space.listPages();
+  const { snippetPrefix } = await readSettings({
     snippetPrefix: "snippet/",
   });
-  let cursorPos = await getCursor();
-  let page = await getCurrentPage();
-  let allSnippets = allPages
+  const cursorPos = await editor.getCursor();
+  const page = await editor.getCurrentPage();
+  const allSnippets = allPages
     .filter((pageMeta) => pageMeta.name.startsWith(snippetPrefix))
     .map((pageMeta) => ({
       ...pageMeta,
       name: pageMeta.name.slice(snippetPrefix.length),
     }));
 
-  let selectedSnippet = await filterBox(
+  const selectedSnippet = await editor.filterBox(
     "Snippet",
     allSnippets,
     `Select the snippet to insert (listing any page starting with <tt>${snippetPrefix}</tt>)`,
@@ -83,15 +71,15 @@ export async function insertSnippet() {
   if (!selectedSnippet) {
     return;
   }
-  let { text } = await readPage(`${snippetPrefix}${selectedSnippet.name}`);
 
+  const text = await space.readPage(`${snippetPrefix}${selectedSnippet.name}`);
   let templateText = replaceTemplateVars(text, page);
-  let carretPos = templateText.indexOf("|^|");
+  const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
   templateText = replaceTemplateVars(templateText, page);
-  await insertAtCursor(templateText);
+  await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
-    await moveCursor(cursorPos + carretPos);
+    await editor.moveCursor(cursorPos + carretPos);
   }
 }
 
@@ -101,18 +89,22 @@ export function replaceTemplateVars(s: string, pageName: string): string {
     switch (v) {
       case "today":
         return niceDate(new Date());
-      case "tomorrow":
-        let tomorrow = new Date();
+      case "tomorrow": {
+        const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         return niceDate(tomorrow);
-      case "yesterday":
-        let yesterday = new Date();
+      }
+
+      case "yesterday": {
+        const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         return niceDate(yesterday);
-      case "lastWeek":
-        let lastWeek = new Date();
+      }
+      case "lastWeek": {
+        const lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - 7);
         return niceDate(lastWeek);
+      }
       case "page":
         return pageName;
     }
@@ -121,55 +113,55 @@ export function replaceTemplateVars(s: string, pageName: string): string {
 }
 
 export async function quickNoteCommand() {
-  let { quickNotePrefix } = await readSettings({
+  const { quickNotePrefix } = await readSettings({
     quickNotePrefix: "📥 ",
   });
-  let isoDate = new Date().toISOString();
+  const isoDate = new Date().toISOString();
   let [date, time] = isoDate.split("T");
   time = time.split(".")[0];
-  let pageName = `${quickNotePrefix}${date} ${time}`;
-  await navigate(pageName);
+  const pageName = `${quickNotePrefix}${date} ${time}`;
+  await editor.navigate(pageName);
 }
 
 export async function dailyNoteCommand() {
-  let { dailyNoteTemplate, dailyNotePrefix } = await readSettings({
+  const { dailyNoteTemplate, dailyNotePrefix } = await readSettings({
     dailyNoteTemplate: "template/page/Daily Note",
     dailyNotePrefix: "📅 ",
   });
   let dailyNoteTemplateText = "";
   try {
-    let { text } = await readPage(dailyNoteTemplate);
+    const text = await space.readPage(dailyNoteTemplate);
     dailyNoteTemplateText = text;
   } catch {
     console.warn(`No daily note template found at ${dailyNoteTemplate}`);
   }
-  let date = niceDate(new Date());
-  let pageName = `${dailyNotePrefix}${date}`;
+  const date = niceDate(new Date());
+  const pageName = `${dailyNotePrefix}${date}`;
   if (dailyNoteTemplateText) {
     try {
-      await getPageMeta(pageName);
+      await space.getPageMeta(pageName);
     } catch {
       // Doesn't exist, let's create
-      await writePage(
+      await space.writePage(
         pageName,
         replaceTemplateVars(dailyNoteTemplateText, pageName),
       );
     }
-    await navigate(pageName);
+    await editor.navigate(pageName);
   } else {
-    await navigate(pageName);
+    await editor.navigate(pageName);
   }
 }
 
 export async function insertTemplateText(cmdDef: any) {
-  let cursorPos = await getCursor();
-  let page = await getCurrentPage();
+  const cursorPos = await editor.getCursor();
+  const page = await editor.getCurrentPage();
   let templateText: string = cmdDef.value;
-  let carretPos = templateText.indexOf("|^|");
+  const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
   templateText = replaceTemplateVars(templateText, page);
-  await insertAtCursor(templateText);
+  await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
-    await moveCursor(cursorPos + carretPos);
+    await editor.moveCursor(cursorPos + carretPos);
   }
 }

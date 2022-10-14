@@ -1,4 +1,5 @@
-import type { ParseTree } from "../common/tree.ts";
+import type { ParseTree } from "./lib/tree.ts";
+import { ParsedQuery } from "./lib/query.ts";
 
 export type AppEvent =
   | "page:click"
@@ -6,6 +7,11 @@ export type AppEvent =
   | "page:load"
   | "editor:init"
   | "plugs:loaded";
+
+export type QueryProviderEvent = {
+  query: ParsedQuery;
+  pageName: string;
+};
 
 export type ClickEvent = {
   page: string;

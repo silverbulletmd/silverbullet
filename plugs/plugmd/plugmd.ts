@@ -1,57 +1,57 @@
-import { collectNodesOfType, findNodeOfType } from "../../common/tree.ts";
-import { getText, hideBhs, showBhs } from "$sb/silverbullet-syscall/editor.ts";
-import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
-import { readPage, writePage } from "$sb/silverbullet-syscall/space.ts";
+import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import {
-  invokeFunction,
-  reloadPlugs,
-} from "$sb/silverbullet-syscall/system.ts";
+  editor,
+  markdown,
+  space,
+  system,
+} from "$sb/silverbullet-syscall/mod.ts";
+import { syscall } from "$sb/plugos-syscall/mod.ts";
 import * as YAML from "yaml";
 
 import type { Manifest } from "../../common/manifest.ts";
 
 export async function compileCommand() {
-  let text = await getText();
+  const text = await editor.getText();
   try {
-    let manifest = await compileDefinition(text);
-    await writePage(
+    const manifest = await compileDefinition(text);
+    await space.writePage(
       `_plug/${manifest.name}`,
       JSON.stringify(manifest, null, 2),
     );
     console.log("Wrote this plug", manifest);
-    await hideBhs();
+    await editor.hidePanel("bhs");
 
-    await reloadPlugs();
+    system.reloadPlugs();
   } catch (e: any) {
-    await showBhs(e.message);
+    await editor.showPanel("bhs", 1, e.message);
     // console.error("Got this error from compiler", e.message);
   }
 }
 
 export async function checkCommand() {
-  let text = await getText();
+  const text = await editor.getText();
   try {
     await compileDefinition(text);
-    await hideBhs();
-    reloadPlugs();
+    await editor.hidePanel("bhs");
+    system.reloadPlugs();
   } catch (e: any) {
-    await showBhs(e.message);
+    await editor.showPanel("bhs", 1, e.message);
     // console.error("Got this error from compiler", e.message);
   }
 }
 
 async function compileDefinition(text: string): Promise<Manifest> {
-  let tree = await parseMarkdown(text);
+  const tree = await markdown.parseMarkdown(text);
 
-  let codeNodes = collectNodesOfType(tree, "FencedCode");
+  const codeNodes = collectNodesOfType(tree, "FencedCode");
   let manifest: Manifest | undefined;
   let code: string | undefined;
   let language = "js";
-  for (let codeNode of codeNodes) {
-    let codeInfo = findNodeOfType(codeNode, "CodeInfo")!.children![0].text!;
-    let codeText = findNodeOfType(codeNode, "CodeText")!.children![0].text!;
+  for (const codeNode of codeNodes) {
+    const codeInfo = findNodeOfType(codeNode, "CodeInfo")!.children![0].text!;
+    const codeText = findNodeOfType(codeNode, "CodeText")!.children![0].text!;
     if (codeInfo === "yaml") {
-      manifest = YAML.parse(codeText);
+      manifest = YAML.parse(codeText) as Manifest;
       continue;
     }
     if (codeInfo === "typescript" || codeInfo === "ts") {
@@ -70,15 +70,19 @@ async function compileDefinition(text: string): Promise<Manifest> {
 
   manifest.dependencies = manifest.dependencies || {};
 
-  for (let [dep, depSpec] of Object.entries(manifest.dependencies)) {
-    let compiled = await invokeFunction("server", "compileModule", depSpec);
+  for (const [dep, depSpec] of Object.entries(manifest.dependencies)) {
+    const compiled = await system.invokeFunction(
+      "server",
+      "compileModule",
+      depSpec,
+    );
     manifest.dependencies![dep] = compiled;
   }
 
   manifest.functions = manifest.functions || {};
 
-  for (let [name, func] of Object.entries(manifest.functions)) {
-    let compiled = await invokeFunction(
+  for (const [name, func] of Object.entries(manifest.functions)) {
+    const compiled = await system.invokeFunction(
       "server",
       "compileJS",
       `file.${language}`,
@@ -94,14 +98,14 @@ async function compileDefinition(text: string): Promise<Manifest> {
   return manifest;
 }
 
-export async function compileJS(
+export function compileJS(
   filename: string,
   code: string,
   functionName: string,
   excludeModules: string[],
 ): Promise<string> {
   // console.log("Compiling JS", filename, excludeModules);
-  return self.syscall(
+  return syscall(
     "esbuild.compile",
     filename,
     code,
@@ -110,12 +114,12 @@ export async function compileJS(
   );
 }
 
-export async function compileModule(moduleName: string): Promise<string> {
-  return self.syscall("esbuild.compileModule", moduleName);
+export function compileModule(moduleName: string): Promise<string> {
+  return syscall("esbuild.compileModule", moduleName);
 }
 
 export async function getPlugPlugMd(pageName: string): Promise<Manifest> {
-  let { text } = await readPage(pageName);
+  const text = await space.readPage(pageName);
   console.log("Compiling", pageName);
   return compileDefinition(text);
 }

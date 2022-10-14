@@ -2,8 +2,8 @@ import {
   findNodeOfType,
   renderToText,
   replaceNodesMatching,
-} from "../../common/tree.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
+} from "$sb/lib/tree.ts";
+import { markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 export function encodePageUrl(name: string): string {
   return name.replaceAll(" ", "_");
@@ -13,7 +13,7 @@ export async function cleanMarkdown(
   text: string,
   validPages?: string[],
 ): Promise<string> {
-  const mdTree = await parseMarkdown(text);
+  const mdTree = await markdown.parseMarkdown(text);
   replaceNodesMatching(mdTree, (n) => {
     if (n.type === "WikiLink") {
       const page = n.children![1].children![0].text!;

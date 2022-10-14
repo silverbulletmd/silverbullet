@@ -1,12 +1,12 @@
 import { assertEquals } from "../../test_deps.ts";
-import { applyQuery } from "./engine.ts";
+import { applyQuery } from "$sb/lib/query.ts";
 import { parseQuery } from "./parser.ts";
 
 Deno.test("Test parser", () => {
-  let parsedBasicQuery = parseQuery(`page`);
+  const parsedBasicQuery = parseQuery(`page`);
   assertEquals(parsedBasicQuery.table, "page");
 
-  let parsedQuery1 = parseQuery(
+  const parsedQuery1 = parseQuery(
     `task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`,
   );
   assertEquals(parsedQuery1.table, "task");
@@ -25,7 +25,7 @@ Deno.test("Test parser", () => {
     value: "{{today}}",
   });
 
-  let parsedQuery2 = parseQuery(`page where name =~ /interview\\/.*/"`);
+  const parsedQuery2 = parseQuery(`page where name =~ /interview\\/.*/"`);
   assertEquals(parsedQuery2.table, "page");
   assertEquals(parsedQuery2.filter.length, 1);
   assertEquals(parsedQuery2.filter[0], {
@@ -34,7 +34,7 @@ Deno.test("Test parser", () => {
     value: "interview\\/.*",
   });
 
-  let parsedQuery3 = parseQuery(`page where something != null`);
+  const parsedQuery3 = parseQuery(`page where something != null`);
   assertEquals(parsedQuery3.table, "page");
   assertEquals(parsedQuery3.filter.length, 1);
   assertEquals(parsedQuery3.filter[0], {
@@ -77,7 +77,7 @@ Deno.test("Test parser", () => {
 });
 
 Deno.test("Test applyQuery", () => {
-  let data: any[] = [
+  const data: any[] = [
     { name: "interview/My Interview", lastModified: 1 },
     { name: "interview/My Interview 2", lastModified: 2 },
     { name: "Pete", age: 38 },
@@ -132,7 +132,7 @@ Deno.test("Test applyQuery", () => {
 });
 
 Deno.test("Test applyQuery with multi value", () => {
-  let data: any[] = [
+  const data: any[] = [
     { name: "Pete", children: ["John", "Angie"] },
     { name: "Angie", children: ["Angie"] },
     { name: "Steve" },

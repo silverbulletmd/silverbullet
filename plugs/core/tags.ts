@@ -1,35 +1,30 @@
-import { collectNodesOfType } from "../../common/tree.ts";
-import {
-  batchSet,
-  queryPrefix,
-} from "../../syscall/silverbullet-syscall/index.ts";
-import { matchBefore } from "../../syscall/silverbullet-syscall/editor.ts";
-import type { IndexTreeEvent } from "../../web/app_event.ts";
-import { applyQuery, QueryProviderEvent } from "../query/engine.ts";
-import { removeQueries } from "../query/util.ts";
+import { collectNodesOfType } from "$sb/lib/tree.ts";
+import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 
 // Key space
 // tag:TAG => true (for completion)
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
-  let allTags = new Set<string>();
+  const allTags = new Set<string>();
   collectNodesOfType(tree, "Hashtag").forEach((n) => {
     allTags.add(n.children![0].text!);
   });
-  batchSet(
+  await index.batchSet(
     name,
     [...allTags].map((t) => ({ key: `tag:${t}`, value: t })),
   );
 }
 
 export async function tagComplete() {
-  let prefix = await matchBefore("#[^#\\s]+");
+  const prefix = await editor.matchBefore("#[^#\\s]+");
   //   console.log("Running tag complete", prefix);
   if (!prefix) {
     return null;
   }
-  let allTags = await queryPrefix(`tag:${prefix.text}`);
+  const allTags = await index.queryPrefix(`tag:${prefix.text}`);
   return {
     from: prefix.from,
     options: allTags.map((tag) => ({
@@ -45,8 +40,8 @@ type Tag = {
 };
 
 export async function tagProvider({ query }: QueryProviderEvent) {
-  let allTags = new Map<string, number>();
-  for (let { value } of await queryPrefix("tag:")) {
+  const allTags = new Map<string, number>();
+  for (const { value } of await index.queryPrefix("tag:")) {
     let currentFreq = allTags.get(value);
     if (!currentFreq) {
       currentFreq = 0;

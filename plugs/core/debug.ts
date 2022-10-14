@@ -1,24 +1,26 @@
-import { getLogs } from "../../syscall/plugos-syscall/sandbox.ts";
+import { sandbox } from "$sb/plugos-syscall/mod.ts";
 import {
-  getText,
-  hidePanel,
-  showPanel,
-} from "../../syscall/silverbullet-syscall/editor.ts";
-import { parseMarkdown } from "../../syscall/silverbullet-syscall/markdown.ts";
-import { getServerLogs } from "../../syscall/silverbullet-syscall/sandbox.ts";
+  editor,
+  markdown,
+  sandbox as serverSandbox,
+} from "$sb/silverbullet-syscall/mod.ts";
 
 export async function parsePageCommand() {
   console.log(
     "AST",
-    JSON.stringify(await parseMarkdown(await getText()), null, 2),
+    JSON.stringify(
+      await markdown.parseMarkdown(await editor.getText()),
+      null,
+      2,
+    ),
   );
 }
 
 export async function showLogsCommand() {
-  let clientLogs = await getLogs();
-  let serverLogs = await getServerLogs();
+  const clientLogs = await sandbox.getLogs();
+  const serverLogs = await serverSandbox.getServerLogs();
 
-  await showPanel(
+  await editor.showPanel(
     "bhs",
     1,
     `
@@ -83,5 +85,5 @@ export async function showLogsCommand() {
 }
 
 export async function hideBhsCommand() {
-  await hidePanel("bhs");
+  await editor.hidePanel("bhs");
 }
