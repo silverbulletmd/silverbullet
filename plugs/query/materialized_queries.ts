@@ -24,7 +24,6 @@ export async function updateMaterializedQueriesCommand() {
       currentPage,
     )
   ) {
-    console.log("Going reload the page");
     await editor.reloadPage();
   }
 }

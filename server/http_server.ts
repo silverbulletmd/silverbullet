@@ -283,6 +283,7 @@ export class HttpServer {
         const name = ctx.params.name;
         const plugName = ctx.params.plug;
         const args = await ctx.request.body().value;
+        console.log("Got args", args, "for", name, "in", plugName);
         const plug = this.system.loadedPlugs.get(plugName);
         if (!plug) {
           ctx.response.status = 404;
@@ -298,6 +299,7 @@ export class HttpServer {
           ctx.response.headers.set("Content-Type", "application/json");
           ctx.response.body = JSON.stringify(result);
         } catch (e: any) {
+          console.log("Error", e);
           ctx.response.status = 500;
           ctx.response.body = e.message;
           return;
