@@ -7,8 +7,7 @@ release.
 
 - Breaking plugs API change: `readPage`, `readAttachment`, `readFile` now return
   the read data object directly, without it being wrapped with a text object.
-- Also some syscalls have been renamed, e.g. store-related one now all have a
-  `store` prefix, such as `get` become `storeGet`.
+- A whole bunch of deprecated syscalls have been removed
 
 ---
 
