@@ -13,6 +13,5 @@ export async function togglePreview() {
 
 async function hideMarkdownPreview() {
   const setting = await readSettings({ previewOnRHS: true });
-  const hide = setting.previewOnRHS ? editor.hideRhs : editor.hideLhs;
-  await hide();
+  await editor.hidePanel(setting.previewOnRHS ? "rhs" : "lhs");
 }

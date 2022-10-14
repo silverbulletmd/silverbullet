@@ -6,13 +6,25 @@ export async function bundleAssets(
   patterns: string[],
 ): Promise<AssetBundle> {
   const bundle = new AssetBundle();
+  if (patterns.length === 0) {
+    return bundle;
+  }
+  const matchRegexes = patterns.map((pat) => globToRegExp(pat));
   for await (
-    const file of walk(rootPath, {
-      match: patterns.map((pat) => globToRegExp(pat)),
-    })
+    const file of walk(rootPath)
   ) {
-    const cleanPath = file.path.substring("".length);
-    await bundle.writeFileSync(cleanPath, await Deno.readFile(file.path));
+    const cleanPath = file.path.substring(rootPath.length + 1);
+    let match = false;
+    // console.log("Considering", rootPath, file.path, cleanPath);
+    for (const matchRegex of matchRegexes) {
+      if (matchRegex.test(cleanPath)) {
+        match = true;
+        break;
+      }
+    }
+    if (match) {
+      bundle.writeFileSync(cleanPath, await Deno.readFile(file.path));
+    }
   }
   return bundle;
 }
@@ -25,7 +37,7 @@ export async function bundleFolder(rootPath: string, bundlePath: string) {
   ) {
     console.log("Bundling", filePath);
     const cleanPath = filePath.substring(`${rootPath}/`.length);
-    await bundle.writeFileSync(cleanPath, await Deno.readFile(filePath));
+    bundle.writeFileSync(cleanPath, await Deno.readFile(filePath));
   }
   await Deno.writeTextFile(
     bundlePath,

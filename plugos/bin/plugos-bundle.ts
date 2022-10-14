@@ -26,13 +26,15 @@ export async function bundle(
   }
 
   // Dependencies
-  for (let [name, moduleSpec] of Object.entries(manifest.dependencies || {})) {
+  for (
+    const [name, moduleSpec] of Object.entries(manifest.dependencies || {})
+  ) {
     manifest.dependencies![name] = await sandboxCompileModule(moduleSpec);
   }
 
   // Assets
   const assetsBundle = await bundleAssets(
-    rootPath,
+    path.resolve(rootPath),
     manifest.assets as string[] || [],
   );
   manifest.assets = assetsBundle.toJSON();
