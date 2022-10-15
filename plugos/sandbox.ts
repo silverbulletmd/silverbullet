@@ -40,7 +40,7 @@ export class Sandbox {
 
   async load(name: string, code: string): Promise<void> {
     await this.worker.ready;
-    let outstandingInit = this.outstandingInits.get(name);
+    const outstandingInit = this.outstandingInits.get(name);
     if (outstandingInit) {
       // Load already in progress, let's wait for it...
       return new Promise((resolve) => {
@@ -82,19 +82,21 @@ export class Sandbox {
 
   async onMessage(data: ControllerMessage) {
     switch (data.type) {
-      case "inited":
-        let initCb = this.outstandingInits.get(data.name!);
+      case "inited": {
+        const initCb = this.outstandingInits.get(data.name!);
         initCb && initCb();
         this.outstandingInits.delete(data.name!);
         break;
-      case "dependency-inited":
-        let depInitCb = this.outstandingDependencyInits.get(data.name!);
+      }
+      case "dependency-inited": {
+        const depInitCb = this.outstandingDependencyInits.get(data.name!);
         depInitCb && depInitCb();
         this.outstandingDependencyInits.delete(data.name!);
         break;
+      }
       case "syscall":
         try {
-          let result = await this.plug.syscall(data.name!, data.args!);
+          const result = await this.plug.syscall(data.name!, data.args!);
 
           this.worker.postMessage({
             type: "syscall-response",
@@ -110,8 +112,8 @@ export class Sandbox {
           } as WorkerMessage);
         }
         break;
-      case "result":
-        let resultCbs = this.outstandingInvocations.get(data.id!);
+      case "result": {
+        const resultCbs = this.outstandingInvocations.get(data.id!);
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
           resultCbs &&
@@ -122,7 +124,8 @@ export class Sandbox {
           resultCbs && resultCbs.resolve(data.result);
         }
         break;
-      case "log":
+      }
+      case "log": {
         this.logBuffer.push({
           level: data.level!,
           message: data.message!,
@@ -133,12 +136,13 @@ export class Sandbox {
         }
         console.log(`[Sandbox ${data.level}]`, data.message);
         break;
+      }
       default:
         console.error("Unknown message type", data);
     }
   }
 
-  async invoke(name: string, args: any[]): Promise<any> {
+  invoke(name: string, args: any[]): Promise<any> {
     this.reqId++;
     this.worker.postMessage({
       type: "invoke",

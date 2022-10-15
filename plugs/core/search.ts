@@ -32,7 +32,7 @@ export async function queryProvider({
   for (const { page, value } of await index.queryPrefix("meta:")) {
     const p = allPageMap.get(page);
     if (p) {
-      for (let [k, v] of Object.entries(value)) {
+      for (const [k, v] of Object.entries(value)) {
         p[k] = v;
       }
     }

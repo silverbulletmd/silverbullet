@@ -50,7 +50,7 @@ export class EndpointHook implements Hook<EndpointHookT> {
         }
         const functions = manifest.functions;
         console.log("Checking plug", plugName);
-        let prefix = `${this.prefix}/${plugName}`;
+        const prefix = `${this.prefix}/${plugName}`;
         if (!requestPath.startsWith(prefix)) {
           continue;
         }
@@ -58,12 +58,12 @@ export class EndpointHook implements Hook<EndpointHookT> {
           if (!functionDef.http) {
             continue;
           }
-          let endpoints = Array.isArray(functionDef.http)
+          const endpoints = Array.isArray(functionDef.http)
             ? functionDef.http
             : [functionDef.http];
           console.log(endpoints);
           for (const { path, method } of endpoints) {
-            let prefixedPath = `${prefix}${path}`;
+            const prefixedPath = `${prefix}${path}`;
             if (
               prefixedPath === requestPath &&
               ((method || "GET") === req.method || method === "ANY")
@@ -109,15 +109,15 @@ export class EndpointHook implements Hook<EndpointHookT> {
   }
 
   validateManifest(manifest: Manifest<EndpointHookT>): string[] {
-    let errors = [];
-    for (const [name, functionDef] of Object.entries(manifest.functions)) {
+    const errors = [];
+    for (const functionDef of Object.values(manifest.functions)) {
       if (!functionDef.http) {
         continue;
       }
-      let endpoints = Array.isArray(functionDef.http)
+      const endpoints = Array.isArray(functionDef.http)
         ? functionDef.http
         : [functionDef.http];
-      for (let { path, method } of endpoints) {
+      for (const { path, method } of endpoints) {
         if (!path) {
           errors.push("Path not defined for endpoint");
         }

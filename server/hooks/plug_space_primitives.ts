@@ -4,7 +4,7 @@ import {
   FileEncoding,
   SpacePrimitives,
 } from "../../common/spaces/space_primitives.ts";
-import { AttachmentMeta, FileMeta, PageMeta } from "../../common/types.ts";
+import { FileMeta } from "../../common/types.ts";
 import { NamespaceOperation, PageNamespaceHook } from "./page_namespace.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
@@ -18,7 +18,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     pageName: string,
     ...args: any[]
   ): Promise<any> | false {
-    for (let { operation, pattern, plug, name } of this.hook.spaceFunctions) {
+    for (const { operation, pattern, plug, name } of this.hook.spaceFunctions) {
       if (operation === type && pageName.match(pattern)) {
         return plug.invoke(name, [pageName, ...args]);
       }
@@ -27,11 +27,11 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    let allFiles: FileMeta[] = [];
-    for (let { plug, name, operation } of this.hook.spaceFunctions) {
+    const allFiles: FileMeta[] = [];
+    for (const { plug, name, operation } of this.hook.spaceFunctions) {
       if (operation === "listFiles") {
         try {
-          for (let pm of await plug.invoke(name, [])) {
+          for (const pm of await plug.invoke(name, [])) {
             allFiles.push(pm);
           }
         } catch (e) {
@@ -39,8 +39,8 @@ export class PlugSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    let result = await this.wrapped.fetchFileList();
-    for (let pm of result) {
+    const result = await this.wrapped.fetchFileList();
+    for (const pm of result) {
       allFiles.push(pm);
     }
     return allFiles;
@@ -58,7 +58,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
-    let result = this.performOperation("getFileMeta", name);
+    const result = this.performOperation("getFileMeta", name);
     if (result) {
       return result;
     }
@@ -71,7 +71,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     data: FileData,
     selfUpdate?: boolean,
   ): Promise<FileMeta> {
-    let result = this.performOperation(
+    const result = this.performOperation(
       "writeFile",
       name,
       encoding,
@@ -86,7 +86,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   }
 
   deleteFile(name: string): Promise<void> {
-    let result = this.performOperation("deleteFile", name);
+    const result = this.performOperation("deleteFile", name);
     if (result) {
       return result;
     }

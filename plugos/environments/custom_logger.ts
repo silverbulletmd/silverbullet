@@ -36,8 +36,8 @@ export class ConsoleLogger {
   }
 
   logMessage(values: any[]): string {
-    let pieces: string[] = [];
-    for (let val of values) {
+    const pieces: string[] = [];
+    for (const val of values) {
       switch (typeof val) {
         case "string":
         case "number":

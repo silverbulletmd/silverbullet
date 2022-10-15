@@ -11,7 +11,6 @@ import {
   space,
 } from "$sb/silverbullet-syscall/mod.ts";
 
-import { events } from "$sb/plugos-syscall/mod.ts";
 import {
   addParentPointers,
   collectNodesMatching,
@@ -178,7 +177,7 @@ export async function postponeCommand() {
   if (!option) {
     return;
   }
-  let d = new Date(date);
+  const d = new Date(date);
   switch (option.name) {
     case "a day":
       d.setDate(d.getDate() + 1);
@@ -207,8 +206,8 @@ export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<Task[]> {
   const allTasks: Task[] = [];
-  for (let { key, page, value } of await index.queryPrefix("task:")) {
-    let [, pos] = key.split(":");
+  for (const { key, page, value } of await index.queryPrefix("task:")) {
+    const pos = key.split(":")[1];
     allTasks.push({
       ...value,
       page: page,

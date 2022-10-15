@@ -2,11 +2,11 @@ const maxWidth = 70;
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer: (k: string, v: any) => string = (k, v) => "" + v,
+  valueTransformer: (k: string, v: any) => string = (_k, v) => "" + v,
 ): string {
   const fieldWidths = new Map<string, number>();
-  for (let entry of jsonArray) {
-    for (let k of Object.keys(entry)) {
+  for (const entry of jsonArray) {
+    for (const k of Object.keys(entry)) {
       let fieldWidth = fieldWidths.get(k);
       if (!fieldWidth) {
         fieldWidth = valueTransformer(k, entry[k]).length;
@@ -18,7 +18,7 @@ export function jsonToMDTable(
   }
 
   let fullWidth = 0;
-  for (let v of fieldWidths.values()) {
+  for (const v of fieldWidths.values()) {
     fullWidth += v + 1;
   }
 
@@ -43,9 +43,9 @@ export function jsonToMDTable(
       "|",
   );
   for (const val of jsonArray) {
-    let el = [];
-    for (let prop of headerList) {
-      let s = valueTransformer(prop, val[prop]);
+    const el = [];
+    for (const prop of headerList) {
+      const s = valueTransformer(prop, val[prop]);
       el.push(s + charPad(" ", fieldWidths.get(prop)! - s.length));
     }
     lines.push("|" + el.join("|") + "|");

@@ -1,8 +1,5 @@
 import { Action, AppViewState } from "./types.ts";
 
-let m = new Map();
-m.size;
-
 export default function reducer(
   state: AppViewState,
   action: Action,
@@ -49,11 +46,13 @@ export default function reducer(
         ...state,
         showPageNavigator: false,
       };
-    case "pages-listed":
+    case "pages-listed": {
       // Let's move over any "lastOpened" times to the "allPages" list
-      let oldPageMeta = new Map([...state.allPages].map((pm) => [pm.name, pm]));
-      for (let pageMeta of action.pages) {
-        let oldPageMetaItem = oldPageMeta.get(pageMeta.name);
+      const oldPageMeta = new Map(
+        [...state.allPages].map((pm) => [pm.name, pm]),
+      );
+      for (const pageMeta of action.pages) {
+        const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
@@ -62,9 +61,10 @@ export default function reducer(
         ...state,
         allPages: action.pages,
       };
-    case "show-palette":
-      let commands = new Map(state.commands);
-      for (let [k, v] of state.commands.entries()) {
+    }
+    case "show-palette": {
+      const commands = new Map(state.commands);
+      for (const [k, v] of state.commands.entries()) {
         if (
           v.command.contexts &&
           (!action.context || !v.command.contexts.includes(action.context))
@@ -77,6 +77,7 @@ export default function reducer(
         commands,
         showCommandPalette: true,
       };
+    }
     case "hide-palette":
       return {
         ...state,

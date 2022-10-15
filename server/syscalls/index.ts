@@ -40,7 +40,7 @@ export function ensureTable(db: SQLite): Promise<void> {
 
 export function pageIndexSyscalls(db: SQLite): SysCallMapping {
   const apiObj: SysCallMapping = {
-    "index.set": async (ctx, page: string, key: string, value: any) => {
+    "index.set": async (_ctx, page: string, key: string, value: any) => {
       await asyncExecute(
         db,
         `UPDATE ${tableName} SET value = ? WHERE key = ? AND page = ?`,
@@ -59,11 +59,11 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
       }
     },
     "index.batchSet": async (ctx, page: string, kvs: KV[]) => {
-      for (let { key, value } of kvs) {
+      for (const { key, value } of kvs) {
         await apiObj["index.set"](ctx, page, key, value);
       }
     },
-    "index.delete": async (ctx, page: string, key: string) => {
+    "index.delete": async (_ctx, page: string, key: string) => {
       await asyncExecute(
         db,
         `DELETE FROM ${tableName} WHERE key = ? AND page = ?`,
@@ -71,7 +71,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
         page,
       );
     },
-    "index.get": async (ctx, page: string, key: string) => {
+    "index.get": async (_ctx, page: string, key: string) => {
       const result = await asyncQuery<Item>(
         db,
         `SELECT value FROM ${tableName} WHERE key = ? AND page = ?`,
@@ -84,7 +84,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
         return null;
       }
     },
-    "index.queryPrefix": async (ctx, prefix: string) => {
+    "index.queryPrefix": async (_ctx, prefix: string) => {
       return (
         await asyncQuery<Item>(
           db,
@@ -97,7 +97,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
         value: JSON.parse(value),
       }));
     },
-    "index.query": async (ctx, query: Query) => {
+    "index.query": async (_ctx, query: Query) => {
       const { sql, params } = queryToSql(query);
       return (
         await asyncQuery<Item>(
@@ -114,7 +114,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
     "index.clearPageIndexForPage": async (ctx, page: string) => {
       await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
-    "index.deletePrefixForPage": async (ctx, page: string, prefix: string) => {
+    "index.deletePrefixForPage": async (_ctx, page: string, prefix: string) => {
       await asyncExecute(
         db,
         `DELETE FROM ${tableName} WHERE key LIKE ? AND page = ?`,

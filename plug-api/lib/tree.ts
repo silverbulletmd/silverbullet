@@ -12,7 +12,7 @@ export function addParentPointers(tree: ParseTree) {
   if (!tree.children) {
     return;
   }
-  for (let child of tree.children) {
+  for (const child of tree.children) {
     if (child.parent) {
       // Already added parent pointers before
       return;
@@ -27,7 +27,7 @@ export function removeParentPointers(tree: ParseTree) {
   if (!tree.children) {
     return;
   }
-  for (let child of tree.children) {
+  for (const child of tree.children) {
     removeParentPointers(child);
   }
 }
@@ -62,7 +62,7 @@ export function collectNodesMatching(
   }
   let results: ParseTree[] = [];
   if (tree.children) {
-    for (let child of tree.children) {
+    for (const child of tree.children) {
       results = [...results, ...collectNodesMatching(child, matchFn)];
     }
   }
@@ -75,11 +75,11 @@ export function replaceNodesMatching(
   substituteFn: (tree: ParseTree) => ParseTree | null | undefined,
 ) {
   if (tree.children) {
-    let children = tree.children.slice();
-    for (let child of children) {
-      let subst = substituteFn(child);
+    const children = tree.children.slice();
+    for (const child of children) {
+      const subst = substituteFn(child);
       if (subst !== undefined) {
-        let pos = tree.children.indexOf(child);
+        const pos = tree.children.indexOf(child);
         if (subst) {
           tree.children.splice(pos, 1, subst);
         } else {
@@ -124,8 +124,8 @@ export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
   if (!tree.children) {
     return tree;
   }
-  for (let child of tree.children) {
-    let n = nodeAtPos(child, pos);
+  for (const child of tree.children) {
+    const n = nodeAtPos(child, pos);
     if (n && n.text !== undefined) {
       // Got a text node, let's return its parent
       return tree;
@@ -139,11 +139,11 @@ export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
 
 // Turn ParseTree back into text
 export function renderToText(tree: ParseTree): string {
-  let pieces: string[] = [];
+  const pieces: string[] = [];
   if (tree.text !== undefined) {
     return tree.text;
   }
-  for (let child of tree.children!) {
+  for (const child of tree.children!) {
     pieces.push(renderToText(child));
   }
   return pieces.join("");

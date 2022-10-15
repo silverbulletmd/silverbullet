@@ -18,7 +18,14 @@
   },
   "fmt": {
     "files": {
-      "exclude": ["website", "dist", "dist_bundle", "pages"]
+      "exclude": [
+        "dist",
+        "dist_bundle",
+        "pages",
+        "website",
+        "test_space",
+        "plugos/environments/worker_bundle.json"
+      ]
     }
   },
   "tasks": {

@@ -68,7 +68,7 @@ export class Plug<HookT> {
     return await this.sandbox.invoke(name, args);
   }
 
-  async stop() {
+  stop() {
     this.sandbox.stop();
   }
 }

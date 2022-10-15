@@ -36,7 +36,7 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
     recordLoop:
     for (const record of records) {
       const recordAny: any = record;
-      for (let { op, prop, value } of parsedQuery.filter) {
+      for (const { op, prop, value } of parsedQuery.filter) {
         switch (op) {
           case "=": {
             const recordPropVal = recordAny[prop];
@@ -123,8 +123,8 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
   }
   if (parsedQuery.select) {
     resultRecords = resultRecords.map((rec) => {
-      let newRec: any = {};
-      for (let k of parsedQuery.select!) {
+      const newRec: any = {};
+      for (const k of parsedQuery.select!) {
         newRec[k] = rec[k];
       }
       return newRec;
@@ -139,27 +139,27 @@ export function removeQueries(pt: ParseTree) {
     if (t.type !== "CommentBlock") {
       return false;
     }
-    let text = t.children![0].text!;
-    let match = directiveStartRegex.exec(text);
+    const text = t.children![0].text!;
+    const match = directiveStartRegex.exec(text);
     if (!match) {
       return false;
     }
-    let directiveType = match[1];
-    let parentChildren = t.parent!.children!;
-    let index = parentChildren.indexOf(t);
-    let nodesToReplace: ParseTree[] = [];
+    const directiveType = match[1];
+    const parentChildren = t.parent!.children!;
+    const index = parentChildren.indexOf(t);
+    const nodesToReplace: ParseTree[] = [];
     for (let i = index + 1; i < parentChildren.length; i++) {
-      let n = parentChildren[i];
+      const n = parentChildren[i];
       if (n.type === "CommentBlock") {
-        let text = n.children![0].text!;
-        let match = directiveEndRegex.exec(text);
+        const text = n.children![0].text!;
+        const match = directiveEndRegex.exec(text);
         if (match && match[1] === directiveType) {
           break;
         }
       }
       nodesToReplace.push(n);
     }
-    let renderedText = nodesToReplace.map(renderToText).join("");
+    const renderedText = nodesToReplace.map(renderToText).join("");
     parentChildren.splice(index + 1, nodesToReplace.length, {
       text: new Array(renderedText.length + 1).join(" "),
     });

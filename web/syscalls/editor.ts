@@ -11,9 +11,9 @@ type SyntaxNode = {
 };
 
 function ensureAnchor(expr: any, start: boolean) {
-  var _a;
-  let { source } = expr;
-  let addStart = start && source[0] != "^",
+  let _a;
+  const { source } = expr;
+  const addStart = start && source[0] != "^",
     addEnd = source[source.length - 1] != "$";
   if (!addStart && !addEnd) return expr;
   return new RegExp(
@@ -40,11 +40,11 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.getSelection": (): { from: number; to: number } => {
       return editor.editorView!.state.selection.main;
     },
-    "editor.save": async () => {
+    "editor.save": () => {
       return editor.save(true);
     },
     "editor.navigate": async (
-      ctx,
+      _ctx,
       name: string,
       pos: number | string,
       replaceState = false,
@@ -55,29 +55,29 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       await editor.reloadPage();
     },
     "editor.openUrl": (_ctx, url: string) => {
-      let win = window.open(url, "_blank");
+      const win = window.open(url, "_blank");
       if (win) {
         win.focus();
       }
     },
     "editor.flashNotification": (
-      ctx,
+      _ctx,
       message: string,
       type: "error" | "info" = "info",
     ) => {
       editor.flashNotification(message, type);
     },
     "editor.filterBox": (
-      ctx,
+      _ctx,
       label: string,
       options: FilterOption[],
-      helpText: string = "",
-      placeHolder: string = "",
+      helpText = "",
+      placeHolder = "",
     ): Promise<FilterOption | undefined> => {
       return editor.filterBox(label, options, helpText, placeHolder);
     },
     "editor.showPanel": (
-      ctx,
+      _ctx,
       id: string,
       mode: number,
       html: string,
@@ -89,13 +89,13 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         config: { html, script, mode },
       });
     },
-    "editor.hidePanel": (ctx, id: string) => {
+    "editor.hidePanel": (_ctx, id: string) => {
       editor.viewDispatch({
         type: "hide-panel",
         id: id as any,
       });
     },
-    "editor.insertAtPos": (ctx, text: string, pos: number) => {
+    "editor.insertAtPos": (_ctx, text: string, pos: number) => {
       editor.editorView!.dispatch({
         changes: {
           insert: text,
@@ -103,7 +103,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    "editor.replaceRange": (ctx, from: number, to: number, text: string) => {
+    "editor.replaceRange": (_ctx, from: number, to: number, text: string) => {
       editor.editorView!.dispatch({
         changes: {
           insert: text,
@@ -112,15 +112,15 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    "editor.moveCursor": (ctx, pos: number) => {
+    "editor.moveCursor": (_ctx, pos: number) => {
       editor.editorView!.dispatch({
         selection: {
           anchor: pos,
         },
       });
     },
-    "editor.setSelection": (ctx, from: number, to: number) => {
-      let editorView = editor.editorView!;
+    "editor.setSelection": (_ctx, from: number, to: number) => {
+      const editorView = editor.editorView!;
       editorView.dispatch({
         selection: {
           anchor: from,
@@ -129,9 +129,9 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       });
     },
 
-    "editor.insertAtCursor": (ctx, text: string) => {
-      let editorView = editor.editorView!;
-      let from = editorView.state.selection.main.from;
+    "editor.insertAtCursor": (_ctx, text: string) => {
+      const editorView = editor.editorView!;
+      const from = editorView.state.selection.main.from;
       editorView.dispatch({
         changes: {
           insert: text,
@@ -144,17 +144,17 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     },
 
     "editor.matchBefore": (
-      ctx,
+      _ctx,
       regexp: string,
     ): { from: number; to: number; text: string } | null => {
       const editorState = editor.editorView!.state;
-      let selection = editorState.selection.main;
-      let from = selection.from;
+      const selection = editorState.selection.main;
+      const from = selection.from;
       if (selection.empty) {
-        let line = editorState.doc.lineAt(from);
-        let start = Math.max(line.from, from - 250);
-        let str = line.text.slice(start - line.from, from - line.from);
-        let found = str.search(ensureAnchor(new RegExp(regexp), false));
+        const line = editorState.doc.lineAt(from);
+        const start = Math.max(line.from, from - 250);
+        const str = line.text.slice(start - line.from, from - line.from);
+        const found = str.search(ensureAnchor(new RegExp(regexp), false));
         // console.log("Line", line, start, str, new RegExp(regexp), found);
         return found < 0
           ? null
@@ -162,17 +162,17 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       }
       return null;
     },
-    "editor.dispatch": (ctx, change: Transaction) => {
+    "editor.dispatch": (_ctx, change: Transaction) => {
       editor.editorView!.dispatch(change);
     },
     "editor.prompt": (
-      ctx,
+      _ctx,
       message: string,
       defaultValue = "",
     ): string | null => {
       return prompt(message, defaultValue);
     },
-    "editor.enableReadOnlyMode": (ctx, enabled: boolean) => {
+    "editor.enableReadOnlyMode": (_ctx, enabled: boolean) => {
       editor.viewDispatch({
         type: "set-editor-ro",
         enabled,

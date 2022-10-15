@@ -1,4 +1,4 @@
-import { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
+import { FileMeta } from "../types.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 
@@ -21,7 +21,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.headers = options.headers || {};
       options.headers["Authorization"] = `Bearer ${this.token}`;
     }
-    let result = await fetch(url, options);
+    const result = await fetch(url, options);
     if (result.status === 401) {
       throw Error("Unauthorized");
     }
@@ -29,20 +29,18 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   public async fetchFileList(): Promise<FileMeta[]> {
-    let req = await this.authenticatedFetch(this.fsUrl, {
+    const req = await this.authenticatedFetch(this.fsUrl, {
       method: "GET",
     });
 
-    let result: FileMeta[] = await req.json();
-
-    return result;
+    return req.json();
   }
 
   async readFile(
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
-    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
+    const res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "GET",
     });
     if (res.status === 404) {
@@ -52,13 +50,13 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     switch (encoding) {
       case "arraybuffer":
         {
-          let abBlob = await res.blob();
+          const abBlob = await res.blob();
           data = await abBlob.arrayBuffer();
         }
         break;
       case "dataurl":
         {
-          let dUBlob = await res.blob();
+          const dUBlob = await res.blob();
           data = arrayBufferToDataUrl(await dUBlob.arrayBuffer());
         }
         break;
@@ -76,7 +74,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     let body: any = null;
 
@@ -89,7 +86,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         data = dataUrlToArrayBuffer(data as string);
         break;
     }
-    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
+    const res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "PUT",
       headers: {
         "Content-type": "application/octet-stream",
@@ -101,7 +98,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(name: string): Promise<void> {
-    let req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
+    const req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "DELETE",
     });
     if (req.status !== 200) {
@@ -110,7 +107,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    let res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
+    const res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "OPTIONS",
     });
     if (res.status === 404) {
@@ -132,7 +129,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   // Plugs
 
   async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    let req = await this.authenticatedFetch(
+    const req = await this.authenticatedFetch(
       `${this.plugUrl}/${plug.name}/syscall/${name}`,
       {
         method: "POST",
@@ -143,7 +140,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (req.status !== 200) {
-      let error = await req.text();
+      const error = await req.text();
       throw Error(error);
     }
     if (req.headers.get("Content-length") === "0") {
@@ -163,7 +160,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       return plug.invoke(name, args);
     }
     // Or dispatch to server
-    let req = await this.authenticatedFetch(
+    const req = await this.authenticatedFetch(
       `${this.plugUrl}/${plug.name}/function/${name}`,
       {
         method: "POST",
@@ -174,7 +171,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (req.status !== 200) {
-      let error = await req.text();
+      const error = await req.text();
       throw Error(error);
     }
     if (req.headers.get("Content-length") === "0") {
@@ -189,21 +186,21 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 }
 
 function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
-  var binary_string = window.atob(dataUrl.split(",")[1]);
-  var len = binary_string.length;
-  var bytes = new Uint8Array(len);
-  for (var i = 0; i < len; i++) {
+  const binary_string = atob(dataUrl.split(",")[1]);
+  const len = binary_string.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
     bytes[i] = binary_string.charCodeAt(i);
   }
   return bytes.buffer;
 }
 
 function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
-  var binary = "";
-  var bytes = new Uint8Array(buffer);
-  var len = bytes.byteLength;
-  for (var i = 0; i < len; i++) {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return `data:application/octet-stream,${window.btoa(binary)}`;
+  return `data:application/octet-stream,${btoa(binary)}`;
 }

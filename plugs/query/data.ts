@@ -65,7 +65,7 @@ export function extractMeta(
     if (t.type === "Hashtag") {
       // Check if if nested directly into a Paragraph
       if (t.parent && t.parent.type === "Paragraph") {
-        let tagname = t.children![0].text;
+        const tagname = t.children![0].text;
         if (!data.tags) {
           data.tags = [];
         }

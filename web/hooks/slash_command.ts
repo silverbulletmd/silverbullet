@@ -31,7 +31,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
 
   buildAllCommands(system: System<SlashCommandHookT>) {
     this.slashCommands.clear();
-    for (let plug of system.loadedPlugs.values()) {
+    for (const plug of system.loadedPlugs.values()) {
       for (
         const [name, functionDef] of Object.entries(
           plug.manifest!.functions,
@@ -55,19 +55,19 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   public slashCommandCompleter(
     ctx: CompletionContext,
   ): CompletionResult | null {
-    let prefix = ctx.matchBefore(slashCommandRegexp);
+    const prefix = ctx.matchBefore(slashCommandRegexp);
     if (!prefix) {
       return null;
     }
     const prefixText = prefix.text;
-    let options: Completion[] = [];
+    const options: Completion[] = [];
 
     // No slash commands in comment blocks (queries and such)
-    let currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos);
+    const currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos);
     if (currentNode.type.name === "CommentBlock") {
       return null;
     }
-    for (let [name, def] of this.slashCommands.entries()) {
+    for (const def of this.slashCommands.values()) {
       options.push({
         label: def.slashCommand.name,
         detail: def.slashCommand.description,
@@ -105,7 +105,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   }
 
   validateManifest(manifest: Manifest<SlashCommandHookT>): string[] {
-    let errors = [];
+    const errors = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (!functionDef.slashCommand) {
         continue;

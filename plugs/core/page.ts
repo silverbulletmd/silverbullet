@@ -11,7 +11,7 @@ import {
   system,
 } from "$sb/silverbullet-syscall/mod.ts";
 
-import { events, store } from "$sb/plugos-syscall/mod.ts";
+import { events } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
@@ -67,7 +67,7 @@ export async function pageQueryProvider({
   for (const { page, value } of await index.queryPrefix("meta:")) {
     const p = allPageMap.get(page);
     if (p) {
-      for (let [k, v] of Object.entries(value)) {
+      for (const [k, v] of Object.entries(value)) {
         p[k] = v;
       }
     }

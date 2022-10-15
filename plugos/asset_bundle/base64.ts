@@ -1,5 +1,3 @@
-import { buf } from "https://deno.land/x/sqlite3@0.6.1/src/util.ts";
-
 export function base64Decode(s: string): Uint8Array {
   const binString = atob(s);
   const len = binString.length;

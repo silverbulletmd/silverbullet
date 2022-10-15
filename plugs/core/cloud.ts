@@ -10,9 +10,9 @@ const pagePrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
-  encoding: FileEncoding,
+  _encoding: FileEncoding,
 ): Promise<{ data: FileData; meta: FileMeta } | undefined> {
-  let originalUrl = name.substring(
+  const originalUrl = name.substring(
     pagePrefix.length,
     name.length - ".md".length,
   );
@@ -27,7 +27,7 @@ export async function readFileCloud(
   }
   let text = "";
   try {
-    let r = await fetch(`${url}.md`);
+    const r = await fetch(`${url}.md`);
     text = await r.text();
     if (r.status !== 200) {
       text = `ERROR: ${text}`;

@@ -24,7 +24,7 @@ export class DenoCronHook implements Hook<CronHookT> {
     function reloadCrons() {
       tasks.forEach((task) => task.stop());
       tasks = [];
-      for (let plug of system.loadedPlugs.values()) {
+      for (const plug of system.loadedPlugs.values()) {
         if (!plug.manifest) {
           continue;
         }
@@ -59,15 +59,15 @@ export class DenoCronHook implements Hook<CronHookT> {
   }
 
   validateManifest(manifest: Manifest<CronHookT>): string[] {
-    let errors: string[] = [];
-    for (const [name, functionDef] of Object.entries(manifest.functions)) {
+    const errors: string[] = [];
+    for (const functionDef of Object.values(manifest.functions)) {
       if (!functionDef.cron) {
         continue;
       }
       const crons = Array.isArray(functionDef.cron)
         ? functionDef.cron
         : [functionDef.cron];
-      for (let cronDef of crons) {
+      for (const _cronDef of crons) {
         // if (!cron.validate(cronDef)) {
         //   errors.push(`Invalid cron expression ${cronDef}`);
         // }

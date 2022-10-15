@@ -35,10 +35,10 @@ class InlineImageWidget extends WidgetType {
 }
 
 const inlineImages = (view: EditorView) => {
-  let widgets: Range<Decoration>[] = [];
+  const widgets: Range<Decoration>[] = [];
   const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
 
-  for (let { from, to } of view.visibleRanges) {
+  for (const { from, to } of view.visibleRanges) {
     syntaxTree(view.state).iterate({
       from,
       to,
@@ -56,7 +56,7 @@ const inlineImages = (view: EditorView) => {
 
         const url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
-        let deco = Decoration.widget({
+        const deco = Decoration.widget({
           widget: new InlineImageWidget(url, title),
         });
         widgets.push(deco.range(node.to));

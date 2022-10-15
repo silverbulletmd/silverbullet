@@ -25,9 +25,9 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   public async updatePageList() {
-    let newPageList = await this.fetchPageList();
+    const newPageList = await this.fetchPageList();
     // console.log("Updating page list", newPageList);
-    let deletedPages = new Set<string>(this.pageMetaCache.keys());
+    const deletedPages = new Set<string>(this.pageMetaCache.keys());
     newPageList.forEach((meta) => {
       const pageName = meta.name;
       const oldPageMeta = this.pageMetaCache.get(pageName);
@@ -84,7 +84,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     this.updatePageList().catch(console.error);
   }
 
-  async deletePage(name: string, deleteDate?: number): Promise<void> {
+  async deletePage(name: string): Promise<void> {
     await this.getPageMeta(name); // Check if page exists, if not throws Error
     await this.space.deleteFile(`${name}.md`);
 
@@ -94,8 +94,8 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    let oldMeta = this.pageMetaCache.get(name);
-    let newMeta = fileMetaToPageMeta(
+    const oldMeta = this.pageMetaCache.get(name);
+    const newMeta = fileMetaToPageMeta(
       await this.space.getFileMeta(`${name}.md`),
     );
     if (oldMeta) {
@@ -121,7 +121,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async listPlugs(): Promise<string[]> {
-    let allFiles = await this.space.fetchFileList();
+    const allFiles = await this.space.fetchFileList();
     return allFiles
       .filter((fileMeta) => fileMeta.name.endsWith(".plug.json"))
       .map((fileMeta) => fileMeta.name);
@@ -132,16 +132,16 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    let pageData = await this.space.readFile(`${name}.md`, "string");
-    let previousMeta = this.pageMetaCache.get(name);
-    let newMeta = fileMetaToPageMeta(pageData.meta);
+    const pageData = await this.space.readFile(`${name}.md`, "string");
+    const previousMeta = this.pageMetaCache.get(name);
+    const newMeta = fileMetaToPageMeta(pageData.meta);
     if (previousMeta) {
       if (previousMeta.lastModified !== newMeta.lastModified) {
         // Page changed since last cached metadata, trigger event
         this.emit("pageChanged", newMeta);
       }
     }
-    let meta = this.metaCacher(name, newMeta);
+    const meta = this.metaCacher(name, newMeta);
     return {
       text: pageData.data as string,
       meta: meta,

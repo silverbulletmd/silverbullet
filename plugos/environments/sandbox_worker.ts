@@ -86,7 +86,7 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
     switch (data.type) {
       case "load":
         {
-          let fn2 = new Function(wrapScript(data.code!));
+          const fn2 = new Function(wrapScript(data.code!));
           loadedFunctions.set(data.name!, fn2());
           workerPostMessage({
             type: "inited",
@@ -98,8 +98,8 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
       case "load-dependency":
         {
           // console.log("Received dep", data.name);
-          let fn3 = new Function(`return ${data.code!}`);
-          let v = fn3();
+          const fn3 = new Function(`return ${data.code!}`);
+          const v = fn3();
           loadedModules.set(data.name!, v);
           // console.log("Dep val", v);
           workerPostMessage({
@@ -110,12 +110,12 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         break;
       case "invoke":
         {
-          let fn = loadedFunctions.get(data.name!);
+          const fn = loadedFunctions.get(data.name!);
           if (!fn) {
             throw new Error(`Function not loaded: ${data.name}`);
           }
           try {
-            let result = await Promise.resolve(fn(...(data.args || [])));
+            const result = await Promise.resolve(fn(...(data.args || [])));
             workerPostMessage({
               type: "result",
               id: data.id,
@@ -136,7 +136,7 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
         break;
       case "syscall-response":
         {
-          let syscallId = data.id!;
+          const syscallId = data.id!;
           const lookup = pendingRequests.get(syscallId);
           if (!lookup) {
             console.log(

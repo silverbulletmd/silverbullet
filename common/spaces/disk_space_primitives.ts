@@ -79,7 +79,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
           contentType: contentType,
         },
       };
-    } catch (e) {
+    } catch {
       // console.error("Error while reading file", name, e);
       throw Error(`Could not read file ${name}`);
     }
@@ -137,7 +137,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         lastModified: s.mtime!.getTime(),
         perm: "rw",
       };
-    } catch (e) {
+    } catch {
       // console.error("Error while getting page meta", pageName, e);
       throw Error(`Could not get meta for ${name}`);
     }
@@ -157,7 +157,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
           continue;
         }
         const fullPath = path.join(dir, file.name);
-        let s = await Deno.stat(fullPath);
+        const s = await Deno.stat(fullPath);
         if (file.isDirectory) {
           await walkPath(fullPath);
         } else {
@@ -180,7 +180,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   // Plugs
   invokeFunction(
     plug: Plug<any>,
-    env: string,
+    _env: string,
     name: string,
     args: any[],
   ): Promise<any> {
