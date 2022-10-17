@@ -233,22 +233,8 @@ export class HttpServer {
       }
     });
 
-    // Simple password authentication
-    if (this.password) {
-      this.app.use(async ({ request, response }, next) => {
-        if (
-          request.headers.get("Authorization") === `Bearer ${this.password}`
-        ) {
-          await next();
-        } else {
-          response.status = 401;
-          response.body = "Unauthorized";
-        }
-      });
-    }
-
     // Pages API
-    const fsRouter = buildFsRouter(this.spacePrimitives);
+    const fsRouter = this.buildFsRouter(this.spacePrimitives);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
 
@@ -274,8 +260,112 @@ export class HttpServer {
     console.log("--------------");
   }
 
+  private addPasswordAuth(r: Router) {
+    if (this.password) {
+      r.use(async ({ request, response }, next) => {
+        if (
+          request.headers.get("Authorization") === `Bearer ${this.password}`
+        ) {
+          await next();
+        } else {
+          response.status = 401;
+          response.body = "Unauthorized";
+        }
+      });
+    }
+  }
+
+  private buildFsRouter(spacePrimitives: SpacePrimitives): Router {
+    const fsRouter = new Router();
+    this.addPasswordAuth(fsRouter);
+    // File list
+    fsRouter.get("/", async ({ response }) => {
+      const list = await spacePrimitives.fetchFileList();
+      // console.log("List", list);
+      response.headers.set("Content-type", "application/json");
+      response.body = JSON.stringify(list);
+    });
+
+    fsRouter
+      .get("\/(.+)", async ({ params, response }) => {
+        const name = params[0];
+        console.log("Loading file", name);
+        try {
+          const attachmentData = await spacePrimitives.readFile(
+            name,
+            "arraybuffer",
+          );
+          response.status = 200;
+          response.headers.set(
+            "X-Last-Modified",
+            "" + attachmentData.meta.lastModified,
+          );
+          response.headers.set("X-Permission", attachmentData.meta.perm);
+          response.headers.set("Content-Type", attachmentData.meta.contentType);
+          response.body = attachmentData.data as ArrayBuffer;
+        } catch {
+          // console.error("Error in main router", e);
+          response.status = 404;
+          response.body = "";
+        }
+      })
+      .put("\/(.+)", async ({ request, response, params }) => {
+        const name = params[0];
+        console.log("Saving file", name);
+
+        try {
+          const meta = await spacePrimitives.writeFile(
+            name,
+            "arraybuffer",
+            await request.body().value,
+            false,
+          );
+          response.status = 200;
+          response.headers.set("Content-Type", meta.contentType);
+          response.headers.set("X-Last-Modified", "" + meta.lastModified);
+          response.headers.set("X-Content-Length", "" + meta.size);
+          response.headers.set("X-Permission", meta.perm);
+          response.body = "OK";
+        } catch (err) {
+          response.status = 500;
+          response.body = "Write failed";
+          console.error("Pipeline failed", err);
+        }
+        console.log("Done with put", name);
+      })
+      .options("\/(.+)", async ({ response, params }) => {
+        const name = params[0];
+        try {
+          const meta = await spacePrimitives.getFileMeta(name);
+          response.status = 200;
+          response.headers.set("Content-Type", meta.contentType);
+          response.headers.set("X-Last-Modified", "" + meta.lastModified);
+          response.headers.set("X-Content-Length", "" + meta.size);
+          response.headers.set("X-Permission", meta.perm);
+        } catch {
+          response.status = 404;
+          response.body = "File not found";
+          // console.error("Options failed", err);
+        }
+      })
+      .delete("\/(.+)", async ({ response, params }) => {
+        const name = params[0];
+        try {
+          await spacePrimitives.deleteFile(name);
+          response.status = 200;
+          response.body = "OK";
+        } catch (e: any) {
+          console.error("Error deleting attachment", e);
+          response.status = 200;
+          response.body = e.message;
+        }
+      });
+    return new Router().use("/fs", fsRouter.routes());
+  }
+
   private buildPlugRouter(): Router {
     const plugRouter = new Router();
+    this.addPasswordAuth(plugRouter);
 
     plugRouter.post(
       "/:plug/syscall/:name",
@@ -370,92 +460,4 @@ export class HttpServer {
       console.log("stopped server");
     }
   }
-}
-
-function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
-  const fsRouter = new Router();
-
-  // File list
-  fsRouter.get("/", async ({ response }) => {
-    const list = await spacePrimitives.fetchFileList();
-    // console.log("List", list);
-    response.headers.set("Content-type", "application/json");
-    response.body = JSON.stringify(list);
-  });
-
-  fsRouter
-    .get("\/(.+)", async ({ params, response }) => {
-      const name = params[0];
-      console.log("Loading file", name);
-      try {
-        const attachmentData = await spacePrimitives.readFile(
-          name,
-          "arraybuffer",
-        );
-        response.status = 200;
-        response.headers.set(
-          "X-Last-Modified",
-          "" + attachmentData.meta.lastModified,
-        );
-        response.headers.set("X-Permission", attachmentData.meta.perm);
-        response.headers.set("Content-Type", attachmentData.meta.contentType);
-        response.body = attachmentData.data as ArrayBuffer;
-      } catch {
-        // console.error("Error in main router", e);
-        response.status = 404;
-        response.body = "";
-      }
-    })
-    .put("\/(.+)", async ({ request, response, params }) => {
-      const name = params[0];
-      console.log("Saving file", name);
-
-      try {
-        const meta = await spacePrimitives.writeFile(
-          name,
-          "arraybuffer",
-          await request.body().value,
-          false,
-        );
-        response.status = 200;
-        response.headers.set("Content-Type", meta.contentType);
-        response.headers.set("X-Last-Modified", "" + meta.lastModified);
-        response.headers.set("X-Content-Length", "" + meta.size);
-        response.headers.set("X-Permission", meta.perm);
-        response.body = "OK";
-      } catch (err) {
-        response.status = 500;
-        response.body = "Write failed";
-        console.error("Pipeline failed", err);
-      }
-      console.log("Done with put", name);
-    })
-    .options("\/(.+)", async ({ response, params }) => {
-      const name = params[0];
-      try {
-        const meta = await spacePrimitives.getFileMeta(name);
-        response.status = 200;
-        response.headers.set("Content-Type", meta.contentType);
-        response.headers.set("X-Last-Modified", "" + meta.lastModified);
-        response.headers.set("X-Content-Length", "" + meta.size);
-        response.headers.set("X-Permission", meta.perm);
-      } catch {
-        response.status = 404;
-        response.body = "File not found";
-        // console.error("Options failed", err);
-      }
-    })
-    .delete("\/(.+)", async ({ response, params }) => {
-      const name = params[0];
-      try {
-        await spacePrimitives.deleteFile(name);
-        response.status = 200;
-        response.body = "OK";
-      } catch (e: any) {
-        console.error("Error deleting attachment", e);
-        response.status = 200;
-        response.body = e.message;
-      }
-    });
-  return new Router().use("/fs", fsRouter.routes());
 }
