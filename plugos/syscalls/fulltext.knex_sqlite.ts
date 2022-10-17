@@ -11,18 +11,18 @@ export function ensureFTSTable(
   db: SQLite,
   tableName: string,
 ) {
-  const stmt = db.prepare(
-    `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-  );
-  const result = stmt.all(tableName);
-  if (result.length === 0) {
-    asyncExecute(
-      db,
-      `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
-    );
+  // const stmt = db.prepare(
+  //   `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+  // );
+  // const result = stmt.all(tableName);
+  // if (result.length === 0) {
+  //   asyncExecute(
+  //     db,
+  //     `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
+  //   );
 
-    console.log(`Created fts5 table ${tableName}`);
-  }
+  //   console.log(`Created fts5 table ${tableName}`);
+  // }
   return Promise.resolve();
 }
 
