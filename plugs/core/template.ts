@@ -130,8 +130,7 @@ export async function dailyNoteCommand() {
   });
   let dailyNoteTemplateText = "";
   try {
-    const text = await space.readPage(dailyNoteTemplate);
-    dailyNoteTemplateText = text;
+    dailyNoteTemplateText = await space.readPage(dailyNoteTemplate);
   } catch {
     console.warn(`No daily note template found at ${dailyNoteTemplate}`);
   }

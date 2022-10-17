@@ -439,10 +439,10 @@ function buildFsRouter(spacePrimitives: SpacePrimitives): Router {
         response.headers.set("X-Last-Modified", "" + meta.lastModified);
         response.headers.set("X-Content-Length", "" + meta.size);
         response.headers.set("X-Permission", meta.perm);
-      } catch (err) {
-        response.status = 500;
-        response.body = "Options failed";
-        console.error("Options failed", err);
+      } catch {
+        response.status = 404;
+        response.body = "File not found";
+        // console.error("Options failed", err);
       }
     })
     .delete("\/(.+)", async ({ response, params }) => {
