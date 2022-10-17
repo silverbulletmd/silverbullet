@@ -172,12 +172,12 @@ functions:
   insertPageMeta:
     path: "./template.ts:insertTemplateText"
     slashCommand:
-      name: meta
-      description: Insert a page metadata block
+      name: front-matter
+      description: Insert page front matter
       value: |
-        ```meta
+        ---
         |^|
-        ```
+        ---
   insertTask:
     path: "./template.ts:insertTemplateText"
     slashCommand:

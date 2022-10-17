@@ -3,6 +3,12 @@ release.
 
 ---
 
+## 0.1.3
+* Frontmatter support! You can now use front matter in your markdown, to do this start your page with `---` and end it with `---`. This will now be the preferred way to define page meta data (although the old way will still work). The old `/meta` slash command has now been replaced with `/front-matter`.
+* Tags are now indexed as page meta without the prefixing `#` character, the reason is to make this compatible with Obsidian. You can now attach tags to your page either by just using a `#tag` at the top level of your page, or by adding a `tags` attribute to your front matter.
+
+---
+
 ## 0.1.2
 
 - Breaking plugs API change: `readPage`, `readAttachment`, `readFile` now return

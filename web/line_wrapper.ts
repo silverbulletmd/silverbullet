@@ -17,23 +17,23 @@ interface WrapElement {
 
 function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
   let widgets: Range<Decoration>[] = [];
-  let elementStack: string[] = [];
+  const elementStack: string[] = [];
   const doc = view.state.doc;
   // Disabling the visible ranges for now, because it may be a bit buggy.
   // RISK: this may actually become slow for large documents.
-  for (let { from, to } of view.visibleRanges) {
+  for (const { from, to } of view.visibleRanges) {
     syntaxTree(view.state).iterate({
       from,
       to,
       enter: ({ type, from, to }) => {
-        for (let wrapElement of wrapElements) {
+        for (const wrapElement of wrapElements) {
           if (type.name == wrapElement.selector) {
             if (wrapElement.nesting) {
               elementStack.push(type.name);
             }
             const bodyText = doc.sliceString(from, to);
             let idx = from;
-            for (let line of bodyText.split("\n")) {
+            for (const line of bodyText.split("\n")) {
               let cls = wrapElement.class;
               if (wrapElement.nesting) {
                 cls = `${cls} ${cls}-${elementStack.length}`;
@@ -49,7 +49,7 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
         }
       },
       leave({ type }) {
-        for (let wrapElement of wrapElements) {
+        for (const wrapElement of wrapElements) {
           if (type.name == wrapElement.selector && wrapElement.nesting) {
             elementStack.pop();
           }

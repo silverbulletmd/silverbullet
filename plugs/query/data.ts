@@ -8,10 +8,12 @@ import {
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
+  renderToText,
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import * as YAML from "yaml";
+import { text } from "https://esm.sh/v96/@fortawesome/fontawesome-svg-core@1.3.0/X-ZS9AZm9ydGF3ZXNvbWUvZm9udGF3ZXNvbWUtY29tbW9uLXR5cGVz/index.d.ts";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: { key: string; value: any }[] = [];
@@ -61,11 +63,13 @@ export function extractMeta(
 ): any {
   let data: any = {};
   addParentPointers(parseTree);
+
   replaceNodesMatching(parseTree, (t) => {
+    // Find top-level hash tags
     if (t.type === "Hashtag") {
       // Check if if nested directly into a Paragraph
       if (t.parent && t.parent.type === "Paragraph") {
-        const tagname = t.children![0].text;
+        const tagname = t.children![0].text!.substring(1);
         if (!data.tags) {
           data.tags = [];
         }
@@ -75,7 +79,32 @@ export function extractMeta(
       }
       return;
     }
-    // Find a fenced code block
+    // Find FrontMatter and parse it
+    if (t.type === "FrontMatter") {
+      const yamlText = renderToText(t.children![1].children![0]);
+      const parsedData: any = YAML.parse(yamlText);
+      const newData = { ...parsedData };
+      data = { ...data, ...parsedData };
+      if (removeKeys.length > 0) {
+        let removedOne = false;
+
+        for (const key of removeKeys) {
+          if (key in newData) {
+            delete newData[key];
+            removedOne = true;
+          }
+        }
+        if (removedOne) {
+          t.children![0].text = YAML.stringify(newData);
+        }
+      }
+      // If nothing is left, let's just delete this whole block
+      if (Object.keys(newData).length === 0) {
+        return null;
+      }
+    }
+
+    // Find a fenced code block with `meta` as the language type
     if (t.type !== "FencedCode") {
       return;
     }
@@ -92,18 +121,26 @@ export function extractMeta(
       return;
     }
     const codeText = codeTextNode.children![0].text!;
-    data = YAML.parse(codeText);
+    const parsedData: any = YAML.parse(codeText);
+    const newData = { ...parsedData };
+    data = { ...data, ...parsedData };
     if (removeKeys.length > 0) {
-      const newData = { ...data };
+      let removedOne = false;
       for (const key of removeKeys) {
-        delete newData[key];
+        if (key in newData) {
+          delete newData[key];
+          removedOne = true;
+        }
       }
-      codeTextNode.children![0].text = YAML.stringify(newData).trim();
-      // If nothing is left, let's just delete this thing
-      if (Object.keys(newData).length === 0) {
-        return null;
+      if (removedOne) {
+        codeTextNode.children![0].text = YAML.stringify(newData).trim();
       }
     }
+    // If nothing is left, let's just delete this whole block
+    if (Object.keys(newData).length === 0) {
+      return null;
+    }
+
     return undefined;
   });
 

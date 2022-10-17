@@ -441,6 +441,7 @@ export class Editor {
           { selector: "BulletList", class: "sb-line-ul" },
           { selector: "OrderedList", class: "sb-line-ol" },
           { selector: "TableHeader", class: "sb-line-tbl-header" },
+          { selector: "FrontMatter", class: "sb-frontmatter" },
         ]),
         keymap.of([
           ...smartQuoteKeymap,

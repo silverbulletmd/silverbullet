@@ -1,7 +1,12 @@
 import { KeyBinding } from "./deps.ts";
 import { syntaxTree } from "../common/deps.ts";
 
-const straightQuoteContexts = ["CommentBlock", "FencedCode", "InlineCode"];
+const straightQuoteContexts = [
+  "CommentBlock",
+  "FencedCode",
+  "InlineCode",
+  "FrontMatterCode",
+];
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)
 function keyBindingForQuote(
@@ -12,8 +17,8 @@ function keyBindingForQuote(
   return {
     key: quote,
     run: (target): boolean => {
-      let cursorPos = target.state.selection.main.from;
-      let chBefore = target.state.sliceDoc(cursorPos - 1, cursorPos);
+      const cursorPos = target.state.selection.main.from;
+      const chBefore = target.state.sliceDoc(cursorPos - 1, cursorPos);
 
       // Figure out the context, if in some sort of code/comment fragment don't be smart
       let node = syntaxTree(target.state).resolveInner(cursorPos);

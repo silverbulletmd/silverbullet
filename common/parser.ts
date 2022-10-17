@@ -1,17 +1,17 @@
 import {
   BlockContext,
   Language,
-  LanguageDescription,
-  LanguageSupport,
   LeafBlock,
   LeafBlockParser,
+  Line,
   markdown,
   MarkdownConfig,
-  parseCode,
+  StreamLanguage,
   styleTags,
   Table,
   tags as t,
   TaskList,
+  yamlLanguage,
 } from "./deps.ts";
 import * as ct from "./customtags.ts";
 import {
@@ -92,7 +92,7 @@ export const Comment: MarkdownConfig = {
   parseBlock: [
     {
       name: "Comment",
-      leaf(cx, leaf) {
+      leaf(_cx, leaf) {
         return /^%%\s/.test(leaf.content) ? new CommentParser() : null;
       },
       after: "SetextHeading",
@@ -100,34 +100,80 @@ export const Comment: MarkdownConfig = {
   ],
 };
 
+// FrontMatter parser
+
+const lang = StreamLanguage.define(yamlLanguage);
+
+export const FrontMatter: MarkdownConfig = {
+  defineNodes: [
+    { name: "FrontMatter", block: true },
+    { name: "FrontMatterMarker" },
+    { name: "FrontMatterCode" },
+  ],
+  parseBlock: [{
+    name: "FrontMatter",
+    parse: (cx, line: Line) => {
+      if (cx.parsedPos !== 0) {
+        return false;
+      }
+      if (line.text !== "---") {
+        return false;
+      }
+      const frontStart = cx.parsedPos;
+      const elts = [
+        cx.elt(
+          "FrontMatterMarker",
+          cx.parsedPos,
+          cx.parsedPos + line.text.length + 1,
+        ),
+      ];
+      cx.nextLine();
+      const startPos = cx.parsedPos;
+      let endPos = startPos;
+      let text = "";
+      let lastPos = cx.parsedPos;
+      do {
+        text += line.text + "\n";
+        endPos += line.text.length + 1;
+        cx.nextLine();
+        if (cx.parsedPos === lastPos) {
+          // End of file, no progress made, there may be a better way to do this but :shrug:
+          return false;
+        }
+        lastPos = cx.parsedPos;
+      } while (line.text !== "---");
+      const yamlTree = lang.parser.parse(text);
+
+      elts.push(
+        cx.elt("FrontMatterCode", startPos, endPos, [
+          cx.elt(yamlTree, startPos),
+        ]),
+      );
+      endPos = cx.parsedPos + line.text.length;
+      elts.push(cx.elt(
+        "FrontMatterMarker",
+        cx.parsedPos,
+        cx.parsedPos + line.text.length,
+      ));
+      cx.nextLine();
+      cx.addElement(cx.elt("FrontMatter", frontStart, endPos, elts));
+      return true;
+    },
+    before: "HorizontalRule",
+  }],
+};
+
 export default function buildMarkdown(mdExtensions: MDExt[]): Language {
   return markdown({
     extensions: [
       WikiLink,
+      FrontMatter,
       TaskList,
       Comment,
       Strikethrough,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
-      // parseCode({
-      //   codeParser: getCodeParser([
-      //     LanguageDescription.of({
-      //       name: "yaml",
-      //       alias: ["meta", "data"],
-      //       support: new LanguageSupport(StreamLanguage.define(yaml)),
-      //     }),
-      //     LanguageDescription.of({
-      //       name: "javascript",
-      //       alias: ["js"],
-      //       support: new LanguageSupport(javascriptLanguage),
-      //     }),
-      //     LanguageDescription.of({
-      //       name: "typescript",
-      //       alias: ["ts"],
-      //       support: new LanguageSupport(typescriptLanguage),
-      //     }),
-      //   ]),
-      // }),
+
       {
         props: [
           styleTags({

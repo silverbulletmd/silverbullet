@@ -27,6 +27,7 @@ export type {
   BlockContext,
   LeafBlock,
   LeafBlockParser,
+  Line,
   MarkdownConfig,
   MarkdownExtension,
 } from "@lezer/markdown";

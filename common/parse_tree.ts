@@ -2,6 +2,7 @@ import { ParseTree } from "$sb/lib/tree.ts";
 
 import type { SyntaxNode } from "./deps.ts";
 import type { Language } from "./deps.ts";
+
 export function lezerToParseTree(
   text: string,
   n: SyntaxNode,
@@ -24,10 +25,10 @@ export function lezerToParseTree(
       },
     ];
   } else {
-    let newChildren: ParseTree[] = [];
+    const newChildren: ParseTree[] = [];
     let index = n.from;
-    for (let child of children) {
-      let s = text.substring(index, child.from);
+    for (const child of children) {
+      const s = text.substring(index, child.from);
       if (s) {
         newChildren.push({
           from: index + offset,
@@ -38,14 +39,14 @@ export function lezerToParseTree(
       newChildren.push(child);
       index = child.to!;
     }
-    let s = text.substring(index, n.to);
+    const s = text.substring(index, n.to);
     if (s) {
       newChildren.push({ from: index + offset, to: n.to + offset, text: s });
     }
     children = newChildren;
   }
 
-  let result: ParseTree = {
+  const result: ParseTree = {
     type: n.name,
     from: n.from + offset,
     to: n.to + offset,
@@ -60,7 +61,7 @@ export function lezerToParseTree(
 }
 
 export function parse(language: Language, text: string): ParseTree {
-  let tree = lezerToParseTree(text, language.parser.parse(text).topNode);
+  const tree = lezerToParseTree(text, language.parser.parse(text).topNode);
   // replaceNodesMatching(tree, (n): MarkdownTree | undefined | null => {
   //   if (n.type === "FencedCode") {
   //     let infoN = findNodeMatching(n, (n) => n.type === "CodeInfo");
