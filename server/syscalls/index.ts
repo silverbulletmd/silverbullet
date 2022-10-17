@@ -22,15 +22,15 @@ export type KV = {
 const tableName = "page_index";
 
 export function ensureTable(db: SQLite): Promise<void> {
-  const stmt = db.prepare(
+  const result = db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+    [tableName],
   );
-  const result = stmt.all(tableName);
   if (result.length === 0) {
-    db.exec(
+    db.execute(
       `CREATE TABLE ${tableName} (key STRING, page STRING, value TEXT, PRIMARY KEY (page, key));`,
     );
-    db.exec(
+    db.execute(
       `CREATE INDEX ${tableName}_idx ON ${tableName}(key);`,
     );
     console.log(`Created table ${tableName}`);

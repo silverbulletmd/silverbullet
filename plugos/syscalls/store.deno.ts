@@ -13,12 +13,14 @@ export type KV = {
 };
 
 export function ensureTable(db: SQLite, tableName: string) {
-  const stmt = db.prepare(
+  const result = db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+    [tableName],
   );
-  const result = stmt.all(tableName);
   if (result.length === 0) {
-    db.exec(`CREATE TABLE ${tableName} (key STRING PRIMARY KEY, value TEXT);`);
+    db.execute(
+      `CREATE TABLE ${tableName} (key STRING PRIMARY KEY, value TEXT);`,
+    );
     console.log(`Created table ${tableName}`);
   }
   return Promise.resolve();
@@ -76,7 +78,7 @@ export function asyncQuery<T extends Record<string, unknown>>(
   ...params: any[]
 ): Promise<T[]> {
   // console.log("Querying", query, params);
-  return Promise.resolve(db.prepare(query).all<T>(params));
+  return Promise.resolve(db.queryEntries(query, params));
 }
 
 export function asyncExecute(
@@ -85,7 +87,8 @@ export function asyncExecute(
   ...params: any[]
 ): Promise<number> {
   // console.log("Exdecting", query, params);
-  return Promise.resolve(db.exec(query, params));
+  db.query(query, params);
+  return Promise.resolve(db.changes);
 }
 
 export function storeSyscalls(
