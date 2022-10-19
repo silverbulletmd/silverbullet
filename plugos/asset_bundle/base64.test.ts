@@ -1,5 +1,9 @@
 import { assertEquals } from "../../test_deps.ts";
-import { base64Decode } from "./base64.ts";
+import {
+  base64Decode,
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
+} from "./base64.ts";
 import { base64Encode } from "./base64.ts";
 
 Deno.test("Base 64 encoding", () => {
@@ -9,4 +13,9 @@ Deno.test("Base 64 encoding", () => {
   buf[2] = 3;
 
   assertEquals(buf, base64Decode(base64Encode(buf)));
+
+  assertEquals(
+    buf,
+    base64DecodeDataUrl(base64EncodedDataUrl("application/octet-stream", buf)),
+  );
 });

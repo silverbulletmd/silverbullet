@@ -2,27 +2,22 @@ import { SQLite } from "../../server/deps.ts";
 import { SysCallMapping } from "../system.ts";
 import { asyncExecute, asyncQuery } from "./store.deno.ts";
 
-type Item = {
-  key: string;
-  value: string;
-};
-
 export function ensureFTSTable(
   db: SQLite,
   tableName: string,
 ) {
-  // const stmt = db.prepare(
-  //   `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-  // );
-  // const result = stmt.all(tableName);
-  // if (result.length === 0) {
-  //   asyncExecute(
-  //     db,
-  //     `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
-  //   );
+  const result = db.query(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+    [tableName],
+  );
+  if (result.length === 0) {
+    asyncExecute(
+      db,
+      `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
+    );
 
-  //   console.log(`Created fts5 table ${tableName}`);
-  // }
+    console.log(`Created fts5 table ${tableName}`);
+  }
   return Promise.resolve();
 }
 
@@ -44,6 +39,7 @@ export function fullTextSearchSyscalls(
       await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
     },
     "fulltext.search": async (_ctx, phrase: string, limit: number) => {
+      console.log("Got search query", phrase);
       return (
         await asyncQuery<any>(
           db,

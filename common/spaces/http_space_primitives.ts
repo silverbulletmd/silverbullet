@@ -1,6 +1,11 @@
 import { FileMeta } from "../types.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import {
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
+} from "../../plugos/asset_bundle/base64.ts";
+import { mime } from "../../plugos/deps.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   fsUrl: string;
@@ -50,14 +55,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     switch (encoding) {
       case "arraybuffer":
         {
-          const abBlob = await res.blob();
-          data = await abBlob.arrayBuffer();
+          data = await res.arrayBuffer();
+          // data = await abBlob.arrayBuffer();
         }
         break;
       case "dataurl":
         {
-          const dUBlob = await res.blob();
-          data = arrayBufferToDataUrl(await dUBlob.arrayBuffer());
+          data = base64EncodedDataUrl(
+            mime.getType(name) || "application/octet-stream",
+            new Uint8Array(await res.arrayBuffer()),
+          );
         }
         break;
       case "string":
@@ -83,7 +90,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         body = data;
         break;
       case "dataurl":
-        data = dataUrlToArrayBuffer(data as string);
+        data = base64DecodeDataUrl(data as string);
         break;
     }
     const res = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
@@ -183,24 +190,4 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       return await req.text();
     }
   }
-}
-
-function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
-  const binary_string = atob(dataUrl.split(",")[1]);
-  const len = binary_string.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return `data:application/octet-stream,${btoa(binary)}`;
 }

@@ -16,3 +16,15 @@ export function base64Encode(buffer: Uint8Array): string {
   }
   return btoa(binary);
 }
+
+export function base64EncodedDataUrl(
+  mimeType: string,
+  buffer: Uint8Array,
+): string {
+  return `data:${mimeType};base64,${base64Encode(buffer)}`;
+}
+
+export function base64DecodeDataUrl(dataUrl: string): Uint8Array {
+  const b64Encoded = dataUrl.split(",", 2)[1];
+  return base64Decode(b64Encoded);
+}

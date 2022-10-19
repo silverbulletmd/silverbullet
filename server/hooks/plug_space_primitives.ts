@@ -6,6 +6,7 @@ import {
 } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import { NamespaceOperation, PageNamespaceHook } from "./page_namespace.ts";
+import { base64DecodeDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -46,13 +47,26 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return allFiles;
   }
 
-  readFile(
+  async readFile(
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
-    const result = this.performOperation("readFile", name);
+    const wantArrayBuffer = encoding === "arraybuffer";
+    const result: { data: FileData; meta: FileMeta } | false = await this
+      .performOperation(
+        "readFile",
+        name,
+        wantArrayBuffer ? "dataurl" : encoding,
+      );
     if (result) {
-      return result;
+      if (wantArrayBuffer) {
+        return {
+          data: base64DecodeDataUrl(result.data as string),
+          meta: result.meta,
+        };
+      } else {
+        return result;
+      }
     }
     return this.wrapped.readFile(name, encoding);
   }

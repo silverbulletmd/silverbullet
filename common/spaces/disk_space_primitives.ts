@@ -6,8 +6,8 @@ import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 import {
-  base64Decode,
-  base64Encode,
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 
 function lookupContentType(path: string): string {
@@ -53,10 +53,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         case "dataurl":
           {
             const f = await Deno.open(localPath, { read: true });
-            const buf = base64Encode(await readAll(f));
+            const buf = await readAll(f);
             Deno.close(f.rid);
 
-            data = `data:${contentType};base64,${buf}`;
+            data = base64EncodedDataUrl(contentType, buf);
           }
           break;
         case "arraybuffer":
@@ -103,7 +103,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         case "dataurl":
           await Deno.writeFile(
             localPath,
-            base64Decode((data as string).split(",")[1]),
+            base64DecodeDataUrl(data as string),
           );
           break;
         case "arraybuffer":

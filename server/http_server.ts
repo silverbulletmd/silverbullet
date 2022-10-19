@@ -1,4 +1,4 @@
-import { Application, path, Router, SQLite } from "./deps.ts";
+import { Application, etag, path, Router, SQLite } from "./deps.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -15,7 +15,10 @@ import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
 import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
-import { fullTextSearchSyscalls } from "../plugos/syscalls/fulltext.knex_sqlite.ts";
+import {
+  ensureFTSTable,
+  fullTextSearchSyscalls,
+} from "../plugos/syscalls/fulltext.knex_sqlite.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import shellSyscalls from "../plugos/syscalls/shell.node.ts";
 import {
@@ -43,6 +46,7 @@ export type ServerOptions = {
 };
 
 const indexRequiredKey = "$spaceIndexed";
+const staticLastModified = new Date().toUTCString();
 
 export class HttpServer {
   app: Application;
@@ -198,7 +202,7 @@ export class HttpServer {
   async start() {
     await ensureIndexTable(this.db);
     await ensureStoreTable(this.db, "store");
-    // await ensureFTSTable(this.db, "fts");
+    await ensureFTSTable(this.db, "fts");
     await this.ensureAndLoadSettings();
 
     // Load plugs
@@ -211,6 +215,8 @@ export class HttpServer {
         response.body = this.assetBundle.readTextFileSync(
           "web/index.html",
         );
+        response.headers.set("Last-Modified", staticLastModified);
+        response.headers.set("ETag", await etag.calculate(response.body));
         return;
       }
       try {
@@ -224,6 +230,8 @@ export class HttpServer {
           assetName,
         );
         response.headers.set("Content-length", "" + data.length);
+        response.headers.set("Last-Modified", staticLastModified);
+        response.headers.set("ETag", await etag.calculate(data));
 
         if (request.method === "GET") {
           response.body = data;

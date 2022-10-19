@@ -1,9 +1,18 @@
 import { fulltext } from "$sb/plugos-syscall/mod.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import type { PageMeta } from "../../common/types.ts";
+import type { FileMeta, PageMeta } from "../../common/types.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import {
+  FileData,
+  FileEncoding,
+} from "../../common/spaces/space_primitives.ts";
+import {
+  base64DecodeDataUrl,
+  base64Encode,
+  base64EncodedDataUrl,
+} from "../../plugos/asset_bundle/base64.ts";
 
 const searchPrefix = "🔍 ";
 
@@ -46,16 +55,20 @@ export async function queryProvider({
 }
 
 export async function searchCommand() {
-  const phrase = await prompt("Search for: ");
+  const phrase = await editor.prompt("Search for: ");
   if (phrase) {
     await editor.navigate(`${searchPrefix}${phrase}`);
   }
 }
 
-export async function readPageSearch(
+export async function readFileSearch(
   name: string,
-): Promise<{ text: string; meta: PageMeta }> {
-  const phrase = name.substring(searchPrefix.length);
+  encoding: FileEncoding,
+): Promise<{ data: FileData; meta: FileMeta }> {
+  const phrase = name.substring(
+    searchPrefix.length,
+    name.length - ".md".length,
+  );
   const results = await fulltext.fullTextSearch(phrase, 100);
   const text = `# Search results for "${phrase}"\n${
     results
@@ -63,19 +76,28 @@ export async function readPageSearch(
       .join("\n")
   }
   `;
+
   return {
-    text: text,
+    // encoding === "arraybuffer" is not an option, so either it's "string" or "dataurl"
+    data: encoding === "string" ? text : base64EncodedDataUrl(
+      "text/markdown",
+      new TextEncoder().encode(text),
+    ),
     meta: {
       name,
+      contentType: "text/markdown",
+      size: text.length,
       lastModified: 0,
       perm: "ro",
     },
   };
 }
 
-export function getPageMetaSearch(name: string): PageMeta {
+export function getFileMetaSearch(name: string): FileMeta {
   return {
     name,
+    contentType: "text/markdown",
+    size: -1,
     lastModified: 0,
     perm: "ro",
   };

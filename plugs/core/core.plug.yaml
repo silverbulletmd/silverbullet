@@ -138,15 +138,15 @@ functions:
       - page:complete
 
   # Full text search
-  # searchIndex:
-  #   path: ./search.ts:pageIndex
-  #   events:
-  #     - page:index
-  # searchUnindex:
-  #   path: "./search.ts:pageUnindex"
-  #   env: server
-  #   events:
-  #     - page:deleted
+  searchIndex:
+    path: ./search.ts:pageIndex
+    events:
+      - page:index
+  searchUnindex:
+    path: "./search.ts:pageUnindex"
+    env: server
+    events:
+      - page:deleted
   searchQueryProvider:
     path: ./search.ts:queryProvider
     events:
@@ -158,12 +158,12 @@ functions:
       key: Ctrl-Shift-f
       mac: Cmd-Shift-f
   readPageSearch:
-    path: ./search.ts:readPageSearch
+    path: ./search.ts:readFileSearch
     pageNamespace:
       pattern: "🔍 .+"
       operation: readFile
   getPageMetaSearch:
-    path: ./search.ts:getPageMetaSearch
+    path: ./search.ts:getFileMetaSearch
     pageNamespace:
       pattern: "🔍 .+"
       operation: getFileMeta

@@ -1,4 +1,4 @@
-import { base64Decode, base64Encode } from "./base64.ts";
+import { base64Decode, base64EncodedDataUrl } from "./base64.ts";
 import { mime } from "../deps.ts";
 
 type DataUrl = string;
@@ -57,9 +57,8 @@ export class AssetBundle {
   }
 
   writeFileSync(path: string, data: Uint8Array) {
-    const encoded = base64Encode(data);
-    const mimeType = mime.getType(path);
-    this.bundle[path] = `data:${mimeType};base64,${encoded}`;
+    const mimeType = mime.getType(path) || "application/octet-stream";
+    this.bundle[path] = base64EncodedDataUrl(mimeType, data);
   }
 
   writeTextFileSync(path: string, s: string) {
