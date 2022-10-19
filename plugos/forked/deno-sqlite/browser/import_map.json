@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "../build/vfs.js": "../browser/vfs.js"
+  }
+}
