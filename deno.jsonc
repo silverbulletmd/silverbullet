@@ -16,6 +16,11 @@
       "exclude": ["no-explicit-any"]
     }
   },
+  "test": {
+    "files": {
+      "exclude": ["plugos/forked"]
+    }
+  },
   "fmt": {
     "files": {
       "exclude": [
