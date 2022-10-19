@@ -18,7 +18,7 @@ import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
 import {
   ensureFTSTable,
   fullTextSearchSyscalls,
-} from "../plugos/syscalls/fulltext.knex_sqlite.ts";
+} from "../plugos/syscalls/fulltext.sqlite.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import shellSyscalls from "../plugos/syscalls/shell.node.ts";
 import {
