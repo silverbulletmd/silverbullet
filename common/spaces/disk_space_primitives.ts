@@ -9,6 +9,7 @@ import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
+import { walk } from "../../plugos/deps.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -149,32 +150,26 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const fileList: FileMeta[] = [];
+    const allFiles: FileMeta[] = [];
+    for await (
+      const file of walk(this.rootPath, {
+        includeDirs: false,
+        // Exclude hidden directories
+        skip: [/^.*\/\..+$/],
+      })
+    ) {
+      const fullPath = file.path;
+      const s = await Deno.stat(fullPath);
+      allFiles.push({
+        name: fullPath.substring(this.rootPath.length + 1),
+        lastModified: s.mtime!.getTime(),
+        contentType: mime.getType(fullPath) || "application/octet-stream",
+        size: s.size,
+        perm: "rw",
+      });
+    }
 
-    const walkPath = async (dir: string) => {
-      for await (const file of Deno.readDir(dir)) {
-        if (file.name.startsWith(".")) {
-          continue;
-        }
-        const fullPath = path.join(dir, file.name);
-        const s = await Deno.stat(fullPath);
-        if (file.isDirectory) {
-          await walkPath(fullPath);
-        } else {
-          if (!file.name.startsWith(".")) {
-            fileList.push({
-              name: this.pathToFilename(fullPath),
-              size: s.size,
-              contentType: lookupContentType(fullPath),
-              lastModified: s.mtime!.getTime(),
-              perm: "rw",
-            });
-          }
-        }
-      }
-    };
-    await walkPath(this.rootPath);
-    return fileList;
+    return allFiles;
   }
 
   // Plugs

@@ -1,5 +1,5 @@
 import type { SysCallMapping } from "../system.ts";
-import { mime, path } from "../deps.ts";
+import { mime, path, walk } from "../deps.ts";
 import { base64DecodeDataUrl, base64Encode } from "../asset_bundle/base64.ts";
 import { FileMeta } from "../../common/types.ts";
 
@@ -72,26 +72,24 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
     ): Promise<FileMeta[]> => {
       dirPath = resolvedPath(dirPath);
       const allFiles: FileMeta[] = [];
-
-      async function walkPath(dir: string) {
-        const files = await Deno.readDir(dir);
-        for await (const file of files) {
-          const fullPath = path.join(dir, file.name);
-          const s = await Deno.stat(fullPath);
-          if (s.isDirectory && recursive) {
-            await walkPath(fullPath);
-          } else {
-            allFiles.push({
-              name: fullPath.substring(dirPath.length + 1),
-              lastModified: s.mtime!.getTime(),
-              contentType: mime.getType(fullPath) || "application/octet-stream",
-              size: s.size,
-              perm: "rw",
-            });
-          }
-        }
+      for await (
+        const file of walk(dirPath, {
+          includeDirs: false,
+          // Exclude hidden files
+          skip: [/^.*\/\..+$/],
+          maxDepth: recursive ? Infinity : 1,
+        })
+      ) {
+        const fullPath = file.path;
+        const s = await Deno.stat(fullPath);
+        allFiles.push({
+          name: fullPath.substring(dirPath.length + 1),
+          lastModified: s.mtime!.getTime(),
+          contentType: mime.getType(fullPath) || "application/octet-stream",
+          size: s.size,
+          perm: "rw",
+        });
       }
-      await walkPath(dirPath);
       return allFiles;
     },
   };
