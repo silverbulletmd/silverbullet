@@ -87,6 +87,7 @@ async function bundle(watch: boolean): Promise<void> {
         entryPoints: {
           client: "web/boot.ts",
           service_worker: "web/service_worker.ts",
+          worker: "plugos/environments/sandbox_worker.ts",
         },
         outdir: "./dist_bundle/web",
         absWorkingDir: Deno.cwd(),
