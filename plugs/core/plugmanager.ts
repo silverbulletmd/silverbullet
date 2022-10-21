@@ -63,7 +63,7 @@ export async function updatePlugs() {
       await space.deleteAttachment(existingPlug);
     }
   }
-  await system.reloadPlugs();
+  system.reloadPlugs();
 }
 
 export async function getPlugHTTPS(url: string): Promise<Manifest> {
