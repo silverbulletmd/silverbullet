@@ -528,11 +528,10 @@ export class Editor {
     await this.space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    for (const plugName of await this.space.listPlugs()) {
-      // console.log("Loading plug", pageInfo.name);
+    await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       const { data } = await this.space.readAttachment(plugName, "string");
       await this.system.load(JSON.parse(data as string), createIFrameSandbox);
-    }
+    }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
   }
