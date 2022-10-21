@@ -278,6 +278,9 @@ export class Editor {
       this.saveTimeout = setTimeout(
         () => {
           if (this.currentPage) {
+            if (!this.viewState.unsavedChanges) {
+              return resolve();
+            }
             console.log("Saving page", this.currentPage);
             this.space
               .writePage(
