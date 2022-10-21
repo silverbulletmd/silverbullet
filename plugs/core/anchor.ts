@@ -17,7 +17,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
       value: "" + n.from,
     });
   });
-  console.log("Found", anchors.length, "anchors(s)");
+  // console.log("Found", anchors.length, "anchors(s)");
   await index.batchSet(pageName, anchors);
 }
 

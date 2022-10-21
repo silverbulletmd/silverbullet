@@ -18,7 +18,7 @@
   },
   "test": {
     "files": {
-      "exclude": ["plugos/forked"]
+      "exclude": ["plugos/forked", "plugos/sqlite/deno-sqlite"]
     }
   },
   "fmt": {

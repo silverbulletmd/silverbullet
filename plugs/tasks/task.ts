@@ -80,7 +80,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     // console.log("Task", task);
   });
 
-  console.log("Found", tasks.length, "task(s)");
+  // console.log("Found", tasks.length, "task(s)");
   await index.batchSet(name, tasks);
 }
 

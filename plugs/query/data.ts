@@ -53,7 +53,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
       return;
     }
   });
-  console.log("Found", dataObjects.length, "data objects");
+  // console.log("Found", dataObjects.length, "data objects");
   await index.batchSet(name, dataObjects);
 }
 

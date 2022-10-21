@@ -17,7 +17,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items: { key: string; value: Item }[] = [];
   removeQueries(tree);
 
-  console.log("Indexing items", name);
+  // console.log("Indexing items", name);
 
   const coll = collectNodesOfType(tree, "ListItem");
 
@@ -59,7 +59,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       value: item,
     });
   });
-  console.log("Found", items.length, "item(s)");
+  // console.log("Found", items.length, "item(s)");
   await index.batchSet(name, items);
 }
 

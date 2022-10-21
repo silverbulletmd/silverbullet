@@ -1,4 +1,4 @@
-import { Application, etag, path, Router, SQLite } from "./deps.ts";
+import { Application, etag, path, Router } from "./deps.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -37,6 +37,7 @@ import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 
 export type ServerOptions = {
   port: number;
@@ -53,7 +54,7 @@ export class HttpServer {
   system: System<SilverBulletHooks>;
   private space: Space;
   private eventHook: EventHook;
-  private db: SQLite;
+  private db: AsyncSQLite;
   private port: number;
   password?: string;
   settings: { [key: string]: any } = {};
@@ -97,7 +98,10 @@ export class HttpServer {
     this.space = new Space(this.spacePrimitives);
 
     // The database used for persistence (SQLite)
-    this.db = new SQLite(path.join(options.pagesPath, "data.db"));
+    this.db = new AsyncSQLite(path.join(options.pagesPath, "data.db"));
+    this.db.init().catch((e) => {
+      console.error("Error initializing database", e);
+    });
 
     // The cron hook
     this.system.addHook(new DenoCronHook());

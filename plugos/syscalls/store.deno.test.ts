@@ -1,11 +1,12 @@
 import { assertEquals } from "../../test_deps.ts";
-import { SQLite } from "../../server/deps.ts";
 import { createSandbox } from "../environments/deno_sandbox.ts";
 import { System } from "../system.ts";
 import { ensureTable, storeSyscalls } from "./store.deno.ts";
+import { AsyncSQLite } from "../sqlite/async_sqlite.ts";
 
 Deno.test("Test store", async () => {
-  const db = new SQLite(":memory:");
+  const db = new AsyncSQLite(":memory:");
+  await db.init();
   await ensureTable(db, "test_table");
   const system = new System("server");
   const syscalls = storeSyscalls(db, "test_table");
@@ -100,7 +101,8 @@ Deno.test("Test store", async () => {
   });
 
   allRoberts = await syscalls["store.query"](dummyCtx, {});
+  // console.log("All Roberts", allRoberts);
   assertEquals(allRoberts.length, 2);
 
-  db.close();
+  db.stop();
 });

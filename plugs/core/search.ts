@@ -8,11 +8,7 @@ import {
   FileData,
   FileEncoding,
 } from "../../common/spaces/space_primitives.ts";
-import {
-  base64DecodeDataUrl,
-  base64Encode,
-  base64EncodedDataUrl,
-} from "../../plugos/asset_bundle/base64.ts";
+import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 const searchPrefix = "🔍 ";
 

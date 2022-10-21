@@ -1,4 +1,4 @@
-import { SQLite } from "../../server/deps.ts";
+import { AsyncSQLite } from "../sqlite/async_sqlite.ts";
 import { SysCallMapping } from "../system.ts";
 
 export type Item = {
@@ -12,18 +12,17 @@ export type KV = {
   value: any;
 };
 
-export function ensureTable(db: SQLite, tableName: string) {
-  const result = db.query(
+export async function ensureTable(db: AsyncSQLite, tableName: string) {
+  const result = await db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-    [tableName],
+    tableName,
   );
   if (result.length === 0) {
-    db.execute(
+    await db.execute(
       `CREATE TABLE ${tableName} (key STRING PRIMARY KEY, value TEXT);`,
     );
     console.log(`Created table ${tableName}`);
   }
-  return Promise.resolve();
 }
 
 export type Query = {
@@ -72,68 +71,53 @@ export function queryToSql(
   };
 }
 
-export function asyncQuery<T extends Record<string, unknown>>(
-  db: SQLite,
-  query: string,
-  ...params: any[]
-): Promise<T[]> {
-  // console.log("Querying", query, params);
-  return Promise.resolve(db.queryEntries(query, params));
-}
-
-export function asyncExecute(
-  db: SQLite,
-  query: string,
-  ...params: any[]
-): Promise<number> {
-  // console.log("Exdecting", query, params);
-  db.query(query, params);
-  return Promise.resolve(db.changes);
-}
-
 export function storeSyscalls(
-  db: SQLite,
+  db: AsyncSQLite,
   tableName: string,
 ): SysCallMapping {
   const apiObj: SysCallMapping = {
     "store.delete": async (_ctx, key: string) => {
-      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
+      await db.execute(`DELETE FROM ${tableName} WHERE key = ?`, key);
     },
     "store.deletePrefix": async (_ctx, prefix: string) => {
-      await asyncExecute(
-        db,
+      await db.execute(
         `DELETE FROM ${tableName} WHERE key LIKE ?`,
         `${prefix}%`,
       );
     },
     "store.deleteQuery": async (_ctx, query: Query) => {
       const { sql, params } = queryToSql(query);
-      await asyncExecute(db, `DELETE FROM ${tableName} ${sql}`, ...params);
+      await db.execute(`DELETE FROM ${tableName} ${sql}`, ...params);
     },
     "store.deleteAll": async () => {
-      await asyncExecute(db, `DELETE FROM ${tableName}`);
+      await db.execute(`DELETE FROM ${tableName}`);
     },
     "store.set": async (_ctx, key: string, value: any) => {
-      await asyncExecute(
-        db,
-        `UPDATE ${tableName} SET value = ? WHERE key = ?`,
-        JSON.stringify(value),
+      await db.execute(
+        `INSERT INTO ${tableName}
+            (key, value)
+          VALUES (?, ?)
+          ON CONFLICT(key)
+          DO UPDATE SET value=excluded.value`,
         key,
+        JSON.stringify(value),
       );
-      if (db.changes === 0) {
-        await asyncExecute(
-          db,
-          `INSERT INTO ${tableName} (key, value) VALUES (?, ?)`,
-          key,
-          JSON.stringify(value),
-        );
-      }
     },
-    // TODO: Optimize
-    "store.batchSet": async (ctx, kvs: KV[]) => {
-      for (const { key, value } of kvs) {
-        await apiObj["store.set"](ctx, key, value);
+    "store.batchSet": async (_ctx, kvs: KV[]) => {
+      if (kvs.length === 0) {
+        return;
       }
+      const values = kvs.flatMap((
+        kv,
+      ) => [kv.key, JSON.stringify(kv.value)]);
+      await db.execute(
+        `INSERT INTO ${tableName}
+            (key, value)
+          VALUES ${kvs.map((_) => "(?, ?)").join(",")}
+          ON CONFLICT(key)
+          DO UPDATE SET value=excluded.value`,
+        ...values,
+      );
     },
     "store.batchDelete": async (ctx, keys: string[]) => {
       for (const key of keys) {
@@ -141,8 +125,7 @@ export function storeSyscalls(
       }
     },
     "store.get": async (_ctx, key: string): Promise<any | null> => {
-      const result = await asyncQuery<Item>(
-        db,
+      const result = await db.query(
         `SELECT value FROM ${tableName} WHERE key = ?`,
         key,
       );
@@ -154,8 +137,7 @@ export function storeSyscalls(
     },
     "store.queryPrefix": async (_ctx, prefix: string) => {
       return (
-        await asyncQuery<Item>(
-          db,
+        await db.query(
           `SELECT key, value FROM ${tableName} WHERE key LIKE ?`,
           `${prefix}%`,
         )
@@ -167,8 +149,7 @@ export function storeSyscalls(
     "store.query": async (_ctx, query: Query) => {
       const { sql, params } = queryToSql(query);
       return (
-        await asyncQuery<Item>(
-          db,
+        await db.query(
           `SELECT key, value FROM ${tableName} ${sql}`,
           ...params,
         )

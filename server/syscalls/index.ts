@@ -1,12 +1,7 @@
 // import { Knex } from "knex";
 import { SysCallMapping } from "../../plugos/system.ts";
-import {
-  asyncExecute,
-  asyncQuery,
-  Query,
-  queryToSql,
-} from "../../plugos/syscalls/store.deno.ts";
-import { SQLite } from "../deps.ts";
+import { Query, queryToSql } from "../../plugos/syscalls/store.deno.ts";
+import { AsyncSQLite } from "../../plugos/sqlite/async_sqlite.ts";
 
 type Item = {
   page: string;
@@ -21,59 +16,61 @@ export type KV = {
 
 const tableName = "page_index";
 
-export function ensureTable(db: SQLite): Promise<void> {
-  const result = db.query(
+export async function ensureTable(db: AsyncSQLite): Promise<void> {
+  const result = await db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-    [tableName],
+    tableName,
   );
   if (result.length === 0) {
-    db.execute(
+    await db.execute(
       `CREATE TABLE ${tableName} (key STRING, page STRING, value TEXT, PRIMARY KEY (page, key));`,
     );
-    db.execute(
+    await db.execute(
       `CREATE INDEX ${tableName}_idx ON ${tableName}(key);`,
     );
     console.log(`Created table ${tableName}`);
   }
-  return Promise.resolve();
 }
 
-export function pageIndexSyscalls(db: SQLite): SysCallMapping {
+export function pageIndexSyscalls(db: AsyncSQLite): SysCallMapping {
   const apiObj: SysCallMapping = {
     "index.set": async (_ctx, page: string, key: string, value: any) => {
-      await asyncExecute(
-        db,
-        `UPDATE ${tableName} SET value = ? WHERE key = ? AND page = ?`,
-        JSON.stringify(value),
-        key,
+      await db.execute(
+        `INSERT INTO ${tableName}
+            (page, key, value)
+          VALUES (?, ?, ?)
+          ON CONFLICT(page, key)
+          DO UPDATE SET value=excluded.value`,
         page,
+        key,
+        JSON.stringify(value),
       );
-      if (db.changes === 0) {
-        await asyncExecute(
-          db,
-          `INSERT INTO ${tableName} (key, page, value) VALUES (?, ?, ?)`,
-          key,
-          page,
-          JSON.stringify(value),
-        );
-      }
     },
-    "index.batchSet": async (ctx, page: string, kvs: KV[]) => {
-      for (const { key, value } of kvs) {
-        await apiObj["index.set"](ctx, page, key, value);
+    "index.batchSet": async (_ctx, page: string, kvs: KV[]) => {
+      if (kvs.length === 0) {
+        return;
       }
+      const values = kvs.flatMap((
+        kv,
+      ) => [page, kv.key, JSON.stringify(kv.value)]);
+      await db.execute(
+        `INSERT INTO ${tableName}
+            (page, key, value)
+          VALUES ${kvs.map((_) => "(?, ?, ?)").join(",")}
+          ON CONFLICT(key, page)
+          DO UPDATE SET value=excluded.value`,
+        ...values,
+      );
     },
     "index.delete": async (_ctx, page: string, key: string) => {
-      await asyncExecute(
-        db,
+      await db.execute(
         `DELETE FROM ${tableName} WHERE key = ? AND page = ?`,
         key,
         page,
       );
     },
     "index.get": async (_ctx, page: string, key: string) => {
-      const result = await asyncQuery<Item>(
-        db,
+      const result = await db.query(
         `SELECT value FROM ${tableName} WHERE key = ? AND page = ?`,
         key,
         page,
@@ -86,9 +83,8 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
     },
     "index.queryPrefix": async (_ctx, prefix: string) => {
       return (
-        await asyncQuery<Item>(
-          db,
-          `SELECT key, page, value FROM ${tableName} WHERE key LIKE ?`,
+        await db.query(
+          `SELECT key, page, value FROM ${tableName} WHERE key LIKE ? ORDER BY key, page ASC`,
           `${prefix}%`,
         )
       ).map(({ key, value, page }) => ({
@@ -100,11 +96,7 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
     "index.query": async (_ctx, query: Query) => {
       const { sql, params } = queryToSql(query);
       return (
-        await asyncQuery<Item>(
-          db,
-          `SELECT key, value FROM ${tableName} ${sql}`,
-          ...params,
-        )
+        await db.query(`SELECT key, value FROM ${tableName} ${sql}`, ...params)
       ).map(({ key, value, page }: any) => ({
         key,
         page,
@@ -115,16 +107,14 @@ export function pageIndexSyscalls(db: SQLite): SysCallMapping {
       await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
     "index.deletePrefixForPage": async (_ctx, page: string, prefix: string) => {
-      await asyncExecute(
-        db,
+      await db.execute(
         `DELETE FROM ${tableName} WHERE key LIKE ? AND page = ?`,
         `${prefix}%`,
         page,
       );
     },
     "index.clearPageIndex": async () => {
-      await asyncExecute(
-        db,
+      await db.execute(
         `DELETE FROM ${tableName}`,
       );
     },

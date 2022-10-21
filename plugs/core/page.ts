@@ -30,10 +30,10 @@ import { extractMeta } from "../query/data.ts";
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
-  console.log("Now indexing", name);
+  // console.log("Now indexing", name);
   const pageMeta = extractMeta(tree);
   if (Object.keys(pageMeta).length > 0) {
-    console.log("Extracted page meta data", pageMeta);
+    // console.log("Extracted page meta data", pageMeta);
     // Don't index meta data starting with $
     for (const key in pageMeta) {
       if (key.startsWith("$")) {
@@ -53,7 +53,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       value: name,
     });
   });
-  console.log("Found", backLinks.length, "wiki link(s)");
+  // console.log("Found", backLinks.length, "wiki link(s)");
   await index.batchSet(name, backLinks);
 }
 
@@ -212,8 +212,11 @@ export async function reindexSpace() {
   await index.clearPageIndex();
   console.log("Listing all pages");
   const pages = await space.listPages();
+  let counter = 0;
   for (const { name } of pages) {
-    console.log("Indexing", name);
+    counter++;
+
+    console.log(`Indexing page ${counter}/${pages.length}: ${name}`);
     const text = await space.readPage(name);
     const parsed = await markdown.parseMarkdown(text);
     await events.dispatchEvent("page:index", {

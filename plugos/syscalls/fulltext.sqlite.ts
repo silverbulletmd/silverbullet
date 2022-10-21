@@ -1,48 +1,43 @@
-import { SQLite } from "../../server/deps.ts";
+import { AsyncSQLite } from "../../plugos/sqlite/async_sqlite.ts";
 import { SysCallMapping } from "../system.ts";
-import { asyncExecute, asyncQuery } from "./store.deno.ts";
 
-export function ensureFTSTable(
-  db: SQLite,
+export async function ensureFTSTable(
+  db: AsyncSQLite,
   tableName: string,
 ) {
-  const result = db.query(
+  const result = await db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
-    [tableName],
+    tableName,
   );
   if (result.length === 0) {
-    asyncExecute(
-      db,
+    await db.execute(
       `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
     );
 
     console.log(`Created fts5 table ${tableName}`);
   }
-  return Promise.resolve();
 }
 
 export function fullTextSearchSyscalls(
-  db: SQLite,
+  db: AsyncSQLite,
   tableName: string,
 ): SysCallMapping {
   return {
     "fulltext.index": async (_ctx, key: string, value: string) => {
-      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
-      await asyncExecute(
-        db,
+      await db.execute(`DELETE FROM ${tableName} WHERE key = ?`, key);
+      await db.execute(
         `INSERT INTO ${tableName} (key, value) VALUES (?, ?)`,
         key,
         value,
       );
     },
     "fulltext.delete": async (_ctx, key: string) => {
-      await asyncExecute(db, `DELETE FROM ${tableName} WHERE key = ?`, key);
+      await db.execute(`DELETE FROM ${tableName} WHERE key = ?`, key);
     },
     "fulltext.search": async (_ctx, phrase: string, limit: number) => {
       console.log("Got search query", phrase);
       return (
-        await asyncQuery<any>(
-          db,
+        await db.query(
           `SELECT key, rank FROM ${tableName} WHERE value MATCH ? ORDER BY key, rank LIMIT ?`,
           phrase,
           limit,
