@@ -1,4 +1,4 @@
-import { Application, etag, path, Router } from "./deps.ts";
+import { Application, path, Router } from "./deps.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
@@ -175,13 +175,10 @@ export class HttpServer {
     const allPlugs = await this.space.listPlugs();
 
     console.log("Loading plugs", allPlugs);
-    for (const plugName of allPlugs) {
+    await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       const { data } = await this.space.readAttachment(plugName, "string");
-      await this.system.load(
-        JSON.parse(data as string),
-        createSandbox,
-      );
-    }
+      await this.system.load(JSON.parse(data as string), createSandbox);
+    }));
     this.rebuildMdExtensions();
 
     const corePlug = this.system.loadedPlugs.get("core");

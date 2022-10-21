@@ -42,7 +42,7 @@ import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
 import { safeRun, throttle } from "../common/util.ts";
-import { createSandbox as createIFrameSandbox } from "../plugos/environments/webworker_sandbox.ts";
+import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
@@ -530,7 +530,7 @@ export class Editor {
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       const { data } = await this.space.readAttachment(plugName, "string");
-      await this.system.load(JSON.parse(data as string), createIFrameSandbox);
+      await this.system.load(JSON.parse(data as string), createSandbox);
     }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
