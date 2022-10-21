@@ -215,16 +215,26 @@ export class HttpServer {
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
+        if (request.headers.get("If-Modified-Since") === staticLastModified) {
+          response.status = 304;
+          return;
+        }
         response.headers.set("Content-type", "text/html");
         response.body = this.assetBundle.readTextFileSync(
           "web/index.html",
         );
         response.headers.set("Last-Modified", staticLastModified);
-        response.headers.set("ETag", await etag.calculate(response.body));
         return;
       }
       try {
         const assetName = `web${request.url.pathname}`;
+        if (
+          this.assetBundle.has(assetName) &&
+          request.headers.get("If-Modified-Since") === staticLastModified
+        ) {
+          response.status = 304;
+          return;
+        }
         response.status = 200;
         response.headers.set(
           "Content-type",
@@ -233,9 +243,9 @@ export class HttpServer {
         const data = this.assetBundle.readFileSync(
           assetName,
         );
+        response.headers.set("Cache-Control", "no-cache");
         response.headers.set("Content-length", "" + data.length);
         response.headers.set("Last-Modified", staticLastModified);
-        response.headers.set("ETag", await etag.calculate(data));
 
         if (request.method === "GET") {
           response.body = data;
@@ -299,7 +309,7 @@ export class HttpServer {
     });
 
     fsRouter
-      .get("\/(.+)", async ({ params, response }) => {
+      .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
         console.log("Loading file", name);
         try {
@@ -307,12 +317,23 @@ export class HttpServer {
             name,
             "arraybuffer",
           );
+          const lastModifiedHeader = new Date(attachmentData.meta.lastModified)
+            .toUTCString();
+          if (request.headers.get("If-Modified-Since") === lastModifiedHeader) {
+            response.status = 304;
+            return;
+          }
           response.status = 200;
           response.headers.set(
             "X-Last-Modified",
             "" + attachmentData.meta.lastModified,
           );
+          response.headers.set("Cache-Control", "no-cache");
           response.headers.set("X-Permission", attachmentData.meta.perm);
+          response.headers.set(
+            "Last-Modified",
+            lastModifiedHeader,
+          );
           response.headers.set("Content-Type", attachmentData.meta.contentType);
           response.body = attachmentData.data as ArrayBuffer;
         } catch {
@@ -343,7 +364,6 @@ export class HttpServer {
           response.body = "Write failed";
           console.error("Pipeline failed", err);
         }
-        console.log("Done with put", name);
       })
       .options("\/(.+)", async ({ response, params }) => {
         const name = params[0];

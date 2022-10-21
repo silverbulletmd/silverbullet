@@ -3,6 +3,7 @@ import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
 
+const bootTime = Date.now();
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
@@ -16,7 +17,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       .map((p) => ({
         name: p,
         contentType: "application/json",
-        lastModified: 0,
+        lastModified: bootTime,
         perm: "ro",
         size: -1,
       } as FileMeta)).concat(l);
@@ -32,7 +33,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       return Promise.resolve({
         data: encoding === "string" ? new TextDecoder().decode(data) : data,
         meta: {
-          lastModified: 0,
+          lastModified: bootTime,
           size: data.byteLength,
           perm: "ro",
           contentType: "application/json",
@@ -46,7 +47,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     if (this.assetBundle.has(name)) {
       const data = this.assetBundle.readFileSync(name);
       return Promise.resolve({
-        lastModified: 0,
+        lastModified: bootTime,
         size: data.byteLength,
         perm: "ro",
         contentType: "application/json",

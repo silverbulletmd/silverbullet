@@ -5,12 +5,13 @@ import type {
 import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
+import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 const pagePrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
-  _encoding: FileEncoding,
+  encoding: FileEncoding,
 ): Promise<{ data: FileData; meta: FileMeta } | undefined> {
   const originalUrl = name.substring(
     pagePrefix.length,
@@ -36,10 +37,15 @@ export async function readFileCloud(
     console.error("ERROR", e.message);
     text = e.message;
   }
+  text = await translateLinksWithPrefix(
+    text,
+    `${pagePrefix}${originalUrl.split("/")[0]}/`,
+  );
+  console.log("Got this", text);
   return {
-    data: await translateLinksWithPrefix(
-      text,
-      `${pagePrefix}${originalUrl.split("/")[0]}/`,
+    data: encoding === "string" ? text : base64EncodedDataUrl(
+      "text/markdown",
+      new TextEncoder().encode(text),
     ),
     meta: {
       name,

@@ -228,11 +228,12 @@ export async function reindexSpace() {
 }
 
 export async function clearPageIndex(page: string) {
-  console.log("Clearing page index for page", page);
+  // console.log("Clearing page index for page", page);
   await index.clearPageIndexForPage(page);
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
+  console.log("Reindexing", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: await markdown.parseMarkdown(text),
