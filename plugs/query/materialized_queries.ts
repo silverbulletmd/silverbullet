@@ -127,7 +127,7 @@ export async function updateMaterializedQueriesOnPage(
   let newText = await updateTemplateInstantiations(text, pageName);
   const tree = await markdown.parseMarkdown(newText);
   const metaData = extractMeta(tree, ["$disableDirectives"]);
-  console.log("Meta data", pageName, metaData);
+  // console.log("Meta data", pageName, metaData);
   if (metaData.$disableDirectives) {
     console.log("Directives disabled, skipping");
     return false;

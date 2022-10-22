@@ -138,7 +138,7 @@ async function bundleRun(
         console.error(`Error building ${manifestPath}:`, e);
       }
     }
-    console.log("Done.");
+    console.log("Done building plugs.");
     building = false;
   }
 

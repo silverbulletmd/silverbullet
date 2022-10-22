@@ -278,7 +278,8 @@ export class Editor {
       this.saveTimeout = setTimeout(
         () => {
           if (this.currentPage) {
-            if (!this.viewState.unsavedChanges) {
+            if (!this.viewState.unsavedChanges || this.viewState.forcedROMode) {
+              // No unsaved changes, or read-only mode, not gonna save
               return resolve();
             }
             console.log("Saving page", this.currentPage);

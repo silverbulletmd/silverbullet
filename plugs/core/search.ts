@@ -1,6 +1,6 @@
 import { fulltext } from "$sb/plugos-syscall/mod.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import type { FileMeta, PageMeta } from "../../common/types.ts";
+import type { FileMeta } from "../../common/types.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
@@ -29,7 +29,10 @@ export async function queryProvider({
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  let results = await fulltext.fullTextSearch(phraseFilter.value, 100);
+  let results = await fulltext.fullTextSearch(phraseFilter.value, {
+    highlightEllipsis: "...",
+    limit: 100,
+  });
 
   const allPageMap: Map<string, any> = new Map(
     results.map((r: any) => [r.name, r]),
@@ -65,11 +68,20 @@ export async function readFileSearch(
     searchPrefix.length,
     name.length - ".md".length,
   );
-  const results = await fulltext.fullTextSearch(phrase, 100);
+  console.log("Here");
+  const results = await fulltext.fullTextSearch(phrase, {
+    highlightEllipsis: "...",
+    highlightPostfix: "==",
+    highlightPrefix: "==",
+    summaryMaxLength: 30,
+    limit: 100,
+  });
   const text = `# Search results for "${phrase}"\n${
     results
-      .map((r: any) => `* [[${r.name}]] (score: ${r.rank})`)
-      .join("\n")
+      .map((r: any) =>
+        `[[${r.name}]]:\n> ${r.snippet.split("\n").join("\n> ")}`
+      )
+      .join("\n\n")
   }
   `;
 

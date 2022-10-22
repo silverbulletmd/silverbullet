@@ -1,3 +1,4 @@
+import { FullTextSearchOptions } from "../../plug-api/plugos-syscall/fulltext.ts";
 import { AsyncSQLite } from "../../plugos/sqlite/async_sqlite.ts";
 import { SysCallMapping } from "../system.ts";
 
@@ -34,15 +35,30 @@ export function fullTextSearchSyscalls(
     "fulltext.delete": async (_ctx, key: string) => {
       await db.execute(`DELETE FROM ${tableName} WHERE key = ?`, key);
     },
-    "fulltext.search": async (_ctx, phrase: string, limit: number) => {
-      console.log("Got search query", phrase);
+    "fulltext.search": async (
+      _ctx,
+      phrase: string,
+      options: FullTextSearchOptions,
+    ) => {
       return (
         await db.query(
-          `SELECT key, rank FROM ${tableName} WHERE value MATCH ? ORDER BY key, rank LIMIT ?`,
+          `SELECT key, bm25(fts) AS score, snippet(fts, 1, ?, ?, ?, ?) as snippet
+           FROM ${tableName}
+           WHERE value
+           MATCH ?
+           ORDER BY score LIMIT ?`,
+          options.highlightPrefix || "",
+          options.highlightPostfix || "",
+          options.highlightEllipsis || "...",
+          options.summaryMaxLength || 50,
           phrase,
-          limit,
+          options.limit || 20,
         )
-      ).map((item) => ({ name: item.key, rank: item.rank }));
+      ).map((item) => ({
+        name: item.key,
+        score: item.score,
+        snippet: item.snippet,
+      }));
     },
   };
 }
