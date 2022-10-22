@@ -15,7 +15,9 @@ release.
   your page either by just using a `#tag` at the top level of your page, or by
   adding a `tags` attribute to your front matter.
 - {[Search Space]} works again. You may have to {[Space: Reindex]} to get
-  results.
+  results. Search results now also snow a snippet of the page, with the phrase
+  highlighted.
+- Faster page indexing.
 
 ---
 
