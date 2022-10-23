@@ -52,8 +52,7 @@ terminal:
 
     deno run -A --unstable https://get.silverbullet.md <pages-path>
 
-However, because this command is not super easy to remember, you may install it
-as well:
+However, because this command is not super easy to remember, you may install it:
 
     deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
 
@@ -81,7 +80,7 @@ found its killer app.
 
 Simply run this:
 
-    deno cache --reload https://get.silverbullet.md
+    silverbullet upgrade
 
 And restart Silver Bullet. You should be good to go.
 
@@ -113,7 +112,7 @@ You can then run the server in “watch mode” (automatically restarting when y
 change source files) with:
 
 ```shell
-deno task watch-server -- <PATH-TO-YOUR-SPACE>
+deno task watch-server <PATH-TO-YOUR-SPACE>
 ```
 
 After this initial build, it's convenient to run three commands in parallel (in
@@ -121,7 +120,7 @@ separate terminals):
 
 ```shell
 deno task watch-web
-deno task watch-server -- <PATH-TO-YOUR-SPACE>
+deno task watch-server <PATH-TO-YOUR-SPACE>
 deno task watch-plugs
 ```
 

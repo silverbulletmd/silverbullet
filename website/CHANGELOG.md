@@ -18,6 +18,9 @@ release.
   results. Search results now also snow a snippet of the page, with the phrase
   highlighted.
 - Faster page indexing.
+- If you have Silver Bullet installed via the `deno install` command, you can
+  use `silverbullet upgrade` to upgrade to the latest version (from this version
+  onwards).
 
 ---
 

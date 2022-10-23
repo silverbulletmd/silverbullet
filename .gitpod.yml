@@ -23,7 +23,7 @@ tasks:
     init: |      
       gp sync-await setup
       mkdir pages
-    command: deno task watch-server -- pages
+    command: deno task watch-server pages
   - name: Web watcher
     init: gp sync-await setup
     command: deno task watch-web
