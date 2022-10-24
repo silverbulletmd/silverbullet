@@ -68,23 +68,17 @@ With Deno installed (see instruction above), run:
 deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
 ```
 
+This will install `silverbullet` into your `~/.deno/bin` folder (which should
+already be in your path if you installed Deno following the previous
+instructions).
+
 To run Silver Bullet create a folder for your pages (it can be empty, or be an
 existing folder with `.md` files) and run the following command in your
 terminal:
 
-    deno run -A --unstable https://get.silverbullet.md <pages-path>
-
-However, because this command is not super easy to remember, you may install it:
-
-    deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
-
-This will create a `silverbullet` (feel free to replace `silverbullet` in this
-command with whatever you like) alias in your `~/.deno/bin` folder. Make sure
-this path is in your `PATH` environment variable.
-
-This allows you to install Silver Bullet simply as follows:
-
-    silverbullet <pages-path>
+```shell
+silverbullet <pages-path>
+```
 
 By default, SB will bind to port `3000`, to use a different port use the
 `--port` flag. By default SB doesn’t offer any sort of authentication, to add
@@ -106,6 +100,12 @@ Simply run this:
 
 And restart Silver Bullet. You should be good to go.
 
+## Troubleshooting
+
+If you upgraded to the new Deno-based Silver Bullet from an old version, you may
+have to use the `silverbullet fix <pages-path>` command to flush out your old
+database and plugs. Plugs will likely need to be updated.
+
 ## Developing Silver Bullet
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/silverbulletmd/silverbullet)
@@ -123,8 +123,7 @@ To prepare the initial web and plug build run:
 deno task build
 ```
 
-For convenience, you can install `plugons-bundle` and `silverbullet` into your
-`~/.deno/bin` folder:
+To symlink `silverbullet` to your locally checked-out version, run:
 
 ```shell
 deno task install
