@@ -1,4 +1,5 @@
-#!/usr/bin/env deno
+// The recommended way to use this for now is through `silverbullet bundle:build` until
+// we fork out PlugOS as a whole
 
 import { Manifest } from "../types.ts";
 import { YAML } from "../../common/deps.ts";
@@ -111,7 +112,7 @@ async function buildManifest(
   return { generatedManifest, outPath };
 }
 
-async function bundleRun(
+export async function bundleRun(
   manifestFiles: string[],
   dist: string,
   watch: boolean,
@@ -145,6 +146,7 @@ async function bundleRun(
   await buildAll();
 
   if (watch) {
+    console.log("Watching for changes...");
     const watcher = Deno.watchFs(manifestFiles.map((p) => path.dirname(p)));
     for await (const event of watcher) {
       if (event.paths.length > 0) {

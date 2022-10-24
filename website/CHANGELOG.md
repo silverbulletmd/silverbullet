@@ -18,9 +18,15 @@ release.
   results. Search results now also snow a snippet of the page, with the phrase
   highlighted.
 - Faster page indexing.
-- If you have Silver Bullet installed via the `deno install` command, you can
-  use `silverbullet upgrade` to upgrade to the latest version (from this version
-  onwards).
+- `silverbullet` now has sub-commands. It defaults to just running the server
+  (when passed a path to a directory), but you can also run
+  `silverbullet --help` to see the available commands. Commands currently
+  available:
+  - `silverbullet upgrade` to perform a self upgrade
+  - `silverbullet fix` to attempt to solve any issues with your space (deletes
+    your `_plug` directory and `data.db` file)
+  - `silverbullet plug:build` replaces the old `plugos-bundle` command.
+  - `silverbullet version` prints the current version
 
 ---
 
