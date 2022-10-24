@@ -29,7 +29,7 @@ export async function upgradeCommand() {
   const newVersion = new TextDecoder().decode(rawVersion).trim();
   if (newVersion === version) {
     console.log(
-      `Nope. I hate to tell you this, but it looks like we're stilling running ${newVersion}.\nThis was a bit of a futile exercise. Let's try again soon some time.`,
+      `Nope. I hate to tell you this, but it looks like we're still running ${newVersion}.\nThis was a bit of a futile exercise. Let's try again soon some time.`,
     );
   } else {
     console.log(
