@@ -94,28 +94,43 @@ Some core principles that underly Silver Bullet’s philosophy:
 
 ## Installing Silver Bullet
 
-Silver Bullet is built using [Deno](https://deno.land). To install it, you will
-need to have Deno installed (tested on 1.26 or later). If you have homebrew on a
-Mac, this is just a single `brew install deno` away.
+### Installing Deno
+
+Silver Bullet is built using [Deno](https://deno.land). To install Deno on Linux
+or Mac run:
+
+```shell
+curl -fsSL https://deno.land/install.sh | sh
+```
+
+This will install Deno into `~/.deno/bin`, add this folder to your `PATH` in
+your `~/.bashrc` or `~/.zshrc` file.
+
+To install Deno on Windows (using Powershell) run:
+
+```powershell
+irm https://deno.land/install.ps1 | iex
+```
+
+### Install Silver Bullet
+
+With Deno installed (see instruction above), run:
+
+```shell
+deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+```
+
+This will install `silverbullet` into your `~/.deno/bin` folder (which should
+already be in your path if you installed Deno following the previous
+instructions).
 
 To run Silver Bullet create a folder for your pages (it can be empty, or be an
 existing folder with `.md` files) and run the following command in your
 terminal:
 
-    deno run -A --unstable https://get.silverbullet.md <pages-path>
-
-However, because this command is not super easy to remember, you may install it
-as well:
-
-    deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
-
-This will create a `silverbullet` (feel free to replace `silverbullet` in this
-command with whatever you like) alias in your `~/.deno/bin` folder. Make sure
-this path is in your `PATH` environment variable.
-
-This allows you to install Silver Bullet simply as follows:
-
-    silverbullet <pages-path>
+```shell
+silverbullet <pages-path>
+```
 
 By default, SB will bind to port `3000`, to use a different port use the
 `--port` flag. By default SB doesn’t offer any sort of authentication, to add
@@ -124,7 +139,24 @@ basic password authentication, pass the `--password` flag.
 Once downloaded and booted, SB will print out a URL to open SB in your browser
 (spoiler alert: by default this will be http://localhost:3000 ).
 
-That’s it! Enjoy.
+#protip: If you have a PWA enabled browser (like any browser based on Chromium)
+hit that little button right of the location bar to install SB, and give it its
+own window frame (sans location bar) and desktop/dock icon. At last the PWA has
+found its killer app.
+
+## Upgrading Silver Bullet
+
+Simply run this:
+
+    silverbullet upgrade
+
+And restart Silver Bullet. You should be good to go.
+
+## Troubleshooting
+
+If you upgraded to the new Deno-based Silver Bullet from an old version, you may
+have to use the `silverbullet fix <pages-path>` command to flush out your old
+database and plugs. Plugs will likely need to be updated.
 
 If you (hypothetically) find bugs or have feature requests, post them in
 [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want
