@@ -85,17 +85,26 @@ export class HttpServer {
     this.system.addHook(namespaceHook);
 
     // The space
-    this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new EventedSpacePrimitives(
-        new PlugSpacePrimitives(
-          new DiskSpacePrimitives(options.pagesPath),
-          namespaceHook,
+    try {
+      this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
+        new EventedSpacePrimitives(
+          new PlugSpacePrimitives(
+            new DiskSpacePrimitives(options.pagesPath),
+            namespaceHook,
+          ),
+          this.eventHook,
         ),
-        this.eventHook,
-      ),
-      this.assetBundle,
-    );
-    this.space = new Space(this.spacePrimitives);
+        this.assetBundle,
+      );
+      this.space = new Space(this.spacePrimitives);
+    } catch (e: any) {
+      if (e instanceof Deno.errors.NotFound) {
+        console.error("Pages folder", options.pagesPath, "not found");
+      } else {
+        console.error(e.message);
+      }
+      Deno.exit(1);
+    }
 
     // The database used for persistence (SQLite)
     this.db = new AsyncSQLite(path.join(options.pagesPath, "data.db"));

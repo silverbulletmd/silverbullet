@@ -42,9 +42,31 @@ Or checkout these two videos:
 
 ## Installing Silver Bullet
 
-Silver Bullet is built using [Deno](https://deno.land). To install it, you will
-need to have Deno installed (tested on 1.26 or later). If you have homebrew on a
-Mac, this is just a single `brew install deno` away.
+### Installing Deno
+
+Silver Bullet is built using [Deno](https://deno.land). To install Deno on Linux
+or Mac run:
+
+```shell
+curl -fsSL https://deno.land/install.sh | sh
+```
+
+This will install Deno into `~/.deno/bin`, add this folder to your `PATH` in
+your `~/.bashrc` or `~/.zshrc` file.
+
+To install Deno on Windows (using Powershell) run:
+
+```powershell
+irm https://deno.land/install.ps1 | iex
+```
+
+### Install Silver Bullet
+
+With Deno installed (see instruction above), run:
+
+```shell
+deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+```
 
 To run Silver Bullet create a folder for your pages (it can be empty, or be an
 existing folder with `.md` files) and run the following command in your

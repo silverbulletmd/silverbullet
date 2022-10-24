@@ -1,14 +1,15 @@
 {
   "tasks": {
     "clean": "rm -rf dist dist_bundle",
-    "install": "deno install -f -A --unstable plugos/bin/plugos-bundle.ts && deno install -f -n silverbullet -A --unstable server/silverbullet.ts",
+    "install": "deno install -f -A --unstable plugos/bin/plugos-bundle.ts && deno install -f -A --unstable silverbullet.ts",
     "test": "deno test -A --unstable",
     "build": "./build_plugs.sh && deno run -A --unstable --check build.ts",
     "watch-web": "deno run -A --unstable --check build.ts --watch",
-    "watch-server": "deno run -A --unstable --check --watch server/silverbullet.ts",
+    "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
     // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
     "watch-plugs": "./build_plugs.sh --watch",
-    "bundle": "deno bundle --importmap import_map.json server/silverbullet.ts dist/silverbullet.js",
+    "bundle": "deno bundle --importmap import_map.json silverbullet.ts dist/silverbullet.js",
+    // Regenerates some bundle files (checked into the repo)
     "generate": "deno run -A plugos/gen.ts"
   },
 
