@@ -201,7 +201,7 @@ export class Editor {
       const stateRestored = await this.loadPage(pageName);
       if (pos) {
         if (typeof pos === "string") {
-          // console.log("Navigating to anchor", pos);
+          console.log("Navigating to anchor", pos);
 
           // We're going to look up the anchor through a direct page store query...
           const posLookup = await this.system.localSyscall(
@@ -209,7 +209,7 @@ export class Editor {
             "index.get",
             [
               pageName,
-              `a:${pageName}:@${pos}`,
+              `a:${pageName}:${pos}`,
             ],
           );
 

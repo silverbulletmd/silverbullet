@@ -11,7 +11,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
   const anchors: { key: string; value: string }[] = [];
 
   collectNodesOfType(tree, "NamedAnchor").forEach((n) => {
-    const aName = n.children![0].text!;
+    const aName = n.children![0].text!.substring(1);
     anchors.push({
       key: `a:${pageName}:${aName}`,
       value: "" + n.from,
@@ -31,11 +31,13 @@ export async function anchorComplete() {
   if (!pageRef) {
     pageRef = await editor.getCurrentPage();
   }
-  const allAnchors = await index.queryPrefix(`a:${pageRef}:@${anchorRef}`);
+  const allAnchors = await index.queryPrefix(
+    `a:${pageRef}:${anchorRef}`,
+  );
   return {
     from: prefix.from + pageRefPrefix.length + 1,
     options: allAnchors.map((a) => ({
-      label: a.key.split("@")[1],
+      label: a.key.split(":")[2],
       type: "anchor",
     })),
   };

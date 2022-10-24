@@ -3,6 +3,16 @@ release.
 
 ---
 
+## 0.1.4
+
+- Breaking change (for those who used it): the named anchor syntax has changed
+  from `@anchorname` to `$anchorname`. This is to avoid conflicts with
+  potentialy future use of `@` for other purposes (like mentioning people).
+  Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you
+  create an anchor $likethis you can then reference it [[@likethis]].
+
+---
+
 ## 0.1.3
 
 - Silver Bullet now runs on Windows!

@@ -19,8 +19,8 @@ syntax:
     className: sb-command-link
   NamedAnchor:
     firstCharacters:
-      - "@"
-    regex: "@[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
+      - "$"
+    regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
 functions:
   clearPageIndex:
