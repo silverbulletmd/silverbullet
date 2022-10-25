@@ -26,7 +26,7 @@ await new Command()
   .arguments("<folder:string>")
   .action(fixCommand)
   // plug:bundle
-  .command("plug:build", "Bundle (compile) one or more plug manifests")
+  .command("plug:compile", "Bundle (compile) one or more plug manifests")
   .arguments("<...name.plug.yaml:string>")
   .option("--debug", "Do not minifiy code", { default: false })
   .option("--info", "Print out size info per function", { default: false })

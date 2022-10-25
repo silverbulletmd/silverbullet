@@ -35,7 +35,7 @@ release.
   - `silverbullet upgrade` to perform a self upgrade
   - `silverbullet fix` to attempt to solve any issues with your space (deletes
     your `_plug` directory and `data.db` file)
-  - `silverbullet plug:build` replaces the old `plugos-bundle` command.
+  - `silverbullet plug:compile` replaces the old `plugos-bundle` command.
   - `silverbullet version` prints the current version
 
 ---
