@@ -71,7 +71,7 @@ export {
   Text,
   Transaction,
 } from "@codemirror/state";
-export type { ChangeSpec, StateCommand } from "@codemirror/state";
+export type { ChangeSpec, Extension, StateCommand } from "@codemirror/state";
 export {
   defaultHighlightStyle,
   defineLanguageFacet,

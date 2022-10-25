@@ -68,7 +68,6 @@ export async function readFileSearch(
     searchPrefix.length,
     name.length - ".md".length,
   );
-  console.log("Here");
   const results = await fulltext.fullTextSearch(phrase, {
     highlightEllipsis: "...",
     highlightPostfix: "==",

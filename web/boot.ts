@@ -40,9 +40,10 @@ safeRun(async () => {
     "",
     settings.indexPage || "index",
   );
-  await editor.init();
   // @ts-ignore: for convenience
   window.editor = editor;
+
+  await editor.init();
 });
 
 // if (localStorage.getItem("disable_sw") !== "true") {

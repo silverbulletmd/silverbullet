@@ -11,6 +11,7 @@
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@lezer/common",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.0.0?external=@codemirror/state,@lezer/common",
     "preact": "https://esm.sh/preact@10.11.1",
+    "yjs": "https://esm.sh/yjs@13.5.42",
     "$sb/": "./plug-api/",
     "handlebars": "https://esm.sh/handlebars",
     "@lezer/lr": "https://esm.sh/@lezer/lr",

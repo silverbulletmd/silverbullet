@@ -1,4 +1,11 @@
-import { preactRender, useEffect, useReducer } from "./deps.ts";
+import {
+  preactRender,
+  useEffect,
+  useReducer,
+  Y,
+  yCollab,
+  yUndoManagerKeymap,
+} from "./deps.ts";
 
 import {
   autocompletion,
@@ -72,6 +79,8 @@ import { storeSyscalls } from "./syscalls/store.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
+import { CollabState } from "./collab.ts";
+import { collabSyscalls } from "./syscalls/collab.ts";
 
 class PageState {
   constructor(
@@ -102,6 +111,7 @@ export class Editor {
   private mdExtensions: MDExt[] = [];
   urlPrefix: string;
   indexPage: string;
+  collabState?: CollabState;
 
   constructor(
     space: Space,
@@ -136,6 +146,7 @@ export class Editor {
     this.system.addHook(this.slashCommandHook);
 
     this.render(parent);
+
     this.editorView = new EditorView({
       state: this.createEditorState("", ""),
       parent: document.getElementById("sb-editor")!,
@@ -155,15 +166,12 @@ export class Editor {
       storeSyscalls(this.space),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
+      collabSyscalls(this),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
-        // console.log(
-        //   "Window-level keyboard event",
-        //   ev
-        // );
         if ((ev.target as any).classList.contains("cm-textfield")) {
           // Search & replace feature, ignore this
           return;
@@ -393,7 +401,7 @@ export class Editor {
     // deno-lint-ignore no-this-alias
     const editor = this;
     return EditorState.create({
-      doc: text,
+      doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
         markdown({
           base: buildMarkdown(this.mdExtensions),
@@ -454,6 +462,7 @@ export class Editor {
           ...searchKeymap,
           ...historyKeymap,
           ...completionKeymap,
+          ...(this.collabState ? yUndoManagerKeymap : []),
           indentWithTab,
           ...commandKeyBindings,
           {
@@ -523,6 +532,7 @@ export class Editor {
         pasteLinkExtension,
         attachmentExtension(this),
         closeBrackets(),
+        ...[this.collabState ? this.collabState.collabExtension() : []],
       ],
     });
   }
@@ -618,6 +628,11 @@ export class Editor {
       this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
+        // And stop the collab session
+        if (this.collabState) {
+          this.collabState.stop();
+          this.collabState = undefined;
+        }
       }
     }
 
@@ -869,5 +884,21 @@ export class Editor {
       return syntaxTree(state).resolveInner(selection.from).name;
     }
     return;
+  }
+
+  startCollab(serverUrl: string, token: string, username: string) {
+    if (this.collabState) {
+      // Clean up old collab state
+      this.collabState.stop();
+    }
+    const initialText = this.editorView!.state.sliceDoc();
+    this.collabState = new CollabState(serverUrl, token, username);
+    this.collabState.collabProvider.once("sync", (synced: boolean) => {
+      if (this.collabState?.ytext.toString() === "") {
+        console.log("Synced value is empty, putting back original text");
+        this.collabState?.ytext.insert(0, initialText);
+      }
+    });
+    this.rebuildEditorState();
   }
 }

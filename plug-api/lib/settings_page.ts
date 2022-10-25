@@ -21,7 +21,7 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
     const allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
     // TODO: I'm sure there's a better way to type this than "any"
     const collectedSettings: any = {};
-    for (let [key, defaultVal] of Object.entries(settings)) {
+    for (const [key, defaultVal] of Object.entries(settings)) {
       if (key in allSettings) {
         collectedSettings[key] = allSettings[key];
       } else {
