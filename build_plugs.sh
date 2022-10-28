@@ -1,3 +1,3 @@
 #!/bin/sh
 
-deno run -A --unstable silverbullet.ts plug:compile $@ --dist dist_bundle/_plug plugs/*/*.plug.yaml
+deno run -A --unstable plugos/bin/plugos-bundle.ts $@ --dist dist_bundle/_plug plugs/*/*.plug.yaml
