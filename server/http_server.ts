@@ -125,7 +125,7 @@ export class HttpServer {
       eventSyscalls(this.eventHook),
       markdownSyscalls(buildMarkdown([])),
       esbuildSyscalls([this.globalModules]),
-      systemSyscalls(this),
+      systemSyscalls(this, this.system),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       // jwtSyscalls(),

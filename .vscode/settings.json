@@ -3,5 +3,6 @@
   "typescriptHero.imports.stringQuoteStyle": "\"",
   "deno.enable": true,
   "deno.importMap": "import_map.json",
-  "deno.config": "deno.jsonc"
+  "deno.config": "deno.jsonc",
+  "deno.unstable": true
 }

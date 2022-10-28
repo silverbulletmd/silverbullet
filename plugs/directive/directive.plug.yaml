@@ -1,0 +1,72 @@
+name: directive
+imports:
+  - https://get.silverbullet.md/global.plug.json
+functions:
+  updateDirectivesOnPage:
+    path: ./command.ts:updateDirectivesOnPage
+  updateDirectivesOnPageCommand:
+    path: ./command.ts:updateDirectivesOnPageCommand
+    command:
+      name: "Directives: Update"
+      key: "Alt-q"
+    events:
+      - editor:pageLoaded
+  indexData:
+    path: ./data.ts:indexData
+    events:
+      - page:index
+  dataQueryProvider:
+    path: ./data.ts:queryProvider
+    events:
+      - query:data
+  queryComplete:
+    path: ./complete.ts:queryComplete
+    events:
+      - page:complete
+
+  # Templates
+  insertQuery:
+    redirect: core.insertTemplateText
+    slashCommand:
+      name: query
+      description: Insert a query
+      value: |
+        <!-- #query |^| -->
+
+        <!-- /query -->
+  insertInclude:
+    redirect: core.insertTemplateText
+    slashCommand:
+      name: include
+      description: Include another page
+      value: |
+        <!-- #include [[|^|]] -->
+
+        <!-- /include -->
+  insertUseTemplate:
+    redirect: core.insertTemplateText
+    slashCommand:
+      name: use
+      description: Use a template
+      value: |
+        <!-- #use [[|^|]] {} -->
+
+        <!-- /use -->
+  insertUseVerboseTemplate:
+    redirect: core.insertTemplateText
+    slashCommand:
+      name: use-verbose
+      description: Use a template (verbose mode)
+      value: |
+        <!-- #use-verbose [[|^|]] {} -->
+
+        <!-- /use-verbose -->
+  insertEvalTemplate:
+    redirect: core.insertTemplateText
+    slashCommand:
+      name: eval
+      description: Evaluate a JavaScript expression
+      value: |
+        <!-- #eval |^| -->
+
+        <!-- /eval -->

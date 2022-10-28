@@ -10,7 +10,8 @@
     "watch-plugs": "./build_plugs.sh -w",
     "bundle": "deno bundle --importmap import_map.json silverbullet.ts dist/silverbullet.js",
     // Regenerates some bundle files (checked into the repo)
-    "generate": "deno run -A plugos/gen.ts"
+    // Install lezer-generator with "npm install -g @lezer/generator"
+    "generate": "deno run -A plugos/gen.ts && lezer-generator plugs/directive/query.grammar -o plugs/directive/parse-query.js"
   },
 
   "compilerOptions": {

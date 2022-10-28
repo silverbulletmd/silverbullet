@@ -13,7 +13,6 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import * as YAML from "yaml";
-import { text } from "https://esm.sh/v96/@fortawesome/fontawesome-svg-core@1.3.0/X-ZS9AZm9ydGF3ZXNvbWUvZm9udGF3ZXNvbWUtY29tbW9uLXR5cGVz/index.d.ts";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: { key: string; value: any }[] = [];

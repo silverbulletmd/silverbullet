@@ -16,7 +16,12 @@ export interface Manifest<HookT> {
 }
 
 export type FunctionDef<HookT> = {
+  // Read the function from this path and inline it
+  // Format: filename:functionName
   path?: string;
+  // Reuse an
+  // Format: plugName.functionName
+  redirect?: string;
   code?: string;
   env?: RuntimeEnvironment;
 } & HookT;

@@ -169,8 +169,10 @@ functions:
       operation: getFileMeta
 
   # Template commands
-  insertPageMeta:
+  insertTemplateText:
     path: "./template.ts:insertTemplateText"
+  insertFrontMatter:
+    redirect: insertTemplateText
     slashCommand:
       name: front-matter
       description: Insert page front matter
@@ -179,49 +181,13 @@ functions:
         |^|
         ---
   insertTask:
-    path: "./template.ts:insertTemplateText"
+    redirect: insertTemplateText
     slashCommand:
       name: task
       description: Insert a task
       value: "* [ ] |^|"
-  insertQuery:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: query
-      description: Insert a query
-      value: |
-        <!-- #query |^| -->
-
-        <!-- /query -->
-  insertInclude:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: include
-      description: Include another page
-      value: |
-        <!-- #include [[|^|]] -->
-
-        <!-- /include -->
-  insertInjectTemplate:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: use
-      description: Use a template
-      value: |
-        <!-- #use [[|^|]] {} -->
-
-        <!-- /use -->
-  insertInjectCleanTemplate:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: use-verbose
-      description: Use a template (verbose mode)
-      value: |
-        <!-- #use-verbose [[|^|]] {} -->
-
-        <!-- /use-verbose -->
   insertHRTemplate:
-    path: "./template.ts:insertTemplateText"
+    redirect: insertTemplateText
     slashCommand:
       name: hr
       description: Insert a horizontal rule

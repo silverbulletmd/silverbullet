@@ -1,5 +1,5 @@
 import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
-import { extractMeta } from "../query/data.ts";
+import { extractMeta } from "../directive/data.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";

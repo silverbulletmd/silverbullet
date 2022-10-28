@@ -1,8 +1,12 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import type { Plug } from "../../plugos/plug.ts";
+import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { Editor } from "../editor.tsx";
 import { CommandDef } from "../hooks/command.ts";
 
-export function systemSyscalls(editor: Editor): SysCallMapping {
+export function systemSyscalls(
+  editor: Editor,
+  system: System<any>,
+): SysCallMapping {
   return {
     "system.invokeFunction": (
       ctx,
@@ -14,11 +18,21 @@ export function systemSyscalls(editor: Editor): SysCallMapping {
         throw Error("No plug associated with context");
       }
 
+      let plug: Plug<any> | undefined = ctx.plug;
+      if (name.indexOf(".") !== -1) {
+        // plug name in the name
+        const [plugName, functionName] = name.split(".");
+        plug = system.loadedPlugs.get(plugName);
+        if (!plug) {
+          throw Error(`Plug ${plugName} not found`);
+        }
+        name = functionName;
+      }
       if (env === "client") {
-        return ctx.plug.invoke(name, args);
+        return plug.invoke(name, args);
       }
 
-      return editor.space.invokeFunction(ctx.plug, env, name, args);
+      return editor.space.invokeFunction(plug, env, name, args);
     },
     "system.invokeCommand": (ctx, name: string) => {
       return editor.runCommandByName(name);

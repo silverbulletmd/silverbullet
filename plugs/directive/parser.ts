@@ -1,10 +1,10 @@
 import {
   collectNodesOfType,
   findNodeOfType,
+  ParseTree,
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/parse_tree.ts";
-import { valueNodeToVal } from "./engine.ts";
 
 // @ts-ignore auto generated
 import { parser } from "./parse-query.js";
@@ -74,4 +74,34 @@ export function parseQuery(query: string): ParsedQuery {
   }
 
   return parsedQuery;
+}
+
+export function valueNodeToVal(valNode: ParseTree): any {
+  switch (valNode.type) {
+    case "Number":
+      return +valNode.children![0].text!;
+    case "Bool":
+      return valNode.children![0].text! === "true";
+    case "Null":
+      return null;
+    case "Name":
+      return valNode.children![0].text!;
+    case "Regex": {
+      const val = valNode.children![0].text!;
+      return val.substring(1, val.length - 1);
+    }
+    case "String": {
+      const stringVal = valNode.children![0].text!;
+      return stringVal.substring(1, stringVal.length - 1);
+    }
+    case "PageRef": {
+      const pageRefVal = valNode.children![0].text!;
+      return pageRefVal.substring(2, pageRefVal.length - 2);
+    }
+    case "List": {
+      return collectNodesOfType(valNode, "Value").map((t) =>
+        valueNodeToVal(t.children![0])
+      );
+    }
+  }
 }

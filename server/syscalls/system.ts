@@ -1,18 +1,33 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { Plug } from "../../plugos/plug.ts";
+import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { HttpServer } from "../http_server.ts";
 
-export function systemSyscalls(httpServer: HttpServer): SysCallMapping {
+export function systemSyscalls(
+  httpServer: HttpServer,
+  system: System<any>,
+): SysCallMapping {
   return {
     "system.invokeFunction": (
       ctx,
-      env: string,
+      // Ignored in this context, always assuming server (this place)
+      _env: string,
       name: string,
       ...args: any[]
     ) => {
       if (!ctx.plug) {
         throw Error("No plug associated with context");
       }
-      return ctx.plug.invoke(name, args);
+      let plug: Plug<any> | undefined = ctx.plug;
+      if (name.indexOf(".") !== -1) {
+        // plug name in the name
+        const [plugName, functionName] = name.split(".");
+        plug = system.loadedPlugs.get(plugName);
+        if (!plug) {
+          throw Error(`Plug ${plugName} not found`);
+        }
+        name = functionName;
+      }
+      return plug.invoke(name, args);
     },
     "system.reloadPlugs": () => {
       return httpServer.reloadPlugs();

@@ -50,7 +50,7 @@ export function createSandbox(plug: Plug<any>) {
         permissions: {
           // Allow network access and servers (main use case: fetch)
           net: true,
-          // This is required for console loggin to work, apparently?
+          // This is required for console logging to work, apparently?
           env: true,
           // No talking to native code
           ffi: false,

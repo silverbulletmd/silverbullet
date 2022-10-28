@@ -159,14 +159,22 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       })
     ) {
       const fullPath = file.path;
-      const s = await Deno.stat(fullPath);
-      allFiles.push({
-        name: fullPath.substring(this.rootPath.length + 1),
-        lastModified: s.mtime!.getTime(),
-        contentType: mime.getType(fullPath) || "application/octet-stream",
-        size: s.size,
-        perm: "rw",
-      });
+      try {
+        const s = await Deno.stat(fullPath);
+        allFiles.push({
+          name: fullPath.substring(this.rootPath.length + 1),
+          lastModified: s.mtime!.getTime(),
+          contentType: mime.getType(fullPath) || "application/octet-stream",
+          size: s.size,
+          perm: "rw",
+        });
+      } catch (e: any) {
+        if (e instanceof Deno.errors.NotFound) {
+          // Ignore, temporariy file already deleted by the time we got here
+        } else {
+          console.error("Failed to stat", fullPath, e);
+        }
+      }
     }
 
     return allFiles;

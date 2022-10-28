@@ -52,12 +52,28 @@ export class Plug<HookT> {
     return !funDef.env || funDef.env === this.runtimeEnv;
   }
 
-  async invoke(name: string, args: Array<any>): Promise<any> {
-    if (!this.sandbox.isLoaded(name)) {
-      const funDef = this.manifest!.functions[name];
-      if (!funDef) {
-        throw new Error(`Function ${name} not found in manifest`);
+  async invoke(name: string, args: any[]): Promise<any> {
+    const funDef = this.manifest!.functions[name];
+    if (!funDef) {
+      throw new Error(`Function ${name} not found in manifest`);
+    }
+    if (funDef.redirect) {
+      // Function redirect, look up
+      // deno-lint-ignore no-this-alias
+      let plug: Plug<HookT> | undefined = this;
+      if (funDef.redirect.indexOf(".") !== -1) {
+        const [plugName, functionName] = funDef.redirect.split(".");
+        plug = this.system.loadedPlugs.get(plugName);
+        if (!plug) {
+          throw Error(`Plug ${plugName} redirected to not found`);
+        }
+        name = functionName;
+      } else {
+        name = funDef.redirect;
       }
+      return plug.invoke(name, args);
+    }
+    if (!this.sandbox.isLoaded(name)) {
       if (!this.canInvoke(name)) {
         throw new Error(
           `Function ${name} is not available in ${this.runtimeEnv}`,

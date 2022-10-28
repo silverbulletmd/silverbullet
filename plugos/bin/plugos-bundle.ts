@@ -72,8 +72,11 @@ export async function bundle(
 
   // Functions
   for (const def of Object.values(manifest.functions || {})) {
+    if (!def.path) {
+      continue;
+    }
     let jsFunctionName = "default",
-      filePath = path.join(rootPath, def.path!);
+      filePath = path.join(rootPath, def.path);
     if (filePath.indexOf(":") !== -1) {
       [filePath, jsFunctionName] = filePath.split(":");
     }

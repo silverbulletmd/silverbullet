@@ -40,6 +40,12 @@ Deno.test("Run a deno sandbox", async () => {
           };
         })()`,
         },
+        redirectTest: {
+          redirect: "addTen",
+        },
+        redirectTest2: {
+          redirect: "test.addTen",
+        },
         addNumbersSyscall: {
           code: `(() => {
           return {
@@ -90,6 +96,8 @@ Deno.test("Run a deno sandbox", async () => {
     createSandbox,
   );
   assertEquals(await plug.invoke("addTen", [10]), 20);
+  assertEquals(await plug.invoke("redirectTest", [10]), 20);
+  assertEquals(await plug.invoke("redirectTest2", [10]), 20);
   for (let i = 0; i < 100; i++) {
     assertEquals(await plug.invoke("addNumbersSyscall", [10, i]), 10 + i);
   }

@@ -2,8 +2,6 @@ import {
   preactRender,
   useEffect,
   useReducer,
-  Y,
-  yCollab,
   yUndoManagerKeymap,
 } from "./deps.ts";
 
@@ -160,7 +158,7 @@ export class Editor {
       spaceSyscalls(this),
       indexerSyscalls(this.space),
       fulltextSyscalls(this.space),
-      systemSyscalls(this),
+      systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       clientStoreSyscalls(),
       storeSyscalls(this.space),

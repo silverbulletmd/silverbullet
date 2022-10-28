@@ -28,7 +28,7 @@ restart SB itself.
   ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 - [[🔌 Mount]] by **Zef Hemel**
   ([repo](https://github.com/silverbulletmd/silverbullet-mount))
-- [[🔌 Query]] by **Silver Bullet Authors**
+- [[🔌 Directive]] by **Silver Bullet Authors**
   ([repo](https://github.com/silverbulletmd/silverbullet))
 
 <!-- /query -->

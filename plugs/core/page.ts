@@ -21,7 +21,7 @@ import {
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
-import { extractMeta } from "../query/data.ts";
+import { extractMeta } from "../directive/data.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName

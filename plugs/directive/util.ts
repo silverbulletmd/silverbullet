@@ -1,3 +1,9 @@
+import Handlebars from "handlebars";
+import * as YAML from "yaml";
+
+import { space } from "$sb/silverbullet-syscall/mod.ts";
+import { niceDate } from "$sb/lib/dates.ts";
+
 const maxWidth = 70;
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
@@ -63,4 +69,43 @@ export function jsonToMDTable(
     }
     return new Array(length + 1).join(ch);
   }
+}
+
+export async function renderTemplate(
+  renderTemplate: string,
+  data: any[],
+): Promise<string> {
+  Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
+  Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
+  Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
+    v
+      .split("\n")
+      .map((l) => prefix + l)
+      .join("\n"));
+
+  Handlebars.registerHelper(
+    "substring",
+    (s: string, from: number, to: number, elipsis = "") =>
+      s.length > to - from ? s.substring(from, to) + elipsis : s,
+  );
+
+  Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
+    if (typeof prefix === "string") {
+      let yaml = YAML.stringify(v)
+        .split("\n")
+        .join("\n" + prefix)
+        .trim();
+      if (Array.isArray(v)) {
+        return "\n" + prefix + yaml;
+      } else {
+        return yaml;
+      }
+    } else {
+      return YAML.stringify(v).trim();
+    }
+  });
+  let templateText = await space.readPage(renderTemplate);
+  templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
+  const template = Handlebars.compile(templateText, { noEscape: true });
+  return template(data);
 }
