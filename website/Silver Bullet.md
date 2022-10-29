@@ -25,7 +25,7 @@ Here’s a list of (non-built-in) plugs documented in this space (note the
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Mount]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mount))
+* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
 <!-- /query -->
 
 In a regular SB installation, the body of this query 👆 (in between the
