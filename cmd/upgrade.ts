@@ -1,9 +1,7 @@
 import { version } from "../version.ts";
 
 export async function upgradeCommand() {
-  console.log(
-    "Now going to attempt an upgrade, this may involve downloading the Internet (but there may be cool spinners). Prepare!",
-  );
+  console.log("Now going to attempt an upgrade...");
 
   const p = Deno.run({
     cmd: ["deno", "cache", "--reload", Deno.mainModule],
@@ -29,7 +27,7 @@ export async function upgradeCommand() {
   const newVersion = new TextDecoder().decode(rawVersion).trim();
   if (newVersion === version) {
     console.log(
-      `Nope. I hate to tell you this, but it looks like we're still running ${newVersion}.\nThis was a bit of a futile exercise. Let's try again soon some time.`,
+      `Nope. I hate to tell you this, but it looks like we're still running ${newVersion} This was a bit of a futile exercise. Let's try again soon some time.`,
     );
   } else {
     console.log(
