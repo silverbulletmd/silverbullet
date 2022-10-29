@@ -10,7 +10,10 @@ function patchUrl(url: string): string {
   return url;
 }
 
-async function actionClickOrActionEnter(mdTree: ParseTree | null) {
+async function actionClickOrActionEnter(
+  mdTree: ParseTree | null,
+  inNewWindow = false,
+) {
   if (!mdTree) {
     return;
   }
@@ -28,7 +31,7 @@ async function actionClickOrActionEnter(mdTree: ParseTree | null) {
       if (!pageLink) {
         pageLink = await editor.getCurrentPage();
       }
-      await editor.navigate(pageLink, pos);
+      await editor.navigate(pageLink, pos, false, inNewWindow);
       break;
     }
     case "URL":
@@ -61,13 +64,13 @@ export async function linkNavigate() {
 }
 
 export async function clickNavigate(event: ClickEvent) {
-  // Navigate by default, don't navigate when Ctrl or Cmd is held
-  if (event.ctrlKey || event.metaKey) {
+  // Navigate by default, don't navigate when Alt is held
+  if (event.altKey) {
     return;
   }
   const mdTree = await markdown.parseMarkdown(await editor.getText());
   const newNode = nodeAtPos(mdTree, event.pos);
-  await actionClickOrActionEnter(newNode);
+  await actionClickOrActionEnter(newNode, event.ctrlKey || event.metaKey);
 }
 
 export async function navigateCommand(cmdDef: any) {

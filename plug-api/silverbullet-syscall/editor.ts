@@ -33,8 +33,9 @@ export function navigate(
   name: string,
   pos?: string | number,
   replaceState = false,
+  newWindow = false,
 ): Promise<void> {
-  return syscall("editor.navigate", name, pos, replaceState);
+  return syscall("editor.navigate", name, pos, replaceState, newWindow);
 }
 
 export function reloadPage(): Promise<void> {

@@ -604,9 +604,22 @@ export class Editor {
     this.editorView!.focus();
   }
 
-  async navigate(name: string, pos?: number | string, replaceState = false) {
+  async navigate(
+    name: string,
+    pos?: number | string,
+    replaceState = false,
+    newWindow = false,
+  ) {
     if (!name) {
       name = this.indexPage;
+    }
+
+    if (newWindow) {
+      const win = window.open(`${location.origin}/${name}`, "_blank");
+      if (win) {
+        win.focus();
+      }
+      return;
     }
     await this.pageNavigator.navigate(name, pos, replaceState);
   }
