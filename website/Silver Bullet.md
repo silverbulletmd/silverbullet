@@ -1,45 +1,24 @@
 ## Markdown as a platform
-Silver Bullet (SB) is highly-extensible,
-[open source](https://github.com/silverbulletmd/silverbullet) **personal
+Silver Bullet (SB) is highly-extensible, [open source](https://github.com/silverbulletmd/silverbullet) **personal
 knowledge management** software. Indeed, that’s fancy language for “a note taking app with links.”
 
 Here is a screenshot:
 
 ![Silver Bullet PWA screenshot](silverbullet-pwa.png)
-
 At its core, SB is a Markdown editor that stores _pages_ (notes) as plain
 markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge platform_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you. To get a good feel for it, [watch this video](https://youtu.be/RYdc3UF9gok).
 
-## Extensions
-
-What type of extensions, you ask? Let us demonstrate this in a very meta way: by querying a list of plugs and injecting it into this page!
-
-Here’s a list of (non-built-in) plugs documented in this space (note the
-`#query` ... `/query` notation used):
-
-<!-- #query page where type = "plug" order by name render [[template/plug]] -->
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
-* [[🔌 Core]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
-* [[🔌 Directive]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
-<!-- /query -->
-
-In a regular SB installation, the body of this query 👆 (in between the
-placeholders) would automatically be kept up to date as new pages are added to the space that match the query. 🤯 Have a look at the [[template/plug]] _template_ (referenced in the `render` clause) to see how the results are rendered using handlebars syntax and have a look at one of the linked pages to see how the _metadata_ is specified, which is subsequently used to query and render in this page. And to learn about the specific plug, of course.
+And then, [give it a try in our Sandbox](https://demo.silverbullet.md/Sandbox).
 
 ## Explore more
 Click on the links below to explore various aspects of Silver Bullet more
 in-depth:
 
-- [[CHANGELOG]]
-- [[🤯 Features]]
-- [[💡 Inspiration]]
-- [[🔌 Plugs]]
-- [[🔨 Development]]
+* [[CHANGELOG]] — what’s new?
+* [[🤯 Features]]
+* [[💡 Inspiration]]
+* [[🔌 Plugs]]
+* [[🔨 Development]]
 
 More of a video person? Here are two to get you started:
 
@@ -56,18 +35,19 @@ Some core principles that underly Silver Bullet’s philosophy:
 - **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
 
 ## Installing Silver Bullet
+This consists of two steps (unless Deno is already installed:
+
+1. Installing Deno
+2. Installing Silver Bullet itself
 
 ### Installing Deno
-
-Silver Bullet is built using [Deno](https://deno.land). To install Deno on Linux
-or Mac run:
+Silver Bullet is built using [Deno](https://deno.land). To install Deno on Linux or Mac run:
 
 ```shell
 curl -fsSL https://deno.land/install.sh | sh
 ```
 
-This will install Deno into `~/.deno/bin`, add this folder to your `PATH` in
-your `~/.bashrc` or `~/.zshrc` file.
+This will install Deno into `~/.deno/bin`, add this folder to your `PATH` in your `~/.bashrc` or `~/.zshrc` file.
 
 To install Deno on Windows (using Powershell) run:
 
@@ -76,8 +56,7 @@ irm https://deno.land/install.ps1 | iex
 ```
 
 ### Install Silver Bullet
-
-With Deno installed (see instruction above), run:
+With Deno installed, run:
 
 ```shell
 deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
