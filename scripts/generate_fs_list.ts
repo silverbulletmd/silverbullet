@@ -18,7 +18,7 @@ for await (
   const s = await Deno.stat(fullPath);
   allFiles.push({
     name: fullPath.substring(rootDir.length + 1),
-    lastModified: s.mtime!.getTime(),
+    lastModified: 0,
     contentType: mime.getType(fullPath) || "application/octet-stream",
     size: s.size,
     perm: "rw",
