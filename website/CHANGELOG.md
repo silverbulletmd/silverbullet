@@ -9,6 +9,8 @@ release.
 * The `query` plug has been renamed to `directive` (because it supports many other features now) and significantly refactored. New docs: [[🔌 Directive]]
   * New directive `#eval` see [[🔌 Directive@eval]]
 * New PlugOS feature: redirecting function calls. Instead of specifying a `path` for a function, you can now specify `redirect` pointing to another function name, either in the same plug using the `plugName.functionName` syntax.
+* `Cmd-click` or `Ctrl-click` now opens page references in a new window. You can `Alt-click` to put your cursor at the target without navigation.
+* The `Create page` option when navigating pages now always appears as the _second_ option. Let me know how you like it.
 
 ---
 
