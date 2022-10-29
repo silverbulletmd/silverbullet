@@ -8,5 +8,6 @@ curl -fsSL https://deno.land/install.sh | sh
 export PATH=~/.deno/bin:$PATH
 deno task build
 deno task bundle
-mkdir website_build/silverbullet.js
-cp dist/silverbullet.js website_build/silverbullet.js/
+mkdir website_build/silverbullet
+cp dist/silverbullet.js website_build/silverbullet/
+cp dist_bundle/web/global.plug.json website_build/silverbullet/
