@@ -86,7 +86,7 @@ export function FilterList({
     const foundExactMatch = false;
     const results = fuzzySorter(originalPhrase, options);
     if (allowNew && !foundExactMatch && originalPhrase) {
-      results.push({
+      results.splice(1, 0, {
         name: originalPhrase,
         hint: newHint,
       });
