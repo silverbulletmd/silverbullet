@@ -87,8 +87,8 @@ export function replaceRange(
   return syscall("editor.replaceRange", from, to, text);
 }
 
-export function moveCursor(pos: number): Promise<void> {
-  return syscall("editor.moveCursor", pos);
+export function moveCursor(pos: number, center = false): Promise<void> {
+  return syscall("editor.moveCursor", pos, center);
 }
 
 export function insertAtCursor(text: string): Promise<void> {

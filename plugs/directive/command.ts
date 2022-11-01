@@ -1,13 +1,11 @@
-import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
-import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-
+import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
 import { renderDirectives } from "./directives.ts";
 
 export async function updateDirectivesOnPageCommand() {
   const currentPage = await editor.getCurrentPage();
   await editor.save();
   if (
-    await invokeFunction(
+    await system.invokeFunction(
       "server",
       "updateDirectivesOnPage",
       currentPage,

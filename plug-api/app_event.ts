@@ -1,5 +1,5 @@
-import type { ParseTree } from "./lib/tree.ts";
-import { ParsedQuery } from "./lib/query.ts";
+import type { ParseTree } from "$sb/lib/tree.ts";
+import { ParsedQuery } from "$sb/lib/query.ts";
 
 export type AppEvent =
   | "page:click"

@@ -1,4 +1,4 @@
-import { syscall } from "./syscall.ts";
+import { syscall } from "$sb/silverbullet-syscall/syscall.ts";
 
 import type { ParseTree } from "$sb/lib/tree.ts";
 

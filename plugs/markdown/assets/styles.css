@@ -8,9 +8,22 @@ body {
   padding-right: 20px;
 }
 
+table.front-matter {
+  border: 1px solid #555;
+  font-size: 75%;
+}
+
+table.front-matter .key {
+  font-weight: bold;
+}
+
 table {
   width: 100%;
   border-spacing: 0;
+}
+
+ul li p {
+  margin: 0;
 }
 
 thead tr {
@@ -47,4 +60,8 @@ hr {
 hr:after {
     content: "···";
     letter-spacing: 1em;
+}
+
+span.highlight {
+  background-color: yellow;
 }

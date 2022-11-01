@@ -1,6 +1,6 @@
 // This is some shocking stuff. My profession would kill me for this.
 
-import { YAML } from "../../common/deps.ts";
+import * as YAML from "yaml";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions

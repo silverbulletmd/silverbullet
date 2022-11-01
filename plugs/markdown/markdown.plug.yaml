@@ -2,7 +2,7 @@ name: markdown
 imports:
   - https://get.silverbullet.md/global.plug.json
 assets:
-  - "*.css"
+  - "assets/*"
 functions:
   toggle:
     path: "./markdown.ts:togglePreview"
@@ -18,3 +18,8 @@ functions:
       - editor:updated
       - editor:pageLoaded
       - editor:pageReloaded
+  previewClickHandler:
+    path: "./preview.ts:previewClickHandler"
+    env: client
+    events:
+      - preview:click

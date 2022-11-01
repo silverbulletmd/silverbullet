@@ -83,8 +83,10 @@ export function Panel({
         editor.dispatchAppEvent(data.name, ...data.args);
       }
     };
+    console.log("Registering event handler");
     globalThis.addEventListener("message", messageListener);
     return () => {
+      console.log("Unregistering event handler");
       globalThis.removeEventListener("message", messageListener);
     };
   }, []);

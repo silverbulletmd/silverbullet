@@ -1,5 +1,5 @@
 import { Editor } from "../editor.tsx";
-import { Transaction } from "../deps.ts";
+import { EditorView, Transaction } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { FilterOption } from "../../common/types.ts";
 
@@ -113,12 +113,24 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-    "editor.moveCursor": (_ctx, pos: number) => {
+    "editor.moveCursor": (_ctx, pos: number, center = false) => {
       editor.editorView!.dispatch({
         selection: {
           anchor: pos,
         },
       });
+      if (center) {
+        editor.editorView!.dispatch({
+          effects: [
+            EditorView.scrollIntoView(
+              pos,
+              {
+                y: "center",
+              },
+            ),
+          ],
+        });
+      }
     },
     "editor.setSelection": (_ctx, from: number, to: number) => {
       const editorView = editor.editorView!;

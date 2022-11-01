@@ -88,6 +88,14 @@ export function taskToggle(event: ClickEvent) {
   return taskToggleAtPos(event.pos);
 }
 
+export function previewTaskToggle(eventString: string) {
+  const [eventName, pos] = JSON.parse(eventString);
+  if (eventName === "task") {
+    console.log("Gotta toggle a task at", pos);
+    return taskToggleAtPos(+pos);
+  }
+}
+
 async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
   let changeTo = "[x]";
   if (node.children![0].text === "[x]" || node.children![0].text === "[X]") {
@@ -139,6 +147,7 @@ export async function taskToggleAtPos(pos: number) {
   addParentPointers(mdTree);
 
   const node = nodeAtPos(mdTree, pos);
+  // console.log("Got this node", node?.type);
   if (node && node.type === "TaskMarker") {
     await toggleTaskMarker(node, pos);
   }

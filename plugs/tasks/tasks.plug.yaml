@@ -47,3 +47,8 @@ functions:
       key: Alt-+
       contexts:
         - DeadlineDate
+  previewTaskToggle:
+    env: client
+    path: ./task.ts:previewTaskToggle
+    events:
+      - preview:click

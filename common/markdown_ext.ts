@@ -48,11 +48,11 @@ export function mdExtensionStyleTags({ nodeType, tag }: MDExt): {
 }
 
 export function loadMarkdownExtensions(system: System<any>): MDExt[] {
-  let mdExtensions: MDExt[] = [];
-  for (let plug of system.loadedPlugs.values()) {
-    let manifest = plug.manifest as Manifest;
+  const mdExtensions: MDExt[] = [];
+  for (const plug of system.loadedPlugs.values()) {
+    const manifest = plug.manifest as Manifest;
     if (manifest.syntax) {
-      for (let [nodeType, def] of Object.entries(manifest.syntax)) {
+      for (const [nodeType, def] of Object.entries(manifest.syntax)) {
         mdExtensions.push({
           nodeType,
           tag: Tag.define(),
