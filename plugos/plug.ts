@@ -2,6 +2,7 @@ import { Manifest, RuntimeEnvironment } from "./types.ts";
 import { Sandbox } from "./sandbox.ts";
 import { System } from "./system.ts";
 import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
+import { resolve } from "https://deno.land/std@0.158.0/path/win32.ts";
 
 export class Plug<HookT> {
   system: System<HookT>;
@@ -27,9 +28,13 @@ export class Plug<HookT> {
     this.version = new Date().getTime();
   }
 
+  private sandboxInitialized: Promise<void> | undefined = undefined;
   // Lazy load sandbox, guarantees that the sandbox is loaded
-  async ensureSandbox() {
-    if (!this.sandbox) {
+  lazyInitSandbox(): Promise<void> {
+    if (this.sandboxInitialized) {
+      return this.sandboxInitialized;
+    }
+    this.sandboxInitialized = Promise.resolve().then(async () => {
       console.log("Now starting sandbox for", this.name);
       // Kick off worker
       this.sandbox = this.sandboxFactory(this);
@@ -40,7 +45,8 @@ export class Plug<HookT> {
         await this.sandbox.loadDependency(dep, code);
       }
       await this.system.emit("sandboxInitialized", this.sandbox, this);
-    }
+    });
+    return this.sandboxInitialized;
   }
 
   load(manifest: Manifest<HookT>) {
@@ -72,7 +78,7 @@ export class Plug<HookT> {
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
     }
-    await this.ensureSandbox();
+    await this.lazyInitSandbox();
     const sandbox = this.sandbox!;
     if (funDef.redirect) {
       // Function redirect, look up

@@ -1,5 +1,5 @@
-import { LogEntry } from "../sandbox.ts";
-import { SysCallMapping, System } from "../system.ts";
+import type { LogEntry } from "../sandbox.ts";
+import type { SysCallMapping, System } from "../system.ts";
 
 export default function sandboxSyscalls(system: System<any>): SysCallMapping {
   return {

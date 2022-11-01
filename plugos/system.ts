@@ -115,7 +115,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     // Ok, let's load this thing!
     const plug = new Plug(this, name, sandboxFactory);
     console.log("Loading", name);
-    await plug.load(manifest);
+    plug.load(manifest);
     this.plugs.set(name, plug);
     await this.emit("plugLoaded", plug);
     return plug;
