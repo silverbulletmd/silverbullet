@@ -1,7 +1,7 @@
 import { bundleRun } from "../plugos/bin/plugos-bundle.ts";
 import { esbuild } from "../plugos/compile.ts";
 
-export async function plugBundleCommand(
+export async function plugCompileCommand(
   { watch, dist, debug, info, importmap }: {
     watch: boolean;
     dist: string;
@@ -11,6 +11,7 @@ export async function plugBundleCommand(
   },
   ...manifestPaths: string[]
 ) {
+  console.log("All optiosn", arguments);
   await bundleRun(
     manifestPaths,
     dist,

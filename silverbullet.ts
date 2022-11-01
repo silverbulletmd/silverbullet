@@ -6,7 +6,7 @@ import { upgradeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { fixCommand } from "./cmd/fix.ts";
 import { serveCommand } from "./cmd/server.ts";
-import { plugBundleCommand } from "./cmd/plug_bundle.ts";
+import { plugCompileCommand } from "./cmd/plug_compile.ts";
 
 await new Command()
   .name("silverbullet")
@@ -25,11 +25,13 @@ await new Command()
   .command("fix", "Fix a broken space")
   .arguments("<folder:string>")
   .action(fixCommand)
-  // plug:bundle
+  // plug:compile
   .command("plug:compile", "Bundle (compile) one or more plug manifests")
   .arguments("<...name.plug.yaml:string>")
-  .option("--debug", "Do not minifiy code", { default: false })
-  .option("--info", "Print out size info per function", { default: false })
+  .option("--debug [type:boolean]", "Do not minifiy code", { default: false })
+  .option("--info [type:boolean]", "Print out size info per function", {
+    default: false,
+  })
   .option("--watch, -w [type:boolean]", "Watch for changes and rebuild", {
     default: false,
   })
@@ -39,7 +41,7 @@ await new Command()
     { default: "." },
   )
   .option("--importmap <path:string>", "Path to import map file to use")
-  .action(plugBundleCommand)
+  .action(plugCompileCommand)
   // upgrade
   .command("upgrade", "Upgrade Silver Bullet")
   .action(upgradeCommand)
