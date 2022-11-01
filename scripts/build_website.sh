@@ -1,7 +1,5 @@
 #!/bin/bash
 
-rm -rf website_build
-npx --yes @silverbulletmd/publish -o website_build --index website
 
 echo "Now building Silver Bullet bundle"
 curl -fsSL https://deno.land/install.sh | sh
@@ -11,6 +9,11 @@ echo "Generating version number..."
 echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 echo "Building..."
 deno task build
+deno task install
+
+rm -rf website_build
+silverbullet publish -o website_build --index website
+
 echo "Bundling..."
 deno task bundle
 cp dist/silverbullet.js website_build/

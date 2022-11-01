@@ -16,6 +16,7 @@ export async function updateMarkdownPreview() {
     smartHardBreak: true,
     annotationPositions: true,
     renderFrontMatter: true,
+    attachmentUrlPrefix: "fs/",
   });
   await editor.showPanel(
     "rhs",

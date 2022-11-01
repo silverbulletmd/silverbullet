@@ -12,6 +12,7 @@ type MarkdownRenderOptions = {
   smartHardBreak?: true;
   annotationPositions?: true;
   renderFrontMatter?: true;
+  attachmentUrlPrefix?: string;
 };
 
 function cleanTags(values: (Tag | null)[]): Tag[] {
@@ -138,11 +139,15 @@ function render(
     // Code blocks
     case "FencedCode":
     case "CodeBlock": {
+      // Clear out top-level indent blocks
+      t.children = t.children!.filter((c) => c.type);
       return {
         name: "pre",
         body: cleanTags(mapRender(t.children!)),
       };
     }
+    case "CodeInfo":
+      return null;
     case "CodeText":
       return t.children![0].text!;
     case "Blockquote":
@@ -201,7 +206,14 @@ function render(
       };
     case "Link": {
       const linkText = t.children![1].text!;
-      const url = findNodeOfType(t, "URL")!.children![0].text!;
+      const urlNode = findNodeOfType(t, "URL");
+      if (!urlNode) {
+        return renderToText(t);
+      }
+      let url = urlNode.children![0].text!;
+      if (url.indexOf("://") === -1) {
+        url = `${options.attachmentUrlPrefix || ""}${url}`;
+      }
       return {
         name: "a",
         attrs: {
@@ -212,9 +224,13 @@ function render(
     }
     case "Image": {
       const altText = t.children![1].text!;
-      let url = findNodeOfType(t, "URL")!.children![0].text!;
+      const urlNode = findNodeOfType(t, "URL");
+      if (!urlNode) {
+        return renderToText(t);
+      }
+      let url = urlNode!.children![0].text!;
       if (url.indexOf("://") === -1) {
-        url = `fs/${url}`;
+        url = `${options.attachmentUrlPrefix || ""}${url}`;
       }
       return {
         name: "img",
@@ -233,7 +249,7 @@ function render(
       return {
         name: "a",
         attrs: {
-          href: `/${ref}`,
+          href: `/${ref.replaceAll(" ", "_").replace("@", "#")}`,
         },
         body: ref,
       };

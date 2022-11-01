@@ -11,7 +11,6 @@ export async function plugCompileCommand(
   },
   ...manifestPaths: string[]
 ) {
-  console.log("All optiosn", arguments);
   await bundleRun(
     manifestPaths,
     dist,

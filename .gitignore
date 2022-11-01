@@ -6,5 +6,6 @@ dist
 *.js.map
 website_build
 data.db
+publish-data.db
 /index.json
 .idea

@@ -26,12 +26,13 @@ Whenever the directives are updated, the body of the directive will be replaced 
 $use
 The `#use` directive can be used to use a referenced page as a handbars template. Optionally, a JSON object can be passed as argument to the template:
 
-    <!-- #use [[template/plug]] {"name": "Example plug", "repo": "https://google.com"} -->
+    <!-- #use [[template/plug]] {"name": "🔌 Directive", "repo": "https://google.com", "author": "Pete"} -->
+    
     <!-- /use -->
 
 which renders as follows:
-<!-- #use [[template/plug]] {"name": "Example plug", "repo": "https://google.com"} -->
-* [[Example plug]] by **** ([repo](https://google.com))
+<!-- #use [[template/plug]] {"name": "🔌 Directive", "repo": "https://google.com", "author": "Pete"} -->
+* [[🔌 Directive]] by **Pete** ([repo](https://google.com))
 <!-- /use -->
 
 Note that a string is also a valid JSON value:
@@ -45,7 +46,7 @@ Note that a string is also a valid JSON value:
 which renders as:
 
 <!-- #use [[template/tagged-tasks]] "#test" -->
-* [ ] [[🔌 Directive@1492]] This is a test task  #test
+* [ ] [[🔌 Directive@1537]] This is a test task  #test
 <!-- /use -->
 
 ## Eval
@@ -68,8 +69,8 @@ However, you can also invoke arbitrary plug functions, e.g. the `titleUnfurlOpti
 
 Optionally, you can use a `render` clause to render the result as a template, similar to [[🔌 Directive/Query]]:
 
-<!-- #eval core.titleUnfurlOptions() render [[template/debug]] -->
-id: title-unfurl
-name: Extract title
----
-<!-- /eval -->
+    <!-- #eval core.titleUnfurlOptions() render [[template/debug]] -->
+    id: title-unfurl
+    name: Extract title
+    ---
+    <!-- /eval -->

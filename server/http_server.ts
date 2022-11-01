@@ -20,7 +20,7 @@ import {
   fullTextSearchSyscalls,
 } from "../plugos/syscalls/fulltext.sqlite.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
-import shellSyscalls from "../plugos/syscalls/shell.node.ts";
+import shellSyscalls from "../plugos/syscalls/shell.deno.ts";
 import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
