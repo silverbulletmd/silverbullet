@@ -147,11 +147,11 @@ Deno.test("Preload dependencies", async () => {
 
   const system = new System("server");
   system.on({
-    plugLoaded: async (plug) => {
+    sandboxInitialized: async (sandbox) => {
       for (
         const [modName, code] of Object.entries(globalModules.dependencies!)
       ) {
-        await plug.sandbox.loadDependency(modName, code as string);
+        await sandbox.loadDependency(modName, code as string);
       }
     },
   });

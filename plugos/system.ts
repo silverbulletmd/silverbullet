@@ -1,6 +1,6 @@
 import { Hook, Manifest, RuntimeEnvironment } from "./types.ts";
 import { EventEmitter } from "./event.ts";
-import { SandboxFactory } from "./sandbox.ts";
+import { Sandbox, SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
 
 export interface SysCallMapping {
@@ -11,6 +11,7 @@ export type SystemJSON<HookT> = Manifest<HookT>[];
 
 export type SystemEvents<HookT> = {
   plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;
+  sandboxInitialized(sandbox: Sandbox, plug: Plug<HookT>): void | Promise<void>;
   plugUnloaded: (name: string) => void | Promise<void>;
 };
 

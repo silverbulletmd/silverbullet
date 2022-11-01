@@ -5,9 +5,10 @@ import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export class Plug<HookT> {
   system: System<HookT>;
-  sandbox: Sandbox;
+  sandbox?: Sandbox;
   public manifest?: Manifest<HookT>;
   public assets?: AssetBundle;
+  private sandboxFactory: (plug: Plug<HookT>) => Sandbox;
   readonly runtimeEnv: RuntimeEnvironment;
   grantedPermissions: string[] = [];
   name: string;
@@ -20,21 +21,35 @@ export class Plug<HookT> {
   ) {
     this.system = system;
     this.name = name;
-    this.sandbox = sandboxFactory(this);
+    this.sandboxFactory = sandboxFactory;
+    // this.sandbox = sandboxFactory(this);
     this.runtimeEnv = system.runtimeEnv;
     this.version = new Date().getTime();
   }
 
-  async load(manifest: Manifest<HookT>) {
+  // Lazy load sandbox, guarantees that the sandbox is loaded
+  async ensureSandbox() {
+    if (!this.sandbox) {
+      console.log("Now starting sandbox for", this.name);
+      // Kick off worker
+      this.sandbox = this.sandboxFactory(this);
+      // Push in any dependencies
+      for (
+        const [dep, code] of Object.entries(this.manifest!.dependencies || {})
+      ) {
+        await this.sandbox.loadDependency(dep, code);
+      }
+      await this.system.emit("sandboxInitialized", this.sandbox, this);
+    }
+  }
+
+  load(manifest: Manifest<HookT>) {
     this.manifest = manifest;
     this.assets = new AssetBundle(
       manifest.assets ? manifest.assets as AssetJson : {},
     );
     // TODO: These need to be explicitly granted, not just taken
     this.grantedPermissions = manifest.requiredPermissions || [];
-    for (const [dep, code] of Object.entries(manifest.dependencies || {})) {
-      await this.sandbox.loadDependency(dep, code);
-    }
   }
 
   syscall(name: string, args: any[]): Promise<any> {
@@ -57,6 +72,8 @@ export class Plug<HookT> {
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
     }
+    await this.ensureSandbox();
+    const sandbox = this.sandbox!;
     if (funDef.redirect) {
       // Function redirect, look up
       // deno-lint-ignore no-this-alias
@@ -73,18 +90,20 @@ export class Plug<HookT> {
       }
       return plug.invoke(name, args);
     }
-    if (!this.sandbox.isLoaded(name)) {
+    if (!sandbox.isLoaded(name)) {
       if (!this.canInvoke(name)) {
         throw new Error(
           `Function ${name} is not available in ${this.runtimeEnv}`,
         );
       }
-      await this.sandbox.load(name, funDef.code!);
+      await sandbox.load(name, funDef.code!);
     }
-    return await this.sandbox.invoke(name, args);
+    return await sandbox.invoke(name, args);
   }
 
   stop() {
-    this.sandbox.stop();
+    if (this.sandbox) {
+      this.sandbox.stop();
+    }
   }
 }

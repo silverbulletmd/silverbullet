@@ -6,7 +6,9 @@ export default function sandboxSyscalls(system: System<any>): SysCallMapping {
     "sandbox.getLogs": (): LogEntry[] => {
       let allLogs: LogEntry[] = [];
       for (const plug of system.loadedPlugs.values()) {
-        allLogs = allLogs.concat(plug.sandbox.logBuffer);
+        if (plug.sandbox) {
+          allLogs = allLogs.concat(plug.sandbox.logBuffer);
+        }
       }
       allLogs = allLogs.sort((a, b) => a.date - b.date);
       return allLogs;
