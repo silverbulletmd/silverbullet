@@ -12,7 +12,7 @@ deno task build
 deno task install
 
 rm -rf website_build
-silverbullet publish -o website_build --index website
+silverbullet publish --index -o website_build website
 
 echo "Bundling..."
 deno task bundle
