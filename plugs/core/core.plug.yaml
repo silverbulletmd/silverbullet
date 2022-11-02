@@ -203,6 +203,11 @@ functions:
     command:
       name: "Open Daily Note"
       key: "Alt-Shift-d"
+  weeklyNoteCommand:
+    path: ./template.ts:weeklyNoteCommand
+    command:
+      name: "Open Weekly Note"
+      key: "Alt-Shift-w"
 
   instantiateTemplateCommand:
     path: ./template.ts:instantiateTemplateCommand

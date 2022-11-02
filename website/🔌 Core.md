@@ -65,7 +65,12 @@ Which would insert the cursor right after `#query`.
 ### Daily Note
 
 The {[Open Daily Note]} command navigates (or creates) a daily note prefixed
-with a 📅 emoji by default, but this is configurable via the `dailyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `Daily Note` it will use this as a template, otherwise, the page will just be empty.
+with a 📅 emoji by default, but this is configurable via the `dailyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `templates/page/Daily Note` it will use this as a template, otherwise, the page will just be empty.
+
+### Weekly Note
+
+The {[Open Weekly Note]} command navigates (or creates) a weekly note prefixed
+with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePrefix` setting in `SETTINGS`. If you have a page template (see above) named `templates/page/Weekly Note` it will use this as a template, otherwise, the page will just be empty.
 
 ### Quick Note
 

@@ -10,6 +10,7 @@ release.
   * New directive `#eval` see [[🔌 Directive@eval]]
 * New PlugOS feature: redirecting function calls. Instead of specifying a `path` for a function, you can now specify `redirect` pointing to another function name, either in the same plug using the `plugName.functionName` syntax.
 * `Cmd-click` or `Ctrl-click` now opens page references in a new window. You can `Alt-click` to put your cursor at the target without navigation.
+* New {[Open Weekly Note]} command (weeks start on Sunday by default, to allow for planning, but you can change this to Monday by setting the `weeklyNoteMonday` to `true` in [[Settings]]). Like for {[Open Daily Note]} you can create a template in `template/page/Weekly Note`.
 * The `Create page` option when navigating pages now always appears as the _second_ option. Let me know how you like it.
 * New `Preview` using a custom markdown renderer offering a lot of extra flexibility (and a much smaller file size). New thing it does:
   * Render front matter in a table

@@ -152,6 +152,47 @@ export async function dailyNoteCommand() {
   }
 }
 
+function getWeekStartDate(monday = false) {
+  const d = new Date();
+  const day = d.getDay();
+  let diff = d.getDate() - day;
+  if (monday) {
+    diff += day == 0 ? -6 : 1;
+  }
+  return new Date(d.setDate(diff));
+}
+
+export async function weeklyNoteCommand() {
+  const { weeklyNoteTemplate, weeklyNotePrefix, weeklyNoteMonday } =
+    await readSettings({
+      weeklyNoteTemplate: "template/page/Weekly Note",
+      weeklyNotePrefix: "🗓️ ",
+      weeklyNoteMonday: false,
+    });
+  let weeklyNoteTemplateText = "";
+  try {
+    weeklyNoteTemplateText = await space.readPage(weeklyNoteTemplate);
+  } catch {
+    console.warn(`No weekly note template found at ${weeklyNoteTemplate}`);
+  }
+  const date = niceDate(getWeekStartDate(weeklyNoteMonday));
+  const pageName = `${weeklyNotePrefix}${date}`;
+  if (weeklyNoteTemplateText) {
+    try {
+      await space.getPageMeta(pageName);
+    } catch {
+      // Doesn't exist, let's create
+      await space.writePage(
+        pageName,
+        replaceTemplateVars(weeklyNoteTemplateText, pageName),
+      );
+    }
+    await editor.navigate(pageName);
+  } else {
+    await editor.navigate(pageName);
+  }
+}
+
 export async function insertTemplateText(cmdDef: any) {
   const cursorPos = await editor.getCursor();
   const page = await editor.getCurrentPage();
