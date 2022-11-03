@@ -84,4 +84,5 @@ Currently supported (hardcoded in the code):
 - `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
 - `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
 - `{{lastWeek}}`: Current date - 7 days
+- `{{nextWeek}}`: Current date + 7 days
 - `{{page}}`: The name of the current page

@@ -105,6 +105,11 @@ export function replaceTemplateVars(s: string, pageName: string): string {
         lastWeek.setDate(lastWeek.getDate() - 7);
         return niceDate(lastWeek);
       }
+      case "nextWeek": {
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        return niceDate(nextWeek);
+      }
       case "page":
         return pageName;
     }
