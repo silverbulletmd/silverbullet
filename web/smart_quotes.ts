@@ -15,8 +15,12 @@ function keyBindingForQuote(
   right: string,
 ): KeyBinding {
   return {
-    key: quote,
-    run: (target): boolean => {
+    any: (target, event): boolean => {
+      // Moving this check here rather than using the regular "key" property because
+      // for some reason the "ä" key is not recognized as a quote key by CodeMirror.
+      if (event.key !== quote) {
+        return false;
+      }
       const cursorPos = target.state.selection.main.from;
       const chBefore = target.state.sliceDoc(cursorPos - 1, cursorPos);
 
@@ -34,13 +38,13 @@ function keyBindingForQuote(
       }
 
       // Ok, still here, let's use a smart quote
-      let quote = right;
+      let q = right;
       if (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore)) {
-        quote = left;
+        q = left;
       }
       target.dispatch({
         changes: {
-          insert: quote,
+          insert: q,
           from: cursorPos,
         },
         selection: {
