@@ -43,7 +43,7 @@ export {
 
 export type { SyntaxNode, Tree } from "@lezer/common";
 
-export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.1?external=@codemirror/state,@codemirror/view";
+export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.2?external=@codemirror/state,@codemirror/view";
 export {
   Decoration,
   drawSelection,
@@ -58,7 +58,7 @@ export {
 } from "@codemirror/view";
 export type { DecorationSet, KeyBinding } from "@codemirror/view";
 
-export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight";
+export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.4?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight";
 
 export {
   EditorSelection,
@@ -86,8 +86,8 @@ export {
   syntaxTree,
 } from "@codemirror/language";
 
-export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.1.0/mode/yaml?external=@codemirror/language";
+export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.2.0/mode/yaml?external=@codemirror/language";
 export {
   javascriptLanguage,
   typescriptLanguage,
-} from "https://esm.sh/@codemirror/lang-javascript@6.1.0?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
+} from "https://esm.sh/@codemirror/lang-javascript@6.1.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
