@@ -3,6 +3,30 @@ import { safeRun } from "../plugos/util.ts";
 import { maximumAttachmentSize } from "../common/types.ts";
 import { Editor } from "./editor.tsx";
 
+// We use turndown to convert HTML to Markdown
+import TurndownService from "https://cdn.skypack.dev/turndown@7.1.1";
+
+// With tables and task notation as well
+import {
+  tables,
+  taskListItems,
+} from "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.45";
+const turndownService = new TurndownService({
+  hr: "---",
+  codeBlockStyle: "fenced",
+  headingStyle: "atx",
+  emDelimiter: "*",
+  bulletListMarker: "*", // Duh!
+  strongDelimiter: "**",
+  linkStyle: "inlined",
+});
+turndownService.use(taskListItems);
+turndownService.use(tables);
+
+function striptHtmlComments(s: string): string {
+  return s.replace(/<!--[\s\S]*?-->/g, "");
+}
+
 const urlRegexp =
   /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
@@ -68,6 +92,28 @@ export function attachmentExtension(editor: Editor) {
     },
     paste: (event: ClipboardEvent) => {
       const payload = [...event.clipboardData!.items];
+      const richText = event.clipboardData?.getData("text/html");
+      if (richText) {
+        const markdown = striptHtmlComments(turndownService.turndown(richText))
+          .trim();
+        const view = editor.editorView!;
+        const selection = view.state.selection.main;
+        console.log("Rich text", markdown);
+        view.dispatch({
+          changes: [
+            {
+              from: selection.from,
+              to: selection.to,
+              insert: markdown,
+            },
+          ],
+          selection: {
+            anchor: selection.from + markdown.length,
+          },
+          scrollIntoView: true,
+        });
+        return true;
+      }
       if (!payload.length || payload.length === 0) {
         return false;
       }

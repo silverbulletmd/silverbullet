@@ -3,6 +3,12 @@ release.
 
 ---
 
+## 0.1.5
+
+* Rich text paste: paste content from web pages, google docs, including tables and SB will make a best effort to convert it to Markdown. Implemented using [turndown](https://github.com/mixmark-io/turndown). Probably can use some tweaking, but it's something.
+
+---
+
 ## 0.1.4
 
 * Breaking change (for those who used it): the named anchor syntax has changed from `@anchorname` to `$anchorname`. This is to avoid conflicts with potentialy future use of `@` for other purposes (like mentioning people). Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you create an anchor $likethis you can then reference it [[@likethis]].
