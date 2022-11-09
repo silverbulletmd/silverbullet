@@ -1,20 +1,17 @@
 export {
-  autocompletion,
-  CompletionContext,
-  completionKeymap,
-} from "@codemirror/autocomplete";
-export type { Completion, CompletionResult } from "@codemirror/autocomplete";
-
-export {
   history,
   historyKeymap,
   indentWithTab,
   standardKeymap,
 } from "@codemirror/commands";
 export {
+  autocompletion,
   closeBrackets,
   closeBracketsKeymap,
-} from "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view";
+  CompletionContext,
+  completionKeymap,
+} from "@codemirror/autocomplete";
+export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
