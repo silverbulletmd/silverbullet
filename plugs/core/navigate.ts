@@ -46,9 +46,8 @@ async function actionClickOrActionEnter(
       await editor.openUrl(url);
       break;
     }
-    case "CommandLink": {
-      const command = mdTree.children![1].text!;
-      console.log("Got command link", command);
+    case "CommandLinkName": {
+      const command = mdTree.children![0].text!;
       await system.invokeCommand(command);
       break;
     }

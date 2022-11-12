@@ -79,16 +79,8 @@ import { Action, AppViewState, initialViewState } from "./types.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { CollabState } from "./collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
-import {
-  blockQuotePlugin,
-  directivePlugin,
-  goToLinkPlugin,
-  hideHeaderMarkPlugin,
-  hideImageNodePlugin,
-  hideMarks,
-  listBulletPlugin,
-  taskListPlugin,
-} from "./clean_mode.ts";
+
+import { cleanModePlugs } from "./cm_plugins/clean.ts";
 
 class PageState {
   constructor(
@@ -447,14 +439,7 @@ export class Editor {
         drawSelection(),
         dropCursor(),
         indentOnInput(),
-        goToLinkPlugin,
-        directivePlugin,
-        blockQuotePlugin,
-        hideMarks(),
-        hideHeaderMarkPlugin,
-        hideImageNodePlugin,
-        taskListPlugin,
-        listBulletPlugin,
+        ...cleanModePlugs,
         EditorView.lineWrapping,
         lineWrapper([
           { selector: "ATXHeading1", class: "sb-line-h1" },
