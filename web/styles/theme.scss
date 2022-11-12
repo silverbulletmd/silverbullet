@@ -128,11 +128,23 @@
   }
 }
 
+.sb-header-inside.sb-line-h1 {
+  margin-left: -2ch;
+}
+
+.sb-header-inside.sb-line-h2 {
+  margin-left: -3ch;
+}
+
+.sb-header-inside.sb-line-h3 {
+  margin-left: -4ch;
+}
+
 .sb-line-h1,
 .sb-line-h2,
 .sb-line-h3 {
-  background-color: rgba(0, 30, 77, 0.5);
-  color: #fff;
+  // background-color: rgba(0, 30, 77, 0.5);
+  color: #333;
   font-weight: bold;
   padding: 2px 2px !important;
 }
@@ -140,7 +152,7 @@
 .sb-line-h1 .sb-meta,
 .sb-line-h2 .sb-meta,
 .sb-line-h3 .sb-meta {
-  color: orange;
+  color: #a1a1a0;
 }
 
 .sb-line-h1 {

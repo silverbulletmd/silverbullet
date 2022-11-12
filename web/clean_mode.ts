@@ -150,6 +150,7 @@ const typesWithMarks = [
   "Emphasis",
   "StrongEmphasis",
   "InlineCode",
+  "Highlight",
   "Strikethrough",
   "WikiLink",
   "CommandLink",
@@ -160,6 +161,7 @@ const typesWithMarks = [
 const markTypes = [
   "EmphasisMark",
   "CodeMark",
+  "HighlightMark",
   "StrikethroughMark",
   "WikiLinkMark",
   "CommandLinkMark",
@@ -255,7 +257,12 @@ class HideHeaderMarkPlugin {
         const cursorOverlaps = ranges.some(({ from, to }) =>
           checkRangeOverlap([from, to], [line.from, line.to])
         );
-        if (cursorOverlaps) return;
+        if (cursorOverlaps) {
+          widgets.push(
+            Decoration.line({ class: "sb-header-inside" }).range(from),
+          );
+          return;
+        }
         if (
           type.name === "HeaderMark" &&
           // Setext heading's horizontal lines are not hidden.
