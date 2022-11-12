@@ -47,9 +47,7 @@ async function actionClickOrActionEnter(
       break;
     }
     case "CommandLink": {
-      const command = mdTree
-        .children![0].text!.substring(2, mdTree.children![0].text!.length - 2)
-        .trim();
+      const command = mdTree.children![1].text!;
       console.log("Got command link", command);
       await system.invokeCommand(command);
       break;

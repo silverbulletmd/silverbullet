@@ -187,7 +187,11 @@
   color: #959595;
 }
 
-.sb-command-link {
+.sb-command-link.sb-meta {
+  color: #959595;
+}
+
+.sb-command-link-name {
   background-color: #e3dfdf;
   cursor: pointer;
   border-top: 1px solid silver;

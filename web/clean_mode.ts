@@ -257,10 +257,12 @@ class HideHeaderMarkPlugin {
         const cursorOverlaps = ranges.some(({ from, to }) =>
           checkRangeOverlap([from, to], [line.from, line.to])
         );
-        if (cursorOverlaps) {
+        if (cursorOverlaps && type.name === "HeaderMark") {
           widgets.push(
             Decoration.line({ class: "sb-header-inside" }).range(from),
           );
+          return;
+        } else if (cursorOverlaps) {
           return;
         }
         if (

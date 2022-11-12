@@ -56,11 +56,8 @@ const commandLinkRegex = /^\{\[([^\]]+)\]\}/;
 
 const CommandLink: MarkdownConfig = {
   defineNodes: [
-    {
-      name: "CommandLink",
-      style: { "CommandLink/...": ct.CommandLinkTag },
-    },
-    "CommandLinkName",
+    { name: "CommandLink", style: { "CommandLink/...": ct.CommandLinkTag } },
+    { name: "CommandLinkName", style: ct.CommandLinkNameTag },
     {
       name: "CommandLinkMark",
       style: t.processingInstruction,
@@ -225,6 +222,8 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
           styleTags({
             WikiLink: ct.WikiLinkTag,
             WikiLinkPage: ct.WikiLinkPageTag,
+            // CommandLink: ct.CommandLinkTag,
+            // CommandLinkName: ct.CommandLinkNameTag,
             Task: ct.TaskTag,
             TaskMarker: ct.TaskMarkerTag,
             Comment: ct.CommentTag,
