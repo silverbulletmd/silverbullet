@@ -1,5 +1,6 @@
 import { Tag } from "./deps.ts";
 
+export const CommandLinkTag = Tag.define();
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();
 export const CodeInfoTag = Tag.define();

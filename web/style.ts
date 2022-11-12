@@ -16,6 +16,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.url, class: "sb-url" },
     { tag: ct.WikiLinkTag, class: "sb-wiki-link" },
     { tag: ct.WikiLinkPageTag, class: "sb-wiki-link-page" },
+    { tag: ct.CommandLinkTag, class: "sb-command-link" },
     { tag: ct.TaskTag, class: "sb-task" },
     { tag: ct.TaskMarkerTag, class: "sb-task-marker" },
     { tag: ct.CodeInfoTag, class: "sb-code-info" },

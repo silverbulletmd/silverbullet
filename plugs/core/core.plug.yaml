@@ -12,11 +12,11 @@ syntax:
       - "h"
     regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
     className: sb-naked-url
-  CommandLink:
-    firstCharacters:
-      - "{"
-    regex: "\\{\\[[^\\]]+\\]\\}"
-    className: sb-command-link
+  # CommandLink:
+  #   firstCharacters:
+  #     - "{"
+  #   regex: "\\{\\[[^\\]]+\\]\\}"
+  #   className: sb-command-link
   NamedAnchor:
     firstCharacters:
       - "$"

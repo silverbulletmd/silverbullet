@@ -23,7 +23,10 @@ import {
 export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
 
 const WikiLink: MarkdownConfig = {
-  defineNodes: ["WikiLink", "WikiLinkPage"],
+  defineNodes: ["WikiLink", "WikiLinkPage", {
+    name: "WikiLinkMark",
+    style: t.processingInstruction,
+  }],
   parseInline: [
     {
       name: "WikiLink",
@@ -35,9 +38,51 @@ const WikiLink: MarkdownConfig = {
         ) {
           return -1;
         }
+        const endPos = pos + match[0].length;
         return cx.addElement(
-          cx.elt("WikiLink", pos, pos + match[0].length, [
-            cx.elt("WikiLinkPage", pos + 2, pos + match[0].length - 2),
+          cx.elt("WikiLink", pos, endPos, [
+            cx.elt("WikiLinkMark", pos, pos + 2),
+            cx.elt("WikiLinkPage", pos + 2, endPos - 2),
+            cx.elt("WikiLinkMark", endPos - 2, endPos),
+          ]),
+        );
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
+const commandLinkRegex = /^\{\[([^\]]+)\]\}/;
+
+const CommandLink: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: "CommandLink",
+      style: { "CommandLink/...": ct.CommandLinkTag },
+    },
+    "CommandLinkName",
+    {
+      name: "CommandLinkMark",
+      style: t.processingInstruction,
+    },
+  ],
+  parseInline: [
+    {
+      name: "CommandLink",
+      parse(cx, next, pos) {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 123 /* '{' */ ||
+          !(match = commandLinkRegex.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        const endPos = pos + match[0].length;
+        return cx.addElement(
+          cx.elt("CommandLink", pos, endPos, [
+            cx.elt("CommandLinkMark", pos, pos + 2),
+            cx.elt("CommandLinkName", pos + 2, endPos - 2),
+            cx.elt("CommandLinkMark", endPos - 2, endPos),
           ]),
         );
       },
@@ -167,6 +212,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
   return markdown({
     extensions: [
       WikiLink,
+      CommandLink,
       FrontMatter,
       TaskList,
       Comment,

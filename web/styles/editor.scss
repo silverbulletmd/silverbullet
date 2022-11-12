@@ -29,11 +29,19 @@
     &.sb-line-task {
       text-indent: -1 * ($baseIndent + 6ch);
       padding-left: $baseIndent + 6ch;
+
+      .cm-list-bullet::after {
+        left: ($baseIndent + 6ch);
+      }
     }
 
     &.sb-line-blockquote {
       text-indent: -1 * ($baseIndent + 4ch);
       padding-left: $baseIndent + 4ch;
+    }
+
+    .cm-list-bullet::after {
+      left: ($baseIndent + 2ch);
     }
   }
 
@@ -85,4 +93,69 @@
     text-indent: -1 * 3ch;
     padding-left: 3ch;
   }
+
+  .cm-list-bullet {
+		position: relative;
+		visibility: hidden;
+	}
+	.cm-task-checked {
+	 	text-decoration: line-through !important;
+  }
+
+	.cm-list-bullet::after {
+		visibility: visible;
+		position: absolute;
+		// left: 2ch;
+    color: rgb(150, 150, 150);
+		content: "\2022"; /* U+2022 BULLET */
+	}
+
+  // .sb-directive-start {
+  //   border-bottom: 1px dotted #6c6c6c;
+  // }
+
+  .sb-directive-start .sb-comment, .sb-directive-end .sb-comment {
+    position: relative;
+    left: -12px;
+  }
+
+  .sb-directive-start::before {
+		content: "#";
+    color: gray;
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-size: 62%;
+    padding: 2px;
+    position: relative;
+    left: -20px;
+	}
+
+  // .sb-directive-end {
+  //   border-top: 1px dotted #6c6c6c;
+  // }
+
+  .sb-directive-outside {
+    opacity: 0.4;
+  }
+
+  .sb-blockquote-outside > .sb-meta {
+    display: none;
+  }
+
+  .sb-blockquote-outside {
+    text-indent: -1ch;
+    border-left: 1px solid rgb(74, 74, 74);
+    min-height: 1em;
+  }
+  
+  .sb-directive-end::before {
+		content: "/";
+    border-radius: 5px;
+    color: gray;
+    border: 1px solid gray;
+    font-size: 62%;
+    padding: 2px;
+    position: relative;
+    left: -20px;
+	}
 }

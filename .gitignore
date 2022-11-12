@@ -9,3 +9,4 @@ data.db
 publish-data.db
 /index.json
 .idea
+deno.lock
