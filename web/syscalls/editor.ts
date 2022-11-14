@@ -185,6 +185,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     ): string | null => {
       return prompt(message, defaultValue);
     },
+    "editor.confirm": (
+      _ctx,
+      message: string,
+    ): boolean => {
+      return confirm(message);
+    },
     "editor.enableReadOnlyMode": (_ctx, enabled: boolean) => {
       editor.viewDispatch({
         type: "set-editor-ro",

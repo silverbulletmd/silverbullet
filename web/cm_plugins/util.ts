@@ -1,16 +1,13 @@
+// Forked from https://codeberg.org/retronav/ixora
+// Original author: Pranav Karawale
+// License: Apache License 2.0.
 import {
-  ChangeSpec,
   Decoration,
-  DecorationSet,
   EditorState,
   EditorView,
   foldedRanges,
-  NodeType,
   SyntaxNodeRef,
   syntaxTree,
-  ViewPlugin,
-  ViewUpdate,
-  WidgetType,
 } from "../deps.ts";
 
 /**

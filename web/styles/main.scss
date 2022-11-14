@@ -82,6 +82,18 @@
         display: block;
         text-overflow: ellipsis;
       }
+
+      input.sb-edit-page-name {
+        background: transparent;
+        font-weight: bold;
+        font-size: 28px;
+        white-space: nowrap;
+        text-align: left;
+        border: 0;
+        outline: none;
+        padding: 0;
+        width: 100%;
+      }
     }
 
     .sb-actions {

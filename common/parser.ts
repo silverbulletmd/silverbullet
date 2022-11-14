@@ -144,7 +144,7 @@ export const Comment: MarkdownConfig = {
 
 // FrontMatter parser
 
-const lang = StreamLanguage.define(yamlLanguage);
+const yamlLang = StreamLanguage.define(yamlLanguage);
 
 export const FrontMatter: MarkdownConfig = {
   defineNodes: [
@@ -184,7 +184,7 @@ export const FrontMatter: MarkdownConfig = {
         }
         lastPos = cx.parsedPos;
       } while (line.text !== "---");
-      const yamlTree = lang.parser.parse(text);
+      const yamlTree = yamlLang.parser.parse(text);
 
       elts.push(
         cx.elt("FrontMatterCode", startPos, endPos, [

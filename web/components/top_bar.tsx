@@ -1,14 +1,13 @@
 // import { Fragment, h } from "../deps.ts";
 
-import {
-  faHome,
-  faMoon,
-  faRunning,
-  faSun,
-} from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
-import { FontAwesomeIcon } from "../deps.ts";
+import { FontAwesomeIcon, useRef } from "../deps.ts";
 
-import { ComponentChildren, useState } from "../deps.ts";
+import {
+  ComponentChildren,
+  IconDefinition,
+  useEffect,
+  useState,
+} from "../deps.ts";
 import { Notification } from "../types.ts";
 import { isMacLike } from "../../common/util.ts";
 
@@ -19,32 +18,51 @@ function prettyName(s: string | undefined): string {
   return s.replaceAll("/", " / ");
 }
 
+export type ActionButton = {
+  icon: IconDefinition;
+  description: string;
+  callback: () => void;
+};
+
 export function TopBar({
   pageName,
   unsavedChanges,
   isLoading,
+  editMode,
   notifications,
   onClick,
-  onThemeClick,
-  onHomeClick,
-  onActionClick,
+  onBlur,
+  onRename,
+  actionButtons,
   lhs,
   rhs,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
+  editMode: boolean;
   isLoading: boolean;
   notifications: Notification[];
   onClick: () => void;
-  onThemeClick: () => void;
-  onHomeClick: () => void;
-  onActionClick: () => void;
+  onBlur: () => void;
+  onRename: (newName: string) => void;
+  actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
   const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
-
+  const inputRef = useRef<HTMLInputElement>(null);
   const isMac = isMacLike();
+
+  useEffect(() => {
+    if (editMode) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          console.log("Going to focus");
+          inputRef.current!.focus();
+        }
+      }, 0);
+    }
+  }, [editMode]);
 
   return (
     <div id="sb-top" onClick={onClick}>
@@ -60,7 +78,26 @@ export function TopBar({
                 : "sb-saved"
             }`}
           >
-            {prettyName(pageName)}
+            {editMode
+              ? (
+                <input
+                  type="text"
+                  ref={inputRef}
+                  value={pageName}
+                  className="sb-edit-page-name"
+                  onBlur={onBlur}
+                  onKeyDown={(e) => {
+                    console.log("Key press", e);
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const newName = (e.target as any).value;
+                      onRename(newName);
+                    }
+                  }}
+                />
+              )
+              : prettyName(pageName)}
           </span>
           {notifications.length > 0 && (
             <div className="sb-notifications">
@@ -75,35 +112,17 @@ export function TopBar({
             </div>
           )}
           <div className="sb-actions">
-            <button
-              onClick={(e) => {
-                onHomeClick();
-                e.stopPropagation();
-              }}
-              title="Navigate to the 'index' page"
-            >
-              <FontAwesomeIcon icon={faHome} />
-            </button>
-            <button
-              onClick={(e) => {
-                onActionClick();
-                e.stopPropagation();
-              }}
-              title={"Open the command palette (" + (isMac ? "Cmd" : "Ctrl") +
-                "+/)"}
-            >
-              <FontAwesomeIcon icon={faRunning} />
-            </button>
-            <button
-              onClick={(e) => {
-                onThemeClick();
-                setTheme(localStorage.theme ?? "light");
-                e.stopPropagation();
-              }}
-              title="Toggle theme"
-            >
-              <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
-            </button>
+            {actionButtons.map((actionButton) => (
+              <button
+                onClick={(e) => {
+                  actionButton.callback();
+                  e.stopPropagation();
+                }}
+                title={actionButton.description}
+              >
+                <FontAwesomeIcon icon={actionButton.icon} />
+              </button>
+            ))}
           </div>
         </div>
       </div>

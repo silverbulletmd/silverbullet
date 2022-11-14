@@ -27,17 +27,12 @@ class CleanWikiLinkPlugin {
   }
   compute(view: EditorView): DecorationSet {
     const widgets: any[] = [];
-    let parentRange: [number, number];
+    // let parentRange: [number, number];
     iterateTreeInVisibleRanges(view, {
       enter: ({ type, from, to }) => {
         if (type.name === "WikiLinkPage") {
-          if (
-            parentRange &&
-            checkRangeOverlap([from, to], parentRange)
-          ) {
-            return;
-          } else parentRange = [from, to];
-          if (isCursorInRange(view.state, [from, to])) {
+          // Adding 2 on each side due to [[ and ]] that are outside the WikiLinkPage node
+          if (isCursorInRange(view.state, [from - 2, to + 2])) {
             return;
           }
 

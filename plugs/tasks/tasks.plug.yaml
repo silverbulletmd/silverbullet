@@ -21,6 +21,14 @@ syntax:
     styles:
       backgroundColor: "rgba(22,22,22,0.07)"
 functions:
+  turnIntoTask:
+    redirect: core.applyLineReplace
+    slashCommand:
+      name: task
+      description: Turn into task
+      match: "^(\\s*)[\\-\\*]?\\s*(\\[[ xX]\\])?\\s*"
+      replace: "$1* [ ] "
+
   indexTasks:
     path: "./task.ts:indexTasks"
     events:

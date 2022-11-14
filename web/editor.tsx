@@ -6,6 +6,14 @@ import {
 } from "./deps.ts";
 
 import {
+  faFolderTree,
+  faHome,
+  faMoon,
+  faRunning,
+  faSun,
+} from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+
+import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
@@ -46,7 +54,7 @@ import buildMarkdown from "../common/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
-import { safeRun, throttle } from "../common/util.ts";
+import { isMacLike, safeRun, throttle } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
@@ -823,20 +831,60 @@ export class Editor {
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
+          editMode={viewState.editingPageName}
           onClick={() => {
-            dispatch({ type: "start-navigate" });
+            dispatch({ type: "edit-page-name" });
           }}
-          onThemeClick={() => {
-            if (localStorage.theme === "dark") localStorage.theme = "light";
-            else localStorage.theme = "dark";
-            document.documentElement.dataset.theme = localStorage.theme;
+          onBlur={() => {
+            dispatch({ type: "stop-edit-page-name" });
           }}
-          onHomeClick={() => {
-            editor.navigate("");
+          onRename={(newName) => {
+            console.log("Now renaming page to...", newName);
+            editor.system.loadedPlugs.get("core")!.invoke(
+              "renamePage",
+              [newName],
+            ).then(() => {
+              dispatch({ type: "stop-edit-page-name" });
+              editor.focus();
+            }).catch(console.error);
           }}
-          onActionClick={() => {
-            dispatch({ type: "show-palette" });
-          }}
+          actionButtons={[
+            {
+              icon: faHome,
+              description: `Go home (Alt-h)`,
+              callback: () => {
+                editor.navigate("");
+              },
+            },
+            {
+              icon: faFolderTree,
+              description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
+              callback: () => {
+                dispatch({ type: "start-navigate" });
+              },
+            },
+            {
+              icon: faRunning,
+              description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
+              callback: () => {
+                dispatch({ type: "show-palette" });
+              },
+            },
+            {
+              icon: localStorage.theme === "dark" ? faSun : faMoon,
+              description: "Toggle dark mode",
+              callback: () => {
+                if (localStorage.theme === "dark") {
+                  localStorage.theme = "light";
+                } else {
+                  localStorage.theme = "dark";
+                }
+                document.documentElement.dataset.theme = localStorage.theme;
+                // Trigger rerender: TERRIBLE IMPLEMENTATION
+                dispatch({ type: "page-saved" });
+              },
+            },
+          ]}
           rhs={!!viewState.panels.rhs.mode && (
             <div
               className="panel"

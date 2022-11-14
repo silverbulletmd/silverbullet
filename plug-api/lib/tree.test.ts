@@ -49,17 +49,17 @@ name: something
 
 Deno.test("Run a Node sandbox", () => {
   const lang = wikiMarkdownLang([]);
-  let mdTree = parse(lang, mdTest1);
+  const mdTree = parse(lang, mdTest1);
   addParentPointers(mdTree);
   // console.log(JSON.stringify(mdTree, null, 2));
-  let wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
-  assertEquals(wikiLink.type, "WikiLink");
+  const wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
+  assertEquals(wikiLink.type, "WikiLinkPage");
   assertNotEquals(
     findParentMatching(wikiLink, (n) => n.type === "BulletList"),
     null,
   );
 
-  let allTodos = collectNodesMatching(mdTree, (n) => n.type === "Task");
+  const allTodos = collectNodesMatching(mdTree, (n) => n.type === "Task");
   assertEquals(allTodos.length, 2);
 
   // Render back into markdown should be equivalent

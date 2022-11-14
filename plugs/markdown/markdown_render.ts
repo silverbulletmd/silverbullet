@@ -294,10 +294,8 @@ function render(
         body: "",
       };
     case "CommandLink": {
-      const commandText = t.children![0].text!.substring(
-        2,
-        t.children![0].text!.length - 2,
-      );
+      // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
+      const commandText = t.children![1].children![0].text!;
 
       return {
         name: "button",

@@ -1,4 +1,6 @@
-// IMAGE
+// Forked from https://codeberg.org/retronav/ixora
+// Original author: Pranav Karawale
+// License: Apache License 2.0.
 
 import {
   Decoration,
@@ -22,6 +24,17 @@ function hideNodes(view: EditorView) {
         !isCursorInRange(view.state, [node.from, node.to])
       ) {
         widgets.push(invisibleDecoration.range(node.from, node.to));
+      }
+      if (
+        node.name === "HorizontalRule" &&
+        !isCursorInRange(view.state, [node.from, node.to])
+      ) {
+        widgets.push(invisibleDecoration.range(node.from, node.to));
+        widgets.push(
+          Decoration.line({
+            class: "sb-line-hr",
+          }).range(node.from),
+        );
       }
     },
   });

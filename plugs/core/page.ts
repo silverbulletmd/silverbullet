@@ -92,17 +92,24 @@ export async function linkQueryProvider({
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
+  if (
+    !await editor.confirm(`Are you sure you would like to delete ${pageName}?`)
+  ) {
+    return;
+  }
   console.log("Navigating to index page");
   await editor.navigate("");
   console.log("Deleting page from space");
   await space.deletePage(pageName);
 }
 
-export async function renamePage() {
+export async function renamePage(targetName?: string) {
+  console.log("Got a target name", targetName);
   const oldName = await editor.getCurrentPage();
   const cursor = await editor.getCursor();
   console.log("Old name is", oldName);
-  const newName = await editor.prompt(`Rename ${oldName} to:`, oldName);
+  const newName = targetName ||
+    await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return;
   }
@@ -117,16 +124,24 @@ export async function renamePage() {
 
   const text = await editor.getText();
   console.log("Writing new page to space");
-  await space.writePage(newName, text);
+  const newPageMeta = await space.writePage(newName, text);
   console.log("Navigating to new page");
   await editor.navigate(newName, cursor, true);
-  console.log("Deleting page from space");
-  await space.deletePage(oldName);
+
+  // Handling the edge case of a changing page name just in casing on a case insensitive FS
+  const oldPageMeta = await space.getPageMeta(oldName);
+  if (oldPageMeta.lastModified !== newPageMeta.lastModified) {
+    // If they're the same, let's assume it's the same file (case insensitive FS) and not delete, otherwise...
+    console.log("Deleting page from space");
+    await space.deletePage(oldName);
+  }
 
   const pageToUpdateSet = new Set<string>();
   for (const pageToUpdate of pagesToUpdate) {
     pageToUpdateSet.add(pageToUpdate.page);
   }
+
+  let updatedReferences = 0;
 
   for (const pageToUpdate of pageToUpdateSet) {
     if (pageToUpdate === oldName) {
@@ -146,12 +161,14 @@ export async function renamePage() {
         const pageName = n.children![0].text!;
         if (pageName === oldName) {
           n.children![0].text = newName;
+          updatedReferences++;
           return n;
         }
         // page name with @pos position
         if (pageName.startsWith(`${oldName}@`)) {
           const [, pos] = pageName.split("@");
           n.children![0].text = `${newName}@${pos}`;
+          updatedReferences++;
           return n;
         }
       }
@@ -164,6 +181,20 @@ export async function renamePage() {
       await space.writePage(pageToUpdate, newText);
     }
   }
+  await editor.flashNotification(
+    `Renamed page, and updated ${updatedReferences} references`,
+  );
+}
+
+export async function newPageCommand() {
+  const allPages = await space.listPages();
+  let pageName = `Untitled`;
+  let i = 1;
+  while (allPages.find((p) => p.name === pageName)) {
+    pageName = `Untitled ${i}`;
+    i++;
+  }
+  await editor.navigate(pageName);
 }
 
 type BackLink = {

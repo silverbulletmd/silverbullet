@@ -20,6 +20,7 @@ export type PanelConfig = {
 
 export type AppViewState = {
   currentPage?: string;
+  editingPageName: boolean;
   perm: EditorMode;
   forcedROMode: boolean;
   isLoading: boolean;
@@ -42,6 +43,7 @@ export type AppViewState = {
 
 export const initialViewState: AppViewState = {
   perm: "rw",
+  editingPageName: false,
   forcedROMode: false,
   isLoading: false,
   showPageNavigator: false,
@@ -70,6 +72,8 @@ export type Action =
   | { type: "page-loading"; name: string }
   | { type: "pages-listed"; pages: Set<PageMeta> }
   | { type: "page-changed" }
+  | { type: "edit-page-name" }
+  | { type: "stop-edit-page-name" }
   | { type: "page-saved" }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }

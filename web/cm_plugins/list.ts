@@ -1,4 +1,6 @@
-// LISTS
+// Forked from https://codeberg.org/retronav/ixora
+// Original author: Pranav Karawale
+// License: Apache License 2.0.
 
 import {
   Decoration,

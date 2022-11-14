@@ -118,7 +118,7 @@ export function traverseTree(
 
 // Finds non-text node at position
 export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
-  if (pos < tree.from! || pos > tree.to!) {
+  if (pos < tree.from! || pos >= tree.to!) {
     return null;
   }
   if (!tree.children) {

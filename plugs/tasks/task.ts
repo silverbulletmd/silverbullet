@@ -147,7 +147,6 @@ export async function taskToggleAtPos(pos: number) {
   addParentPointers(mdTree);
 
   const node = nodeAtPos(mdTree, pos);
-  // console.log("Got this node", node?.type);
   if (node && node.type === "TaskMarker") {
     await toggleTaskMarker(node, pos);
   }

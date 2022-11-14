@@ -8,7 +8,6 @@ type: page
 tags:
 - hello
 - world
-
 ---
 # This is a doc
 
@@ -26,9 +25,9 @@ Deno.test("Test parser", () => {
     lang,
     sample1,
   );
+  console.log("tree", JSON.stringify(tree, null, 2));
   // Check if rendering back to text works
   assertEquals(renderToText(tree), sample1);
-  // console.log("tree", JSON.stringify(tree, null, 2));
   let node = findNodeOfType(tree, "FrontMatter");
   assertNotEquals(node, undefined);
   tree = parse(lang, sampleInvalid1);

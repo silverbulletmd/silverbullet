@@ -22,16 +22,16 @@
   }
 
   // Indentation of follow-up lines
-  @mixin lineOverflow($baseIndent) {
+  @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
     text-indent: -1 * ($baseIndent + 2ch);
     padding-left: $baseIndent + 2ch;
 
     &.sb-line-task {
-      text-indent: -1 * ($baseIndent + 6ch);
-      padding-left: $baseIndent + 6ch;
+      text-indent: -1 * ($baseIndent + 5ch);
+      padding-left: $baseIndent + 5ch;
 
       .cm-list-bullet::after {
-        left: ($baseIndent + 6ch);
+        left: ($baseIndent + 5ch);
       }
     }
 
@@ -41,7 +41,7 @@
     }
 
     .cm-list-bullet::after {
-      left: ($baseIndent + 2ch);
+      left: ($baseIndent + $bulletIndent + 2ch);
     }
   }
 
@@ -89,6 +89,28 @@
     }
   }
 
+  .sb-line-blockquote {
+    &.sb-line-li-1 {
+      @include lineOverflow(-1, 2);
+    }
+
+    &.sb-line-li-1.sb-line-li-2 {
+      @include lineOverflow(1, 2);
+    }
+
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
+      @include lineOverflow(4);
+    }
+
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
+      @include lineOverflow(6);
+    }
+
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
+      @include lineOverflow(8);
+    }
+  }
+
   .sb-line-comment {
     text-indent: -1 * 3ch;
     padding-left: 3ch;
@@ -102,10 +124,13 @@
 	 	text-decoration: line-through !important;
   }
 
+  .sb-checkbox > input[type=checkbox] {
+    width: 3ch;
+  }
+
 	.cm-list-bullet::after {
 		visibility: visible;
 		position: absolute;
-		// left: 2ch;
     color: rgb(150, 150, 150);
 		content: "\2022"; /* U+2022 BULLET */
 	}
@@ -126,22 +151,50 @@
     left: -20px;
 	}
 
-  // .sb-directive-end {
-  //   border-top: 1px dotted #6c6c6c;
-  // }
-
   .sb-directive-outside {
     opacity: 0.4;
   }
 
-  .sb-blockquote-outside > .sb-meta {
+  .sb-blockquote-outside {
+    text-indent: -1ch;
+    min-height: 1em;
+  }
+
+  .sb-line-table-outside {
     display: none;
   }
 
-  .sb-blockquote-outside {
-    text-indent: -1ch;
+  .sb-table-widget {
+    display: block;
+    font-weight: normal;
+    margin-bottom: -3rem;
+
+    table {
+      width: 100%;
+      border-spacing: 0;
+    }
+    
+    thead tr {
+        background-color: #333;
+        color: #eee;
+        font-weight: bold;
+    }
+    
+    th, td {
+        padding: 8px;
+    }
+    
+    tbody tr:nth-of-type(even) {
+        background-color: #f3f3f3;
+    }
+  }
+
+  .sb-line-blockquote {
     border-left: 1px solid rgb(74, 74, 74);
-    min-height: 1em;
+  }
+
+  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
+    margin-left: -1ch;
   }
   
   .sb-directive-end::before {
