@@ -36,16 +36,6 @@ export default function reducer(
         ...state,
         unsavedChanges: false,
       };
-    case "edit-page-name":
-      return {
-        ...state,
-        editingPageName: true,
-      };
-    case "stop-edit-page-name":
-      return {
-        ...state,
-        editingPageName: false,
-      };
     case "start-navigate":
       return {
         ...state,

@@ -28,10 +28,7 @@ export function TopBar({
   pageName,
   unsavedChanges,
   isLoading,
-  editMode,
   notifications,
-  onClick,
-  onBlur,
   onRename,
   actionButtons,
   lhs,
@@ -39,11 +36,8 @@ export function TopBar({
 }: {
   pageName?: string;
   unsavedChanges: boolean;
-  editMode: boolean;
   isLoading: boolean;
   notifications: Notification[];
-  onClick: () => void;
-  onBlur: () => void;
   onRename: (newName: string) => void;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
@@ -51,6 +45,7 @@ export function TopBar({
 }) {
   const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [editMode, setEditMode] = useState<boolean>(false);
   const isMac = isMacLike();
 
   useEffect(() => {
@@ -65,9 +60,23 @@ export function TopBar({
   }, [editMode]);
 
   return (
-    <div id="sb-top" onClick={onClick}>
+    <div id="sb-top">
       {lhs}
-      <div className="main">
+      <div
+        className="main"
+        onClick={(e) => {
+          if (!editMode) {
+            setEditMode(true);
+
+            setTimeout(() => {
+              if (inputRef.current) {
+                console.log("Going to dispatch click event again");
+                inputRef.current!.dispatchEvent(e);
+              }
+            }, 100);
+          }
+        }}
+      >
         <div className="inner">
           <span
             className={`sb-current-page ${
@@ -85,7 +94,9 @@ export function TopBar({
                   ref={inputRef}
                   value={pageName}
                   className="sb-edit-page-name"
-                  onBlur={onBlur}
+                  onBlur={() => {
+                    setEditMode(false);
+                  }}
                   onKeyDown={(e) => {
                     console.log("Key press", e);
                     e.stopPropagation();
@@ -93,11 +104,12 @@ export function TopBar({
                       e.preventDefault();
                       const newName = (e.target as any).value;
                       onRename(newName);
+                      setEditMode(false);
                     }
                   }}
                 />
               )
-              : prettyName(pageName)}
+              : pageName}
           </span>
           {notifications.length > 0 && (
             <div className="sb-notifications">

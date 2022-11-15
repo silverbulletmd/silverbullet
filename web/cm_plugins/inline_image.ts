@@ -1,13 +1,13 @@
-import { syntaxTree } from "./deps.ts";
-import { Range } from "./deps.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
+  Range,
+  syntaxTree,
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "./deps.ts";
+} from "../deps.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {

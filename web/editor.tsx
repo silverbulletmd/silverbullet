@@ -1,3 +1,4 @@
+// Third party web dependencies
 import {
   preactRender,
   useEffect,
@@ -5,6 +6,7 @@ import {
   yUndoManagerKeymap,
 } from "./deps.ts";
 
+// Iconography
 import {
   faFolderTree,
   faHome,
@@ -13,6 +15,7 @@ import {
   faSun,
 } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
 
+// Third-party dependencies
 import {
   autocompletion,
   closeBrackets,
@@ -45,37 +48,29 @@ import {
   ViewUpdate,
   yamlLanguage,
 } from "../common/deps.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-// import { markdown } from "../common/_markdown/index.ts";
-import { markdown } from "../common/deps.ts";
 
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { markdown } from "../common/deps.ts";
 import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
 import { isMacLike, safeRun, throttle } from "../common/util.ts";
+
+import { PathPageNavigator } from "./navigator.ts";
+import reducer from "./reducer.ts";
+
+// PlugOS Dependencies
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
-
-import { AppEvent, ClickEvent } from "../plug-api/app_event.ts";
-import { CommandPalette } from "./components/command_palette.tsx";
-import { FilterList } from "./components/filter.tsx";
-import { PageNavigator } from "./components/page_navigator.tsx";
-import { Panel } from "./components/panel.tsx";
-import { TopBar } from "./components/top_bar.tsx";
-import { attachmentExtension, pasteLinkExtension } from "./editor_paste.ts";
 import { CommandHook } from "./hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
-import { inlineImagesPlugin } from "./inline_image.ts";
-import { lineWrapper } from "./line_wrapper.ts";
-import { PathPageNavigator } from "./navigator.ts";
-import reducer from "./reducer.ts";
-import { smartQuoteKeymap } from "./smart_quotes.ts";
-import customMarkdownStyle from "./style.ts";
+
+// Syscalls
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { fulltextSyscalls } from "./syscalls/fulltext.ts";
@@ -83,12 +78,33 @@ import { indexerSyscalls } from "./syscalls/index.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { storeSyscalls } from "./syscalls/store.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { Action, AppViewState, initialViewState } from "./types.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
-import { CollabState } from "./collab.ts";
-import { collabSyscalls } from "./syscalls/collab.ts";
 
+// State and state transitions
+import { Action, AppViewState, initialViewState } from "./types.ts";
+import type { AppEvent, ClickEvent } from "../plug-api/app_event.ts";
+
+// UI Components
+import { CommandPalette } from "./components/command_palette.tsx";
+import { FilterList } from "./components/filter.tsx";
+import { PageNavigator } from "./components/page_navigator.tsx";
+import { Panel } from "./components/panel.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+
+// CodeMirror plugins
+import {
+  attachmentExtension,
+  pasteLinkExtension,
+} from "./cm_plugins/editor_paste.ts";
+import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
+import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
+import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
 import { cleanModePlugs } from "./cm_plugins/clean.ts";
+import customMarkdownStyle from "./style.ts";
+
+// Real-time collaboration
+import { CollabState } from "./cm_plugins/collab.ts";
+import { collabSyscalls } from "./syscalls/collab.ts";
 
 class PageState {
   constructor(
@@ -831,20 +847,12 @@ export class Editor {
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
-          editMode={viewState.editingPageName}
-          onClick={() => {
-            dispatch({ type: "edit-page-name" });
-          }}
-          onBlur={() => {
-            dispatch({ type: "stop-edit-page-name" });
-          }}
           onRename={(newName) => {
             console.log("Now renaming page to...", newName);
             editor.system.loadedPlugs.get("core")!.invoke(
               "renamePage",
               [newName],
             ).then(() => {
-              dispatch({ type: "stop-edit-page-name" });
               editor.focus();
             }).catch(console.error);
           }}
