@@ -198,6 +198,13 @@ functions:
       description: Turn line into h3 header
       match: "^#*\\s*"
       replace: "### "
+  makeH4:
+    redirect: applyLineReplace
+    slashCommand:
+      name: h4
+      description: Turn line into h4 header
+      match: "^#*\\s*"
+      replace: "#### "
 
   newPage:
     path: ./page.ts:newPageCommand

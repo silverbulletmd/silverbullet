@@ -135,7 +135,7 @@ export function FilterList({
                 searchBoxRef.current!.focus();
               }
             }}
-            onKeyDown={(e) => {
+            onKeyUp={(e) => {
               // console.log("Key up", / e);
               if (onKeyPress) {
                 onKeyPress(e.key, text);
@@ -178,10 +178,11 @@ export function FilterList({
                   }
                   break;
                 default:
-                  setTimeout(() => {
-                    updateFilter((e.target as any).value);
-                  });
+                  updateFilter((e.target as any).value);
               }
+              e.stopPropagation();
+            }}
+            onKeyDown={(e) => {
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}

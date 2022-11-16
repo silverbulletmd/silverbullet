@@ -65,6 +65,9 @@ class TablePlugin {
 
         const firstLine = lines[0], lastLine = lines[lines.length - 1];
 
+        // In case of doubt, back out
+        if (!firstLine || !lastLine) return;
+
         widgets.push(invisibleDecoration.range(firstLine.from, firstLine.to));
         widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
 

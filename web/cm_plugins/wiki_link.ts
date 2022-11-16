@@ -6,7 +6,6 @@ import {
   ViewUpdate,
 } from "../deps.ts";
 import {
-  checkRangeOverlap,
   invisibleDecoration,
   isCursorInRange,
   iterateTreeInVisibleRanges,

@@ -61,9 +61,10 @@ export function iterateTreeInVisibleRanges(
     leave?(node: SyntaxNodeRef): void;
   },
 ) {
-  for (const { from, to } of view.visibleRanges) {
-    syntaxTree(view.state).iterate({ ...iterateFns, from, to });
-  }
+  // for (const { from, to } of view.visibleRanges) {
+  //   syntaxTree(view.state).iterate({ ...iterateFns, from, to });
+  // }
+  syntaxTree(view.state).iterate(iterateFns);
 }
 
 /**

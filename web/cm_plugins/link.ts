@@ -6,41 +6,38 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
-  syntaxTree,
   ViewPlugin,
   ViewUpdate,
 } from "../deps.ts";
-import { checkRangeOverlap, invisibleDecoration } from "./util.ts";
+import {
+  checkRangeOverlap,
+  invisibleDecoration,
+  iterateTreeInVisibleRanges,
+} from "./util.ts";
 
 function getLinkAnchor(view: EditorView) {
   const widgets: any[] = [];
 
-  for (const { from, to } of view.visibleRanges) {
-    syntaxTree(view.state).iterate({
-      from,
-      to,
-      enter: ({ type, from, to, node }) => {
-        if (type.name !== "URL") return;
-        const parent = node.parent;
-        const blackListedParents = ["Image"];
-        if (parent && !blackListedParents.includes(parent.name)) {
-          const marks = parent.getChildren("LinkMark");
-          const ranges = view.state.selection.ranges;
-          const cursorOverlaps = ranges.some(({ from, to }) =>
-            checkRangeOverlap([from, to], [parent.from, parent.to])
+  iterateTreeInVisibleRanges(view, {
+    enter: ({ type, from, to, node }) => {
+      if (type.name !== "URL") return;
+      const parent = node.parent;
+      const blackListedParents = ["Image"];
+      if (parent && !blackListedParents.includes(parent.name)) {
+        const marks = parent.getChildren("LinkMark");
+        const ranges = view.state.selection.ranges;
+        const cursorOverlaps = ranges.some(({ from, to }) =>
+          checkRangeOverlap([from, to], [parent.from, parent.to])
+        );
+        if (!cursorOverlaps) {
+          widgets.push(
+            ...marks.map(({ from, to }) => invisibleDecoration.range(from, to)),
+            invisibleDecoration.range(from, to),
           );
-          if (!cursorOverlaps) {
-            widgets.push(
-              ...marks.map(({ from, to }) =>
-                invisibleDecoration.range(from, to)
-              ),
-              invisibleDecoration.range(from, to),
-            );
-          }
         }
-      },
-    });
-  }
+      }
+    },
+  });
 
   return Decoration.set(widgets, true);
 }

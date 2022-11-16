@@ -45,38 +45,12 @@ export function TopBar({
 }) {
   const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
-  const [editMode, setEditMode] = useState<boolean>(false);
   const isMac = isMacLike();
-
-  useEffect(() => {
-    if (editMode) {
-      setTimeout(() => {
-        if (inputRef.current) {
-          console.log("Going to focus");
-          inputRef.current!.focus();
-        }
-      }, 0);
-    }
-  }, [editMode]);
 
   return (
     <div id="sb-top">
       {lhs}
-      <div
-        className="main"
-        onClick={(e) => {
-          if (!editMode) {
-            setEditMode(true);
-
-            setTimeout(() => {
-              if (inputRef.current) {
-                console.log("Going to dispatch click event again");
-                inputRef.current!.dispatchEvent(e);
-              }
-            }, 100);
-          }
-        }}
-      >
+      <div className="main">
         <div className="inner">
           <span
             className={`sb-current-page ${
@@ -87,29 +61,21 @@ export function TopBar({
                 : "sb-saved"
             }`}
           >
-            {editMode
-              ? (
-                <input
-                  type="text"
-                  ref={inputRef}
-                  value={pageName}
-                  className="sb-edit-page-name"
-                  onBlur={() => {
-                    setEditMode(false);
-                  }}
-                  onKeyDown={(e) => {
-                    console.log("Key press", e);
-                    e.stopPropagation();
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const newName = (e.target as any).value;
-                      onRename(newName);
-                      setEditMode(false);
-                    }
-                  }}
-                />
-              )
-              : pageName}
+            <input
+              type="text"
+              ref={inputRef}
+              value={pageName}
+              className="sb-edit-page-name"
+              onKeyDown={(e) => {
+                console.log("Key press", e);
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const newName = (e.target as any).value;
+                  onRename(newName);
+                }
+              }}
+            />
           </span>
           {notifications.length > 0 && (
             <div className="sb-notifications">

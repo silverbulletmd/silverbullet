@@ -99,7 +99,7 @@ import {
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
-import { cleanModePlugs } from "./cm_plugins/clean.ts";
+import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import customMarkdownStyle from "./style.ts";
 
 // Real-time collaboration
@@ -463,12 +463,13 @@ export class Editor {
         drawSelection(),
         dropCursor(),
         indentOnInput(),
-        ...cleanModePlugs,
+        ...cleanModePlugins(this),
         EditorView.lineWrapping,
         lineWrapper([
           { selector: "ATXHeading1", class: "sb-line-h1" },
           { selector: "ATXHeading2", class: "sb-line-h2" },
           { selector: "ATXHeading3", class: "sb-line-h3" },
+          { selector: "ATXHeading4", class: "sb-line-h4" },
           { selector: "ListItem", class: "sb-line-li", nesting: true },
           { selector: "Blockquote", class: "sb-line-blockquote" },
           { selector: "Task", class: "sb-line-task" },
@@ -506,23 +507,6 @@ export class Editor {
               this.viewDispatch({
                 type: "show-palette",
                 context: this.getContext(),
-              });
-              return true;
-            },
-          },
-          {
-            key: "Ctrl-l",
-            mac: "Cmd-l",
-            run: (): boolean => {
-              this.editorView?.dispatch({
-                effects: [
-                  EditorView.scrollIntoView(
-                    this.editorView.state.selection.main.anchor,
-                    {
-                      y: "center",
-                    },
-                  ),
-                ],
               });
               return true;
             },

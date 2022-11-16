@@ -91,7 +91,6 @@ export function taskToggle(event: ClickEvent) {
 export function previewTaskToggle(eventString: string) {
   const [eventName, pos] = JSON.parse(eventString);
   if (eventName === "task") {
-    console.log("Gotta toggle a task at", pos);
     return taskToggleAtPos(+pos);
   }
 }
@@ -106,9 +105,6 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
       from: node.from,
       to: node.to,
       insert: changeTo,
-    },
-    selection: {
-      anchor: moveToPos,
     },
   });
 

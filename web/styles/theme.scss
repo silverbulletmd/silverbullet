@@ -129,20 +129,25 @@
 }
 
 .sb-header-inside.sb-line-h1 {
-  margin-left: -2ch;
+  text-indent: -2ch;
 }
 
 .sb-header-inside.sb-line-h2 {
-  margin-left: -3ch;
+  text-indent: -3ch;
 }
 
 .sb-header-inside.sb-line-h3 {
-  margin-left: -4ch;
+  text-indent: -4ch;
+}
+
+.sb-header-inside.sb-line-h4 {
+  text-indent: -5ch;
 }
 
 .sb-line-h1,
 .sb-line-h2,
-.sb-line-h3 {
+.sb-line-h3,
+.sb-line-h4 {
   // background-color: rgba(0, 30, 77, 0.5);
   color: #333;
   font-weight: bold;
@@ -151,7 +156,8 @@
 
 .sb-line-h1 .sb-meta,
 .sb-line-h2 .sb-meta,
-.sb-line-h3 .sb-meta {
+.sb-line-h3 .sb-meta,
+.sb-line-h4 .sb-meta {
   color: #a1a1a0;
 }
 
@@ -165,6 +171,10 @@
 
 .sb-line-h3 {
   font-size: 1.1em;
+}
+
+.sb-line-h4 {
+  font-size: 1em;
 }
 
 .sb-hashtag {
