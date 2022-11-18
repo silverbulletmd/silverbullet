@@ -210,7 +210,7 @@ functions:
     path: ./page.ts:newPageCommand
     command:
       name: "Page: New"
-      key: "Alt-n"
+      key: "Alt-Shift-n"
 
   insertHRTemplate:
     redirect: insertTemplateText

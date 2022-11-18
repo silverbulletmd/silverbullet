@@ -2,7 +2,6 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
-  syntaxTree,
   ViewPlugin,
   ViewUpdate,
   WidgetType,
@@ -30,15 +29,22 @@ class TableViewWidget extends WidgetType {
   toDOM(): HTMLElement {
     const dom = document.createElement("span");
     dom.classList.add("sb-table-widget");
-    dom.addEventListener("click", () => {
+    dom.addEventListener("click", (e) => {
+      // Pulling data-pos to put the cursor in the right place, falling back
+      // to the start of the table.
+      const dataAttributes = (e.target as any).dataset;
       this.editorView.dispatch({
         selection: {
-          anchor: this.pos,
+          anchor: dataAttributes.pos ? +dataAttributes.pos : this.pos,
         },
       });
     });
 
-    dom.innerHTML = renderMarkdownToHtml(this.t);
+    dom.innerHTML = renderMarkdownToHtml(this.t, {
+      // Annotate every element with its position so we can use it to put
+      // the cursor there when the user clicks on the table.
+      annotationPositions: true,
+    });
     return dom;
   }
 }

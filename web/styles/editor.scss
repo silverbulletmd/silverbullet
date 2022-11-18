@@ -155,6 +155,10 @@
     opacity: 0.4;
   }
 
+  .sb-line-frontmatter-outside, .sb-line-code-outside {
+    display: none;
+  }
+
   .sb-blockquote-outside {
     text-indent: -1ch;
     min-height: 1em;

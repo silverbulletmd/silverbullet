@@ -1,7 +1,3 @@
-// Forked from https://codeberg.org/retronav/ixora
-// Original author: Pranav Karawale
-// License: Apache License 2.0.
-
 import {
   Decoration,
   DecorationSet,
@@ -20,12 +16,6 @@ function hideNodes(view: EditorView) {
   iterateTreeInVisibleRanges(view, {
     enter(node) {
       if (
-        node.name === "Image" &&
-        !isCursorInRange(view.state, [node.from, node.to])
-      ) {
-        widgets.push(invisibleDecoration.range(node.from, node.to));
-      }
-      if (
         node.name === "HorizontalRule" &&
         !isCursorInRange(view.state, [node.from, node.to])
       ) {
@@ -36,12 +26,37 @@ function hideNodes(view: EditorView) {
           }).range(node.from),
         );
       }
+      if (
+        node.name === "FrontMatterMarker"
+      ) {
+        const parent = node.node.parent!;
+        if (!isCursorInRange(view.state, [parent.from, parent.to])) {
+          widgets.push(
+            Decoration.line({
+              class: "sb-line-frontmatter-outside",
+            }).range(node.from),
+          );
+        }
+      }
+
+      if (
+        node.name === "CodeMark"
+      ) {
+        const parent = node.node.parent!;
+        if (!isCursorInRange(view.state, [parent.from, parent.to])) {
+          widgets.push(
+            Decoration.line({
+              class: "sb-line-code-outside",
+            }).range(node.from),
+          );
+        }
+      }
     },
   });
   return Decoration.set(widgets, true);
 }
 
-export const hideImageNodePlugin = ViewPlugin.fromClass(
+export const cleanBlockPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
 

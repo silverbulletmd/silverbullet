@@ -4,7 +4,7 @@ import { Editor } from "../editor.tsx";
 import { blockquotePlugin } from "./block_quote.ts";
 import { directivePlugin } from "./directive.ts";
 import { hideHeaderMarkPlugin, hideMarks } from "./hide_mark.ts";
-import { hideImageNodePlugin } from "./image.ts";
+import { cleanBlockPlugin } from "./block.ts";
 import { goToLinkPlugin } from "./link.ts";
 import { listBulletPlugin } from "./list.ts";
 import { tablePlugin } from "./table.ts";
@@ -18,7 +18,7 @@ export function cleanModePlugins(editor: Editor) {
     blockquotePlugin,
     hideMarks(),
     hideHeaderMarkPlugin,
-    hideImageNodePlugin,
+    cleanBlockPlugin,
     taskListPlugin({
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {
