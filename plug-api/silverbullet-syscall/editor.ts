@@ -112,6 +112,12 @@ export function prompt(
   return syscall("editor.prompt", message, defaultValue);
 }
 
+export function confirm(
+  message: string,
+): Promise<boolean> {
+  return syscall("editor.confirm", message);
+}
+
 export function enableReadOnlyMode(enabled: boolean) {
   return syscall("editor.enableReadOnlyMode", enabled);
 }

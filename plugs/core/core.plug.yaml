@@ -12,11 +12,6 @@ syntax:
       - "h"
     regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
     className: sb-naked-url
-  CommandLink:
-    firstCharacters:
-      - "{"
-    regex: "\\{\\[[^\\]]+\\]\\}"
-    className: sb-command-link
   NamedAnchor:
     firstCharacters:
       - "$"
@@ -171,6 +166,8 @@ functions:
   # Template commands
   insertTemplateText:
     path: "./template.ts:insertTemplateText"
+  applyLineReplace:
+    path: ./template.ts:applyLineReplace
   insertFrontMatter:
     redirect: insertTemplateText
     slashCommand:
@@ -180,18 +177,57 @@ functions:
         ---
         |^|
         ---
-  insertTask:
-    redirect: insertTemplateText
+  makeH1:
+    redirect: applyLineReplace
     slashCommand:
-      name: task
-      description: Insert a task
-      value: "* [ ] |^|"
+      name: h1
+      description: Turn line into h1 header
+      match: "^#*\\s*"
+      replace: "# "
+  makeH2:
+    redirect: applyLineReplace
+    slashCommand:
+      name: h2
+      description: Turn line into h2 header
+      match: "^#*\\s*"
+      replace: "## "
+  makeH3:
+    redirect: applyLineReplace
+    slashCommand:
+      name: h3
+      description: Turn line into h3 header
+      match: "^#*\\s*"
+      replace: "### "
+  makeH4:
+    redirect: applyLineReplace
+    slashCommand:
+      name: h4
+      description: Turn line into h4 header
+      match: "^#*\\s*"
+      replace: "#### "
+
+  newPage:
+    path: ./page.ts:newPageCommand
+    command:
+      name: "Page: New"
+      key: "Alt-Shift-n"
+
   insertHRTemplate:
     redirect: insertTemplateText
     slashCommand:
       name: hr
       description: Insert a horizontal rule
       value: "---"
+  insertTable:
+    redirect: insertTemplateText
+    slashCommand:
+      name: table
+      description: Insert a table
+      boost: -1 # Low boost because it's likely not very commonly used
+      value: |
+        | Header A | Header B |
+        |----------|----------|
+        | Cell A|^| | Cell B |
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:

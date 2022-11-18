@@ -3,6 +3,7 @@ import { extractMeta } from "../directive/data.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
+import { regexp } from "https://deno.land/std@0.163.0/encoding/_yaml/type/regexp.ts";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -209,4 +210,32 @@ export async function insertTemplateText(cmdDef: any) {
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);
   }
+}
+
+export async function applyLineReplace(cmdDef: any) {
+  const cursorPos = await editor.getCursor();
+  const text = await editor.getText();
+  const matchRegex = new RegExp(cmdDef.match);
+  let startOfLine = cursorPos;
+  while (startOfLine > 0 && text[startOfLine - 1] !== "\n") {
+    startOfLine--;
+  }
+  let currentLine = text.slice(startOfLine, cursorPos);
+
+  const emptyLine = !currentLine;
+
+  currentLine = currentLine.replace(matchRegex, cmdDef.replace);
+
+  await editor.dispatch({
+    changes: {
+      from: startOfLine,
+      to: cursorPos,
+      insert: currentLine,
+    },
+    selection: emptyLine
+      ? {
+        anchor: startOfLine + currentLine.length,
+      }
+      : undefined,
+  });
 }

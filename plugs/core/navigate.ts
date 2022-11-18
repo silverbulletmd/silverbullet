@@ -1,6 +1,11 @@
 import type { ClickEvent } from "$sb/app_event.ts";
 import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
-import { nodeAtPos, ParseTree } from "$sb/lib/tree.ts";
+import {
+  addParentPointers,
+  findParentMatching,
+  nodeAtPos,
+  ParseTree,
+} from "$sb/lib/tree.ts";
 
 // Checks if the URL contains a protocol, if so keeps it, otherwise assumes an attachment
 function patchUrl(url: string): string {
@@ -17,10 +22,19 @@ async function actionClickOrActionEnter(
   if (!mdTree) {
     return;
   }
-  // console.log("Attempting to navigate based on syntax node", mdTree);
+  const navigationNodeFinder = (t: ParseTree) =>
+    ["WikiLink", "Link", "URL", "NakedURL", "Link", "CommandLink"].includes(
+      t.type!,
+    );
+  if (!navigationNodeFinder(mdTree)) {
+    mdTree = findParentMatching(mdTree, navigationNodeFinder);
+    if (!mdTree) {
+      return;
+    }
+  }
   switch (mdTree.type) {
-    case "WikiLinkPage": {
-      let pageLink = mdTree.children![0].text!;
+    case "WikiLink": {
+      let pageLink = mdTree.children![1]!.children![0].text!;
       let pos;
       if (pageLink.includes("@")) {
         [pageLink, pos] = pageLink.split("@");
@@ -47,11 +61,8 @@ async function actionClickOrActionEnter(
       break;
     }
     case "CommandLink": {
-      const command = mdTree
-        .children![0].text!.substring(2, mdTree.children![0].text!.length - 2)
-        .trim();
-      console.log("Got command link", command);
-      await system.invokeCommand(command);
+      const commandName = mdTree.children![1]!.children![0].text!;
+      await system.invokeCommand(commandName);
       break;
     }
   }
@@ -60,6 +71,7 @@ async function actionClickOrActionEnter(
 export async function linkNavigate() {
   const mdTree = await markdown.parseMarkdown(await editor.getText());
   const newNode = nodeAtPos(mdTree, await editor.getCursor());
+  addParentPointers(mdTree);
   await actionClickOrActionEnter(newNode);
 }
 
@@ -69,6 +81,7 @@ export async function clickNavigate(event: ClickEvent) {
     return;
   }
   const mdTree = await markdown.parseMarkdown(await editor.getText());
+  addParentPointers(mdTree);
   const newNode = nodeAtPos(mdTree, event.pos);
   await actionClickOrActionEnter(newNode, event.ctrlKey || event.metaKey);
 }

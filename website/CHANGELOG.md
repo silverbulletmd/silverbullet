@@ -3,6 +3,16 @@ release.
 
 ---
 
+## 0.2.0
+* The editor is now in "live preview" mode where a lot of markdown is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
+* Clicking on the page name in the top bar now allows you to quickly rename pages, hit enter to apply the change.
+* The previous behavior of opening the page switcher, has now moved to its own action button (the folder one)
+* Changes to some slash commands:
+  * `/task` now is smarter and attempts to turn your current line into a task
+  * `/h1` through `/h4` will turn the current line into a header
+
+---
+
 ## 0.1.5
 
 * Rich text paste: paste content from web pages, google docs, including tables and SB will make a best effort to convert it to Markdown. Implemented using [turndown](https://github.com/mixmark-io/turndown). Probably can use some tweaking, but it's something.

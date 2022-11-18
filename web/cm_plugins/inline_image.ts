@@ -1,13 +1,14 @@
-import { syntaxTree } from "./deps.ts";
-import { Range } from "./deps.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
+  Range,
+  syntaxTree,
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "./deps.ts";
+} from "../deps.ts";
+import { invisibleDecoration, isCursorInRange } from "./util.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {
@@ -47,6 +48,12 @@ const inlineImages = (view: EditorView) => {
           return;
         }
 
+        if (
+          !isCursorInRange(view.state, [node.from, node.to])
+        ) {
+          widgets.push(invisibleDecoration.range(node.from, node.to));
+        }
+
         const imageRexexResult = imageRegex.exec(
           view.state.sliceDoc(node.from, node.to),
         );
@@ -56,10 +63,11 @@ const inlineImages = (view: EditorView) => {
 
         const url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
-        const deco = Decoration.widget({
-          widget: new InlineImageWidget(url, title),
-        });
-        widgets.push(deco.range(node.to));
+        widgets.push(
+          Decoration.widget({
+            widget: new InlineImageWidget(url, title),
+          }).range(node.to),
+        );
       },
     });
   }

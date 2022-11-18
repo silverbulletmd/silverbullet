@@ -41,7 +41,9 @@ export {
   TaskList,
 } from "@lezer/markdown";
 
-export type { SyntaxNode, Tree } from "@lezer/common";
+export { parseMixed } from "@lezer/common";
+
+export type { NodeType, SyntaxNode, SyntaxNodeRef, Tree } from "@lezer/common";
 
 export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.2?external=@codemirror/state,@codemirror/view";
 export {
@@ -65,6 +67,7 @@ export {
   EditorState,
   Range,
   SelectionRange,
+  StateField,
   Text,
   Transaction,
 } from "@codemirror/state";
@@ -72,6 +75,8 @@ export type { ChangeSpec, Extension, StateCommand } from "@codemirror/state";
 export {
   defaultHighlightStyle,
   defineLanguageFacet,
+  foldedRanges,
+  foldInside,
   foldNodeProp,
   HighlightStyle,
   indentNodeProp,

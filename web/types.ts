@@ -20,6 +20,7 @@ export type PanelConfig = {
 
 export type AppViewState = {
   currentPage?: string;
+  editingPageName: boolean;
   perm: EditorMode;
   forcedROMode: boolean;
   isLoading: boolean;
@@ -42,6 +43,7 @@ export type AppViewState = {
 
 export const initialViewState: AppViewState = {
   perm: "rw",
+  editingPageName: false,
   forcedROMode: false,
   isLoading: false,
   showPageNavigator: false,

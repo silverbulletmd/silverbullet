@@ -1,4 +1,4 @@
-import { Extension, WebsocketProvider, Y, yCollab } from "./deps.ts";
+import { Extension, WebsocketProvider, Y, yCollab } from "../deps.ts";
 
 const userColors = [
   { color: "#30bced", light: "#30bced33" },

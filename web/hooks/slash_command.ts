@@ -8,6 +8,7 @@ import { syntaxTree } from "../deps.ts";
 export type SlashCommandDef = {
   name: string;
   description?: string;
+  boost?: number;
 };
 
 export type AppSlashCommand = {
@@ -71,6 +72,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       options.push({
         label: def.slashCommand.name,
         detail: def.slashCommand.description,
+        boost: def.slashCommand.boost,
         apply: () => {
           // Delete slash command part
           this.editor.editorView?.dispatch({

@@ -1,7 +1,7 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "./deps.ts";
-import { safeRun } from "../plugos/util.ts";
-import { maximumAttachmentSize } from "../common/types.ts";
-import { Editor } from "./editor.tsx";
+import { EditorView, ViewPlugin, ViewUpdate } from "../deps.ts";
+import { safeRun } from "../../plugos/util.ts";
+import { maximumAttachmentSize } from "../../common/types.ts";
+import { Editor } from "../editor.tsx";
 
 // We use turndown to convert HTML to Markdown
 import TurndownService from "https://cdn.skypack.dev/turndown@7.1.1";
