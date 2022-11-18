@@ -20,6 +20,30 @@ Here are some things to try:
 * Are you using a browser with **PWA support** (e.g. any Chromium-based
   browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
+Oh yeah, you can use fancy things like tables:
+
+| Page | Comment |
+|----------|----------|
+| [[Silver Bullet]] | Main product page |
+| [[CHANGELOG]] | The latest updates |
+
+or code snippets, like JavaScript:
+
+```javascript
+function helloWorld() {
+   return "Hello there!"
+}
+```
+
+or YAML:
+
+```yaml
+name: Silver Bullet
+rating: 5
+```
+
+Click into any of these and edit them.
+
 There are a few features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
 
 * Using SB’s powerful page indexing and **query mechanism** where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
