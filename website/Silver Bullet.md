@@ -39,8 +39,6 @@ Some core principles that underly Silver Bullet’s philosophy:
 - **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
 - **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
 
-I need [[]]
-
 ## Installing Silver Bullet
 This consists of two steps (unless Deno is already installed:
 
