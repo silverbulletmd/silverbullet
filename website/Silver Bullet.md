@@ -2,9 +2,13 @@
 Silver Bullet (SB) is highly-extensible, [open source](https://github.com/silverbulletmd/silverbullet) **personal
 knowledge management** software. Indeed, that’s fancy language for “a note taking app with links.”
 
-Here is a screenshot:
+Here is a screenshot when installed as a PWA on desktop:
 
-![Silver Bullet PWA screenshot](silverbullet-pwa.png)
+![Silver Bullet PWA Screenshot](silverbullet-pwa.png)
+
+It also works in mobile browsers:
+
+![Silver Bullet on mobile](silverbullet-ios.png)
 
 At its core, SB is a Markdown editor that stores _pages_ (notes) as plain
 markdown files in a folder referred to as a _space_. Pages can be cross-linked using the `[[link to other page]]` syntax. However, once you leverage its various extensions (called _plugs_) it can feel more like a _knowledge platform_, allowing you to annotate, combine and query your accumulated knowledge in creative ways, specific to you. To get a good feel for it, [watch this video](https://youtu.be/RYdc3UF9gok).
@@ -34,6 +38,8 @@ Some core principles that underly Silver Bullet’s philosophy:
 - **Single, distraction-free mode.** SB doesn’t have a separate view and edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode, why wouldn’t you?
 - **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the keys.
 - **Extend it your way**. SB is highly extensible with [[🔌 Plugs]], and you can customize it to your liking and your workflows.
+
+I need [[]]
 
 ## Installing Silver Bullet
 This consists of two steps (unless Deno is already installed:

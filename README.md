@@ -10,7 +10,7 @@ However, once you leverage its various extensions (called _plugs_) it can feel
 more like a _knowledge platform_, allowing you to annotate, combine and query
 your accumulated knowledge in creative ways specific to you.
 
-<img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-pwa.png" height="400"/><img src="https://github.com/silverbulletmd/silverbullet/raw/main/images/silverbullet-ios.png" height="400"/>
+<img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-pwa.png" height="400"/><img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-ios.png" height="400"/>
 
 For more in-depth information, an interactive demo, and links to more
 background, check out the [Silver Bullet website](https://silverbullet.md)
