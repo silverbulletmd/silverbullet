@@ -26,6 +26,14 @@ function hideNodes(view: EditorView) {
           }).range(node.from),
         );
       }
+
+      if (
+        node.name === "Image" &&
+        !isCursorInRange(view.state, [node.from, node.to])
+      ) {
+        widgets.push(invisibleDecoration.range(node.from, node.to));
+      }
+
       if (
         node.name === "FrontMatterMarker"
       ) {

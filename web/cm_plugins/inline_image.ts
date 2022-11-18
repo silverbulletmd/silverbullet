@@ -48,12 +48,6 @@ const inlineImages = (view: EditorView) => {
           return;
         }
 
-        if (
-          !isCursorInRange(view.state, [node.from, node.to])
-        ) {
-          widgets.push(invisibleDecoration.range(node.from, node.to));
-        }
-
         const imageRexexResult = imageRegex.exec(
           view.state.sliceDoc(node.from, node.to),
         );
