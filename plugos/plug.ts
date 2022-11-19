@@ -2,7 +2,6 @@ import { Manifest, RuntimeEnvironment } from "./types.ts";
 import { Sandbox } from "./sandbox.ts";
 import { System } from "./system.ts";
 import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
-import { resolve } from "https://deno.land/std@0.158.0/path/win32.ts";
 
 export class Plug<HookT> {
   system: System<HookT>;

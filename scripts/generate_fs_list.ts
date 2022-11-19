@@ -1,7 +1,7 @@
 import type { FileMeta } from "../common/types.ts";
 
-import { walk } from "https://deno.land/std@0.159.0/fs/mod.ts";
-import { resolve } from "https://deno.land/std@0.159.0/path/mod.ts";
+import { walk } from "https://deno.land/std@0.165.0/fs/mod.ts";
+import { resolve } from "https://deno.land/std@0.165.0/path/mod.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 const rootDir = resolve("website_build/fs");

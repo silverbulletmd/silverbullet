@@ -3,7 +3,6 @@ import { extractMeta } from "../directive/data.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
-import { regexp } from "https://deno.land/std@0.163.0/encoding/_yaml/type/regexp.ts";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();

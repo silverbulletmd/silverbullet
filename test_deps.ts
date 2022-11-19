@@ -9,4 +9,4 @@ export {
   fail,
   unimplemented,
   unreachable,
-} from "https://deno.land/std@0.158.0/testing/asserts.ts";
+} from "https://deno.land/std@0.165.0/testing/asserts.ts";

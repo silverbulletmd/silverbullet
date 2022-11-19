@@ -3,14 +3,14 @@
 import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
 import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
 import { denoPlugin } from "https://deno.land/x/esbuild_deno_loader@0.6.0/mod.ts"; //"./esbuild_deno_loader/mod.ts";
-import { copy } from "https://deno.land/std@0.158.0/fs/copy.ts";
+import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
 import { patchDenoLibJS } from "./plugos/hack.ts";
 import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
-import * as flags from "https://deno.land/std@0.158.0/flags/mod.ts";
+import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 
 // @ts-ignore trust me
 const esbuild: typeof esbuildWasm = Deno.run === undefined

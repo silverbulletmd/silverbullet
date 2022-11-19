@@ -4,7 +4,7 @@ import { System } from "./system.ts";
 import {
   assert,
   assertEquals,
-} from "https://deno.land/std@0.158.0/testing/asserts.ts";
+} from "https://deno.land/std@0.165.0/testing/asserts.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");

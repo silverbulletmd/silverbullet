@@ -15,10 +15,10 @@ export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
-export * as YAML from "https://deno.land/std@0.158.0/encoding/yaml.ts";
-export * as path from "https://deno.land/std@0.158.0/path/mod.ts";
+export * as YAML from "https://deno.land/std@0.165.0/encoding/yaml.ts";
+export * as path from "https://deno.land/std@0.165.0/path/mod.ts";
 
-export { readAll } from "https://deno.land/std@0.158.0/streams/conversion.ts";
+export { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 
 export type {
   BlockContext,
