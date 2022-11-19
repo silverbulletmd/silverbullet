@@ -129,14 +129,12 @@ export function FilterList({
             value={text}
             placeholder={placeholder}
             ref={searchBoxRef}
-            // onChange={filterUpdate}
             onBlur={(e) => {
-              if (!exiting) {
-                searchBoxRef.current!.focus();
+              if (!exiting && searchBoxRef.current) {
+                searchBoxRef.current.focus();
               }
             }}
             onKeyUp={(e) => {
-              // console.log("Key up", / e);
               if (onKeyPress) {
                 onKeyPress(e.key, text);
               }
@@ -207,6 +205,7 @@ export function FilterList({
                 }}
                 onClick={(e) => {
                   e.preventDefault();
+                  exiting = true;
                   onSelect(option);
                 }}
               >
