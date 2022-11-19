@@ -23,5 +23,4 @@ export {
   yCollab,
   yUndoManagerKeymap,
 } from "https://esm.sh/y-codemirror.next@0.3.2?external=yjs,@codemirror/state,@codemirror/commands,@codemirror/history,@codemirror/view";
-export { WebrtcProvider } from "https://esm.sh/y-webrtc@10.2.3";
-export { WebsocketProvider } from "https://esm.sh/y-websocket@1.4.5";
+export { WebsocketProvider } from "https://esm.sh/y-websocket@1.4.5?external=yjs";
