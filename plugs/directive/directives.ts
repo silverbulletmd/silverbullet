@@ -52,12 +52,7 @@ export async function renderDirectives(
   text: string,
 ): Promise<string> {
   const tree = await markdown.parseMarkdown(text);
-  const metaData = extractMeta(tree, ["$disableDirectives"]);
-  // console.log("Meta data", pageName, metaData);
-  if (metaData.$disableDirectives) {
-    return text;
-  }
-  text = renderToText(tree);
+
   text = await directiveDispatcher(pageName, text, tree, {
     use: templateDirectiveRenderer,
     "use-verbose": templateDirectiveRenderer,
