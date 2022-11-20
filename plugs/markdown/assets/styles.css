@@ -8,6 +8,10 @@ body {
   padding-right: 20px;
 }
 
+img {
+  max-width: 100%;
+}
+
 table.front-matter {
   border: 1px solid #555;
   font-size: 75%;
