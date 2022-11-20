@@ -60,20 +60,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 export async function pageQueryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  let allPages = await space.listPages();
-  const allPageMap: Map<string, any> = new Map(
-    allPages.map((pm) => [pm.name, pm]),
-  );
-  for (const { page, value } of await index.queryPrefix("meta:")) {
-    const p = allPageMap.get(page);
-    if (p) {
-      for (const [k, v] of Object.entries(value)) {
-        p[k] = v;
-      }
-    }
-  }
-  allPages = [...allPageMap.values()];
-  return applyQuery(query, allPages);
+  return applyQuery(query, await space.listPages());
 }
 
 export async function linkQueryProvider({

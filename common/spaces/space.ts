@@ -31,11 +31,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     newPageList.forEach((meta) => {
       const pageName = meta.name;
       const oldPageMeta = this.pageMetaCache.get(pageName);
-      const newPageMeta: PageMeta = {
-        name: pageName,
-        lastModified: meta.lastModified,
-        perm: meta.perm,
-      };
+      const newPageMeta: PageMeta = { ...meta };
       if (
         !oldPageMeta &&
         (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)

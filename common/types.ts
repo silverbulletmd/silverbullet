@@ -6,14 +6,14 @@ export type FileMeta = {
   contentType: string;
   size: number;
   perm: "ro" | "rw";
-};
+} & Record<string, any>;
 
 export type PageMeta = {
   name: string;
   lastModified: number;
   lastOpened?: number;
   perm: "ro" | "rw";
-};
+} & Record<string, any>;
 
 export type AttachmentMeta = {
   name: string;

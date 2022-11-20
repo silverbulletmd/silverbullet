@@ -5,10 +5,18 @@ import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 
 const maxWidth = 70;
+
+export function defaultJsonTransformer(_k: string, v: any) {
+  if (v === undefined) {
+    return "";
+  }
+  return "" + v;
+}
+
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer: (k: string, v: any) => string = (_k, v) => "" + v,
+  valueTransformer: (k: string, v: any) => string = defaultJsonTransformer,
 ): string {
   const fieldWidths = new Map<string, number>();
   for (const entry of jsonArray) {

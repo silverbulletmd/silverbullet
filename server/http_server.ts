@@ -25,7 +25,7 @@ import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
 } from "../plugos/syscalls/store.deno.ts";
-import { System } from "../plugos/system.ts";
+import { SysCallMapping, System } from "../plugos/system.ts";
 import { PageNamespaceHook } from "./hooks/page_namespace.ts";
 import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
 import {
@@ -38,6 +38,7 @@ import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_sp
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
+import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 
 export type ServerOptions = {
   port: number;
@@ -62,6 +63,7 @@ export class HttpServer {
   abortController?: AbortController;
   globalModules: Manifest;
   assetBundle: AssetBundle;
+  indexSyscalls: SysCallMapping;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
@@ -84,17 +86,28 @@ export class HttpServer {
     const namespaceHook = new PageNamespaceHook();
     this.system.addHook(namespaceHook);
 
+    // The database used for persistence (SQLite)
+    this.db = new AsyncSQLite(path.join(options.pagesPath, "data.db"));
+    this.db.init().catch((e) => {
+      console.error("Error initializing database", e);
+    });
+
+    this.indexSyscalls = pageIndexSyscalls(this.db);
+
     // The space
     try {
-      this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
-        new EventedSpacePrimitives(
-          new PlugSpacePrimitives(
-            new DiskSpacePrimitives(options.pagesPath),
-            namespaceHook,
+      this.spacePrimitives = new FileMetaSpacePrimitives(
+        new AssetBundlePlugSpacePrimitives(
+          new EventedSpacePrimitives(
+            new PlugSpacePrimitives(
+              new DiskSpacePrimitives(options.pagesPath),
+              namespaceHook,
+            ),
+            this.eventHook,
           ),
-          this.eventHook,
+          this.assetBundle,
         ),
-        this.assetBundle,
+        this.indexSyscalls,
       );
       this.space = new Space(this.spacePrimitives);
     } catch (e: any) {
@@ -106,19 +119,13 @@ export class HttpServer {
       Deno.exit(1);
     }
 
-    // The database used for persistence (SQLite)
-    this.db = new AsyncSQLite(path.join(options.pagesPath, "data.db"));
-    this.db.init().catch((e) => {
-      console.error("Error initializing database", e);
-    });
-
     // The cron hook
     this.system.addHook(new DenoCronHook());
 
     // Register syscalls available on the server side
     this.system.registerSyscalls(
       [],
-      pageIndexSyscalls(this.db),
+      this.indexSyscalls,
       storeSyscalls(this.db, "store"),
       fullTextSearchSyscalls(this.db, "fts"),
       spaceSyscalls(this.space),
@@ -308,10 +315,8 @@ export class HttpServer {
     this.addPasswordAuth(fsRouter);
     // File list
     fsRouter.get("/", async ({ response }) => {
-      const list = await spacePrimitives.fetchFileList();
-      // console.log("List", list);
       response.headers.set("Content-type", "application/json");
-      response.body = JSON.stringify(list);
+      response.body = JSON.stringify(await spacePrimitives.fetchFileList());
     });
 
     fsRouter
