@@ -232,6 +232,7 @@ export async function pageComplete() {
     from: prefix.from + 2,
     options: allPages.map((pageMeta) => ({
       label: pageMeta.name,
+      boost: pageMeta.lastModified,
       type: "page",
     })),
   };
