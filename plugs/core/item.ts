@@ -51,7 +51,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       if (!item.tags) {
         item.tags = [];
       }
-      item.tags.push(h.children![0].text!);
+      // Push tag to the list, removinn the initial #
+      item.tags.push(h.children![0].text!.substring(1));
     });
 
     items.push({
