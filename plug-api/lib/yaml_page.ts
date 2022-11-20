@@ -43,7 +43,10 @@ export async function readYamlPage(
 export async function writeYamlPage(
   pageName: string,
   data: any,
+  prelude = "",
 ): Promise<void> {
-  const text = YAML.stringify(data);
-  await space.writePage(pageName, "```yaml\n" + text + "\n```");
+  const text = YAML.stringify(data, {
+    noCompatMode: true,
+  });
+  await space.writePage(pageName, prelude + "```yaml\n" + text + "\n```");
 }

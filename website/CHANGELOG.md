@@ -3,6 +3,10 @@ release.
 
 ---
 
+## 0.2.1
+
+* New `Plugs: Add` command
+
 ## 0.2.0
 * The editor is now in "live preview" mode where a lot of markdown is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
 * Clicking on the page name in the top bar now allows you to quickly rename pages, hit enter to apply the change.

@@ -3,6 +3,10 @@ import type { Manifest } from "../../common/manifest.ts";
 import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
 
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
+import { writePage } from "$sb/silverbullet-syscall/space.ts";
+
+const plugsPrelude =
+  "This file lists all plugs that SilverBullet will load. Run the {[Plugs: Update]} command to update and reload this list of plugs.\n\n";
 
 export async function updatePlugsCommand() {
   await editor.save();
@@ -14,6 +18,37 @@ export async function updatePlugsCommand() {
   } catch (e: any) {
     editor.flashNotification("Error updating plugs: " + e.message, "error");
   }
+}
+
+export async function addPlugCommand() {
+  let name = await editor.prompt("Plug URI:");
+  if (!name) {
+    return;
+  }
+  // Support people copy & pasting the YAML version
+  if (name.startsWith("-")) {
+    name = name.replace(/^\-\s*/, "");
+  }
+  let plugList: string[] = [];
+  try {
+    plugList = await readYamlPage("PLUGS");
+  } catch (e: any) {
+    console.error("ERROR", e);
+  }
+  if (plugList.includes(name)) {
+    await editor.flashNotification("Plug already installed", "error");
+    return;
+  }
+  plugList.push(name);
+  // await writeYamlPage("PLUGS", plugList, plugsPrelude);
+  await writePage(
+    "PLUGS",
+    plugsPrelude + "```yaml\n" + plugList.map((p) => `- ${p}`).join("\n") +
+      "\n```",
+  );
+  await editor.navigate("PLUGS");
+  await system.invokeFunction("server", "updatePlugs");
+  await editor.flashNotification("Plug added!");
 }
 
 export async function updatePlugs() {

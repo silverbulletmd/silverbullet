@@ -333,6 +333,11 @@ functions:
     path: "./plugmanager.ts:getPlugGithubRelease"
     events:
       - get-plug:ghr
+  addPlugCommand:
+    path: ./plugmanager.ts:addPlugCommand
+    command:
+      name: "Plugs: Add"
+
   # Debug commands
   parseCommand:
     path: ./debug.ts:parsePageCommand
