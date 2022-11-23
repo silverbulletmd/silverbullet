@@ -81,25 +81,29 @@ export function extractMeta(
     // Find FrontMatter and parse it
     if (t.type === "FrontMatter") {
       const yamlText = renderToText(t.children![1].children![0]);
-      const parsedData: any = YAML.parse(yamlText);
-      const newData = { ...parsedData };
-      data = { ...data, ...parsedData };
-      if (removeKeys.length > 0) {
-        let removedOne = false;
+      try {
+        const parsedData: any = YAML.parse(yamlText);
+        const newData = { ...parsedData };
+        data = { ...data, ...parsedData };
+        if (removeKeys.length > 0) {
+          let removedOne = false;
 
-        for (const key of removeKeys) {
-          if (key in newData) {
-            delete newData[key];
-            removedOne = true;
+          for (const key of removeKeys) {
+            if (key in newData) {
+              delete newData[key];
+              removedOne = true;
+            }
+          }
+          if (removedOne) {
+            t.children![0].text = YAML.stringify(newData);
           }
         }
-        if (removedOne) {
-          t.children![0].text = YAML.stringify(newData);
+        // If nothing is left, let's just delete this whole block
+        if (Object.keys(newData).length === 0) {
+          return null;
         }
-      }
-      // If nothing is left, let's just delete this whole block
-      if (Object.keys(newData).length === 0) {
-        return null;
+      } catch (e: any) {
+        console.error("Could not parse frontmatter", e);
       }
     }
 
