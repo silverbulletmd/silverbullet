@@ -15,13 +15,13 @@ export async function updateDirectivesOnPageCommand() {
   }
 
   // Collect all directives and their body replacements
-  const replacements: { startInst: string; text?: string }[] = [];
+  const replacements: { fullMatch: string; text?: string }[] = [];
 
   await replaceAsync(
     text,
     directiveRegex,
     async (fullMatch, startInst, _type, _arg, _body, endInst, index) => {
-      const replacement: { startInst: string; text?: string } = { startInst };
+      const replacement: { fullMatch: string; text?: string } = { fullMatch };
       // Pushing to the replacement array
       replacements.push(replacement);
       const currentNode = nodeAtPos(tree, index + 1);
@@ -44,34 +44,32 @@ export async function updateDirectivesOnPageCommand() {
       }
     },
   );
-  let counter = 0;
   // Iterate again and replace the bodies. Iterating again (not using previous positions)
   // because text may have changed in the mean time (directive processing may take some time)
   // Hypothetically in the mean time directives in text may have been changed/swapped, in which
   // case this will break. This would be a rare edge case, however.
-  await replaceAsync(
-    text,
-    directiveRegex,
-    async (fullMatch, startInst, _type, _arg, _body, endInst, index) => {
-      const replacement = replacements[counter++];
-      if (!replacement.text) {
-        return `${startInst}\n$**ERROR:** Internal error, no replacement found\n${endInst}`;
-      }
-      if (replacement.text === fullMatch) {
-        // No change, no need to dispatch
-        return fullMatch;
-      }
-      // Dispatch the change as a somewhat minimal diff in order not to interfere with current editing
-      await editor.dispatch({
-        changes: {
-          from: index,
-          to: index + fullMatch.length,
-          insert: replacement.text,
-        },
-      });
-      return replacement.text;
-    },
-  );
+  for (const replacement of replacements) {
+    // Fetch the text every time, because dispatch() will have been made changes
+    const text = await editor.getText();
+    // Determine the current position
+    const index = text.indexOf(replacement.fullMatch);
+
+    // This may happen if the query itself, or the user is editing inside the directive block (WHY!?)
+    if (index === -1) {
+      console.warn(
+        "Could not find directive in text, skipping",
+        replacement.fullMatch,
+      );
+      continue;
+    }
+    await editor.dispatch({
+      changes: {
+        from: index,
+        to: index + replacement.fullMatch.length,
+        insert: replacement.text,
+      },
+    });
+  }
 }
 
 // Called from client, running on server
