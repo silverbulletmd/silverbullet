@@ -73,9 +73,22 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
 );
 
 export function attachmentExtension(editor: Editor) {
+  let shiftDown = false;
   return EditorView.domEventHandlers({
     dragover: (event) => {
       event.preventDefault();
+    },
+    keydown: (event) => {
+      if (event.key === "Shift") {
+        shiftDown = true;
+      }
+      return false;
+    },
+    keyup: (event) => {
+      if (event.key === "Shift") {
+        shiftDown = false;
+      }
+      return false;
     },
     drop: (event: DragEvent) => {
       // TODO: This doesn't take into account the target cursor position,
@@ -93,12 +106,12 @@ export function attachmentExtension(editor: Editor) {
     paste: (event: ClipboardEvent) => {
       const payload = [...event.clipboardData!.items];
       const richText = event.clipboardData?.getData("text/html");
-      if (richText) {
+      // Only do rich text paste if shift is NOT down
+      if (richText && !shiftDown) {
         const markdown = striptHtmlComments(turndownService.turndown(richText))
           .trim();
         const view = editor.editorView!;
         const selection = view.state.selection.main;
-        console.log("Rich text", markdown);
         view.dispatch({
           changes: [
             {
