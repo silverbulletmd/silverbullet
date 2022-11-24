@@ -154,11 +154,13 @@ functions:
       mac: Cmd-Shift-f
   readPageSearch:
     path: ./search.ts:readFileSearch
+    env: server
     pageNamespace:
       pattern: "🔍 .+"
       operation: readFile
   getPageMetaSearch:
     path: ./search.ts:getFileMetaSearch
+    env: server
     pageNamespace:
       pattern: "🔍 .+"
       operation: getFileMeta
