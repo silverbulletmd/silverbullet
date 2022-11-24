@@ -3,14 +3,7 @@
 
 import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { index } from "$sb/silverbullet-syscall/mod.ts";
-import {
-  addParentPointers,
-  collectNodesOfType,
-  findNodeOfType,
-  ParseTree,
-  renderToText,
-  replaceNodesMatching,
-} from "$sb/lib/tree.ts";
+import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import * as YAML from "yaml";
 
@@ -54,105 +47,6 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
   });
   // console.log("Found", dataObjects.length, "data objects");
   await index.batchSet(name, dataObjects);
-}
-
-export function extractMeta(
-  parseTree: ParseTree,
-  removeKeys: string[] = [],
-): any {
-  let data: any = {};
-  addParentPointers(parseTree);
-
-  replaceNodesMatching(parseTree, (t) => {
-    // Find top-level hash tags
-    if (t.type === "Hashtag") {
-      // Check if if nested directly into a Paragraph
-      if (t.parent && t.parent.type === "Paragraph") {
-        const tagname = t.children![0].text!.substring(1);
-        if (!data.tags) {
-          data.tags = [];
-        }
-        if (!data.tags.includes(tagname)) {
-          data.tags.push(tagname);
-        }
-      }
-      return;
-    }
-    // Find FrontMatter and parse it
-    if (t.type === "FrontMatter") {
-      const yamlText = renderToText(t.children![1].children![0]);
-      try {
-        const parsedData: any = YAML.parse(yamlText);
-        const newData = { ...parsedData };
-        data = { ...data, ...parsedData };
-        if (removeKeys.length > 0) {
-          let removedOne = false;
-
-          for (const key of removeKeys) {
-            if (key in newData) {
-              delete newData[key];
-              removedOne = true;
-            }
-          }
-          if (removedOne) {
-            t.children![0].text = YAML.stringify(newData);
-          }
-        }
-        // If nothing is left, let's just delete this whole block
-        if (Object.keys(newData).length === 0) {
-          return null;
-        }
-      } catch (e: any) {
-        console.error("Could not parse frontmatter", e);
-      }
-    }
-
-    // Find a fenced code block with `meta` as the language type
-    if (t.type !== "FencedCode") {
-      return;
-    }
-    const codeInfoNode = findNodeOfType(t, "CodeInfo");
-    if (!codeInfoNode) {
-      return;
-    }
-    if (codeInfoNode.children![0].text !== "meta") {
-      return;
-    }
-    const codeTextNode = findNodeOfType(t, "CodeText");
-    if (!codeTextNode) {
-      // Honestly, this shouldn't happen
-      return;
-    }
-    const codeText = codeTextNode.children![0].text!;
-    const parsedData: any = YAML.parse(codeText);
-    const newData = { ...parsedData };
-    data = { ...data, ...parsedData };
-    if (removeKeys.length > 0) {
-      let removedOne = false;
-      for (const key of removeKeys) {
-        if (key in newData) {
-          delete newData[key];
-          removedOne = true;
-        }
-      }
-      if (removedOne) {
-        codeTextNode.children![0].text = YAML.stringify(newData).trim();
-      }
-    }
-    // If nothing is left, let's just delete this whole block
-    if (Object.keys(newData).length === 0) {
-      return null;
-    }
-
-    return undefined;
-  });
-
-  if (data.name) {
-    data.displayName = data.name;
-    delete data.name;
-  }
-
-  return data;
 }
 
 export async function queryProvider({

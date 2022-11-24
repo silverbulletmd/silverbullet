@@ -21,7 +21,7 @@ import {
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
-import { extractMeta } from "../directive/data.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -31,7 +31,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   // console.log("Now indexing", name);
-  const pageMeta = extractMeta(tree);
+  const pageMeta = extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
     // Don't index meta data starting with $

@@ -23,6 +23,7 @@ type SpaceFunction = {
   pattern: RegExp;
   plug: Plug<PageNamespaceHookT>;
   name: string;
+  env?: string;
 };
 
 export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
@@ -42,10 +43,10 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
 
   updateCache(system: System<PageNamespaceHookT>) {
     this.spaceFunctions = [];
-    for (let plug of system.loadedPlugs.values()) {
+    for (const plug of system.loadedPlugs.values()) {
       if (plug.manifest?.functions) {
         for (
-          let [funcName, funcDef] of Object.entries(
+          const [funcName, funcDef] of Object.entries(
             plug.manifest.functions,
           )
         ) {
@@ -55,6 +56,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
               pattern: new RegExp(funcDef.pageNamespace.pattern),
               plug,
               name: funcName,
+              env: funcDef.env,
             });
           }
         }
@@ -63,7 +65,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
   }
 
   validateManifest(manifest: Manifest<PageNamespaceHookT>): string[] {
-    let errors: string[] = [];
+    const errors: string[] = [];
     if (!manifest.functions) {
       return [];
     }

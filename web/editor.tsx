@@ -131,7 +131,7 @@ export class Editor {
       .dispatchEvent("editor:updated")
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
-  private system = new System<SilverBulletHooks>("client");
+  private system: System<SilverBulletHooks>;
   private mdExtensions: MDExt[] = [];
   urlPrefix: string;
   indexPage: string;
@@ -139,11 +139,13 @@ export class Editor {
 
   constructor(
     space: Space,
+    system: System<SilverBulletHooks>,
     parent: Element,
     urlPrefix: string,
     indexPage: string,
   ) {
     this.space = space;
+    this.system = system;
     this.urlPrefix = urlPrefix;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
@@ -223,6 +225,40 @@ export class Editor {
   async init() {
     this.focus();
 
+    const globalModules: any = await (
+      await fetch(`${this.urlPrefix}/global.plug.json`)
+    ).json();
+
+    this.system.on({
+      sandboxInitialized: async (sandbox) => {
+        for (
+          const [modName, code] of Object.entries(
+            globalModules.dependencies,
+          )
+        ) {
+          await sandbox.loadDependency(modName, code as string);
+        }
+      },
+    });
+
+    this.space.on({
+      pageChanged: (meta) => {
+        if (this.currentPage === meta.name) {
+          console.log("Page changed on disk, reloading");
+          this.flashNotification("Page changed on disk, reloading");
+          this.reloadPage();
+        }
+      },
+      pageListUpdated: (pages) => {
+        this.viewDispatch({
+          type: "pages-listed",
+          pages: pages,
+        });
+      },
+    });
+
+    await this.reloadPlugs();
+
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
       console.log("Now navigating to", pageName);
 
@@ -266,39 +302,6 @@ export class Editor {
       }
     });
 
-    const globalModules: any = await (
-      await fetch(`${this.urlPrefix}/global.plug.json`)
-    ).json();
-
-    this.system.on({
-      sandboxInitialized: async (sandbox) => {
-        for (
-          const [modName, code] of Object.entries(
-            globalModules.dependencies,
-          )
-        ) {
-          await sandbox.loadDependency(modName, code as string);
-        }
-      },
-    });
-
-    this.space.on({
-      pageChanged: (meta) => {
-        if (this.currentPage === meta.name) {
-          console.log("Page changed on disk, reloading");
-          this.flashNotification("Page changed on disk, reloading");
-          this.reloadPage();
-        }
-      },
-      pageListUpdated: (pages) => {
-        this.viewDispatch({
-          type: "pages-listed",
-          pages: pages,
-        });
-      },
-    });
-
-    await this.reloadPlugs();
     await this.dispatchAppEvent("editor:init");
   }
 

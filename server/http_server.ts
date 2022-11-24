@@ -102,6 +102,7 @@ export class HttpServer {
             new PlugSpacePrimitives(
               new DiskSpacePrimitives(options.pagesPath),
               namespaceHook,
+              "server",
             ),
             this.eventHook,
           ),

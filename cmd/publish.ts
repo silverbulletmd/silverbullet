@@ -65,6 +65,7 @@ export async function publishCommand(options: {
         new PlugSpacePrimitives(
           new DiskSpacePrimitives(pagesPath),
           namespaceHook,
+          "server",
         ),
         eventHook,
       ),

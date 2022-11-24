@@ -5,7 +5,7 @@ import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import Handlebars from "handlebars";
 
 import { replaceTemplateVars } from "../core/template.ts";
-import { extractMeta } from "./data.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex, renderDirectives } from "./directives.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
@@ -44,7 +44,7 @@ export async function templateDirectiveRenderer(
   // if it's a template injection (not a literal "include")
   if (directive === "use" || directive === "use-verbose") {
     const tree = await markdown.parseMarkdown(templateText);
-    extractMeta(tree, ["$disableDirectives"]);
+    extractFrontmatter(tree, ["$disableDirectives"]);
     templateText = renderToText(tree);
     const templateFn = Handlebars.compile(
       replaceTemplateVars(templateText, pageName),

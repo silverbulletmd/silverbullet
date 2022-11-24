@@ -2,6 +2,10 @@ import { Editor } from "./editor.tsx";
 import { parseYamlSettings, safeRun } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
+import { PlugSpacePrimitives } from "../server/hooks/plug_space_primitives.ts";
+import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { System } from "../plugos/system.ts";
 
 safeRun(async () => {
   let password: string | undefined = localStorage.getItem("password") ||
@@ -27,7 +31,21 @@ safeRun(async () => {
       }
     }
   }
-  const serverSpace = new Space(httpPrimitives);
+
+  // Instantiate a PlugOS system for the client
+  const system = new System<SilverBulletHooks>("client");
+
+  // Attach the page namespace hook
+  const namespaceHook = new PageNamespaceHook();
+  system.addHook(namespaceHook);
+
+  const spacePrimitives = new PlugSpacePrimitives(
+    httpPrimitives,
+    namespaceHook,
+    "client",
+  );
+
+  const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
 
   console.log("Booting...");
@@ -36,6 +54,7 @@ safeRun(async () => {
 
   const editor = new Editor(
     serverSpace,
+    system,
     document.getElementById("sb-root")!,
     "",
     settings.indexPage || "index",
@@ -46,10 +65,9 @@ safeRun(async () => {
   await editor.init();
 });
 
-// if (localStorage.getItem("disable_sw") !== "true") {
 if (navigator.serviceWorker) {
   navigator.serviceWorker
-    .register(new URL("service_worker.js", location.href), {
+    .register(new URL("/service_worker.js", location.href), {
       type: "module",
     })
     .then((r) => {
@@ -60,6 +78,3 @@ if (navigator.serviceWorker) {
     "No launching service worker (not present, maybe because not running on localhost or over SSL)",
   );
 }
-// } else {
-//   console.log("Service worker disabled via disable_sw");
-// }

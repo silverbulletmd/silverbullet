@@ -67,7 +67,6 @@ export function TopBar({
               value={pageName}
               className="sb-edit-page-name"
               onKeyDown={(e) => {
-                console.log("Key press", e);
                 e.stopPropagation();
                 if (e.key === "Enter") {
                   e.preventDefault();

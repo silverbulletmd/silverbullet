@@ -2,13 +2,13 @@ import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import { nodeAtPos } from "$sb/lib/tree.ts";
 import { replaceAsync } from "$sb/lib/util.ts";
 import { directiveRegex, renderDirectives } from "./directives.ts";
-import { extractMeta } from "./data.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 export async function updateDirectivesOnPageCommand() {
   const pageName = await editor.getCurrentPage();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  const metaData = extractMeta(tree, ["$disableDirectives"]);
+  const metaData = extractFrontmatter(tree, ["$disableDirectives"]);
   if (metaData.$disableDirectives) {
     // Not updating, directives disabled
     return;

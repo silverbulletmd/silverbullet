@@ -1,5 +1,5 @@
 import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
-import { extractMeta } from "../directive/data.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
@@ -31,7 +31,7 @@ export async function instantiateTemplateCommand() {
   );
 
   const parseTree = await markdown.parseMarkdown(text);
-  const additionalPageMeta = extractMeta(parseTree, [
+  const additionalPageMeta = extractFrontmatter(parseTree, [
     "$name",
     "$disableDirectives",
   ]);

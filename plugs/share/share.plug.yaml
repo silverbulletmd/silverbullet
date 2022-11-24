@@ -1,0 +1,9 @@
+name: share
+functions:
+  publishCommand:
+    path: publish.ts:publishCommand
+    command:
+      name: "Share: Publish"
+  publish:
+    path: publish.ts:publish
+    env: server
