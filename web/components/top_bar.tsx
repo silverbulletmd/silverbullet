@@ -38,14 +38,14 @@ export function TopBar({
   unsavedChanges: boolean;
   isLoading: boolean;
   notifications: Notification[];
-  onRename: (newName: string) => void;
+  onRename: (newName?: string) => void;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
-  const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
+  // const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
-  const isMac = isMacLike();
+  // const isMac = isMacLike();
 
   return (
     <div id="sb-top">
@@ -66,12 +66,18 @@ export function TopBar({
               ref={inputRef}
               value={pageName}
               className="sb-edit-page-name"
+              onBlur={(e) => {
+                (e.target as any).value = pageName;
+              }}
               onKeyDown={(e) => {
                 e.stopPropagation();
                 if (e.key === "Enter") {
                   e.preventDefault();
                   const newName = (e.target as any).value;
                   onRename(newName);
+                }
+                if (e.key === "Escape") {
+                  onRename();
                 }
               }}
             />

@@ -838,6 +838,9 @@ export class Editor {
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           onRename={(newName) => {
+            if (!newName) {
+              return editor.focus();
+            }
             console.log("Now renaming page to...", newName);
             editor.system.loadedPlugs.get("core")!.invoke(
               "renamePage",
