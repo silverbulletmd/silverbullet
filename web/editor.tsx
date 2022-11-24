@@ -106,6 +106,8 @@ import customMarkdownStyle from "./style.ts";
 import { CollabState } from "./cm_plugins/collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
 
+const frontMatterRegex = /^---\s*$(.*?)---\s*$/ms;
+
 class PageState {
   constructor(
     readonly scrollTop: number,
@@ -295,8 +297,18 @@ export class Editor {
           scrollIntoView: true,
         });
       } else if (!stateRestored) {
+        // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
+        const pageText = this.editorView.state.sliceDoc();
+
+        // Default the cursor to be at position 0
+        let initialCursorPos = 0;
+        const match = frontMatterRegex.exec(pageText);
+        if (match) {
+          // Frotnmatter found, put cursor after it
+          initialCursorPos = match[0].length;
+        }
         this.editorView.dispatch({
-          selection: { anchor: 0 },
+          selection: { anchor: initialCursorPos },
           scrollIntoView: true,
         });
       }
@@ -692,10 +704,15 @@ export class Editor {
       meta: doc.meta,
     });
 
+    // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
-      await this.eventHook.dispatchEvent("editor:pageLoaded", pageName);
+      this.eventHook.dispatchEvent("editor:pageLoaded", pageName).catch(
+        console.error,
+      );
     } else {
-      await this.eventHook.dispatchEvent("editor:pageReloaded", pageName);
+      this.eventHook.dispatchEvent("editor:pageReloaded", pageName).catch(
+        console.error,
+      );
     }
 
     return stateRestored;
@@ -709,20 +726,6 @@ export class Editor {
       "contenteditable",
       readOnly || this.viewState.forcedROMode ? "false" : "true",
     );
-
-    if (isMobileSafari() && readOnly) {
-      console.log("Safari read only hack");
-      contentDOM.classList.add("ios-safari-readonly");
-    } else {
-      contentDOM.classList.remove("ios-safari-readonly");
-    }
-
-    function isMobileSafari() {
-      return (
-        navigator.userAgent.match(/(iPod|iPhone|iPad)/) &&
-        navigator.userAgent.match(/AppleWebKit/)
-      );
-    }
   }
 
   private restoreState(pageName: string): boolean {

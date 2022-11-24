@@ -70,7 +70,7 @@ if (navigator.serviceWorker) {
     .register(new URL("/service_worker.js", location.href), {
       type: "module",
     })
-    .then((r) => {
+    .then(() => {
       console.log("Service worker registered...");
     });
 } else {

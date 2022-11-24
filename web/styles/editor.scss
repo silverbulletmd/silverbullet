@@ -16,11 +16,6 @@
     outline: none !important;
   }
 
-  // Weird hack to readjust iOS's safari font-size when contenteditable is disabled
-  .ios-safari-readonly {
-    font-size: 60%;
-  }
-
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
     text-indent: -1 * ($baseIndent + 2ch);
