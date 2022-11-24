@@ -30,3 +30,9 @@ export type IndexTreeEvent = {
   name: string;
   tree: ParseTree;
 };
+
+export type PublishEvent = {
+  uri: string;
+  // Page name
+  name: string;
+};

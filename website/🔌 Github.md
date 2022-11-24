@@ -7,7 +7,10 @@ author: Zef Hemel
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/README.md]] -->
 # SilverBullet plug for Github
-Provides Github events, notifications and pull requests as query sources using SB's query mechanism
+Provides various integrations with Github:
+
+* Query sources for events, notifications and pull requests
+* Ability to load and share pages as Gists
 
 ## Installation
 Open your `PLUGS` note in SilverBullet and add this plug to the list:
@@ -19,8 +22,6 @@ Open your `PLUGS` note in SilverBullet and add this plug to the list:
 Then run the `Plugs: Update` command and off you go!
 
 ## Configuration
-This step is optional for anything but the `gh-notification` source, but without it you may be rate limited by the Github API,
-
 To configure, add a `githubToken` key to your `SECRETS` page, this should be a [personal access token](https://github.com/settings/tokens):
 
         ```yaml
@@ -37,9 +38,14 @@ To configure, add a `githubToken` key to your `SECRETS` page, this should be a [
     * `query`: [the search query](https://docs.github.com/en/rest/search#search-issues-and-pull-requests)
 * `gh-notification` requires a `githubToken` to be configured in `SECRETS`.
 
+## Share as Gist support
+
+To use: navigate to a page, and run the {[Share: Gist: Public Gist]} command, this will perform an initial publish, and add a `$share` attribute to your page's front matter. Subsequent updates can be performed via {[Share: Publish]}.
+
+To pull an *existing* gist into your space, use the {[Share: Gist: Load]} command and paste the URL to the gist.
 ## Example
 
-Example uses:
+Example uses of the query providers:
 
     ## Recent pushes
     <!-- #query gh-event where username = "zefhemel" and type = "PushEvent" select type, actor_login, created_at, payload_ref limit 3 -->

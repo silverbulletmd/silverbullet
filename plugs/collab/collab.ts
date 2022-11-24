@@ -15,7 +15,6 @@ import {
   collab,
   editor,
   markdown,
-  space,
 } from "$sb/silverbullet-syscall/mod.ts";
 
 import { nanoid } from "https://esm.sh/nanoid@4.0.0";
@@ -120,6 +119,10 @@ export async function detectPage() {
       console.error("Error parsing YAML", e);
     }
   }
+}
+
+export function shareNoop() {
+  return true;
 }
 
 export async function readFileCollab(

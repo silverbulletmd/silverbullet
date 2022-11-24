@@ -4,6 +4,8 @@ functions:
     path: publish.ts:publishCommand
     command:
       name: "Share: Publish"
+      key: "Ctrl-s"
+      mac: "Cmd-s"
   publish:
     path: publish.ts:publish
     env: server

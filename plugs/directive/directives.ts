@@ -15,7 +15,7 @@ export const directiveRegex =
 /**
  * Looks for directives in the text dispatches them based on name
  */
-export async function directiveDispatcher(
+export function directiveDispatcher(
   pageName: string,
   text: string,
   tree: ParseTree,

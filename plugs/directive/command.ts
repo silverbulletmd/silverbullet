@@ -4,7 +4,9 @@ import { replaceAsync } from "$sb/lib/util.ts";
 import { directiveRegex, renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
-export async function updateDirectivesOnPageCommand() {
+export async function updateDirectivesOnPageCommand(arg: any) {
+  // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
+  const explicitCall = typeof arg !== "string";
   const pageName = await editor.getCurrentPage();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
@@ -12,6 +14,22 @@ export async function updateDirectivesOnPageCommand() {
   if (metaData.$disableDirectives) {
     // Not updating, directives disabled
     return;
+  }
+
+  // If this page is shared ($share) via collab: disable directives as well
+  // due to security concerns
+  if (metaData.$share) {
+    for (const uri of metaData.$share) {
+      if (uri.startsWith("collab:")) {
+        if (explicitCall) {
+          await editor.flashNotification(
+            "Directives are disabled for 'collab' pages (safety reasons).",
+            "error",
+          );
+        }
+        return;
+      }
+    }
   }
 
   // Collect all directives and their body replacements
@@ -62,10 +80,15 @@ export async function updateDirectivesOnPageCommand() {
       );
       continue;
     }
+    const from = index, to = index + replacement.fullMatch.length;
+    if (text.substring(from, to) === replacement.text) {
+      // No change, skip
+      continue;
+    }
     await editor.dispatch({
       changes: {
-        from: index,
-        to: index + replacement.fullMatch.length,
+        from,
+        to,
         insert: replacement.text,
       },
     });

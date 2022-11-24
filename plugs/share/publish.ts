@@ -1,26 +1,26 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
 import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-
-export type PublishEvent = {
-  uri: string;
-  // Page name
-  name: string;
-};
+import { PublishEvent } from "$sb/app_event.ts";
 
 export async function publishCommand() {
   await editor.save();
   const text = await editor.getText();
   const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  let { $share } = extractFrontmatter(tree);
+  const { $share } = extractFrontmatter(tree);
   if (!$share) {
-    await editor.flashNotification("No $share directive found", "error");
+    await editor.flashNotification("Saved.");
     return;
   }
   if (!Array.isArray($share)) {
-    $share = [$share];
+    await editor.flashNotification(
+      "$share front matter must be an array.",
+      "error",
+    );
+    return;
   }
+  await editor.flashNotification("Sharing...");
   // Delegate actual publishing to the server
   try {
     await system.invokeFunction("server", "publish", pageName, $share);

@@ -386,17 +386,18 @@ functions:
     path: ./stats.ts:statsCommand
     command:
       name: "Stats: Show"
-      key: "Ctrl-s"
-      mac: "Cmd-s"
+      key: "Shift-Alt-s"
 
   # Cloud pages
   readPageCloud:
     path: ./cloud.ts:readFileCloud
+    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: readFile
   getPageMetaCloud:
     path: ./cloud.ts:getFileMetaCloud
+    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: getFileMeta

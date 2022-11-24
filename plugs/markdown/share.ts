@@ -1,8 +1,8 @@
 import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import { fs } from "$sb/plugos-syscall/mod.ts";
 import { asset } from "$sb/plugos-syscall/mod.ts";
-import type { PublishEvent } from "../share/publish.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
+import { PublishEvent } from "$sb/app_event.ts";
 
 export async function sharePublisher(event: PublishEvent) {
   const path = event.uri.split(":")[1];

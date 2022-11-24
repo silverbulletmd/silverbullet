@@ -35,7 +35,8 @@ export function extractFrontmatter(
     }
     // Find FrontMatter and parse it
     if (t.type === "FrontMatter") {
-      const yamlText = renderToText(t.children![1].children![0]);
+      const yamlNode = t.children![1].children![0];
+      const yamlText = renderToText(yamlNode);
       try {
         const parsedData: any = YAML.parse(yamlText);
         const newData = { ...parsedData };
@@ -50,7 +51,7 @@ export function extractFrontmatter(
             }
           }
           if (removedOne) {
-            t.children![0].text = YAML.stringify(newData);
+            yamlNode.text = YAML.stringify(newData);
           }
         }
         // If nothing is left, let's just delete this whole block

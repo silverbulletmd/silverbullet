@@ -15,6 +15,12 @@ functions:
     path: "./collab.ts:shareCommand"
     command:
       name: "Share: Collab"
+  shareNoop:
+    path: "./collab.ts:shareNoop"
+    events:
+    - share:collab
+  
+  # Space extension
   readPageCollab:
     path: ./collab.ts:readFileCollab
     env: client
