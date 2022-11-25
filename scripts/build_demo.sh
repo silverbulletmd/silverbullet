@@ -24,3 +24,7 @@ deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 echo > website_build/empty.md
 
+echo "Bundling..."
+deno task bundle
+cp dist/silverbullet.js website_build/
+cp dist_bundle/web/global.plug.json website_build/
