@@ -289,7 +289,10 @@ export class HttpServer {
 
     this.abortController = new AbortController();
     this.app.listen({ port: this.port, signal: this.abortController.signal })
-      .catch(console.error);
+      .catch((e: any) => {
+        console.log("Server listen error:", e.message);
+        Deno.exit(1);
+      });
     console.log(
       `Silver Bullet is now running: http://localhost:${this.port}`,
     );

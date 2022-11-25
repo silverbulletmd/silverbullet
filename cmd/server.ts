@@ -21,6 +21,7 @@ export function serveCommand(options: any, folder: string) {
     password: options.password,
   });
   httpServer.start().catch((e) => {
-    console.error(e);
+    console.error("HTTP Server error", e);
+    Deno.exit(1);
   });
 }
