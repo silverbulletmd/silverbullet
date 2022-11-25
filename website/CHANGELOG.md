@@ -7,11 +7,8 @@ release.
 
 * New `Plugs: Add` command to quickly add a new plug (will create a `PLUGS` page if you don't have one yet).
 * **Paste without formatting**: holding `Shift` while pasting will disable "rich text paste."
-* General purpose, extensible, **share support** ([RFC](https://github.com/silverbulletmd/silverbullet/discussions/117)): using the `$share` key in frontmatter (with the {[Share: Publish]} bound to `Cmd-s`/`Ctrl-s`). This will enable plugs to support various types of page sharing. Two types of sharing are supported initially:
-   * `file:/full/path/to/file.html` will render the current page as HTML and write it to given path.
-   * `collab:*` will share the page via the new real-time collaboration feature (see next bullet)
-   * `gh-gist:<gist-id>` via the [[🔌 Github]] plug, which has been updated to add support for publishing to Gists.
-* An initial version of **real-time collaboration** on individual pages: This will allow concurrent "Google Doc" style editing. To enable this, a central collaboration server is used (there is currently one deployed at `wss://collab.silverbullet.md`) which will become the source of truth for pages shared this way. To share an existing page, run the {[Share: Collab]} command. A random ID will be assigned to the page, which functions as a token for others to join the editing session. Copy and paste the resulting `collab:...` URI and send it your collaborator, who can join using {[Share: Join Collab]}. **Note:** the security of this is to be improved, it currently relies on "security through obscurity": if you guess an existing ID, you will have full access. Be careful what you share this way.
+* **New core plug:** [[🔌 Share]] for sharing your pages with the outside work (such as collab, see below).
+* **New plug:** [[🔌 Collab]] for real-time collaboration on your pages.
 
 ## 0.2.0
 * The editor is now in "live preview" mode where a lot of markdown is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
