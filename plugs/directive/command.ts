@@ -41,13 +41,13 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     async (fullMatch, startInst, _type, _arg, _body, endInst, index) => {
       const replacement: { fullMatch: string; text?: string } = { fullMatch };
       // Pushing to the replacement array
-      replacements.push(replacement);
       const currentNode = nodeAtPos(tree, index + 1);
       if (currentNode?.type !== "CommentBlock") {
         // If not a comment block, it's likely a code block, ignore
         // console.log("Not comment block, ingoring", fullMatch);
         return fullMatch;
       }
+      replacements.push(replacement);
       try {
         const replacementText = await system.invokeFunction(
           "server",
