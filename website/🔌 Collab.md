@@ -18,4 +18,12 @@ To use it:
 4. If your collaborator is an SB user, have them use the {[Share: Join Collab]} command, or directly open the `collab:...` URI as a page in Silver Bullet (both do the same).
 5. If the collaborator wants to keep a persistent copy of the page collaborated page, they can simply _rename_ the page to something not prefixed with `collab:`. Everything will keep working for as long as the `collab:` will appear in the `$share` attribute of [[Frontmatter]]
 
-If you prefer not to rely on the public `wss://collab.silverbullet.md` server (which will keep persistent copies of all pages shared potentially forever), you can **deploy your own** [following these instructions](https://github.com/yjs/y-websocket).
+## How it works
+The Collab plug uses Yjs for real-time collaboration via a websocket. A random ID is assigned to every shared page, and a copy of this page (as well as its history) will be stored on the collaboration server. Therefore, be cautious about what you share, especially when using a public collab server like `collab.silverbullet.md`. For “production use” we recommend deploying your own collab server.
+
+## Deploying your own collab server
+A detailed description of how to deploy your own collab server, [can be found here](https://github.com/yjs/y-websocket). The short version is:
+
+    HOST=0.0.0.0 PORT=1337 YPERSISTENCE=./store npx y-websocket
+
+This will run the `y-websocket` server on port 1337, and store page data persistently in `./store`. You can connect to this server via `ws://ip:1337`. To use SSL, put a TLS server in front of it, in which case you can use `wss://` instead.
