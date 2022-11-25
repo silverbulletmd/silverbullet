@@ -35,14 +35,6 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   // Collect all directives and their body replacements
   const replacements: { fullMatch: string; text?: string }[] = [];
 
-  // Sanity checking if the server gives useful responses (will not be the case on silverbullet.md)
-  try {
-    await system.invokeFunction("server", "serverPing");
-  } catch {
-    console.warn("Server not functional, not updating directives");
-    return;
-  }
-
   await replaceAsync(
     text,
     directiveRegex,
