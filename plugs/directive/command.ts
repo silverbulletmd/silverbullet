@@ -44,7 +44,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
       const currentNode = nodeAtPos(tree, index + 1);
       if (currentNode?.type !== "CommentBlock") {
         // If not a comment block, it's likely a code block, ignore
-        // console.log("Not comment block, ingoring", fullMatch);
+        // console.log("Not comment block, ignoring", fullMatch);
         return fullMatch;
       }
       replacements.push(replacement);

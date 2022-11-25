@@ -3,6 +3,7 @@ type: plug
 uri: github:silverbulletmd/silverbullet-github/github.plug.json
 repo: https://github.com/silverbulletmd/silverbullet-github
 author: Zef Hemel
+share-support: true
 ---
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/README.md]] -->

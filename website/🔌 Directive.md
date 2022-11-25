@@ -39,15 +39,11 @@ Note that a string is also a valid JSON value:
 
 * [ ] #test This is a test task
 
-      <!-- #use [[template/tagged-tasks]] "test" -->
-      * [ ] [[🔌 Directive@1340]] This is a test task  #test
-      <!-- /use -->
+So, a template can take, for instance a tag name as an argument:
 
-which renders as:
-
-<!-- #use [[template/tagged-tasks]] "test" -->
-* [ ] [[🔌 Directive@1537]] This is a test task  #test
-<!-- /use -->
+    <!-- #use [[template/tagged-tasks]] "test" -->
+    * [ ] [[🔌 Directive@1537]] This is a test task  #test
+    <!-- /use -->
 
 ## Eval
 $eval
