@@ -28,7 +28,7 @@ export async function ensureTable(db: AsyncSQLite): Promise<void> {
     await db.execute(
       `CREATE INDEX ${tableName}_idx ON ${tableName}(key);`,
     );
-    console.log(`Created table ${tableName}`);
+    // console.log(`Created table ${tableName}`);
   }
 }
 

@@ -439,6 +439,7 @@ export class Editor {
     }
     // deno-lint-ignore no-this-alias
     const editor = this;
+
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
@@ -577,16 +578,17 @@ export class Editor {
   rebuildEditorState() {
     const editorView = this.editorView;
     console.log("Rebuilding editor state");
+
+    // Load all syntax extensions
+    this.mdExtensions = loadMarkdownExtensions(this.system);
+    // And reload the syscalls to use the new syntax extensions
+    this.system.registerSyscalls(
+      [],
+      markdownSyscalls(buildMarkdown(this.mdExtensions)),
+    );
+
     if (editorView && this.currentPage) {
-      console.log("Getting all syntax extensions");
-      this.mdExtensions = loadMarkdownExtensions(this.system);
-
-      // And reload the syscalls to use the new syntax extensions
-      this.system.registerSyscalls(
-        [],
-        markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      );
-
+      // And update the editor if a page is loaded
       this.saveState(this.currentPage);
 
       editorView.setState(

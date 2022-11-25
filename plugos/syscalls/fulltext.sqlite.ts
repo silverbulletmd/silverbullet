@@ -15,7 +15,7 @@ export async function ensureFTSTable(
       `CREATE VIRTUAL TABLE ${tableName} USING fts5(key, value);`,
     );
 
-    console.log(`Created fts5 table ${tableName}`);
+    // console.log(`Created fts5 table ${tableName}`);
   }
 }
 

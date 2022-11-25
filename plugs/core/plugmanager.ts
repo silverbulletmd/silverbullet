@@ -49,6 +49,7 @@ export async function addPlugCommand() {
   await editor.navigate("PLUGS");
   await system.invokeFunction("server", "updatePlugs");
   await editor.flashNotification("Plug added!");
+  system.reloadPlugs();
 }
 
 export async function updatePlugs() {

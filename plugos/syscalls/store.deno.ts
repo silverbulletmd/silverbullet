@@ -21,7 +21,7 @@ export async function ensureTable(db: AsyncSQLite, tableName: string) {
     await db.execute(
       `CREATE TABLE ${tableName} (key STRING PRIMARY KEY, value TEXT);`,
     );
-    console.log(`Created table ${tableName}`);
+    // console.log(`Created table ${tableName}`);
   }
 }
 
