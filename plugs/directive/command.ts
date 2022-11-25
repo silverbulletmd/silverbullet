@@ -35,6 +35,14 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   // Collect all directives and their body replacements
   const replacements: { fullMatch: string; text?: string }[] = [];
 
+  // Sanity checking if the server gives useful responses (will not be the case on silverbullet.md)
+  try {
+    await system.invokeFunction("server", "serverPing");
+  } catch {
+    console.warn("Server not functional, not updating directives");
+    return;
+  }
+
   await replaceAsync(
     text,
     directiveRegex,
@@ -56,9 +64,12 @@ export async function updateDirectivesOnPageCommand(arg: any) {
           fullMatch,
         );
         replacement.text = replacementText;
-        return replacementText;
+        // Return value is ignored, we're using the replacements array
+        return fullMatch;
       } catch (e: any) {
-        return `${startInst}\n**ERROR:** ${e.message}\n${endInst}`;
+        replacement.text = `${startInst}\n**ERROR:** ${e.message}\n${endInst}`;
+        // Return value is ignored, we're using the replacements array
+        return fullMatch;
       }
     },
   );
@@ -93,6 +104,10 @@ export async function updateDirectivesOnPageCommand(arg: any) {
       },
     });
   }
+}
+
+export function serverPing() {
+  return "pong";
 }
 
 // Called from client, running on server

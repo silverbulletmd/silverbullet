@@ -11,6 +11,9 @@ functions:
       key: "Alt-q"
     events:
       - editor:pageLoaded
+  serverPing:
+    env: server
+    path: ./command.ts:serverPing
   indexData:
     path: ./data.ts:indexData
     events:
