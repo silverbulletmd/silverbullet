@@ -15,7 +15,7 @@ cp -r dist_bundle/web/* website_build/
 echo "And all plugs"
 cp -r dist_bundle/_plug/* website_build/fs/_plug/
 echo "But remove some plugs"
-rm -rf website_build/fs/_plug/{directive,plugmd,publish}.plug.json
+rm -rf website_build/fs/_plug/{directive,plugmd,publish,share}.plug.json
 #echo "Copying netlify config files"
 #cp website/{_redirects,_headers} website_build/
 
