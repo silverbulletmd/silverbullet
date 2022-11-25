@@ -18,7 +18,7 @@ background, check out the [Silver Bullet website](https://silverbullet.md)
 
 Or checkout these two videos:
 
-- [A Tour of some of Silver Bullet’s features](https://youtu.be/RYdc3UF9gok) —
+- [A Tour of some of Silver Bullet’s features](https://youtu.be/VemS-cqAD5k) —
   spoiler alert: it’s cool.
 - [A look the SilverBullet architecture](https://youtu.be/mXCGau05p5o) — spoiler
   alert: it’s plugs all the way down.
