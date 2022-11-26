@@ -7,7 +7,6 @@ import { versionCommand } from "./cmd/version.ts";
 import { fixCommand } from "./cmd/fix.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
-import { publishCommand } from "./cmd/publish.ts";
 import { invokeFunction } from "./cmd/invokeFunction.ts";
 
 await new Command()
@@ -54,14 +53,6 @@ await new Command()
     default: "data.db",
   })
   .action(invokeFunction)
-  // publish
-  .command("publish")
-  .description("Publish a SilverBullet site")
-  .arguments("<folder:string>")
-  .option("--index [type:boolean]", "Index space first", { default: false })
-  .option("--watch, -w [type:boolean]", "Watch for changes", { default: false })
-  .option("--output, -o <path:string>", "Output directory", { default: "web" })
-  .action(publishCommand)
   // upgrade
   .command("upgrade", "Upgrade Silver Bullet")
   .action(upgradeCommand)
