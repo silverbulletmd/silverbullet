@@ -8,7 +8,7 @@
     "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
     // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
     "watch-plugs": "./build_plugs.sh -w",
-    "bundle": "deno bundle --importmap import_map.json silverbullet.ts dist/silverbullet.js",
+    "bundle": "deno bundle silverbullet.ts dist/silverbullet.js",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"
     "generate": "deno run -A plugos/gen.ts && lezer-generator plugs/directive/query.grammar -o plugs/directive/parse-query.js"

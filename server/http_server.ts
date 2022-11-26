@@ -190,7 +190,7 @@ export class HttpServer {
     fsRouter
       .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
-        console.log("Loading file", name);
+        // console.log("Loading file", name);
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
@@ -285,7 +285,6 @@ export class HttpServer {
         const name = ctx.params.name;
         const plugName = ctx.params.plug;
         const args = await ctx.request.body().value;
-        console.log("Got args", args, "for", name, "in", plugName);
         const plug = system.loadedPlugs.get(plugName);
         if (!plug) {
           ctx.response.status = 404;
