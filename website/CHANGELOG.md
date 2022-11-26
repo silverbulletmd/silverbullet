@@ -3,12 +3,20 @@ release.
 
 ---
 
+## 0.2.2
+* Removed `publish` out of builtins, this will be available via [silverbullet-publish](https://github.com/silverbulletmd/silverbullet-publish) later.
+* Added `invokeFunction` command to run arbitrary functions from the CLI.
+
+---
+
 ## 0.2.1
 
 * New `Plugs: Add` command to quickly add a new plug (will create a `PLUGS` page if you don't have one yet).
 * **Paste without formatting**: holding `Shift` while pasting will disable "rich text paste."
 * **New core plug:** [[🔌 Share]] for sharing your pages with the outside work (such as collab, see below).
 * **New plug:** [[🔌 Collab]] for real-time collaboration on your pages.
+
+---
 
 ## 0.2.0
 * The editor is now in "live preview" mode where a lot of markdown is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
