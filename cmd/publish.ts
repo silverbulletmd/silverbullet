@@ -14,7 +14,7 @@ import {
   storeSyscalls,
 } from "../plugos/syscalls/store.deno.ts";
 import { System } from "../plugos/system.ts";
-import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
 import buildMarkdown from "../common/parser.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
@@ -29,15 +29,12 @@ import {
 } from "../server/syscalls/index.ts";
 import spaceSyscalls from "../server/syscalls/space.ts";
 
-import { Command } from "https://deno.land/x/cliffy@v0.25.2/command/command.ts";
-
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 import { path } from "../server/deps.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
-import { faBullseye } from "https://esm.sh/v96/@fortawesome/free-solid-svg-icons@6.2.0/index.d.ts";
 
 export async function publishCommand(options: {
   index: boolean;

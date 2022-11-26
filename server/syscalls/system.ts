@@ -1,9 +1,8 @@
 import { Plug } from "../../plugos/plug.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
-import type { HttpServer } from "../http_server.ts";
 
 export function systemSyscalls(
-  httpServer: HttpServer,
+  plugReloader: () => Promise<void>,
   system: System<any>,
 ): SysCallMapping {
   return {
@@ -30,7 +29,7 @@ export function systemSyscalls(
       return plug.invoke(name, args);
     },
     "system.reloadPlugs": () => {
-      return httpServer.reloadPlugs();
+      return plugReloader();
     },
   };
 }

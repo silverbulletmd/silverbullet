@@ -1,164 +1,41 @@
 import { Application, path, Router } from "./deps.ts";
-import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
-import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
-import buildMarkdown from "../common/parser.ts";
-import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
-import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { Space } from "../common/spaces/space.ts";
+import { Manifest } from "../common/manifest.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
-import { parseYamlSettings } from "../common/util.ts";
-import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
-import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
-import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
-import {
-  ensureFTSTable,
-  fullTextSearchSyscalls,
-} from "../plugos/syscalls/fulltext.sqlite.ts";
-import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
-import shellSyscalls from "../plugos/syscalls/shell.deno.ts";
-import {
-  ensureTable as ensureStoreTable,
-  storeSyscalls,
-} from "../plugos/syscalls/store.deno.ts";
-import { SysCallMapping, System } from "../plugos/system.ts";
-import { PageNamespaceHook } from "./hooks/page_namespace.ts";
-import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
-import {
-  ensureTable as ensureIndexTable,
-  pageIndexSyscalls,
-} from "./syscalls/index.ts";
-import spaceSyscalls from "./syscalls/space.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
-import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { SpaceSystem } from "./space_system.ts";
+import { parseYamlSettings } from "../common/util.ts";
 
 export type ServerOptions = {
   port: number;
   pagesPath: string;
+  dbPath: string;
   assetBundle: AssetBundle;
   password?: string;
 };
 
-const indexRequiredKey = "$spaceIndexed";
 const staticLastModified = new Date().toUTCString();
 
 export class HttpServer {
   app: Application;
-  system: System<SilverBulletHooks>;
-  private space: Space;
-  private eventHook: EventHook;
-  private db: AsyncSQLite;
+  systemBoot: SpaceSystem;
   private port: number;
   password?: string;
   settings: { [key: string]: any } = {};
-  spacePrimitives: SpacePrimitives;
   abortController?: AbortController;
-  globalModules: Manifest;
-  assetBundle: AssetBundle;
-  indexSyscalls: SysCallMapping;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
-    this.assetBundle = options.assetBundle;
     this.password = options.password;
-
-    this.globalModules = JSON.parse(
-      this.assetBundle.readTextFileSync(`web/global.plug.json`),
+    this.systemBoot = new SpaceSystem(
+      options.assetBundle,
+      options.pagesPath,
+      options.dbPath,
     );
-
-    // Set up the PlugOS System
-    this.system = new System<SilverBulletHooks>("server");
-
-    // Instantiate the event bus hook
-    this.eventHook = new EventHook();
-    this.system.addHook(this.eventHook);
-
-    // And the page namespace hook
-    const namespaceHook = new PageNamespaceHook();
-    this.system.addHook(namespaceHook);
-
-    // The database used for persistence (SQLite)
-    this.db = new AsyncSQLite(path.join(options.pagesPath, "data.db"));
-    this.db.init().catch((e) => {
-      console.error("Error initializing database", e);
-    });
-
-    this.indexSyscalls = pageIndexSyscalls(this.db);
-
-    // The space
-    try {
-      this.spacePrimitives = new FileMetaSpacePrimitives(
-        new AssetBundlePlugSpacePrimitives(
-          new EventedSpacePrimitives(
-            new PlugSpacePrimitives(
-              new DiskSpacePrimitives(options.pagesPath),
-              namespaceHook,
-              "server",
-            ),
-            this.eventHook,
-          ),
-          this.assetBundle,
-        ),
-        this.indexSyscalls,
-      );
-      this.space = new Space(this.spacePrimitives);
-    } catch (e: any) {
-      if (e instanceof Deno.errors.NotFound) {
-        console.error("Pages folder", options.pagesPath, "not found");
-      } else {
-        console.error(e.message);
-      }
-      Deno.exit(1);
-    }
-
-    // The cron hook
-    this.system.addHook(new DenoCronHook());
-
-    // Register syscalls available on the server side
-    this.system.registerSyscalls(
-      [],
-      this.indexSyscalls,
-      storeSyscalls(this.db, "store"),
-      fullTextSearchSyscalls(this.db, "fts"),
-      spaceSyscalls(this.space),
-      eventSyscalls(this.eventHook),
-      markdownSyscalls(buildMarkdown([])),
-      esbuildSyscalls([this.globalModules]),
-      systemSyscalls(this, this.system),
-      sandboxSyscalls(this.system),
-      assetSyscalls(this.system),
-      // jwtSyscalls(),
-    );
-    // Danger zone
-    this.system.registerSyscalls(["shell"], shellSyscalls(options.pagesPath));
-    this.system.registerSyscalls(["fs"], fileSystemSyscalls("/"));
-
-    // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
-    this.system.addHook(new EndpointHook(this.app, "/_"));
-
-    this.system.on({
-      sandboxInitialized: async (sandbox) => {
-        for (
-          const [modName, code] of Object.entries(
-            this.globalModules.dependencies!,
-          )
-        ) {
-          await sandbox.loadDependency(modName, code as string);
-        }
-      },
-    });
 
     // Second, for loading plug JSON files with absolute or relative (from CWD) paths
-    this.eventHook.addLocalListener(
+    this.systemBoot.eventHook.addLocalListener(
       "get-plug:file",
       async (plugPath: string): Promise<Manifest> => {
         const resolvedPath = path.resolve(plugPath);
@@ -175,57 +52,17 @@ export class HttpServer {
 
     // Rescan disk every 5s to detect any out-of-process file changes
     setInterval(() => {
-      this.space.updatePageList().catch(console.error);
+      this.systemBoot.space.updatePageList().catch(console.error);
     }, 5000);
-  }
 
-  rebuildMdExtensions() {
-    this.system.registerSyscalls(
-      [],
-      markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system))),
-    );
-  }
-
-  async reloadPlugs() {
-    await this.space.updatePageList();
-
-    const allPlugs = await this.space.listPlugs();
-
-    console.log("Loading plugs", allPlugs);
-    await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "string");
-      await this.system.load(JSON.parse(data as string), createSandbox);
-    }));
-    this.rebuildMdExtensions();
-
-    const corePlug = this.system.loadedPlugs.get("core");
-    if (!corePlug) {
-      console.error("Something went very wrong, 'core' plug not found");
-      return;
-    }
-
-    // Do we need to reindex this space?
-    if (
-      !(await this.system.localSyscall("core", "store.get", [indexRequiredKey]))
-    ) {
-      console.log("Now reindexing space...");
-      await corePlug.invoke("reindexSpace", []);
-      await this.system.localSyscall("core", "store.set", [
-        indexRequiredKey,
-        true,
-      ]);
-    }
+    // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
+    this.systemBoot.system.addHook(new EndpointHook(this.app, "/_"));
   }
 
   async start() {
-    await ensureIndexTable(this.db);
-    await ensureStoreTable(this.db, "store");
-    await ensureFTSTable(this.db, "fts");
+    await this.systemBoot.start();
+    await this.systemBoot.ensureSpaceIndex();
     await this.ensureAndLoadSettings();
-
-    // Load plugs
-    this.reloadPlugs().catch(console.error);
-
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
@@ -234,7 +71,7 @@ export class HttpServer {
           return;
         }
         response.headers.set("Content-type", "text/html");
-        response.body = this.assetBundle.readTextFileSync(
+        response.body = this.systemBoot.assetBundle.readTextFileSync(
           "web/index.html",
         );
         response.headers.set("Last-Modified", staticLastModified);
@@ -243,7 +80,7 @@ export class HttpServer {
       try {
         const assetName = `web${request.url.pathname}`;
         if (
-          this.assetBundle.has(assetName) &&
+          this.systemBoot.assetBundle.has(assetName) &&
           request.headers.get("If-Modified-Since") === staticLastModified
         ) {
           response.status = 304;
@@ -252,9 +89,9 @@ export class HttpServer {
         response.status = 200;
         response.headers.set(
           "Content-type",
-          this.assetBundle.getMimeType(assetName),
+          this.systemBoot.assetBundle.getMimeType(assetName),
         );
-        const data = this.assetBundle.readFileSync(
+        const data = this.systemBoot.assetBundle.readFileSync(
           assetName,
         );
         response.headers.set("Cache-Control", "no-cache");
@@ -270,7 +107,7 @@ export class HttpServer {
     });
 
     // Pages API
-    const fsRouter = this.buildFsRouter(this.spacePrimitives);
+    const fsRouter = this.buildFsRouter(this.systemBoot.spacePrimitives);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
 
@@ -282,7 +119,7 @@ export class HttpServer {
     // Fallback, serve index.html
     this.app.use((ctx) => {
       ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.assetBundle.readTextFileSync(
+      ctx.response.body = this.systemBoot.assetBundle.readTextFileSync(
         "web/index.html",
       );
     });
@@ -296,7 +133,34 @@ export class HttpServer {
     console.log(
       `Silver Bullet is now running: http://localhost:${this.port}`,
     );
-    console.log("--------------");
+  }
+
+  async ensureAndLoadSettings() {
+    const space = this.systemBoot.space;
+    try {
+      await space.getPageMeta("SETTINGS");
+    } catch {
+      await space.writePage(
+        "SETTINGS",
+        this.systemBoot.assetBundle.readTextFileSync("SETTINGS_template.md"),
+        true,
+      );
+    }
+
+    const { text: settingsText } = await space.readPage("SETTINGS");
+    const settings = parseYamlSettings(settingsText);
+    if (!settings.indexPage) {
+      settings.indexPage = "index";
+    }
+
+    try {
+      await space.getPageMeta(settings.indexPage);
+    } catch {
+      await space.writePage(
+        settings.indexPage,
+        `Welcome to your new space!`,
+      );
+    }
   }
 
   private addPasswordAuth(r: Router) {
@@ -413,6 +277,7 @@ export class HttpServer {
   private buildPlugRouter(): Router {
     const plugRouter = new Router();
     this.addPasswordAuth(plugRouter);
+    const system = this.systemBoot.system;
 
     plugRouter.post(
       "/:plug/syscall/:name",
@@ -421,14 +286,14 @@ export class HttpServer {
         const plugName = ctx.params.plug;
         const args = await ctx.request.body().value;
         console.log("Got args", args, "for", name, "in", plugName);
-        const plug = this.system.loadedPlugs.get(plugName);
+        const plug = system.loadedPlugs.get(plugName);
         if (!plug) {
           ctx.response.status = 404;
           ctx.response.body = `Plug ${plugName} not found`;
           return;
         }
         try {
-          const result = await this.system.syscallWithContext(
+          const result = await system.syscallWithContext(
             { plug },
             name,
             args,
@@ -450,7 +315,7 @@ export class HttpServer {
         const name = ctx.params.name;
         const plugName = ctx.params.plug;
         const args = await ctx.request.body().value;
-        const plug = this.system.loadedPlugs.get(plugName);
+        const plug = system.loadedPlugs.get(plugName);
         if (!plug) {
           ctx.response.status = 404;
           ctx.response.body = `Plug ${plugName} not found`;
@@ -471,37 +336,11 @@ export class HttpServer {
     return new Router().use("/plug", plugRouter.routes());
   }
 
-  async ensureAndLoadSettings() {
-    try {
-      await this.space.getPageMeta("SETTINGS");
-    } catch {
-      await this.space.writePage(
-        "SETTINGS",
-        this.assetBundle.readTextFileSync("SETTINGS_template.md"),
-        true,
-      );
-    }
-
-    const { text: settingsText } = await this.space.readPage("SETTINGS");
-    this.settings = parseYamlSettings(settingsText);
-    if (!this.settings.indexPage) {
-      this.settings.indexPage = "index";
-    }
-
-    try {
-      await this.space.getPageMeta(this.settings.indexPage);
-    } catch {
-      await this.space.writePage(
-        this.settings.indexPage,
-        `Welcome to your new space!`,
-      );
-    }
-  }
-
   async stop() {
+    const system = this.systemBoot.system;
     if (this.abortController) {
       console.log("Stopping");
-      await this.system.unloadAll();
+      await system.unloadAll();
       console.log("Stopped plugs");
       this.abortController.abort();
       console.log("stopped server");

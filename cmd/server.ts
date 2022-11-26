@@ -12,11 +12,14 @@ export function serveCommand(options: any, folder: string) {
     port,
     "serving pages from",
     pagesPath,
+    "with db file",
+    options.db,
   );
 
   const httpServer = new HttpServer({
     port: port,
     pagesPath: pagesPath,
+    dbPath: path.join(pagesPath, options.db),
     assetBundle: new AssetBundle(assetBundle as AssetJson),
     password: options.password,
   });

@@ -8,6 +8,7 @@ import { fixCommand } from "./cmd/fix.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { publishCommand } from "./cmd/publish.ts";
+import { invokeFunction } from "./cmd/invokeFunction.ts";
 
 await new Command()
   .name("silverbullet")
@@ -20,6 +21,9 @@ await new Command()
   // Main command
   .arguments("<folder:string>")
   .option("-p, --port <port:number>", "Port to listen on")
+  .option("--db <dbfile:string>", "Filename for the database", {
+    default: "data.db",
+  })
   .option("--password <password:string>", "Password for basic authentication")
   .action(serveCommand)
   // fix
@@ -43,6 +47,13 @@ await new Command()
   )
   .option("--importmap <path:string>", "Path to import map file to use")
   .action(plugCompileCommand)
+  // invokeFunction
+  .command("invokeFunction", "Invoke a specific plug function from the CLI")
+  .arguments("<path:string> <function:string> [...arguments:string]")
+  .option("--db <dbfile:string>", "Filename for the database", {
+    default: "data.db",
+  })
+  .action(invokeFunction)
   // publish
   .command("publish")
   .description("Publish a SilverBullet site")
