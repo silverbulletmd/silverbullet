@@ -1,4 +1,6 @@
-Slash commands are built-in to Silver Bullet, the [[🔌 Core]] plug provides a few helpful ones:
+Slash commands are built-in to Silver Bullet. You can trigger them by typing a `/` in your text (after whitespace).
+
+The [[🔌 Core]] plug provides a few helpful ones:
 
 * `/h1` through `/h4` to turn the current line into a header
 * `/hr` to insert a horizontal rule (`---`)

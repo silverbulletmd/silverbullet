@@ -22,11 +22,11 @@ Here’s the kicker:
 
 ==You are looking at a (more or less) operational copy of Silver Bullet **right now**==.
 
-That’s right, this very website is powered by a quasi-read-only version of Silver Bullet itself. 🤯
+That’s right, **this very website is powered by Silver Bullet itself**. 🤯
 
-On this site, everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only).
+On this site, everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only). So, edit away, reload the page and everything resets.
 
-So, don’t just sit there, try this!
+So, don’t just sit there, try it!
 
 * Click on the page picker (folder tree) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a nonexistent page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note that not all commands will work in this mode).
@@ -63,9 +63,9 @@ name: Silver Bullet
 rating: 5
 ```
 
-There are a few Features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
+There are a few features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
 
-* Using Silver Bullet [[🔌 Directive|directives]] where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
+* [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (they just don’t update their content dynamically).
 * Intelligent **page renaming**, automatically updating any pages that link to it.
 * **Full text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
