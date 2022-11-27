@@ -246,12 +246,17 @@ function render(
     case "WikiLink": {
       // console.log("WikiLink", JSON.stringify(t, null, 2));
       const ref = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
+      let linkText = ref;
+      const aliasNode = findNodeOfType(t, "WikiLinkAlias");
+      if (aliasNode) {
+        linkText = aliasNode.children![0].text!;
+      }
       return {
         name: "a",
         attrs: {
           href: `/${ref.replaceAll(" ", "_").replace("@", "#")}`,
         },
-        body: ref,
+        body: linkText,
       };
     }
     case "NakedURL": {
