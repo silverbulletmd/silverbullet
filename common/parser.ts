@@ -20,10 +20,10 @@ import {
   mdExtensionSyntaxConfig,
 } from "./markdown_ext.ts";
 
-export const pageLinkRegex = /^\[\[([^\]]+)\]\]/;
+export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
 const WikiLink: MarkdownConfig = {
-  defineNodes: ["WikiLink", "WikiLinkPage", {
+  defineNodes: ["WikiLink", "WikiLinkPage", "WikiLinkAlias", {
     name: "WikiLinkMark",
     style: t.processingInstruction,
   }],
@@ -38,11 +38,25 @@ const WikiLink: MarkdownConfig = {
         ) {
           return -1;
         }
+        const [_fullMatch, page, pipePart, label] = match;
         const endPos = pos + match[0].length;
+        let aliasElts: any[] = [];
+        if (pipePart) {
+          const pipeStartPos = pos + 2 + page.length;
+          aliasElts = [
+            cx.elt("WikiLinkMark", pipeStartPos, pipeStartPos + 1),
+            cx.elt(
+              "WikiLinkAlias",
+              pipeStartPos + 1,
+              pipeStartPos + 1 + label.length,
+            ),
+          ];
+        }
         return cx.addElement(
           cx.elt("WikiLink", pos, endPos, [
             cx.elt("WikiLinkMark", pos, pos + 2),
-            cx.elt("WikiLinkPage", pos + 2, endPos - 2),
+            cx.elt("WikiLinkPage", pos + 2, pos + 2 + page.length),
+            ...aliasElts,
             cx.elt("WikiLinkMark", endPos - 2, endPos),
           ]),
         );
@@ -222,6 +236,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
           styleTags({
             WikiLink: ct.WikiLinkTag,
             WikiLinkPage: ct.WikiLinkPageTag,
+            WikiLinkAlias: ct.WikiLinkPageTag,
             // CommandLink: ct.CommandLinkTag,
             // CommandLinkName: ct.CommandLinkNameTag,
             Task: ct.TaskTag,

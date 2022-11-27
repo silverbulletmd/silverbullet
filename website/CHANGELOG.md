@@ -1,11 +1,12 @@
-An attempt at documenting of the changes/new features introduced in each
+An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
 
 ## 0.2.2
-* Removed `publish` out of builtins, this will be available via [silverbullet-publish](https://github.com/silverbulletmd/silverbullet-publish) later.
-* Added `invokeFunction` command to run arbitrary functions from the CLI.
+
+* New page link aliasing syntax (Obsidian compatible) is here: `[[page link|alias]]` e.g. [[CHANGELOG|this is a link to this changelog]].
+* Added `invokeFunction` `silverbullet` CLI sub-command to run arbitrary plug functions from the CLI.
 
 ---
 
