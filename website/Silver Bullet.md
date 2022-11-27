@@ -1,21 +1,24 @@
 Silver Bullet is extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
-knowledge management** software. Indeed, at the most basic level that translates to “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
+knowledge management** software. Indeed, at the most basic level that translates to “a note-taking app with links.” However, Silver Bullet goes a beyond just that.
 
 Let’s have a look at some of its features.
 
 ## Features
 * Runs in any modern browser (including mobile browsers) and is installable as a PWA.
 * Provides a distraction-free, enjoyable markdown writing experience using [[Live Preview|live preview]] that **reduces visual noise**, but still gives direct access to the underlying [[Markdown]] syntax.
-* Supports wiki-like page linking using the `[[page link]]` syntax, keeping links up-to-date as pages are renamed.
+* Supports wiki-like page linking using the `[[page link]]` syntax, keeping links up-to-date when pages are renamed.
 * Optimized for keyboard-based operation:
-  * Quickly navigate between pages using the page switcher (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
-  * Run commands via their keyboard shortcuts, or the command palette (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
+  * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
+  * Run commands via their keyboard shortcuts, or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[🔌 Core/Slash Commands|slash commands]] to perform common text editing operations.
 * Supports annotating pages with metadata (using [[Frontmatter]]).
 * Provides a platform for [End-user Programming](https://www.inkandswitch.com/end-user-programming/) through its support of [[🔌 Directive|directives]] (such as [[🔌 Directive/Query|#query]]), which make parts of pages _dynamic_.
 * Robust extension mechanism using [[🔌 Plugs]]
-* You own your data. All content is stored as plain files in a folder on disk. Nothing fancy.
+* Self hosted: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, script with any other tools you like.
 * Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
+
+![Screencast screenshot](demo-video-screenshot.png)
+To get a good feel of what Silver Bullet is capable of, [have a look at at this **introduction video**](https://youtu.be/VemS-cqAD5k).
 
 ## Try it
 Here’s the kicker:
@@ -26,11 +29,11 @@ That’s right, **this very website is powered by Silver Bullet itself**. 🤯
 
 On this site, everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only). So, edit away, reload the page and everything resets.
 
-So, don’t just sit there, try it!
+Don’t just sit there, try it!
 
-* Click on the page picker (folder tree) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a nonexistent page to create it (although it won’t save in this environment).
+* Click on the page picker (folder tree) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a non-existent page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note that not all commands will work in this mode).
-* Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` to make it **bold**.
+* Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` (Windows/Linux) to make it **bold**, or `Cmd-i` (Mac) or `Ctrl-i` (Windows/Linux) to make it _italic_.
 * Click a link somewhere on this page to navigate there.
 * Start typing `[[` somewhere to insert a page link (with completion).
 * [ ] Tap this box 👈 to mark this task as done.
@@ -70,11 +73,6 @@ There are a few features you don’t get to fully experience in this environment
 * **Full text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 
-
-## Demo video
-![Screencast screenshot](demo-video-screenshot.png)
-Some things are just [better explained in a video](https://youtu.be/VemS-cqAD5k).
-
 ## Where to go from here
 Click on the links below to explore various aspects of Silver Bullet more
 in-depth:
@@ -105,12 +103,12 @@ To run Silver Bullet, create a folder for your pages (it can be empty, or be an 
 silverbullet <pages-path>
 ```
 
-By default, Silver Bullet will bind to port `3000`, to use a different port use the the `--port` flag.
+By default, Silver Bullet will bind to port `3000`, to use a different port use the the `--port` flag. By default Silver Bullet is unauthenticated, to password-protect it, specify a password with the `--password` flag.
 
-Once downloaded and booted, Silver Bullet will print out a URL to open SB in your browser (spoiler alert: by default this will be http://localhost:3000 ).
+Once downloaded and booted, Silver Bullet will print out a URL to open SB in your browser (by default this will be http://localhost:3000 ).
 
 ## Upgrading Silver Bullet
-Simply run:
+Silver Bullet is regularly updated. To get the latest and greatest, simply run:
 
 ```shell
 silverbullet upgrade
@@ -121,4 +119,6 @@ And restart Silver Bullet. You should be good to go.
 ## Support
 
 If you (hypothetically) find bugs or have feature requests, post them in
-[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet). Want to chat with us? [We have a Mattermost instance](https://silverbullet.cloud.mattermost.com/), join us!
+[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
+
+Want to chat with us? [We have a Mattermost instance](https://silverbullet.cloud.mattermost.com/), join us!
