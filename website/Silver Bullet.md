@@ -13,6 +13,7 @@ Let’s have a look at some of its features.
   * Use [[🔌 Core/Slash Commands|slash commands]] to perform common text editing operations.
 * Supports annotating pages with metadata (using [[Frontmatter]]).
 * Provides a platform for [End-user Programming](https://www.inkandswitch.com/end-user-programming/) through its support of [[🔌 Directive|directives]] (such as [[🔌 Directive/Query|#query]]), which make parts of pages _dynamic_.
+* Experimental [[🔌 Collab|real-time collaboration support]].
 * Robust extension mechanism using [[🔌 Plugs]]
 * Self hosted: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, script with any other tools you like.
 * Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
