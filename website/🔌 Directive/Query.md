@@ -151,11 +151,11 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Let's try to limit it in the next step.
 
 <!-- #query page limit 3 -->
-|name         |lastModified |contentType  |size|perm|
-|-------------|-------------|-------------|----|--|
-|SETTINGS     |1667053645895|text/markdown|169 |rw|
-|Silver Bullet|1669379746803|text/markdown|6823|rw|
-|YAML         |1669378903144|text/markdown|199 |rw|
+|name         |lastModified |contentType  |size|perm|type|uri                                                         |repo                                                |author           |
+|--|--|--|--|--|--|--|--|--|
+|Markdown     |1669534332564|text/markdown|1022|rw|    |                                                            |                                                    |                 |
+|🔌 Graph View|1669388320673|text/markdown|1042|rw|plug|github:bbroeksema/silverbullet-graphview/graphview.plug.json|https://github.com/bbroeksema/silverbullet-graphview|Bertjan Broeksema|
+|SETTINGS     |1667053645895|text/markdown|169 |rw|    |                                                            |                                                    |                 |
 <!-- /query -->
 
 
@@ -166,13 +166,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need. 
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name          |lastModified |contentType  |size|perm|type|repo                                                 |author               |uri                                                         |
-|--|--|--|--|--|--|--|--|--|
-|🔌 Directive  |1669382855582|text/markdown|2572|rw|plug|https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|                                                            |
-|🔌 Github     |1669302595740|text/markdown|2202|rw|plug|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |github:silverbulletmd/silverbullet-github/github.plug.json  |
-|🔌 Core       |1668787355449|text/markdown|3418|rw|plug|https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|builtin:core                                                |
-|🔌 Ghost      |1667053645897|text/markdown|1071|rw|plug|https://github.com/silverbulletmd/silverbullet-ghost |Zef Hemel            |github:silverbulletmd/silverbullet-ghost/ghost.plug.json    |
-|🔌 Serendipity|1667053645897|text/markdown|1179|rw|plug|https://github.com/m1lt0n/silverbullet-serendipity   |Pantelis Vratsalis   |github:m1lt0n/silverbullet-serendipity/serendipity.plug.json|
+|name         |lastModified |contentType  |size|perm|type|repo                                                 |author               |share-support|uri                                                         |
+|--|--|--|--|--|--|--|--|--|--|
+|🔌 Collab    |1669389685597|text/markdown|2199|rw|plug|https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|true|                                                            |
+|🔌 Share     |1669389175835|text/markdown|702 |rw|plug|https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|    |                                                            |
+|🔌 Graph View|1669388320673|text/markdown|1042|rw|plug|https://github.com/bbroeksema/silverbullet-graphview |Bertjan Broeksema    |    |github:bbroeksema/silverbullet-graphview/graphview.plug.json|
+|🔌 Github    |1669387590823|text/markdown|2222|rw|plug|https://github.com/silverbulletmd/silverbullet-github|Zef Hemel            |true|github:silverbulletmd/silverbullet-github/github.plug.json  |
+|🔌 Markdown  |1669387575305|text/markdown|298 |rw|plug|https://github.com/silverbulletmd/silverbullet       |Silver Bullet Authors|true|                                                            |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -184,13 +184,13 @@ and `repo` columns and then sort by last modified time.
 from a visual perspective.
 
 <!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 -->
-|name          |author               |repo                                                 |ri|
+|name         |author               |repo                                                 |ri|
 |--|--|--|--|
-|🔌 Directive  |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       ||
-|🔌 Github     |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github||
-|🔌 Core       |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       ||
-|🔌 Ghost      |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-ghost ||
-|🔌 Serendipity|Pantelis Vratsalis   |https://github.com/m1lt0n/silverbullet-serendipity   ||
+|🔌 Collab    |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       ||
+|🔌 Share     |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       ||
+|🔌 Graph View|Bertjan Broeksema    |https://github.com/bbroeksema/silverbullet-graphview ||
+|🔌 Github    |Zef Hemel            |https://github.com/silverbulletmd/silverbullet-github||
+|🔌 Markdown  |Silver Bullet Authors|https://github.com/silverbulletmd/silverbullet       ||
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -200,11 +200,11 @@ from a visual perspective.
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
 <!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
-* [[🔌 Directive]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
+* [[🔌 Collab]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
+* [[🔌 Share]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
+* [[🔌 Graph View]] by **Bertjan Broeksema** ([repo](https://github.com/bbroeksema/silverbullet-graphview))
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Core]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
-* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
+* [[🔌 Markdown]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet))
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are

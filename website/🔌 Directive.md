@@ -1,7 +1,6 @@
 ---
 type: plug
 repo: https://github.com/silverbulletmd/silverbullet
-author: Silver Bullet Authors
 ---
 
 The directive plug is a built-in plug implementing various so-called “directive” that all take the form of `<!-- #directiveName ... -->` and close with `<!-- /directiveName -->`. Currently the following directives are supported:

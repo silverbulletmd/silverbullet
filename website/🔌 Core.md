@@ -1,7 +1,6 @@
 ---
 type: plug
 repo: https://github.com/silverbulletmd/silverbullet
-author: Silver Bullet Authors
 ---
 
 The core plug implements foundational functionality for Silver Bullet. It covers the following areas:

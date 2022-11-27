@@ -1,27 +1,24 @@
 Silver Bullet is extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
-knowledge management** software. Indeed, that’s fancy language for “a note taking app with links (and some other stuff).”
+knowledge management** software. Indeed, at the most basic level that translates to “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
 
-Silver Bullet provides:
+Let’s have a look at some of its features.
 
-* An enjoyable markdown writing experience using [[Live Preview|live preview]] that **reduces visual noise**, but still gives direct access to the underlying [[Markdown]] syntax.
-* The ability to cross-link pages using the `[[page link]]` syntax, keeping these links automatically up-to-date as pages are renamed.
-* Primarily keyboard-based operation:
+## Features
+* Runs in any modern browser (including mobile browsers) and is installable as a PWA.
+* Provides a distraction-free, enjoyable markdown writing experience using [[Live Preview|live preview]] that **reduces visual noise**, but still gives direct access to the underlying [[Markdown]] syntax.
+* Supports wiki-like page linking using the `[[page link]]` syntax, keeping links up-to-date as pages are renamed.
+* Optimized for keyboard-based operation:
   * Quickly navigate between pages using the page switcher (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts, or the command palette (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[🔌 Core/Slash Commands|slash commands]] to perform common text editing operations.
-* The ability to annotate pages with metadata (using [[Frontmatter]]), which can be [[🔌 Directive/Query|queried]] to build partially dynamic pages.
-* A robust extension mechanism using [[🔌 Plugs]]
+* Supports annotating pages with metadata (using [[Frontmatter]]).
+* Provides a platform for [End-user Programming](https://www.inkandswitch.com/end-user-programming/) through its support of [[🔌 Directive|directives]] (such as [[🔌 Directive/Query|#query]]), which make parts of pages _dynamic_.
+* Robust extension mechanism using [[🔌 Plugs]]
+* You own your data. All content is stored as plain files in a folder on disk. Nothing fancy.
+* Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
-Here is a screenshot of Silver Bullet in PWA mode (Silver Bullet can be installed as a PWA on Chromium-based browsers):
-
-![Silver Bullet PWA Screenshot](silverbullet-pwa.png)
-
-It also works in mobile browsers:
-
-![Silver Bullet on mobile](silverbullet-ios.png)
-
-
-But here’s the kicker:
+## Try it
+Here’s the kicker:
 
 ==You are looking at a (more or less) operational copy of Silver Bullet **right now**==.
 
@@ -29,9 +26,8 @@ That’s right, this very website is powered by a quasi-read-only version of Sil
 
 On this site, everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only).
 
-So, don’t just sit there...
+So, don’t just sit there, try this!
 
-## Try it out!
 * Click on the page picker (folder tree) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a nonexistent page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note that not all commands will work in this mode).
 * Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` to make it **bold**.
@@ -67,7 +63,7 @@ name: Silver Bullet
 rating: 5
 ```
 
-There are a few [[🤯 Features]] you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
+There are a few Features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
 
 * Using Silver Bullet [[🔌 Directive|directives]] where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
 * Intelligent **page renaming**, automatically updating any pages that link to it.
@@ -83,11 +79,10 @@ Some things are just [better explained in a video](https://youtu.be/VemS-cqAD5k)
 Click on the links below to explore various aspects of Silver Bullet more
 in-depth:
 
-* [[CHANGELOG]] — what’s new?
-* [[🤯 Features]]
-* [[💡 Inspiration]]
-* [[🔌 Plugs]]
-* [[🔨 Development]]
+* [[CHANGELOG|What’s new?]]
+* [[💡 Inspiration]]: some of the projects that inspired Silver Bullet
+* [[🔌 Plugs]]: extensions available in Silver Bullet
+* [[🔨 Development]]: how to start hacking on Silver Bullet itself
 
 ## Installing Silver Bullet
 This consists of two steps (unless Deno is already installed:
@@ -117,13 +112,13 @@ Once downloaded and booted, Silver Bullet will print out a URL to open SB in you
 ## Upgrading Silver Bullet
 Simply run:
 
-    silverbullet upgrade
+```shell
+silverbullet upgrade
+```
 
 And restart Silver Bullet. You should be good to go.
 
-## Troubleshooting
-
-If you upgraded to the new Deno-based Silver Bullet from an old version, you may have to use the `silverbullet fix <pages-path>` command to flush out your old database and plugs. Plugs will likely need to be updated.
+## Support
 
 If you (hypothetically) find bugs or have feature requests, post them in
-[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
+[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet). Want to chat with us? [We have a Mattermost instance](https://silverbullet.cloud.mattermost.com/), join us!

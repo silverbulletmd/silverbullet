@@ -1,7 +1,6 @@
 ---
 type: plug
 repo: https://github.com/silverbulletmd/silverbullet
-author: Silver Bullet Authors
 ---
 
 The Share plug provides infrastructure for sharing pages outside of your space. It standardizes the {[Share: Publish]} (bound to `Cmd-s` or `Ctrl-s`) to publish the current page to all share providers specified under the `$share` key in [[Frontmatter]].

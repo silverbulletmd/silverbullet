@@ -1,7 +1,6 @@
 ---
 type: plug
 repo: https://github.com/silverbulletmd/silverbullet
-author: Silver Bullet Authors
 ---
 
 The Tasks plug implements a lot of the task support in Silver Bullet.
@@ -27,7 +26,7 @@ This metadata is extracted and available via the `task` query source to [[🔌 D
 <!-- #query task where page = "{{page}}"" -->
 |name                 |done |page    |pos|tags  |deadline  |
 |---------------------|-----|--------|---|------|----------|
-|This is a task       |false|🔌 Tasks|245|      |          |
-|This is a tagged task|false|🔌 Tasks|319|my-tag|          |
-|This is due          |false|🔌 Tasks|605|      |2022-11-26|
+|This is a task       |false|🔌 Tasks|215|      |          |
+|This is a tagged task|false|🔌 Tasks|289|my-tag|          |
+|This is due          |false|🔌 Tasks|575|      |2022-11-26|
 <!-- /query -->
