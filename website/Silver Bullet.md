@@ -1,7 +1,16 @@
 Silver Bullet is extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
-knowledge management** software. Indeed, that’s fancy language for “a note taking app with links.”
+knowledge management** software. Indeed, that’s fancy language for “a note taking app with links (and some other stuff).”
 
-Besides providing a nice [markdown](https://en.wikipedia.org/wiki/Markdown) editing experience (with live preview), and the ability to cross-link pages using the `[[page link]]` format, it also enables annotating your content with additional metadata (using [[Frontmatter]]), which can then be queried using a query [[🔌 Directive]]. Silver Bullet is highly extensible, and a lot of its functionality is proved via [[🔌 Plugs]].
+Silver Bullet provides:
+
+* An enjoyable markdown writing experience using [[Live Preview|live preview]] that **reduces visual noise**, but still gives direct access to the underlying [[Markdown]] syntax.
+* The ability to cross-link pages using the `[[page link]]` syntax, keeping these links automatically up-to-date as pages are renamed.
+* Primarily keyboard-based operation:
+  * Quickly navigate between pages using the page switcher (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
+  * Run commands via their keyboard shortcuts, or the command palette (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
+  * Use [[🔌 Core/Slash Commands|slash commands]] to perform common text editing operations.
+* The ability to annotate pages with metadata (using [[Frontmatter]]), which can be [[🔌 Directive/Query|queried]] to build partially dynamic pages.
+* A robust extension mechanism using [[🔌 Plugs]]
 
 Here is a screenshot of Silver Bullet in PWA mode (Silver Bullet can be installed as a PWA on Chromium-based browsers):
 
@@ -18,9 +27,11 @@ But here’s the kicker:
 
 That’s right, this very website is powered by a quasi-read-only version of Silver Bullet itself. 🤯
 
-Quasi-read-only because everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only).
+On this site, everything is editable as in a regular copy of Silver Bullet, just none of it persists (the back-end is read-only).
 
-## Try it out
+So, don’t just sit there...
+
+## Try it out!
 * Click on the page picker (folder tree) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a nonexistent page to create it (although it won’t save in this environment).
 * Click on the run button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note that not all commands will work in this mode).
 * Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` to make it **bold**.
@@ -58,7 +69,7 @@ rating: 5
 
 There are a few [[🤯 Features]] you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
 
-* Using Silver Bullet [[🔌 Directive]]s where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
+* Using Silver Bullet [[🔌 Directive|directives]] where part of pages are automatically rendered and kept up to date by querying various data sources (such as pages and their metadata, back links, tasks embedded in pages, and list items) with an SQL like syntax, rendered with handlebars templates.
 * Intelligent **page renaming**, automatically updating any pages that link to it.
 * **Full text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
