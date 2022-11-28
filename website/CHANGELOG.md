@@ -6,6 +6,7 @@ release.
 ## 0.2.2
 
 * New page link aliasing syntax (Obsidian compatible) is here: `[[page link|alias]]` e.g. [[CHANGELOG|this is a link to this changelog]].
+* Less "floppy" behavior when clicking links (wiki and regular): just navigates there right away. Note: use `Alt-click` to move cursor inside of a link.
 * Added `invokeFunction` `silverbullet` CLI sub-command to run arbitrary plug functions from the CLI.
 
 ---

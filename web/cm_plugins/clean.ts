@@ -5,7 +5,7 @@ import { blockquotePlugin } from "./block_quote.ts";
 import { directivePlugin } from "./directive.ts";
 import { hideHeaderMarkPlugin, hideMarks } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
-import { goToLinkPlugin } from "./link.ts";
+import { linkPlugin } from "./link.ts";
 import { listBulletPlugin } from "./list.ts";
 import { tablePlugin } from "./table.ts";
 import { taskListPlugin } from "./task.ts";
@@ -13,7 +13,7 @@ import { cleanWikiLinkPlugin } from "./wiki_link.ts";
 
 export function cleanModePlugins(editor: Editor) {
   return [
-    goToLinkPlugin,
+    linkPlugin(editor),
     directivePlugin,
     blockquotePlugin,
     hideMarks(),
@@ -35,6 +35,6 @@ export function cleanModePlugins(editor: Editor) {
     }),
     listBulletPlugin,
     tablePlugin,
-    cleanWikiLinkPlugin(),
+    cleanWikiLinkPlugin(editor),
   ] as Extension[];
 }

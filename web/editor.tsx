@@ -307,8 +307,11 @@ export class Editor {
           // Frotnmatter found, put cursor after it
           initialCursorPos = match[0].length;
         }
+        // By default scroll to the top
+        this.editorView.scrollDOM.scrollTop = 0;
         this.editorView.dispatch({
           selection: { anchor: initialCursorPos },
+          // And then scroll down if required
           scrollIntoView: true,
         });
       }

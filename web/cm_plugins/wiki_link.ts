@@ -1,92 +1,106 @@
 import { pageLinkRegex } from "../../common/parser.ts";
+import { ClickEvent } from "../../plug-api/app_event.ts";
 import {
   Decoration,
   DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
+  WidgetType,
 } from "../deps.ts";
+import { Editor } from "../editor.tsx";
 import {
   invisibleDecoration,
   isCursorInRange,
   iterateTreeInVisibleRanges,
+  LinkWidget,
 } from "./util.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
  */
-class CleanWikiLinkPlugin {
-  decorations: DecorationSet;
-  constructor(view: EditorView) {
-    this.decorations = this.compute(view);
-  }
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged || update.selectionSet) {
-      this.decorations = this.compute(update.view);
-    }
-  }
-  compute(view: EditorView): DecorationSet {
-    const widgets: any[] = [];
-    // let parentRange: [number, number];
-    iterateTreeInVisibleRanges(view, {
-      enter: ({ type, from, to }) => {
-        if (type.name === "WikiLink") {
-          // Adding 2 on each side due to [[ and ]] that are outside the WikiLinkPage node
-          if (isCursorInRange(view.state, [from, to])) {
-            return;
-          }
-
-          // Add decoration to hide the prefix [[
-          widgets.push(
-            invisibleDecoration.range(
-              from,
-              from + 2,
-            ),
-          );
-          // Add decoration to hide the postfix [[
-          widgets.push(
-            invisibleDecoration.range(
-              to - 2,
-              to,
-            ),
-          );
-
-          // Now check if this page has an alias
-          const text = view.state.sliceDoc(from, to);
-          const match = pageLinkRegex.exec(text);
-          if (!match) return;
-          const [_fullMatch, page, pipePart] = match;
-
-          if (!pipePart) {
-            // No alias, let's check if there's a slash in the page name
-            if (text.indexOf("/") === -1) {
+export function cleanWikiLinkPlugin(editor: Editor) {
+  return ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(view: EditorView) {
+        this.decorations = this.compute(view);
+      }
+      update(update: ViewUpdate) {
+        if (
+          update.docChanged || update.viewportChanged || update.selectionSet
+        ) {
+          this.decorations = this.compute(update.view);
+        }
+      }
+      compute(view: EditorView): DecorationSet {
+        const widgets: any[] = [];
+        // let parentRange: [number, number];
+        iterateTreeInVisibleRanges(view, {
+          enter: ({ type, from, to }) => {
+            if (type.name !== "WikiLink") {
               return;
             }
-            // Add a inivisible decoration to hide the path prefix
-            widgets.push(
-              invisibleDecoration.range(
-                from + 2, // +2 to skip the [[
-                from + text.lastIndexOf("/") + 1,
-              ),
-            );
-          } else {
-            // Alias is present, so we hide the part before the pipe
-            widgets.push(
-              invisibleDecoration.range(
-                from + 2,
-                from + page.length + 3, // 3 is for the [[ and the |
-              ),
-            );
-          }
-        }
-      },
-    });
-    return Decoration.set(widgets, true);
-  }
-}
+            // Adding 2 on each side due to [[ and ]] that are outside the WikiLinkPage node
+            if (isCursorInRange(view.state, [from, to])) {
+              return;
+            }
 
-export const cleanWikiLinkPlugin = () => [
-  ViewPlugin.fromClass(CleanWikiLinkPlugin, {
-    decorations: (v) => v.decorations,
-  }),
-];
+            const text = view.state.sliceDoc(from, to);
+            const match = pageLinkRegex.exec(text);
+            if (!match) return;
+            const [_fullMatch, page, pipePart, alias] = match;
+
+            // Hide the whole thing
+            widgets.push(
+              invisibleDecoration.range(
+                from,
+                to,
+              ),
+            );
+
+            let linkText = alias || page;
+            if (!pipePart && text.indexOf("/") !== -1) {
+              // Let's use the last part of the path as the link text
+              linkText = page.split("/").pop()!;
+            }
+
+            // And replace it with a widget
+            widgets.push(
+              Decoration.widget({
+                widget: new LinkWidget(
+                  linkText,
+                  page,
+                  "sb-wiki-link-page",
+                  (e) => {
+                    if (e.altKey) {
+                      // Move cursor into the link
+                      return view.dispatch({
+                        selection: { anchor: from + 2 },
+                      });
+                    }
+                    // Dispatch click event to navigate there without moving the cursor
+                    const clickEvent: ClickEvent = {
+                      page: editor.currentPage!,
+                      ctrlKey: e.ctrlKey,
+                      metaKey: e.metaKey,
+                      altKey: e.altKey,
+                      pos: from,
+                    };
+                    editor.dispatchAppEvent("page:click", clickEvent).catch(
+                      console.error,
+                    );
+                  },
+                ),
+              }).range(from),
+            );
+          },
+        });
+        return Decoration.set(widgets, true);
+      }
+    },
+    {
+      decorations: (v) => v.decorations,
+    },
+  );
+}

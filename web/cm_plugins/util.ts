@@ -8,7 +8,32 @@ import {
   foldedRanges,
   SyntaxNodeRef,
   syntaxTree,
+  WidgetType,
 } from "../deps.ts";
+
+export class LinkWidget extends WidgetType {
+  constructor(
+    readonly text: string,
+    readonly title: string,
+    readonly cssClass: string,
+    readonly callback: (e: MouseEvent) => void,
+  ) {
+    super();
+  }
+  toDOM(): HTMLElement {
+    const anchor = document.createElement("a");
+    anchor.className = this.cssClass;
+    anchor.textContent = this.text;
+    anchor.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.callback(e);
+    });
+    anchor.setAttribute("title", this.title);
+    anchor.href = "#";
+    return anchor;
+  }
+}
 
 /**
  * Check if two ranges overlap
