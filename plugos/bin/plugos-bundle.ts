@@ -121,7 +121,6 @@ export async function bundleRun(
   watch: boolean,
   options: CompileOptions = {},
 ) {
-  // console.log("Args", arguments);
   let building = false;
   async function buildAll() {
     if (building) {
@@ -130,7 +129,9 @@ export async function bundleRun(
     console.log("Building", manifestFiles);
     building = true;
     Deno.mkdirSync(dist, { recursive: true });
-    for (const plugManifestPath of manifestFiles) {
+    const startTime = Date.now();
+    // Build all plugs in parallel
+    await Promise.all(manifestFiles.map(async (plugManifestPath) => {
       const manifestPath = plugManifestPath as string;
       try {
         await buildManifest(
@@ -141,8 +142,8 @@ export async function bundleRun(
       } catch (e) {
         console.error(`Error building ${manifestPath}:`, e);
       }
-    }
-    console.log("Done building plugs.");
+    }));
+    console.log(`Done building plugs in ${Date.now() - startTime}ms`);
     building = false;
   }
 
