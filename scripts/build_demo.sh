@@ -4,6 +4,9 @@ echo "Install Deno"
 curl -fsSL https://deno.land/install.sh | sh
 export PATH=~/.deno/bin:$PATH
 
+echo "Generating version number..."
+echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+
 echo "Building silver bullet"
 deno task build
 echo "Cleaning website build dir"
