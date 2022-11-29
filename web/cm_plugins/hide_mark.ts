@@ -25,7 +25,7 @@ const typesWithMarks = [
   "InlineCode",
   "Highlight",
   "Strikethrough",
-  "CommandLink",
+  // "CommandLink",
 ];
 /**
  * The elements which are used as marks.
@@ -35,7 +35,7 @@ const markTypes = [
   "CodeMark",
   "HighlightMark",
   "StrikethroughMark",
-  "CommandLinkMark",
+  // "CommandLinkMark",
 ];
 
 /**

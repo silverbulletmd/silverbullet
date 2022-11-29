@@ -10,6 +10,7 @@ import { listBulletPlugin } from "./list.ts";
 import { tablePlugin } from "./table.ts";
 import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
+import { cleanCommandLinkPlugin } from "./command_link.ts";
 
 export function cleanModePlugins(editor: Editor) {
   return [
@@ -36,5 +37,6 @@ export function cleanModePlugins(editor: Editor) {
     listBulletPlugin,
     tablePlugin,
     cleanWikiLinkPlugin(editor),
+    cleanCommandLinkPlugin(editor),
   ] as Extension[];
 }

@@ -1,4 +1,4 @@
-import { pageLinkRegex } from "../../common/parser.ts";
+import { commandLinkRegex, pageLinkRegex } from "../../common/parser.ts";
 import { ClickEvent } from "../../plug-api/app_event.ts";
 import {
   Decoration,
@@ -9,16 +9,16 @@ import {
 } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import {
+  ButtonWidget,
   invisibleDecoration,
   isCursorInRange,
   iterateTreeInVisibleRanges,
-  LinkWidget,
 } from "./util.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
  */
-export function cleanWikiLinkPlugin(editor: Editor) {
+export function cleanCommandLinkPlugin(editor: Editor) {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
@@ -37,7 +37,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         // let parentRange: [number, number];
         iterateTreeInVisibleRanges(view, {
           enter: ({ type, from, to }) => {
-            if (type.name !== "WikiLink") {
+            if (type.name !== "CommandLink") {
               return;
             }
             if (isCursorInRange(view.state, [from, to])) {
@@ -45,9 +45,9 @@ export function cleanWikiLinkPlugin(editor: Editor) {
             }
 
             const text = view.state.sliceDoc(from, to);
-            const match = pageLinkRegex.exec(text);
+            const match = commandLinkRegex.exec(text);
             if (!match) return;
-            const [_fullMatch, page, pipePart, alias] = match;
+            const [_fullMatch, command, _pipePart, alias] = match;
 
             // Hide the whole thing
             widgets.push(
@@ -57,19 +57,14 @@ export function cleanWikiLinkPlugin(editor: Editor) {
               ),
             );
 
-            let linkText = alias || page;
-            if (!pipePart && text.indexOf("/") !== -1) {
-              // Let's use the last part of the path as the link text
-              linkText = page.split("/").pop()!;
-            }
-
+            const linkText = alias || command;
             // And replace it with a widget
             widgets.push(
               Decoration.widget({
-                widget: new LinkWidget(
+                widget: new ButtonWidget(
                   linkText,
-                  page,
-                  "sb-wiki-link-page",
+                  `Run command: ${command}`,
+                  "sb-command-button",
                   (e) => {
                     if (e.altKey) {
                       // Move cursor into the link

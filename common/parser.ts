@@ -23,10 +23,12 @@ import {
 export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
 const WikiLink: MarkdownConfig = {
-  defineNodes: ["WikiLink", "WikiLinkPage", "WikiLinkAlias", {
-    name: "WikiLinkMark",
-    style: t.processingInstruction,
-  }],
+  defineNodes: [
+    { name: "WikiLink", style: ct.WikiLinkTag },
+    { name: "WikiLinkPage", style: ct.WikiLinkPageTag },
+    { name: "WikiLinkAlias", style: ct.WikiLinkPageTag },
+    { name: "WikiLinkMark", style: t.processingInstruction },
+  ],
   parseInline: [
     {
       name: "WikiLink",
@@ -38,8 +40,8 @@ const WikiLink: MarkdownConfig = {
         ) {
           return -1;
         }
-        const [_fullMatch, page, pipePart, label] = match;
-        const endPos = pos + match[0].length;
+        const [fullMatch, page, pipePart, label] = match;
+        const endPos = pos + fullMatch.length;
         let aliasElts: any[] = [];
         if (pipePart) {
           const pipeStartPos = pos + 2 + page.length;
@@ -66,16 +68,14 @@ const WikiLink: MarkdownConfig = {
   ],
 };
 
-const commandLinkRegex = /^\{\[([^\]]+)\]\}/;
+export const commandLinkRegex = /^\{\[([^\]\|]+)(\|([^\]]+))?\]\}/;
 
 const CommandLink: MarkdownConfig = {
   defineNodes: [
     { name: "CommandLink", style: { "CommandLink/...": ct.CommandLinkTag } },
     { name: "CommandLinkName", style: ct.CommandLinkNameTag },
-    {
-      name: "CommandLinkMark",
-      style: t.processingInstruction,
-    },
+    { name: "CommandLinkAlias", style: ct.CommandLinkNameTag },
+    { name: "CommandLinkMark", style: t.processingInstruction },
   ],
   parseInline: [
     {
@@ -88,14 +88,37 @@ const CommandLink: MarkdownConfig = {
         ) {
           return -1;
         }
-        const endPos = pos + match[0].length;
+        const [fullMatch, command, pipePart, label] = match;
+        const endPos = pos + fullMatch.length;
+
+        let aliasElts: any[] = [];
+        if (pipePart) {
+          const pipeStartPos = pos + 2 + command.length;
+          aliasElts = [
+            cx.elt("CommandLinkMark", pipeStartPos, pipeStartPos + 1),
+            cx.elt(
+              "CommandLinkAlias",
+              pipeStartPos + 1,
+              pipeStartPos + 1 + label.length,
+            ),
+          ];
+        }
         return cx.addElement(
           cx.elt("CommandLink", pos, endPos, [
             cx.elt("CommandLinkMark", pos, pos + 2),
-            cx.elt("CommandLinkName", pos + 2, endPos - 2),
+            cx.elt("CommandLinkName", pos + 2, pos + 2 + command.length),
+            ...aliasElts,
             cx.elt("CommandLinkMark", endPos - 2, endPos),
           ]),
         );
+
+        // return cx.addElement(
+        //   cx.elt("CommandLink", pos, endPos, [
+        //     cx.elt("CommandLinkMark", pos, pos + 2),
+        //     cx.elt("CommandLinkName", pos + 2, endPos - 2),
+        //     cx.elt("CommandLinkMark", endPos - 2, endPos),
+        //   ]),
+        // );
       },
       after: "Emphasis",
     },
@@ -234,9 +257,9 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       {
         props: [
           styleTags({
-            WikiLink: ct.WikiLinkTag,
-            WikiLinkPage: ct.WikiLinkPageTag,
-            WikiLinkAlias: ct.WikiLinkPageTag,
+            // WikiLink: ct.WikiLinkTag,
+            // WikiLinkPage: ct.WikiLinkPageTag,
+            // WikiLinkAlias: ct.WikiLinkPageTag,
             // CommandLink: ct.CommandLinkTag,
             // CommandLinkName: ct.CommandLinkNameTag,
             Task: ct.TaskTag,
