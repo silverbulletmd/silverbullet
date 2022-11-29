@@ -304,8 +304,8 @@ export class Editor {
         let initialCursorPos = 0;
         const match = frontMatterRegex.exec(pageText);
         if (match) {
-          // Frotnmatter found, put cursor after it
-          initialCursorPos = match[0].length;
+          // Frontmatter found, put cursor after it
+          initialCursorPos = match[0].length + 1;
         }
         // By default scroll to the top
         this.editorView.scrollDOM.scrollTop = 0;

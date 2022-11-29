@@ -34,6 +34,17 @@ export function linkPlugin(editor: Editor) {
             if (isCursorInRange(view.state, [from, to])) {
               return;
             }
+
+            const text = view.state.sliceDoc(from, to);
+            // Links are of the form [hell](https://example.com)
+            const [anchorPart, linkPart] = text.split("]("); // Not pretty
+            if (!linkPart) {
+              // Invalid link
+              return;
+            }
+            const cleanAnchor = anchorPart.substring(1); // cut off the initial [
+            const cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
+
             // Hide the whole thing
             widgets.push(
               invisibleDecoration.range(
@@ -41,12 +52,6 @@ export function linkPlugin(editor: Editor) {
                 to,
               ),
             );
-
-            const text = view.state.sliceDoc(from, to);
-            // Links are of the form [hell](https://example.com)
-            const [anchorPart, linkPart] = text.split("]("); // Not pretty
-            const cleanAnchor = anchorPart.substring(1); // cut off the initial [
-            const cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
 
             widgets.push(
               Decoration.widget({
