@@ -155,7 +155,11 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       const file of walk(this.rootPath, {
         includeDirs: false,
         // Exclude hidden directories
-        skip: [/^.*\/\..+$/],
+        skip: [
+          // Dynamically builds a regexp that matches hidden directories INSIDE the rootPath
+          // (but if the rootPath is hidden, it stil lists files inside of it, fixing #130)
+          new RegExp(`^${escapeRegExp(this.rootPath)}.*\\/\\..+$`),
+        ],
       })
     ) {
       const fullPath = file.path;
@@ -193,4 +197,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
     return plug.syscall(name, args);
   }
+}
+
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
 }
