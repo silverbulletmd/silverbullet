@@ -7,6 +7,7 @@ release.
 
 * New page link aliasing syntax (Obsidian compatible) is here: `[[page link|alias]]` e.g. [[CHANGELOG|this is a link to this changelog]]. Also supported for command links: `{[Plugs: Add|add a plug]}`
 * Less "floppy" behavior when clicking links (regular, wiki and command): just navigates there right away. Note: use `Alt-click` to move the cursor inside of a link.
+* Page reference to non-existing pages are now higlighted in a (red-ish) color
 * Added `invokeFunction` `silverbullet` CLI sub-command to run arbitrary plug functions from the CLI.
 
 ---

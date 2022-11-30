@@ -40,14 +40,36 @@ export function cleanWikiLinkPlugin(editor: Editor) {
             if (type.name !== "WikiLink") {
               return;
             }
-            if (isCursorInRange(view.state, [from, to])) {
-              return;
-            }
 
             const text = view.state.sliceDoc(from, to);
             const match = pageLinkRegex.exec(text);
             if (!match) return;
             const [_fullMatch, page, pipePart, alias] = match;
+
+            const allPages = editor.space.listPages();
+            let pageExists = false;
+            let cleanPage = page;
+            if (page.includes("@")) {
+              cleanPage = page.split("@")[0];
+            }
+            for (const pageMeta of allPages) {
+              if (pageMeta.name === cleanPage) {
+                pageExists = true;
+                break;
+              }
+            }
+
+            if (isCursorInRange(view.state, [from, to])) {
+              // Only attach a CSS class, then get out
+              if (!pageExists) {
+                widgets.push(
+                  Decoration.mark({
+                    class: "sb-wiki-link-page-missing",
+                  }).range(from + 2, from + page.length + 2),
+                );
+              }
+              return;
+            }
 
             // Hide the whole thing
             widgets.push(
@@ -68,8 +90,10 @@ export function cleanWikiLinkPlugin(editor: Editor) {
               Decoration.widget({
                 widget: new LinkWidget(
                   linkText,
-                  page,
-                  "sb-wiki-link-page",
+                  pageExists ? `Navigate to ${page}` : `Create ${page}`,
+                  pageExists
+                    ? "sb-wiki-link-page"
+                    : "sb-wiki-link-page-missing",
                   (e) => {
                     if (e.altKey) {
                       // Move cursor into the link
