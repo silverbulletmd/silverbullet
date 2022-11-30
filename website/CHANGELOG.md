@@ -9,6 +9,8 @@ release.
 * Less "floppy" behavior when clicking links (regular, wiki and command): just navigates there right away. Note: use `Alt-click` to move the cursor inside of a link.
 * Page reference to non-existing pages are now higlighted in a (red-ish) color
 * Added `invokeFunction` `silverbullet` CLI sub-command to run arbitrary plug functions from the CLI.
+* Restyled #tags
+* When tasks are indexed, the hashtag is now no longer removed from the task text
 
 ---
 

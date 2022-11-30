@@ -178,7 +178,13 @@
 }
 
 .sb-hashtag {
-  color: blue;
+  color: #e2e9ff;
+  background-color: #002b6aad;
+  border: 1px solid #0120416b;
+  border-radius: 6px;
+  padding: 0 3px;
+  margin: 0 -3px;
+  font-size: 0.9em;
 }
 
 .sb-line-hr {
@@ -432,10 +438,6 @@ html[data-theme="dark"] {
   .sb-notifications > div {
     border: rgb(197, 197, 197) 1px solid;
     background-color: #333;
-  }
-
-  .sb-hashtag {
-    color: #94b0f4;
   }
 
   .sb-naked-url {

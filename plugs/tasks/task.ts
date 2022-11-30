@@ -63,7 +63,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
         // Push the tag to the list, removing the initial #
         task.tags.push(tree.children![0].text!.substring(1));
         // Remove this node from the tree
-        return null;
+        // return null;
       }
     });
 
