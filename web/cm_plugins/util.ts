@@ -11,26 +11,30 @@ import {
   WidgetType,
 } from "../deps.ts";
 
+type LinkOptions = {
+  text: string;
+  href?: string;
+  title: string;
+  cssClass: string;
+  callback: (e: MouseEvent) => void;
+};
 export class LinkWidget extends WidgetType {
   constructor(
-    readonly text: string,
-    readonly title: string,
-    readonly cssClass: string,
-    readonly callback: (e: MouseEvent) => void,
+    readonly options: LinkOptions,
   ) {
     super();
   }
   toDOM(): HTMLElement {
     const anchor = document.createElement("a");
-    anchor.className = this.cssClass;
-    anchor.textContent = this.text;
+    anchor.className = this.options.cssClass;
+    anchor.textContent = this.options.text;
     anchor.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.callback(e);
+      this.options.callback(e);
     });
-    anchor.setAttribute("title", this.title);
-    anchor.href = "#";
+    anchor.setAttribute("title", this.options.title);
+    anchor.href = this.options.href || "#";
     return anchor;
   }
 }

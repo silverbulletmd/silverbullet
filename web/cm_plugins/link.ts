@@ -56,27 +56,30 @@ export function linkPlugin(editor: Editor) {
             widgets.push(
               Decoration.widget({
                 widget: new LinkWidget(
-                  cleanAnchor,
-                  `Click to visit ${cleanLink}`,
-                  "sb-link",
-                  (e) => {
-                    if (e.altKey) {
-                      // Move cursor into the link, approximate location
-                      return view.dispatch({
-                        selection: { anchor: from + 1 },
-                      });
-                    }
-                    // Dispatch click event to navigate there without moving the cursor
-                    const clickEvent: ClickEvent = {
-                      page: editor.currentPage!,
-                      ctrlKey: e.ctrlKey,
-                      metaKey: e.metaKey,
-                      altKey: e.altKey,
-                      pos: from,
-                    };
-                    editor.dispatchAppEvent("page:click", clickEvent).catch(
-                      console.error,
-                    );
+                  {
+                    text: cleanAnchor,
+                    title: `Click to visit ${cleanLink}`,
+                    cssClass: "sb-link",
+                    href: cleanLink,
+                    callback: (e) => {
+                      if (e.altKey) {
+                        // Move cursor into the link, approximate location
+                        return view.dispatch({
+                          selection: { anchor: from + 1 },
+                        });
+                      }
+                      // Dispatch click event to navigate there without moving the cursor
+                      const clickEvent: ClickEvent = {
+                        page: editor.currentPage!,
+                        ctrlKey: e.ctrlKey,
+                        metaKey: e.metaKey,
+                        altKey: e.altKey,
+                        pos: from,
+                      };
+                      editor.dispatchAppEvent("page:click", clickEvent).catch(
+                        console.error,
+                      );
+                    },
                   },
                 ),
               }).range(from),

@@ -89,29 +89,34 @@ export function cleanWikiLinkPlugin(editor: Editor) {
             widgets.push(
               Decoration.widget({
                 widget: new LinkWidget(
-                  linkText,
-                  pageExists ? `Navigate to ${page}` : `Create ${page}`,
-                  pageExists
-                    ? "sb-wiki-link-page"
-                    : "sb-wiki-link-page-missing",
-                  (e) => {
-                    if (e.altKey) {
-                      // Move cursor into the link
-                      return view.dispatch({
-                        selection: { anchor: from + 2 },
-                      });
-                    }
-                    // Dispatch click event to navigate there without moving the cursor
-                    const clickEvent: ClickEvent = {
-                      page: editor.currentPage!,
-                      ctrlKey: e.ctrlKey,
-                      metaKey: e.metaKey,
-                      altKey: e.altKey,
-                      pos: from,
-                    };
-                    editor.dispatchAppEvent("page:click", clickEvent).catch(
-                      console.error,
-                    );
+                  {
+                    text: linkText,
+                    title: pageExists
+                      ? `Navigate to ${page}`
+                      : `Create ${page}`,
+                    href: `/${page.replaceAll(" ", "_")}`,
+                    cssClass: pageExists
+                      ? "sb-wiki-link-page"
+                      : "sb-wiki-link-page-missing",
+                    callback: (e) => {
+                      if (e.altKey) {
+                        // Move cursor into the link
+                        return view.dispatch({
+                          selection: { anchor: from + 2 },
+                        });
+                      }
+                      // Dispatch click event to navigate there without moving the cursor
+                      const clickEvent: ClickEvent = {
+                        page: editor.currentPage!,
+                        ctrlKey: e.ctrlKey,
+                        metaKey: e.metaKey,
+                        altKey: e.altKey,
+                        pos: from,
+                      };
+                      editor.dispatchAppEvent("page:click", clickEvent).catch(
+                        console.error,
+                      );
+                    },
                   },
                 ),
               }).range(from),
