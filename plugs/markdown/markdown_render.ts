@@ -335,11 +335,33 @@ function render(
         name: "td",
         body: cleanTags(mapRender(t.children!)),
       };
-    case "TableRow":
+    case "TableRow": {
+      const children = t.children!;
+      const newChildren: ParseTree[] = [];
+      // Ensure there is TableCell in between every delimiter
+      let lookingForCell = false;
+      for (const child of children) {
+        if (child.type === "TableDelimiter" && lookingForCell) {
+          // We were looking for a cell, but didn't fine one: empty cell!
+          // Let's inject an empty one
+          newChildren.push({
+            type: "TableCell",
+            children: [],
+          });
+        }
+        if (child.type === "TableDelimiter") {
+          lookingForCell = true;
+        }
+        if (child.type === "TableCell") {
+          lookingForCell = false;
+        }
+        newChildren.push(child);
+      }
       return {
         name: "tr",
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(mapRender(newChildren)),
       };
+    }
     // Text
     case undefined:
       return t.text!;
