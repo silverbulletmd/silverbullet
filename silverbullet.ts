@@ -19,6 +19,7 @@ await new Command()
   .usage("<options> <folder> | <command> (see below)")
   // Main command
   .arguments("<folder:string>")
+  .option("--hostname <hostname:string>", "Hostname or address to listen on")
   .option("-p, --port <port:number>", "Port to listen on")
   .option("--db <dbfile:string>", "Filename for the database", {
     default: "data.db",
