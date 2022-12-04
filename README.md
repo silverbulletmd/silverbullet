@@ -80,8 +80,9 @@ terminal:
 silverbullet <pages-path>
 ```
 
-By default, SB will bind to port `3000`, to use a different port use the
-`--port` flag. By default SB doesn’t offer any sort of authentication, to add
+By default, SB will bind to port `3000` on all interfaces. To specify a
+different address or port to listen on, use the `--hostname` and `--port`
+options. By default SB doesn’t offer any sort of authentication, to add
 basic password authentication, pass the `--password` flag.
 
 Once downloaded and booted, SB will print out a URL to open SB in your browser
