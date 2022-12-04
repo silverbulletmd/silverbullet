@@ -18,7 +18,7 @@ Let’s have a look at some of its features.
 * Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 ![Screencast screenshot](demo-video-screenshot.png)
-To get a good feel of what Silver Bullet is capable of, [have a look at at this **introduction video**](https://youtu.be/VemS-cqAD5k).
+To get a good feel of what Silver Bullet is capable of, [have a look at at this introduction video](https://youtu.be/VemS-cqAD5k).
 
 ## Try it
 Here’s the kicker:
