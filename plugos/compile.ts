@@ -76,6 +76,7 @@ export async function compile(
           // TODO do this differently
           importMapURL: options.importMap ||
             new URL("./../import_map.json", import.meta.url),
+          loader: "native",
         }),
       ],
       absWorkingDir: path.resolve(path.dirname(inFile)),

@@ -28,4 +28,4 @@ export type FilterOption = {
   name: string;
   orderId?: number;
   hint?: string;
-};
+} & Record<string, any>;
