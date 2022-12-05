@@ -6,6 +6,7 @@ release.
 ## Next
 
 * Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password protected setups.
+* Added support for ~~strikethrough~~ syntax.
 
 ---
 

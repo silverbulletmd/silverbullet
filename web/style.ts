@@ -40,6 +40,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: [t.regexp, t.escape, t.special(t.string)], class: "sb-string2" },
     { tag: t.variableName, class: "sb-variableName" },
     { tag: t.typeName, class: "sb-typeName" },
+    { tag: t.strikethrough, class: "sb-strikethrough" },
     { tag: t.comment, class: "sb-comment" },
     { tag: t.invalid, class: "sb-invalid" },
     { tag: t.processingInstruction, class: "sb-meta" },

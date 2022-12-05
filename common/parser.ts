@@ -7,6 +7,7 @@ import {
   markdown,
   MarkdownConfig,
   StreamLanguage,
+  Strikethrough,
   styleTags,
   Table,
   tags as t,
@@ -127,7 +128,7 @@ const CommandLink: MarkdownConfig = {
 
 const HighlightDelim = { resolve: "Highlight", mark: "HighlightMark" };
 
-export const Strikethrough: MarkdownConfig = {
+export const Highlight: MarkdownConfig = {
   defineNodes: [
     {
       name: "Highlight",
@@ -250,6 +251,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       FrontMatter,
       TaskList,
       Comment,
+      Highlight,
       Strikethrough,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
@@ -257,11 +259,6 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       {
         props: [
           styleTags({
-            // WikiLink: ct.WikiLinkTag,
-            // WikiLinkPage: ct.WikiLinkPageTag,
-            // WikiLinkAlias: ct.WikiLinkPageTag,
-            // CommandLink: ct.CommandLinkTag,
-            // CommandLinkName: ct.CommandLinkNameTag,
             Task: ct.TaskTag,
             TaskMarker: ct.TaskMarkerTag,
             Comment: ct.CommentTag,

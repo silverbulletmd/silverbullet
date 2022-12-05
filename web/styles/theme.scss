@@ -187,6 +187,14 @@
   font-size: 0.9em;
 }
 
+.sb-strikethrough {
+  text-decoration: line-through;
+
+  &.sb-meta {
+    text-decoration: none;
+  }
+}
+
 .sb-line-hr {
   border-top: rgb(76, 75, 75) solid 1px;
   margin-top: 1em;

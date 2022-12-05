@@ -35,6 +35,7 @@ export {
   MarkdownParser,
   parseCode,
   parser as baseParser,
+  Strikethrough,
   Subscript,
   Superscript,
   Table,
