@@ -18,7 +18,7 @@ Let’s have a look at some of its features.
 * Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 ![Screencast screenshot](demo-video-screenshot.png)
-To get a good feel of what Silver Bullet is capable of, [have a look at at this **introduction video**](https://youtu.be/VemS-cqAD5k).
+To get a good feel of what Silver Bullet is capable of, [have a look at at this introduction video](https://youtu.be/VemS-cqAD5k).
 
 ## Try it
 Here’s the kicker:
@@ -103,7 +103,7 @@ To run Silver Bullet, create a folder for your pages (it can be empty, or be an 
 silverbullet <pages-path>
 ```
 
-By default, Silver Bullet will bind to port `3000`, to use a different port use the the `--port` flag. By default Silver Bullet is unauthenticated, to password-protect it, specify a username and password with the `--user` flag (e.g. `--user pete:1234`).
+By default, Silver Bullet will bind to port `3000`, to use a different port use the the `--port` flag. By default Silver Bullet is unauthenticated, to password-protect it, specify a username and password with the `--user` flag (e.g. `--user pete:mypassword`).
 
 Once downloaded and booted, Silver Bullet will print out a URL to open SB in your browser (by default this will be http://localhost:3000 ).
 

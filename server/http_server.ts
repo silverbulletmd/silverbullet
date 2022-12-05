@@ -7,6 +7,7 @@ import { SpaceSystem } from "./space_system.ts";
 import { parseYamlSettings } from "../common/util.ts";
 
 export type ServerOptions = {
+  hostname: string;
   port: number;
   pagesPath: string;
   dbPath: string;
@@ -20,12 +21,14 @@ const staticLastModified = new Date().toUTCString();
 export class HttpServer {
   app: Application;
   systemBoot: SpaceSystem;
+  private hostname: string;
   private port: number;
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
 
   constructor(options: ServerOptions) {
+    this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
     this.user = options.user;
@@ -129,13 +132,14 @@ export class HttpServer {
     });
 
     this.abortController = new AbortController();
-    this.app.listen({ port: this.port, signal: this.abortController.signal })
+    this.app.listen({ hostname: this.hostname, port: this.port, signal: this.abortController.signal })
       .catch((e: any) => {
         console.log("Server listen error:", e.message);
         Deno.exit(1);
       });
+    const visibleHostname = this.hostname === "0.0.0.0" ? "localhost" : this.hostname;
     console.log(
-      `Silver Bullet is now running: http://localhost:${this.port}`,
+      `Silver Bullet is now running: http://${visibleHostname}:${this.port}`,
     );
   }
 
