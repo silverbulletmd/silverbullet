@@ -82,7 +82,7 @@ silverbullet <pages-path>
 
 By default, SB will bind to port `3000`, to use a different port use the
 `--port` flag. By default SB doesn’t offer any sort of authentication, to add
-basic password authentication, pass the `--password` flag.
+basic password authentication, pass the `--user` flag (e.g. `--user pete:1234`).
 
 Once downloaded and booted, SB will print out a URL to open SB in your browser
 (spoiler alert: by default this will be http://localhost:3000 ).

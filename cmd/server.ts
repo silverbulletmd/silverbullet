@@ -21,7 +21,7 @@ export function serveCommand(options: any, folder: string) {
     pagesPath: pagesPath,
     dbPath: path.join(pagesPath, options.db),
     assetBundle: new AssetBundle(assetBundle as AssetJson),
-    password: options.password,
+    user: options.user,
   });
   httpServer.start().catch((e) => {
     console.error("HTTP Server error", e);

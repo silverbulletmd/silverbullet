@@ -10,22 +10,16 @@ import { mime } from "../../plugos/deps.ts";
 export class HttpSpacePrimitives implements SpacePrimitives {
   fsUrl: string;
   private plugUrl: string;
-  token?: string;
 
-  constructor(url: string, token?: string) {
+  constructor(url: string) {
     this.fsUrl = url + "/fs";
     this.plugUrl = url + "/plug";
-    this.token = token;
   }
 
   private async authenticatedFetch(
     url: string,
     options: any,
   ): Promise<Response> {
-    if (this.token) {
-      options.headers = options.headers || {};
-      options.headers["Authorization"] = `Bearer ${this.token}`;
-    }
     const result = await fetch(url, options);
     if (result.status === 401) {
       throw Error("Unauthorized");

@@ -11,7 +11,8 @@ export type ServerOptions = {
   pagesPath: string;
   dbPath: string;
   assetBundle: AssetBundle;
-  password?: string;
+  user?: string;
+  pass?: string;
 };
 
 const staticLastModified = new Date().toUTCString();
@@ -20,14 +21,14 @@ export class HttpServer {
   app: Application;
   systemBoot: SpaceSystem;
   private port: number;
-  password?: string;
+  user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
 
   constructor(options: ServerOptions) {
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
-    this.password = options.password;
+    this.user = options.user;
     this.systemBoot = new SpaceSystem(
       options.assetBundle,
       options.pagesPath,
@@ -63,6 +64,7 @@ export class HttpServer {
     await this.systemBoot.start();
     await this.systemBoot.ensureSpaceIndex();
     await this.ensureAndLoadSettings();
+
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
@@ -105,6 +107,8 @@ export class HttpServer {
         await next();
       }
     });
+
+    this.addPasswordAuth(this.app);
 
     // Pages API
     const fsRouter = this.buildFsRouter(this.systemBoot.spacePrimitives);
@@ -163,15 +167,20 @@ export class HttpServer {
     }
   }
 
-  private addPasswordAuth(r: Router) {
-    if (this.password) {
-      r.use(async ({ request, response }, next) => {
+  private addPasswordAuth(app: Application) {
+    if (this.user) {
+      app.use(async ({ request, response }, next) => {
         if (
-          request.headers.get("Authorization") === `Bearer ${this.password}`
+          request.headers.get("Authorization") ===
+            `Basic ${btoa(this.user!)}`
         ) {
           await next();
         } else {
           response.status = 401;
+          response.headers.set(
+            "WWW-Authenticate",
+            `Basic realm="Please enter your username and password"`,
+          );
           response.body = "Unauthorized";
         }
       });
@@ -180,7 +189,6 @@ export class HttpServer {
 
   private buildFsRouter(spacePrimitives: SpacePrimitives): Router {
     const fsRouter = new Router();
-    this.addPasswordAuth(fsRouter);
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
@@ -276,7 +284,7 @@ export class HttpServer {
 
   private buildPlugRouter(): Router {
     const plugRouter = new Router();
-    this.addPasswordAuth(plugRouter);
+    // this.addPasswordAuth(plugRouter);
     const system = this.systemBoot.system;
 
     plugRouter.post(

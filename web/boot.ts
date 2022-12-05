@@ -8,28 +8,14 @@ import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 
 safeRun(async () => {
-  let password: string | undefined = localStorage.getItem("password") ||
-    undefined;
-
-  let httpPrimitives = new HttpSpacePrimitives("", password);
+  const httpPrimitives = new HttpSpacePrimitives("");
   let settingsPageText = "";
-  while (true) {
-    try {
-      settingsPageText = (
-        await httpPrimitives.readFile("SETTINGS.md", "string")
-      ).data as string;
-      break;
-    } catch (e: any) {
-      if (e.message === "Unauthorized") {
-        password = prompt("Password: ") || undefined;
-        if (!password) {
-          alert("Sorry, need a password");
-          return;
-        }
-        localStorage.setItem("password", password!);
-        httpPrimitives = new HttpSpacePrimitives("", password);
-      }
-    }
+  try {
+    settingsPageText = (
+      await httpPrimitives.readFile("SETTINGS.md", "string")
+    ).data as string;
+  } catch (e: any) {
+    console.error("No settings page found", e.message);
   }
 
   // Instantiate a PlugOS system for the client

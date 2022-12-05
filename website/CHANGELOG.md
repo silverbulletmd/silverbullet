@@ -3,6 +3,12 @@ release.
 
 ---
 
+## Next
+
+* Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password protected setups.
+
+---
+
 ## 0.2.2
 
 * New page link aliasing syntax (Obsidian compatible) is here: `[[page link|alias]]` e.g. [[CHANGELOG|this is a link to this changelog]]. Also supported for command links: `{[Plugs: Add|add a plug]}`

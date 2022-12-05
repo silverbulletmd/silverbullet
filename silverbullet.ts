@@ -23,7 +23,10 @@ await new Command()
   .option("--db <dbfile:string>", "Filename for the database", {
     default: "data.db",
   })
-  .option("--password <password:string>", "Password for basic authentication")
+  .option(
+    "--user <user:string>",
+    "'username:password' combo for BasicAuth authentication",
+  )
   .action(serveCommand)
   // fix
   .command("fix", "Fix a broken space")
