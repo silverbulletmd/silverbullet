@@ -1,4 +1,4 @@
-Silver Bullet has a generic indexing infrastructure. Pages are reindexed upon save, so about every second. Manual reindexing can be done running the {[Space: Reindex]} command.
+Silver Bullet has a generic indexing infrastructure. Pages are reindexed upon saving, so about every second. Manual reindexing can be done running the {[Space: Reindex]} command.
 
 The [[🔌 Core]] plug indexes the following:
 
