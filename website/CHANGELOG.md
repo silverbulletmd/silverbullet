@@ -5,7 +5,7 @@ release.
 
 ## Next
 
-* Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password protected setups.
+* Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password-protected setups.
 * Added support for ~~strikethrough~~ syntax.
 
 ---
@@ -14,7 +14,7 @@ release.
 
 * New page link aliasing syntax (Obsidian compatible) is here: `[[page link|alias]]` e.g. [[CHANGELOG|this is a link to this changelog]]. Also supported for command links: `{[Plugs: Add|add a plug]}`
 * Less "floppy" behavior when clicking links (regular, wiki and command): just navigates there right away. Note: use `Alt-click` to move the cursor inside of a link.
-* Page reference to non-existing pages are now higlighted in a (red-ish) color
+* Page references to non-existing pages are now highlighted in a (red-ish) color
 * Added `invokeFunction` `silverbullet` CLI sub-command to run arbitrary plug functions from the CLI.
 * Restyled #tags
 * When tasks are indexed, the hashtag is now no longer removed from the task text
@@ -49,7 +49,7 @@ release.
 
 ## 0.1.4
 
-* Breaking change (for those who used it): the named anchor syntax has changed from `@anchorname` to `$anchorname`. This is to avoid conflicts with potentialy future use of `@` for other purposes (like mentioning people). Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you create an anchor $likethis you can then reference it [[@likethis]].
+* Breaking change (for those who used it): the named anchor syntax has changed from `@anchorname` to `$anchorname`. This is to avoid conflicts with potential future use of `@` for other purposes (like mentioning people). Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you create an anchor $likethis you can then reference it [[@likethis]].
 * The `query` plug has been renamed to `directive` (because it supports many other features now) and significantly refactored. New docs: [[🔌 Directive]]
   * New directive `#eval` see [[🔌 Directive@eval]]
 * New PlugOS feature: redirecting function calls. Instead of specifying a `path` for a function, you can now specify `redirect` pointing to another function name, either in the same plug using the `plugName.functionName` syntax.
@@ -69,21 +69,21 @@ release.
 * Silver Bullet now runs on Windows!
 * Frontmatter support! You can now use front matter in your markdown, to do this
   start your page with `---` and end it with `---`. This will now be the
-  preferred way to define page meta data (although the old way will still work).
+  preferred way to define page metadata (although the old way will still work).
   The old `/meta` slash command has now been replaced with `/front-matter`.
 * Tags are now indexed as page meta without the prefixing `#` character, the
   reason is to make this compatible with Obsidian. You can now attach tags to
   your page either by just using a `#tag` at the top level of your page, or by
   adding a `tags` attribute to your front matter.
 * {[Search Space]} works again. You may have to {[Space: Reindex]} to get
-  results. Search results now also snow a snippet of the page, with the phrase
+  results. Search results now also show a snippet of the page, with the phrase
   highlighted.
 * Faster page indexing.
 * `silverbullet` now has sub-commands. It defaults to just running the server
   (when passed a path to a directory), but you can also run
   `silverbullet --help` to see the available commands. Commands currently
   available:
-  * `silverbullet upgrade` to perform a self upgrade
+  * `silverbullet upgrade` to perform a self-upgrade
   * `silverbullet fix` to attempt to solve any issues with your space (deletes
     your `_plug` directory and `data.db` file)
   * `silverbullet plug:compile` replaces the old `plugos-bundle` command.
@@ -95,7 +95,7 @@ release.
 
 * Breaking plugs API change: `readPage`, `readAttachment`, `readFile` now return
   the read data object directly, without it being wrapped with a text object.
-* A whole bunch of deprecated syscalls have been removed
+* A whole bunch of deprecated syscalls has been removed
 
 ---
 
@@ -108,15 +108,15 @@ release.
     `rm -rf pages/_plug`.
   * Delete your `data.db`
 * Changes:
-  * `PLUGS` is now longer required
+  * `PLUGS` is no longer required
   * `PLUGS` no longer supports `builtin:` plug URLs, all builtins are
     automatically loaded and no longer should be listed.
 * Plugs no longer should be built with node and npm, PRs will be issued to all
   existing plugs later to help with this transition.
 * Know breakages:
-  * Full text search is not yet implemented (the SQLite used does not support it
+  * Full-text search is not yet implemented (the SQLite used does not support it
     right now)
-  * Github auth has not been ported (yet)
+  * GitHub auth has not been ported (yet)
 * Technical changes:
   * Server runs on Deno (and Oak instead of Express)
   * Client is now built with ESBuild
@@ -131,9 +131,9 @@ release.
 * Big refactor of the internal Space API unifying attachment and page handling.
   This shouldn't affect (most) existing code and plugs (except some more exotic
   areas), but if stuff breaks, please report it.
-* Technical change: Upgrades are now detected on the server-side, and plugs
+* Technical change: Upgrades are now detected on the server side, and plugs
   re-loaded and pages indexed upon every upgrade.
-* Various bug fixes (e.g. using HTML tags in a page before completely broke
+* Various bug fixes (e.g. using HTML tags on a page before completely broke
   syntax highlighting)
 * Exposed `fulltext.*` syscalls on the client
 

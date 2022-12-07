@@ -5,7 +5,7 @@ Let’s have a look at some of its features.
 
 ## Features
 * Runs in any modern browser (including on mobile) and is installable as a [PWA](https://web.dev/progressive-web-apps/).
-* Provides a enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
+* Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
@@ -14,11 +14,11 @@ Let’s have a look at some of its features.
 * Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for annotating pages with [[Frontmatter]] and [[🔌 Directive|directives]] (such as [[🔌 Directive/Query|#query]]), making parts of pages _dynamic_.
 * Experimental [[🔌 Collab|real-time collaboration support]].
 * Robust extension mechanism using [[🔌 Plugs]].
-* **Self hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
+* **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
 * Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 ![Screencast screenshot](demo-video-screenshot.png)
-To get a good feel of what Silver Bullet is capable of, [have a look at at this introduction video](https://youtu.be/VemS-cqAD5k).
+To get a good feel of what Silver Bullet is capable of, [have a look at this introduction video](https://youtu.be/VemS-cqAD5k).
 
 ## Try it
 Here’s the kicker:
@@ -70,7 +70,7 @@ There are a few features you don’t get to fully experience in this environment
 
 * Any edits you make and pages you add aren’t saved (kind of useful).
 * [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (look for those `<!-- #query ... -->` and `<!-- /query -->` comments), they just don’t update their content dynamically.
-* **Full text search**.
+* **Full-text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 
 ## Where to go from here
@@ -103,7 +103,7 @@ To run Silver Bullet, create a folder for your pages (it can be empty, or be an 
 silverbullet <pages-path>
 ```
 
-By default, Silver Bullet will bind to port `3000`, to use a different port use the the `--port` flag. By default Silver Bullet is unauthenticated, to password-protect it, specify a username and password with the `--user` flag (e.g. `--user pete:mypassword`).
+By default, Silver Bullet will bind to port `3000`, to use a different port use the `--port` flag. By default Silver Bullet is unauthenticated, to password-protect it, specify a username and password with the `--user` flag (e.g. `--user pete:mypassword`).
 
 Once downloaded and booted, Silver Bullet will print out a URL to open SB in your browser (by default this will be http://localhost:3000 ).
 

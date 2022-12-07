@@ -1,4 +1,4 @@
-Frontmatter is a common format to attach additional meta data (data about data) to markdown documents.
+Frontmatter is a common format to attach additional metadata (data about data) to markdown documents.
 
 You create it by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document.
 
