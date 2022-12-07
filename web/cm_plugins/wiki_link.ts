@@ -58,6 +58,10 @@ export function cleanWikiLinkPlugin(editor: Editor) {
                 break;
               }
             }
+            if (cleanPage === "") {
+              // Empty page name, or local @anchor use
+              pageExists = true;
+            }
 
             if (isCursorInRange(view.state, [from, to])) {
               // Only attach a CSS class, then get out
