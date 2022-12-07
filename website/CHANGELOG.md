@@ -154,8 +154,7 @@ release.
 
 * **Attachments**: you can now copy & paste, or drag & drop files (images, PDF,
   whatever you like) into a page and it will be uploaded and appropriately
-  linked from your page. Attachment size is currently limited to 100mb.
-* Changed full-text search page prefix from `@search/` to `🔍` for the {[Search
+  linked from your page. Attachment size is currently limited to 100mb. Changed full-text search page prefix from `@search/` to `🔍` for the {[Search
   Space]} command.
 * `page`, `plug` and `attachment` are now _reserved page names_, you cannot name
   your pages these (you will get an error when explicitly navigating to them).
