@@ -103,7 +103,7 @@ And restart Silver Bullet. You should be good to go.
 
 ## Installing Silver Bullet with Docker
 
-There is a docker image on docker hub. To use it, first create a volume to keep your space (markdown) files:
+There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silverbullet). To use it, first create a volume to keep your space (markdown) files:
 
 ```shell
 docker volume create myspace
