@@ -121,9 +121,12 @@ If you'd like to pass in additional command line arguments (e.g. `--user` to add
 docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
 ```
 
+To build your own version of the docker image, run `./scripts/build_docker.sh`.
+
 You can also use docker-compose if you prefer. From a silverbullet check-out run:
 
 ```shell
+deno task bundle
 PORT=3000 docker-compose up
 ```
 
