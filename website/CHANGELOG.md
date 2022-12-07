@@ -31,7 +31,7 @@ release.
 ---
 
 ## 0.2.0
-* The editor is now in "live preview" mode where a lot of markdowns is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
+* The editor is now in "live preview" mode where a lot of markdown is hidden unless the cursor is present. This will take some getting used to, but results in a much more distraction free look.
 * Clicking on the page name in the top bar now allows you to quickly rename pages, hit enter to apply the change.
 * The previous behavior of opening the page switcher, has now moved to its own action button (the folder one)
 * Page reference completion now orders results by last modified date (newer matches appear closer to the top)
@@ -108,7 +108,7 @@ release.
     `rm -rf pages/_plug`.
   * Delete your `data.db`
 * Changes:
-  * `PLUGS` are no longer required
+  * `PLUGS` is no longer required
   * `PLUGS` no longer supports `builtin:` plug URLs, all builtins are
     automatically loaded and no longer should be listed.
 * Plugs no longer should be built with node and npm, PRs will be issued to all
