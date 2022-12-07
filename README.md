@@ -40,7 +40,7 @@ Or checkout these two videos:
   [plugs](https://silverbullet.md/🔌_Plugs), and you can customize it to your
   liking and your workflows.
 
-## Installing Silver Bullet
+## Installing Silver Bullet with Deno
 
 ### Installing Deno
 
@@ -100,6 +100,34 @@ Simply run this:
     silverbullet upgrade
 
 And restart Silver Bullet. You should be good to go.
+
+## Installing Silver Bullet with Docker
+
+There is a docker image on docker hub. To use it, first create a volume to keep your space (markdown) files:
+
+```shell
+docker volume create myspace
+```
+
+Then, run the container, e.g. as follows:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet
+```
+
+If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication) you can just append those to the command, e.g.:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
+```
+
+You can also use docker-compose if you prefer. From a silverbullet check-out run:
+
+```shell
+PORT=3000 docker-compose up
+```
+
+or similar.
 
 ## Troubleshooting
 

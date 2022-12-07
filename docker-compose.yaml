@@ -1,11 +1,11 @@
 services:
   sb:
     build: ./
-    image: sb
-    container_name: sb
+    image: zefhemel/silverbullet
+    container_name: silverbullet
+    volumes:
+      - space:/space
     ports:
       - ${PORT}:3000
-    volumes:
-      - type: bind
-        source: ${DIRECTORY}
-        target: /space
+volumes:
+  space:

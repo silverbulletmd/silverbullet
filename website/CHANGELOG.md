@@ -49,7 +49,7 @@ release.
 
 ## 0.1.4
 
-* Breaking change (for those who used it): the named anchor syntax has changed from `@anchorname` to `$anchorname`. This is to avoid conflicts with potentialy future use of `@` for other purposes (like mentioning people). Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you create an anchor $likethis you can then reference it [[@likethis]].
+* Breaking change (for those who used it): the named anchor syntax has changed from `@anchorname` to `$anchorname`. This is to avoid conflicts with potentialy future use of `@` for other purposes (like mentioning people). Linking to an anchor still uses the `[[page@anchorname]]` syntax. So, you create an anchor $likethis you can then reference it [[@likethis]]. 
 * The `query` plug has been renamed to `directive` (because it supports many other features now) and significantly refactored. New docs: [[🔌 Directive]]
   * New directive `#eval` see [[🔌 Directive@eval]]
 * New PlugOS feature: redirecting function calls. Instead of specifying a `path` for a function, you can now specify `redirect` pointing to another function name, either in the same plug using the `plugName.functionName` syntax.
@@ -154,8 +154,7 @@ release.
 
 * **Attachments**: you can now copy & paste, or drag & drop files (images, PDF,
   whatever you like) into a page and it will be uploaded and appropriately
-  linked from your page. Attachment size is currently limited to 100mb.
-* Changed full-text search page prefix from `@search/` to `🔍` for the {[Search
+  linked from your page. Attachment size is currently limited to 100mb. Changed full-text search page prefix from `@search/` to `🔍` for the {[Search
   Space]} command.
 * `page`, `plug` and `attachment` are now _reserved page names_, you cannot name
   your pages these (you will get an error when explicitly navigating to them).
