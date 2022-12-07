@@ -126,11 +126,16 @@ To build your own version of the docker image, run `./scripts/build_docker.sh`.
 You can also use docker-compose if you prefer. From a silverbullet check-out run:
 
 ```shell
-deno task bundle
 PORT=3000 docker-compose up
 ```
 
 or similar.
+
+To upgrade, simply pull the latest docker image (rebuilt and pushed after every commit to "main") and start the new container.
+
+```shell
+docker pull zefhemel/silverbullet
+```
 
 ## Troubleshooting
 
