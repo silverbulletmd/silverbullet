@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build-test-publish:
+  test:
     runs-on: ubuntu-latest
 
     steps:

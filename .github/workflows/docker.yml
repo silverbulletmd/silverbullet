@@ -5,7 +5,7 @@ on:
     branches: ["main", "deno-docker"]
 
 jobs:
-  build-test-publish:
+  docker-build-push:
     runs-on: ubuntu-latest
 
     steps:
