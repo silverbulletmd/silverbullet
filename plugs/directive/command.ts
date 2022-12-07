@@ -110,3 +110,16 @@ export function serverRenderDirective(
 ): Promise<string> {
   return renderDirectives(pageName, text);
 }
+
+export async function toggleEditDirectiveBodyCommand() {
+  const directiveBodyEditingEnabled = await editor
+    .getDirectiveBodyEditingEnabled();
+  await editor.setDirectiveBodyEditingEnabled(
+    !directiveBodyEditingEnabled,
+  );
+  await editor.flashNotification(
+    directiveBodyEditingEnabled
+      ? "Editing of directive bodies now disabled"
+      : "Editing of directive bodies now enabled",
+  );
+}

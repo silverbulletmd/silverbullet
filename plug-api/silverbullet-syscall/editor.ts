@@ -121,3 +121,11 @@ export function confirm(
 export function enableReadOnlyMode(enabled: boolean) {
   return syscall("editor.enableReadOnlyMode", enabled);
 }
+
+export function setDirectiveBodyEditingEnabled(enabled: boolean) {
+  return syscall("editor.setDirectiveBodyEditingEnabled", enabled);
+}
+
+export function getDirectiveBodyEditingEnabled(): Promise<boolean> {
+  return syscall("editor.getDirectiveBodyEditingEnabled");
+}

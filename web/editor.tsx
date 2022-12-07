@@ -105,6 +105,7 @@ import customMarkdownStyle from "./style.ts";
 // Real-time collaboration
 import { CollabState } from "./cm_plugins/collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
+import { readonlyDirectives } from "./cm_plugins/readonly_directives.ts";
 
 const frontMatterRegex = /^---\s*$(.*?)---\s*$/ms;
 
@@ -138,6 +139,7 @@ export class Editor {
   urlPrefix: string;
   indexPage: string;
   collabState?: CollabState;
+  enableDirectiveBodyEditing = false;
 
   constructor(
     space: Space,
@@ -560,6 +562,9 @@ export class Editor {
         pasteLinkExtension,
         attachmentExtension(this),
         closeBrackets(),
+        ...[
+          this.enableDirectiveBodyEditing ? [] : readonlyDirectives(editor),
+        ],
         ...[this.collabState ? this.collabState.collabExtension() : []],
       ],
     });

@@ -7,6 +7,7 @@ release.
 
 * Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password protected setups.
 * Added support for ~~strikethrough~~ syntax.
+* Disabled editing of text inside `<!-- #directive -->` and `<!-- /directive -->` blocks to avoid accidental edits (later overridden when the body is updated via {[Directives: Update]}). If you need to temporarily disable this, use the {[Directives: Toggle Body Editing]} command.
 
 ---
 

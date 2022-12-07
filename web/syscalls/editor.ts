@@ -197,6 +197,13 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         enabled,
       });
     },
+    "editor.setDirectiveBodyEditingEnabled": (_ctx, enabled: boolean) => {
+      editor.enableDirectiveBodyEditing = enabled;
+      editor.rebuildEditorState();
+    },
+    "editor.getDirectiveBodyEditingEnabled": (_ctx): boolean => {
+      return editor.enableDirectiveBodyEditing;
+    },
   };
 
   return syscalls;

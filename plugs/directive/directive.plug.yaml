@@ -24,6 +24,11 @@ functions:
     events:
       - page:complete
 
+  toggleEditDirectiveBodyCommand:
+    path: ./command.ts:toggleEditDirectiveBodyCommand
+    command:
+      name: "Directives: Toggle Body Editing"
+
   # Templates
   insertQuery:
     redirect: core.insertTemplateText
