@@ -2,6 +2,9 @@ services:
   silverbullet:
     image: zefhemel/silverbullet
     container_name: silverbullet
+    restart: unless-stopped
+    ## To enable additional options, such as BasicAuth, uncomment the following line:
+    # command: --user='user:pw'
     volumes:
       - space:/space
     ports:

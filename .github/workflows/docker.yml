@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: ["main", "deno-docker"]
+    branches: ["main"]
 
 jobs:
   docker-build-push:
