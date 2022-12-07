@@ -1,6 +1,5 @@
 services:
   silverbullet:
-    build: ./
     image: zefhemel/silverbullet
     container_name: silverbullet
     volumes:
