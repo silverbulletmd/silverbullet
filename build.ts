@@ -13,16 +13,15 @@ import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 
 // @ts-ignore trust me
-const esbuild: typeof esbuildWasm = Deno.run === undefined
-  ? esbuildWasm
-  : esbuildNative;
+const esbuild: typeof esbuildWasm =
+  Deno.run === undefined ? esbuildWasm : esbuildNative;
 
 async function prepareAssets(dist: string) {
   await copy("web/fonts", `${dist}/web`, { overwrite: true });
   await copy("web/index.html", `${dist}/web/index.html`, {
     overwrite: true,
   });
-  await copy("web/images/favicon.gif", `${dist}/web/favicon.gif`, {
+  await copy("web/images/favicon.png", `${dist}/web/favicon.png`, {
     overwrite: true,
   });
   await copy("web/images/logo.png", `${dist}/web/logo.png`, {
@@ -34,22 +33,19 @@ async function prepareAssets(dist: string) {
   await copy("server/SETTINGS_template.md", `${dist}/SETTINGS_template.md`, {
     overwrite: true,
   });
-  const compiler = sass(
-    Deno.readTextFileSync("web/styles/main.scss"),
-    {
-      load_paths: ["web/styles"],
-    },
-  );
+  const compiler = sass(Deno.readTextFileSync("web/styles/main.scss"), {
+    load_paths: ["web/styles"],
+  });
   await Deno.writeTextFile(
     `${dist}/web/main.css`,
-    compiler.to_string("expanded") as string,
+    compiler.to_string("expanded") as string
   );
   const globalManifest = await plugOsBundle(
-    new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname,
+    new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname
   );
   await Deno.writeTextFile(
     `${dist}/web/global.plug.json`,
-    JSON.stringify(globalManifest, null, 2),
+    JSON.stringify(globalManifest, null, 2)
   );
 
   // HACK: Patch the JS by removing an invalid regex
