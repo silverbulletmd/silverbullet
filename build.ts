@@ -22,7 +22,7 @@ async function prepareAssets(dist: string) {
   await copy("web/index.html", `${dist}/web/index.html`, {
     overwrite: true,
   });
-  await copy("web/images/favicon.gif", `${dist}/web/favicon.gif`, {
+  await copy("web/images/favicon.png", `${dist}/web/favicon.png`, {
     overwrite: true,
   });
   await copy("web/images/logo.png", `${dist}/web/logo.png`, {
