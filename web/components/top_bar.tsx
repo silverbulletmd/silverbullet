@@ -1,15 +1,8 @@
-// import { Fragment, h } from "../deps.ts";
-
-import { FontAwesomeIcon, useRef } from "../deps.ts";
-
-import {
-  ComponentChildren,
-  IconDefinition,
-  useEffect,
-  useState,
-} from "../deps.ts";
+import { useRef } from "../deps.ts";
+import { ComponentChildren } from "../deps.ts";
 import { Notification } from "../types.ts";
-import { isMacLike } from "../../common/util.ts";
+import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.1/src/index";
+import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -19,7 +12,7 @@ function prettyName(s: string | undefined): string {
 }
 
 export type ActionButton = {
-  icon: IconDefinition;
+  icon: FunctionalComponent<FeatherProps>;
   description: string;
   callback: () => void;
 };
@@ -45,7 +38,6 @@ export function TopBar({
 }) {
   // const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
-  // const isMac = isMacLike();
 
   return (
     <div id="sb-top">
@@ -103,7 +95,7 @@ export function TopBar({
                 }}
                 title={actionButton.description}
               >
-                <FontAwesomeIcon icon={actionButton.icon} />
+                <actionButton.icon size={18} />
               </button>
             ))}
           </div>

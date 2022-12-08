@@ -44,9 +44,8 @@
 
     .sb-icon {
       padding: 0 8px 0 5px;
-    }
-    .sb-name {
-      padding-top: -3px;
+      position: relative;
+      top: 3px;
     }
   }
 

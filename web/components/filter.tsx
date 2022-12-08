@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "../deps.ts";
-import { FontAwesomeIcon } from "../deps.ts";
-import type { IconDefinition } from "../deps.ts";
 import { FilterOption } from "../../common/types.ts";
 import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
+import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
+import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 
 function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
@@ -59,7 +59,7 @@ export function FilterList({
   allowNew = false,
   helpText = "",
   completePrefix,
-  icon,
+  icon: Icon,
   newHint,
 }: {
   placeholder: string;
@@ -71,7 +71,7 @@ export function FilterList({
   completePrefix?: string;
   helpText: string;
   newHint?: string;
-  icon?: IconDefinition;
+  icon?: FunctionalComponent<FeatherProps>;
 }) {
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
@@ -210,7 +210,7 @@ export function FilterList({
                 }}
               >
                 <span className="sb-icon">
-                  {icon && <FontAwesomeIcon icon={icon} />}
+                  {Icon && <Icon width={16} height={16} />}
                 </span>
                 <span
                   className="sb-name"

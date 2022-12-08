@@ -13,9 +13,13 @@ export {
   useState,
 } from "https://esm.sh/preact@10.11.1/hooks";
 
-export { FontAwesomeIcon } from "https://esm.sh/@aduh95/preact-fontawesome@0.1.5?external=@fortawesome/fontawesome-common-types";
-export { faPersonRunning } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
-export type { IconDefinition } from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
+export {
+  Book as BookIcon,
+  Home as HomeIcon,
+  Moon as MoonIcon,
+  Sun as SunIcon,
+  Terminal as TerminalIcon,
+} from "https://esm.sh/preact-feather@4.2.1";
 
 // Y collab
 export * as Y from "yjs";
