@@ -55,6 +55,11 @@
   padding: 5px;
   background-color: transparent;
   color: #292929;
+  cursor: pointer;
+}
+
+.sb-actions button:hover {
+  color: #0772be;
 }
 
 /* Filter boxes */
@@ -408,6 +413,10 @@ html[data-theme="dark"] {
     color: #adadad;
   }
 
+  .sb-actions button:hover {
+    color: #37a1ed;
+  }
+  
   .sb-line-h1, .sb-line-h2, .sb-line-h3, .sb-line-h4 {
     color: #d1d1d1;
   }
