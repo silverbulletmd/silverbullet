@@ -50,12 +50,16 @@
 }
 
 .sb-actions button {
-  border: 1px solid #7897d0;
-  border-radius: 3px;
+  border: 0;
   margin: 3px;
-  font-size: 15px;
   padding: 5px;
-  background-color: #e6e6e6;
+  background-color: transparent;
+  color: #292929;
+  cursor: pointer;
+}
+
+.sb-actions button:hover {
+  color: #0772be;
 }
 
 /* Filter boxes */
@@ -73,6 +77,7 @@
   font-family: "Arial";
   color: #000;
 }
+
 
 .sb-filter-box .sb-header input::placeholder {
   color: rgb(199, 199, 199);
@@ -404,6 +409,14 @@ html[data-theme="dark"] {
     color: rgb(200, 200, 200);
   }
 
+  .sb-actions button {
+    color: #adadad;
+  }
+
+  .sb-actions button:hover {
+    color: #37a1ed;
+  }
+  
   .sb-line-h1, .sb-line-h2, .sb-line-h3, .sb-line-h4 {
     color: #d1d1d1;
   }

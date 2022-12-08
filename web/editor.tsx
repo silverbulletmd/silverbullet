@@ -1,19 +1,15 @@
 // Third party web dependencies
 import {
+  BookIcon,
+  HomeIcon,
+  MoonIcon,
   preactRender,
+  SunIcon,
+  TerminalIcon,
   useEffect,
   useReducer,
   yUndoManagerKeymap,
 } from "./deps.ts";
-
-// Iconography
-import {
-  faFolderTree,
-  faHome,
-  faMoon,
-  faRunning,
-  faSun,
-} from "https://esm.sh/@fortawesome/free-solid-svg-icons@6.2.0";
 
 // Third-party dependencies
 import {
@@ -123,7 +119,7 @@ export class Editor {
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState;
-  viewDispatch: React.Dispatch<Action>;
+  viewDispatch: Function;
   space: Space;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
@@ -395,7 +391,7 @@ export class Editor {
         options,
         placeHolder,
         helpText,
-        onSelect: (option) => {
+        onSelect: (option: any) => {
           this.viewDispatch({ type: "hide-filterbox" });
           this.focus();
           resolve(option);
@@ -856,28 +852,28 @@ export class Editor {
           }}
           actionButtons={[
             {
-              icon: faHome,
+              icon: HomeIcon,
               description: `Go home (Alt-h)`,
               callback: () => {
                 editor.navigate("");
               },
             },
             {
-              icon: faFolderTree,
+              icon: BookIcon,
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
                 dispatch({ type: "start-navigate" });
               },
             },
             {
-              icon: faRunning,
+              icon: TerminalIcon,
               description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
               callback: () => {
                 dispatch({ type: "show-palette" });
               },
             },
             {
-              icon: localStorage.theme === "dark" ? faSun : faMoon,
+              icon: localStorage.theme === "dark" ? SunIcon : MoonIcon,
               description: "Toggle dark mode",
               callback: () => {
                 if (localStorage.theme === "dark") {

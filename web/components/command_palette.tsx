@@ -1,6 +1,6 @@
 import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
-import { faPersonRunning } from "../deps.ts";
+import { TerminalIcon } from "../deps.ts";
 import { AppCommand } from "../hooks/command.ts";
 import { FilterOption } from "../../common/types.ts";
 
@@ -30,7 +30,7 @@ export function CommandPalette({
       placeholder="Command"
       options={options}
       allowNew={false}
-      icon={faPersonRunning}
+      icon={TerminalIcon}
       helpText="Start typing the command name to filter results, press <code>Return</code> to run."
       onSelect={(opt) => {
         if (opt) {
