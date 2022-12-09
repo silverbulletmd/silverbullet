@@ -17,7 +17,7 @@ export async function queryDirectiveRenderer(
   const results = await events.dispatchEvent(
     `query:${parsedQuery.table}`,
     { query: parsedQuery, pageName: pageName },
-    10 * 1000,
+    30 * 1000,
   );
   if (results.length === 0) {
     return "";

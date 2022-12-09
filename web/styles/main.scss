@@ -72,9 +72,7 @@
       }
 
       .sb-current-page {
-        font-weight: bold;
         flex: 1;
-        font-size: 28px;
 
         overflow: hidden;
         white-space: nowrap;
@@ -85,8 +83,6 @@
 
       input.sb-edit-page-name {
         background: transparent;
-        font-weight: bold;
-        font-size: 28px;
         white-space: nowrap;
         text-align: left;
         border: 0;

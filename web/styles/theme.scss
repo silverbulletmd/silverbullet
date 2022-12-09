@@ -1,12 +1,17 @@
 #sb-root {
-  font-family: Arial;
   --highlight-color: #464cfc;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--ui-font);
 }
 
 #sb-top {
-  background-color: rgb(213, 213, 213);
-  border-bottom: rgb(193, 193, 193) 1px solid;
-  color: rgb(55, 55, 55);
+  background-color: #e1e1e1;
+  border-bottom: #cacaca 1px solid;
+}
+
+#sb-top input.sb-edit-page-name {
+  // font-weight: bold;
+  font-size: 28px;
 }
 
 .sb-panel {
@@ -74,7 +79,7 @@
 }
 
 .sb-filter-box .sb-header input {
-  font-family: "Arial";
+  font-family: var(--ui-font);
   color: #000;
 }
 
