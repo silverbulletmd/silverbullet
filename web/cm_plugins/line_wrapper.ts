@@ -1,12 +1,5 @@
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  Range,
-  syntaxTree,
-  ViewPlugin,
-  ViewUpdate,
-} from "../deps.ts";
+import { Decoration, EditorState, Range, syntaxTree } from "../deps.ts";
+import { decoratorStateField } from "./util.ts";
 
 interface WrapElement {
   selector: string;
@@ -14,16 +7,12 @@ interface WrapElement {
   nesting?: boolean;
 }
 
-function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
-  let widgets: Range<Decoration>[] = [];
-  const elementStack: string[] = [];
-  const doc = view.state.doc;
-  // Disabling the visible ranges for now, because it may be a bit buggy.
-  // RISK: this may actually become slow for large documents.
-  for (const { from, to } of view.visibleRanges) {
-    syntaxTree(view.state).iterate({
-      from,
-      to,
+export function lineWrapper(wrapElements: WrapElement[]) {
+  return decoratorStateField((state: EditorState) => {
+    const widgets: Range<Decoration>[] = [];
+    const elementStack: string[] = [];
+    const doc = state.doc;
+    syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
         for (const wrapElement of wrapElements) {
           if (type.name == wrapElement.selector) {
@@ -55,30 +44,7 @@ function wrapLines(view: EditorView, wrapElements: WrapElement[]) {
         }
       },
     });
-  }
-  // Widgets have to be sorted by `from` in ascending order
-  widgets = widgets.sort((a, b) => {
-    return a.from < b.from ? -1 : 1;
+
+    return Decoration.set(widgets, true);
   });
-  return Decoration.set(widgets);
 }
-
-export const lineWrapper = (wrapElements: WrapElement[]) =>
-  ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
-
-      constructor(view: EditorView) {
-        this.decorations = wrapLines(view, wrapElements);
-      }
-
-      update(update: ViewUpdate) {
-        if (update.docChanged || update.viewportChanged) {
-          this.decorations = wrapLines(update.view, wrapElements);
-        }
-      }
-    },
-    {
-      decorations: (v) => v.decorations,
-    },
-  );

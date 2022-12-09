@@ -734,7 +734,6 @@ export class Editor {
     const editorView = this.editorView!;
     if (pageState) {
       // Restore state
-      // console.log("Restoring selection state", pageState);
       editorView.scrollDOM.scrollTop = pageState!.scrollTop;
       editorView.dispatch({
         selection: pageState.selection,

@@ -1,70 +1,62 @@
+import { Decoration, EditorState, syntaxTree } from "../deps.ts";
 import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  syntaxTree,
-  ViewPlugin,
-  ViewUpdate,
-} from "../deps.ts";
-import { isCursorInRange } from "./util.ts";
+  decoratorStateField,
+  invisibleDecoration,
+  isCursorInRange,
+} from "./util.ts";
 
-function getDirectives(view: EditorView) {
-  const widgets: any[] = [];
+// Does a few things: hides the directives when the cursor is not placed inside
+// Adds a class to the start and end of the directive when the cursor is placed inside
+export function directivePlugin() {
+  return decoratorStateField((state: EditorState) => {
+    const widgets: any[] = [];
+    const cursorPos = state.selection.main.head;
 
-  for (const { from, to } of view.visibleRanges) {
-    syntaxTree(view.state).iterate({
-      from,
-      to,
+    // TODO: This doesn't handle nested directives properly
+    let posOfLastOpen = { from: 0, to: 0 };
+
+    syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
         if (type.name !== "CommentBlock") {
           return;
         }
-        const text = view.state.sliceDoc(from, to);
+        const text = state.sliceDoc(from, to);
         if (/<!--\s*#/.exec(text)) {
           // Open directive
-          widgets.push(
-            Decoration.line({
-              class: "sb-directive-start",
-            }).range(from),
-          );
+          posOfLastOpen = { from, to };
         } else if (/<!--\s*\//.exec(text)) {
-          widgets.push(
-            Decoration.line({
-              class: "sb-directive-end",
-            }).range(from),
-          );
+          // Close directive
+          if (
+            (cursorPos > to || cursorPos < posOfLastOpen.from) &&
+            !isCursorInRange(state, [posOfLastOpen.from, to])
+          ) {
+            widgets.push(
+              invisibleDecoration.range(
+                posOfLastOpen.from,
+                posOfLastOpen.to + 1,
+              ),
+            );
+            widgets.push(
+              invisibleDecoration.range(from - 1, to),
+            );
+          } else {
+            widgets.push(
+              Decoration.line({
+                class: "sb-directive-start",
+              }).range(posOfLastOpen.from),
+            );
+            widgets.push(
+              Decoration.line({
+                class: "sb-directive-end",
+              }).range(from),
+            );
+          }
         } else {
           return;
         }
-        if (!isCursorInRange(view.state, [from, to])) {
-          widgets.push(
-            Decoration.line({
-              class: "sb-directive-outside",
-            }).range(from),
-          );
-        }
       },
     });
-  }
 
-  return Decoration.set(widgets, true);
+    return Decoration.set(widgets, true);
+  });
 }
-
-export const directivePlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet = Decoration.none;
-    constructor(view: EditorView) {
-      this.decorations = getDirectives(view);
-    }
-    update(update: ViewUpdate) {
-      if (
-        update.docChanged ||
-        update.viewportChanged ||
-        update.selectionSet
-      ) {
-        this.decorations = getDirectives(update.view);
-      }
-    }
-  },
-  { decorations: (v) => v.decorations },
-);

@@ -1,23 +1,17 @@
+import { Decoration, EditorState, syntaxTree } from "../deps.ts";
 import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  ViewPlugin,
-  ViewUpdate,
-} from "../deps.ts";
-import {
+  decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  iterateTreeInVisibleRanges,
 } from "./util.ts";
 
-function hideNodes(view: EditorView) {
+function hideNodes(state: EditorState) {
   const widgets: any[] = [];
-  iterateTreeInVisibleRanges(view, {
+  syntaxTree(state).iterate({
     enter(node) {
       if (
         node.name === "HorizontalRule" &&
-        !isCursorInRange(view.state, [node.from, node.to])
+        !isCursorInRange(state, [node.from, node.to])
       ) {
         widgets.push(invisibleDecoration.range(node.from, node.to));
         widgets.push(
@@ -29,7 +23,7 @@ function hideNodes(view: EditorView) {
 
       if (
         node.name === "Image" &&
-        !isCursorInRange(view.state, [node.from, node.to])
+        !isCursorInRange(state, [node.from, node.to])
       ) {
         widgets.push(invisibleDecoration.range(node.from, node.to));
       }
@@ -38,7 +32,7 @@ function hideNodes(view: EditorView) {
         node.name === "FrontMatterMarker"
       ) {
         const parent = node.node.parent!;
-        if (!isCursorInRange(view.state, [parent.from, parent.to])) {
+        if (!isCursorInRange(state, [parent.from, parent.to])) {
           widgets.push(
             Decoration.line({
               class: "sb-line-frontmatter-outside",
@@ -54,7 +48,7 @@ function hideNodes(view: EditorView) {
         // Hide ONLY if CodeMark is not insine backticks (InlineCode) and the cursor is placed outside
         if (
           parent.node.name !== "InlineCode" &&
-          !isCursorInRange(view.state, [parent.from, parent.to])
+          !isCursorInRange(state, [parent.from, parent.to])
         ) {
           widgets.push(
             Decoration.line({
@@ -68,19 +62,6 @@ function hideNodes(view: EditorView) {
   return Decoration.set(widgets, true);
 }
 
-export const cleanBlockPlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet;
-
-    constructor(view: EditorView) {
-      this.decorations = hideNodes(view);
-    }
-
-    update(update: ViewUpdate) {
-      if (update.docChanged || update.selectionSet) {
-        this.decorations = hideNodes(update.view);
-      }
-    }
-  },
-  { decorations: (v) => v.decorations },
-);
+export function cleanBlockPlugin() {
+  return decoratorStateField(hideNodes);
+}

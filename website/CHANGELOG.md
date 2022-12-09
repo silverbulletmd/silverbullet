@@ -7,7 +7,10 @@ release.
 
 * Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password-protected setups.
 * Added support for ~~strikethrough~~ syntax.
+* Directives are now hidden unless the cursor is placed inside them for an even cleaner look
+* New logo! Contributed by [petercoyne](https://github.com/silverbulletmd/silverbullet/pull/177)
 * New button icons, from [feather](https://feathericons.com/)
+* UI font tweaks
 
 ---
 
