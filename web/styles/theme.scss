@@ -1,17 +1,68 @@
-#sb-root {
-  font-family: Arial;
-  --highlight-color: #464cfc;
+@use "sass:map";
+
+@layer basic-theming {
+
+  @mixin basic-themes($type) {
+
+    $light: ( // #sb-root
+      "sb-root-highlight-color": #464cfc,
+      "sb-root-background-color": "",
+      "sb-root-color": "",
+      // #sb-top
+      "sb-top-background-color": rgb(213, 213, 213),
+      "sb-top-border-bottom-color": rgb(193, 193, 193),
+      "sb-top-color": rgb(55, 55, 55),
+      // .sb-panel
+      "sb-panel-border-left-color": #eee);
+
+    $dark: ( // #sb-root 
+      "sb-root-highlight-color": "",
+      "sb-root-background-color": #555,
+      "sb-root-color": rgb(200, 200, 200),
+      // #sb-top
+      "sb-top-background-color": rgb(38, 38, 38),
+      "sb-top-border-bottom-color": rgb(62, 62, 62),
+      "sb-top-color": rgb(200, 200, 200),
+      // .sb-panel
+      "sb-panel-border-left-color": #eee);
+
+    @if $type =="light" {
+      $themeMap: $light;
+    }
+
+    @else if $type =="dark" {
+      $themeMap: $dark;
+    }
+
+    #sb-root {
+      font-family: Arial;
+      background-color: map.get($themeMap, "sb-root-background-color");
+      color: map.get($themeMap, "sb-root-color");
+    }
+
+    #sb-top {
+      background-color: map.get($themeMap, "sb-top-background-color");
+      border-bottom-color: map.get($themeMap, "sb-top-border-bottom-color");
+      border-bottom: 1px solid;
+      color: map.get($themeMap, "sb-top-color");
+    }
+
+    .sb-panel {
+      border-left: 1px solid;
+      border-left-color: map.get($themeMap, "sb-panel-border-left-color");
+    }
+  }
+
+  html[data-theme="light"] {
+    @include basic-themes("light");
+  }
+
+  html[data-theme="dark"] {
+    @include basic-themes("dark");
+  }
 }
 
-#sb-top {
-  background-color: rgb(213, 213, 213);
-  border-bottom: rgb(193, 193, 193) 1px solid;
-  color: rgb(55, 55, 55);
-}
-
-.sb-panel {
-  border-left: 1px solid #eee;
-}
+///// START OF OLD CODE
 
 .sb-bhs {
   border-top: rgb(193, 193, 193) 1px solid;
@@ -26,13 +77,14 @@
   font-family: "iA-Mono";
 }
 
-.sb-notifications > div {
+.sb-notifications>div {
   border: rgb(41, 41, 41) 1px solid;
 }
 
 .sb-notification-info {
   background-color: rgb(187, 221, 247);
 }
+
 .sb-notification-error {
   background-color: rgb(255, 84, 84);
 }
@@ -243,8 +295,9 @@
 .sb-line-li .sb-meta {
   color: rgb(150, 150, 150);
 }
+
 /* Then undo other meta */
-.sb-line-li .sb-meta ~ .sb-meta {
+.sb-line-li .sb-meta~.sb-meta {
   color: #650007;
 }
 
@@ -367,7 +420,9 @@
   text-decoration: none;
   cursor: pointer;
 }
-a.sb-wiki-link-page-missing, .sb-wiki-link-page-missing > .sb-wiki-link-page {
+
+a.sb-wiki-link-page-missing,
+.sb-wiki-link-page-missing>.sb-wiki-link-page {
   color: #9e4705;
   background-color: rgba(77, 141, 255, 0.07);
   border-radius: 5px;
@@ -398,17 +453,6 @@ a.sb-wiki-link-page-missing, .sb-wiki-link-page-missing > .sb-wiki-link-page {
 }
 
 html[data-theme="dark"] {
-  #sb-root {
-    background-color: #555;
-    color: rgb(200, 200, 200);
-  }
-
-  #sb-top {
-    background-color: rgb(38, 38, 38);
-    border-bottom: rgb(62, 62, 62) 1px solid;
-    color: rgb(200, 200, 200);
-  }
-
   .sb-actions button {
     color: #adadad;
   }
@@ -416,8 +460,11 @@ html[data-theme="dark"] {
   .sb-actions button:hover {
     color: #37a1ed;
   }
-  
-  .sb-line-h1, .sb-line-h2, .sb-line-h3, .sb-line-h4 {
+
+  .sb-line-h1,
+  .sb-line-h2,
+  .sb-line-h3,
+  .sb-line-h4 {
     color: #d1d1d1;
   }
 
@@ -425,7 +472,7 @@ html[data-theme="dark"] {
     background-color: rgb(41, 40, 35, 0.5);
   }
 
-  .sb-saved > input {
+  .sb-saved>input {
     color: rgb(225, 225, 225);
   }
 
@@ -440,7 +487,7 @@ html[data-theme="dark"] {
     border-bottom: 1px solid #6c6c6c;
   }
 
-  .sb-line-li .sb-meta ~ .sb-meta,
+  .sb-line-li .sb-meta~.sb-meta,
   .sb-line-fenced-code .sb-meta {
     color: #d17278;
   }
@@ -456,7 +503,7 @@ html[data-theme="dark"] {
     background-color: #333;
   }
 
-  .sb-notifications > div {
+  .sb-notifications>div {
     border: rgb(197, 197, 197) 1px solid;
     background-color: #333;
   }
@@ -470,9 +517,9 @@ html[data-theme="dark"] {
   }
 
   .sb-table-widget {
-    
+
     tbody tr:nth-of-type(even) {
-        background-color: #686868;
+      background-color: #686868;
     }
   }
 
