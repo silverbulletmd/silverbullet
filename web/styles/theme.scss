@@ -6,8 +6,8 @@
 
     $light: ( // #sb-root
       "sb-root-highlight-color": #464cfc,
-      "sb-root-background-color": "",
-      "sb-root-color": "",
+      "sb-root-background-color": white,
+      "sb-root-color": black,
       // #sb-top
       "sb-top-background-color": #e1e1e1,
       "sb-top-border-bottom-color": #cacaca,
@@ -16,7 +16,7 @@
       "sb-panel-border-left-color": #eee);
 
     $dark: ( // #sb-root 
-      "sb-root-highlight-color": "",
+      "sb-root-highlight-color": #464cfc,
       "sb-root-background-color": #555,
       "sb-root-color": rgb(200, 200, 200),
       // #sb-top
@@ -25,6 +25,8 @@
       "sb-top-color": rgb(200, 200, 200),
       // .sb-panel
       "sb-panel-border-left-color": #eee);
+
+    $themeMap: $light !default;
 
     @if $type =="light" {
       $themeMap: $light;
