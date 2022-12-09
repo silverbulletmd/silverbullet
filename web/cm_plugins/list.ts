@@ -2,38 +2,19 @@
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
 
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  ViewPlugin,
-  ViewUpdate,
-  WidgetType,
-} from "../deps.ts";
-import { isCursorInRange, iterateTreeInVisibleRanges } from "./util.ts";
+import { Decoration, syntaxTree, WidgetType } from "../deps.ts";
+import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 const bulletListMarkerRE = /^[-+*]/;
 
-/**
- * Plugin to add custom list bullet mark.
- */
-class ListBulletPlugin {
-  decorations: DecorationSet = Decoration.none;
-  constructor(view: EditorView) {
-    this.decorations = this.decorateLists(view);
-  }
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged || update.selectionSet) {
-      this.decorations = this.decorateLists(update.view);
-    }
-  }
-  private decorateLists(view: EditorView) {
+export function listBulletPlugin() {
+  return decoratorStateField((state) => {
     const widgets: any[] = [];
-    iterateTreeInVisibleRanges(view, {
+    syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
-        if (isCursorInRange(view.state, [from, to])) return;
+        if (isCursorInRange(state, [from, to])) return;
         if (type.name === "ListMark") {
-          const listMark = view.state.sliceDoc(from, to);
+          const listMark = state.sliceDoc(from, to);
           if (bulletListMarkerRE.test(listMark)) {
             const dec = Decoration.replace({
               widget: new ListBulletWidget(listMark),
@@ -44,11 +25,8 @@ class ListBulletPlugin {
       },
     });
     return Decoration.set(widgets, true);
-  }
+  });
 }
-export const listBulletPlugin = ViewPlugin.fromClass(ListBulletPlugin, {
-  decorations: (v) => v.decorations,
-});
 
 /**
  * Widget to render list bullet mark.

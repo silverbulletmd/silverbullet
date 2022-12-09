@@ -1,14 +1,11 @@
 import {
   Decoration,
-  DecorationSet,
-  EditorView,
+  EditorState,
   Range,
   syntaxTree,
-  ViewPlugin,
-  ViewUpdate,
   WidgetType,
 } from "../deps.ts";
-import { invisibleDecoration, isCursorInRange } from "./util.ts";
+import { decoratorStateField } from "./util.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {
@@ -35,21 +32,19 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-const inlineImages = (view: EditorView) => {
-  const widgets: Range<Decoration>[] = [];
-  const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
+export function inlineImagesPlugin() {
+  return decoratorStateField((state: EditorState) => {
+    const widgets: Range<Decoration>[] = [];
+    const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
 
-  for (const { from, to } of view.visibleRanges) {
-    syntaxTree(view.state).iterate({
-      from,
-      to,
+    syntaxTree(state).iterate({
       enter: (node) => {
         if (node.name !== "Image") {
           return;
         }
 
         const imageRexexResult = imageRegex.exec(
-          view.state.sliceDoc(node.from, node.to),
+          state.sliceDoc(node.from, node.to),
         );
         if (imageRexexResult === null || !imageRexexResult.groups) {
           return;
@@ -64,27 +59,7 @@ const inlineImages = (view: EditorView) => {
         );
       },
     });
-  }
 
-  return Decoration.set(widgets, true);
-};
-
-export const inlineImagesPlugin = () =>
-  ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
-
-      constructor(view: EditorView) {
-        this.decorations = inlineImages(view);
-      }
-
-      update(update: ViewUpdate) {
-        if (update.docChanged) {
-          this.decorations = inlineImages(update.view);
-        }
-      }
-    },
-    {
-      decorations: (v) => v.decorations,
-    },
-  );
+    return Decoration.set(widgets, true);
+  });
+}

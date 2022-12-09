@@ -1,21 +1,20 @@
 import {
   Decoration,
-  DecorationSet,
+  EditorState,
   EditorView,
-  ViewPlugin,
-  ViewUpdate,
+  syntaxTree,
   WidgetType,
 } from "../deps.ts";
 import {
-  editorLines,
+  decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  iterateTreeInVisibleRanges,
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/parse_tree.ts";
+import type { Editor } from "../editor.tsx";
 
 class TableViewWidget extends WidgetType {
   constructor(
@@ -49,25 +48,27 @@ class TableViewWidget extends WidgetType {
   }
 }
 
-class TablePlugin {
-  decorations: DecorationSet = Decoration.none;
-  constructor(view: EditorView) {
-    this.decorations = this.decorateLists(view);
-  }
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged || update.selectionSet) {
-      this.decorations = this.decorateLists(update.view);
-    }
-  }
-  private decorateLists(view: EditorView) {
+export function tablePlugin(editor: Editor) {
+  return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
-    iterateTreeInVisibleRanges(view, {
+    syntaxTree(state).iterate({
       enter: (node) => {
         const { from, to, name } = node;
         if (name !== "Table") return;
-        if (isCursorInRange(view.state, [from, to])) return;
+        if (isCursorInRange(state, [from, to])) return;
 
-        const lines = editorLines(view, from, to);
+        const tableText = state.sliceDoc(from, to);
+        const lineStrings = tableText.split("\n");
+
+        const lines: { from: number; to: number }[] = [];
+        let fromIt = from;
+        for (const line of lineStrings) {
+          lines.push({
+            from: fromIt,
+            to: fromIt + line.length,
+          });
+          fromIt += line.length + 1;
+        }
 
         const firstLine = lines[0], lastLine = lines[lines.length - 1];
 
@@ -84,12 +85,12 @@ class TablePlugin {
             ),
           );
         });
-        const text = view.state.sliceDoc(0, to);
+        const text = state.sliceDoc(0, to);
         widgets.push(
           Decoration.widget({
             widget: new TableViewWidget(
               from,
-              view,
+              editor.editorView!,
               lezerToParseTree(text, node.node),
             ),
           }).range(from),
@@ -97,11 +98,5 @@ class TablePlugin {
       },
     });
     return Decoration.set(widgets, true);
-  }
+  });
 }
-export const tablePlugin = ViewPlugin.fromClass(
-  TablePlugin,
-  {
-    decorations: (v) => v.decorations,
-  },
-);

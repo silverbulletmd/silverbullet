@@ -3,7 +3,7 @@ import type { Extension } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import { blockquotePlugin } from "./block_quote.ts";
 import { directivePlugin } from "./directive.ts";
-import { hideHeaderMarkPlugin, hideMarks } from "./hide_mark.ts";
+import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
 import { linkPlugin } from "./link.ts";
 import { listBulletPlugin } from "./list.ts";
@@ -15,11 +15,11 @@ import { cleanCommandLinkPlugin } from "./command_link.ts";
 export function cleanModePlugins(editor: Editor) {
   return [
     linkPlugin(editor),
-    directivePlugin,
-    blockquotePlugin,
-    hideMarks(),
-    hideHeaderMarkPlugin,
-    cleanBlockPlugin,
+    directivePlugin(),
+    blockquotePlugin(),
+    hideMarksPlugin(),
+    hideHeaderMarkPlugin(),
+    cleanBlockPlugin(),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {
@@ -34,8 +34,8 @@ export function cleanModePlugins(editor: Editor) {
         editor.dispatchAppEvent("page:click", clickEvent);
       },
     }),
-    listBulletPlugin,
-    tablePlugin,
+    listBulletPlugin(),
+    tablePlugin(editor),
     cleanWikiLinkPlugin(editor),
     cleanCommandLinkPlugin(editor),
   ] as Extension[];

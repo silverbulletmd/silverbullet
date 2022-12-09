@@ -1,4 +1,4 @@
-import { nodeAtPos, ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { nodeAtPos, ParseTree } from "$sb/lib/tree.ts";
 import { replaceAsync } from "$sb/lib/util.ts";
 import { markdown } from "$sb/silverbullet-syscall/mod.ts";
 

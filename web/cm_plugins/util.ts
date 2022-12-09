@@ -3,11 +3,12 @@
 // License: Apache License 2.0.
 import {
   Decoration,
+  DecorationSet,
   EditorState,
   EditorView,
   foldedRanges,
-  SyntaxNodeRef,
-  syntaxTree,
+  StateField,
+  Transaction,
   WidgetType,
 } from "../deps.ts";
 
@@ -37,6 +38,25 @@ export class LinkWidget extends WidgetType {
     anchor.href = this.options.href || "#";
     return anchor;
   }
+}
+
+export function decoratorStateField(
+  stateToDecoratorMapper: (state: EditorState) => DecorationSet,
+) {
+  return StateField.define<DecorationSet>({
+    create(state: EditorState) {
+      return stateToDecoratorMapper(state);
+    },
+
+    update(value: DecorationSet, tr: Transaction) {
+      // if (tr.docChanged || tr.selection) {
+      return stateToDecoratorMapper(tr.state);
+      // }
+      // return value;
+    },
+
+    provide: (f) => EditorView.decorations.from(f),
+  });
 }
 
 export class ButtonWidget extends WidgetType {
@@ -105,19 +125,6 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  * Decoration to simply hide anything.
  */
 export const invisibleDecoration = Decoration.replace({});
-
-export function iterateTreeInVisibleRanges(
-  view: EditorView,
-  iterateFns: {
-    enter(node: SyntaxNodeRef): boolean | void;
-    leave?(node: SyntaxNodeRef): void;
-  },
-) {
-  // for (const { from, to } of view.visibleRanges) {
-  //   syntaxTree(view.state).iterate({ ...iterateFns, from, to });
-  // }
-  syntaxTree(view.state).iterate(iterateFns);
-}
 
 /**
  * Returns the lines of the editor that are in the given range and not folded.
