@@ -21,7 +21,7 @@ you want me to spoil the fun: it is an extensible note taking app with markdown 
 Open (`cmd+k`) your `PLUGS` note in SilverBullet and add this plug to the list:
 
 ```yaml
-- https://github.com/Willyfrog/silverbullet-backlinks/releases/download/v0.3/backlinks.plug.json
+- https://github.com/Willyfrog/silverbullet-backlinks/releases/download/v0.3/silverbullet-backlinks.plug.json
 ```
 
 Then run the `Plugs: Update` command and off you go!
