@@ -327,6 +327,42 @@
   padding-left: 2ch;
 }
 
+.sb-admonition {
+  border-left-width: 4px !important;
+  border-left-style: solid;
+}
+
+.sb-admonition-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  padding-left: 16px;
+  padding-right: 8px;
+}
+
+.sb-admonition.sb-admonition-note {
+  border-left-color: rgb(0, 184, 212);
+}
+
+.sb-admonition.sb-admonition-warning {
+  border-left-color: rgb(255, 145, 0);
+}
+
+.sb-admonition-title.sb-admonition-note {
+  background-color: rgba(0, 184, 212, 0.1);
+}
+
+.sb-admonition-title.sb-admonition-warning {
+  background-color: rgba(255, 145, 0, 0.1);
+}
+
+.sb-admonition-note .sb-admonition-icon {
+  color: rgb(0, 184, 212);
+}
+
+sb-admonition-warning .sb-admonition-icon {
+  color: rgb(255, 145, 0);
+}
+
 .sb-frontmatter {
   background-color: rgba(255, 246, 189, 0.5);
   color: #676767;

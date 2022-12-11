@@ -121,7 +121,6 @@ export function admonitionPlugin(editor: Editor) {
           // icon further down.
           const iconRange = {
             from: from + 1,
-            fromNoSpaces: from + preSpaces.length + 1,
             to: from + preSpaces.length + 2 + admonitionType.length + 2 + postSpaces.length + 1,
           };
 
@@ -142,13 +141,13 @@ export function admonitionPlugin(editor: Editor) {
             Decoration.line({ class: "sb-admonition-title " + classes.join(" ") }).range(fromOffsets[0]),
           );
 
-          // If cursor is not within the **note|warning** part of the first line,
-          // replace it with the correct icon
-          if (!isCursorInRange(state, [iconRange.fromNoSpaces, iconRange.to - 1])) {
+          // If cursor is not within the first line, replace the **note|warning** text
+          // with the correct icon
+          if (!isCursorInRange(state, [from, fromOffsets.length > 1 ? fromOffsets[1] : to])) {
             widgets.push(
               Decoration.replace({
                 widget: new AdmonitionIconWidget(
-                  iconRange.to,
+                  iconRange.from + 1,
                   admonitionType,
                   editor.editorView!,
                 ),
