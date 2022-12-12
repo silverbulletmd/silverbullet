@@ -10,10 +10,10 @@ import { lezerToParseTree } from "../../common/parse_tree.ts";
 import { parser } from "./parse-query.js";
 import { ParsedQuery, QueryFilter } from "$sb/lib/query.ts";
 
-export function parseQuery(query: string): ParsedQuery {
-  const n = lezerToParseTree(query, parser.parse(query).topNode);
+export function parseQuery(queryTree: ParseTree): ParsedQuery {
+  // const n = lezerToParseTree(query, parser.parse(query).topNode);
   // Clean the tree a bit
-  replaceNodesMatching(n, (n) => {
+  replaceNodesMatching(queryTree, (n) => {
     if (!n.type) {
       const trimmed = n.text!.trim();
       if (!trimmed) {
@@ -24,7 +24,7 @@ export function parseQuery(query: string): ParsedQuery {
   });
 
   // console.log("Parsed", JSON.stringify(n, null, 2));
-  const queryNode = n.children![0];
+  const queryNode = queryTree.children![0];
   const parsedQuery: ParsedQuery = {
     table: queryNode.children![0].children![0].text!,
     filter: [],
@@ -33,7 +33,7 @@ export function parseQuery(query: string): ParsedQuery {
   if (orderByNode) {
     const nameNode = findNodeOfType(orderByNode, "Name");
     parsedQuery.orderBy = nameNode!.children![0].text!;
-    const orderNode = findNodeOfType(orderByNode, "Order");
+    const orderNode = findNodeOfType(orderByNode, "OrderDirection");
     parsedQuery.orderDesc = orderNode
       ? orderNode.children![0].text! === "desc"
       : false;

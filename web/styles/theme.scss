@@ -299,20 +299,25 @@
   line-height: inherit;
 }
 
-.sb-line-fenced-code .sb-keyword {
+.sb-keyword {
   color: #830000;
 }
 
-.sb-line-fenced-code .sb-variableName {
+.sb-variableName {
   color: #036d9b;
 }
 
-.sb-line-fenced-code .sb-typeName {
+.sb-typeName {
   color: #038138;
 }
 
-.sb-line-fenced-code .sb-string,
-.sb-line-fenced-code .sb-string2 {
+.sb-string,
+.sb-string2,
+.sb-number {
+  color: #440377;
+}
+
+.sb-string {
   color: #440377;
 }
 
@@ -367,6 +372,46 @@ sb-admonition-warning .sb-admonition-icon {
   background-color: rgba(255, 246, 189, 0.5);
   color: #676767;
 }
+
+// Directives
+.sb-directive-start, .sb-directive-end {
+  position: relative;
+  left: -12px;
+}
+
+.sb-directive-start::before {
+  content: "#";
+  color: gray;
+  border: 1px solid gray;
+  border-radius: 5px;
+  font-size: 62%;
+  padding: 2px;
+  position: relative;
+  left: -20px;
+}
+
+.sb-directive-body {
+  border-left: 1px solid #0000000f;
+}
+
+.sb-directive-start, .sb-directive-end {
+  color: #989797;
+  font-size: 75%;
+  // line-height: 75%;
+}
+
+.sb-directive-end::before {
+  content: "/";
+  border-radius: 5px;
+  color: gray;
+  border: 1px solid gray;
+  font-size: 62%;
+  padding: 2px;
+  position: relative;
+  left: -20px;
+}
+
+
 
 .sb-emphasis {
   font-style: italic;
@@ -430,12 +475,6 @@ a.sb-wiki-link-page-missing, .sb-wiki-link-page-missing > .sb-wiki-link-page {
 
 .sb-line-comment {
   background-color: rgba(255, 255, 0, 0.5);
-}
-
-.sb-comment {
-  color: #989797;
-  font-size: 75%;
-  line-height: 75%;
 }
 
 html[data-theme="dark"] {

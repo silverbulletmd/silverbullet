@@ -10,49 +10,46 @@ import {
 export function directivePlugin() {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
-    const cursorPos = state.selection.main.head;
-
-    // TODO: This doesn't handle nested directives properly
-    let posOfLastOpen = { from: 0, to: 0 };
 
     syntaxTree(state).iterate({
-      enter: ({ type, from, to }) => {
-        if (type.name !== "CommentBlock") {
+      enter: ({ type, from, to, node }) => {
+        const parent = node.parent;
+
+        if (!parent) {
           return;
         }
-        const text = state.sliceDoc(from, to);
-        if (/<!--\s*#/.exec(text)) {
-          // Open directive
-          posOfLastOpen = { from, to };
-        } else if (/<!--\s*\//.exec(text)) {
-          // Close directive
-          if (
-            (cursorPos > to || cursorPos < posOfLastOpen.from) &&
-            !isCursorInRange(state, [posOfLastOpen.from, to])
-          ) {
-            widgets.push(
-              invisibleDecoration.range(
-                posOfLastOpen.from,
-                posOfLastOpen.to + 1,
-              ),
-            );
-            widgets.push(
-              invisibleDecoration.range(from - 1, to),
-            );
-          } else {
+
+        const cursorInRange = isCursorInRange(state, [parent.from, parent.to]);
+
+        if (["DirectiveStart", "DirectiveEnd"].includes(type.name)) {
+          // Cursor outside this directive
+          if (cursorInRange) {
             widgets.push(
               Decoration.line({
-                class: "sb-directive-start",
-              }).range(posOfLastOpen.from),
-            );
-            widgets.push(
-              Decoration.line({
-                class: "sb-directive-end",
+                class: type.name === "DirectiveStart"
+                  ? "sb-directive-start"
+                  : "sb-directive-end",
               }).range(from),
             );
+          } else {
+            widgets.push(invisibleDecoration.range(from, to));
           }
-        } else {
-          return;
+          return true;
+        }
+
+        if (type.name === "DirectiveBody") {
+          const lines = state.sliceDoc(from, to).split("\n");
+          let pos = from;
+          for (const line of lines) {
+            if (pos !== to) {
+              widgets.push(
+                Decoration.line({
+                  class: "sb-directive-body",
+                }).range(pos),
+              );
+            }
+            pos += line.length + 1;
+          }
         }
       },
     });

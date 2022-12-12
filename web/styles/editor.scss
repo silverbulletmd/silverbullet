@@ -192,16 +192,6 @@
     margin-left: -1ch;
   }
   
-  .sb-directive-end::before {
-		content: "/";
-    border-radius: 5px;
-    color: gray;
-    border: 1px solid gray;
-    font-size: 62%;
-    padding: 2px;
-    position: relative;
-    left: -20px;
-	}
 }
 
 .cm-scroller {

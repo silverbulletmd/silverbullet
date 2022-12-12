@@ -362,6 +362,10 @@ function render(
         body: cleanTags(mapRender(newChildren)),
       };
     }
+    case "Directive": {
+      const body = findNodeOfType(t, "DirectiveBody")!;
+      return posPreservingRender(body.children![0], options);
+    }
     // Text
     case undefined:
       return t.text!;

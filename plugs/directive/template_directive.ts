@@ -1,5 +1,5 @@
 import { queryRegex } from "$sb/lib/query.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { replaceAsync } from "$sb/lib/util.ts";
 import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import Handlebars from "handlebars";
@@ -7,14 +7,18 @@ import Handlebars from "handlebars";
 import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex, renderDirectives } from "./directives.ts";
+import { serverRenderDirective, serverUpdateDirectives } from "./command.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
 export async function templateDirectiveRenderer(
   directive: string,
   pageName: string,
-  arg: string,
+  arg: string | ParseTree,
 ): Promise<string> {
+  if (typeof arg !== "string") {
+    throw new Error("Template directives must be a string");
+  }
   const match = arg.match(templateRegex);
   if (!match) {
     throw new Error(`Invalid template directive: ${arg}`);
@@ -42,7 +46,7 @@ export async function templateDirectiveRenderer(
   }
   let newBody = templateText;
   // if it's a template injection (not a literal "include")
-  if (directive === "use" || directive === "use-verbose") {
+  if (directive === "use") {
     const tree = await markdown.parseMarkdown(templateText);
     extractFrontmatter(tree, ["$disableDirectives"]);
     templateText = renderToText(tree);
@@ -53,7 +57,7 @@ export async function templateDirectiveRenderer(
     newBody = templateFn(parsedArgs);
 
     // Recursively render directives
-    newBody = await renderDirectives(pageName, newBody);
+    newBody = await serverUpdateDirectives(pageName, newBody);
   }
   return newBody.trim();
 }

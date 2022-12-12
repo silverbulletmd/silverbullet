@@ -1,6 +1,8 @@
 Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
 knowledge management** application. Indeed, fundamentally that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
 
+You thought there was no such thing as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were wrong.
+
 Let’s have a look at some of its features.
 
 ## Features

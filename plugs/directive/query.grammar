@@ -8,13 +8,21 @@ Query {
 
 commaSep<content> { content ("," content)* }
 
-WhereClause { "where" LogicalExpr }
-OrderClause { "order" "by" Name Order? }
-LimitClause { "limit" Number }
-SelectClause { "select" commaSep<Name> }
-RenderClause { "render" (PageRef | String) }
+// Keywords
+Where { "where" }
+Order { "order" }
+By { "by" }
+Select { "select" }
+Render { "render" }
+Limit { "limit" }
 
-Order {
+WhereClause { Where LogicalExpr }
+OrderClause { Order By Name OrderDirection? }
+LimitClause { Limit Number }
+SelectClause { Select commaSep<Name> }
+RenderClause { Render (PageRef | String) }
+
+OrderDirection {
   "desc" | "asc"
 }
 

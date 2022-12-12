@@ -42,7 +42,7 @@ export {
   TaskList,
 } from "@lezer/markdown";
 
-export { parseMixed } from "@lezer/common";
+// export { parseMixed, TreeFragment } from "@lezer/common";
 
 export type { NodeType, SyntaxNode, SyntaxNodeRef, Tree } from "@lezer/common";
 

@@ -112,14 +112,6 @@ const CommandLink: MarkdownConfig = {
             cx.elt("CommandLinkMark", endPos - 2, endPos),
           ]),
         );
-
-        // return cx.addElement(
-        //   cx.elt("CommandLink", pos, endPos, [
-        //     cx.elt("CommandLinkMark", pos, pos + 2),
-        //     cx.elt("CommandLinkName", pos + 2, endPos - 2),
-        //     cx.elt("CommandLinkMark", endPos - 2, endPos),
-        //   ]),
-        // );
       },
       after: "Emphasis",
     },
@@ -178,6 +170,106 @@ export const Comment: MarkdownConfig = {
       after: "SetextHeading",
     },
   ],
+};
+
+// Directive parser
+
+const directiveStart = /\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
+const directiveEnd = /\s*<!--\s*\/(.*?)-->\s*/;
+
+import { parser as directiveParser } from "../plugs/directive/parse-query.js";
+
+const highlightingDirectiveParser = directiveParser.configure({
+  props: [
+    styleTags({
+      "Name": t.variableName,
+      "String PageRef": t.string,
+      "Number": t.number,
+      "Where Select Render Limit Order By OrderDirection": t.keyword,
+    }),
+  ],
+});
+
+export const Directive: MarkdownConfig = {
+  defineNodes: [
+    { name: "Directive", block: true, style: ct.DirectiveTag },
+    { name: "DirectiveStart", style: ct.DirectiveStartTag, block: true },
+    { name: "DirectiveEnd", style: ct.DirectiveEndTag },
+    { name: "DirectiveBody", block: true },
+  ],
+  parseBlock: [{
+    name: "Directive",
+    parse: (cx, line: Line) => {
+      const match = directiveStart.exec(line.text);
+      if (!match) {
+        return false;
+      }
+
+      const frontStart = cx.parsedPos;
+      const [fullMatch, directive, arg] = match;
+      const elts = [];
+      if (directive === "query") {
+        const queryParseTree = highlightingDirectiveParser.parse(arg);
+        elts.push(cx.elt(
+          "DirectiveStart",
+          cx.parsedPos,
+          cx.parsedPos + line.text.length + 1,
+          [cx.elt(queryParseTree, frontStart + fullMatch.indexOf(arg))],
+        ));
+      } else {
+        elts.push(cx.elt(
+          "DirectiveStart",
+          cx.parsedPos,
+          cx.parsedPos + line.text.length + 1,
+        ));
+      }
+
+      // console.log("Query parse tree", queryParseTree.topNode);
+
+      cx.nextLine();
+      const startPos = cx.parsedPos;
+      let endPos = startPos;
+      let text = "";
+      let lastPos = cx.parsedPos;
+      let nesting = 0;
+      while (true) {
+        if (directiveEnd.exec(line.text) && nesting === 0) {
+          break;
+        }
+        text += line.text + "\n";
+        endPos += line.text.length + 1;
+        if (directiveStart.exec(line.text)) {
+          nesting++;
+        }
+        if (directiveEnd.exec(line.text)) {
+          nesting--;
+        }
+        cx.nextLine();
+        if (cx.parsedPos === lastPos) {
+          // End of file, no progress made, there may be a better way to do this but :shrug:
+          return false;
+        }
+        lastPos = cx.parsedPos;
+      }
+      const directiveBodyTree = cx.parser.parse(text);
+
+      elts.push(
+        cx.elt("DirectiveBody", startPos, endPos, [
+          cx.elt(directiveBodyTree, startPos),
+        ]),
+      );
+      endPos = cx.parsedPos + line.text.length;
+      elts.push(cx.elt(
+        "DirectiveEnd",
+        cx.parsedPos,
+        cx.parsedPos + line.text.length,
+      ));
+      cx.nextLine();
+      cx.addElement(cx.elt("Directive", frontStart, endPos, elts));
+      return true;
+    },
+    before: "HTMLBlock",
+  }],
 };
 
 // FrontMatter parser
@@ -249,6 +341,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       WikiLink,
       CommandLink,
       FrontMatter,
+      Directive,
       TaskList,
       Comment,
       Highlight,

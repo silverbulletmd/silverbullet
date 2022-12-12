@@ -1,6 +1,7 @@
 // This is some shocking stuff. My profession would kill me for this.
 
 import * as YAML from "yaml";
+import { ParseTree } from "../../plug-api/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions
@@ -20,8 +21,11 @@ const expressionRegex = /(.+?)(\s+render\s+\[\[([^\]]+)\]\])?$/;
 export async function evalDirectiveRenderer(
   _directive: string,
   _pageName: string,
-  expression: string,
+  expression: string | ParseTree,
 ): Promise<string> {
+  if (typeof expression !== "string") {
+    throw new Error("Expecgted sttring");
+  }
   console.log("Got JS expression", expression);
   const match = expressionRegex.exec(expression);
   if (!match) {

@@ -1,5 +1,11 @@
 import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
-import { nodeAtPos } from "$sb/lib/tree.ts";
+import {
+  nodeAtPos,
+  ParseTree,
+  removeParentPointers,
+  renderToText,
+  traverseTree,
+} from "$sb/lib/tree.ts";
 import { replaceAsync } from "$sb/lib/util.ts";
 import { directiveRegex, renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
@@ -33,38 +39,46 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   }
 
   // Collect all directives and their body replacements
-  const replacements: { fullMatch: string; text?: string }[] = [];
+  const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
+    [];
 
-  await replaceAsync(
-    text,
-    directiveRegex,
-    async (fullMatch, startInst, _type, _arg, _body, endInst, index) => {
-      const replacement: { fullMatch: string; text?: string } = { fullMatch };
-      // Pushing to the replacement array
-      const currentNode = nodeAtPos(tree, index + 1);
-      if (currentNode?.type !== "CommentBlock") {
-        // If not a comment block, it's likely a code block, ignore
-        // console.log("Not comment block, ignoring", fullMatch);
-        return fullMatch;
-      }
-      replacements.push(replacement);
-      try {
-        const replacementText = await system.invokeFunction(
-          "server",
-          "serverRenderDirective",
-          pageName,
-          fullMatch,
-        );
-        replacement.text = replacementText;
-        // Return value is ignored, we're using the replacements array
-        return fullMatch;
-      } catch (e: any) {
-        replacement.text = `${startInst}\n**ERROR:** ${e.message}\n${endInst}`;
-        // Return value is ignored, we're using the replacements array
-        return fullMatch;
-      }
-    },
-  );
+  const allPromises: Promise<string>[] = [];
+
+  removeParentPointers(tree);
+
+  traverseTree(tree, (tree) => {
+    if (tree.type !== "Directive") {
+      return false;
+    }
+    const fullMatch = renderToText(tree);
+    try {
+      const promise = system.invokeFunction(
+        "server",
+        "serverRenderDirective",
+        pageName,
+        tree,
+      );
+      replacements.push({
+        textPromise: promise,
+        fullMatch,
+      });
+      allPromises.push(promise);
+    } catch (e: any) {
+      replacements.push({
+        fullMatch,
+        textPromise: Promise.resolve(
+          `${renderToText(tree.children![0])}\n**ERROR:** ${e.message}\n${
+            renderToText(tree.children![tree.children!.length - 1])
+          }`,
+        ),
+      });
+    }
+    return true;
+  });
+
+  // Wait for all to have processed
+  await Promise.all(allPromises);
+
   // Iterate again and replace the bodies. Iterating again (not using previous positions)
   // because text may have changed in the mean time (directive processing may take some time)
   // Hypothetically in the mean time directives in text may have been changed/swapped, in which
@@ -84,7 +98,8 @@ export async function updateDirectivesOnPageCommand(arg: any) {
       continue;
     }
     const from = index, to = index + replacement.fullMatch.length;
-    if (text.substring(from, to) === replacement.text) {
+    const newText = await replacement.textPromise;
+    if (text.substring(from, to) === newText) {
       // No change, skip
       continue;
     }
@@ -92,21 +107,67 @@ export async function updateDirectivesOnPageCommand(arg: any) {
       changes: {
         from,
         to,
-        insert: replacement.text,
+        insert: newText,
       },
     });
   }
-}
-
-export function serverPing() {
-  return "pong";
 }
 
 // Called from client, running on server
 // The text passed here is going to be a single directive block (not a full page)
 export function serverRenderDirective(
   pageName: string,
-  text: string,
+  tree: ParseTree,
 ): Promise<string> {
-  return renderDirectives(pageName, text);
+  return renderDirectives(pageName, tree);
+}
+
+// Pure server driven implementation of directive updating
+export async function serverUpdateDirectives(
+  pageName: string,
+  text: string,
+) {
+  const tree = await markdown.parseMarkdown(text);
+  // Collect all directives and their body replacements
+  const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
+    [];
+
+  const allPromises: Promise<string>[] = [];
+
+  traverseTree(tree, (tree) => {
+    if (tree.type !== "Directive") {
+      return false;
+    }
+    const fullMatch = renderToText(tree);
+    try {
+      const promise = renderDirectives(
+        pageName,
+        tree,
+      );
+      replacements.push({
+        textPromise: promise,
+        fullMatch,
+      });
+      allPromises.push(promise);
+    } catch (e: any) {
+      replacements.push({
+        fullMatch,
+        textPromise: Promise.resolve(
+          `${renderToText(tree.children![0])}\n**ERROR:** ${e.message}\n${
+            renderToText(tree.children![tree.children!.length - 1])
+          }`,
+        ),
+      });
+    }
+    return true;
+  });
+
+  // Wait for all to have processed
+  await Promise.all(allPromises);
+
+  // Iterate again and replace the bodies.
+  for (const replacement of replacements) {
+    text = text.replace(replacement.fullMatch, await replacement.textPromise);
+  }
+  return text;
 }

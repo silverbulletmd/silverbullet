@@ -1,4 +1,4 @@
-import { nodeAtPos, ParseTree } from "$sb/lib/tree.ts";
+import { nodeAtPos, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { replaceAsync } from "$sb/lib/util.ts";
 import { markdown } from "$sb/silverbullet-syscall/mod.ts";
 
@@ -9,56 +9,79 @@ import {
   templateDirectiveRenderer,
 } from "./template_directive.ts";
 
+export const directiveStartRegex =
+  /<!--\s*#(use|use-verbose|include|eval|query)\s+(.*?)-->/i;
+
 export const directiveRegex =
   /(<!--\s*#(use|use-verbose|include|eval|query)\s+(.*?)-->)(.+?)(<!--\s*\/\2\s*-->)/gs;
-
 /**
  * Looks for directives in the text dispatches them based on name
  */
-export function directiveDispatcher(
+export async function directiveDispatcher(
   pageName: string,
-  text: string,
-  tree: ParseTree,
+  directiveTree: ParseTree,
   directiveRenderers: Record<
     string,
-    (directive: string, pageName: string, arg: string) => Promise<string>
+    (
+      directive: string,
+      pageName: string,
+      arg: string | ParseTree,
+    ) => Promise<string>
   >,
 ): Promise<string> {
-  return replaceAsync(
-    text,
-    directiveRegex,
-    async (fullMatch, startInst, type, arg, _body, endInst, index) => {
-      const currentNode = nodeAtPos(tree, index + 1);
-      // console.log("Node type", currentNode?.type);
-      if (currentNode?.type !== "CommentBlock") {
-        // If not a comment block, it's likely a code block, ignore
-        // console.log("Not comment block, ingoring", fullMatch);
-        return fullMatch;
-      }
+  // console.log("Got here", JSON.stringify(directiveTree, null, 2));
+  const directiveStart = directiveTree.children![0]; // <!-- #directive -->
+  const directiveEnd = directiveTree.children![2]; // <!-- /directive -->
+
+  if (directiveStart.children!.length === 1) {
+    // Everything not #query
+    const match = directiveStartRegex.exec(directiveStart.children![0].text!);
+    if (!match) {
+      throw Error("No match");
+    }
+
+    let [_fullMatch, type, arg] = match;
+    try {
       arg = arg.trim();
-      try {
-        const newBody = await directiveRenderers[type](type, pageName, arg);
-        return `${startInst}\n${newBody.trim()}\n${endInst}`;
-      } catch (e: any) {
-        return `${startInst}\n**ERROR:** ${e.message}\n${endInst}`;
-      }
-    },
-  );
+      const newBody = await directiveRenderers[type](type, pageName, arg);
+      const result = `${
+        renderToText(directiveStart).trim()
+      }\n${newBody.trim()}\n${renderToText(directiveEnd).trim()}`;
+      console.log("Sending back:", result);
+      return result;
+    } catch (e: any) {
+      return `${renderToText(directiveStart)}\n**ERROR:** ${e.message}\n${
+        renderToText(directiveEnd)
+      }`;
+    }
+  } else {
+    // #query
+    const newBody = await directiveRenderers["query"](
+      "query",
+      pageName,
+      directiveStart.children![1], // The query ParseTree
+    );
+    const result = `${
+      renderToText(directiveStart).trim()
+    }\n${newBody.trim()}\n${renderToText(directiveEnd).trim()}`;
+    console.log("Processed query", JSON.stringify(directiveStart, null, 2));
+    return result;
+  }
 }
 
 export async function renderDirectives(
   pageName: string,
-  text: string,
+  directiveTree: ParseTree,
 ): Promise<string> {
-  const tree = await markdown.parseMarkdown(text);
+  // const tree = await markdown.parseMarkdown(text);
 
-  text = await directiveDispatcher(pageName, text, tree, {
+  const replacementText = await directiveDispatcher(pageName, directiveTree, {
     use: templateDirectiveRenderer,
-    "use-verbose": templateDirectiveRenderer,
+    // "use-verbose": templateDirectiveRenderer,
     "include": templateDirectiveRenderer,
     query: queryDirectiveRenderer,
     eval: evalDirectiveRenderer,
   });
 
-  return await cleanTemplateInstantiations(text);
+  return await cleanTemplateInstantiations(replacementText);
 }

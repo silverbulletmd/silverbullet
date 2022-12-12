@@ -44,8 +44,11 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.comment, class: "sb-comment" },
     { tag: t.invalid, class: "sb-invalid" },
     { tag: t.processingInstruction, class: "sb-meta" },
-    // { tag: t.content, class: "tbl-content" },
     { tag: t.punctuation, class: "sb-punctuation" },
+    // { tag: ct.DirectiveTag, class: "sb-directive" },
+    { tag: ct.DirectiveTag, class: "sb-directive" },
+    // { tag: ct.DirectiveEndTag, class: "sb-directive-end" },
+    // { tag: ct.DirectiveProgramTag, class: "sb-directive-program" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
     ...mdExtension.map((mdExt) => {
       return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };
