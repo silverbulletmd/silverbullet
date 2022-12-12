@@ -2,6 +2,7 @@ import type { ClickEvent } from "../../plug-api/app_event.ts";
 import type { Extension } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import { blockquotePlugin } from "./block_quote.ts";
+import { admonitionPlugin } from "./admonition.ts";
 import { directivePlugin } from "./directive.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
@@ -17,6 +18,7 @@ export function cleanModePlugins(editor: Editor) {
     linkPlugin(editor),
     directivePlugin(),
     blockquotePlugin(),
+    admonitionPlugin(editor),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),
