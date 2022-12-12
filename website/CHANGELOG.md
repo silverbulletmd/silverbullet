@@ -5,11 +5,18 @@ release.
 
 ## Next
 
-* Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password-protected setups.
-* Added support for ~~strikethrough~~ syntax.
+> **Note** Admonition support
+> is now here
+
+* Server changes:
+  * Replaced the `--password` flag with `--user` taking a basic auth combination of username and password, e.g. `--user pete:1234`. Authentication now uses standard basic auth. This should fix attachments not working with password-protected setups.
+  * Enable configuration of IP to bind to (via `--host` flag) by [Jouni K. Seppänen](https://github.com/silverbulletmd/silverbullet/pull/138)
+* Markdown enhancements:
+  * Added support for ~~strikethrough~~ syntax.
+  * Added support for [admonitions](https://github.com/community/community/discussions/16925) using Github syntax (`note` and `warning`) by [Christian Schulze](https://github.com/silverbulletmd/silverbullet/pull/186)
 * Directives are now hidden unless the cursor is placed inside them for an even cleaner look
-* New logo! Contributed by [petercoyne](https://github.com/silverbulletmd/silverbullet/pull/177)
-* New button icons, from [feather](https://feathericons.com/)
+* New logo! Contributed by [Peter Coyne](https://github.com/silverbulletmd/silverbullet/pull/177)
+* New button icons, from [feather](https://feathericons.com/) (suggested by Peter Coyne)
 * UI font tweaks
 
 ---
