@@ -8,8 +8,9 @@ import { jsonToMDTable } from "./util.ts";
 export async function queryDirectiveRenderer(
   _directive: string,
   pageName: string,
-  query: string,
+  query: string
 ): Promise<string> {
+  console.log("gg");
   const parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
   console.log("Parsed query", parsedQuery);
@@ -17,10 +18,10 @@ export async function queryDirectiveRenderer(
   const results = await events.dispatchEvent(
     `query:${parsedQuery.table}`,
     { query: parsedQuery, pageName: pageName },
-    30 * 1000,
+    30 * 1000
   );
   if (results.length === 0) {
-    return "";
+    return "No results";
   } else if (results.length === 1) {
     if (parsedQuery.render) {
       const rendered = await renderTemplate(parsedQuery.render, results[0]);
