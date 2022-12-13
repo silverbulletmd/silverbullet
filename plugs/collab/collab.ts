@@ -63,7 +63,7 @@ export async function shareCommand() {
   if (!serverUrl) {
     return;
   }
-  const roomId = nanoid();
+  const roomId = nanoid().replaceAll("_", "-");
   await editor.save();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
