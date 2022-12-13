@@ -6,8 +6,8 @@ import Handlebars from "handlebars";
 
 import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { directiveRegex, renderDirectives } from "./directives.ts";
-import { serverRenderDirective, serverUpdateDirectives } from "./command.ts";
+import { directiveRegex } from "./directives.ts";
+import { serverUpdateDirectives } from "./command.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 

@@ -24,7 +24,7 @@ export async function evalDirectiveRenderer(
   expression: string | ParseTree,
 ): Promise<string> {
   if (typeof expression !== "string") {
-    throw new Error("Expecgted sttring");
+    throw new Error("Expected a string");
   }
   console.log("Got JS expression", expression);
   const match = expressionRegex.exec(expression);

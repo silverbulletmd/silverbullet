@@ -135,17 +135,6 @@
     left: -12px;
   }
 
-  .sb-directive-start::before {
-		content: "#";
-    color: gray;
-    border: 1px solid gray;
-    border-radius: 5px;
-    font-size: 62%;
-    padding: 2px;
-    position: relative;
-    left: -20px;
-	}
-
   .sb-line-frontmatter-outside, .sb-line-code-outside {
     display: none;
   }

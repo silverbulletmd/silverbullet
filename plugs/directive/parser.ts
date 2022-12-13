@@ -4,10 +4,8 @@ import {
   ParseTree,
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
-import { lezerToParseTree } from "../../common/parse_tree.ts";
 
 // @ts-ignore auto generated
-import { parser } from "./parse-query.js";
 import { ParsedQuery, QueryFilter } from "$sb/lib/query.ts";
 
 export function parseQuery(queryTree: ParseTree): ParsedQuery {

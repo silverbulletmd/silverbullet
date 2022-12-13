@@ -47,7 +47,7 @@ name: something
 \`\`\`
 `;
 
-Deno.test("Run a Node sandbox", () => {
+Deno.test("Test parsing", () => {
   const lang = wikiMarkdownLang([]);
   const mdTree = parse(lang, mdTest1);
   addParentPointers(mdTree);

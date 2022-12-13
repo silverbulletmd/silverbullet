@@ -1,13 +1,11 @@
 import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import {
-  nodeAtPos,
   ParseTree,
   removeParentPointers,
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
-import { replaceAsync } from "$sb/lib/util.ts";
-import { directiveRegex, renderDirectives } from "./directives.ts";
+import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 export async function updateDirectivesOnPageCommand(arg: any) {
@@ -42,6 +40,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
     [];
 
+  // Convenience array to wait for all promises to resolve
   const allPromises: Promise<string>[] = [];
 
   removeParentPointers(tree);
@@ -50,7 +49,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     if (tree.type !== "Directive") {
       return false;
     }
-    const fullMatch = renderToText(tree);
+    const fullMatch = text.substring(tree.from!, tree.to!);
     try {
       const promise = system.invokeFunction(
         "server",
@@ -91,6 +90,10 @@ export async function updateDirectivesOnPageCommand(arg: any) {
 
     // This may happen if the query itself, or the user is editing inside the directive block (WHY!?)
     if (index === -1) {
+      console.warn(
+        "Text I got",
+        text,
+      );
       console.warn(
         "Could not find directive in text, skipping",
         replacement.fullMatch,
@@ -138,7 +141,7 @@ export async function serverUpdateDirectives(
     if (tree.type !== "Directive") {
       return false;
     }
-    const fullMatch = renderToText(tree);
+    const fullMatch = text.substring(tree.from!, tree.to!);
     try {
       const promise = renderDirectives(
         pageName,

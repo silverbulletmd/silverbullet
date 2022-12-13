@@ -18,6 +18,7 @@ release.
 * New logo! Contributed by [Peter Coyne](https://github.com/silverbulletmd/silverbullet/pull/177)
 * New button icons, from [feather](https://feathericons.com/) (suggested by Peter Coyne)
 * UI font tweaks
+* Fix for the {[Page: Rename]} command by [Chris Zarate](https://github.com/silverbulletmd/silverbullet/pull/190)
 
 ---
 

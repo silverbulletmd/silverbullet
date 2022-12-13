@@ -374,44 +374,33 @@ sb-admonition-warning .sb-admonition-icon {
 }
 
 // Directives
-.sb-directive-start, .sb-directive-end {
-  position: relative;
-  left: -12px;
-}
-
-.sb-directive-start::before {
-  content: "#";
-  color: gray;
-  border: 1px solid gray;
-  border-radius: 5px;
-  font-size: 62%;
-  padding: 2px;
-  position: relative;
-  left: -20px;
-}
 
 .sb-directive-body {
   border-left: 1px solid #0000000f;
+  border-right: 1px solid #0000000f;
 }
 
-.sb-directive-start, .sb-directive-end {
-  color: #989797;
-  font-size: 75%;
-  // line-height: 75%;
+.cm-line.sb-directive-start, .cm-line.sb-directive-end {
+  color: #5b5b5b;
+  background-color: rgb(233, 233, 233, 50%);
+  padding: 3px;
 }
 
-.sb-directive-end::before {
-  content: "/";
-  border-radius: 5px;
-  color: gray;
-  border: 1px solid gray;
-  font-size: 62%;
-  padding: 2px;
-  position: relative;
-  left: -20px;
+.sb-directive-start {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-style: solid;
+  border-color: #0000000f;
+  border-width: 1px 1px 0 1px;
 }
 
-
+.sb-directive-end {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-style: solid;
+  border-color: #0000000f;
+  border-width: 0 1px 1px 1px;
+}
 
 .sb-emphasis {
   font-style: italic;

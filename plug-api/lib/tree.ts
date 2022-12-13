@@ -148,3 +148,12 @@ export function renderToText(tree: ParseTree): string {
   }
   return pieces.join("");
 }
+
+export function cloneTree(tree: ParseTree): ParseTree {
+  const newTree = { ...tree };
+  if (tree.children) {
+    newTree.children = tree.children.map(cloneTree);
+  }
+  delete newTree.parent;
+  return newTree;
+}

@@ -29,9 +29,11 @@ export async function directiveDispatcher(
     ) => Promise<string>
   >,
 ): Promise<string> {
-  // console.log("Got here", JSON.stringify(directiveTree, null, 2));
   const directiveStart = directiveTree.children![0]; // <!-- #directive -->
   const directiveEnd = directiveTree.children![2]; // <!-- /directive -->
+
+  const directiveStartText = renderToText(directiveStart).trim();
+  const directiveEndText = renderToText(directiveEnd).trim();
 
   if (directiveStart.children!.length === 1) {
     // Everything not #query
@@ -44,15 +46,11 @@ export async function directiveDispatcher(
     try {
       arg = arg.trim();
       const newBody = await directiveRenderers[type](type, pageName, arg);
-      const result = `${
-        renderToText(directiveStart).trim()
-      }\n${newBody.trim()}\n${renderToText(directiveEnd).trim()}`;
-      console.log("Sending back:", result);
+      const result =
+        `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
       return result;
     } catch (e: any) {
-      return `${renderToText(directiveStart)}\n**ERROR:** ${e.message}\n${
-        renderToText(directiveEnd)
-      }`;
+      return `${directiveStartText}\n**ERROR:** ${e.message}\n${directiveEndText}`;
     }
   } else {
     // #query
@@ -61,9 +59,8 @@ export async function directiveDispatcher(
       pageName,
       directiveStart.children![1], // The query ParseTree
     );
-    const result = `${
-      renderToText(directiveStart).trim()
-    }\n${newBody.trim()}\n${renderToText(directiveEnd).trim()}`;
+    const result =
+      `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
     console.log("Processed query", JSON.stringify(directiveStart, null, 2));
     return result;
   }
@@ -73,15 +70,12 @@ export async function renderDirectives(
   pageName: string,
   directiveTree: ParseTree,
 ): Promise<string> {
-  // const tree = await markdown.parseMarkdown(text);
-
   const replacementText = await directiveDispatcher(pageName, directiveTree, {
     use: templateDirectiveRenderer,
-    // "use-verbose": templateDirectiveRenderer,
-    "include": templateDirectiveRenderer,
+    include: templateDirectiveRenderer,
     query: queryDirectiveRenderer,
     eval: evalDirectiveRenderer,
   });
 
-  return await cleanTemplateInstantiations(replacementText);
+  return cleanTemplateInstantiations(replacementText);
 }

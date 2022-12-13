@@ -8,14 +8,6 @@ Query {
 
 commaSep<content> { content ("," content)* }
 
-// Keywords
-Where { "where" }
-Order { "order" }
-By { "by" }
-Select { "select" }
-Render { "render" }
-Limit { "limit" }
-
 WhereClause { Where LogicalExpr }
 OrderClause { Order By Name OrderDirection? }
 LimitClause { Limit Number }
@@ -28,9 +20,9 @@ OrderDirection {
 
 Value { Number | String | Bool | Regex | Null | List }
 
-LogicalExpr { AndExpr | FilterExpr }
+LogicalExpr { FilterExpr (And FilterExpr)* }
 
-AndExpr { FilterExpr !logic "and" FilterExpr }
+// AndExpr { FilterExpr (And FilterExpr)* }
 
 FilterExpr {
   Name "<" Value
@@ -48,19 +40,24 @@ List { "[" commaSep<Value> "]" }
 
 @skip { space }
 
-
-
 Bool {
   "true" | "false"
 }
 
-Null {
-  "null"
-}
 
 @tokens {
   space { std.whitespace+ }
   Name { (std.asciiLetter | "-" | "_")+ }
+
+  Where { "where" }
+  Order { "order" }
+  By { "by" }
+  Select { "select" }
+  Render { "render" }
+  Limit { "limit" }
+  And { "and" }
+  Null { "null" }
+
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
   }
@@ -70,4 +67,6 @@ Null {
   Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
 
   Number { std.digit+ }
+
+  @precedence { Where, Order, By, Select, Render, Limit, And, Null, Name }
 }
