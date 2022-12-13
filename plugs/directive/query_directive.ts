@@ -10,7 +10,6 @@ export async function queryDirectiveRenderer(
   pageName: string,
   query: string
 ): Promise<string> {
-  console.log("gg");
   const parsedQuery = parseQuery(replaceTemplateVars(query, pageName));
 
   console.log("Parsed query", parsedQuery);
