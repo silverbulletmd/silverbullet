@@ -90,12 +90,12 @@ export async function deletePage() {
   await space.deletePage(pageName);
 }
 
-export async function renamePage(targetName?: string) {
-  console.log("Got a target name", targetName);
+export async function renamePage(cmdDef: any) {
+  console.log("Got a target name", cmdDef.page);
   const oldName = await editor.getCurrentPage();
   const cursor = await editor.getCursor();
   console.log("Old name is", oldName);
-  const newName = targetName ||
+  const newName = cmdDef.page ||
     await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return;

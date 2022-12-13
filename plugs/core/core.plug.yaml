@@ -68,6 +68,7 @@ functions:
       name: "Page: Rename"
       mac: Cmd-Alt-r
       key: Ctrl-Alt-r
+      page: ""
 
   pageComplete:
     path: "./page.ts:pageComplete"

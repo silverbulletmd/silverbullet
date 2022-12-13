@@ -27,11 +27,11 @@ export async function upgradeCommand() {
   const newVersion = new TextDecoder().decode(rawVersion).trim();
   if (newVersion === version) {
     console.log(
-      `Nope. I hate to tell you this, but it looks like we're still running ${newVersion} This was a bit of a futile exercise. Let's try again soon some time.`,
+      `Nope. I hate to tell you this, but it looks like we're still running ${newVersion}. This was a bit of a futile exercise. Let's try again soon some time.`,
     );
   } else {
     console.log(
-      `Congrats, we've upgraded you from ${version} to ${newVersion}. Seems like quite bump, enjoy! https://silverbullet.md/changelog/ may give you more hints on what's new.`,
+      `Congrats, we've upgraded you from ${version} to ${newVersion}. Seems like quite a bump, enjoy! https://silverbullet.md/CHANGELOG may give you more hints on what's new.`,
     );
   }
 }
