@@ -844,7 +844,7 @@ export class Editor {
             console.log("Now renaming page to...", newName);
             editor.system.loadedPlugs.get("core")!.invoke(
               "renamePage",
-              [newName],
+              [{ page: newName }],
             ).then(() => {
               editor.focus();
             }).catch(console.error);
