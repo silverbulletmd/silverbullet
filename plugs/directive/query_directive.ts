@@ -26,7 +26,11 @@ export async function queryDirectiveRenderer(
       const rendered = await renderTemplate(parsedQuery.render, results[0]);
       return rendered.trim();
     } else {
-      return jsonToMDTable(results[0]);
+      if (results[0].length === 0) {
+        return "No results";
+      } else {
+        return jsonToMDTable(results[0]);
+      }
     }
   } else {
     throw new Error(`Too many query results: ${results.length}`);
