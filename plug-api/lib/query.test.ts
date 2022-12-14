@@ -1,7 +1,7 @@
 import { renderToText } from "./tree.ts";
-import wikiMarkdownLang from "../../common/parser.ts";
+import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
 import { assert, assertEquals } from "../../test_deps.ts";
-import { parse } from "../../common/parse_tree.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { removeQueries } from "./query.ts";
 
 const queryRemovalTest = `

@@ -61,7 +61,6 @@ export async function directiveDispatcher(
     );
     const result =
       `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
-    console.log("Processed query", JSON.stringify(directiveStart, null, 2));
     return result;
   }
 }

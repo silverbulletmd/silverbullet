@@ -13,7 +13,7 @@ import {
   tags as t,
   TaskList,
   yamlLanguage,
-} from "./deps.ts";
+} from "../deps.ts";
 import * as ct from "./customtags.ts";
 import {
   MDExt,
@@ -177,7 +177,7 @@ export const Comment: MarkdownConfig = {
 const directiveStart = /\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
 const directiveEnd = /\s*<!--\s*\/(.*?)-->\s*/;
 
-import { parser as directiveParser } from "../plugs/directive/parse-query.js";
+import { parser as directiveParser } from "./parse-query.js";
 
 const highlightingDirectiveParser = directiveParser.configure({
   props: [
@@ -185,7 +185,7 @@ const highlightingDirectiveParser = directiveParser.configure({
       "Name": t.variableName,
       "String PageRef": t.string,
       "Number": t.number,
-      "Where Select Render Limit Order By OrderDirection": t.keyword,
+      "Where Limit Select Render Order OrderDirection And": t.keyword,
     }),
   ],
 });

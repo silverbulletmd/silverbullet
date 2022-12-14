@@ -1,8 +1,8 @@
 import { assertEquals } from "../../test_deps.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 
-import wikiMarkdownLang from "../../common/parser.ts";
-import { parse } from "../../common/parse_tree.ts";
+import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { parseQuery as parseQueryQuery } from "./parser.ts";
 import { findNodeOfType, renderToText } from "../../plug-api/lib/tree.ts";
 

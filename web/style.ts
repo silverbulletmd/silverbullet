@@ -1,11 +1,11 @@
 import { HighlightStyle } from "../common/deps.ts";
 import { tagHighlighter, tags as t } from "./deps.ts";
-import * as ct from "../common/customtags.ts";
-import { MDExt } from "../common/markdown_ext.ts";
+import * as ct from "../common/markdown_parser/customtags.ts";
+import { MDExt } from "../common/markdown_parser/markdown_ext.ts";
 
 export default function highlightStyles(mdExtension: MDExt[]) {
   tagHighlighter;
-  const hls = HighlightStyle.define([
+  return HighlightStyle.define([
     { tag: t.heading1, class: "sb-h1" },
     { tag: t.heading2, class: "sb-h2" },
     { tag: t.heading3, class: "sb-h3" },
@@ -45,22 +45,10 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.invalid, class: "sb-invalid" },
     { tag: t.processingInstruction, class: "sb-meta" },
     { tag: t.punctuation, class: "sb-punctuation" },
-    // { tag: ct.DirectiveTag, class: "sb-directive" },
     { tag: ct.DirectiveTag, class: "sb-directive" },
-    // { tag: ct.DirectiveEndTag, class: "sb-directive-end" },
-    // { tag: ct.DirectiveProgramTag, class: "sb-directive-program" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
     ...mdExtension.map((mdExt) => {
       return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };
     }),
   ]);
-  const fn0 = hls.style;
-  // Hack: https://discuss.codemirror.net/t/highlighting-that-seems-ignored-in-cm6/4320/16
-  // @ts-ignore
-  hls.style = (tags) => {
-    // console.log("Tags", tags);
-    return fn0(tags || []);
-  };
-
-  return hls;
 }

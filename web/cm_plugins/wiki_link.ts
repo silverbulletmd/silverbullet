@@ -1,4 +1,4 @@
-import { pageLinkRegex } from "../../common/parser.ts";
+import { pageLinkRegex } from "../../common/markdown_parser/parser.ts";
 import { ClickEvent } from "../../plug-api/app_event.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Editor } from "../editor.tsx";

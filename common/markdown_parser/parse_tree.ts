@@ -1,5 +1,5 @@
 import type { ParseTree } from "$sb/lib/tree.ts";
-import type { Language, SyntaxNode } from "./deps.ts";
+import type { Language, SyntaxNode } from "../deps.ts";
 
 export function lezerToParseTree(
   text: string,
@@ -60,24 +60,5 @@ export function lezerToParseTree(
 
 export function parse(language: Language, text: string): ParseTree {
   const tree = lezerToParseTree(text, language.parser.parse(text).topNode);
-  // replaceNodesMatching(tree, (n): MarkdownTree | undefined | null => {
-  //   if (n.type === "FencedCode") {
-  //     let infoN = findNodeMatching(n, (n) => n.type === "CodeInfo");
-  //     let language = infoN!.children![0].text;
-  //     let textN = findNodeMatching(n, (n) => n.type === "CodeText");
-  //     let text = textN!.children![0].text!;
-  //
-  //     console.log(language, text);
-  //     switch (language) {
-  //       case "yaml":
-  //         let parsed = StreamLanguage.define(yaml).parser.parse(text);
-  //         let subTree = treeToAST(text, parsed.topNode, n.from);
-  //         // console.log(JSON.stringify(subTree, null, 2));
-  //         subTree.type = "yaml";
-  //         return subTree;
-  //     }
-  //   }
-  //   return;
-  // });
   return tree;
 }

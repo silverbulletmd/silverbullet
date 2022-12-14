@@ -47,8 +47,11 @@ import {
 
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { markdown } from "../common/deps.ts";
-import { loadMarkdownExtensions, MDExt } from "../common/markdown_ext.ts";
-import buildMarkdown from "../common/parser.ts";
+import {
+  loadMarkdownExtensions,
+  MDExt,
+} from "../common/markdown_parser/markdown_ext.ts";
+import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";

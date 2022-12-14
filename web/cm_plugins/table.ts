@@ -13,7 +13,7 @@ import {
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
-import { lezerToParseTree } from "../../common/parse_tree.ts";
+import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Editor } from "../editor.tsx";
 
 class TableViewWidget extends WidgetType {

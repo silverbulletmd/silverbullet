@@ -14,7 +14,9 @@ release.
 * Markdown enhancements:
   * Added support for ~~strikethrough~~ syntax.
   * Added support for [admonitions](https://github.com/community/community/discussions/16925) using Github syntax (`note` and `warning`) by [Christian Schulze](https://github.com/silverbulletmd/silverbullet/pull/186)
-* Directives are now hidden unless the cursor is placed inside them for an even cleaner look
+* Directives have been heavily reworked, and are now "properly" parsed. This is visible in two ways:
+  * There's now syntax highlighting for queries
+  * Once the cursor is placed within a directive, it shows the whole block as a "capsule" enclosed in the opening and close tag, when the cursor is outside, it just subtly highlights what parts of a page are directive generated.
 * New logo! Contributed by [Peter Coyne](https://github.com/silverbulletmd/silverbullet/pull/177)
 * New button icons, from [feather](https://feathericons.com/) (suggested by Peter Coyne)
 * UI font tweaks

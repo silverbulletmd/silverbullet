@@ -11,7 +11,7 @@
     "bundle": "deno bundle silverbullet.ts dist/silverbullet.js",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"
-    "generate": "deno run -A plugos/gen.ts && lezer-generator plugs/directive/query.grammar -o plugs/directive/parse-query.js"
+    "generate": "deno run -A plugos/gen.ts && lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js"
   },
 
   "compilerOptions": {

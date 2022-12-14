@@ -18,7 +18,7 @@ export async function queryDirectiveRenderer(
     JSON.parse(replaceTemplateVars(JSON.stringify(query), pageName)),
   );
 
-  console.log("Parsed query", parsedQuery);
+  // console.log("Parsed query", parsedQuery);
   // Let's dispatch an event and see what happens
   const results = await events.dispatchEvent(
     `query:${parsedQuery.table}`,

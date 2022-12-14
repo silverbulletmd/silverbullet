@@ -4,8 +4,8 @@ import {
   collectNodesOfType,
   findNodeOfType,
   renderToText,
-} from "../plug-api/lib/tree.ts";
-import { assertEquals, assertNotEquals } from "../test_deps.ts";
+} from "../../plug-api/lib/tree.ts";
+import { assertEquals, assertNotEquals } from "../../test_deps.ts";
 
 const sample1 = `---
 type: page
@@ -80,6 +80,12 @@ Deno.test("Test directive parser", () => {
   assertEquals(renderToText(tree), directiveSample);
 
   tree = parse(lang, nestedDirectiveExample);
-  console.log("tree", JSON.stringify(tree, null, 2));
+  // console.log("tree", JSON.stringify(tree, null, 2));
   assertEquals(renderToText(tree), nestedDirectiveExample);
+
+  const orderByExample = `<!-- #query page order by lastModified -->
+  
+  <!-- /query -->`;
+  tree = parse(lang, orderByExample);
+  console.log("Tree", JSON.stringify(tree, null, 2));
 });

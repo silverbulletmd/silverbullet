@@ -1,4 +1,4 @@
-import { Tag } from "./deps.ts";
+import { Tag } from "../deps.ts";
 
 export const CommandLinkTag = Tag.define();
 export const CommandLinkNameTag = Tag.define();

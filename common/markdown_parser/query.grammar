@@ -1,16 +1,16 @@
 @precedence { logic @left }
-
 @top Program { Query }
+@skip { space }
 
 Query {
-    Name ( WhereClause | OrderClause  | LimitClause | SelectClause | RenderClause )*
+    Name ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
 }
 
 commaSep<content> { content ("," content)* }
 
 WhereClause { Where LogicalExpr }
-OrderClause { Order By Name OrderDirection? }
 LimitClause { Limit Number }
+OrderClause { Order Name OrderDirection? }
 SelectClause { Select commaSep<Name> }
 RenderClause { Render (PageRef | String) }
 
@@ -21,8 +21,6 @@ OrderDirection {
 Value { Number | String | Bool | Regex | Null | List }
 
 LogicalExpr { FilterExpr (And FilterExpr)* }
-
-// AndExpr { FilterExpr (And FilterExpr)* }
 
 FilterExpr {
   Name "<" Value
@@ -38,7 +36,6 @@ FilterExpr {
 
 List { "[" commaSep<Value> "]" }
 
-@skip { space }
 
 Bool {
   "true" | "false"
@@ -50,8 +47,7 @@ Bool {
   Name { (std.asciiLetter | "-" | "_")+ }
 
   Where { "where" }
-  Order { "order" }
-  By { "by" }
+  Order { "order by" }
   Select { "select" }
   Render { "render" }
   Limit { "limit" }
@@ -68,5 +64,5 @@ Bool {
 
   Number { std.digit+ }
 
-  @precedence { Where, Order, By, Select, Render, Limit, And, Null, Name }
+  // @precedence { Where, Sort, Select, Render, Limit, And, Null, Name }
 }
