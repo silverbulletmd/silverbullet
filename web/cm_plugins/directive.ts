@@ -31,7 +31,7 @@ export function directivePlugin() {
             widgets.push(invisibleDecoration.range(from, to));
             widgets.push(
               Decoration.line({ class: "sb-directive-start-outside" }).range(
-                state.doc.lineAt(to + 1).from,
+                state.doc.lineAt(to).from,
               ),
             );
           }
