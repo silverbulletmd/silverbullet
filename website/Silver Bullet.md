@@ -1,6 +1,8 @@
 Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
 knowledge management** application. Indeed, fundamentally that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
 
+You thought there was no such thing as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were wrong.
+
 Let’s have a look at some of its features.
 
 ## Features
@@ -69,7 +71,7 @@ rating: 5
 There are a few features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
 
 * Any edits you make and pages you add aren’t saved (kind of useful).
-* [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (look for those `<!-- #query ... -->` and `<!-- /query -->` comments), they just don’t update their content dynamically.
+* [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (look for sections with subtle curved lines around them, if you move your cursor inside you’ll see where their content is generated from), they just don’t update their content dynamically.
 * **Full-text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 

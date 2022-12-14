@@ -2,7 +2,6 @@
 The `#query` is the most widely used directive. It can be used to query various data sources and render results in various ways.
 
 ### Syntax
-
 1. _start with_: `<!-- #query [QUERY GOES HERE] -->`
 2. _end with_: `<!-- /query -->`
 3. _write your query_: replace `[QUERY GOES HERE]` with any query you want using the options below.
@@ -166,13 +165,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need. 
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name       |lastModified |contentType  |size|perm|type|repo                                          |share-support|
-|--|--|--|--|--|--|--|--|
-|🔌 Collab  |1669545776517|text/markdown|2926|rw|plug|https://github.com/silverbulletmd/silverbullet|true|
-|🔌 Tasks   |1669536555227|text/markdown|1231|rw|plug|https://github.com/silverbulletmd/silverbullet|    |
-|🔌 Share   |1669536545411|text/markdown|672 |rw|plug|https://github.com/silverbulletmd/silverbullet|    |
-|🔌 Markdown|1669536539800|text/markdown|268 |rw|plug|https://github.com/silverbulletmd/silverbullet|true|
-|🔌 Emoji   |1669536531680|text/markdown|155 |rw|plug|https://github.com/silverbulletmd/silverbullet|    |
+|name        |lastModified |contentType  |size|perm|type|repo                                               |uri                                 |author        |share-support|
+|--|--|--|--|--|--|--|--|--|--|
+|🔌 Directive|1671044429696|text/markdown|2605|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
+|🔌 Backlinks|1670833065065|text/markdown|960 |rw|plug|https://github.com/Willyfrog/silverbullet-backlinks|ghr:Willyfrog/silverbullet-backlinks|Guillermo Vayá|    |
+|🔌 Collab   |1670435068917|text/markdown|2923|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |true|
+|🔌 Tasks    |1669536555227|text/markdown|1231|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
+|🔌 Share    |1669536545411|text/markdown|672 |rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -183,14 +182,14 @@ and `repo` columns and then sort by last modified time.
 **Result:** Okay, this is much better. However, I believe this needs a touch
 from a visual perspective.
 
-<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 -->
-|name       |author|repo                                          |ri|
-|-----------||----------------------------------------------||
-|🔌 Collab  ||https://github.com/silverbulletmd/silverbullet||
-|🔌 Tasks   ||https://github.com/silverbulletmd/silverbullet||
-|🔌 Share   ||https://github.com/silverbulletmd/silverbullet||
-|🔌 Markdown||https://github.com/silverbulletmd/silverbullet||
-|🔌 Emoji   ||https://github.com/silverbulletmd/silverbullet||
+<!-- #query page select name author repo uririri where type = "plug" order by lastModified desc limit 5 -->
+|name        |author        |repo                                               |ri|
+|--|--|--|--|
+|🔌 Directive|              |https://github.com/silverbulletmd/silverbullet     ||
+|🔌 Backlinks|Guillermo Vayá|https://github.com/Willyfrog/silverbullet-backlinks||
+|🔌 Collab   |              |https://github.com/silverbulletmd/silverbullet     ||
+|🔌 Tasks    |              |https://github.com/silverbulletmd/silverbullet     ||
+|🔌 Share    |              |https://github.com/silverbulletmd/silverbullet     ||
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -199,12 +198,12 @@ from a visual perspective.
 
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
-<!-- #query page select name author repo uri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+<!-- #query page select name author repo uririri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+* [[🔌 Directive]] 
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Collab]] 
 * [[🔌 Tasks]] 
-* [[🔌 Share]] 
-* [[🔌 Markdown]] 
-* [[🔌 Emoji]]
+* [[🔌 Share]]
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are

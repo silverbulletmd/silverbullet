@@ -1,6 +1,5 @@
-import buildMarkdown from "../../common/parser.ts";
-import { parse } from "../../common/parse_tree.ts";
-import { renderHtml } from "./html_render.ts";
+import buildMarkdown from "../../common/markdown_parser/parser.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { System } from "../../plugos/system.ts";
 
 import corePlug from "../../dist_bundle/_plug/core.plug.json" assert {
@@ -10,9 +9,9 @@ import tasksPlug from "../../dist_bundle/_plug/tasks.plug.json" assert {
   type: "json",
 };
 import { createSandbox } from "../../plugos/environments/deno_sandbox.ts";
-import { loadMarkdownExtensions } from "../../common/markdown_ext.ts";
+import { loadMarkdownExtensions } from "../../common/markdown_parser/markdown_ext.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
+import { assertEquals } from "../../test_deps.ts";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");

@@ -1,6 +1,6 @@
 import { SilverBulletHooks } from "../common/manifest.ts";
-import { loadMarkdownExtensions } from "../common/markdown_ext.ts";
-import buildMarkdown from "../common/parser.ts";
+import { loadMarkdownExtensions } from "../common/markdown_parser/markdown_ext.ts";
+import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { Space } from "../common/spaces/space.ts";

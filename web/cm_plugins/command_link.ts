@@ -1,4 +1,4 @@
-import { commandLinkRegex } from "../../common/parser.ts";
+import { commandLinkRegex } from "../../common/markdown_parser/parser.ts";
 import { ClickEvent } from "$sb/app_event.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Editor } from "../editor.tsx";

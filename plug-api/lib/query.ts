@@ -3,6 +3,7 @@ import {
   collectNodesMatching,
   ParseTree,
   renderToText,
+  replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 
 export const queryRegex =
@@ -134,35 +135,15 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
 }
 
 export function removeQueries(pt: ParseTree) {
-  addParentPointers(pt);
-  collectNodesMatching(pt, (t) => {
-    if (t.type !== "CommentBlock") {
-      return false;
+  replaceNodesMatching(pt, (t) => {
+    if (t.type !== "Directive") {
+      return;
     }
-    const text = t.children![0].text!;
-    const match = directiveStartRegex.exec(text);
-    if (!match) {
-      return false;
-    }
-    const directiveType = match[1];
-    const parentChildren = t.parent!.children!;
-    const index = parentChildren.indexOf(t);
-    const nodesToReplace: ParseTree[] = [];
-    for (let i = index + 1; i < parentChildren.length; i++) {
-      const n = parentChildren[i];
-      if (n.type === "CommentBlock") {
-        const text = n.children![0].text!;
-        const match = directiveEndRegex.exec(text);
-        if (match && match[1] === directiveType) {
-          break;
-        }
-      }
-      nodesToReplace.push(n);
-    }
-    const renderedText = nodesToReplace.map(renderToText).join("");
-    parentChildren.splice(index + 1, nodesToReplace.length, {
+    const renderedText = renderToText(t);
+    return {
+      from: t.from,
+      to: t.to,
       text: new Array(renderedText.length + 1).join(" "),
-    });
-    return true;
+    };
   });
 }

@@ -1,6 +1,22 @@
 import { assertEquals } from "../../test_deps.ts";
 import { applyQuery } from "$sb/lib/query.ts";
-import { parseQuery } from "./parser.ts";
+
+import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
+import { parseQuery as parseQueryQuery } from "./parser.ts";
+import { findNodeOfType, renderToText } from "../../plug-api/lib/tree.ts";
+
+function parseQuery(query: string) {
+  const lang = wikiMarkdownLang([]);
+  const mdTree = parse(
+    lang,
+    `<!-- #query ${query} -->
+  
+  <!-- /query -->`,
+  );
+  const programNode = findNodeOfType(mdTree, "Program")!;
+  return parseQueryQuery(programNode);
+}
 
 Deno.test("Test parser", () => {
   const parsedBasicQuery = parseQuery(`page`);
@@ -153,4 +169,15 @@ Deno.test("Test applyQuery with multi value", () => {
       { name: "Angie", children: ["Angie"] },
     ],
   );
+});
+
+const testQuery = `<!-- #query source where a = 1 and b = "2" and c = "3" -->
+
+<!-- /query -->`;
+
+Deno.test("Query parsing and serialization", () => {
+  const lang = wikiMarkdownLang([]);
+  const mdTree = parse(lang, testQuery);
+  // console.log(JSON.stringify(mdTree, null, 2));
+  assertEquals(renderToText(mdTree), testQuery);
 });

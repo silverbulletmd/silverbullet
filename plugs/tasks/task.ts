@@ -40,9 +40,9 @@ function getDeadline(deadlineNode: ParseTree): string {
 }
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  // console.log("Indexing tasks");
   const tasks: { key: string; value: Task }[] = [];
   removeQueries(tree);
+  addParentPointers(tree);
   collectNodesOfType(tree, "Task").forEach((n) => {
     const complete = n.children![0].children![0].text! !== "[ ]";
     const task: Task = {
@@ -78,7 +78,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       key: `task:${n.from}`,
       value: task,
     });
-    // console.log("Task", task);
   });
 
   // console.log("Found", tasks.length, "task(s)");
@@ -132,7 +131,6 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
       }
       taskMarkerNode.children![0].text = changeTo;
       text = renderToText(referenceMdTree);
-      console.log("Updated reference paged text", text);
       await space.writePage(page, text);
     }
   }

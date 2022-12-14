@@ -1,7 +1,7 @@
-import { Tag } from "./deps.ts";
-import type { MarkdownConfig } from "./deps.ts";
-import { System } from "../plugos/system.ts";
-import { Manifest } from "./manifest.ts";
+import { Tag } from "../deps.ts";
+import type { MarkdownConfig } from "../deps.ts";
+import { System } from "../../plugos/system.ts";
+import { Manifest } from "../manifest.ts";
 
 export type MDExt = {
   // unicode char code for efficiency .charCodeAt(0)

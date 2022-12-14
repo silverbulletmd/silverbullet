@@ -8,9 +8,9 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import wikiMarkdownLang from "../../common/parser.ts";
+import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
 import { assertEquals, assertNotEquals } from "../../test_deps.ts";
-import { parse } from "../../common/parse_tree.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 
 const mdTest1 = `
 # Heading
@@ -47,7 +47,7 @@ name: something
 \`\`\`
 `;
 
-Deno.test("Run a Node sandbox", () => {
+Deno.test("Test parsing", () => {
   const lang = wikiMarkdownLang([]);
   const mdTree = parse(lang, mdTest1);
   addParentPointers(mdTree);

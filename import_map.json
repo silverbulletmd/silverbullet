@@ -1,20 +1,21 @@
 {
   "imports": {
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.1.2",
-    "@lezer/common": "https://esm.sh/@lezer/common@1.0.1",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.1.4",
+    "@lezer/common": "https://esm.sh/@lezer/common@1.0.2",
     "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight",
-    "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.3.0?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight",
+    "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.3.1?external=@lezer/common,@codemirror/language,@lezer/highlight",
+    "@codemirror/language": "https://esm.sh/@codemirror/language@6.3.1?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.1.2?external=@codemirror/state,@codemirror/view",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.4.1?external=@codemirror/state,@lezer/common",
-    "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.1.1?external=@lezer/common",
-    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.3.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view",
-    "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.0.0?external=@codemirror/state,@lezer/common",
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.7.1?external=@codemirror/state,@lezer/common",
+    "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.1.3?external=@lezer/common",
+    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.3.4?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view",
+    "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.1.0?external=@codemirror/state,@lezer/common",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.0",
     "preact": "https://esm.sh/preact@10.11.1",
     "yjs": "https://esm.sh/yjs@13.5.42",
     "$sb/": "./plug-api/",
     "handlebars": "https://esm.sh/handlebars",
-    "@lezer/lr": "https://esm.sh/@lezer/lr",
+    "@lezer/lr": "https://esm.sh/@lezer/lr@1.2.5?external=@lezer/common",
     "yaml": "https://deno.land/std/encoding/yaml.ts"
   }
 }
