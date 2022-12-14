@@ -68,6 +68,8 @@ export class HttpServer {
     await this.systemBoot.ensureSpaceIndex();
     await this.ensureAndLoadSettings();
 
+    this.addPasswordAuth(this.app);
+
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
@@ -111,8 +113,6 @@ export class HttpServer {
       }
     });
 
-    this.addPasswordAuth(this.app);
-
     // Pages API
     const fsRouter = this.buildFsRouter(this.systemBoot.spacePrimitives);
     this.app.use(fsRouter.routes());
@@ -132,12 +132,18 @@ export class HttpServer {
     });
 
     this.abortController = new AbortController();
-    this.app.listen({ hostname: this.hostname, port: this.port, signal: this.abortController.signal })
+    this.app.listen({
+      hostname: this.hostname,
+      port: this.port,
+      signal: this.abortController.signal,
+    })
       .catch((e: any) => {
         console.log("Server listen error:", e.message);
         Deno.exit(1);
       });
-    const visibleHostname = this.hostname === "0.0.0.0" ? "localhost" : this.hostname;
+    const visibleHostname = this.hostname === "0.0.0.0"
+      ? "localhost"
+      : this.hostname;
     console.log(
       `Silver Bullet is now running: http://${visibleHostname}:${this.port}`,
     );
