@@ -1,6 +1,8 @@
 #sb-root {
   --highlight-color: #464cfc;
+  --directive-color: #0000000f;
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --editor-font: "iA-Mono", "Menlo";
   font-family: var(--ui-font);
 }
 
@@ -28,7 +30,7 @@
 }
 
 .sb-notifications {
-  font-family: "iA-Mono";
+  font-family: var(--editor-font);
 }
 
 .sb-notifications > div {
@@ -108,7 +110,7 @@
 /* Editor */
 
 .cm-content {
-  font-family: "iA-Mono", "Menlo";
+  font-family: var(--editor-font);
 }
 
 .cm-selectionBackground {
@@ -225,7 +227,7 @@
 }
 
 .sb-command-button {
-  font-family: "iA-Mono";
+  font-family: var(--editor-font);
   font-size: 1em;
 }
 
@@ -376,8 +378,8 @@ sb-admonition-warning .sb-admonition-icon {
 // Directives
 
 .sb-directive-body {
-  border-left: 1px solid #0000000f;
-  border-right: 1px solid #0000000f;
+  border-left: 1px solid var(--directive-color);
+  border-right: 1px solid var(--directive-color);
 }
 
 .cm-line.sb-directive-start, .cm-line.sb-directive-end {
@@ -390,7 +392,7 @@ sb-admonition-warning .sb-admonition-icon {
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   border-style: solid;
-  border-color: #0000000f;
+  border-color: var(--directive-color);
   border-width: 1px 1px 0 1px;
 }
 
@@ -398,8 +400,37 @@ sb-admonition-warning .sb-admonition-icon {
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
   border-style: solid;
-  border-color: #0000000f;
+  border-color: var(--directive-color);
   border-width: 0 1px 1px 1px;
+}
+
+.sb-directive-start-outside {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-style: solid;
+  border-color: var(--directive-color);
+  border-left-width: 1px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 0;
+  padding-top: 5px !important;
+}
+
+.sb-directive-end-outside {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-style: solid;
+  border-color: var(--directive-color);
+  border-left-width: 1px;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+  border-top-width: 0;
+  padding-bottom: 5px !important;
+}
+
+.sb-directive-end-outside.sb-directive-start-outside {
+  border-top-width: 1px;
+  border-bottom-width: 1px;
 }
 
 .sb-emphasis {

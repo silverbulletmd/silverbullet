@@ -21,18 +21,36 @@ export function directivePlugin() {
 
         const cursorInRange = isCursorInRange(state, [parent.from, parent.to]);
 
-        if (["DirectiveStart", "DirectiveEnd"].includes(type.name)) {
-          // Cursor outside this directive
+        if (type.name === "DirectiveStart") {
           if (cursorInRange) {
+            // Cursor outside this directive
             widgets.push(
-              Decoration.line({
-                class: type.name === "DirectiveStart"
-                  ? "sb-directive-start"
-                  : "sb-directive-end",
-              }).range(from),
+              Decoration.line({ class: "sb-directive-start" }).range(from),
             );
           } else {
             widgets.push(invisibleDecoration.range(from, to));
+            widgets.push(
+              Decoration.line({ class: "sb-directive-start-outside" }).range(
+                state.doc.lineAt(to + 1).from,
+              ),
+            );
+          }
+          return true;
+        }
+
+        if (type.name === "DirectiveEnd") {
+          // Cursor outside this directive
+          if (cursorInRange) {
+            widgets.push(
+              Decoration.line({ class: "sb-directive-end" }).range(from),
+            );
+          } else {
+            widgets.push(invisibleDecoration.range(from, to));
+            widgets.push(
+              Decoration.line({ class: "sb-directive-end-outside" }).range(
+                state.doc.lineAt(from - 1).from,
+              ),
+            );
           }
           return true;
         }

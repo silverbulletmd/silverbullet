@@ -131,7 +131,7 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
       }
       taskMarkerNode.children![0].text = changeTo;
       text = renderToText(referenceMdTree);
-      console.log("Updated reference paged text", text);
+      // console.log("Updated reference paged text", text);
       await space.writePage(page, text);
     }
   }
