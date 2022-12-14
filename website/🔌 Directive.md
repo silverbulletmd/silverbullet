@@ -33,10 +33,9 @@ which renders as follows:
 <!-- #use [[template/plug]] {"name": "🔌 Directive", "repo": "https://google.com", "author": "Pete"} -->
 * [[🔌 Directive]] by **Pete** ([repo](https://google.com))
 <!-- /use -->
+* [ ] #test This is a test task
 
 Note that a string is also a valid JSON value:
-
-* [ ] #test This is a test task
 
 So, a template can take, for instance a tag name as an argument:
 
@@ -47,6 +46,8 @@ So, a template can take, for instance a tag name as an argument:
 ## Eval
 $eval
 The `#eval` directive can be used to evaluate arbitrary JavaScript expressions. It’s also possible to invoke arbitrary plug functions this way.
+
+**Note:** This feature is experimental and will likely evolve.
 
 A simple example is multiplying numbers:
 

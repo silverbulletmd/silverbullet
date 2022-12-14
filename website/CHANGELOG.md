@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.2.3
 
 > **Note** Admonition support
 > is now here
@@ -21,6 +21,7 @@ release.
 * New button icons, from [feather](https://feathericons.com/) (suggested by Peter Coyne)
 * UI font tweaks
 * Fix for the {[Page: Rename]} command by [Chris Zarate](https://github.com/silverbulletmd/silverbullet/pull/190)
+* Empty query result set rendered as a table now shows “No results” instead of an empty markdown table — fix by [ItzNesbro](https://github.com/silverbulletmd/silverbullet/pull/192).
 
 ---
 

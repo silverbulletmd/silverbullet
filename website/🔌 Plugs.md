@@ -25,10 +25,8 @@ These plugs are distributed with Silver Bullet and are automatically enabled:
 * [[🔌 Share]] 
 * [[🔌 Tasks]]
 <!-- /query -->
-
 ## Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution:
-
 <!-- #query page where type = "plug" and uri != null order by name render [[template/plug]] -->
 * [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
@@ -39,7 +37,6 @@ These plugs are written either by third parties or distributed separately from t
 * [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
 * [[🔌 Twitter]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
 <!-- /query -->
-
 ## How to develop your own plug
 The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.
 

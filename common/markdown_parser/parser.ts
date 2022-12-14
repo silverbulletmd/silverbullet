@@ -174,8 +174,8 @@ export const Comment: MarkdownConfig = {
 
 // Directive parser
 
-const directiveStart = /\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
-const directiveEnd = /\s*<!--\s*\/(.*?)-->\s*/;
+const directiveStart = /^\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
+const directiveEnd = /^\s*<!--\s*\/(.*?)-->\s*/;
 
 import { parser as directiveParser } from "./parse-query.js";
 
@@ -204,6 +204,8 @@ export const Directive: MarkdownConfig = {
       if (!match) {
         return false;
       }
+
+      // console.log("Parsing directive", line.text);
 
       const frontStart = cx.parsedPos;
       const [fullMatch, directive, arg] = match;
