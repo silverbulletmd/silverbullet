@@ -13,7 +13,35 @@
       "sb-top-border-bottom-color": #cacaca,
       "sb-top-color": rgb(55, 55, 55),
       // .sb-panel
-      "sb-panel-border-left-color": #eee);
+      "sb-panel-border-left-color": #eee,
+      // sb.bhs
+      "sb-bhs-border-top-color": rgb(193, 193, 193),
+      // sb.modal
+      "sb-modal-border-color": #000,
+      "sb-modal-background-color": #fff,
+      // .sb-notifications>div
+      "sb-notifications-div-border-color": rgb(41, 41, 41),
+      "sb-notifications-div-background-color": #fff,
+      // .sb-notification-info
+      "sb-notification-info-background-color": rgb(187, 221, 247),
+      // .sb-notification-error
+      "sb-notification-error-background-color": rgb(255, 84, 84),
+      // .sb-saved input
+      "sb-saved-input-color": #111,
+      // .sb-unsaved input
+      "sb-unsaved-input-color": #5e5e5e,
+      // .sb-loading
+      "sb-loading-color": #7a7a7a,
+      // .sb-actions button
+      "sb-actions-button-color": #292929,
+      // .sb-actions button:hover
+      "sb-actions-button-hover-color": #0772be,
+      // .sb-filter-box (sbfb)
+      "sb-filter-box-color": #111,
+      "sb-filter-box-background-color": #fff,
+      "sb-filter-box-border-color": rgb(103, 103, 103),
+      "sb-filter-box-box-shadow-color": rgba(0, 0, 0, 0.35),
+    );
 
     $dark: ( // #sb-root 
       "sb-root-highlight-color": #464cfc,
@@ -24,7 +52,35 @@
       "sb-top-border-bottom-color": rgb(62, 62, 62),
       "sb-top-color": rgb(200, 200, 200),
       // .sb-panel
-      "sb-panel-border-left-color": #eee);
+      "sb-panel-border-left-color": #eee,
+      // sb.bhs
+      "sb-bhs-border-top-color": rgb(193, 193, 193),
+      // sb.modal
+      "sb-modal-border-color": #000,
+      "sb-modal-background-color": #fff,
+      // .sb-notifications>div
+      "sb-notifications-div-border-color": rgb(197, 197, 197),
+      "sb-notifications-div-background-color": #333,
+      // .sb-notification-info
+      "sb-notification-info-background-color": rgb(187, 221, 247),
+      // .sb-notification-error
+      "sb-notification-error-background-color": rgb(255, 84, 84),
+      // .sb-saved input
+      "sb-saved-input-color": rgb(225, 225, 225),
+      // .sb-unsaved input
+      "sb-unsaved-input-color": #5e5e5e,
+      // .sb-loading
+      "sb-loading-color": #7a7a7a,
+      // .sb-actions button
+      "sb-actions-button-color": #adadad,
+      // .sb-actions button:hover
+      "sb-actions-button-hover-color": #37a1ed,
+      // .sb-filter-box (sbfb)
+      "sb-filter-box-color": #ccc,
+      "sb-filter-box-background-color": rgb(38, 38, 38),
+      "sb-filter-box-border-color": rgb(103, 103, 103),
+      "sb-filter-box-box-shadow-color": rgba(0, 0, 0, 0.35),
+    );
 
     $themeMap: $light !default;
 
@@ -59,6 +115,101 @@
       border-left: 1px solid;
       border-left-color: map.get($themeMap, "sb-panel-border-left-color");
     }
+
+    .sb-bhs {
+      border-top: 1px solid;
+      border-top-color: map.get($themeMap, "sb-bhs-border-top-color");
+    }
+
+    .sb-modal {
+      border: 1px solid;
+      border-color: map.get($themeMap, "sb-modal-border-color");
+      background-color: map.get($themeMap, "sb-modal-background-color");
+    }
+
+    .sb-notifications {
+      font-family: "iA-Mono";
+    }
+
+    .sb-notifications>div {
+      border: 1px solid;
+      border-color: map.get($themeMap, "sb-notifications-div-border-color");
+      background-color: map.get($themeMap, "sb-notifications-div-background-color");
+    }
+
+    .sb-notification-info {
+      background-color: map.get($themeMap, "sb-notification-info-background-color");
+    }
+
+    .sb-notification-error {
+      background-color: map.get($themeMap, "sb-notification-error-background-color");
+    }
+
+    .sb-saved input {
+      color: map.get($themeMap, "sb-saved-input-color");
+    }
+
+    .sb-unsaved input {
+      color: map.get($themeMap, "sb-unsaved-input-color");
+    }
+
+    .sb-loading {
+      color: map.get($themeMap, "sb-loading-color");
+    }
+
+    .sb-actions button {
+      border: 0;
+      margin: 3px;
+      padding: 5px;
+      background-color: transparent;
+      cursor: pointer;
+      color: map.get($themeMap, "sb-actions-button-color");
+    }
+
+    .sb-actions button:hover {
+      color: map.get($themeMap, "sb-actions-button-hover-color");
+    }
+
+    /* Filter boxes */
+    .sb-filter-box {
+      color: map.get($themeMap, "sb-filter-box-color");
+      background-color: map.get($themeMap, "sb-filter-box-background-color");
+      border: 1px solid;
+      border-color: map.get($themeMap, "sb-filter-box-border-color");
+      box-shadow: map.get($themeMap, "sb-filter-box-box-shadow-color") 0px 20px 20px;
+    }
+
+    .sb-filter-box .sb-header {
+      border-bottom: 1px solid;
+      border-bottom-color: rgb(108, 108, 108);
+    }
+
+    .sb-filter-box .sb-header input {
+      font-family: var(--ui-font);
+      color: #000;
+    }
+
+    .sb-filter-box .sb-header input::placeholder {
+      color: rgb(199, 199, 199);
+      font-weight: normal;
+    }
+
+    .sb-filter-box .sb-help-text {
+      background-color: #eee;
+      border-bottom: 1px rgb(108, 108, 108) solid;
+      color: #555;
+    }
+
+    .sb-filter-box .sb-selected-option {
+      color: #eee;
+    }
+
+    .sb-filter-box .sb-option .sb-hint,
+    .sb-filter-box .sb-selected-option .sb-hint {
+      color: #eee;
+      background-color: #212476;
+    }
+
   }
 
   html[data-theme="light"] {
@@ -71,95 +222,6 @@
 }
 
 ///// START OF OLD CODE
-
-.sb-bhs {
-  border-top: rgb(193, 193, 193) 1px solid;
-}
-
-.sb-modal {
-  border: 1px solid #000;
-  background-color: #fff;
-}
-
-.sb-notifications {
-  font-family: "iA-Mono";
-}
-
-.sb-notifications>div {
-  border: rgb(41, 41, 41) 1px solid;
-}
-
-.sb-notification-info {
-  background-color: rgb(187, 221, 247);
-}
-
-.sb-notification-error {
-  background-color: rgb(255, 84, 84);
-}
-
-.sb-saved input {
-  color: #111;
-}
-
-.sb-unsaved input {
-  color: #5e5e5e;
-}
-
-.sb-loading {
-  color: #7a7a7a;
-}
-
-.sb-actions button {
-  border: 0;
-  margin: 3px;
-  padding: 5px;
-  background-color: transparent;
-  color: #292929;
-  cursor: pointer;
-}
-
-.sb-actions button:hover {
-  color: #0772be;
-}
-
-/* Filter boxes */
-.sb-filter-box {
-  background-color: #fff;
-  border: rgb(103, 103, 103) 1px solid;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
-}
-
-.sb-filter-box .sb-header {
-  border-bottom: 1px rgb(108, 108, 108) solid;
-}
-
-.sb-filter-box .sb-header input {
-  font-family: var(--ui-font);
-  color: #000;
-}
-
-
-.sb-filter-box .sb-header input::placeholder {
-  color: rgb(199, 199, 199);
-  font-weight: normal;
-}
-
-.sb-filter-box .sb-help-text {
-  background-color: #eee;
-  border-bottom: 1px rgb(108, 108, 108) solid;
-  color: #555;
-}
-
-.sb-filter-box .sb-selected-option {
-  color: #eee;
-}
-
-.sb-filter-box .sb-option .sb-hint,
-.sb-filter-box .sb-selected-option .sb-hint {
-  color: #eee;
-  background-color: #212476;
-}
-
 /* Editor */
 
 .cm-content {
@@ -461,13 +523,6 @@ a.sb-wiki-link-page-missing,
 }
 
 html[data-theme="dark"] {
-  .sb-actions button {
-    color: #adadad;
-  }
-
-  .sb-actions button:hover {
-    color: #37a1ed;
-  }
 
   .sb-line-h1,
   .sb-line-h2,
@@ -478,10 +533,6 @@ html[data-theme="dark"] {
 
   .sb-frontmatter {
     background-color: rgb(41, 40, 35, 0.5);
-  }
-
-  .sb-saved>input {
-    color: rgb(225, 225, 225);
   }
 
   .sb-filter-box,
@@ -508,11 +559,6 @@ html[data-theme="dark"] {
   .sb-code,
   .sb-line-fenced-code,
   .sb-task-marker {
-    background-color: #333;
-  }
-
-  .sb-notifications>div {
-    border: rgb(197, 197, 197) 1px solid;
     background-color: #333;
   }
 
