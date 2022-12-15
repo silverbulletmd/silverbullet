@@ -33,7 +33,12 @@ export function parseYamlSettings(settingsMarkdown: string): {
     return {};
   }
   const yaml = match[1];
-  return YAML.parse(yaml) as {
-    [key: string]: any;
-  };
+  try {
+    return YAML.parse(yaml) as {
+      [key: string]: any;
+    };
+  } catch (e: any) {
+    console.error("Error parsing SETTINGS as YAML", e.message);
+    return {};
+  }
 }

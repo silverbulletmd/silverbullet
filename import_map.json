@@ -11,6 +11,7 @@
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.3.4?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.1.0?external=@codemirror/state,@lezer/common",
     "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.0",
+    "@codemirror/search": "https://esm.sh/@codemirror/search@6.2.3?external=@codemirror/state,@codemirror/view",
     "preact": "https://esm.sh/preact@10.11.1",
     "yjs": "https://esm.sh/yjs@13.5.42",
     "$sb/": "./plug-api/",

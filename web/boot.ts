@@ -6,6 +6,7 @@ import { PlugSpacePrimitives } from "../server/hooks/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
+import { BuiltinSettings } from "./types.ts";
 
 safeRun(async () => {
   const httpPrimitives = new HttpSpacePrimitives("");
@@ -36,14 +37,18 @@ safeRun(async () => {
 
   console.log("Booting...");
 
-  const settings = parseYamlSettings(settingsPageText);
+  const settings = parseYamlSettings(settingsPageText) as BuiltinSettings;
+
+  if (!settings.indexPage) {
+    settings.indexPage = "index";
+  }
 
   const editor = new Editor(
     serverSpace,
     system,
     document.getElementById("sb-root")!,
     "",
-    settings.indexPage || "index",
+    settings,
   );
   // @ts-ignore: for convenience
   window.editor = editor;
