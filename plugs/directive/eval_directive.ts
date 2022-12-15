@@ -1,7 +1,7 @@
 // This is some shocking stuff. My profession would kill me for this.
 
 import * as YAML from "yaml";
-import { ParseTree } from "../../plug-api/lib/tree.ts";
+import { ParseTree } from "$sb/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions

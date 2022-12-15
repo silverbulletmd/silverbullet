@@ -1,10 +1,4 @@
-import {
-  addParentPointers,
-  collectNodesMatching,
-  ParseTree,
-  renderToText,
-  replaceNodesMatching,
-} from "$sb/lib/tree.ts";
+import { ParseTree, renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 
 export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;

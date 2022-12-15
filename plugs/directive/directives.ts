@@ -1,6 +1,4 @@
-import { nodeAtPos, ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { replaceAsync } from "$sb/lib/util.ts";
-import { markdown } from "$sb/silverbullet-syscall/mod.ts";
+import { ParseTree, renderToText } from "$sb/lib/tree.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";
 import { queryDirectiveRenderer } from "./query_directive.ts";
