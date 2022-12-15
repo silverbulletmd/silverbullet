@@ -178,20 +178,26 @@ export class HttpServer {
   }
 
   private addPasswordAuth(app: Application) {
+    const excludedPaths = ["/manifest.json", "/favicon.png"];
     if (this.user) {
       app.use(async ({ request, response }, next) => {
-        if (
-          request.headers.get("Authorization") ===
-            `Basic ${btoa(this.user!)}`
-        ) {
-          await next();
+        if (!excludedPaths.includes(request.url.pathname)) {
+          if (
+            request.headers.get("Authorization") ===
+              `Basic ${btoa(this.user!)}`
+          ) {
+            await next();
+          } else {
+            response.status = 401;
+            response.headers.set(
+              "WWW-Authenticate",
+              `Basic realm="Please enter your username and password"`,
+            );
+            response.body = "Unauthorized";
+          }
         } else {
-          response.status = 401;
-          response.headers.set(
-            "WWW-Authenticate",
-            `Basic realm="Please enter your username and password"`,
-          );
-          response.body = "Unauthorized";
+          // Unauthenticated access to excluded paths
+          await next();
         }
       });
     }
