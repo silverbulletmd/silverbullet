@@ -3,6 +3,11 @@ release.
 
 ---
 
+## Next
+* Initial version of vim mode is here. To enable set `vimMode` to `true` in your [[SETTINGS]] page and reload.
+
+---
+
 ## 0.2.3
 
 > **Note** Admonition support
