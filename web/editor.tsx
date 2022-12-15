@@ -208,8 +208,8 @@ export class Editor {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
-        if ((ev.target as any).classList.contains("cm-textfield")) {
-          // Search & replace feature, ignore this
+        if ((ev.target as any).closest(".cm-panel")) {
+          // In some CM panel, let's back out
           return;
         }
         if (runScopeHandlers(this.editorView!, ev, "editor")) {
@@ -454,6 +454,15 @@ export class Editor {
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
+        // Enable vim mode, or not
+        [
+          ...this.builtinSettings.vimMode
+            ? [vim({
+              status: true,
+            })]
+            : [],
+        ],
+        // The uber markdown mode
         markdown({
           base: buildMarkdown(this.mdExtensions),
           codeLanguages: [
@@ -487,8 +496,6 @@ export class Editor {
         inlineImagesPlugin(),
         highlightSpecialChars(),
         history(),
-        // Enable vim mode
-        [...this.builtinSettings.vimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
