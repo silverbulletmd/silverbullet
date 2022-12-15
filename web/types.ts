@@ -12,6 +12,11 @@ type EditorMode = "ro" | "rw";
 
 export type PanelMode = number;
 
+export type BuiltinSettings = {
+  indexPage: string;
+  vimMode?: boolean;
+};
+
 export type PanelConfig = {
   mode?: PanelMode;
   html?: string;

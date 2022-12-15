@@ -44,7 +44,7 @@ export {
 
 export type { NodeType, SyntaxNode, SyntaxNodeRef, Tree } from "@lezer/common";
 
-export { searchKeymap } from "https://esm.sh/@codemirror/search@6.2.3?external=@codemirror/state,@codemirror/view";
+export { searchKeymap } from "@codemirror/search";
 export {
   Decoration,
   drawSelection,

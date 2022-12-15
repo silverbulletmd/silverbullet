@@ -80,7 +80,12 @@ import { systemSyscalls } from "./syscalls/system.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 
 // State and state transitions
-import { Action, AppViewState, initialViewState } from "./types.ts";
+import {
+  Action,
+  AppViewState,
+  BuiltinSettings,
+  initialViewState,
+} from "./types.ts";
 import type { AppEvent, ClickEvent } from "../plug-api/app_event.ts";
 
 // UI Components
@@ -104,6 +109,7 @@ import customMarkdownStyle from "./style.ts";
 // Real-time collaboration
 import { CollabState } from "./cm_plugins/collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
+import { vim } from "./deps.ts";
 
 const frontMatterRegex = /^---\s*$(.*?)---\s*$/ms;
 
@@ -143,14 +149,14 @@ export class Editor {
     system: System<SilverBulletHooks>,
     parent: Element,
     urlPrefix: string,
-    indexPage: string,
+    readonly builtinSettings: BuiltinSettings,
   ) {
     this.space = space;
     this.system = system;
     this.urlPrefix = urlPrefix;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
-    this.indexPage = indexPage;
+    this.indexPage = builtinSettings.indexPage;
 
     // Event hook
     this.eventHook = new EventHook();
@@ -178,7 +184,10 @@ export class Editor {
       state: this.createEditorState("", ""),
       parent: document.getElementById("sb-editor")!,
     });
-    this.pageNavigator = new PathPageNavigator(indexPage, urlPrefix);
+    this.pageNavigator = new PathPageNavigator(
+      builtinSettings.indexPage,
+      urlPrefix,
+    );
 
     this.system.registerSyscalls(
       [],
@@ -478,6 +487,8 @@ export class Editor {
         inlineImagesPlugin(),
         highlightSpecialChars(),
         history(),
+        // Enable vim mode
+        [...this.builtinSettings.vimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
