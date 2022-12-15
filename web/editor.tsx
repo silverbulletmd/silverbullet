@@ -496,6 +496,8 @@ export class Editor {
         inlineImagesPlugin(),
         highlightSpecialChars(),
         history(),
+        // Enable vim mode
+        [...this.builtinSettings.vimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
