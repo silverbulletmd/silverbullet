@@ -23,3 +23,20 @@ export async function readSecrets(keys: string[]): Promise<any[]> {
     throw e;
   }
 }
+
+// Read SECRETS page and retrieve a specific secret
+export async function readSecret(key: string): Promise<any> {
+  try {
+    const allSecrets = await readYamlPage("SECRETS", ["yaml", "secrets"]);
+    const val = allSecrets[key];
+    if (val === undefined) {
+      throw new Error(`No such secret: ${key}`);
+    }
+    return val;
+  } catch (e: any) {
+    if (e.message === "Page not found") {
+      throw new Error(`No such secret: ${key}`);
+    }
+    throw e;
+  }
+}

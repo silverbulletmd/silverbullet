@@ -38,6 +38,23 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
   }
 }
 
+export async function readSetting(
+  key: string,
+  defaultValue?: any,
+): Promise<any> {
+  try {
+    const allSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
+    const val = allSettings[key];
+    return val === undefined ? defaultValue : val;
+  } catch (e: any) {
+    if (e.message === "Page not found") {
+      // No settings yet, return default values for all
+      return defaultValue;
+    }
+    throw e;
+  }
+}
+
 /**
  * Convenience function to write a specific set of settings from the `SETTINGS` page.
  * If the SETTiNGS page doesn't exist it will create it.
