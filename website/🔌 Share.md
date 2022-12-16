@@ -11,5 +11,6 @@ Specific implementations for sharing are implemented in other plugs, specificall
 <!-- #query page where share-support = true render [[template/page]] -->
 * [[🔌 Markdown]]
 * [[🔌 Collab]]
+* [[🔌 Mattermost]]
 * [[🔌 Github]]
 <!-- /query -->
