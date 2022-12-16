@@ -23,4 +23,4 @@ EXPOSE 3000
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
-ENTRYPOINT ["/tini", "--", "deno", "run", "-A", "--unstable", "/silverbullet.js", "/space"]
+ENTRYPOINT ["/tini", "--", "deno", "run", "-A", "--unstable", "/silverbullet.js", "--hostname", "0.0.0.0", "/space"]

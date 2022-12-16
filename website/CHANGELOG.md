@@ -5,6 +5,7 @@ release.
 
 ## Next
 * Vim mode is here! This mode can be enabled on a per-client basis (its state is stored in the browser). To toggle Vim mode on or off use the {[Editor: Toggle Vim Mode]} command.
+* Security update: SB now binds to `127.0.0.1` by default, allowing just connections via `localhost`. To allow outside connections, pass the `--hostname 0.0.0.0` flag (and ideally combine it with a `--user username:password` flag to add basic authentication).
 
 ---
 
