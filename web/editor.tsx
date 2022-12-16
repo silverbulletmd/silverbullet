@@ -227,7 +227,7 @@ export class Editor {
       if (ev.touches.length > 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        this.viewDispatch({ type: "show-palette" });
+        this.viewDispatch({ type: "show-palette", context: this.getContext() });
       }
     });
   }
@@ -889,7 +889,7 @@ export class Editor {
               icon: TerminalIcon,
               description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
               callback: () => {
-                dispatch({ type: "show-palette" });
+                dispatch({ type: "show-palette", context: this.getContext() });
               },
             },
             {
@@ -946,7 +946,7 @@ export class Editor {
     );
   }
 
-  async runCommandByName(name: string) {
+  async runCommandByName(name: string, ...args: any[]) {
     const cmd = this.viewState.commands.get(name);
     if (cmd) {
       await cmd.run();
@@ -965,7 +965,7 @@ export class Editor {
     const state = this.editorView!.state;
     const selection = state.selection.main;
     if (selection.empty) {
-      return syntaxTree(state).resolveInner(selection.from).name;
+      return syntaxTree(state).resolveInner(selection.from).type.name;
     }
     return;
   }
