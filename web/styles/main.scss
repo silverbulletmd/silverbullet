@@ -52,9 +52,15 @@
       max-width: 800px;
       margin: auto;
       font-size: 28px;
-      padding: 10px 20px;
+      padding: 10px 0;
       display: flex;
       flex-direction: row;
+
+      .wrapper {
+        width: 100%;
+        padding: 0 20px;
+        position: relative;
+      }
 
       .sb-notifications {
         position: absolute;
@@ -64,7 +70,7 @@
         font-size: 15px;
         z-index: 100;
 
-        > div {
+        >div {
           padding: 3px;
           margin-bottom: 3px;
           border-radius: 5px;
@@ -94,6 +100,9 @@
 
     .sb-actions {
       text-align: right;
+      position: absolute;
+      right: 0;
+      top: 0;
     }
   }
 
