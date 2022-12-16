@@ -18,13 +18,7 @@ Features:
 * Boards support is WIP
 
 ## Installation
-Open your `PLUGS` note in SilverBullet and add this plug to the list:
-
-```
-- github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json
-```
-
-Then run the `Plugs: Update` command and off you go!
+Run the {[Plugs: Add]} command and paste in the following URI: `github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json` 
 
 ## Configuration
 In `SETTINGS` provide the `mattermost` key with a `url` and `defaultTeam` for each server (you can name them arbitrarily):
