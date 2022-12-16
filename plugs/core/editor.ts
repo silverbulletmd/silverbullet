@@ -13,3 +13,17 @@ export async function toggleReadOnlyMode() {
   await editor.enableReadOnlyMode(readOnlyMode);
   await clientStore.set("readOnlyMode", readOnlyMode);
 }
+
+// Run on "editor:init"
+export async function setEditorMode() {
+  if (await clientStore.get("vimMode")) {
+    await editor.setVimEnabled(true);
+  }
+}
+
+export async function toggleVimMode() {
+  let vimMode = await clientStore.get("vimMode");
+  vimMode = !vimMode;
+  await editor.setVimEnabled(vimMode);
+  await clientStore.set("vimMode", vimMode);
+}

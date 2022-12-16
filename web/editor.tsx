@@ -128,6 +128,7 @@ export class Editor {
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState;
+  // deno-lint-ignore ban-types
   viewDispatch: Function;
   space: Space;
   pageNavigator: PathPageNavigator;
@@ -142,7 +143,10 @@ export class Editor {
   private mdExtensions: MDExt[] = [];
   urlPrefix: string;
   indexPage: string;
+
+  // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
+  enableVimMode = false;
 
   constructor(
     space: Space,
@@ -455,13 +459,7 @@ export class Editor {
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
         // Enable vim mode, or not
-        [
-          ...this.builtinSettings.vimMode
-            ? [vim({
-              status: true,
-            })]
-            : [],
-        ],
+        [...this.enableVimMode ? [vim({ status: true })] : []],
         // The uber markdown mode
         markdown({
           base: buildMarkdown(this.mdExtensions),
@@ -497,7 +495,7 @@ export class Editor {
         highlightSpecialChars(),
         history(),
         // Enable vim mode
-        [...this.builtinSettings.vimMode ? [vim()] : []],
+        [...this.enableVimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
@@ -985,6 +983,11 @@ export class Editor {
         this.collabState?.ytext.insert(0, initialText);
       }
     });
+    this.rebuildEditorState();
+  }
+
+  setVimMode(vimMode: boolean) {
+    this.enableVimMode = vimMode;
     this.rebuildEditorState();
   }
 }

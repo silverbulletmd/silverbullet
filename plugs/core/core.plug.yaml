@@ -18,6 +18,15 @@ syntax:
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
 functions:
+  setEditorMode:
+    path: "./editor.ts:setEditorMode"
+    events:
+    - editor:init
+  toggleVimMode:
+    path: "./editor.ts:toggleVimMode"
+    command:
+      name: "Editor: Toggle Vim Mode"
+
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
     env: server

@@ -14,7 +14,6 @@ export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
-  vimMode?: boolean;
 };
 
 export type PanelConfig = {

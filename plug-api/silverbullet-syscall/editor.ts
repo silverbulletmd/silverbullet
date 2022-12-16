@@ -121,3 +121,11 @@ export function confirm(
 export function enableReadOnlyMode(enabled: boolean) {
   return syscall("editor.enableReadOnlyMode", enabled);
 }
+
+export function getVimEnabled(): Promise<boolean> {
+  return syscall("editor.getVimEnabled");
+}
+
+export function setVimEnabled(enabled: boolean) {
+  return syscall("editor.setVimEnabled", enabled);
+}

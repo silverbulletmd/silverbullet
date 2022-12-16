@@ -4,7 +4,7 @@ release.
 ---
 
 ## Next
-* Initial version of vim mode is here. To enable set `vimMode` to `true` in your [[SETTINGS]] page and reload.
+* Vim mode is here! This mode can be enabled on a per-client basis (its state is stored in the browser). To toggle Vim mode on or off use the {[Editor: Toggle Vim Mode]} command.
 
 ---
 

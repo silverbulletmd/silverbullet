@@ -197,6 +197,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         enabled,
       });
     },
+    "editor.getVimEnabled": (): boolean => {
+      return editor.enableVimMode;
+    },
+    "editor.setVimEnabled": (_ctx, enabled: boolean) => {
+      editor.setVimMode(enabled);
+    },
   };
 
   return syscalls;
