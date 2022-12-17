@@ -19,6 +19,7 @@
   .sb-header {
     padding: 13px 10px 10px 10px;
     display: flex;
+
     label {
       color: var(--highlight-color);
       margin: 3px;
@@ -53,8 +54,9 @@
   .sb-selected-option {
     padding: 8px;
     cursor: pointer;
-    height: 20px;
+    // height: 20px;
     line-height: 20px;
+    // white-space: nowrap;
   }
 
   .sb-selected-option {

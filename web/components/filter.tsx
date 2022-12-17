@@ -209,9 +209,11 @@ export function FilterList({
                   onSelect(option);
                 }}
               >
-                <span className="sb-icon">
-                  {Icon && <Icon width={16} height={16} />}
-                </span>
+                {Icon && (
+                  <span className="sb-icon">
+                    <Icon width={16} height={16} />
+                  </span>
+                )}
                 <span
                   className="sb-name"
                   dangerouslySetInnerHTML={{
