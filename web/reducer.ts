@@ -144,6 +144,11 @@ export default function reducer(
         ...state,
         forcedROMode: action.enabled,
       };
+    case "set-vim-mode":
+      return {
+        ...state,
+        vimMode: action.enabled,
+      };
   }
   return state;
 }

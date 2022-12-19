@@ -1,20 +1,20 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
-import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import { CompleteEvent } from "../../plug-api/app_event.ts";
 
-export async function queryComplete() {
-  const prefix = await editor.matchBefore("#query [\\w\\-_]*");
-
-  if (prefix) {
-    const allEvents = await events.listEvents();
-    //   console.log("All events", allEvents);
-
-    return {
-      from: prefix.from + "#query ".length,
-      options: allEvents
-        .filter((eventName) => eventName.startsWith("query:"))
-        .map((source) => ({
-          label: source.substring("query:".length),
-        })),
-    };
+export async function queryComplete(completeEvent: CompleteEvent) {
+  const match = /#query ([\w\-_]+)*$/.exec(completeEvent.linePrefix);
+  if (!match) {
+    return null;
   }
+
+  const allEvents = await events.listEvents();
+
+  return {
+    from: completeEvent.pos - match[2].length,
+    options: allEvents
+      .filter((eventName) => eventName.startsWith("query:"))
+      .map((source) => ({
+        label: source.substring("query:".length),
+      })),
+  };
 }

@@ -36,6 +36,7 @@ export type AppViewState = {
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
+  vimMode: boolean;
 
   showFilterBox: boolean;
   filterBoxLabel: string;
@@ -53,6 +54,7 @@ export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
+  vimMode: false,
   panels: {
     lhs: {},
     rhs: {},
@@ -103,4 +105,5 @@ export type Action =
     onSelect: (option: FilterOption | undefined) => void;
   }
   | { type: "hide-filterbox" }
-  | { type: "set-editor-ro"; enabled: boolean };
+  | { type: "set-editor-ro"; enabled: boolean }
+  | { type: "set-vim-mode"; enabled: boolean };

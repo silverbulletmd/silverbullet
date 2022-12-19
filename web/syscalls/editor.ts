@@ -155,26 +155,6 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         },
       });
     },
-
-    "editor.matchBefore": (
-      _ctx,
-      regexp: string,
-    ): { from: number; to: number; text: string } | null => {
-      const editorState = editor.editorView!.state;
-      const selection = editorState.selection.main;
-      const from = selection.from;
-      if (selection.empty) {
-        const line = editorState.doc.lineAt(from);
-        const start = Math.max(line.from, from - 250);
-        const str = line.text.slice(start - line.from, from - line.from);
-        const found = str.search(ensureAnchor(new RegExp(regexp), false));
-        // console.log("Line", line, start, str, new RegExp(regexp), found);
-        return found < 0
-          ? null
-          : { from: start + found, to: from, text: str.slice(found) };
-      }
-      return null;
-    },
     "editor.dispatch": (_ctx, change: Transaction) => {
       editor.editorView!.dispatch(change);
     },
@@ -198,7 +178,7 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       });
     },
     "editor.getVimEnabled": (): boolean => {
-      return editor.enableVimMode;
+      return editor.viewState.vimMode;
     },
     "editor.setVimEnabled": (_ctx, enabled: boolean) => {
       editor.setVimMode(enabled);

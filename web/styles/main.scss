@@ -87,6 +87,18 @@
         text-overflow: ellipsis;
         // Action buttons width
         margin-right: 140px;
+
+        .cm-scroller {
+          font-family: var(--ui-font);
+        }
+
+        .cm-content {
+          padding: 0;
+
+          .cm-line {
+            padding: 0;
+          }
+        }
       }
 
       input.sb-edit-page-name {
@@ -98,6 +110,8 @@
         padding: 0;
         width: 100%;
       }
+
+
     }
 
     .sb-actions {

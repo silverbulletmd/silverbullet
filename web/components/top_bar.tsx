@@ -1,8 +1,14 @@
-import { useRef } from "../deps.ts";
+import {
+  CompletionContext,
+  CompletionResult,
+  useRef,
+  useState,
+} from "../deps.ts";
 import { ComponentChildren } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.1/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
+import { MiniEditor } from "./mini_editor.tsx";
 
 function prettyName(s: string | undefined): string {
   if (!s) {
@@ -24,6 +30,8 @@ export function TopBar({
   notifications,
   onRename,
   actionButtons,
+  vimMode,
+  completer,
   lhs,
   rhs,
 }: {
@@ -31,7 +39,9 @@ export function TopBar({
   unsavedChanges: boolean;
   isLoading: boolean;
   notifications: Notification[];
+  vimMode: boolean;
   onRename: (newName?: string) => void;
+  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
@@ -54,7 +64,21 @@ export function TopBar({
                   : "sb-saved"
               }`}
             >
-              <input
+              <MiniEditor
+                text={pageName ?? ""}
+                vimMode={vimMode}
+                onBlur={() => {
+                  console.log("Blurring");
+                  onRename();
+                }}
+                completer={completer}
+                onEnter={(newName) => {
+                  console.log("Going to rename to", newName);
+                  onRename(newName);
+                }}
+              />
+              {
+                /* <input
                 type="text"
                 ref={inputRef}
                 value={pageName}
@@ -73,7 +97,8 @@ export function TopBar({
                     onRename();
                   }
                 }}
-              />
+              /> */
+              }
             </span>
             {notifications.length > 0 && (
               <div className="sb-notifications">

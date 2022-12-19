@@ -1,4 +1,4 @@
-.cm-editor {
+#sb-main .cm-editor {
   font-size: 18px;
   --max-width: 800px;
   height: 100%;
@@ -196,9 +196,9 @@
     margin-left: -1ch;
   }
 
-}
 
-.cm-scroller {
-  // Give some breathing space at the bottom of the screen
-  padding-bottom: 20em;
+  .cm-scroller {
+    // Give some breathing space at the bottom of the screen
+    padding-bottom: 20em;
+  }
 }

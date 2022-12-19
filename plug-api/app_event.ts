@@ -36,3 +36,8 @@ export type PublishEvent = {
   // Page name
   name: string;
 };
+
+export type CompleteEvent = {
+  linePrefix: string;
+  pos: number;
+};

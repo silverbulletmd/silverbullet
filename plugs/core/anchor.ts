@@ -1,6 +1,6 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 
 // Key space
@@ -21,13 +21,13 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
   await index.batchSet(pageName, anchors);
 }
 
-export async function anchorComplete() {
-  const prefix = await editor.matchBefore("\\[\\[[^\\]@:]*@[\\w\\.\\-\\/]*");
-  if (!prefix) {
+export async function anchorComplete(completeEvent: CompleteEvent) {
+  const match = /\[\[([^\]@:]*@[\w\.\-\/]*)$/.exec(completeEvent.linePrefix);
+  if (!match) {
     return null;
   }
-  const [pageRefPrefix, anchorRef] = prefix.text.split("@");
-  let pageRef = pageRefPrefix.substring(2);
+
+  let [pageRef, anchorRef] = match[1].split("@");
   if (!pageRef) {
     pageRef = await editor.getCurrentPage();
   }
@@ -35,7 +35,7 @@ export async function anchorComplete() {
     `a:${pageRef}:${anchorRef}`,
   );
   return {
-    from: prefix.from + pageRefPrefix.length + 1,
+    from: completeEvent.pos - anchorRef.length,
     options: allAnchors.map((a) => ({
       label: a.key.split(":")[2],
       type: "anchor",

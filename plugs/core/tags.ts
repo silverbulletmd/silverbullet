@@ -1,6 +1,10 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
-import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import type {
+  CompleteEvent,
+  IndexTreeEvent,
+  QueryProviderEvent,
+} from "$sb/app_event.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 
 // Key space
@@ -18,15 +22,15 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
   );
 }
 
-export async function tagComplete() {
-  const prefix = await editor.matchBefore("#[^#\\s]+");
-  //   console.log("Running tag complete", prefix);
-  if (!prefix) {
+export async function tagComplete(completeEvent: CompleteEvent) {
+  const match = /#[^#\s]+$/.exec(completeEvent.linePrefix);
+  if (!match) {
     return null;
   }
-  const allTags = await index.queryPrefix(`tag:${prefix.text}`);
+  const tagPrefix = match[0];
+  const allTags = await index.queryPrefix(`tag:${tagPrefix}`);
   return {
-    from: prefix.from,
+    from: completeEvent.pos - tagPrefix.length,
     options: allTags.map((tag) => ({
       label: tag.value,
       type: "tag",

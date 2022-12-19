@@ -1,4 +1,5 @@
 import type {
+  CompleteEvent,
   IndexEvent,
   IndexTreeEvent,
   QueryProviderEvent,
@@ -209,14 +210,14 @@ export async function reindexCommand() {
 }
 
 // Completion
-export async function pageComplete() {
-  const prefix = await editor.matchBefore("\\[\\[[^\\]@:]*");
-  if (!prefix) {
+export async function pageComplete(completeEvent: CompleteEvent) {
+  const match = /\[\[([^\]@:]*)$/.exec(completeEvent.linePrefix);
+  if (!match) {
     return null;
   }
   const allPages = await space.listPages();
   return {
-    from: prefix.from + 2,
+    from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => ({
       label: pageMeta.name,
       boost: pageMeta.lastModified,

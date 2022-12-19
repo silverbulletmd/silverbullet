@@ -95,12 +95,6 @@ export function insertAtCursor(text: string): Promise<void> {
   return syscall("editor.insertAtCursor", text);
 }
 
-export function matchBefore(
-  re: string,
-): Promise<{ from: number; to: number; text: string } | null> {
-  return syscall("editor.matchBefore", re);
-}
-
 export function dispatch(change: any): Promise<void> {
   return syscall("editor.dispatch", change);
 }

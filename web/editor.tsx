@@ -16,6 +16,7 @@ import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
+  CompletionContext,
   completionKeymap,
   CompletionResult,
   drawSelection,
@@ -86,7 +87,11 @@ import {
   BuiltinSettings,
   initialViewState,
 } from "./types.ts";
-import type { AppEvent, ClickEvent } from "../plug-api/app_event.ts";
+import type {
+  AppEvent,
+  ClickEvent,
+  CompleteEvent,
+} from "../plug-api/app_event.ts";
 
 // UI Components
 import { CommandPalette } from "./components/command_palette.tsx";
@@ -146,7 +151,7 @@ export class Editor {
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
-  enableVimMode = false;
+  // enableVimMode = false;
 
   constructor(
     space: Space,
@@ -212,8 +217,8 @@ export class Editor {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!this.editorView?.hasFocus) {
-        if ((ev.target as any).closest(".cm-panel")) {
-          // In some CM panel, let's back out
+        if ((ev.target as any).closest(".cm-editor")) {
+          // In some cm element, let's back out
           return;
         }
         if (runScopeHandlers(this.editorView!, ev, "editor")) {
@@ -459,7 +464,7 @@ export class Editor {
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
         // Enable vim mode, or not
-        [...this.enableVimMode ? [vim({ status: true })] : []],
+        [...editor.viewState.vimMode ? [vim({ status: true })] : []],
         // The uber markdown mode
         markdown({
           base: buildMarkdown(this.mdExtensions),
@@ -495,7 +500,7 @@ export class Editor {
         highlightSpecialChars(),
         history(),
         // Enable vim mode
-        [...this.enableVimMode ? [vim()] : []],
+        [...this.viewState.vimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
@@ -625,8 +630,21 @@ export class Editor {
     }
   }
 
-  async completer(): Promise<CompletionResult | null> {
-    const results = await this.dispatchAppEvent("page:complete");
+  async completer(
+    context: CompletionContext,
+  ): Promise<CompletionResult | null> {
+    const editorState = context.state;
+    const selection = editorState.selection.main;
+    const line = editorState.doc.lineAt(selection.from);
+    const linePrefix = line.text.slice(0, selection.from - line.from);
+
+    const results = await this.dispatchAppEvent(
+      "page:complete",
+      {
+        linePrefix,
+        pos: selection.from,
+      } as CompleteEvent,
+    );
     let actualResult = null;
     for (const result of results) {
       if (result) {
@@ -858,6 +876,8 @@ export class Editor {
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
+          vimMode={viewState.vimMode}
+          completer={editor.completer.bind(editor)}
           onRename={(newName) => {
             if (!newName) {
               return editor.focus();
@@ -987,7 +1007,8 @@ export class Editor {
   }
 
   setVimMode(vimMode: boolean) {
-    this.enableVimMode = vimMode;
+    // this.enableVimMode = vimMode;
+    this.viewDispatch({ type: "set-vim-mode", enabled: vimMode });
     this.rebuildEditorState();
   }
 }

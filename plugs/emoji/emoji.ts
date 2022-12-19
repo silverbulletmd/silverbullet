@@ -1,18 +1,20 @@
 import emojis from "./emoji.json" assert { type: "json" };
-import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import type { CompleteEvent } from "../../plug-api/app_event.ts";
 
-export async function emojiCompleter() {
-  const prefix = await editor.matchBefore(":[\\w]+");
-  if (!prefix) {
+export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
+  const match = /:([\w]+)$/.exec(linePrefix);
+  if (!match) {
     return null;
   }
-  const textPrefix = prefix.text.substring(1); // Cut off the initial :
+
+  const [fullMatch, emojiName] = match;
+
   const filteredEmoji = emojis.filter(([_, shortcode]) =>
-    shortcode.includes(textPrefix)
+    shortcode.includes(emojiName)
   );
 
   return {
-    from: prefix.from,
+    from: pos - fullMatch.length,
     filter: false,
     options: filteredEmoji.map(([emoji, shortcode]) => ({
       detail: shortcode,
