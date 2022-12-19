@@ -1,6 +1,7 @@
 import { Decoration, EditorState, syntaxTree } from "../deps.ts";
 import {
   decoratorStateField,
+  HtmlWidget,
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
@@ -38,6 +39,17 @@ function hideNodes(state: EditorState) {
               class: "sb-line-frontmatter-outside",
             }).range(node.from),
           );
+          if (parent.from === node.from) {
+            // Only put this on the first line of the frontmatter
+            widgets.push(
+              Decoration.widget({
+                widget: new HtmlWidget(
+                  `frontmatter`,
+                  "sb-frontmatter-marker",
+                ),
+              }).range(node.from),
+            );
+          }
         }
       }
 

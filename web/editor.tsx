@@ -111,7 +111,7 @@ import { CollabState } from "./cm_plugins/collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
 import { vim } from "./deps.ts";
 
-const frontMatterRegex = /^---\s*$(.*?)---\s*$/ms;
+const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
 class PageState {
   constructor(
@@ -317,7 +317,7 @@ export class Editor {
         const match = frontMatterRegex.exec(pageText);
         if (match) {
           // Frontmatter found, put cursor after it
-          initialCursorPos = match[0].length + 1;
+          initialCursorPos = match[0].length;
         }
         // By default scroll to the top
         this.editorView.scrollDOM.scrollTop = 0;

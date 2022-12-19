@@ -374,10 +374,21 @@ sb-admonition-warning .sb-admonition-icon {
   color: rgb(255, 145, 0);
 }
 
+// Frontmatter
+
 .sb-frontmatter {
   background-color: rgba(255, 246, 189, 0.5);
   color: #676767;
 }
+
+.sb-frontmatter-marker {
+  color: #890000;
+  float: right;
+  font-size: 80%;
+  padding-right: 7px;
+  opacity: 0.25;
+}
+
 
 // Directives
 
@@ -416,7 +427,9 @@ sb-admonition-warning .sb-admonition-icon {
   .sb-directive-placeholder {
     color: var(--directive-font-color) !important;
     opacity: 0.25;
-    padding-left: 5ch;
+    padding-right: 7px;
+    float: right;
+    font-size: 80%;
   }
 
   * {
@@ -430,7 +443,9 @@ sb-admonition-warning .sb-admonition-icon {
   .sb-directive-placeholder {
     color: var(--directive-font-color) !important;
     opacity: 0.25;
-    padding-left: 5ch;
+    padding-right: 7px;
+    font-size: 80%;
+    float: right;
   }
 
   * {
@@ -444,6 +459,15 @@ sb-admonition-warning .sb-admonition-icon {
 
 .sb-strong {
   font-weight: 900;
+}
+
+.sb-line-code-outside .sb-code-info {
+  display: block;
+  float: right;
+  color: #000;
+  opacity: .25;
+  font-size: 90%;
+  padding-right: 7px;
 }
 
 .sb-link {

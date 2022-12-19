@@ -3,12 +3,11 @@ import {
   directiveStartRegex,
 } from "../../plug-api/lib/query.ts";
 import { Decoration, EditorState, syntaxTree } from "../deps.ts";
-import type { Editor } from "../editor.tsx";
 import { decoratorStateField, HtmlWidget, isCursorInRange } from "./util.ts";
 
 // Does a few things: hides the directives when the cursor is not placed inside
 // Adds a class to the start and end of the directive when the cursor is placed inside
-export function directivePlugin(editor: Editor) {
+export function directivePlugin() {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 
@@ -35,20 +34,12 @@ export function directivePlugin(editor: Editor) {
               console.error("Something went wrong with this directive");
               return;
             }
-            const [fullMatch, directiveName] = match;
+            const [_fullMatch, directiveName] = match;
             widgets.push(
               Decoration.widget({
                 widget: new HtmlWidget(
                   `#${directiveName}`,
                   "sb-directive-placeholder",
-                  (e) => {
-                    e.stopPropagation();
-                    editor.editorView?.dispatch({
-                      selection: {
-                        anchor: from + fullMatch.indexOf(directiveName),
-                      },
-                    });
-                  },
                 ),
               }).range(from),
             );
@@ -76,20 +67,12 @@ export function directivePlugin(editor: Editor) {
               console.error("Something went wrong with this directive");
               return;
             }
-            const [fullMatch, directiveName] = match;
+            const [_fullMatch, directiveName] = match;
             widgets.push(
               Decoration.widget({
                 widget: new HtmlWidget(
                   `/${directiveName}`,
                   "sb-directive-placeholder",
-                  (e) => {
-                    e.stopPropagation();
-                    editor.editorView?.dispatch({
-                      selection: {
-                        anchor: from + fullMatch.indexOf(directiveName),
-                      },
-                    });
-                  },
                 ),
               }).range(from),
             );
