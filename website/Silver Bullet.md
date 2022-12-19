@@ -1,9 +1,9 @@
 Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
-knowledge management** application. Indeed, fundamentally that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
+knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
 
-You thought there was no such thing as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were wrong.
+You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Let’s have a look at some of its features.
+Let’s have a look at some of Silver Bullet’s features.
 
 ## Features
 * Runs in any modern browser (including on mobile) and is installable as a [PWA](https://web.dev/progressive-web-apps/).
@@ -123,7 +123,6 @@ And restart Silver Bullet. You should be good to go.
 
 ## Support
 
-If you (hypothetically) find bugs or have feature requests, post them in
-[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
+If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
 
 Want to chat with us? [We have a Mattermost instance](https://silverbullet.cloud.mattermost.com/), join us!

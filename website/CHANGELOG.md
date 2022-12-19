@@ -3,6 +3,14 @@ release.
 
 ---
 
+## Next
+* Changed styling for [[Frontmatter]], fenced code blocks and directives to avoid vertical jumping when moving the cursor around.
+* Clicking the URL (inside of an image `![](url)` or link `[text](link)`) no longer navigates there, you need to click on the anchor text to navigate there now (this avoids a lot of weird behavior).
+* Long page name in title now no longer overlap with action buttons
+* Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
+
+---
+
 ## 0.2.4
 * Vim mode is here! This mode can be enabled on a per-client basis (its state is stored in the browser). To toggle Vim mode on or off use the {[Editor: Toggle Vim Mode]} command.
 * Security update: SB now binds to `127.0.0.1` by default, allowing just connections via `localhost`. To allow outside connections, pass the `--hostname 0.0.0.0` flag (and ideally combine it with a `--user username:password` flag to add basic authentication).

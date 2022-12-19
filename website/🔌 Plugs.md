@@ -17,24 +17,24 @@ Plugs are distributed as self-contained JSON files (ending with `.plug.json`). U
 ## Core plugs
 These plugs are distributed with Silver Bullet and are automatically enabled:
 <!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
-* [[🔌 Collab]] 
-* [[🔌 Core]] 
-* [[🔌 Directive]] 
-* [[🔌 Emoji]] 
-* [[🔌 Markdown]] 
-* [[🔌 Share]] 
+* [[🔌 Collab]]  
+* [[🔌 Core]]  
+* [[🔌 Directive]]  
+* [[🔌 Emoji]]  
+* [[🔌 Markdown]]  
+* [[🔌 Share]]  
 * [[🔌 Tasks]]
 <!-- /query -->
 ## Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution:
 <!-- #query page where type = "plug" and uri != null order by name render [[template/plug]] -->
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Graph View]] by **Bertjan Broeksema** ([repo](https://github.com/bbroeksema/silverbullet-graphview))
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks)) 
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost)) 
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github)) 
+* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github)) 
+* [[🔌 Graph View]] by **Bertjan Broeksema** ([repo](https://github.com/bbroeksema/silverbullet-graphview)) 
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost)) 
+* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity)) 
 * [[🔌 Twitter]] by **Silver Bullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
 <!-- /query -->
 ## How to develop your own plug

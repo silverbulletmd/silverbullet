@@ -23,7 +23,16 @@ async function actionClickOrActionEnter(
     return;
   }
   const navigationNodeFinder = (t: ParseTree) =>
-    ["WikiLink", "Link", "Image", "URL", "NakedURL", "Link", "CommandLink"]
+    [
+      "WikiLink",
+      "Link",
+      "Image",
+      "URL",
+      "NakedURL",
+      "Link",
+      "CommandLink",
+      "PageRef",
+    ]
       .includes(
         t.type!,
       );
@@ -47,6 +56,17 @@ async function actionClickOrActionEnter(
         pageLink = await editor.getCurrentPage();
       }
       await editor.navigate(pageLink, pos, false, inNewWindow);
+      break;
+    }
+    case "PageRef": {
+      const bracketedPageRef = mdTree.children![0].text!;
+      await editor.navigate(
+        // Slicing off the initial [[ and final ]]
+        bracketedPageRef.substring(2, bracketedPageRef.length - 2),
+        0,
+        false,
+        inNewWindow,
+      );
       break;
     }
     case "NakedURL":

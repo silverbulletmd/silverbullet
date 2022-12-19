@@ -183,8 +183,9 @@ const highlightingDirectiveParser = directiveParser.configure({
   props: [
     styleTags({
       "Name": t.variableName,
-      "String PageRef": t.string,
+      "String": t.string,
       "Number": t.number,
+      "PageRef": ct.WikiLinkTag,
       "Where Limit Select Render Order OrderDirection And": t.keyword,
     }),
   ],
