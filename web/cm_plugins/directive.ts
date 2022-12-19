@@ -1,13 +1,14 @@
-import { Decoration, EditorState, syntaxTree } from "../deps.ts";
 import {
-  decoratorStateField,
-  invisibleDecoration,
-  isCursorInRange,
-} from "./util.ts";
+  directiveEndRegex,
+  directiveStartRegex,
+} from "../../plug-api/lib/query.ts";
+import { Decoration, EditorState, syntaxTree } from "../deps.ts";
+import type { Editor } from "../editor.tsx";
+import { decoratorStateField, HtmlWidget, isCursorInRange } from "./util.ts";
 
 // Does a few things: hides the directives when the cursor is not placed inside
 // Adds a class to the start and end of the directive when the cursor is placed inside
-export function directivePlugin() {
+export function directivePlugin(editor: Editor) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 
@@ -28,10 +29,34 @@ export function directivePlugin() {
               Decoration.line({ class: "sb-directive-start" }).range(from),
             );
           } else {
-            widgets.push(invisibleDecoration.range(from, to));
+            const text = state.sliceDoc(from, to);
+            const match = directiveStartRegex.exec(text);
+            if (!match) {
+              console.error("Something went wrong with this directive");
+              return;
+            }
+            const [fullMatch, directiveName] = match;
             widgets.push(
-              Decoration.line({ class: "sb-directive-start-outside" }).range(
-                state.doc.lineAt(to).from,
+              Decoration.widget({
+                widget: new HtmlWidget(
+                  `#${directiveName}`,
+                  "sb-directive-placeholder",
+                  (e) => {
+                    e.stopPropagation();
+                    editor.editorView?.dispatch({
+                      selection: {
+                        anchor: from + fullMatch.indexOf(directiveName),
+                      },
+                    });
+                  },
+                ),
+              }).range(from),
+            );
+            widgets.push(
+              Decoration.line({
+                class: "sb-directive-start sb-directive-start-outside",
+              }).range(
+                from,
               ),
             );
           }
@@ -45,10 +70,34 @@ export function directivePlugin() {
               Decoration.line({ class: "sb-directive-end" }).range(from),
             );
           } else {
-            widgets.push(invisibleDecoration.range(from, to));
+            const text = state.sliceDoc(from, to);
+            const match = directiveEndRegex.exec(text);
+            if (!match) {
+              console.error("Something went wrong with this directive");
+              return;
+            }
+            const [fullMatch, directiveName] = match;
             widgets.push(
-              Decoration.line({ class: "sb-directive-end-outside" }).range(
-                state.doc.lineAt(from - 1).from,
+              Decoration.widget({
+                widget: new HtmlWidget(
+                  `/${directiveName}`,
+                  "sb-directive-placeholder",
+                  (e) => {
+                    e.stopPropagation();
+                    editor.editorView?.dispatch({
+                      selection: {
+                        anchor: from + fullMatch.indexOf(directiveName),
+                      },
+                    });
+                  },
+                ),
+              }).range(from),
+            );
+            widgets.push(
+              Decoration.line({
+                class: "sb-directive-end sb-directive-end-outside",
+              }).range(
+                from,
               ),
             );
           }
@@ -68,6 +117,7 @@ export function directivePlugin() {
             }
             pos += line.length + 1;
           }
+          return true;
         }
       },
     });

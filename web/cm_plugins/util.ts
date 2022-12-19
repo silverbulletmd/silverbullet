@@ -40,6 +40,27 @@ export class LinkWidget extends WidgetType {
   }
 }
 
+export class HtmlWidget extends WidgetType {
+  constructor(
+    readonly html: string,
+    readonly className?: string,
+    readonly onClick?: (e: MouseEvent) => void,
+  ) {
+    super();
+  }
+  toDOM(): HTMLElement {
+    const el = document.createElement("span");
+    if (this.className) {
+      el.className = this.className;
+    }
+    if (this.onClick) {
+      el.addEventListener("click", this.onClick);
+    }
+    el.innerHTML = this.html;
+    return el;
+  }
+}
+
 export function decoratorStateField(
   stateToDecoratorMapper: (state: EditorState) => DecorationSet,
 ) {

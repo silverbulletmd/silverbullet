@@ -16,7 +16,7 @@ import { cleanCommandLinkPlugin } from "./command_link.ts";
 export function cleanModePlugins(editor: Editor) {
   return [
     linkPlugin(editor),
-    directivePlugin(),
+    directivePlugin(editor),
     blockquotePlugin(),
     admonitionPlugin(editor),
     hideMarksPlugin(),
