@@ -23,9 +23,10 @@ async function actionClickOrActionEnter(
     return;
   }
   const navigationNodeFinder = (t: ParseTree) =>
-    ["WikiLink", "Link", "URL", "NakedURL", "Link", "CommandLink"].includes(
-      t.type!,
-    );
+    ["WikiLink", "Link", "Image", "URL", "NakedURL", "Link", "CommandLink"]
+      .includes(
+        t.type!,
+      );
   if (!navigationNodeFinder(mdTree)) {
     mdTree = findParentMatching(mdTree, navigationNodeFinder);
     if (!mdTree) {
@@ -48,10 +49,10 @@ async function actionClickOrActionEnter(
       await editor.navigate(pageLink, pos, false, inNewWindow);
       break;
     }
-    case "URL":
     case "NakedURL":
       await editor.openUrl(patchUrl(mdTree.children![0].text!));
       break;
+    case "Image":
     case "Link": {
       const url = patchUrl(mdTree.children![4].children![0].text!);
       if (url.length <= 1) {

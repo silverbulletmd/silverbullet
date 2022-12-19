@@ -470,7 +470,7 @@ sb-admonition-warning .sb-admonition-icon {
   padding-right: 7px;
 }
 
-.sb-link {
+.sb-link:not(.sb-url) {
   cursor: pointer;
 }
 
