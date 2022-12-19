@@ -3,6 +3,7 @@ import { FilterOption } from "../../common/types.ts";
 import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
+import { MiniEditor } from "./mini_editor.tsx";
 
 function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
@@ -73,7 +74,6 @@ export function FilterList({
   newHint?: string;
   icon?: FunctionalComponent<FeatherProps>;
 }) {
-  const searchBoxRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
     fuzzySorter("", options),
@@ -93,17 +93,13 @@ export function FilterList({
     }
     setMatchingOptions(results);
 
-    setText(originalPhrase);
+    // setText(originalPhrase);
     setSelectionOption(0);
   }
 
   useEffect(() => {
     updateFilter(text);
   }, [options]);
-
-  useEffect(() => {
-    searchBoxRef.current!.focus();
-  }, []);
 
   useEffect(() => {
     function closer() {
@@ -119,71 +115,75 @@ export function FilterList({
 
   let exiting = false;
 
+  // console.log("Rendering", selectedOption);
+
   const returnEl = (
     <div className="sb-filter-wrapper">
       <div className="sb-filter-box">
         <div className="sb-header">
           <label>{label}</label>
-          <input
-            type="text"
-            value={text}
-            placeholder={placeholder}
-            ref={searchBoxRef}
-            onBlur={(e) => {
-              if (!exiting && searchBoxRef.current) {
-                searchBoxRef.current.focus();
-              }
+          <MiniEditor
+            text={text}
+            vimMode={false}
+            focus={true}
+            onEnter={() => {
+              exiting = true;
+              onSelect(matchingOptions[selectedOption]);
+              return true;
             }}
-            onKeyUp={(e) => {
+            onBlur={() => {
+              // if (!exiting && searchBoxRef.current) {
+              //   searchBoxRef.current.focus();
+              // }
+            }}
+            onKeyUp={(view, e) => {
               if (onKeyPress) {
-                onKeyPress(e.key, text);
+                onKeyPress(e.key, view.state.sliceDoc());
               }
               switch (e.key) {
                 case "ArrowUp":
                   setSelectionOption(Math.max(0, selectedOption - 1));
-                  break;
+                  console.log("Up");
+                  return true;
                 case "ArrowDown":
+                  console.log(
+                    "Down",
+                    matchingOptions.length - 1,
+                    selectedOption + 1,
+                  );
                   setSelectionOption(
                     Math.min(matchingOptions.length - 1, selectedOption + 1),
                   );
-                  break;
-                case "Enter":
-                  exiting = true;
-                  onSelect(matchingOptions[selectedOption]);
-                  e.preventDefault();
-                  break;
+                  return true;
                 case "PageUp":
                   setSelectionOption(Math.max(0, selectedOption - 5));
-                  break;
+                  return true;
                 case "PageDown":
                   setSelectionOption(Math.max(0, selectedOption + 5));
-                  break;
+                  return true;
                 case "Home":
                   setSelectionOption(0);
-                  break;
+                  return true;
                 case "End":
                   setSelectionOption(matchingOptions.length - 1);
-                  break;
+                  return true;
+                case "Enter":
+                  return false;
                 case "Escape":
                   exiting = true;
                   onSelect(undefined);
-                  e.preventDefault();
-                  break;
-                case " ":
+                  return true;
+                case "Space":
                   if (completePrefix && !text) {
                     updateFilter(completePrefix);
-                    e.preventDefault();
+                    return true;
                   }
                   break;
                 default:
-                  updateFilter((e.target as any).value);
+                  updateFilter(view.state.sliceDoc());
               }
-              e.stopPropagation();
+              return false;
             }}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-            }}
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
         <div

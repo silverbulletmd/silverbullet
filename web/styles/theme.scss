@@ -73,6 +73,18 @@
   background-color: #fff;
   border: rgb(103, 103, 103) 1px solid;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+
+  .cm-scroller {
+    font-family: var(--ui-font);
+  }
+
+  .cm-content {
+    padding: 0;
+
+    .cm-line {
+      padding: 0;
+    }
+  }
 }
 
 .sb-filter-box .sb-header {

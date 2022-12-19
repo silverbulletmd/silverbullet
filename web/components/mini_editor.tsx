@@ -18,11 +18,13 @@ import {
 import { useEffect, useRef, vim } from "../deps.ts";
 
 export function MiniEditor(
-  { text, vimMode, onBlur, onEnter, completer }: {
+  { text, vimMode, onBlur, onKeyUp, onEnter, focus, completer }: {
     text: string;
     vimMode: boolean;
     onBlur: () => void;
+    focus?: boolean;
     onEnter: (newText: string) => void;
+    onKeyUp?: (view: EditorView, event: KeyboardEvent) => boolean;
     completer?: (
       context: CompletionContext,
     ) => Promise<CompletionResult | null>;
@@ -30,6 +32,8 @@ export function MiniEditor(
 ) {
   const editorDiv = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView>();
+  const callbacksRef = useRef<Record<string, Function | undefined>>();
+
   useEffect(() => {
     if (editorDiv.current) {
       editorViewRef.current = new EditorView({
@@ -38,6 +42,10 @@ export function MiniEditor(
       });
 
       console.log("Created new editor view");
+
+      if (focus) {
+        editorViewRef.current.focus();
+      }
 
       return () => {
         if (editorViewRef.current) {
@@ -48,16 +56,16 @@ export function MiniEditor(
   }, [editorDiv]);
 
   useEffect(() => {
-    if (editorViewRef.current) {
-      editorViewRef.current.setState(buildEditorState());
-    }
-  }, [text]);
+    callbacksRef.current = { onBlur, onEnter, onKeyUp };
+  });
 
   useEffect(() => {
     if (editorViewRef.current) {
       editorViewRef.current.setState(buildEditorState());
     }
-  }, [vimMode]);
+  }, [text, vimMode]);
+
+  // console.log("Rendering editr");
 
   return <div class="sb-mini-editor" ref={editorDiv} />;
 
@@ -79,14 +87,14 @@ export function MiniEditor(
           {
             key: "Enter",
             run: (view) => {
-              onEnter(view.state.sliceDoc());
+              callbacksRef.current!.onEnter!(view.state.sliceDoc());
               return true;
             },
           },
           {
             key: "Escape",
-            run: () => {
-              onBlur();
+            run: (view) => {
+              callbacksRef.current!.onBlur!();
               return true;
             },
           },
@@ -96,8 +104,17 @@ export function MiniEditor(
           ...completionKeymap,
         ]),
         EditorView.domEventHandlers({
+          click: (e) => {
+            e.stopPropagation();
+          },
+          keyup: (editorDiv, view) => {
+            if (callbacksRef.current!.onKeyUp) {
+              return callbacksRef.current!.onKeyUp(view, editorDiv);
+            }
+            return false;
+          },
           blur: () => {
-            onBlur();
+            callbacksRef.current!.onBlur!();
           },
         }),
       ],

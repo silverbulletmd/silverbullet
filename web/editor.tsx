@@ -1008,6 +1008,7 @@ export class Editor {
 
   setVimMode(vimMode: boolean) {
     // this.enableVimMode = vimMode;
+    console.log("Setting vim mode to", vimMode);
     this.viewDispatch({ type: "set-vim-mode", enabled: vimMode });
     this.rebuildEditorState();
   }
