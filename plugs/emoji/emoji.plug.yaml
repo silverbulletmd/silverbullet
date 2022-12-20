@@ -5,4 +5,5 @@ functions:
   emojiCompleter:
     path: "./emoji.ts:emojiCompleter"
     events:
-      - page:complete
+      - editor:complete
+      - minieditor:complete

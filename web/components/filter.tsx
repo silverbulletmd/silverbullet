@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "../deps.ts";
+import {
+  CompletionContext,
+  CompletionResult,
+  useEffect,
+  useRef,
+  useState,
+} from "../deps.ts";
 import { FilterOption } from "../../common/types.ts";
 import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
@@ -57,6 +63,8 @@ export function FilterList({
   label,
   onSelect,
   onKeyPress,
+  completer,
+  vimMode,
   allowNew = false,
   helpText = "",
   completePrefix,
@@ -68,6 +76,8 @@ export function FilterList({
   label: string;
   onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: FilterOption | undefined) => void;
+  vimMode: boolean;
+  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   allowNew?: boolean;
   completePrefix?: string;
   helpText: string;
@@ -113,9 +123,8 @@ export function FilterList({
     };
   }, []);
 
-  let exiting = false;
-
   // console.log("Rendering", selectedOption);
+  let exiting = false;
 
   const returnEl = (
     <div className="sb-filter-wrapper">
@@ -124,17 +133,23 @@ export function FilterList({
           <label>{label}</label>
           <MiniEditor
             text={text}
-            vimMode={false}
+            vimMode={vimMode}
+            vimStartInInsertMode={true}
             focus={true}
+            completer={completer}
+            placeholderText={placeholder}
+            onBlur={() => {
+              if (!exiting) {
+                onSelect(undefined);
+              }
+            }}
             onEnter={() => {
               exiting = true;
               onSelect(matchingOptions[selectedOption]);
               return true;
             }}
-            onBlur={() => {
-              // if (!exiting && searchBoxRef.current) {
-              //   searchBoxRef.current.focus();
-              // }
+            onChange={(text) => {
+              updateFilter(text);
             }}
             onKeyUp={(view, e) => {
               if (onKeyPress) {
@@ -143,14 +158,8 @@ export function FilterList({
               switch (e.key) {
                 case "ArrowUp":
                   setSelectionOption(Math.max(0, selectedOption - 1));
-                  console.log("Up");
                   return true;
                 case "ArrowDown":
-                  console.log(
-                    "Down",
-                    matchingOptions.length - 1,
-                    selectedOption + 1,
-                  );
                   setSelectionOption(
                     Math.min(matchingOptions.length - 1, selectedOption + 1),
                   );
@@ -167,20 +176,16 @@ export function FilterList({
                 case "End":
                   setSelectionOption(matchingOptions.length - 1);
                   return true;
-                case "Enter":
-                  return false;
-                case "Escape":
-                  exiting = true;
-                  onSelect(undefined);
-                  return true;
-                case "Space":
-                  if (completePrefix && !text) {
+                case " ": {
+                  const text = view.state.sliceDoc();
+                  if (completePrefix && text === " ") {
+                    console.log("Doing the complete thing");
+                    setText(completePrefix);
                     updateFilter(completePrefix);
                     return true;
                   }
                   break;
-                default:
-                  updateFilter(view.state.sliceDoc());
+                }
               }
               return false;
             }}
@@ -205,7 +210,6 @@ export function FilterList({
                 }}
                 onClick={(e) => {
                   e.preventDefault();
-                  exiting = true;
                   onSelect(option);
                 }}
               >

@@ -1,3 +1,7 @@
+.cm-focused {
+  outline: none !important;
+}
+
 #sb-main .cm-editor {
   font-size: 18px;
   --max-width: 800px;
@@ -18,9 +22,6 @@
     max-width: 100%;
   }
 
-  &.cm-focused {
-    outline: none !important;
-  }
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {

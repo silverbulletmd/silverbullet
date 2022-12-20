@@ -1,4 +1,3 @@
-// Third party web dependencies
 import {
   autocompletion,
   closeBracketsKeymap,
@@ -6,24 +5,42 @@ import {
   completionKeymap,
   CompletionResult,
   drawSelection,
-  dropCursor,
   EditorState,
   EditorView,
   highlightSpecialChars,
   history,
   historyKeymap,
   keymap,
+  placeholder,
   standardKeymap,
+  ViewPlugin,
+  ViewUpdate,
 } from "../../common/deps.ts";
-import { useEffect, useRef, vim } from "../deps.ts";
+import { useEffect, useRef, Vim, vim, vimGetCm } from "../deps.ts";
 
 export function MiniEditor(
-  { text, vimMode, onBlur, onKeyUp, onEnter, focus, completer }: {
+  {
+    text,
+    placeholderText,
+    vimMode,
+    vimStartInInsertMode,
+    onBlur,
+    resetOnBlur,
+    onKeyUp,
+    onEnter,
+    onChange,
+    focus,
+    completer,
+  }: {
     text: string;
+    placeholderText?: string;
     vimMode: boolean;
-    onBlur: () => void;
+    vimStartInInsertMode?: boolean;
+    onBlur?: () => void;
+    resetOnBlur?: boolean;
     focus?: boolean;
     onEnter: (newText: string) => void;
+    onChange?: (newText: string) => void;
     onKeyUp?: (view: EditorView, event: KeyboardEvent) => boolean;
     completer?: (
       context: CompletionContext,
@@ -32,19 +49,43 @@ export function MiniEditor(
 ) {
   const editorDiv = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView>();
+  const vimModeRef = useRef<string>("normal");
+  // TODO: This super duper ugly, but I don't know how to avoid it
+  // Due to how MiniCodeEditor is built, it captures the closures of all callback functions
+  // which results in them pointing to old state variables, to avoid this we do this...
+  // deno-lint-ignore ban-types
   const callbacksRef = useRef<Record<string, Function | undefined>>();
 
   useEffect(() => {
     if (editorDiv.current) {
-      editorViewRef.current = new EditorView({
+      const editorView = new EditorView({
         state: buildEditorState(),
         parent: editorDiv.current!,
       });
-
-      console.log("Created new editor view");
+      editorViewRef.current = editorView;
 
       if (focus) {
-        editorViewRef.current.focus();
+        editorView.focus();
+      }
+
+      if (vimMode && vimStartInInsertMode) {
+        setTimeout(() => {
+          console.log("Igniting insert mode");
+          const cm = vimGetCm(editorViewRef.current!)!;
+          cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
+            console.log("New mode", mode);
+            vimModeRef.current = mode;
+          });
+          Vim.handleKey(cm, "i");
+        });
+      } else if (vimMode) {
+        setTimeout(() => {
+          const cm = vimGetCm(editorViewRef.current!)!;
+          cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
+            console.log("New mode", mode);
+            vimModeRef.current = mode;
+          });
+        });
       }
 
       return () => {
@@ -56,14 +97,19 @@ export function MiniEditor(
   }, [editorDiv]);
 
   useEffect(() => {
-    callbacksRef.current = { onBlur, onEnter, onKeyUp };
+    callbacksRef.current = { onBlur, onEnter, onKeyUp, onChange };
   });
 
   useEffect(() => {
     if (editorViewRef.current) {
       editorViewRef.current.setState(buildEditorState());
+      editorViewRef.current.dispatch({
+        selection: { anchor: text.length },
+      });
     }
   }, [text, vimMode]);
+
+  let onBlurred = false, onEntered = false;
 
   // console.log("Rendering editr");
 
@@ -81,20 +127,19 @@ export function MiniEditor(
         }),
         highlightSpecialChars(),
         history(),
-        drawSelection(),
-        dropCursor(),
+        [...placeholderText ? [placeholder(placeholderText)] : []],
         keymap.of([
           {
             key: "Enter",
             run: (view) => {
-              callbacksRef.current!.onEnter!(view.state.sliceDoc());
+              onEnter(view);
               return true;
             },
           },
           {
             key: "Escape",
             run: (view) => {
-              callbacksRef.current!.onBlur!();
+              onBlur(view);
               return true;
             },
           },
@@ -107,17 +152,68 @@ export function MiniEditor(
           click: (e) => {
             e.stopPropagation();
           },
-          keyup: (editorDiv, view) => {
+          keyup: (event, view) => {
+            if (event.key === "Escape") {
+              // Esc should be handled by the keymap
+              return false;
+            }
+            if (event.key === "Enter") {
+              // Enter should be handled by the keymap, except when in Vim normal mode
+              // because then it's disabled
+              if (vimMode && vimModeRef.current === "normal") {
+                onEnter(view);
+                return true;
+              }
+              return false;
+            }
             if (callbacksRef.current!.onKeyUp) {
-              return callbacksRef.current!.onKeyUp(view, editorDiv);
+              return callbacksRef.current!.onKeyUp(view, event);
             }
             return false;
           },
-          blur: () => {
-            callbacksRef.current!.onBlur!();
+          blur: (_e, view) => {
+            onBlur(view);
           },
         }),
+        ViewPlugin.fromClass(
+          class {
+            update(update: ViewUpdate): void {
+              if (update.docChanged) {
+                callbacksRef.current!.onChange &&
+                  callbacksRef.current!.onChange(update.state.sliceDoc());
+              }
+            }
+          },
+        ),
       ],
     });
+
+    // Avoid double triggering these events (may happen due to onkeypress vs onkeyup delay)
+    function onEnter(view: EditorView) {
+      if (onEntered) {
+        return;
+      }
+      onEntered = true;
+      callbacksRef.current!.onEnter!(view.state.sliceDoc());
+      // Event may occur again in 500ms
+      setTimeout(() => {
+        onEntered = false;
+      }, 500);
+    }
+
+    function onBlur(view: EditorView) {
+      if (onBlurred) {
+        return;
+      }
+      onBlurred = true;
+      callbacksRef.current!.onBlur && callbacksRef.current!.onBlur!();
+      if (resetOnBlur) {
+        view.setState(buildEditorState());
+      }
+      // Event may occur again in 500ms
+      setTimeout(() => {
+        onBlurred = false;
+      }, 500);
+    }
   }
 }

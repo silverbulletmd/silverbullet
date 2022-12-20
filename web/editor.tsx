@@ -490,7 +490,7 @@ export class Editor {
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
         autocompletion({
           override: [
-            this.completer.bind(this),
+            this.editorComplete.bind(this),
             this.slashCommandHook.slashCommandCompleter.bind(
               this.slashCommandHook,
             ),
@@ -523,6 +523,23 @@ export class Editor {
           { selector: "FrontMatter", class: "sb-frontmatter" },
         ]),
         keymap.of([
+          {
+            key: "ArrowUp",
+            run: (view): boolean => {
+              // When going up while at the top of the document, focus the page name
+              const selection = view.state.selection.main;
+              const line = view.state.doc.lineAt(selection.from);
+              // Are we at the top of the document?
+              if (line.number === 1) {
+                // This can be done much nicer, but this is shorter, so... :)
+                document.querySelector<HTMLDivElement>(
+                  ".sb-current-page .cm-content",
+                )!.focus();
+                return true;
+              }
+              return false;
+            },
+          },
           ...smartQuoteKeymap,
           ...closeBracketsKeymap,
           ...standardKeymap,
@@ -630,21 +647,19 @@ export class Editor {
     }
   }
 
-  async completer(
+  private async completeWithEvent(
     context: CompletionContext,
+    eventName: AppEvent,
   ): Promise<CompletionResult | null> {
     const editorState = context.state;
     const selection = editorState.selection.main;
     const line = editorState.doc.lineAt(selection.from);
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
-    const results = await this.dispatchAppEvent(
-      "page:complete",
-      {
-        linePrefix,
-        pos: selection.from,
-      } as CompleteEvent,
-    );
+    const results = await this.dispatchAppEvent(eventName, {
+      linePrefix,
+      pos: selection.from,
+    } as CompleteEvent);
     let actualResult = null;
     for (const result of results) {
       if (result) {
@@ -658,6 +673,18 @@ export class Editor {
       }
     }
     return actualResult;
+  }
+
+  editorComplete(
+    context: CompletionContext,
+  ): Promise<CompletionResult | null> {
+    return this.completeWithEvent(context, "editor:complete");
+  }
+
+  miniEditorComplete(
+    context: CompletionContext,
+  ): Promise<CompletionResult | null> {
+    return this.completeWithEvent(context, "minieditor:complete");
   }
 
   async reloadPage() {
@@ -828,6 +855,8 @@ export class Editor {
           <PageNavigator
             allPages={viewState.allPages}
             currentPage={this.currentPage}
+            completer={this.miniEditorComplete.bind(this)}
+            vimMode={viewState.vimMode}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               editor.focus();
@@ -858,6 +887,8 @@ export class Editor {
               }
             }}
             commands={viewState.commands}
+            vimMode={viewState.vimMode}
+            completer={this.miniEditorComplete.bind(this)}
             recentCommands={viewState.recentCommands}
           />
         )}
@@ -866,7 +897,9 @@ export class Editor {
             label={viewState.filterBoxLabel}
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
+            vimMode={viewState.vimMode}
             allowNew={false}
+            completer={this.miniEditorComplete.bind(this)}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
           />
@@ -877,7 +910,7 @@ export class Editor {
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           vimMode={viewState.vimMode}
-          completer={editor.completer.bind(editor)}
+          completer={editor.miniEditorComplete.bind(editor)}
           onRename={(newName) => {
             if (!newName) {
               return editor.focus();
@@ -1007,9 +1040,10 @@ export class Editor {
   }
 
   setVimMode(vimMode: boolean) {
-    // this.enableVimMode = vimMode;
-    console.log("Setting vim mode to", vimMode);
     this.viewDispatch({ type: "set-vim-mode", enabled: vimMode });
-    this.rebuildEditorState();
+    // Need to do this later, apparently viewDispatch operates asynchronously
+    setTimeout(() => {
+      this.rebuildEditorState();
+    });
   }
 }

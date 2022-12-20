@@ -30,4 +30,8 @@ export {
 export { WebsocketProvider } from "https://esm.sh/y-websocket@1.4.5?external=yjs";
 
 // Vim mode
-export { vim } from "https://esm.sh/@replit/codemirror-vim@6.0.4?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";
+export {
+  getCM as vimGetCm,
+  Vim,
+  vim,
+} from "https://esm.sh/@replit/codemirror-vim@6.0.4?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";

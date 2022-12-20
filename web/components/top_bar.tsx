@@ -68,37 +68,30 @@ export function TopBar({
                 text={pageName ?? ""}
                 vimMode={vimMode}
                 onBlur={() => {
-                  console.log("Blurring");
                   onRename();
                 }}
+                onKeyUp={(_view, event) => {
+                  // When moving cursor down, cancel and move back to editor
+                  if (event.key === "ArrowDown") {
+                    const parent =
+                      (event.target as any).parentElement.parentElement;
+                    // Unless we have autocomplete open
+                    if (
+                      parent.getElementsByClassName("cm-tooltip-autocomplete")
+                        .length === 0
+                    ) {
+                      onRename();
+                      return true;
+                    }
+                  }
+                  return false;
+                }}
+                resetOnBlur={true}
                 completer={completer}
                 onEnter={(newName) => {
-                  console.log("Going to rename to", newName);
                   onRename(newName);
                 }}
               />
-              {
-                /* <input
-                type="text"
-                ref={inputRef}
-                value={pageName}
-                className="sb-edit-page-name"
-                onBlur={(e) => {
-                  (e.target as any).value = pageName;
-                }}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const newName = (e.target as any).value;
-                    onRename(newName);
-                  }
-                  if (e.key === "Escape") {
-                    onRename();
-                  }
-                }}
-              /> */
-              }
             </span>
             {notifications.length > 0 && (
               <div className="sb-notifications">

@@ -8,6 +8,7 @@ release.
 * Clicking the URL (inside of an image `![](url)` or link `[text](link)`) no longer navigates there, you need to click on the anchor text to navigate there now (this avoids a lot of weird behavior).
 * Long page name in title now no longer overlap with action buttons
 * Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
+* Note for plug authors: The (misnamed) `page:complete` event has been renamed to `editor:complete`. There's also a new `minieditor:complete` that's only used for "mini editors" (e.g. in the page switcher, command palette and page name editor)
 
 ---
 
