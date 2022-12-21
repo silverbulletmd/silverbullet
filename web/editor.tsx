@@ -462,18 +462,6 @@ export class Editor {
     // deno-lint-ignore no-this-alias
     const editor = this;
 
-    // if (editor.viewState.vimMode) {
-    //   // We need to subscribe to vim mode changes, but we can't do that until the editor is initialized
-    //   // so we wait for the next tick
-    //   setTimeout(() => {
-    //     const cm = vimGetCm(this.editorView!)!;
-    //     console.log("Got CM now");
-    //     cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
-    //       console.log("New vim mode", mode);
-    //     });
-    //   });
-    // }
-
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
