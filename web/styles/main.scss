@@ -77,26 +77,25 @@
         }
       }
 
-      .sb-current-page {
+      #sb-current-page {
         flex: 1;
 
         overflow: hidden;
         white-space: nowrap;
         text-align: left;
         display: block;
-        text-overflow: ellipsis;
-        // Action buttons width
-        margin-right: 140px;
-      }
 
-      input.sb-edit-page-name {
-        background: transparent;
-        white-space: nowrap;
-        text-align: left;
-        border: 0;
-        outline: none;
-        padding: 0;
-        width: 100%;
+        .cm-scroller {
+          font-family: var(--ui-font);
+        }
+
+        .cm-content {
+          padding: 0;
+
+          .cm-line {
+            padding: 0;
+          }
+        }
       }
     }
 

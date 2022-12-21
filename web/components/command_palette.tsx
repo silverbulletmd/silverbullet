@@ -1,6 +1,6 @@
 import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
-import { TerminalIcon } from "../deps.ts";
+import { CompletionContext, CompletionResult, TerminalIcon } from "../deps.ts";
 import { AppCommand } from "../hooks/command.ts";
 import { FilterOption } from "../../common/types.ts";
 
@@ -8,14 +8,20 @@ export function CommandPalette({
   commands,
   recentCommands,
   onTrigger,
+  vimMode,
+  darkMode,
+  completer,
 }: {
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
+  vimMode: boolean;
+  darkMode: boolean;
+  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   onTrigger: (command: AppCommand | undefined) => void;
 }) {
-  let options: FilterOption[] = [];
+  const options: FilterOption[] = [];
   const isMac = isMacLike();
-  for (let [name, def] of commands.entries()) {
+  for (const [name, def] of commands.entries()) {
     options.push({
       name: name,
       hint: isMac && def.command.mac ? def.command.mac : def.command.key,
@@ -31,6 +37,9 @@ export function CommandPalette({
       options={options}
       allowNew={false}
       icon={TerminalIcon}
+      completer={completer}
+      vimMode={vimMode}
+      darkMode={darkMode}
       helpText="Start typing the command name to filter results, press <code>Return</code> to run."
       onSelect={(opt) => {
         if (opt) {

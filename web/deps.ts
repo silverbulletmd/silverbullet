@@ -1,11 +1,7 @@
 export * from "../common/deps.ts";
 
-export {
-  Fragment,
-  h,
-  render as preactRender,
-} from "https://esm.sh/preact@10.11.1";
-export type { ComponentChildren } from "https://esm.sh/preact@10.11.1";
+export { Fragment, h, render as preactRender } from "preact";
+export type { ComponentChildren, FunctionalComponent } from "preact";
 export {
   useEffect,
   useReducer,
@@ -16,8 +12,6 @@ export {
 export {
   Book as BookIcon,
   Home as HomeIcon,
-  Moon as MoonIcon,
-  Sun as SunIcon,
   Terminal as TerminalIcon,
 } from "https://esm.sh/preact-feather@4.2.1";
 
@@ -30,4 +24,8 @@ export {
 export { WebsocketProvider } from "https://esm.sh/y-websocket@1.4.5?external=yjs";
 
 // Vim mode
-export { vim } from "https://esm.sh/@replit/codemirror-vim@6.0.4?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";
+export {
+  getCM as vimGetCm,
+  Vim,
+  vim,
+} from "https://esm.sh/@replit/codemirror-vim@6.0.4?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";

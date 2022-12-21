@@ -95,12 +95,6 @@ export function insertAtCursor(text: string): Promise<void> {
   return syscall("editor.insertAtCursor", text);
 }
 
-export function matchBefore(
-  re: string,
-): Promise<{ from: number; to: number; text: string } | null> {
-  return syscall("editor.matchBefore", re);
-}
-
 export function dispatch(change: any): Promise<void> {
   return syscall("editor.dispatch", change);
 }
@@ -122,10 +116,10 @@ export function enableReadOnlyMode(enabled: boolean) {
   return syscall("editor.enableReadOnlyMode", enabled);
 }
 
-export function getVimEnabled(): Promise<boolean> {
-  return syscall("editor.getVimEnabled");
+export function getUiOption(key: string): Promise<any> {
+  return syscall("editor.getUiOption", key);
 }
 
-export function setVimEnabled(enabled: boolean) {
-  return syscall("editor.setVimEnabled", enabled);
+export function setUiOption(key: string, value: any): Promise<void> {
+  return syscall("editor.setUiOption", key, value);
 }

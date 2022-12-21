@@ -22,7 +22,7 @@ functions:
   queryComplete:
     path: ./complete.ts:queryComplete
     events:
-      - page:complete
+      - editor:complete
 
   # Templates
   insertQuery:

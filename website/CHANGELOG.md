@@ -4,10 +4,18 @@ release.
 ---
 
 ## Next
-* Changed styling for [[Frontmatter]], fenced code blocks and directives to avoid vertical jumping when moving the cursor around.
+* Changed styling for [[Frontmatter]], fenced code blocks, and directives to avoid vertical jumping when moving the cursor around.
 * Clicking the URL (inside of an image `![](url)` or link `[text](link)`) no longer navigates there, you need to click on the anchor text to navigate there now (this avoids a lot of weird behavior).
-* Long page name in title now no longer overlap with action buttons
+* Most areas where you enter text (e.g. the page name, page switcher, command palette and filter boxes) now use a CodeMirror editor. This means a few things:
+  1. If you have vim mode enabled, this mode will also be enabled there.
+  2. You can now use the emoji picker (`:party` etc.) in those places, in fact, any plug implementing the `minieditor:complete` event — right now just the emoji picker — will work.
+* To keep the UI clean, the dark mode button has been removed, and has been replaced with a command: {[Editor: Toggle Dark Mode]}.
+* Bug fix: Long page names in titles now no longer overlap with action buttons.
+* Moving focus out of the page title now always performs a rename (previously this only happened when hitting `Enter`).
 * Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
+* Moving up from the first line of the page will now move your cursor to the page title for you to rename it, and moving down from there puts you back in the document.
+* Note for plug authors: The (misnamed) `page:complete` event has been renamed to `editor:complete`. There's also a new `minieditor:complete` that's only used for "mini editors" (e.g. in the page switcher, command palette, and page name editor).
+* Fixed various styling issues.
 
 ---
 

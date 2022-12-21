@@ -1,13 +1,20 @@
 import { FilterList } from "./filter.tsx";
 import { FilterOption, PageMeta } from "../../common/types.ts";
+import { CompletionContext, CompletionResult } from "../deps.ts";
 
 export function PageNavigator({
   allPages,
   onNavigate,
+  completer,
+  vimMode,
+  darkMode,
   currentPage,
 }: {
   allPages: Set<PageMeta>;
+  vimMode: boolean;
+  darkMode: boolean;
   onNavigate: (page: string | undefined) => void;
+  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
 }) {
   const options: FilterOption[] = [];
@@ -40,7 +47,9 @@ export function PageNavigator({
       placeholder="Page"
       label="Open"
       options={options}
-      // icon={faFileLines}
+      vimMode={vimMode}
+      darkMode={darkMode}
+      completer={completer}
       allowNew={true}
       helpText="Start typing the page name to filter results, press <code>Return</code> to open."
       newHint="Create page"

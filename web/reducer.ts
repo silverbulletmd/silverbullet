@@ -139,10 +139,13 @@ export default function reducer(
         filterBoxOptions: [],
         filterBoxHelpText: "",
       };
-    case "set-editor-ro":
+    case "set-ui-option":
       return {
         ...state,
-        forcedROMode: action.enabled,
+        uiOptions: {
+          ...state.uiOptions,
+          [action.key]: action.value,
+        },
       };
   }
   return state;

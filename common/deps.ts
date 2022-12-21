@@ -52,6 +52,7 @@ export {
   EditorView,
   highlightSpecialChars,
   keymap,
+  placeholder,
   runScopeHandlers,
   ViewPlugin,
   ViewUpdate,

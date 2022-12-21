@@ -26,6 +26,10 @@ functions:
     path: "./editor.ts:toggleVimMode"
     command:
       name: "Editor: Toggle Vim Mode"
+  toggleDarkMode:
+    path: "./editor.ts:toggleDarkMode"
+    command:
+      name: "Editor: Toggle Dark Mode"
 
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
@@ -82,13 +86,13 @@ functions:
   pageComplete:
     path: "./page.ts:pageComplete"
     events:
-      - page:complete
+      - editor:complete
 
   # Commands
   commandComplete:
     path: "./command.ts:commandComplete"
     events:
-      - page:complete
+      - editor:complete
 
   # Item indexing
   indexItem:
@@ -126,7 +130,7 @@ functions:
   tagComplete:
     path: "./tags.ts:tagComplete"
     events:
-      - page:complete
+      - editor:complete
   tagProvider:
     path: "./tags.ts:tagProvider"
     events:
@@ -140,7 +144,7 @@ functions:
   anchorComplete:
     path: "./anchor.ts:anchorComplete"
     events:
-      - page:complete
+      - editor:complete
 
   # Full text search
   searchIndex:

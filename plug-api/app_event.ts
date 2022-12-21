@@ -3,7 +3,8 @@ import { ParsedQuery } from "$sb/lib/query.ts";
 
 export type AppEvent =
   | "page:click"
-  | "page:complete"
+  | "editor:complete"
+  | "minieditor:complete"
   | "page:load"
   | "editor:init"
   | "plugs:loaded";
@@ -35,4 +36,9 @@ export type PublishEvent = {
   uri: string;
   // Page name
   name: string;
+};
+
+export type CompleteEvent = {
+  linePrefix: string;
+  pos: number;
 };

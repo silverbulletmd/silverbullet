@@ -1,15 +1,13 @@
-import { useRef } from "../deps.ts";
-import { ComponentChildren } from "../deps.ts";
+import {
+  CompletionContext,
+  CompletionResult,
+  useEffect,
+  useRef,
+} from "../deps.ts";
+import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
 import { Notification } from "../types.ts";
-import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.1/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
-
-function prettyName(s: string | undefined): string {
-  if (!s) {
-    return "";
-  }
-  return s.replaceAll("/", " / ");
-}
+import { MiniEditor } from "./mini_editor.tsx";
 
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;
@@ -24,6 +22,9 @@ export function TopBar({
   notifications,
   onRename,
   actionButtons,
+  darkMode,
+  vimMode,
+  completer,
   lhs,
   rhs,
 }: {
@@ -31,13 +32,41 @@ export function TopBar({
   unsavedChanges: boolean;
   isLoading: boolean;
   notifications: Notification[];
-  onRename: (newName?: string) => void;
+  darkMode: boolean;
+  vimMode: boolean;
+  onRename: (newName?: string) => Promise<void>;
+  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
   // const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Another one of my less proud moments:
+  // Somehow I cannot seem to proerply limit the width of the page name, so I'm doing
+  // it this way. If you have a better way to do this, please let me know!
+  useEffect(() => {
+    function resizeHandler() {
+      const currentPageElement = document.getElementById("sb-current-page");
+      if (currentPageElement) {
+        // Temporarily make it very narrow to give the parent space
+        currentPageElement.style.width = "10px";
+        const innerDiv = currentPageElement.parentElement!.parentElement!;
+
+        // Then calculate a new width
+        currentPageElement.style.width = `${
+          Math.min(650, innerDiv.clientWidth - 150)
+        }px`;
+      }
+    }
+    globalThis.addEventListener("resize", resizeHandler);
+
+    // Stop listening on unmount
+    return () => {
+      globalThis.removeEventListener("resize", resizeHandler);
+    };
+  }, []);
 
   return (
     <div id="sb-top">
@@ -46,32 +75,43 @@ export function TopBar({
         <div className="inner">
           <div className="wrapper">
             <span
-              className={`sb-current-page ${
-                isLoading
-                  ? "sb-loading"
-                  : unsavedChanges
-                  ? "sb-unsaved"
-                  : "sb-saved"
-              }`}
+              id="sb-current-page"
+              className={isLoading
+                ? "sb-loading"
+                : unsavedChanges
+                ? "sb-unsaved"
+                : "sb-saved"}
             >
-              <input
-                type="text"
-                ref={inputRef}
-                value={pageName}
-                className="sb-edit-page-name"
-                onBlur={(e) => {
-                  (e.target as any).value = pageName;
+              <MiniEditor
+                text={pageName ?? ""}
+                vimMode={vimMode}
+                darkMode={darkMode}
+                onBlur={(newName) => {
+                  if (newName !== pageName) {
+                    return onRename(newName);
+                  } else {
+                    return onRename();
+                  }
                 }}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const newName = (e.target as any).value;
-                    onRename(newName);
+                onKeyUp={(view, event) => {
+                  // When moving cursor down, cancel and move back to editor
+                  if (event.key === "ArrowDown") {
+                    const parent =
+                      (event.target as any).parentElement.parentElement;
+                    // Unless we have autocomplete open
+                    if (
+                      parent.getElementsByClassName("cm-tooltip-autocomplete")
+                        .length === 0
+                    ) {
+                      onRename();
+                      return true;
+                    }
                   }
-                  if (e.key === "Escape") {
-                    onRename();
-                  }
+                  return false;
+                }}
+                completer={completer}
+                onEnter={(newName) => {
+                  onRename(newName);
                 }}
               />
             </span>

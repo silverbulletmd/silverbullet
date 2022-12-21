@@ -174,6 +174,11 @@ function render(
         },
         body: cleanTags(mapRender(t.children!)),
       };
+    case "Strikethrough":
+      return {
+        name: "del",
+        body: cleanTags(mapRender(t.children!)),
+      };
     case "InlineCode":
       return {
         name: "tt",
