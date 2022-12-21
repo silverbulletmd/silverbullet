@@ -4,7 +4,6 @@ import {
   CompletionContext,
   completionKeymap,
   CompletionResult,
-  drawSelection,
   EditorState,
   EditorView,
   highlightSpecialChars,
@@ -13,19 +12,32 @@ import {
   keymap,
   placeholder,
   standardKeymap,
+  useEffect,
+  useRef,
   ViewPlugin,
   ViewUpdate,
-} from "../../common/deps.ts";
-import { useEffect, useRef, Vim, vim, vimGetCm } from "../deps.ts";
+  Vim,
+  vim,
+  vimGetCm,
+} from "../deps.ts";
+
+type MiniEditorEvents = {
+  onEnter: (newText: string) => void;
+  onEscape?: (newText: string) => void;
+  onBlur?: (newText: string) => void | Promise<void>;
+  onChange?: (newText: string) => void;
+  onKeyUp?: (view: EditorView, event: KeyboardEvent) => boolean;
+};
 
 export function MiniEditor(
   {
     text,
     placeholderText,
     vimMode,
+    darkMode,
     vimStartInInsertMode,
     onBlur,
-    resetOnBlur,
+    onEscape,
     onKeyUp,
     onEnter,
     onChange,
@@ -35,17 +47,13 @@ export function MiniEditor(
     text: string;
     placeholderText?: string;
     vimMode: boolean;
+    darkMode: boolean;
     vimStartInInsertMode?: boolean;
-    onBlur?: () => void;
-    resetOnBlur?: boolean;
     focus?: boolean;
-    onEnter: (newText: string) => void;
-    onChange?: (newText: string) => void;
-    onKeyUp?: (view: EditorView, event: KeyboardEvent) => boolean;
     completer?: (
       context: CompletionContext,
     ) => Promise<CompletionResult | null>;
-  },
+  } & MiniEditorEvents,
 ) {
   const editorDiv = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView>();
@@ -53,11 +61,11 @@ export function MiniEditor(
   // TODO: This super duper ugly, but I don't know how to avoid it
   // Due to how MiniCodeEditor is built, it captures the closures of all callback functions
   // which results in them pointing to old state variables, to avoid this we do this...
-  // deno-lint-ignore ban-types
-  const callbacksRef = useRef<Record<string, Function | undefined>>();
+  const callbacksRef = useRef<MiniEditorEvents>();
 
   useEffect(() => {
     if (editorDiv.current) {
+      console.log("Creating editor view");
       const editorView = new EditorView({
         state: buildEditorState(),
         parent: editorDiv.current!,
@@ -66,26 +74,6 @@ export function MiniEditor(
 
       if (focus) {
         editorView.focus();
-      }
-
-      if (vimMode && vimStartInInsertMode) {
-        setTimeout(() => {
-          console.log("Igniting insert mode");
-          const cm = vimGetCm(editorViewRef.current!)!;
-          cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
-            console.log("New mode", mode);
-            vimModeRef.current = mode;
-          });
-          Vim.handleKey(cm, "i");
-        });
-      } else if (vimMode) {
-        setTimeout(() => {
-          const cm = vimGetCm(editorViewRef.current!)!;
-          cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
-            console.log("New mode", mode);
-            vimModeRef.current = mode;
-          });
-        });
       }
 
       return () => {
@@ -97,7 +85,7 @@ export function MiniEditor(
   }, [editorDiv]);
 
   useEffect(() => {
-    callbacksRef.current = { onBlur, onEnter, onKeyUp, onChange };
+    callbacksRef.current = { onBlur, onEnter, onEscape, onKeyUp, onChange };
   });
 
   useEffect(() => {
@@ -111,14 +99,30 @@ export function MiniEditor(
 
   let onBlurred = false, onEntered = false;
 
-  // console.log("Rendering editr");
+  // console.log("Rendering editor");
 
   return <div class="sb-mini-editor" ref={editorDiv} />;
 
   function buildEditorState() {
+    // When vim mode is active, we need for CM to have created the new state
+    // and the subscribe to the vim mode's events
+    // This needs to happen in the next tick, so we wait a tick with setTimeout
+    if (vimMode) {
+      // Only applies to vim mode
+      setTimeout(() => {
+        const cm = vimGetCm(editorViewRef.current!)!;
+        cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
+          vimModeRef.current = mode;
+        });
+        if (vimStartInInsertMode) {
+          Vim.handleKey(cm, "i");
+        }
+      });
+    }
     return EditorState.create({
       doc: text,
       extensions: [
+        EditorView.theme({}, { dark: darkMode }),
         // Enable vim mode, or not
         [...vimMode ? [vim()] : []],
 
@@ -139,7 +143,8 @@ export function MiniEditor(
           {
             key: "Escape",
             run: (view) => {
-              onBlur(view);
+              callbacksRef.current!.onEscape &&
+                callbacksRef.current!.onEscape(view.state.sliceDoc());
               return true;
             },
           },
@@ -194,7 +199,7 @@ export function MiniEditor(
         return;
       }
       onEntered = true;
-      callbacksRef.current!.onEnter!(view.state.sliceDoc());
+      callbacksRef.current!.onEnter(view.state.sliceDoc());
       // Event may occur again in 500ms
       setTimeout(() => {
         onEntered = false;
@@ -202,13 +207,16 @@ export function MiniEditor(
     }
 
     function onBlur(view: EditorView) {
-      if (onBlurred) {
+      if (onBlurred || onEntered) {
         return;
       }
       onBlurred = true;
-      callbacksRef.current!.onBlur && callbacksRef.current!.onBlur!();
-      if (resetOnBlur) {
-        view.setState(buildEditorState());
+      if (callbacksRef.current!.onBlur) {
+        Promise.resolve(callbacksRef.current!.onBlur(view.state.sliceDoc()))
+          .catch((e) => {
+            // Reset the state
+            view.setState(buildEditorState());
+          });
       }
       // Event may occur again in 500ms
       setTimeout(() => {

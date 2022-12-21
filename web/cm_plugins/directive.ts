@@ -46,6 +46,9 @@ export function directivePlugin() {
             widgets.push(
               Decoration.line({
                 class: "sb-directive-start sb-directive-start-outside",
+                attributes: {
+                  spellcheck: "false",
+                },
               }).range(
                 from,
               ),

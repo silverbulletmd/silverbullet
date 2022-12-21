@@ -1,21 +1,13 @@
 import {
   CompletionContext,
   CompletionResult,
+  useEffect,
   useRef,
-  useState,
 } from "../deps.ts";
-import { ComponentChildren } from "../deps.ts";
+import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
 import { Notification } from "../types.ts";
-import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.1/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
-
-function prettyName(s: string | undefined): string {
-  if (!s) {
-    return "";
-  }
-  return s.replaceAll("/", " / ");
-}
 
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;
@@ -30,6 +22,7 @@ export function TopBar({
   notifications,
   onRename,
   actionButtons,
+  darkMode,
   vimMode,
   completer,
   lhs,
@@ -39,8 +32,9 @@ export function TopBar({
   unsavedChanges: boolean;
   isLoading: boolean;
   notifications: Notification[];
+  darkMode: boolean;
   vimMode: boolean;
-  onRename: (newName?: string) => void;
+  onRename: (newName?: string) => Promise<void>;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
@@ -49,6 +43,28 @@ export function TopBar({
   // const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Another one of my less proud moments:
+  // Somehow I cannot seem to proerply limit the width of the page name, so I'm doing
+  // it this way. If you have a better way to do this, please let me know!
+  useEffect(() => {
+    function resizeHandler() {
+      const currentPageElement = document.getElementById("sb-current-page");
+      if (currentPageElement) {
+        currentPageElement.style.width = `${
+          Math.min(650, document.body.clientWidth - 150)
+        }px`;
+      }
+    }
+    globalThis.addEventListener("resize", resizeHandler);
+    // Trigger on mount
+    setTimeout(resizeHandler);
+
+    // Stop listening on unmount
+    return () => {
+      globalThis.removeEventListener("resize", resizeHandler);
+    };
+  }, []);
+
   return (
     <div id="sb-top">
       {lhs}
@@ -56,21 +72,25 @@ export function TopBar({
         <div className="inner">
           <div className="wrapper">
             <span
-              className={`sb-current-page ${
-                isLoading
-                  ? "sb-loading"
-                  : unsavedChanges
-                  ? "sb-unsaved"
-                  : "sb-saved"
-              }`}
+              id="sb-current-page"
+              className={isLoading
+                ? "sb-loading"
+                : unsavedChanges
+                ? "sb-unsaved"
+                : "sb-saved"}
             >
               <MiniEditor
                 text={pageName ?? ""}
                 vimMode={vimMode}
-                onBlur={() => {
-                  onRename();
+                darkMode={darkMode}
+                onBlur={(newName) => {
+                  if (newName !== pageName) {
+                    return onRename(newName);
+                  } else {
+                    return onRename();
+                  }
                 }}
-                onKeyUp={(_view, event) => {
+                onKeyUp={(view, event) => {
                   // When moving cursor down, cancel and move back to editor
                   if (event.key === "ArrowDown") {
                     const parent =
@@ -86,7 +106,6 @@ export function TopBar({
                   }
                   return false;
                 }}
-                resetOnBlur={true}
                 completer={completer}
                 onEnter={(newName) => {
                   onRename(newName);

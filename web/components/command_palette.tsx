@@ -9,11 +9,13 @@ export function CommandPalette({
   recentCommands,
   onTrigger,
   vimMode,
+  darkMode,
   completer,
 }: {
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
   vimMode: boolean;
+  darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   onTrigger: (command: AppCommand | undefined) => void;
 }) {
@@ -37,6 +39,7 @@ export function CommandPalette({
       icon={TerminalIcon}
       completer={completer}
       vimMode={vimMode}
+      darkMode={darkMode}
       helpText="Start typing the command name to filter results, press <code>Return</code> to run."
       onSelect={(opt) => {
         if (opt) {

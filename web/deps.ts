@@ -1,11 +1,7 @@
 export * from "../common/deps.ts";
 
-export {
-  Fragment,
-  h,
-  render as preactRender,
-} from "https://esm.sh/preact@10.11.1";
-export type { ComponentChildren } from "https://esm.sh/preact@10.11.1";
+export { Fragment, h, render as preactRender } from "preact";
+export type { ComponentChildren, FunctionalComponent } from "preact";
 export {
   useEffect,
   useReducer,
@@ -16,8 +12,6 @@ export {
 export {
   Book as BookIcon,
   Home as HomeIcon,
-  Moon as MoonIcon,
-  Sun as SunIcon,
   Terminal as TerminalIcon,
 } from "https://esm.sh/preact-feather@4.2.1";
 

@@ -2,9 +2,7 @@
 import {
   BookIcon,
   HomeIcon,
-  MoonIcon,
   preactRender,
-  SunIcon,
   TerminalIcon,
   useEffect,
   useReducer,
@@ -114,7 +112,7 @@ import customMarkdownStyle from "./style.ts";
 // Real-time collaboration
 import { CollabState } from "./cm_plugins/collab.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
-import { vim } from "./deps.ts";
+import { Vim, vim, vimGetCm } from "./deps.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -193,6 +191,7 @@ export class Editor {
       state: this.createEditorState("", ""),
       parent: document.getElementById("sb-editor")!,
     });
+
     this.pageNavigator = new PathPageNavigator(
       builtinSettings.indexPage,
       urlPrefix,
@@ -345,7 +344,10 @@ export class Editor {
       this.saveTimeout = setTimeout(
         () => {
           if (this.currentPage) {
-            if (!this.viewState.unsavedChanges || this.viewState.forcedROMode) {
+            if (
+              !this.viewState.unsavedChanges ||
+              this.viewState.uiOptions.forcedROMode
+            ) {
               // No unsaved changes, or read-only mode, not gonna save
               return resolve();
             }
@@ -460,11 +462,25 @@ export class Editor {
     // deno-lint-ignore no-this-alias
     const editor = this;
 
+    // if (editor.viewState.vimMode) {
+    //   // We need to subscribe to vim mode changes, but we can't do that until the editor is initialized
+    //   // so we wait for the next tick
+    //   setTimeout(() => {
+    //     const cm = vimGetCm(this.editorView!)!;
+    //     console.log("Got CM now");
+    //     cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
+    //       console.log("New vim mode", mode);
+    //     });
+    //   });
+    // }
+
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
       extensions: [
+        // Not using CM theming right now, but some extensions depend on the "dark" thing
+        EditorView.theme({}, { dark: this.viewState.uiOptions.darkMode }),
         // Enable vim mode, or not
-        [...editor.viewState.vimMode ? [vim({ status: true })] : []],
+        [...editor.viewState.uiOptions.vimMode ? [vim({ status: true })] : []],
         // The uber markdown mode
         markdown({
           base: buildMarkdown(this.mdExtensions),
@@ -499,8 +515,6 @@ export class Editor {
         inlineImagesPlugin(),
         highlightSpecialChars(),
         history(),
-        // Enable vim mode
-        [...this.viewState.vimMode ? [vim()] : []],
         drawSelection(),
         dropCursor(),
         indentOnInput(),
@@ -533,7 +547,7 @@ export class Editor {
               if (line.number === 1) {
                 // This can be done much nicer, but this is shorter, so... :)
                 document.querySelector<HTMLDivElement>(
-                  ".sb-current-page .cm-content",
+                  "#sb-current-page .cm-content",
                 )!.focus();
                 return true;
               }
@@ -570,7 +584,6 @@ export class Editor {
             },
           },
         ]),
-
         EditorView.domEventHandlers({
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
@@ -647,6 +660,7 @@ export class Editor {
     }
   }
 
+  // Code completion support
   private async completeWithEvent(
     context: CompletionContext,
     eventName: AppEvent,
@@ -791,7 +805,7 @@ export class Editor {
     contentDOM.setAttribute("autocapitalize", "on");
     contentDOM.setAttribute(
       "contenteditable",
-      readOnly || this.viewState.forcedROMode ? "false" : "true",
+      readOnly || this.viewState.uiOptions.forcedROMode ? "false" : "true",
     );
   }
 
@@ -847,7 +861,17 @@ export class Editor {
           viewState.perm === "ro",
         );
       }
-    }, [viewState.forcedROMode]);
+    }, [viewState.uiOptions.forcedROMode]);
+
+    useEffect(() => {
+      this.rebuildEditorState();
+    }, [viewState.uiOptions.vimMode]);
+
+    useEffect(() => {
+      document.documentElement.dataset.theme = viewState.uiOptions.darkMode
+        ? "dark"
+        : "light";
+    }, [viewState.uiOptions.darkMode]);
 
     return (
       <>
@@ -856,7 +880,8 @@ export class Editor {
             allPages={viewState.allPages}
             currentPage={this.currentPage}
             completer={this.miniEditorComplete.bind(this)}
-            vimMode={viewState.vimMode}
+            vimMode={viewState.uiOptions.vimMode}
+            darkMode={viewState.uiOptions.darkMode}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               editor.focus();
@@ -887,7 +912,8 @@ export class Editor {
               }
             }}
             commands={viewState.commands}
-            vimMode={viewState.vimMode}
+            vimMode={viewState.uiOptions.vimMode}
+            darkMode={viewState.uiOptions.darkMode}
             completer={this.miniEditorComplete.bind(this)}
             recentCommands={viewState.recentCommands}
           />
@@ -897,7 +923,8 @@ export class Editor {
             label={viewState.filterBoxLabel}
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
-            vimMode={viewState.vimMode}
+            vimMode={viewState.uiOptions.vimMode}
+            darkMode={viewState.uiOptions.darkMode}
             allowNew={false}
             completer={this.miniEditorComplete.bind(this)}
             helpText={viewState.filterBoxHelpText}
@@ -909,19 +936,24 @@ export class Editor {
           notifications={viewState.notifications}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
-          vimMode={viewState.vimMode}
+          vimMode={viewState.uiOptions.vimMode}
+          darkMode={viewState.uiOptions.darkMode}
           completer={editor.miniEditorComplete.bind(editor)}
-          onRename={(newName) => {
+          onRename={async (newName) => {
             if (!newName) {
-              return editor.focus();
+              // Always move cursor to the start of the page
+              editor.editorView?.dispatch({
+                selection: { anchor: 0 },
+              });
+              editor.focus();
+              return;
             }
             console.log("Now renaming page to...", newName);
-            editor.system.loadedPlugs.get("core")!.invoke(
+            await editor.system.loadedPlugs.get("core")!.invoke(
               "renamePage",
               [{ page: newName }],
-            ).then(() => {
-              editor.focus();
-            }).catch(console.error);
+            );
+            editor.focus();
           }}
           actionButtons={[
             {
@@ -943,20 +975,6 @@ export class Editor {
               description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
               callback: () => {
                 dispatch({ type: "show-palette", context: this.getContext() });
-              },
-            },
-            {
-              icon: localStorage.theme === "dark" ? SunIcon : MoonIcon,
-              description: "Toggle dark mode",
-              callback: () => {
-                if (localStorage.theme === "dark") {
-                  localStorage.theme = "light";
-                } else {
-                  localStorage.theme = "dark";
-                }
-                document.documentElement.dataset.theme = localStorage.theme;
-                // Trigger rerender: TERRIBLE IMPLEMENTATION
-                dispatch({ type: "page-saved" });
               },
             },
           ]}
@@ -1037,13 +1055,5 @@ export class Editor {
       }
     });
     this.rebuildEditorState();
-  }
-
-  setVimMode(vimMode: boolean) {
-    this.viewDispatch({ type: "set-vim-mode", enabled: vimMode });
-    // Need to do this later, apparently viewDispatch operates asynchronously
-    setTimeout(() => {
-      this.rebuildEditorState();
-    });
   }
 }

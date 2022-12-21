@@ -26,7 +26,6 @@ export type AppViewState = {
   currentPage?: string;
   editingPageName: boolean;
   perm: EditorMode;
-  forcedROMode: boolean;
   isLoading: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
@@ -36,7 +35,12 @@ export type AppViewState = {
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
-  vimMode: boolean;
+
+  uiOptions: {
+    vimMode: boolean;
+    darkMode: boolean;
+    forcedROMode: boolean;
+  };
 
   showFilterBox: boolean;
   filterBoxLabel: string;
@@ -49,12 +53,15 @@ export type AppViewState = {
 export const initialViewState: AppViewState = {
   perm: "rw",
   editingPageName: false,
-  forcedROMode: false,
   isLoading: false,
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
-  vimMode: false,
+  uiOptions: {
+    vimMode: false,
+    darkMode: false,
+    forcedROMode: false,
+  },
   panels: {
     lhs: {},
     rhs: {},
@@ -105,5 +112,4 @@ export type Action =
     onSelect: (option: FilterOption | undefined) => void;
   }
   | { type: "hide-filterbox" }
-  | { type: "set-editor-ro"; enabled: boolean }
-  | { type: "set-vim-mode"; enabled: boolean };
+  | { type: "set-ui-option"; key: string; value: any };

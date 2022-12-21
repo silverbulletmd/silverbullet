@@ -3,29 +3,6 @@ import { EditorView, Transaction } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { FilterOption } from "../../common/types.ts";
 
-type SyntaxNode = {
-  name: string;
-  text: string;
-  from: number;
-  to: number;
-};
-
-function ensureAnchor(expr: any, start: boolean) {
-  let _a;
-  const { source } = expr;
-  const addStart = start && source[0] != "^",
-    addEnd = source[source.length - 1] != "$";
-  if (!addStart && !addEnd) return expr;
-  return new RegExp(
-    `${addStart ? "^" : ""}(?:${source})${addEnd ? "$" : ""}`,
-    (_a = expr.flags) !== null && _a !== void 0
-      ? _a
-      : expr.ignoreCase
-      ? "i"
-      : "",
-  );
-}
-
 export function editorSyscalls(editor: Editor): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
@@ -171,17 +148,15 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     ): boolean => {
       return confirm(message);
     },
-    "editor.enableReadOnlyMode": (_ctx, enabled: boolean) => {
+    "editor.getUiOption": (_ctx, key: string): any => {
+      return (editor.viewState.uiOptions as any)[key];
+    },
+    "editor.setUiOption": (_ctx, key: string, value: any) => {
       editor.viewDispatch({
-        type: "set-editor-ro",
-        enabled,
+        type: "set-ui-option",
+        key,
+        value,
       });
-    },
-    "editor.getVimEnabled": (): boolean => {
-      return editor.viewState.vimMode;
-    },
-    "editor.setVimEnabled": (_ctx, enabled: boolean) => {
-      editor.setVimMode(enabled);
     },
   };
 

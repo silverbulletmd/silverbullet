@@ -26,6 +26,10 @@ functions:
     path: "./editor.ts:toggleVimMode"
     command:
       name: "Editor: Toggle Vim Mode"
+  toggleDarkMode:
+    path: "./editor.ts:toggleDarkMode"
+    command:
+      name: "Editor: Toggle Dark Mode"
 
   clearPageIndex:
     path: "./page.ts:clearPageIndex"

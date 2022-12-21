@@ -102,10 +102,29 @@ export async function renamePage(cmdDef: any) {
     return;
   }
 
+  console.log("New name", newName);
+
   if (newName.trim() === oldName.trim()) {
+    // Nothing to do here
+    console.log("Name unchanged, exiting");
     return;
   }
-  console.log("New name", newName);
+
+  try {
+    // This throws an error if the page does not exist, which we expect to be the case
+    await space.getPageMeta(newName);
+    // So when we get to this point, we error out
+    throw new Error(
+      `Page ${newName} already exists, cannot rename to existing page.`,
+    );
+  } catch (e: any) {
+    if (e.message.includes("not found")) {
+      // Expected not found error, so we can continue
+    } else {
+      await editor.flashNotification(e.message, "error");
+      throw e;
+    }
+  }
 
   const pagesToUpdate = await getBackLinks(oldName);
   console.log("All pages containing backlinks", pagesToUpdate);

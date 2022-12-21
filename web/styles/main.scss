@@ -77,16 +77,13 @@
         }
       }
 
-      .sb-current-page {
+      #sb-current-page {
         flex: 1;
 
         overflow: hidden;
         white-space: nowrap;
         text-align: left;
         display: block;
-        text-overflow: ellipsis;
-        // Action buttons width
-        margin-right: 140px;
 
         .cm-scroller {
           font-family: var(--ui-font);
@@ -100,18 +97,6 @@
           }
         }
       }
-
-      input.sb-edit-page-name {
-        background: transparent;
-        white-space: nowrap;
-        text-align: left;
-        border: 0;
-        outline: none;
-        padding: 0;
-        width: 100%;
-      }
-
-
     }
 
     .sb-actions {

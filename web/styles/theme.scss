@@ -98,12 +98,6 @@
   outline: none;
 }
 
-
-.sb-filter-box .sb-header input::placeholder {
-  color: rgb(199, 199, 199);
-  font-weight: normal;
-}
-
 .sb-filter-box .sb-help-text {
   background-color: #eee;
   border-bottom: 1px rgb(108, 108, 108) solid;
@@ -510,7 +504,7 @@
     background-color: rgba(77, 141, 255, 0.07);
     border-radius: 5px;
     padding: 0 5px;
-    white-space: nowrap;
+    // white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
   }
@@ -521,7 +515,7 @@
     background-color: rgba(77, 141, 255, 0.07);
     border-radius: 5px;
     padding: 0 5px;
-    white-space: nowrap;
+    // white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
   }
@@ -543,14 +537,14 @@
 
 html[data-theme="dark"] {
   #sb-root {
-    background-color: #555;
-    color: rgb(200, 200, 200);
+    background-color: #000;
+    color: #fff;
   }
 
   #sb-top {
-    background-color: rgb(38, 38, 38);
+    background-color: rgb(96, 96, 96);
     border-bottom: rgb(62, 62, 62) 1px solid;
-    color: rgb(200, 200, 200);
+    color: #fff;
   }
 
   .sb-actions button {
@@ -559,6 +553,32 @@ html[data-theme="dark"] {
 
   .sb-actions button:hover {
     color: #37a1ed;
+  }
+
+  // Page states
+  .sb-saved {
+    color: rgb(225, 225, 225);
+  }
+
+  .sb-unsaved {
+    color: #c7c7c7;
+  }
+
+  .sb-loading {
+    color: #c7c7c7;
+  }
+
+
+
+  .sb-filter-box,
+  /* duplicating the class name to increase specificity */
+  .sb-help-text.sb-help-text {
+    color: #ccc;
+    background-color: rgb(38, 38, 38);
+  }
+
+  .sb-help-text {
+    border-bottom: 1px solid #6c6c6c;
   }
 
   #sb-editor {
@@ -572,21 +592,10 @@ html[data-theme="dark"] {
 
     .sb-frontmatter {
       background-color: rgb(41, 40, 35, 0.5);
-    }
 
-    .sb-saved>input {
-      color: rgb(225, 225, 225);
-    }
-
-    .sb-filter-box,
-    /* duplicating the class name to increase specificity */
-    .sb-help-text.sb-help-text {
-      color: #ccc;
-      background-color: rgb(38, 38, 38);
-    }
-
-    .sb-help-text {
-      border-bottom: 1px solid #6c6c6c;
+      .sb-frontmatter-marker {
+        color: #000;
+      }
     }
 
     .sb-line-li .sb-meta~.sb-meta,

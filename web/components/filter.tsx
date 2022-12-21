@@ -65,6 +65,7 @@ export function FilterList({
   onKeyPress,
   completer,
   vimMode,
+  darkMode,
   allowNew = false,
   helpText = "",
   completePrefix,
@@ -77,6 +78,7 @@ export function FilterList({
   onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: FilterOption | undefined) => void;
   vimMode: boolean;
+  darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   allowNew?: boolean;
   completePrefix?: string;
@@ -113,6 +115,7 @@ export function FilterList({
 
   useEffect(() => {
     function closer() {
+      console.log("Invoking closer");
       onSelect(undefined);
     }
 
@@ -122,9 +125,6 @@ export function FilterList({
       document.removeEventListener("click", closer);
     };
   }, []);
-
-  // console.log("Rendering", selectedOption);
-  let exiting = false;
 
   const returnEl = (
     <div className="sb-filter-wrapper">
@@ -136,17 +136,15 @@ export function FilterList({
             vimMode={vimMode}
             vimStartInInsertMode={true}
             focus={true}
+            darkMode={darkMode}
             completer={completer}
             placeholderText={placeholder}
-            onBlur={() => {
-              if (!exiting) {
-                onSelect(undefined);
-              }
-            }}
             onEnter={() => {
-              exiting = true;
               onSelect(matchingOptions[selectedOption]);
               return true;
+            }}
+            onEscape={() => {
+              onSelect(undefined);
             }}
             onChange={(text) => {
               updateFilter(text);
@@ -209,7 +207,8 @@ export function FilterList({
                   setSelectionOption(idx);
                 }}
                 onClick={(e) => {
-                  e.preventDefault();
+                  console.log("Selecting", option);
+                  e.stopPropagation();
                   onSelect(option);
                 }}
               >
