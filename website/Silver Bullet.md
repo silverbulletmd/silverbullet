@@ -77,8 +77,7 @@ There are a few features you don’t get to fully experience in this environment
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 
 ## Where to go from here
-Click on the links below to explore various aspects of Silver Bullet more
-in-depth:
+Click on the links below to explore various aspects of Silver Bullet more in-depth:
 
 * [[CHANGELOG]]: What’s new?
 * [[🔌 Plugs]]: extensions available in Silver Bullet
@@ -86,7 +85,7 @@ in-depth:
 * [[🔨 Development]]: how to start hacking on Silver Bullet itself
 
 ## Installing Silver Bullet
-This consists of two steps (unless Deno is already installed:
+This consists of two steps (unless Deno is already installed):
 
 1. [Install Deno](https://deno.land/manual/getting_started/installation)
 2. Installing Silver Bullet itself
