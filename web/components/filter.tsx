@@ -127,8 +127,8 @@ export function FilterList({
   }, []);
 
   const returnEl = (
-    <div className="sb-filter-wrapper">
-      <div className="sb-filter-box">
+    <div className="sb-modal-wrapper">
+      <div className="sb-modal-box">
         <div className="sb-header">
           <label>{label}</label>
           <MiniEditor

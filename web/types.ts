@@ -42,12 +42,24 @@ export type AppViewState = {
     forcedROMode: boolean;
   };
 
+  // Filter box
   showFilterBox: boolean;
   filterBoxLabel: string;
   filterBoxPlaceHolder: string;
   filterBoxOptions: FilterOption[];
   filterBoxHelpText: string;
   filterBoxOnSelect: (option: FilterOption | undefined) => void;
+
+  // Prompt
+  showPrompt: boolean;
+  promptMessage?: string;
+  promptDefaultValue?: string;
+  promptCallback?: (value: string | undefined) => void;
+
+  // Confirm
+  showConfirm: boolean;
+  confirmMessage?: string;
+  confirmCallback?: (value: boolean) => void;
 };
 
 export const initialViewState: AppViewState = {
@@ -78,6 +90,9 @@ export const initialViewState: AppViewState = {
   filterBoxOnSelect: () => {},
   filterBoxOptions: [],
   filterBoxPlaceHolder: "",
+
+  showPrompt: false,
+  showConfirm: false,
 };
 
 export type Action =
@@ -112,4 +127,17 @@ export type Action =
     onSelect: (option: FilterOption | undefined) => void;
   }
   | { type: "hide-filterbox" }
+  | {
+    type: "show-prompt";
+    message: string;
+    defaultValue: string;
+    callback: (value: string | undefined) => void;
+  }
+  | { type: "hide-prompt" }
+  | {
+    type: "show-confirm";
+    message: string;
+    callback: (value: boolean) => void;
+  }
+  | { type: "hide-confirm" }
   | { type: "set-ui-option"; key: string; value: any };

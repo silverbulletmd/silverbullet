@@ -1,16 +1,5 @@
 // Third party web dependencies
 import {
-  BookIcon,
-  HomeIcon,
-  preactRender,
-  TerminalIcon,
-  useEffect,
-  useReducer,
-  yUndoManagerKeymap,
-} from "./deps.ts";
-
-// Third-party dependencies
-import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
@@ -32,6 +21,7 @@ import {
   keymap,
   LanguageDescription,
   LanguageSupport,
+  markdown,
   runScopeHandlers,
   searchKeymap,
   standardKeymap,
@@ -43,9 +33,7 @@ import {
   ViewUpdate,
   yamlLanguage,
 } from "../common/deps.ts";
-
 import { SilverBulletHooks } from "../common/manifest.ts";
-import { markdown } from "../common/deps.ts";
 import {
   loadMarkdownExtensions,
   MDExt,
@@ -55,50 +43,14 @@ import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
 import { isMacLike, safeRun, throttle } from "../common/util.ts";
-
-import { PathPageNavigator } from "./navigator.ts";
-import reducer from "./reducer.ts";
-
-// PlugOS Dependencies
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
+import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
-import { CommandHook } from "./hooks/command.ts";
-import { SlashCommandHook } from "./hooks/slash_command.ts";
-
-// Syscalls
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { editorSyscalls } from "./syscalls/editor.ts";
-import { fulltextSyscalls } from "./syscalls/fulltext.ts";
-import { indexerSyscalls } from "./syscalls/index.ts";
-import { spaceSyscalls } from "./syscalls/space.ts";
-import { storeSyscalls } from "./syscalls/store.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
-import assetSyscalls from "../plugos/syscalls/asset.ts";
-
-// State and state transitions
-import {
-  Action,
-  AppViewState,
-  BuiltinSettings,
-  initialViewState,
-} from "./types.ts";
-import type {
-  AppEvent,
-  ClickEvent,
-  CompleteEvent,
-} from "../plug-api/app_event.ts";
-
-// UI Components
-import { CommandPalette } from "./components/command_palette.tsx";
-import { FilterList } from "./components/filter.tsx";
-import { PageNavigator } from "./components/page_navigator.tsx";
-import { Panel } from "./components/panel.tsx";
-import { TopBar } from "./components/top_bar.tsx";
-
-// CodeMirror plugins
+import { cleanModePlugins } from "./cm_plugins/clean.ts";
+import { CollabState } from "./cm_plugins/collab.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
@@ -106,14 +58,50 @@ import {
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
-import { cleanModePlugins } from "./cm_plugins/clean.ts";
+import { Confirm, Prompt } from "./components/basic_modals.tsx";
+import { CommandPalette } from "./components/command_palette.tsx";
+import { FilterList } from "./components/filter.tsx";
+import { PageNavigator } from "./components/page_navigator.tsx";
+import { Panel } from "./components/panel.tsx";
+import { TopBar } from "./components/top_bar.tsx";
+import {
+  BookIcon,
+  HomeIcon,
+  preactRender,
+  TerminalIcon,
+  useEffect,
+  useReducer,
+  vim,
+  yUndoManagerKeymap,
+} from "./deps.ts";
+import { CommandHook } from "./hooks/command.ts";
+import { SlashCommandHook } from "./hooks/slash_command.ts";
+import { PathPageNavigator } from "./navigator.ts";
+import reducer from "./reducer.ts";
 import customMarkdownStyle from "./style.ts";
-
-// Real-time collaboration
-import { CollabState } from "./cm_plugins/collab.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
-import { Vim, vim, vimGetCm } from "./deps.ts";
+import { editorSyscalls } from "./syscalls/editor.ts";
+import { fulltextSyscalls } from "./syscalls/fulltext.ts";
+import { indexerSyscalls } from "./syscalls/index.ts";
+import { spaceSyscalls } from "./syscalls/space.ts";
+import { storeSyscalls } from "./syscalls/store.ts";
+import { systemSyscalls } from "./syscalls/system.ts";
+import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
 
+// Third-party dependencies
+// PlugOS Dependencies
+// Syscalls
+// State and state transitions
+import type {
+  AppEvent,
+  ClickEvent,
+  CompleteEvent,
+} from "../plug-api/app_event.ts";
+
+// UI Components
+// CodeMirror plugins
+// Real-time collaboration
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
 class PageState {
@@ -418,6 +406,40 @@ export class Editor {
           this.viewDispatch({ type: "hide-filterbox" });
           this.focus();
           resolve(option);
+        },
+      });
+    });
+  }
+
+  prompt(
+    message: string,
+    defaultValue = "",
+  ): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-prompt",
+        message,
+        defaultValue,
+        callback: (value: string | undefined) => {
+          this.viewDispatch({ type: "hide-prompt" });
+          this.focus();
+          resolve(value);
+        },
+      });
+    });
+  }
+
+  confirm(
+    message: string,
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-confirm",
+        message,
+        callback: (value: boolean) => {
+          this.viewDispatch({ type: "hide-confirm" });
+          this.focus();
+          resolve(value);
         },
       });
     });
@@ -922,6 +944,28 @@ export class Editor {
             completer={this.miniEditorComplete.bind(this)}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
+          />
+        )}
+        {viewState.showPrompt && (
+          <Prompt
+            message={viewState.promptMessage!}
+            defaultValue={viewState.promptDefaultValue}
+            vimMode={viewState.uiOptions.vimMode}
+            darkMode={viewState.uiOptions.darkMode}
+            completer={this.miniEditorComplete.bind(this)}
+            callback={(value) => {
+              dispatch({ type: "hide-prompt" });
+              viewState.promptCallback!(value);
+            }}
+          />
+        )}
+        {viewState.showConfirm && (
+          <Confirm
+            message={viewState.confirmMessage!}
+            callback={(value) => {
+              dispatch({ type: "hide-confirm" });
+              viewState.confirmCallback!(value);
+            }}
           />
         )}
         <TopBar

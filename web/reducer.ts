@@ -139,6 +139,36 @@ export default function reducer(
         filterBoxOptions: [],
         filterBoxHelpText: "",
       };
+    case "show-prompt":
+      return {
+        ...state,
+        showPrompt: true,
+        promptDefaultValue: action.defaultValue,
+        promptMessage: action.message,
+        promptCallback: action.callback,
+      };
+    case "hide-prompt":
+      return {
+        ...state,
+        showPrompt: false,
+        promptDefaultValue: undefined,
+        promptMessage: undefined,
+        promptCallback: undefined,
+      };
+    case "show-confirm":
+      return {
+        ...state,
+        showConfirm: true,
+        confirmMessage: action.message,
+        confirmCallback: action.callback,
+      };
+    case "hide-confirm":
+      return {
+        ...state,
+        showConfirm: false,
+        confirmMessage: undefined,
+        confirmCallback: undefined,
+      };
     case "set-ui-option":
       return {
         ...state,

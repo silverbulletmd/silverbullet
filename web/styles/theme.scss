@@ -69,7 +69,7 @@
 }
 
 /* Filter boxes */
-.sb-filter-box {
+.sb-modal-box {
   background-color: #fff;
   border: rgb(103, 103, 103) 1px solid;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
@@ -87,29 +87,29 @@
   }
 }
 
-.sb-filter-box .sb-header {
+.sb-modal-box .sb-header {
   border-bottom: 1px rgb(108, 108, 108) solid;
 }
 
-.sb-filter-box .sb-header .sb-mini-editor {
+.sb-modal-box .sb-header .sb-mini-editor {
   font-family: var(--ui-font);
   width: 100%;
   border: 0;
   outline: none;
 }
 
-.sb-filter-box .sb-help-text {
+.sb-modal-box .sb-help-text {
   background-color: #eee;
   border-bottom: 1px rgb(108, 108, 108) solid;
   color: #555;
 }
 
-.sb-filter-box .sb-selected-option {
+.sb-modal-box .sb-selected-option {
   color: #eee;
 }
 
-.sb-filter-box .sb-option .sb-hint,
-.sb-filter-box .sb-selected-option .sb-hint {
+.sb-modal-box .sb-option .sb-hint,
+.sb-modal-box .sb-selected-option .sb-hint {
   color: #eee;
   background-color: #212476;
 }
@@ -570,7 +570,7 @@ html[data-theme="dark"] {
 
 
 
-  .sb-filter-box,
+  .sb-modal-box,
   /* duplicating the class name to increase specificity */
   .sb-help-text.sb-help-text {
     color: #ccc;

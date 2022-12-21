@@ -1,4 +1,4 @@
-.sb-filter-wrapper {
+.sb-modal-wrapper {
   position: absolute;
   margin: auto;
   max-width: 500px;
@@ -11,7 +11,7 @@
   z-index: 100;
 }
 
-.sb-filter-box {
+.sb-modal-box {
   border-radius: 8px;
   overflow: hidden;
   margin: 10px;
@@ -25,6 +25,19 @@
       margin: 3px;
     }
 
+  }
+
+  .sb-prompt {
+    padding: 13px 10px 10px 10px;
+
+    label {
+      font-weight: bold;
+    }
+
+    .sb-mini-editor {
+      border: 1px solid #333;
+      margin: 10px 0;
+    }
   }
 
   .sb-help-text {
@@ -46,9 +59,7 @@
   .sb-selected-option {
     padding: 8px;
     cursor: pointer;
-    // height: 20px;
     line-height: 20px;
-    // white-space: nowrap;
   }
 
   .sb-selected-option {

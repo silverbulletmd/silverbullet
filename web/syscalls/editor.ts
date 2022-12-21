@@ -139,14 +139,14 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       _ctx,
       message: string,
       defaultValue = "",
-    ): string | null => {
-      return prompt(message, defaultValue);
+    ): Promise<string | undefined> => {
+      return editor.prompt(message, defaultValue);
     },
     "editor.confirm": (
       _ctx,
       message: string,
-    ): boolean => {
-      return confirm(message);
+    ): Promise<boolean> => {
+      return editor.confirm(message);
     },
     "editor.getUiOption": (_ctx, key: string): any => {
       return (editor.viewState.uiOptions as any)[key];
