@@ -9,7 +9,7 @@ release.
 * Most areas where you enter text (e.g. the page name, page switcher, command palette and filter boxes) now use a CodeMirror editor. This means a few things:
   1. If you have vim mode enabled, this mode will also be enabled there.
   2. You can now use the emoji picker (`:party` etc.) in those places, in fact, any plug implementing the `minieditor:complete` event — right now just the emoji picker — will work.
-* To keep the UI clean, the dark mode button is now gone and has been replaced with a command: {[Editor: Toggle Dark Mode]}.
+* To keep the UI clean, the dark mode button has been removed, and has been replaced with a command: {[Editor: Toggle Dark Mode]}.
 * Bug fix: Long page names in titles now no longer overlap with action buttons.
 * Moving focus out of the page title now always performs a rename (previously this only happened when hitting `Enter`).
 * Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
