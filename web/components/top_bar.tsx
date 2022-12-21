@@ -50,14 +50,17 @@ export function TopBar({
     function resizeHandler() {
       const currentPageElement = document.getElementById("sb-current-page");
       if (currentPageElement) {
+        // Temporarily make it very narrow to give the parent space
+        currentPageElement.style.width = "10px";
+        const innerDiv = currentPageElement.parentElement!.parentElement!;
+
+        // Then calculate a new width
         currentPageElement.style.width = `${
-          Math.min(650, document.body.clientWidth - 150)
+          Math.min(650, innerDiv.clientWidth - 150)
         }px`;
       }
     }
     globalThis.addEventListener("resize", resizeHandler);
-    // Trigger on mount
-    setTimeout(resizeHandler);
 
     // Stop listening on unmount
     return () => {

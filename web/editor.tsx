@@ -861,6 +861,11 @@ export class Editor {
         : "light";
     }, [viewState.uiOptions.darkMode]);
 
+    useEffect(() => {
+      // Need to dispatch a resize event so that the top_bar can pick it up
+      globalThis.dispatchEvent(new Event("resize"));
+    }, [viewState.panels]);
+
     return (
       <>
         {viewState.showPageNavigator && (
