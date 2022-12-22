@@ -9,6 +9,13 @@ release.
 * Most areas where you enter text (e.g. the page name, page switcher, command palette and filter boxes) now use a CodeMirror editor. This means a few things:
   1. If you have vim mode enabled, this mode will also be enabled there.
   2. You can now use the emoji picker (`:party` etc.) in those places, in fact, any plug implementing the `minieditor:complete` event — right now just the emoji picker — will work.
+* Added support for plugs to extend fenced code blocks with custom languages and rendering live-preview widgets for them. As a demo of this, have a look at markdown support (mostly for demo purposes):
+```markdown
+# Header
+1. Item 1
+2. Item 2
+```
+  Two more plugs are now available that add [[🔌 Mermaid]] and [[🔌 KaTeX]] (LaTeX formula) support using this functionality.
 * To keep the UI clean, the dark mode button has been removed, and has been replaced with a command: {[Editor: Toggle Dark Mode]}.
 * Bug fix: Long page names in titles now no longer overlap with action buttons.
 * Moving focus out of the page title now always performs a rename (previously this only happened when hitting `Enter`).
