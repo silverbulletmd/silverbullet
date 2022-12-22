@@ -15,6 +15,7 @@ release.
 * Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
 * Moving up from the first line of the page will now move your cursor to the page title for you to rename it, and moving down from there puts you back in the document.
 * Note for plug authors: The (misnamed) `page:complete` event has been renamed to `editor:complete`. There's also a new `minieditor:complete` that's only used for "mini editors" (e.g. in the page switcher, command palette, and page name editor).
+* The `--user` authentication flag is now no longer powered by BasicAuth, but through a simple login form asking for a username and password and storing it in a cookie (that persists for 1 week). This gives the same level of security, but works around various browser bugs with basic auth.
 * Fixed various styling issues.
 
 ---
