@@ -22,6 +22,9 @@ async function prepareAssets(dist: string) {
   await copy("web/index.html", `${dist}/web/index.html`, {
     overwrite: true,
   });
+  await copy("web/auth.html", `${dist}/web/auth.html`, {
+    overwrite: true,
+  });
   await copy("web/images/favicon.png", `${dist}/web/favicon.png`, {
     overwrite: true,
   });

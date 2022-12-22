@@ -178,22 +178,49 @@ export class HttpServer {
   }
 
   private addPasswordAuth(app: Application) {
-    const excludedPaths = ["/manifest.json", "/favicon.png"];
+    const excludedPaths = [
+      "/manifest.json",
+      "/favicon.png",
+      "/logo.png",
+      "/.auth",
+    ];
     if (this.user) {
-      app.use(async ({ request, response }, next) => {
+      const b64User = btoa(this.user);
+      app.use(async ({ request, response, cookies }, next) => {
         if (!excludedPaths.includes(request.url.pathname)) {
-          if (
-            request.headers.get("Authorization") ===
-              `Basic ${btoa(this.user!)}`
-          ) {
-            await next();
+          const authCookie = await cookies.get("auth");
+          if (!authCookie || authCookie !== b64User) {
+            response.redirect(`/.auth?refer=${request.url.pathname}`);
+            return;
+          }
+        }
+        if (request.url.pathname === "/.auth") {
+          if (request.method === "GET") {
+            response.headers.set("Content-type", "text/html");
+            response.body = this.systemBoot.assetBundle.readTextFileSync(
+              "web/auth.html",
+            );
+            return;
+          } else if (request.method === "POST") {
+            const values = await request.body({ type: "form" }).value;
+            const username = values.get("username"),
+              password = values.get("password"),
+              refer = values.get("refer");
+            if (this.user === `${username}:${password}`) {
+              await cookies.set("auth", b64User, {
+                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
+                sameSite: "strict",
+              });
+              response.redirect(refer || "/");
+              // console.log("All headers", request.headers);
+            } else {
+              response.redirect("/.auth?error=1");
+            }
+            return;
           } else {
             response.status = 401;
-            response.headers.set(
-              "WWW-Authenticate",
-              `Basic realm="Please enter your username and password"`,
-            );
             response.body = "Unauthorized";
+            return;
           }
         } else {
           // Unauthenticated access to excluded paths

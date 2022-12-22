@@ -22,7 +22,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   ): Promise<Response> {
     const result = await fetch(url, options);
     if (result.status === 401) {
-      // Invalid credentials, reloading the browser should trigger a BasicAuth dialog
+      // Invalid credentials, reloading the browser should trigger authentication
       location.reload();
       throw Error("Unauthorized");
     }

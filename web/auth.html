@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="icon" type="image/x-icon" href="/favicon.png" />
+  <title>Login to Silver Bullet</title>
+  <style>
+    html,
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+      border: 0;
+      margin: 0;
+    }
+
+    footer {
+      margin-top: 10px;
+    }
+
+    header {
+      background-color: #e1e1e1;
+      border-bottom: #cacaca 1px solid;
+    }
+
+    h1 {
+      margin: 0;
+      margin: 0 auto;
+      max-width: 800px;
+      padding: 8px;
+      font-size: 28px;
+      font-weight: normal;
+    }
+
+    form {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    input {
+      font-size: 18px;
+    }
+
+    form>div {
+      margin-bottom: 5px;
+    }
+
+    .error-message {
+      color: red;
+    }
+  </style>
+
+</head>
+
+<body>
+  <header>
+    <h1>Login to <img src="/logo.png" style="height: 1ch;" /> Silver Bullet</h1>
+  </header>
+  <form action="/.auth" method="POST">
+    <input type="hidden" name="refer" value="" />
+    <div class="error-message"></div>
+    <div>
+      <input type="text" name="username" id="username" autocomplete="off" autocorrect="off" autocapitalize="off"
+        autofocus placeholder="Username" />
+    </div>
+    <div>
+      <input type="password" name="password" id="password" placeholder="Password" />
+    </div>
+    <div>
+      <input type="submit" value="Login" />
+    </div>
+    <footer>
+      <a href="https://silverbullet.md">What is Silver Bullet?</a>
+    </footer>
+  </form>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+
+    const refer = params.get('refer');
+    if (refer) {
+      document.querySelector('input[name="refer"]').value = refer;
+    }
+
+    if (params.get('error')) {
+      document.querySelector('.error-message').innerText = "Invalid username or password";
+    }
+  </script>
+</body>
+
+</html>
