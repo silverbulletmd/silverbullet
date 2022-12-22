@@ -5,6 +5,7 @@ import { EventHookT } from "../plugos/hooks/event.ts";
 import { CommandHookT } from "../web/hooks/command.ts";
 import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
 import { PageNamespaceHookT } from "../server/hooks/page_namespace.ts";
+import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 
 export type SilverBulletHooks =
   & CommandHookT
@@ -12,6 +13,7 @@ export type SilverBulletHooks =
   & EndpointHookT
   & CronHookT
   & EventHookT
+  & CodeWidgetT
   & PageNamespaceHookT;
 
 export type SyntaxExtensions = {

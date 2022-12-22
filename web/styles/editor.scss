@@ -211,6 +211,22 @@
     }
   }
 
+  .sb-fenced-code-hide {
+    background-color: transparent !important;
+    line-height: 0;
+  }
+
+  .sb-fenced-code-iframe {
+    background-color: transparent !important;
+
+    iframe {
+      border: 0;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+    }
+  }
+
   .sb-line-blockquote {
     border-left: 1px solid rgb(74, 74, 74);
   }

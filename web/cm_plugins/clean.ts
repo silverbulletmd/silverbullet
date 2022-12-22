@@ -12,6 +12,7 @@ import { tablePlugin } from "./table.ts";
 import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
 import { cleanCommandLinkPlugin } from "./command_link.ts";
+import { fencedCodePlugin } from "./fenced_code.ts";
 
 export function cleanModePlugins(editor: Editor) {
   return [
@@ -22,6 +23,7 @@ export function cleanModePlugins(editor: Editor) {
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),
+    fencedCodePlugin(editor),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {

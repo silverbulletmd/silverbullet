@@ -31,3 +31,7 @@ functions:
     path: ./share.ts:sharePublisher
     events:
     - share:file
+
+  markdownWidget:
+    path: ./widget.ts:markdownWidget
+    codeWidget: markdown

@@ -89,19 +89,13 @@ import { storeSyscalls } from "./syscalls/store.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
 
-// Third-party dependencies
-// PlugOS Dependencies
-// Syscalls
-// State and state transitions
 import type {
   AppEvent,
   ClickEvent,
   CompleteEvent,
 } from "../plug-api/app_event.ts";
+import { CodeWidgetHook } from "./hooks/code_widget.ts";
 
-// UI Components
-// CodeMirror plugins
-// Real-time collaboration
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
 class PageState {
@@ -124,6 +118,8 @@ export class Editor {
   space: Space;
   pageNavigator: PathPageNavigator;
   eventHook: EventHook;
+  codeWidgetHook: CodeWidgetHook;
+
   saveTimeout: any;
   debouncedUpdateEvent = throttle(() => {
     this.eventHook
@@ -156,6 +152,10 @@ export class Editor {
     // Event hook
     this.eventHook = new EventHook();
     this.system.addHook(this.eventHook);
+
+    // Code widget hook
+    this.codeWidgetHook = new CodeWidgetHook();
+    this.system.addHook(this.codeWidgetHook);
 
     // Command hook
     this.commandHook = new CommandHook();

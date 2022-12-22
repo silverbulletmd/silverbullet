@@ -2,7 +2,7 @@ import { useEffect, useRef } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import { PanelConfig } from "../types.ts";
 
-const panelHtml = `<!DOCTYPE html>
+export const panelHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -25,14 +25,27 @@ window.addEventListener("message", (message) => {
 });
 
 function sendEvent(name, ...args) {
-  window.parent.postMessage(
-    {
-      type: "event",
-      name,
-      args,
-    },
-    "*"
-  );
+  window.parent.postMessage({ type: "event", name, args, }, "*");
+}
+function api(obj) {
+  window.parent.postMessage(obj, "*");
+}
+function updateHeight() {
+  api({
+    type: "setHeight", 
+    height: document.documentElement.offsetHeight,
+  });
+}
+
+function loadJsByUrl(url) {
+  const script = document.createElement("script");
+  script.src = url;
+
+  return new Promise((resolve) => {
+    script.onload = resolve;
+  
+    document.documentElement.firstChild.appendChild(script);
+  });
 }
 </script>
 </head>

@@ -52,23 +52,6 @@ function hideNodes(state: EditorState) {
           }
         }
       }
-
-      if (
-        node.name === "CodeMark"
-      ) {
-        const parent = node.node.parent!;
-        // Hide ONLY if CodeMark is not insine backticks (InlineCode) and the cursor is placed outside
-        if (
-          parent.node.name !== "InlineCode" &&
-          !isCursorInRange(state, [parent.from, parent.to])
-        ) {
-          widgets.push(
-            Decoration.line({
-              class: "sb-line-code-outside",
-            }).range(node.from),
-          );
-        }
-      }
     },
   });
   return Decoration.set(widgets, true);
