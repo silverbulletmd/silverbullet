@@ -164,9 +164,6 @@ export function FilterList({
       if (newSelected >= nOptions) {
         newSelected = nOptions - 1;
       }
-      if (newSelected === selectedOption) {
-        return true;
-      }
       setSelectionOption(newSelected);
       return true;
     }
