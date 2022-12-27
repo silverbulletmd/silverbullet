@@ -126,56 +126,6 @@ export function FilterList({
     };
   }, []);
 
-  useEffect(() => {
-    // TODO: why is this called after each setSelectionOption
-    // TODO: up / down also moves cursor inside MiniEditor to begin / end
-    function onKeyDown(e: KeyboardEvent) : boolean {
-      const nOptions = matchingOptions.length;
-      if (nOptions === 0) {
-        return false;
-      }
-      let newSelected : number | undefined;
-      switch (e.key) {
-        case "ArrowUp":
-          newSelected = selectedOption - 1;
-          break;
-        case "ArrowDown":
-          newSelected = selectedOption + 1;
-          break;
-        case "PageUp":
-          newSelected = selectedOption - 5;
-          break;
-        case "PageDown":
-          newSelected = selectedOption + 5;
-          break;
-        case "Home":
-          newSelected = 0;
-          break;
-        case "End":
-          newSelected = nOptions - 1;
-          break;
-      }
-      if (newSelected === undefined || nOptions < 1) {
-        return true;
-      }
-      if (newSelected < 0) {
-        newSelected = 0;
-      }
-      if (newSelected >= nOptions) {
-        newSelected = nOptions - 1;
-      }
-      setSelectionOption(newSelected);
-      return true;
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-
-  }, [selectedOption, matchingOptions]);
-
   const returnEl = (
     <div className="sb-modal-wrapper">
       <div className="sb-modal-box">
@@ -200,14 +150,37 @@ export function FilterList({
               updateFilter(text);
             }}
             onKeyUp={(view, e) => {
+              // This event is triggered after the key has been processed by CM already
               if (onKeyPress) {
                 onKeyPress(e.key, view.state.sliceDoc());
               }
+              return false;
+            }}
+            onKeyDown={(view, e) => {
               switch (e.key) {
+                case "ArrowUp":
+                  setSelectionOption(Math.max(0, selectedOption - 1));
+                  return true;
+                case "ArrowDown":
+                  setSelectionOption(
+                    Math.min(matchingOptions.length - 1, selectedOption + 1),
+                  );
+                  return true;
+                case "PageUp":
+                  setSelectionOption(Math.max(0, selectedOption - 5));
+                  return true;
+                case "PageDown":
+                  setSelectionOption(Math.max(0, selectedOption + 5));
+                  return true;
+                case "Home":
+                  setSelectionOption(0);
+                  return true;
+                case "End":
+                  setSelectionOption(matchingOptions.length - 1);
+                  return true;
                 case " ": {
                   const text = view.state.sliceDoc();
-                  if (completePrefix && text === " ") {
-                    console.log("Doing the complete thing");
+                  if (completePrefix && text === "") {
                     setText(completePrefix);
                     updateFilter(completePrefix);
                     return true;
