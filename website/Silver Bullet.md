@@ -87,7 +87,7 @@ Click on the links below to explore various aspects of Silver Bullet more in-dep
 ## Installing Silver Bullet
 This consists of two steps (unless Deno is already installed):
 
-1. [Install Deno](https://deno.land/manual/getting_started/installation)
+1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
 2. Installing Silver Bullet itself
 
 ### Install Silver Bullet

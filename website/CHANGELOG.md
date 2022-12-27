@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.2.5
 * Changed styling for [[Frontmatter]], fenced code blocks, and directives to avoid vertical jumping when moving the cursor around.
 * Clicking the URL (inside of an image `![](url)` or link `[text](link)`) no longer navigates there, you need to click on the anchor text to navigate there now (this avoids a lot of weird behavior).
 * Most areas where you enter text (e.g. the page name, page switcher, command palette and filter boxes) now use a CodeMirror editor. This means a few things:
@@ -17,6 +17,7 @@ release.
 ```
   Two more plugs are now available that add [[🔌 Mermaid]] and [[🔌 KaTeX]] (LaTeX formula) support using this functionality.
 * To keep the UI clean, the dark mode button has been removed, and has been replaced with a command: {[Editor: Toggle Dark Mode]}.
+* Added a command and short-cut for strike through (by [Evgenii Karagodin](https://github.com/silverbulletmd/silverbullet/pull/237))
 * Bug fix: Long page names in titles now no longer overlap with action buttons.
 * Moving focus out of the page title now always performs a rename (previously this only happened when hitting `Enter`).
 * Clicking on a page reference in a `render` clause (inside of a directive) now navigates there (use Alt-click to just move the cursor)
