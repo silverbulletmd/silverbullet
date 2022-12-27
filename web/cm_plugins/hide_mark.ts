@@ -93,10 +93,15 @@ export function hideHeaderMarkPlugin() {
           return;
         }
 
+        const spacePos = line.indexOf(" ");
+        if (spacePos === -1) {
+          // Not complete header
+          return;
+        }
         widgets.push(
           invisibleDecoration.range(
             from,
-            from + line.indexOf(" ") + 1,
+            from + spacePos + 1,
           ),
         );
       },
