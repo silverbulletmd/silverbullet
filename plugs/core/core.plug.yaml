@@ -66,6 +66,12 @@ functions:
     command:
       name: "Editor: Toggle Read Only Mode"
 
+  # Attachments
+  attachmentQueryProvider:
+    path: ./attachment.ts:attachmentQueryProvider
+    events:
+      - query:attachment
+
   # Backlinks
   indexLinks:
     path: "./page.ts:indexLinks"

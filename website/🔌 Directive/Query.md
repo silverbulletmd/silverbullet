@@ -54,6 +54,7 @@ Start writing `<!— #query` or simply use `/query` slash command, it will show 
 #### 4.1. Available data sources
 
 - `page`: list of all pages
+- `attachment`: list of all attachments
 - `task`: list of all tasks created with `[ ]`
 - `full-text`: use it with `where phrase = "SOME_TEXT"`. List of all pages where `SOME_TEXT` is mentioned
 - `item`: list of ordered and unordered items such as bulleted lists
@@ -162,7 +163,7 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 
 **Goal:** We would like to get all plug pages sorted by last modified time.
 
-**Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need. 
+**Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
 |name        |lastModified |contentType  |size|perm|type|repo                                               |uri                                 |author        |share-support|
@@ -199,10 +200,10 @@ from a visual perspective.
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
 <!-- #query page select name author repo uririri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
-* [[🔌 Directive]] 
+* [[🔌 Directive]]
 * [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
-* [[🔌 Collab]] 
-* [[🔌 Tasks]] 
+* [[🔌 Collab]]
+* [[🔌 Tasks]]
 * [[🔌 Share]]
 <!-- /query -->
 
