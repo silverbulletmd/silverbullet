@@ -180,7 +180,9 @@ export class Space extends EventEmitter<SpaceEvents> {
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
     return (await this.space.fetchFileList()).filter(
       (fileMeta) =>
-        !fileMeta.name.endsWith(".md") && !fileMeta.name.endsWith(".plug.json"),
+        !fileMeta.name.endsWith(".md") &&
+        !fileMeta.name.endsWith(".plug.json") &&
+        fileMeta.name !== "data.db",
     );
   }
 
