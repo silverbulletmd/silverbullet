@@ -1,5 +1,6 @@
-Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal
-knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
+Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
+
+_Quick links:_ [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@zef), [Mattermost chat](https://silverbullet.cloud.mattermost.com/), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
