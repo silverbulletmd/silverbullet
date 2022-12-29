@@ -29,6 +29,7 @@ export type AppViewState = {
   isLoading: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
+  showCommandPaletteContext?: string;
   unsavedChanges: boolean;
   panels: { [key: string]: PanelConfig };
   allPages: Set<PageMeta>;
