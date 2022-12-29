@@ -165,7 +165,7 @@ export function fencedCodePlugin(editor: Editor) {
             widgets.push(
               Decoration.line({
                 class: "sb-line-code-outside",
-              }).range(node.from),
+              }).range(state.doc.lineAt(from).from),
             );
           }
         }
