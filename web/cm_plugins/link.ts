@@ -25,6 +25,10 @@ export function linkPlugin(editor: Editor) {
         const text = state.sliceDoc(from, to);
         // Links are of the form [hell](https://example.com)
         const [anchorPart, linkPart] = text.split("]("); // Not pretty
+        if (anchorPart.substring(1).trim() === "") {
+          // Empty link text, let's not do live preview (because it would make it disappear)
+          return;
+        }
         if (!linkPart) {
           // Invalid link
           return;

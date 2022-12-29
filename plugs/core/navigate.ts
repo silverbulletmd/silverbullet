@@ -2,6 +2,7 @@ import type { ClickEvent } from "$sb/app_event.ts";
 import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import {
   addParentPointers,
+  findNodeOfType,
   findParentMatching,
   nodeAtPos,
   ParseTree,
@@ -74,7 +75,11 @@ async function actionClickOrActionEnter(
       break;
     case "Image":
     case "Link": {
-      const url = patchUrl(mdTree.children![4].children![0].text!);
+      const urlNode = findNodeOfType(mdTree, "URL");
+      if (!urlNode) {
+        return;
+      }
+      const url = patchUrl(urlNode.children![0].text!);
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
