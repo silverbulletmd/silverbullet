@@ -12,6 +12,7 @@ import { createSandbox } from "../../plugos/environments/deno_sandbox.ts";
 import { loadMarkdownExtensions } from "../../common/markdown_parser/markdown_ext.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { assertEquals } from "../../test_deps.ts";
+import { urlToPathname } from "../../plugos/util.ts";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
@@ -19,7 +20,7 @@ Deno.test("Markdown render", async () => {
   await system.load(tasksPlug, createSandbox);
   const lang = buildMarkdown(loadMarkdownExtensions(system));
   const testFile = Deno.readTextFileSync(
-    new URL("test/example.md", import.meta.url).pathname,
+    urlToPathname(new URL("test/example.md", import.meta.url)),
   );
   const tree = parse(lang, testFile);
   renderMarkdownToHtml(tree, {

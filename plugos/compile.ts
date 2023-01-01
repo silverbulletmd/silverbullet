@@ -49,8 +49,9 @@ export async function compile(
     inFile = await Deno.makeTempFile({ suffix: ".ts" });
     await Deno.writeTextFile(
       inFile,
-      `import {${functionName}} from "${
-        path.resolve(filePath)
+      `import {${functionName}} from "file://${
+        // Replacaing \ with / for Windows
+        path.resolve(filePath).replaceAll("\\", "\\\\")
       }";export default ${functionName};`,
     );
   }

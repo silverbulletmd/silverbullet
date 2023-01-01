@@ -5,3 +5,8 @@ export function safeRun(fn: () => Promise<void>) {
     // throw e;
   });
 }
+
+export function urlToPathname(url: URL) {
+  // For Windows, remove prefix /
+  return url.pathname.replace(/^\/(\w:)/, "$1");
+}

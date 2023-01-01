@@ -59,6 +59,8 @@ export function lezerToParseTree(
 }
 
 export function parse(language: Language, text: string): ParseTree {
+  // Remove \r for Windows before parsing
+  text = text.replaceAll("\r", "");
   const tree = lezerToParseTree(text, language.parser.parse(text).topNode);
   return tree;
 }
