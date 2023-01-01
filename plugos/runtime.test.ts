@@ -130,10 +130,12 @@ Deno.test("Run a deno sandbox", async () => {
 
 import { bundle as plugOsBundle } from "./bin/plugos-bundle.ts";
 import { esbuild } from "./compile.ts";
+import { urlToPathname } from "./util.ts";
 
-const __dirname = new URL(".", import.meta.url).pathname;
+const __dirname = urlToPathname(new URL(".", import.meta.url));
 
 Deno.test("Preload dependencies", async () => {
+  
   const globalModules = await plugOsBundle(
     `${__dirname}../plugs/global.plug.yaml`,
   );

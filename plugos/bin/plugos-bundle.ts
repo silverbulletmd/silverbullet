@@ -76,11 +76,13 @@ export async function bundle(
       continue;
     }
     let jsFunctionName = "default",
-      filePath = path.join(rootPath, def.path);
+      filePath: string = def.path;
     if (filePath.indexOf(":") !== -1) {
       [filePath, jsFunctionName] = filePath.split(":");
     }
-
+    // Resolve path
+    filePath = path.join(rootPath, filePath);
+    
     def.code = await compile(
       filePath,
       jsFunctionName,

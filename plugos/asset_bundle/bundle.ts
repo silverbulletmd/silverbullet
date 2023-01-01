@@ -57,6 +57,8 @@ export class AssetBundle {
   }
 
   writeFileSync(path: string, data: Uint8Array) {
+    // Replace \ with / for windows
+    path = path.replaceAll("\\", "/");
     const mimeType = mime.getType(path) || "application/octet-stream";
     this.bundle[path] = base64EncodedDataUrl(mimeType, data);
   }

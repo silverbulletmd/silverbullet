@@ -47,9 +47,7 @@ async function prepareAssets(dist: string) {
     `${dist}/web/main.css`,
     compiler.to_string("expanded") as string,
   );
-  const globalManifest = await plugOsBundle(
-    new URL(`./plugs/global.plug.yaml`, import.meta.url).pathname,
-  );
+  const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
   await Deno.writeTextFile(
     `${dist}/web/global.plug.json`,
     JSON.stringify(globalManifest, null, 2),
