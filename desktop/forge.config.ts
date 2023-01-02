@@ -90,6 +90,20 @@ const config: ForgeConfig = {
     new MakerRpm({}),
     new MakerDeb({}),
   ],
+
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "silverbulletmd",
+          name: "silverbullet",
+        },
+        prerelease: true,
+      },
+    },
+  ],
+
   plugins: [
     new WebpackPlugin({
       port: 3001,
