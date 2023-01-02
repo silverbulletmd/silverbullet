@@ -28,13 +28,13 @@ const denoExec = platform() === "win32"
   ? "resources/deno.exe"
   : "resources/deno";
 
-async function downloadDeno(): Promise<void> {
+async function downloadDeno(platform: string, arch: string): Promise<void> {
   const folder = fs.mkdtempSync("deno-download");
   const destFile = path.join(folder, "deno.zip");
   const file = fs.createWriteStream(destFile);
-  const zipFile = denoZip[`${platform()}-${process.arch}`];
+  const zipFile = denoZip[`${platform}-${arch}`];
   if (!zipFile) {
-    throw new Error(`No deno binary for ${platform()}-${process.arch}`);
+    throw new Error(`No deno binary for ${platform}-${arch}`);
   }
   let response = await axios.request({
     url:
@@ -57,6 +57,7 @@ async function downloadDeno(): Promise<void> {
       file.close();
       console.log("Download Completed");
       decompress(destFile, "resources").then((files) => {
+        fs.rmSync(folder, { recursive: true });
         resolve();
       });
     });
@@ -68,19 +69,16 @@ const config: ForgeConfig = {
     icon: "../web/images/logo",
     extraResource: [denoExec],
     beforeCopyExtraResources: [(
-      buildPath: string,
-      electronVersion: string,
+      _buildPath: string,
+      _electronVersion: string,
       platform: TargetArch,
       arch: TargetArch,
       callback: (err?: Error | null) => void,
     ) => {
-      if (
-        !fs.existsSync(denoExec)
-      ) {
-        downloadDeno().then((r) => callback()).catch(callback);
-      } else {
-        callback();
+      if (fs.existsSync(denoExec)) {
+        fs.rmSync(denoExec, { force: true });
       }
+      downloadDeno(platform, arch).then((r) => callback()).catch(callback);
     }],
     osxSign: true,
     osxNotarize: {
