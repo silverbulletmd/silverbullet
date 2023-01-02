@@ -1,7 +1,7 @@
 {
   "name": "silverbullet",
   "productName": "Silver Bullet",
-  "version": "0.0.1-pre",
+  "version": "0.0.1",
   "description": "Markdown as a platform",
   "main": ".webpack/main",
   "scripts": {
