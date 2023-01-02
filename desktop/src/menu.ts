@@ -1,5 +1,6 @@
-import { app, Menu, MenuItemConstructorOptions } from "electron";
-import { findInstanceByUrl, folderPicker, openWindow } from "./instance";
+import { app, Menu, MenuItemConstructorOptions, shell } from "electron";
+import { findInstanceByUrl, newWindow, openFolderPicker } from "./instance";
+import { newWindowState } from "./store";
 
 const template: MenuItemConstructorOptions[] = [
   {
@@ -12,26 +13,22 @@ const template: MenuItemConstructorOptions[] = [
           const url = new URL(win.webContents.getURL());
           const instance = findInstanceByUrl(url);
           if (instance) {
-            openWindow(instance);
+            newWindow(instance, newWindowState(instance.folder));
           }
         },
       },
       {
         label: "Open Folder",
+        accelerator: "CommandOrControl+Shift+O",
         click: () => {
-          folderPicker();
+          openFolderPicker();
         },
       },
+      { type: "separator" },
       {
-        label: "Toggle Dev Tools",
-        accelerator: "CommandOrControl+Alt+J",
-        click: (_item, win) => {
-          if (win.webContents.isDevToolsOpened()) {
-            win.webContents.closeDevTools();
-          } else {
-            win.webContents.openDevTools({ mode: "bottom" });
-          }
-        },
+        label: "Quit",
+        accelerator: "CommandOrControl+Q",
+        role: "quit",
       },
     ],
   },
@@ -72,12 +69,71 @@ const template: MenuItemConstructorOptions[] = [
     ],
   },
   {
+    label: "Navigate",
+    submenu: [
+      {
+        label: "Home",
+        accelerator: "Alt+h",
+        click: (_item, win) => {
+          win.loadURL(new URL(win.webContents.getURL()).origin);
+        },
+      },
+      {
+        label: "Reload",
+        accelerator: "CommandOrControl+r",
+        role: "forceReload",
+      },
+      {
+        label: "Back",
+        accelerator: "CommandOrControl+[",
+        click: (_item, win) => {
+          win.webContents.goBack();
+        },
+      },
+      {
+        label: "Forward",
+        accelerator: "CommandOrControl+]",
+        click: (_item, win) => {
+          win.webContents.goForward();
+        },
+      },
+    ],
+  },
+  {
+    label: "Develop",
+    submenu: [
+      {
+        label: "Open in Browser",
+        click: (_item, win) => {
+          shell.openExternal(win.webContents.getURL());
+        },
+      },
+      {
+        label: "Toggle Dev Tools",
+        accelerator: "CommandOrControl+Alt+J",
+        click: (_item, win) => {
+          if (win.webContents.isDevToolsOpened()) {
+            win.webContents.closeDevTools();
+          } else {
+            win.webContents.openDevTools({ mode: "bottom" });
+          }
+        },
+      },
+    ],
+  },
+  {
     label: "Window",
     submenu: [
       {
         label: "Minimize",
         accelerator: "CommandOrControl+M",
         role: "minimize",
+      },
+      {
+        label: "Maximize",
+        click: (_item, win) => {
+          win.maximize();
+        },
       },
       {
         label: "Close",

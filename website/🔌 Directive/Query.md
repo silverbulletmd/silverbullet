@@ -155,7 +155,7 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 |--|--|--|--|--|--|--|--|--|
 |Markdown     |1669534332564|text/markdown|1022|rw|    |                                                            |                                                    |                 |
 |🔌 Graph View|1669388320673|text/markdown|1042|rw|plug|github:bbroeksema/silverbullet-graphview/graphview.plug.json|https://github.com/bbroeksema/silverbullet-graphview|Bertjan Broeksema|
-|SETTINGS     |1667053645895|text/markdown|169 |rw|    |                                                            |                                                    |                 |
+|SETTINGS     |1671107145991|text/markdown|169 |rw|    |                                                            |                                                    |                 |
 <!-- /query -->
 
 
@@ -166,13 +166,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name        |lastModified |contentType  |size|perm|type|repo                                               |uri                                 |author        |share-support|
+|name         |lastModified |contentType  |size|perm|type|uri                                                               |repo                                                     |author   |share-support|
 |--|--|--|--|--|--|--|--|--|--|
-|🔌 Directive|1671044429696|text/markdown|2605|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
-|🔌 Backlinks|1670833065065|text/markdown|960 |rw|plug|https://github.com/Willyfrog/silverbullet-backlinks|ghr:Willyfrog/silverbullet-backlinks|Guillermo Vayá|    |
-|🔌 Collab   |1670435068917|text/markdown|2923|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |true|
-|🔌 Tasks    |1669536555227|text/markdown|1231|rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
-|🔌 Share    |1669536545411|text/markdown|672 |rw|plug|https://github.com/silverbulletmd/silverbullet     |                                    |              |    |
+|🔌 KaTeX     |1671723760117|text/markdown|1346|rw|plug|github:silverbulletmd/silverbullet-katex/katex.plug.json          |https://github.com/silverbulletmd/silverbullet-katex     |Zef Hemel|    |
+|🔌 Mermaid   |1671723720005|text/markdown|1501|rw|plug|github:silverbulletmd/silverbullet-mermaid/mermaid.plug.json      |https://github.com/silverbulletmd/silverbullet-mermaid   |Zef Hemel|    |
+|🔌 Mattermost|1671205865185|text/markdown|3535|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel|true|
+|🔌 Share     |1671205498955|text/markdown|694 |rw|plug|                                                                  |https://github.com/silverbulletmd/silverbullet           |         |    |
+|🔌 Directive |1671044959953|text/markdown|2605|rw|plug|                                                                  |https://github.com/silverbulletmd/silverbullet           |         |    |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -183,14 +183,14 @@ and `repo` columns and then sort by last modified time.
 **Result:** Okay, this is much better. However, I believe this needs a touch
 from a visual perspective.
 
-<!-- #query page select name author repo uririri where type = "plug" order by lastModified desc limit 5 -->
-|name        |author        |repo                                               |ri|
+<!-- #query page select name author repo uririrririrririrririrririri where type = "plug" order by lastModified desc limit 5 -->
+|name         |author   |repo                                                     |ririrririrririri|
 |--|--|--|--|
-|🔌 Directive|              |https://github.com/silverbulletmd/silverbullet     ||
-|🔌 Backlinks|Guillermo Vayá|https://github.com/Willyfrog/silverbullet-backlinks||
-|🔌 Collab   |              |https://github.com/silverbulletmd/silverbullet     ||
-|🔌 Tasks    |              |https://github.com/silverbulletmd/silverbullet     ||
-|🔌 Share    |              |https://github.com/silverbulletmd/silverbullet     ||
+|🔌 KaTeX     |Zef Hemel|https://github.com/silverbulletmd/silverbullet-katex     ||
+|🔌 Mermaid   |Zef Hemel|https://github.com/silverbulletmd/silverbullet-mermaid   ||
+|🔌 Mattermost|Zef Hemel|https://github.com/silverbulletmd/silverbullet-mattermost||
+|🔌 Share     |         |https://github.com/silverbulletmd/silverbullet           ||
+|🔌 Directive |         |https://github.com/silverbulletmd/silverbullet           ||
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -199,12 +199,12 @@ from a visual perspective.
 
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
-<!-- #query page select name author repo uririri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+<!-- #query page select name author repo uririrririrririrririrririri where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+* [[🔌 KaTeX]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-katex)) 
+* [[🔌 Mermaid]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mermaid)) 
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost)) 
+* [[🔌 Share]]  
 * [[🔌 Directive]]
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks))
-* [[🔌 Collab]]
-* [[🔌 Tasks]]
-* [[🔌 Share]]
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are
