@@ -64,6 +64,7 @@ async function createInstance() {
     openSilverBulletUI(port);
     let allOpenFolders: string[] = store.get("openFolders");
     allOpenFolders.push(dialogReturn.filePaths[0]);
+    app.addRecentDocument(dialogReturn.filePaths[0]);
     store.set("openFolders", allOpenFolders);
   }
 }

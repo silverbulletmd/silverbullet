@@ -82,6 +82,13 @@ const config: ForgeConfig = {
         callback();
       }
     }],
+    osxSign: true,
+    osxNotarize: {
+      tool: "notarytool",
+      appleId: process.env.APPLE_ID!,
+      appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+      teamId: process.env.APPLE_TEAM_ID!,
+    },
   },
   rebuildConfig: {},
   makers: [
@@ -95,6 +102,7 @@ const config: ForgeConfig = {
     {
       name: "@electron-forge/publisher-github",
       config: {
+        authToken: process.env.GH_TOKEN,
         repository: {
           owner: "silverbulletmd",
           name: "silverbullet",
