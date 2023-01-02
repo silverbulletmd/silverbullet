@@ -1,15 +1,16 @@
 {
-  "name": "desktop",
-  "productName": "desktop",
+  "name": "silverbullet",
+  "productName": "Silver Bullet",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Markdown as a platform",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "clean": "rm -rf out"
   },
   "keywords": [],
   "author": {
@@ -39,6 +40,9 @@
     "typescript": "~4.5.4"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "electron-store": "^8.1.0",
+    "node-fetch": "^3.3.0",
+    "portfinder": "^1.0.32"
   }
 }
