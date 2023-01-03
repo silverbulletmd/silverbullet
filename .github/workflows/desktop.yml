@@ -17,7 +17,7 @@ jobs:
           arch: x64
         - os: windows-latest
           arch: x64
-        - os: linux-latest
+        - os: ubuntu-latest
           arch: x64
 
     steps:
