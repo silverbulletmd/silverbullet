@@ -72,7 +72,7 @@ jobs:
           files: |
             desktop/out/**/*.deb
             desktop/out/**/*.dmg
-            desktop/out/**/*setup*.exe
+            desktop/out/**/*.exe
             desktop/out/**/*.nupkg
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
