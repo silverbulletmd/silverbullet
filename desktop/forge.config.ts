@@ -47,7 +47,7 @@ async function downloadDeno(platform: string, arch: string): Promise<void> {
 const config: ForgeConfig = {
   packagerConfig: {
     name: "silverbullet",
-    executableName: "silverbullet",
+    executableName: "SilverBullet",
     icon: "../web/images/logo",
     appBundleId: "md.silverbullet",
     extraResource: [denoExecutableResource, "resources/silverbullet.js"],
@@ -73,7 +73,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({}),
-    new MakerZIP({}, ["darwin"]),
+    new MakerZIP({}, ["darwin", "linux"]),
     new MakerRpm({}),
     new MakerDeb({}),
   ],
@@ -102,6 +102,10 @@ const config: ForgeConfig = {
 
 function notarizeMaybe() {
   if (process.platform !== "darwin") {
+    return;
+  }
+
+  if (!process.env.CI) {
     return;
   }
 

@@ -12,19 +12,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Build for supported platforms
-        # https://github.com/electron/electron-packager/blob/ebcbd439ff3e0f6f92fa880ff28a8670a9bcf2ab/src/targets.js#L9
-        # 32-bit Linux unsupported as of 2019: https://www.electronjs.org/blog/linux-32bit-support
-        os: [ macOS-latest ]
-        # os: [ macOS-latest, ubuntu-latest, windows-latest ]
-        # arch: [ x64, arm64 ]
-        arch: [ arm64 ]
-        # Publishing artifacts for multiple Windows architectures has
-        # a bug which can cause the wrong architecture to be downloaded
-        # for an update, so until that is fixed, only build Windows x64
-        exclude:
-        - os: windows-latest
+        include:
+        - os: macOS-latest
           arch: arm64
+        # - os: macOS-latest
+        #   arch: x64
+        # - os: windows-latest
+        #   arch: x64
+        # - os: linux-latest
+        #   arch: x64
 
     steps:
       - uses: actions/checkout@v3
@@ -34,6 +30,11 @@ jobs:
           node-version: 18.x
           cache: npm
           cache-dependency-path: desktop/package-lock.json
+      - name: Read package.json version
+        id: package-json
+        uses: Saionaro/extract-package-version@v1.1.1
+        with:
+          path: desktop
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
@@ -80,11 +81,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
           #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
-      - name: Rename artifacts
-        if: matrix.os == 'macOS-latest'
-        run: mv out/make/zip/*/*/*.zip out/silverbullet-macos-${{ matrix.arch }}.zip
-        shell: bash
-        working-directory: desktop
       - name: Release Mac
         uses: johnwbyrd/update-release@v1.0.0
         if: matrix.os == 'macOS-latest'
@@ -92,4 +88,27 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
-          files: desktop/out/silverbullet-macos-${{ matrix.arch }}.zip
+          files: desktop/out/make/zip/darwin/${{ matrix.arch }}/silverbullet-darwin-${{ matrix.arch }}-${{ steps.package-json.outputs.version }}.zip
+
+      - name: Release Windows
+        uses: johnwbyrd/update-release@v1.0.0
+        if: matrix.os == 'windows-latest'
+        # if: startsWith(github.ref, 'refs/tags/')
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          files: |
+            desktop/out/make/squirrel.windows/x64/silverbullet-${{ steps.package-json.outputs.version }}-full.nupkg
+            desktop/out/make/squirrel.windows/x64/silverbullet-${{ steps.package-json.outputs.version }}\ Setup.exe
+
+      - name: Release Linux
+        uses: johnwbyrd/update-release@v1.0.0
+        if: matrix.os == 'linux-latest'
+        # if: startsWith(github.ref, 'refs/tags/')
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          files: |
+            desktop/out/make/rpm/x64/silverbullet-${{ steps.package-json.outputs.version }}-1.x86_64.rpm
+            desktop/out/make/deb/x64/silverbullet_${{ steps.package-json.outputs.version }}_amd64.deb
+            desktop/out/make/zip/linux/x64/silverbullet-linux-x64-${{ steps.package-json.outputs.version }}.zip
