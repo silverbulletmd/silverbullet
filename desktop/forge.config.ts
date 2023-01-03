@@ -46,7 +46,7 @@ async function downloadDeno(platform: string, arch: string): Promise<void> {
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: "Silver Bullet",
+    name: "silverbullet",
     executableName: "silverbullet",
     icon: "../web/images/logo",
     appBundleId: "md.silverbullet",
@@ -76,21 +76,6 @@ const config: ForgeConfig = {
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
-  ],
-
-  publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        authToken: process.env.GH_TOKEN,
-        repository: {
-          owner: "silverbulletmd",
-          name: "silverbullet",
-        },
-        draft: true,
-        prerelease: false,
-      },
-    },
   ],
 
   plugins: [
@@ -134,6 +119,6 @@ function notarizeMaybe() {
   };
 }
 
-notarizeMaybe();
+// notarizeMaybe();
 
 export default config;
