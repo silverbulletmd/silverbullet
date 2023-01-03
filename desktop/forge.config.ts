@@ -119,6 +119,6 @@ function notarizeMaybe() {
   };
 }
 
-// notarizeMaybe();
+notarizeMaybe();
 
 export default config;
