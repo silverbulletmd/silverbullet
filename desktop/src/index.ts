@@ -14,6 +14,9 @@ if (require("electron-squirrel-startup")) {
   app.quit();
 }
 
+// Auto updater
+require("update-electron-app")();
+
 async function boot() {
   const openWindows = getOpenWindows();
   if (openWindows.length === 0) {

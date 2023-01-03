@@ -1,6 +1,6 @@
 {
   "name": "silverbullet",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "Markdown as a platform",
   "main": ".webpack/main",
   "scripts": {
@@ -12,6 +12,7 @@
     "clean": "rm -rf out"
   },
   "keywords": [],
+  "repository": "github:silverbulletmd/silverbullet",
   "author": {
     "name": "Zef Hemel",
     "email": "zef@zef.me"
@@ -46,6 +47,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
     "node-fetch": "^3.3.0",
-    "portfinder": "^1.0.32"
+    "portfinder": "^1.0.32",
+    "update-electron-app": "^2.0.1"
   }
 }

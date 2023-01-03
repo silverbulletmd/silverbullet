@@ -70,10 +70,10 @@ jobs:
         with:
           draft: true
           files: |
-            out/**/*.deb
-            out/**/*.dmg
-            out/**/*setup*.exe
-            out/**/*.nupkg
-            out/**/*.rpm
-            out/**/*.zip
-            out/**/RELEASES
+            desktop/out/**/*.deb
+            desktop/out/**/*.dmg
+            desktop/out/**/*setup*.exe
+            desktop/out/**/*.nupkg
+            desktop/out/**/*.rpm
+            desktop/out/**/*.zip
+            desktop/out/**/RELEASES
