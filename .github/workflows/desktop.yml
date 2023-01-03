@@ -81,11 +81,11 @@ jobs:
           #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
           #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
       - name: Rename artifacts
-        if: matrix.os == "macOS-latest"
+        if: ${{ matrix.os == "macOS-latest" }}
         run: mv out/make/zip/*/*/*.zip out/silverbullet-macos-${{ matrix.arch }}.zip
       - name: Release Mac
         uses: johnwbyrd/update-release@v1.0.0
-        if: matrix.os == "macOS-latest"
+        if: ${{ matrix.os == "macOS-latest" }}
         # if: startsWith(github.ref, 'refs/tags/')
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
