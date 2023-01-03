@@ -70,16 +70,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
           #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+      - name: Make
+        # if: startsWith(github.ref, 'refs/tags/')
+        run: npm run make -- --arch=${{ matrix.arch }}
+        working-directory: desktop
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
+          #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+      - name: Rename artifacts
+        run: mv out/make/zip/*/*/*.zip out/SilverBullet-${{ matrix.os }}-${{ matrix.arch }}.zip
       - name: Release
         uses: johnwbyrd/update-release@v1.0.0
         # if: startsWith(github.ref, 'refs/tags/')
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
-          # desktop/out/**/*.deb
-          # desktop/out/**/*.dmg
-          # desktop/out/**/*setup*.exe
-          # desktop/out/**/*.nupkg
-          # desktop/out/**/*.rpm
           files: |
-            desktop/out/**/*.zip
+            out/SilverBullet-${{ matrix.os }}-${{ matrix.arch }}.zip
