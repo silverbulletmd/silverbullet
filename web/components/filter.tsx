@@ -150,9 +150,13 @@ export function FilterList({
               updateFilter(text);
             }}
             onKeyUp={(view, e) => {
+              // This event is triggered after the key has been processed by CM already
               if (onKeyPress) {
                 onKeyPress(e.key, view.state.sliceDoc());
               }
+              return false;
+            }}
+            onKeyDown={(view, e) => {
               switch (e.key) {
                 case "ArrowUp":
                   setSelectionOption(Math.max(0, selectedOption - 1));
@@ -176,8 +180,7 @@ export function FilterList({
                   return true;
                 case " ": {
                   const text = view.state.sliceDoc();
-                  if (completePrefix && text === " ") {
-                    console.log("Doing the complete thing");
+                  if (completePrefix && text === "") {
                     setText(completePrefix);
                     updateFilter(completePrefix);
                     return true;

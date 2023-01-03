@@ -27,6 +27,7 @@ type MiniEditorEvents = {
   onBlur?: (newText: string) => void | Promise<void>;
   onChange?: (newText: string) => void;
   onKeyUp?: (view: EditorView, event: KeyboardEvent) => boolean;
+  onKeyDown?: (view: EditorView, event: KeyboardEvent) => boolean;
 };
 
 export function MiniEditor(
@@ -39,6 +40,7 @@ export function MiniEditor(
     onBlur,
     onEscape,
     onKeyUp,
+    onKeyDown,
     onEnter,
     onChange,
     focus,
@@ -85,7 +87,14 @@ export function MiniEditor(
   }, [editorDiv]);
 
   useEffect(() => {
-    callbacksRef.current = { onBlur, onEnter, onEscape, onKeyUp, onChange };
+    callbacksRef.current = {
+      onBlur,
+      onEnter,
+      onEscape,
+      onKeyUp,
+      onKeyDown,
+      onChange,
+    };
   });
 
   useEffect(() => {
@@ -97,9 +106,35 @@ export function MiniEditor(
     }
   }, [text, vimMode]);
 
-  let onBlurred = false, onEntered = false;
+  useEffect(() => {
+    // So, for some reason, CM doesn't propagate the keydown event, therefore we'll capture it here
+    // And check if it's the same editor element
+    function onKeyDown(e: KeyboardEvent) {
+      const parent = (e.target as any).parentElement.parentElement;
+      if (parent !== editorViewRef.current?.dom) {
+        // Different editor element
+        return;
+      }
+      let stopPropagation = false;
+      if (callbacksRef.current!.onKeyDown) {
+        stopPropagation = callbacksRef.current!.onKeyDown(
+          editorViewRef.current!,
+          e,
+        );
+      }
+      if (stopPropagation) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
 
-  // console.log("Rendering editor");
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  let onBlurred = false, onEntered = false;
 
   return <div class="sb-mini-editor" ref={editorDiv} />;
 
@@ -180,6 +215,7 @@ export function MiniEditor(
             onBlur(view);
           },
         }),
+
         ViewPlugin.fromClass(
           class {
             update(update: ViewUpdate): void {
