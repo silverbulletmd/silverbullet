@@ -83,6 +83,8 @@ jobs:
       - name: Rename artifacts
         if: matrix.os == 'macOS-latest'
         run: mv out/make/zip/*/*/*.zip out/silverbullet-macos-${{ matrix.arch }}.zip
+        shell: bash
+        working-directory: desktop
       - name: Release Mac
         uses: johnwbyrd/update-release@v1.0.0
         if: matrix.os == 'macOS-latest'
