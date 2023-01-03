@@ -20,6 +20,7 @@ async function boot() {
     await openFolderPicker();
   } else {
     for (const window of openWindows) {
+      // Doing this sequentially to avoid race conditions in starting servers
       await openFolder(window);
     }
   }

@@ -14,6 +14,7 @@ import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import decompress from "decompress";
+import { downloadFile } from "./http_util";
 
 const denoVersion = "v1.29.1";
 
@@ -24,50 +25,32 @@ const denoZip: Record<string, string> = {
   "linux-x64": "deno-x86_64-unknown-linux-gnu.zip",
 };
 
-const denoExec = platform() === "win32"
+const denoExecutableResource = platform() === "win32"
   ? "resources/deno.exe"
   : "resources/deno";
 
 async function downloadDeno(platform: string, arch: string): Promise<void> {
   const folder = fs.mkdtempSync("deno-download");
   const destFile = path.join(folder, "deno.zip");
-  const file = fs.createWriteStream(destFile);
   const zipFile = denoZip[`${platform}-${arch}`];
   if (!zipFile) {
     throw new Error(`No deno binary for ${platform}-${arch}`);
   }
-  let response = await axios.request({
-    url:
-      `https://github.com/denoland/deno/releases/download/${denoVersion}/${zipFile}`,
-    method: "GET",
-    responseType: "stream",
-  });
-  return new Promise((resolve, reject) => {
-    response.data.pipe(file);
-    let error: Error | null = null;
-    // after download completed close filestream
-    file.on("error", (e) => {
-      error = e;
-      reject(e);
-    });
-    file.on("close", () => {
-      if (error) {
-        return;
-      }
-      file.close();
-      console.log("Download Completed");
-      decompress(destFile, "resources").then((files) => {
-        fs.rmSync(folder, { recursive: true });
-        resolve();
-      });
-    });
-  });
+  await downloadFile(
+    `https://github.com/denoland/deno/releases/download/${denoVersion}/${zipFile}`,
+    destFile,
+  );
+  await decompress(destFile, "resources");
+  fs.rmSync(folder, { recursive: true });
 }
 
 const config: ForgeConfig = {
   packagerConfig: {
+    name: "Silver Bullet",
+    executableName: "silverbullet",
     icon: "../web/images/logo",
-    extraResource: [denoExec],
+    appBundleId: "md.silverbullet",
+    extraResource: [denoExecutableResource, "resources/silverbullet.js"],
     beforeCopyExtraResources: [(
       _buildPath: string,
       _electronVersion: string,
@@ -75,18 +58,17 @@ const config: ForgeConfig = {
       arch: TargetArch,
       callback: (err?: Error | null) => void,
     ) => {
-      if (fs.existsSync(denoExec)) {
-        fs.rmSync(denoExec, { force: true });
+      if (fs.existsSync(denoExecutableResource)) {
+        fs.rmSync(denoExecutableResource, { force: true });
       }
-      downloadDeno(platform, arch).then((r) => callback()).catch(callback);
+      Promise.resolve().then(async () => {
+        // Download deno
+        await downloadDeno(platform, arch);
+        // Copy silverbullet.js
+        fs.copyFileSync("../dist/silverbullet.js", "resources/silverbullet.js");
+      }).then((r) => callback()).catch(callback);
     }],
     osxSign: true,
-    osxNotarize: {
-      tool: "notarytool",
-      appleId: process.env.APPLE_ID!,
-      appleIdPassword: process.env.APPLE_ID_PASSWORD!,
-      teamId: process.env.APPLE_TEAM_ID!,
-    },
   },
   rebuildConfig: {},
   makers: [
@@ -105,7 +87,8 @@ const config: ForgeConfig = {
           owner: "silverbulletmd",
           name: "silverbullet",
         },
-        prerelease: true,
+        draft: true,
+        prerelease: false,
       },
     },
   ],
@@ -131,5 +114,26 @@ const config: ForgeConfig = {
     }),
   ],
 };
+
+function notarizeMaybe() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  if (!process.env.APPLE_ID || !process.env.APPLE_ID_PASSWORD) {
+    console.warn(
+      "Should be notarizing, but environment variables APPLE_ID or APPLE_ID_PASSWORD are missing!",
+    );
+    return;
+  }
+
+  config.packagerConfig!.osxNotarize = {
+    appleId: process.env.APPLE_ID!,
+    appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+    teamId: process.env.APPLE_TEAM_ID!,
+  };
+}
+
+// notarizeMaybe();
 
 export default config;

@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import Store from "electron-store";
 
 export type WindowState = {
-  id: number;
+  id: string; // random GUID
   width: number;
   height: number;
   x?: number;
@@ -21,9 +21,11 @@ export function getOpenWindows(): WindowState[] {
   return store.get("openWindows");
 }
 
+import crypto from "node:crypto";
+
 export function newWindowState(folderPath: string): WindowState {
   return {
-    id: Math.random(),
+    id: crypto.randomBytes(16).toString("hex"),
     width: 800,
     height: 600,
     x: undefined,

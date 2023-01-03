@@ -2,7 +2,8 @@ import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { app, BrowserWindow, dialog, Menu, shell } from "electron";
 import portfinder from "portfinder";
 import fetch from "node-fetch";
-import fs from "node:fs";
+import path from "node:path";
+import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import {
   newWindowState,
@@ -27,10 +28,10 @@ export const runningServers = new Map<string, Instance>();
 let denoPath = `${process.resourcesPath}/deno`;
 
 // If not...
-if (!fs.existsSync(denoPath)) {
+if (!existsSync(denoPath)) {
   // Windows
   if (platform() === "win32") {
-    if (fs.existsSync(`${process.resourcesPath}/deno.exe`)) {
+    if (existsSync(`${process.resourcesPath}/deno.exe`)) {
       denoPath = `${process.resourcesPath}/deno.exe`;
     } else {
       denoPath = "deno.exe";
@@ -64,6 +65,22 @@ export async function openFolder(windowState: WindowState): Promise<void> {
   newWindow(instance, windowState);
 }
 
+function determineSilverBulletScriptPath(): string {
+  let scriptPath = `${process.resourcesPath}/silverbullet.js`;
+  if (!existsSync(scriptPath)) {
+    console.log("Dev mode");
+    // Assumption: we're running in dev mode (npm start)
+    return "../silverbullet.ts";
+  }
+  const userData = app.getPath("userData");
+  if (existsSync(`${userData}/silverbullet.js`)) {
+    // Custom downloaded (upgraded) version
+    scriptPath = `${userData}/silverbullet.js`;
+  }
+
+  return scriptPath;
+}
+
 async function spawnInstance(pagePath: string): Promise<Instance> {
   let instance = runningServers.get(pagePath);
   if (instance) {
@@ -79,7 +96,7 @@ async function spawnInstance(pagePath: string): Promise<Instance> {
     "run",
     "-A",
     "--unstable",
-    "https://get.silverbullet.md",
+    determineSilverBulletScriptPath(),
     "--port",
     "" + port,
     pagePath,

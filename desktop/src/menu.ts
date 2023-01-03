@@ -5,6 +5,7 @@ import { newWindowState } from "./store";
 const template: MenuItemConstructorOptions[] = [
   {
     label: "File",
+    role: "fileMenu",
     submenu: [
       {
         label: "New Window",
@@ -18,7 +19,7 @@ const template: MenuItemConstructorOptions[] = [
         },
       },
       {
-        label: "Open Folder",
+        label: "Open Space",
         accelerator: "CommandOrControl+Shift+O",
         click: () => {
           openFolderPicker();
@@ -34,6 +35,7 @@ const template: MenuItemConstructorOptions[] = [
   },
   {
     label: "Edit",
+    role: "editMenu",
     submenu: [
       {
         label: "Undo",
@@ -60,6 +62,11 @@ const template: MenuItemConstructorOptions[] = [
         label: "Paste",
         accelerator: "CommandOrControl+V",
         role: "paste",
+      },
+      {
+        label: "Paste and match style",
+        accelerator: "CommandOrControl+Shift+V",
+        role: "pasteAndMatchStyle",
       },
       {
         label: "Select All",
@@ -109,20 +116,22 @@ const template: MenuItemConstructorOptions[] = [
         },
       },
       {
+        label: "Open Space Folder",
+        click: (_item, win) => {
+          let url = win.webContents.getURL();
+          shell.openPath(findInstanceByUrl(new URL(url)).folder);
+        },
+      },
+      {
         label: "Toggle Dev Tools",
         accelerator: "CommandOrControl+Alt+J",
-        click: (_item, win) => {
-          if (win.webContents.isDevToolsOpened()) {
-            win.webContents.closeDevTools();
-          } else {
-            win.webContents.openDevTools({ mode: "bottom" });
-          }
-        },
+        role: "toggleDevTools",
       },
     ],
   },
   {
     label: "Window",
+    role: "windowMenu",
     submenu: [
       {
         label: "Minimize",
