@@ -46,8 +46,10 @@ async function downloadDeno(platform: string, arch: string): Promise<void> {
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: "silverbullet",
-    executableName: "SilverBullet",
+    name: process.platform === "linux" ? "silverbullet" : "SilverBullet",
+    executableName: process.platform === "linux"
+      ? "silverbullet"
+      : "SilverBullet",
     icon: "../web/images/logo",
     appBundleId: "md.silverbullet",
     extraResource: [denoExecutableResource, "resources/silverbullet.js"],
