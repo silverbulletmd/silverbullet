@@ -89,7 +89,7 @@ jobs:
           draft: true
           files: |
             desktop/out/make/squirrel.windows/x64/SilverBullet-${{ steps.package-json.outputs.version }}-full.nupkg
-            desktop/out/make/squirrel.windows/x64/SilverBullet-${{ steps.package-json.outputs.version }}\ Setup.exe
+          # desktop/out/make/squirrel.windows/x64/SilverBullet-${{ steps.package-json.outputs.version }}\ Setup.exe
 
       - name: Release Linux
         uses: johnwbyrd/update-release@v1.0.0
