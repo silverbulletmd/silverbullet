@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-    tags:
-      - v*
-  pull_request:
+      - electron
 
 jobs:
   build:
@@ -62,7 +60,7 @@ jobs:
         run: npm install
         working-directory: desktop
       - name: Make
-        if: startsWith(github.ref, 'refs/tags/')
+        # if: startsWith(github.ref, 'refs/tags/')
         run: npm run make --arch=${{ matrix.arch }}
         working-directory: desktop
         env:
@@ -72,11 +70,10 @@ jobs:
           #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
           #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
       - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: johnwbyrd/update-release@v1
+        # if: startsWith(github.ref, 'refs/tags/')
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           files: |
             desktop/out/**/*.deb
