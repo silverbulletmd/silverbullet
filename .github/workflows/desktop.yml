@@ -92,4 +92,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
-          files: out/silverbullet-macos-${{ matrix.arch }}.zip
+          files: desktop/out/silverbullet-macos-${{ matrix.arch }}.zip
