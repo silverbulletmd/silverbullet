@@ -57,15 +57,6 @@ functions:
     command:
       name: "Page: Delete"
 
-  editorLoad:
-    path: "./editor.ts:editorLoad"
-    events:
-      - plugs:loaded
-  toggleReadOnlyode:
-    path: "./editor.ts:toggleReadOnlyMode"
-    command:
-      name: "Editor: Toggle Read Only Mode"
-
   # Attachments
   attachmentQueryProvider:
     path: ./attachment.ts:attachmentQueryProvider

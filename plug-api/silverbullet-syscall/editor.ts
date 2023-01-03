@@ -111,11 +111,6 @@ export function confirm(
 ): Promise<boolean> {
   return syscall("editor.confirm", message);
 }
-
-export function enableReadOnlyMode(enabled: boolean) {
-  return syscall("editor.enableReadOnlyMode", enabled);
-}
-
 export function getUiOption(key: string): Promise<any> {
   return syscall("editor.getUiOption", key);
 }
