@@ -47,7 +47,6 @@ export function persistWindowState(
   windowState.y = y;
   const urlString = window.webContents.getURL();
   if (urlString) {
-    console.log("New url", urlString);
     windowState.urlPath = new URL(urlString).pathname;
   }
 

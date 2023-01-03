@@ -1,8 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { app, BrowserWindow, dialog, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, MenuItem, shell } from "electron";
 import portfinder from "portfinder";
 import fetch from "node-fetch";
-import path from "node:path";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import {
@@ -177,18 +176,51 @@ export function newWindow(instance: Instance, windowState: WindowState) {
     return { action: "deny" };
   });
 
+  window.webContents.on("context-menu", (event, params) => {
+    const menu = new Menu();
+
+    // Allow users to add the misspelled word to the dictionary
+    if (params.misspelledWord) {
+      // Add each spelling suggestion
+      for (const suggestion of params.dictionarySuggestions) {
+        menu.append(
+          new MenuItem({
+            label: suggestion,
+            click: () => window.webContents.replaceMisspelling(suggestion),
+          }),
+        );
+      }
+      if (params.dictionarySuggestions.length > 0) {
+        menu.append(new MenuItem({ type: "separator" }));
+      }
+      menu.append(
+        new MenuItem({
+          label: "Add to dictionary",
+          click: () =>
+            window.webContents.session.addWordToSpellCheckerDictionary(
+              params.misspelledWord,
+            ),
+        }),
+      );
+      menu.append(new MenuItem({ type: "separator" }));
+    }
+
+    menu.append(new MenuItem({ label: "Cut", role: "cut" }));
+    menu.append(new MenuItem({ label: "Copy", role: "copy" }));
+    menu.append(new MenuItem({ label: "Paste", role: "paste" }));
+    menu.popup();
+  });
+
   window.on("resized", () => {
     console.log("Reized window");
     persistWindowState(windowState, window);
   });
 
   window.on("moved", () => {
-    console.log("Moved window");
     persistWindowState(windowState, window);
   });
 
   window.webContents.on("did-navigate-in-page", () => {
-    console.log("Navigated");
     persistWindowState(windowState, window);
   });
 
