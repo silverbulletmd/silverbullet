@@ -2,10 +2,8 @@ name: Build & Release
 
 on:
   push:
-    branches:
-      - main
-      - electron
-
+    tags:
+      - v*
 jobs:
   build:
     name: Build (${{ matrix.os }} - ${{ matrix.arch }})
@@ -30,11 +28,6 @@ jobs:
           node-version: 18.x
           cache: npm
           cache-dependency-path: desktop/package-lock.json
-      - name: Read package.json version
-        id: package-json
-        uses: Saionaro/extract-package-version@v1.1.1
-        with:
-          path: desktop
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
@@ -58,11 +51,10 @@ jobs:
       #   with:
       #     fileName: 'win-certificate.pfx'
       #     encodedString: ${{ secrets.WINDOWS_CODESIGN_P12 }}
-      - name: Install
+      - name: Install npm dependencies
         run: npm install
         working-directory: desktop
-      - name: Make
-        # if: startsWith(github.ref, 'refs/tags/')
+      - name: Build application
         run: npm run make -- --arch=${{ matrix.arch }}
         working-directory: desktop
         env:
@@ -71,34 +63,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           #WINDOWS_CODESIGN_FILE: ${{ steps.write_file.outputs.filePath }}
           #WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
-      - name: Release Mac
-        uses: johnwbyrd/update-release@v1.0.0
-        if: matrix.os == 'macOS-latest'
-        # if: startsWith(github.ref, 'refs/tags/')
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          files: desktop/out/make/zip/darwin/${{ matrix.arch }}/SilverBullet-darwin-${{ matrix.arch }}-${{ steps.package-json.outputs.version }}.zip
-
-      - name: Release Windows
-        uses: johnwbyrd/update-release@v1.0.0
-        if: matrix.os == 'windows-latest'
-        # if: startsWith(github.ref, 'refs/tags/')
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           files: |
-            desktop/out/make/squirrel.windows/x64/SilverBullet-${{ steps.package-json.outputs.version }}-full.nupkg
-          # desktop/out/make/squirrel.windows/x64/SilverBullet-${{ steps.package-json.outputs.version }}\ Setup.exe
-
-      - name: Release Linux
-        uses: johnwbyrd/update-release@v1.0.0
-        if: matrix.os == 'linux-latest'
-        # if: startsWith(github.ref, 'refs/tags/')
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          files: |
-            desktop/out/make/rpm/x64/silverbullet-${{ steps.package-json.outputs.version }}-1.x86_64.rpm
-            desktop/out/make/deb/x64/silverbullet_${{ steps.package-json.outputs.version }}_amd64.deb
-            desktop/out/make/zip/linux/x64/silverbullet-linux-x64-${{ steps.package-json.outputs.version }}.zip
+            out/**/*.deb
+            out/**/*.dmg
+            out/**/*setup*.exe
+            out/**/*.nupkg
+            out/**/*.rpm
+            out/**/*.zip
+            out/**/RELEASES
