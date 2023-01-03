@@ -34,6 +34,7 @@ jobs:
         with:
           node-version: 18.x
           cache: npm
+          cache-dependency-path: desktop/package-lock.json
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
