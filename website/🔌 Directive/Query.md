@@ -55,9 +55,9 @@ Start writing `<!— #query` or simply use `/query` slash command, it will show 
 
 - `page`: list of all pages
 - `attachment`: list of all attachments
-- `task`: list of all tasks created with `[ ]`
+- `task`: list of all tasks (created with `[ ]`) across all pages
 - `full-text`: use it with `where phrase = "SOME_TEXT"`. List of all pages where `SOME_TEXT` is mentioned
-- `item`: list of ordered and unordered items such as bulleted lists
+- `item`: list of ordered and unordered items such as bulleted lists across all pages
 - `tag`: list of all hashtags used in all pages
 - `link`: list of all pages giving a link to the page where query is written
 - `data`: You can insert data using the syntax below. You can query the data using the `data` source.
