@@ -1,15 +1,16 @@
-import { SplashScreen } from '@capacitor/splash-screen';
-import { Camera } from '@capacitor/camera';
+import { SplashScreen } from "@capacitor/splash-screen";
+import { Camera } from "@capacitor/camera";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 
 window.customElements.define(
-  'capacitor-welcome',
+  "capacitor-welcome",
   class extends HTMLElement {
     constructor() {
       super();
 
       SplashScreen.hide();
 
-      const root = this.attachShadow({ mode: 'open' });
+      const root = this.attachShadow({ mode: "open" });
 
       root.innerHTML = `
     <style>
@@ -92,32 +93,34 @@ window.customElements.define(
     connectedCallback() {
       const self = this;
 
-      self.shadowRoot.querySelector('#take-photo').addEventListener('click', async function (e) {
-        try {
-          const photo = await Camera.getPhoto({
-            resultType: 'uri',
-          });
+      self.shadowRoot
+        .querySelector("#take-photo")
+        .addEventListener("click", async function (e) {
+          try {
+            const photo = await Camera.getPhoto({
+              resultType: "uri",
+            });
 
-          const image = self.shadowRoot.querySelector('#image');
-          if (!image) {
-            return;
+            const image = self.shadowRoot.querySelector("#image");
+            if (!image) {
+              return;
+            }
+
+            image.src = photo.webPath;
+          } catch (e) {
+            console.warn("User cancelled", e);
           }
-
-          image.src = photo.webPath;
-        } catch (e) {
-          console.warn('User cancelled', e);
-        }
-      });
+        });
     }
   }
 );
 
 window.customElements.define(
-  'capacitor-welcome-titlebar',
+  "capacitor-welcome-titlebar",
   class extends HTMLElement {
     constructor() {
       super();
-      const root = this.attachShadow({ mode: 'open' });
+      const root = this.attachShadow({ mode: "open" });
       root.innerHTML = `
     <style>
       :host {
@@ -140,3 +143,20 @@ window.customElements.define(
     }
   }
 );
+
+console.log("Getting there!", { name: "Zef" });
+async function fsStuff() {
+  // await Filesystem.writeFile({
+  //   path: "text.txt",
+  //   data: "This is a test",
+  //   directory: Directory.Documents,
+  //   encoding: Encoding.UTF8,
+  // });
+
+  const currentFiles = await Filesystem.readdir({
+    directory: Directory.Documents,
+    path: "/",
+  });
+  console.log(currentFiles);
+}
+fsStuff().catch((e) => console.error(e.message));
