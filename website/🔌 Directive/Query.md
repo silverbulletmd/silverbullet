@@ -51,6 +51,18 @@ The best part about data sources: there is auto-completion. 🎉
 
 Start writing `<!— #query` or simply use `/query` slash command, it will show you all available data sources. 🤯
 
+Additionally there are some special variables you can use in your queries that are interpereted through simple string replacement: 
+
+- `{{today}}`: Today’s date in the usual YYYY-MM-DD format
+- `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
+- `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
+- `{{lastWeek}}`: Current date - 7 days
+- `{{nextWeek}}`: Current date + 7 days
+- `{{page}}`: The name of the current page
+
+For example, if you wanted a query for all the tasks from a previous day's daily note, you could use the following query: 
+`<!-- #query task where page = "📅 {{yesterday}}" -->`
+
 #### 4.1. Available data sources
 
 - `page`: list of all pages
