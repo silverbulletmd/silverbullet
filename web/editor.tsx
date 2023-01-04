@@ -74,7 +74,7 @@ import {
   vim,
   yUndoManagerKeymap,
 } from "./deps.ts";
-import { CommandHook } from "./hooks/command.ts";
+import { AppCommand, CommandHook } from "./hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
 import { PathPageNavigator } from "./navigator.ts";
 import reducer from "./reducer.ts";
@@ -926,7 +926,7 @@ export class Editor {
                   });
               }
             }}
-            commands={viewState.commands}
+            commands={this.getCommandsByContext(viewState)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             completer={this.miniEditorComplete.bind(this)}
@@ -1067,6 +1067,23 @@ export class Editor {
     const ViewComponent = this.ViewComponent.bind(this);
     // console.log(<ViewComponent />);
     preactRender(<ViewComponent />, container);
+  }
+
+  private getCommandsByContext(
+    state: AppViewState,
+  ): Map<string, AppCommand> {
+    const commands = new Map(state.commands);
+    for (const [k, v] of state.commands.entries()) {
+      if (
+        v.command.contexts &&
+        (!state.showCommandPaletteContext ||
+          !v.command.contexts.includes(state.showCommandPaletteContext))
+      ) {
+        commands.delete(k);
+      }
+    }
+
+    return commands;
   }
 
   private getContext(): string | undefined {
