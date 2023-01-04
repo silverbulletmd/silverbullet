@@ -63,25 +63,17 @@ export default function reducer(
       };
     }
     case "show-palette": {
-      const commands = new Map(state.commands);
-      for (const [k, v] of state.commands.entries()) {
-        if (
-          v.command.contexts &&
-          (!action.context || !v.command.contexts.includes(action.context))
-        ) {
-          commands.delete(k);
-        }
-      }
       return {
         ...state,
-        commands,
         showCommandPalette: true,
+        showCommandPaletteContext: action.context,
       };
     }
     case "hide-palette":
       return {
         ...state,
         showCommandPalette: false,
+        showCommandPaletteContext: undefined,
       };
     case "command-run":
       return {
