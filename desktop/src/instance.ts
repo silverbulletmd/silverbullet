@@ -69,14 +69,8 @@ function determineSilverBulletScriptPath(): string {
   if (!existsSync(scriptPath)) {
     console.log("Dev mode");
     // Assumption: we're running in dev mode (npm start)
-    return "../silverbullet.ts";
+    scriptPath = "../silverbullet.ts";
   }
-  const userData = app.getPath("userData");
-  if (existsSync(`${userData}/silverbullet.js`)) {
-    // Custom downloaded (upgraded) version
-    scriptPath = `${userData}/silverbullet.js`;
-  }
-
   return scriptPath;
 }
 
