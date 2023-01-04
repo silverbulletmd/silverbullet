@@ -1,0 +1,11 @@
+{
+  "appId": "md.silverbullet",
+  "appName": "SilverBullet",
+  "bundledWebRuntime": false,
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
