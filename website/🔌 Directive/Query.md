@@ -12,9 +12,6 @@ The `#query` is the most widely used directive. It can be used to query various 
    * `select`
    * `render`
 
-P.S.: If you are a developer or have a technical knowledge to read a code and would like to know more about syntax, please check out
-[query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/plugs/directive/query.grammar).
-
 #### 2.1. Available query operators:
 
 - `=` equals
