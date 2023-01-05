@@ -71,9 +71,6 @@ jobs:
           draft: true
           files: |
             desktop/out/**/*.deb
-            desktop/out/**/*.dmg
             desktop/out/**/*Setup.exe
-            desktop/out/**/*.nupkg
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
-            desktop/out/**/RELEASES
