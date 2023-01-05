@@ -10,7 +10,6 @@ import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
 import { platform } from "node:os";
 
-import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import decompress from "decompress";
@@ -70,7 +69,15 @@ const config: ForgeConfig = {
         fs.copyFileSync("../dist/silverbullet.js", "resources/silverbullet.js");
       }).then((r) => callback()).catch(callback);
     }],
-    osxSign: true,
+    osxSign: {
+      optionsForFile: (filePath: string) => {
+        // So these entitlements somehow only seem to be needed for the Intel macOS build
+        // Why? No idea. But it works.
+        return {
+          entitlements: "entitlements.plist",
+        };
+      },
+    },
   },
   rebuildConfig: {},
   makers: [

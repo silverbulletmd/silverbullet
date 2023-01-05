@@ -13,7 +13,7 @@ The `#query` is the most widely used directive. It can be used to query various 
    * `render`
 
 P.S.: If you are a developer or have a technical knowledge to read a code and would like to know more about syntax, please check out
-[query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/plugs/directive/query.grammar).
+[query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
 
 #### 2.1. Available query operators:
 
@@ -51,13 +51,25 @@ The best part about data sources: there is auto-completion. 🎉
 
 Start writing `<!— #query` or simply use `/query` slash command, it will show you all available data sources. 🤯
 
+Additionally there are some special variables you can use in your queries that are interpereted through simple string replacement: 
+
+- `{{today}}`: Today’s date in the usual YYYY-MM-DD format
+- `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
+- `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
+- `{{lastWeek}}`: Current date - 7 days
+- `{{nextWeek}}`: Current date + 7 days
+- `{{page}}`: The name of the current page
+
+For example, if you wanted a query for all the tasks from a previous day's daily note, you could use the following query: 
+`<!-- #query task where page = "📅 {{yesterday}}" -->`
+
 #### 4.1. Available data sources
 
 - `page`: list of all pages
 - `attachment`: list of all attachments
-- `task`: list of all tasks created with `[ ]`
+- `task`: list of all tasks (created with `[ ]`) across all pages
 - `full-text`: use it with `where phrase = "SOME_TEXT"`. List of all pages where `SOME_TEXT` is mentioned
-- `item`: list of ordered and unordered items such as bulleted lists
+- `item`: list of ordered and unordered items such as bulleted lists across all pages
 - `tag`: list of all hashtags used in all pages
 - `link`: list of all pages giving a link to the page where query is written
 - `data`: You can insert data using the syntax below. You can query the data using the `data` source.

@@ -3,7 +3,7 @@ name: Build & Release
 on:
   push:
     tags:
-      - v*
+    - '*'
 jobs:
   build:
     name: Build (${{ matrix.os }} - ${{ matrix.arch }})
@@ -11,14 +11,14 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: macOS-latest
-          arch: arm64
-        - os: macOS-latest
-          arch: x64
-        - os: windows-latest
-          arch: x64
-        - os: ubuntu-latest
-          arch: x64
+          - os: macOS-latest
+            arch: arm64
+          - os: macOS-latest
+            arch: x64
+          - os: windows-latest
+            arch: x64
+          - os: ubuntu-latest
+            arch: x64
 
     steps:
       - uses: actions/checkout@v3
@@ -71,9 +71,7 @@ jobs:
           draft: true
           files: |
             desktop/out/**/*.deb
-            desktop/out/**/*.dmg
             desktop/out/**/*Setup.exe
-            desktop/out/**/*.nupkg
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
-            desktop/out/**/RELEASES
+            dist/silverbullet.js

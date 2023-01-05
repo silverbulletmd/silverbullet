@@ -1,6 +1,21 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+
+
+---
+
+## Next
+
+* New {[Extract text to new page]} command
+
+---
+
+## 0.2.6
+
+* Various bug fixes
+* First version of experimental [Electron-based desktop app](https://github.com/silverbulletmd/silverbullet/releases) for Mac, Windows and Linux.
+
 ---
 
 ## 0.2.5
