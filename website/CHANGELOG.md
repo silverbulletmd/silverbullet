@@ -3,6 +3,13 @@ release.
 
 ---
 
+## 0.2.6
+
+* Various bug fixes
+* First version of experimental [Electron-based desktop app](https://github.com/silverbulletmd/silverbullet/releases) for Mac, Windows and Linux.
+
+---
+
 ## 0.2.5
 * Changed styling for [[Frontmatter]], fenced code blocks, and directives to avoid vertical jumping when moving the cursor around.
 * Clicking the URL (inside of an image `![](url)` or link `[text](link)`) no longer navigates there, you need to click on the anchor text to navigate there now (this avoids a lot of weird behavior).
