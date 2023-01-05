@@ -37,5 +37,5 @@ export async function extractToPage(cmdDef: any) {
   console.log("Writing new page to space");
   const newPageMeta = await space.writePage(newName, text);
   console.log("Navigating to new page");
-  await editor.navigate(newName, cursor, true);
+  await editor.navigate(newName);
 }
