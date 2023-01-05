@@ -21,7 +21,7 @@ functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
     events:
-    - editor:init
+      - editor:init
   toggleVimMode:
     path: "./editor.ts:toggleVimMode"
     command:
@@ -330,6 +330,12 @@ functions:
       name: "Text: Marker"
       key: "Alt-m"
       wrapper: "=="
+
+  # Refactoring Commands
+  extractToPageCommand:
+    path: ./refactor.ts:extractToPage
+    command:
+      name: "Extract text to new page"
 
   # Plug manager
   updatePlugsCommand:
