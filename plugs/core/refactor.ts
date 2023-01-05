@@ -3,12 +3,8 @@ import {
   space,
 } from "$sb/silverbullet-syscall/mod.ts";
 
-export async function extractToPage(cmdDef: any) {
-  console.log("Got a target name", cmdDef.page);
-  const cursor = await editor.getCursor();
-
-  const newName = cmdDef.page ||
-    await editor.prompt(`New page title:`, 'new page');
+export async function extractToPage() {
+  const newName = await editor.prompt(`New page title:`, 'new page');
   if (!newName) {
     return;
   }
@@ -33,9 +29,9 @@ export async function extractToPage(cmdDef: any) {
   let text = await editor.getText();
   const selection = await editor.getSelection();
   text = text.slice(selection.from, selection.to);
-  await editor.replaceRange(selection.from, selection.to, "");
+  await editor.replaceRange(selection.from, selection.to, `[[${newName}]]`);
   console.log("Writing new page to space");
-  const newPageMeta = await space.writePage(newName, text);
+  await space.writePage(newName, text);
   console.log("Navigating to new page");
   await editor.navigate(newName);
 }
