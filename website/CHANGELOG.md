@@ -1,6 +1,14 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+
+
+---
+
+## Next
+
+* New {[Extract text to new page]} command
+
 ---
 
 ## 0.2.6
