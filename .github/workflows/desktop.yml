@@ -74,3 +74,4 @@ jobs:
             desktop/out/**/*Setup.exe
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
+            dist/silverbullet.js
