@@ -1,5 +1,4 @@
 import { SplashScreen } from "@capacitor/splash-screen";
-import { Camera } from "@capacitor/camera";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 
 window.customElements.define(

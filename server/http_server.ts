@@ -156,7 +156,9 @@ export class HttpServer {
     } catch {
       await space.writePage(
         "SETTINGS",
-        this.systemBoot.assetBundle.readTextFileSync("SETTINGS_template.md"),
+        this.systemBoot.assetBundle.readTextFileSync(
+          "web/SETTINGS_template.md",
+        ),
         true,
       );
     }

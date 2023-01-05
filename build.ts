@@ -13,25 +13,25 @@ import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 
 // @ts-ignore trust me
-const esbuild: typeof esbuildWasm = Deno.run === undefined
+export const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
   : esbuildNative;
 
 export async function prepareAssets(dist: string) {
-  await copy("web/fonts", `${dist}/web`, { overwrite: true });
-  await copy("web/index.html", `${dist}/web/index.html`, {
+  await copy("web/fonts", `${dist}`, { overwrite: true });
+  await copy("web/index.html", `${dist}/index.html`, {
     overwrite: true,
   });
-  await copy("web/auth.html", `${dist}/web/auth.html`, {
+  await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
-  await copy("web/images/favicon.png", `${dist}/web/favicon.png`, {
+  await copy("web/images/favicon.png", `${dist}/favicon.png`, {
     overwrite: true,
   });
-  await copy("web/images/logo.png", `${dist}/web/logo.png`, {
+  await copy("web/images/logo.png", `${dist}/logo.png`, {
     overwrite: true,
   });
-  await copy("web/manifest.json", `${dist}/web/manifest.json`, {
+  await copy("web/manifest.json", `${dist}/manifest.json`, {
     overwrite: true,
   });
   await copy("server/SETTINGS_template.md", `${dist}/SETTINGS_template.md`, {
@@ -44,39 +44,46 @@ export async function prepareAssets(dist: string) {
     },
   );
   await Deno.writeTextFile(
-    `${dist}/web/main.css`,
+    `${dist}/main.css`,
     compiler.to_string("expanded") as string,
   );
   const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
   await Deno.writeTextFile(
-    `${dist}/web/global.plug.json`,
+    `${dist}/global.plug.json`,
     JSON.stringify(globalManifest, null, 2),
   );
 
   // HACK: Patch the JS by removing an invalid regex
-  let bundleJs = await Deno.readTextFile(`${dist}/web/client.js`);
+  let bundleJs = await Deno.readTextFile(`${dist}/client.js`);
   bundleJs = patchDenoLibJS(bundleJs);
-  await Deno.writeTextFile(`${dist}/web/client.js`, bundleJs);
+  await Deno.writeTextFile(`${dist}/client.js`, bundleJs);
 }
 
-async function bundle(watch: boolean): Promise<void> {
+export async function bundle(
+  watch: boolean,
+  type: "web" | "mobile",
+  distDir: string,
+): Promise<void> {
   let building = false;
-  await doBuild("web/boot.ts");
+  await doBuild(`${type}/boot.ts`, type === "web");
   let timer;
   if (watch) {
-    const watcher = Deno.watchFs(["web", "dist_bundle/_plug"]);
+    const watcher = Deno.watchFs([type, "dist_bundle/_plug"]);
     for await (const _event of watcher) {
       if (timer) {
         clearTimeout(timer);
       }
       timer = setTimeout(() => {
         console.log("Change detected, rebuilding...");
-        doBuild("web/boot.ts");
+        doBuild(`${type}/boot.ts`, true);
       }, 1000);
     }
   }
 
-  async function doBuild(mainScript: string) {
+  async function doBuild(
+    mainScript: string,
+    shouldBundle: boolean,
+  ) {
     if (building) {
       return;
     }
@@ -88,7 +95,7 @@ async function bundle(watch: boolean): Promise<void> {
           service_worker: "web/service_worker.ts",
           worker: "plugos/environments/sandbox_worker.ts",
         },
-        outdir: "./dist_bundle/web",
+        outdir: distDir,
         absWorkingDir: Deno.cwd(),
         bundle: true,
         treeShaking: true,
@@ -105,8 +112,11 @@ async function bundle(watch: boolean): Promise<void> {
         ],
       }),
     ]);
-    await prepareAssets("dist_bundle");
-    await bundleFolder("dist_bundle", "dist/asset_bundle.json");
+    await prepareAssets(distDir);
+
+    if (shouldBundle) {
+      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
+    }
 
     building = false;
     console.log("Built!");
@@ -121,7 +131,7 @@ if (import.meta.main) {
       watch: false,
     },
   });
-  await bundle(args.watch);
+  await bundle(args.watch, "web", "dist_bundle/web");
   if (!args.watch) {
     esbuild.stop();
   }
