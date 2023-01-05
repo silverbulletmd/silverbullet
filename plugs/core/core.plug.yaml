@@ -336,7 +336,6 @@ functions:
     path: ./refactor.ts:extractToPage
     command:
       name: "Extract text to new page"
-      page: ""
 
   # Plug manager
   updatePlugsCommand:
