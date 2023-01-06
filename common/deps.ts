@@ -92,6 +92,7 @@ export {
 } from "@codemirror/language";
 
 export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.2.0/mode/yaml?external=@codemirror/language";
+export { standardSQL as sqlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/sql?external=@codemirror/language";
 export {
   javascriptLanguage,
   typescriptLanguage,

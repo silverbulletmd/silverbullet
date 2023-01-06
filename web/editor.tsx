@@ -32,6 +32,7 @@ import {
   ViewPlugin,
   ViewUpdate,
   yamlLanguage,
+  sqlLanguage,
 } from "../common/deps.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import {
@@ -509,6 +510,11 @@ export class Editor {
               name: "typescript",
               alias: ["ts"],
               support: new LanguageSupport(typescriptLanguage),
+            }),
+            LanguageDescription.of({
+              name: "sql",
+              alias: ["sql"],
+              support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
             }),
           ],
           addKeymap: true,
