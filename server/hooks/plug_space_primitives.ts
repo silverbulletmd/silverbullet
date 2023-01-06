@@ -12,7 +12,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
     private hook: PageNamespaceHook,
-    private env: string,
+    private env?: string,
   ) {}
 
   performOperation(
@@ -25,7 +25,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     ) {
       if (
         operation === type && pageName.match(pattern) &&
-        (env ? env === this.env : true)
+        (env && this.env && env === this.env)
       ) {
         return plug.invoke(name, [pageName, ...args]);
       }

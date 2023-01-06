@@ -11,7 +11,6 @@ import { CapacitorSpacePrimitives } from "./spaces/capacitor_space_primitives.ts
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import {
   ensureTable as ensureStoreTable,
@@ -36,7 +35,7 @@ safeRun(async () => {
     "",
   );
   // Instantiate a PlugOS system for the client
-  const system = new System<SilverBulletHooks>("client");
+  const system = new System<SilverBulletHooks>();
 
   // Attach the page namespace hook
   const namespaceHook = new PageNamespaceHook();
@@ -63,10 +62,8 @@ safeRun(async () => {
           new PlugSpacePrimitives(
             mobileSpacePrimitives,
             namespaceHook,
-            "server",
           ),
           namespaceHook,
-          "server",
         ),
         eventHook,
       ),

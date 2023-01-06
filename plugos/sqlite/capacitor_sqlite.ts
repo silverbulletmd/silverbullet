@@ -1,3 +1,4 @@
+import { Capacitor } from "../../mobile/deps.ts";
 import { CapacitorSQLite } from "../deps.ts";
 import { ISQLite } from "./sqlite_interface.ts";
 
@@ -19,6 +20,10 @@ export class CapacitorDb implements ISQLite {
       database: this.name,
       values: args,
     });
+    console.log("Query results", result.values);
+    if (Capacitor.getPlatform() === "ios") {
+      return result.values!.slice(1);
+    }
     return result.values!;
   }
 

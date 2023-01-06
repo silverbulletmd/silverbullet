@@ -30,14 +30,12 @@ type Syscall = {
 };
 
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
-  readonly runtimeEnv: RuntimeEnvironment;
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
 
-  constructor(env: RuntimeEnvironment) {
+  constructor(readonly env?: RuntimeEnvironment) {
     super();
-    this.runtimeEnv = env;
   }
 
   get loadedPlugs(): Map<string, Plug<HookT>> {
