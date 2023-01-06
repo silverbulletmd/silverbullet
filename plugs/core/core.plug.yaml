@@ -293,6 +293,8 @@ functions:
     path: ./text.ts:listifySelection
     command:
       name: "Text: Listify Selection"
+      key: "Ctrl-Shift-8"
+      mac: "Cmd-Shift-8"
   numberListifySelection:
     path: ./text.ts:numberListifySelection
     command:
