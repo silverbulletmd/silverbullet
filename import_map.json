@@ -17,6 +17,8 @@
     "$sb/": "./plug-api/",
     "handlebars": "https://esm.sh/handlebars",
     "@lezer/lr": "https://esm.sh/@lezer/lr@1.2.5?external=@lezer/common",
-    "yaml": "https://deno.land/std/encoding/yaml.ts"
+    "yaml": "https://deno.land/std/encoding/yaml.ts",
+
+    "@capacitor/core": "https://esm.sh/@capacitor/core@4.6.1"
   }
 }

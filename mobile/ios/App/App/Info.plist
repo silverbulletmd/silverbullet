@@ -49,5 +49,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>192.168.0.3</string>
+		<string>127.0.0.1</string>
+		<string>localhost</string>
+	</array>
 </dict>
 </plist>

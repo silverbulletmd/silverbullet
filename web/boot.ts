@@ -7,6 +7,9 @@ import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "./types.ts";
+import { fulltextSyscalls } from "./syscalls/fulltext.ts";
+import { indexerSyscalls } from "./syscalls/index.ts";
+import { storeSyscalls } from "./syscalls/store.ts";
 
 safeRun(async () => {
   const httpPrimitives = new HttpSpacePrimitives("");
@@ -34,6 +37,14 @@ safeRun(async () => {
 
   const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
+
+  // Register some web-specific syscall implementations
+  system.registerSyscalls(
+    [],
+    storeSyscalls(serverSpace),
+    indexerSyscalls(serverSpace),
+    fulltextSyscalls(serverSpace),
+  );
 
   console.log("Booting...");
 

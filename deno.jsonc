@@ -5,7 +5,7 @@
     "test": "deno test -A --unstable",
     "build": "deno run -A --unstable --check build_plugs.ts && deno run -A --unstable --check build.ts",
     "watch-web": "deno run -A --unstable --check build.ts --watch",
-    "watch-mobile": "deno run -A --unstable --check build_mobile.ts",
+    "watch-mobile": "deno run -A --unstable --check build_mobile.ts --watch",
     "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
     // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
     "watch-plugs": "deno run -A --unstable --check build_plugs.ts -w",
@@ -18,7 +18,8 @@
     // Run the desktop app for local development
     "desktop:run": "cd desktop && npm start",
     // Build the desktop app as a package for this platform
-    "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make"
+    "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make",
+    "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy && cd .."
   },
 
   "compilerOptions": {
