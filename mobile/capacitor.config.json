@@ -3,6 +3,7 @@
   "appName": "SilverBullet",
   "bundledWebRuntime": false,
   "webDir": "dist",
+  "backgroundColor": "#000",
   "ios": {
     "contentInset": "always"
   },

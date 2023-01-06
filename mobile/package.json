@@ -25,7 +25,8 @@
     "@capacitor/network": "^4.1.0",
     "@capacitor/share": "^4.1.0",
     "@capacitor/splash-screen": "latest",
-    "@capacitor/status-bar": "^4.1.1"
+    "@capacitor/status-bar": "^4.1.1",
+    "cordova-res": "^0.15.4"
   },
   "devDependencies": {
     "@capacitor/cli": "latest",

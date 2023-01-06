@@ -34,7 +34,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
             perm: "rw",
             contentType: mime.getType(file.name) || "application/octet-stream",
             size: file.size,
-            url: Capacitor.convertFileSrc(file.uri),
+            // url: Capacitor.convertFileSrc(file.uri),
           });
         } else { // Directory
           await readAllFiles(`${dir}/${file.name}`);
