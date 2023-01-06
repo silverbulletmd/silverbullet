@@ -9,6 +9,9 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0
+    },
+    "CapacitorSQLite": {
+      "iosDatabaseLocation": "Library"
     }
   }
 }

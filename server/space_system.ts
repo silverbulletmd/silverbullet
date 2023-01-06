@@ -21,7 +21,7 @@ import shellSyscalls from "../plugos/syscalls/shell.deno.ts";
 import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
-} from "../plugos/syscalls/store.deno.ts";
+} from "../plugos/syscalls/store.sqlite.ts";
 import { System } from "../plugos/system.ts";
 import { PageNamespaceHook } from "./hooks/page_namespace.ts";
 import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";

@@ -34,9 +34,6 @@ export async function prepareAssets(dist: string) {
   await copy("web/manifest.json", `${dist}/manifest.json`, {
     overwrite: true,
   });
-  await copy("server/SETTINGS_template.md", `${dist}/SETTINGS_template.md`, {
-    overwrite: true,
-  });
   const compiler = sass(
     Deno.readTextFileSync("web/styles/main.scss"),
     {

@@ -5,3 +5,5 @@ export { expandGlobSync } from "https://deno.land/std@0.165.0/fs/mod.ts";
 export { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 export { default as cacheDir } from "https://deno.land/x/cache_dir@0.2.0/mod.ts";
 export * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
+
+export { CapacitorSQLite } from "https://esm.sh/@capacitor-community/sqlite@4.6.0?external=@capacitor/core";

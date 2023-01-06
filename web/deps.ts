@@ -32,7 +32,4 @@ export {
 
 // CapacitorJS for mobile
 export { Capacitor } from "@capacitor/core";
-export {
-  Directory,
-  Filesystem,
-} from "https://esm.sh/@capacitor/filesystem@4.1.4?external=@capacitor/core";
+export { Directory, Filesystem } from "@capacitor/filesystem";

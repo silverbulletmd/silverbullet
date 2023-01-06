@@ -1,9 +1,9 @@
 import { FullTextSearchOptions } from "../../plug-api/plugos-syscall/fulltext.ts";
-import { AsyncSQLite } from "../../plugos/sqlite/async_sqlite.ts";
+import { ISQLite } from "../sqlite/sqlite_interface.ts";
 import { SysCallMapping } from "../system.ts";
 
 export async function ensureFTSTable(
-  db: AsyncSQLite,
+  db: ISQLite,
   tableName: string,
 ) {
   const result = await db.query(
@@ -20,7 +20,7 @@ export async function ensureFTSTable(
 }
 
 export function fullTextSearchSyscalls(
-  db: AsyncSQLite,
+  db: ISQLite,
   tableName: string,
 ): SysCallMapping {
   return {

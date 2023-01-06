@@ -138,6 +138,7 @@ export class Editor {
   constructor(
     space: Space,
     system: System<SilverBulletHooks>,
+    eventHook: EventHook,
     parent: Element,
     urlPrefix: string,
     readonly builtinSettings: BuiltinSettings,
@@ -149,9 +150,7 @@ export class Editor {
     this.viewDispatch = () => {};
     this.indexPage = builtinSettings.indexPage;
 
-    // Event hook
-    this.eventHook = new EventHook();
-    this.system.addHook(this.eventHook);
+    this.eventHook = eventHook;
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();

@@ -50,37 +50,41 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     let data: FileData | undefined;
-    switch (encoding) {
-      case "string":
-        data = (await Filesystem.readFile({
-          path: this.root + name,
-          directory: this.source,
-          encoding: Encoding.UTF8,
-        })).data;
-        break;
-      case "arraybuffer": {
-        const b64Data = (await Filesystem.readFile({
-          path: this.root + name,
-          directory: this.source,
-        })).data;
-        data = base64Decode(b64Data);
-        break;
+    try {
+      switch (encoding) {
+        case "string":
+          data = (await Filesystem.readFile({
+            path: this.root + name,
+            directory: this.source,
+            encoding: Encoding.UTF8,
+          })).data;
+          break;
+        case "arraybuffer": {
+          const b64Data = (await Filesystem.readFile({
+            path: this.root + name,
+            directory: this.source,
+          })).data;
+          data = base64Decode(b64Data);
+          break;
+        }
+        case "dataurl": {
+          const b64Data = (await Filesystem.readFile({
+            path: this.root + name,
+            directory: this.source,
+          })).data;
+          data = `data:${
+            mime.getType(name) || "application/octet-stream"
+          };base64,${b64Data}`;
+          break;
+        }
       }
-      case "dataurl": {
-        const b64Data = (await Filesystem.readFile({
-          path: this.root + name,
-          directory: this.source,
-        })).data;
-        data = `data:${
-          mime.getType(name) || "application/octet-stream"
-        };base64,${b64Data}`;
-        break;
-      }
+      return {
+        data,
+        meta: await this.getFileMeta(name),
+      };
+    } catch (e: any) {
+      throw new Error(`Page not found`);
     }
-    return {
-      data,
-      meta: await this.getFileMeta(name),
-    };
   }
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
@@ -97,7 +101,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       };
     } catch (e: any) {
       console.error("Error getting file meta", e.message);
-      throw new Error("File not found");
+      throw new Error(`Page not found`);
     }
   }
   async writeFile(

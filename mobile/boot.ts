@@ -1,33 +1,40 @@
 import { Editor } from "../web/editor.tsx";
-import { parseYamlSettings, safeRun } from "../common/util.ts";
+import { ensureAndLoadSettings, safeRun } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
 import { PlugSpacePrimitives } from "../server/hooks/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
-import { Capacitor, Directory } from "./deps.ts";
+import { Directory } from "../web/deps.ts";
 import { CapacitorSpacePrimitives } from "./spaces/capacitor_space_primitives.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import {
+  ensureTable as ensureStoreTable,
+  storeSyscalls,
+} from "../plugos/syscalls/store.sqlite.ts";
+import { CapacitorDb } from "../plugos/sqlite/capacitor_sqlite.ts";
+import {
+  ensureTable as ensurePageIndexTable,
+  pageIndexSyscalls,
+} from "../server/syscalls/index.ts";
+import {
+  ensureFTSTable,
+  fullTextSearchSyscalls,
+} from "../plugos/syscalls/fulltext.sqlite.ts";
+import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
 
 safeRun(async () => {
   const mobileSpacePrimitives = new CapacitorSpacePrimitives(
     Directory.Documents,
     "",
   );
-  let settingsPageText = "";
-  try {
-    settingsPageText = (
-      await mobileSpacePrimitives.readFile("SETTINGS.md", "string")
-    ).data as string;
-  } catch (e: any) {
-    console.error("No settings page found", e.message);
-  }
-
   // Instantiate a PlugOS system for the client
   const system = new System<SilverBulletHooks>("client");
 
@@ -35,46 +42,62 @@ safeRun(async () => {
   const namespaceHook = new PageNamespaceHook();
   system.addHook(namespaceHook);
 
-  let spacePrimitives: SpacePrimitives = new PlugSpacePrimitives(
-    mobileSpacePrimitives,
-    namespaceHook,
-    "client",
-  );
+  // Event hook
+  const eventHook = new EventHook();
+  system.addHook(eventHook);
 
-  // wrap in the asset bundle (_plug files)
-  spacePrimitives = new AssetBundlePlugSpacePrimitives(
-    spacePrimitives,
-    new AssetBundle(assetBundle),
+  const db = new CapacitorDb("data.db");
+
+  await db.init();
+
+  await ensureStoreTable(db, "store");
+  await ensurePageIndexTable(db);
+  await ensureFTSTable(db, "fts");
+
+  const indexSyscalls = pageIndexSyscalls(db);
+
+  const spacePrimitives = new FileMetaSpacePrimitives(
+    new AssetBundlePlugSpacePrimitives(
+      new EventedSpacePrimitives(
+        new PlugSpacePrimitives(
+          new PlugSpacePrimitives(
+            mobileSpacePrimitives,
+            namespaceHook,
+            "server",
+          ),
+          namespaceHook,
+          "server",
+        ),
+        eventHook,
+      ),
+      new AssetBundle(assetBundle),
+    ),
+    indexSyscalls,
   );
 
   const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
 
+  const settings = await ensureAndLoadSettings(serverSpace) as BuiltinSettings;
+
   // Register some mobile-specific syscall implementations
-  // system.registerSyscalls(
-  //   [],
-  //   storeSyscalls(serverSpace),
-  //   indexerSyscalls(serverSpace),
-  //   fulltextSyscalls(serverSpace),
-  // );
+  system.registerSyscalls(
+    [],
+    storeSyscalls(db, "store"),
+    indexSyscalls,
+    fullTextSearchSyscalls(db, "fts"),
+  );
 
   console.log("Booting...");
-
-  const settings = parseYamlSettings(settingsPageText) as BuiltinSettings;
-
-  if (!settings.indexPage) {
-    settings.indexPage = "index";
-  }
 
   const editor = new Editor(
     serverSpace,
     system,
+    eventHook,
     document.getElementById("sb-root")!,
     "",
     settings,
   );
-  // @ts-ignore: for convenience
-  window.editor = editor;
 
   await editor.init();
 });

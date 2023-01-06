@@ -1,9 +1,10 @@
 import { AssetBundle } from "../asset_bundle/bundle.ts";
+import { ISQLite } from "./sqlite_interface.ts";
 import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
 
 const workerBundle = new AssetBundle(workerBundleJson);
 
-export class AsyncSQLite {
+export class AsyncSQLite implements ISQLite {
   worker: Worker;
   requestId = 0;
   outstandingRequests = new Map<

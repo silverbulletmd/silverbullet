@@ -10,6 +10,7 @@ import { BuiltinSettings } from "./types.ts";
 import { fulltextSyscalls } from "./syscalls/fulltext.ts";
 import { indexerSyscalls } from "./syscalls/index.ts";
 import { storeSyscalls } from "./syscalls/store.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
 
 safeRun(async () => {
   const httpPrimitives = new HttpSpacePrimitives("");
@@ -53,10 +54,14 @@ safeRun(async () => {
   if (!settings.indexPage) {
     settings.indexPage = "index";
   }
+  // Event hook
+  const eventHook = new EventHook();
+  system.addHook(eventHook);
 
   const editor = new Editor(
     serverSpace,
     system,
+    eventHook,
     document.getElementById("sb-root")!,
     "",
     settings,

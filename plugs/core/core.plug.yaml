@@ -51,7 +51,7 @@ functions:
       name: "Space: Reindex"
   reindexSpace:
     path: "./page.ts:reindexSpace"
-    env: server
+    # env: server
   deletePage:
     path: "./page.ts:deletePage"
     command:
