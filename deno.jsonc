@@ -4,6 +4,7 @@
     "install": "deno install -f -A --unstable silverbullet.ts",
     "test": "deno test -A --unstable",
     "build": "deno run -A --unstable --check build_plugs.ts && deno run -A --unstable --check build.ts",
+    "plugs": "deno run -A --unstable --check build_plugs.ts",
     "watch-web": "deno run -A --unstable --check build.ts --watch",
     "watch-mobile": "deno run -A --unstable --check build_mobile.ts --watch",
     "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",

@@ -9,7 +9,7 @@ import {
   base64Encode,
 } from "../../plugos/asset_bundle/base64.ts";
 import type { Plug } from "../../plugos/plug.ts";
-import { Directory, Encoding, Filesystem } from "../deps.ts";
+import { Capacitor, Directory, Encoding, Filesystem } from "../deps.ts";
 import { mime } from "../../plugos/deps.ts";
 
 export class CapacitorSpacePrimitives implements SpacePrimitives {
@@ -17,22 +17,32 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const files = await Filesystem.readdir({
-      path: this.root,
-      directory: this.source,
-    });
     const allFiles: FileMeta[] = [];
-    for (const file of files.files) {
-      if (file.type === "file") {
-        allFiles.push({
-          name: file.name,
-          lastModified: file.mtime,
-          perm: "rw",
-          contentType: mime.getType(file.name) || "application/octet-stream",
-          size: file.size,
-        });
+    const directory = this.source;
+    const root = this.root;
+
+    async function readAllFiles(dir: string) {
+      const files = await Filesystem.readdir({
+        path: `${root}/${dir}`,
+        directory,
+      });
+      for (const file of files.files) {
+        if (file.type === "file") {
+          allFiles.push({
+            name: `${dir}/${file.name}`.substring(1),
+            lastModified: file.mtime,
+            perm: "rw",
+            contentType: mime.getType(file.name) || "application/octet-stream",
+            size: file.size,
+            url: Capacitor.convertFileSrc(file.uri),
+          });
+        } else { // Directory
+          await readAllFiles(`${dir}/${file.name}`);
+        }
       }
     }
+    await readAllFiles("");
+    console.log("allFiles", allFiles);
     return allFiles;
   }
   async readFile(
@@ -102,6 +112,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
           directory: this.source,
           encoding: Encoding.UTF8,
           data: data as string,
+          recursive: true,
         });
         break;
       case "arraybuffer":
@@ -109,6 +120,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
           path: this.root + name,
           directory: this.source,
           data: base64Encode(new Uint8Array(data as ArrayBuffer)),
+          recursive: true,
         });
         break;
       case "dataurl":
@@ -116,6 +128,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
           path: this.root + name,
           directory: this.source,
           data: (data as string).split(";base64,")[1],
+          recursive: true,
         });
         break;
     }

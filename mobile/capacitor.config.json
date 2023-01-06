@@ -3,6 +3,9 @@
   "appName": "SilverBullet",
   "bundledWebRuntime": false,
   "webDir": "dist",
+  "ios": {
+    "contentInset": "always"
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0

@@ -7,6 +7,8 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
+import { Capacitor, Directory, Filesystem } from "../deps.ts";
+
 class InlineImageWidget extends WidgetType {
   constructor(readonly url: string, readonly title: string) {
     super();
@@ -21,8 +23,19 @@ class InlineImageWidget extends WidgetType {
     if (this.url.startsWith("http")) {
       img.src = this.url;
     } else {
-      img.src = `fs/${this.url}`;
+      // Specific to mobile
+      if (Capacitor.isNativePlatform()) {
+        Filesystem.getUri({
+          path: this.url,
+          directory: Directory.Documents,
+        }).then((uri) => {
+          img.src = Capacitor.convertFileSrc(uri.uri);
+        });
+      } else {
+        img.src = `fs/${this.url}`;
+      }
     }
+
     img.alt = this.title;
     img.title = this.title;
     img.style.display = "block";

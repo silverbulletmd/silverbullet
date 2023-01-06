@@ -65,7 +65,7 @@ export async function bundle(
   distDir: string,
 ): Promise<void> {
   let building = false;
-  await doBuild(`${type}/boot.ts`, type === "web");
+  await doBuild(`${type}/boot.ts`);
   let timer;
   if (watch) {
     const watcher = Deno.watchFs([type, "dist_bundle/_plug"]);
@@ -75,19 +75,22 @@ export async function bundle(
       }
       timer = setTimeout(() => {
         console.log("Change detected, rebuilding...");
-        doBuild(`${type}/boot.ts`, true);
+        doBuild(`${type}/boot.ts`);
       }, 1000);
     }
   }
 
   async function doBuild(
     mainScript: string,
-    shouldBundle: boolean,
   ) {
     if (building) {
       return;
     }
     building = true;
+    if (type === "mobile") {
+      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
+    }
+
     await Promise.all([
       esbuild.build({
         entryPoints: {
@@ -112,9 +115,9 @@ export async function bundle(
         ],
       }),
     ]);
-    await prepareAssets(distDir);
 
-    if (shouldBundle) {
+    await prepareAssets(distDir);
+    if (type === "web") {
       await bundleFolder("dist_bundle", "dist/asset_bundle.json");
     }
 
