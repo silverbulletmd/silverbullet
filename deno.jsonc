@@ -20,7 +20,9 @@
     "desktop:run": "cd desktop && npm start",
     // Build the desktop app as a package for this platform
     "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make",
-    "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy && cd .."
+    // Mobil
+    "mobile:sync": "cd mobile && npm i && npx cap sync",
+    "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy && npx cap open ios"
   },
 
   "compilerOptions": {
