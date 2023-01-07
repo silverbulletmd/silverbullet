@@ -159,3 +159,7 @@ self.addEventListener("message", (event: { data: WorkerMessage }) => {
     }
   });
 });
+
+import { monkeyPatchFetch } from "../../plug-api/plugos-syscall/fetch.ts";
+
+monkeyPatchFetch();

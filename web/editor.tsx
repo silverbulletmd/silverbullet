@@ -95,6 +95,7 @@ import type {
   CompleteEvent,
 } from "../plug-api/app_event.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
+import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 

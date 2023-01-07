@@ -29,6 +29,7 @@ import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primit
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
@@ -83,6 +84,7 @@ safeRun(async () => {
     indexSyscalls,
     clientStoreSyscalls(db),
     fullTextSearchSyscalls(db, "fts"),
+    sandboxFetchSyscalls(),
   );
 
   console.log("Booting...");

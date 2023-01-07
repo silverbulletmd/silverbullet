@@ -12,6 +12,7 @@ import { indexerSyscalls } from "./syscalls/index.ts";
 import { storeSyscalls } from "./syscalls/store.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 
 safeRun(async () => {
   const httpPrimitives = new HttpSpacePrimitives("");
@@ -47,6 +48,7 @@ safeRun(async () => {
     indexerSyscalls(serverSpace),
     clientStoreSyscalls(),
     fulltextSyscalls(serverSpace),
+    sandboxFetchSyscalls(serverSpace),
   );
 
   console.log("Booting...");
