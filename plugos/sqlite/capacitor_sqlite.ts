@@ -20,7 +20,6 @@ export class CapacitorDb implements ISQLite {
       database: this.name,
       values: args,
     });
-    console.log("Query results", result.values);
     if (Capacitor.getPlatform() === "ios") {
       return result.values!.slice(1);
     }

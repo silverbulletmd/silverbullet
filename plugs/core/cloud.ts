@@ -6,6 +6,7 @@ import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
+import { CapacitorHttp } from "@capacitor/core";
 
 const pagePrefix = "💭 ";
 
@@ -27,15 +28,21 @@ export async function readFileCloud(
     url = `http://${url}`;
   }
   let text = "";
+
+  fetch("https://silverbullet.md/CHANGELOG.md").then((r) => {
+    console.log("Got a response in a plug", r.status);
+  });
+
   try {
-    const r = await fetch(`${url}.md`);
-    text = await r.text();
+    const r = await CapacitorHttp.get({ url: `${url}.md` });
+    text = r.data;
+    console.log("GOT", r);
     if (r.status !== 200) {
       text = `ERROR: ${text}`;
     }
   } catch (e: any) {
     console.error("ERROR", e.message);
-    text = e.message;
+    text = `ERROR: ${e.message}`;
   }
   text = await translateLinksWithPrefix(
     text,

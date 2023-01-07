@@ -25,7 +25,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     ) {
       if (
         operation === type && pageName.match(pattern) &&
-        (env && this.env && env === this.env)
+        (!this.env || (env && env === this.env))
       ) {
         return plug.invoke(name, [pageName, ...args]);
       }

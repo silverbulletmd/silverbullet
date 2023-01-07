@@ -31,10 +31,6 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 
 safeRun(async () => {
-  const mobileSpacePrimitives = new CapacitorSpacePrimitives(
-    Directory.Documents,
-    "",
-  );
   // Instantiate a PlugOS system for the client
   const system = new System<SilverBulletHooks>();
 
@@ -47,10 +43,11 @@ safeRun(async () => {
   system.addHook(eventHook);
 
   const db = new CapacitorDb("data.db");
-
   await db.init();
 
+  // for store
   await ensureStoreTable(db, "store");
+  // for clientStore
   await ensureStoreTable(db, "localData");
   await ensurePageIndexTable(db);
   await ensureFTSTable(db, "fts");
@@ -61,9 +58,9 @@ safeRun(async () => {
     new AssetBundlePlugSpacePrimitives(
       new EventedSpacePrimitives(
         new PlugSpacePrimitives(
-          new PlugSpacePrimitives(
-            mobileSpacePrimitives,
-            namespaceHook,
+          new CapacitorSpacePrimitives(
+            Directory.Documents,
+            "",
           ),
           namespaceHook,
         ),
