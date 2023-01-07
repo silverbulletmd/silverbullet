@@ -23,7 +23,7 @@ def capacitor_pods
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
 end
 
-target 'App' do
+target 'SilverBullet' do
   capacitor_pods
   # Add your Pods here
 end
