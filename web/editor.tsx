@@ -479,6 +479,7 @@ export class Editor {
     }
     // deno-lint-ignore no-this-alias
     const editor = this;
+    let touchCount = 0;
 
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
@@ -591,6 +592,29 @@ export class Editor {
           },
         ]),
         EditorView.domEventHandlers({
+          // This may result in duplicated touch events on mobile devices
+          touchmove: (event: TouchEvent, view: EditorView) => {
+            touchCount++;
+          },
+          touchend: (event: TouchEvent, view: EditorView) => {
+            if (touchCount === 0) {
+              safeRun(async () => {
+                const touch = event.changedTouches.item(0)!;
+                const clickEvent: ClickEvent = {
+                  page: pageName,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                  altKey: event.altKey,
+                  pos: view.posAtCoords({
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  })!,
+                };
+                await this.dispatchAppEvent("page:click", clickEvent);
+              });
+            }
+            touchCount = 0;
+          },
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               const clickEvent: ClickEvent = {
