@@ -28,6 +28,7 @@ import {
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 
 safeRun(async () => {
   const mobileSpacePrimitives = new CapacitorSpacePrimitives(
@@ -50,6 +51,7 @@ safeRun(async () => {
   await db.init();
 
   await ensureStoreTable(db, "store");
+  await ensureStoreTable(db, "localData");
   await ensurePageIndexTable(db);
   await ensureFTSTable(db, "fts");
 
@@ -82,6 +84,7 @@ safeRun(async () => {
     [],
     storeSyscalls(db, "store"),
     indexSyscalls,
+    clientStoreSyscalls(db),
     fullTextSearchSyscalls(db, "fts"),
   );
 

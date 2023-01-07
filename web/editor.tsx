@@ -191,7 +191,6 @@ export class Editor {
       spaceSyscalls(this),
       systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      clientStoreSyscalls(),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
@@ -1001,6 +1000,7 @@ export class Editor {
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
                 dispatch({ type: "start-navigate" });
+                this.space.updatePageList();
               },
             },
             {

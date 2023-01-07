@@ -1,4 +1,3 @@
-import { AsyncSQLite } from "../sqlite/async_sqlite.ts";
 import { ISQLite } from "../sqlite/sqlite_interface.ts";
 import { SysCallMapping } from "../system.ts";
 

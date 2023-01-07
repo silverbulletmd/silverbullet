@@ -26,7 +26,7 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   public async updatePageList() {
     const newPageList = await this.fetchPageList();
-    // console.log("Updating page list", newPageList);
+    console.log("Updating page list", newPageList);
     const deletedPages = new Set<string>(this.pageMetaCache.keys());
     newPageList.forEach((meta) => {
       const pageName = meta.name;
