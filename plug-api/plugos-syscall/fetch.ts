@@ -17,6 +17,7 @@ export function sandboxFetch(
   url: string,
   options?: SandboxFetchRequest,
 ): Promise<SandboxFetchResponse> {
+  // @ts-ignore: monkey patching fetch
   return syscall("sandboxFetch.fetch", url, options);
 }
 
