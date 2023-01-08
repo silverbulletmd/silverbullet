@@ -36,7 +36,7 @@ export function monkeyPatchFetch() {
         body: init.body as string,
       },
     );
-    return new Response(base64Decode(r.base64Body), {
+    return new Response(r.base64Body ? base64Decode(r.base64Body) : null, {
       status: r.status,
       headers: r.headers,
     });
