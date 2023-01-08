@@ -1,5 +1,10 @@
 import type { ClickEvent } from "$sb/app_event.ts";
-import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
+import {
+  editor,
+  markdown,
+  space,
+  system,
+} from "$sb/silverbullet-syscall/mod.ts";
 import {
   addParentPointers,
   findNodeOfType,
@@ -7,14 +12,6 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
-
-// Checks if the URL contains a protocol, if so keeps it, otherwise assumes an attachment
-function patchUrl(url: string): string {
-  if (url.indexOf("://") === -1) {
-    return `fs/${url}`;
-  }
-  return url;
-}
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -71,7 +68,7 @@ async function actionClickOrActionEnter(
       break;
     }
     case "NakedURL":
-      await editor.openUrl(patchUrl(mdTree.children![0].text!));
+      await editor.openUrl(mdTree.children![0].text!);
       break;
     case "Image":
     case "Link": {
@@ -79,11 +76,18 @@ async function actionClickOrActionEnter(
       if (!urlNode) {
         return;
       }
-      const url = patchUrl(urlNode.children![0].text!);
+      let url = urlNode.children![0].text!;
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
-      await editor.openUrl(url);
+      if (url.indexOf("://") === -1) {
+        url = decodeURIComponent(url);
+        // attachment URL, let's fetch as a data url
+        const dataUrl = await space.readAttachment(url);
+        return editor.downloadFile(url, dataUrl);
+      } else {
+        await editor.openUrl(url);
+      }
       break;
     }
     case "CommandLink": {

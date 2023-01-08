@@ -78,10 +78,10 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
         }
       }
       return {
-        data,
+        data: data!,
         meta: await this.getFileMeta(name),
       };
-    } catch (e: any) {
+    } catch {
       throw new Error(`Page not found`);
     }
   }

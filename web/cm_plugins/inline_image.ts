@@ -27,8 +27,8 @@ class InlineImageWidget extends WidgetType {
     if (this.url.startsWith("http")) {
       img.src = this.url;
     } else {
-      // Specific to mobile
-      this.space.readAttachment(decodeURI(this.url), "dataurl").then(
+      // Load the image as a dataURL and inject it into the img's src attribute
+      this.space.readAttachment(decodeURIComponent(this.url), "dataurl").then(
         ({ data }) => {
           img.src = data as string;
         },

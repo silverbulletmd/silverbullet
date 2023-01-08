@@ -185,6 +185,12 @@ export class Space extends EventEmitter<SpaceEvents> {
     );
   }
 
+  /**
+   * Reads an attachment
+   * @param name path of the attachment
+   * @param encoding how the return value is expected to be encoded
+   * @returns
+   */
   readAttachment(
     name: string,
     encoding: FileEncoding,

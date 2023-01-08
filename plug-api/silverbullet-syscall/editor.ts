@@ -46,6 +46,11 @@ export function openUrl(url: string): Promise<void> {
   return syscall("editor.openUrl", url);
 }
 
+// Force the client to download the file in dataUrl with filename as file name
+export function downloadFile(filename: string, dataUrl: string): Promise<void> {
+  return syscall("editor.downloadFile", filename, dataUrl);
+}
+
 export function flashNotification(
   message: string,
   type: "info" | "error" = "info",

@@ -38,6 +38,12 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         win.focus();
       }
     },
+    "editor.downloadFile": (_ctx, filename: string, dataUrl: string) => {
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = filename;
+      link.click();
+    },
     "editor.flashNotification": (
       _ctx,
       message: string,
