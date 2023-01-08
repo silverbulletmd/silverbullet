@@ -3,6 +3,7 @@ import { base64Decode } from "../../plugos/asset_bundle/base64.ts";
 export type SandboxFetchRequest = {
   method?: string;
   headers?: Record<string, string>;
+  body?: string;
 };
 
 export type SandboxFetchResponse = {
@@ -32,6 +33,7 @@ export function monkeyPatchFetch() {
       init && {
         method: init.method,
         headers: init.headers as Record<string, string>,
+        body: init.body as string,
       },
     );
     return new Response(base64Decode(r.base64Body), {
