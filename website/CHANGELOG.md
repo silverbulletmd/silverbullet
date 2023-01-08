@@ -2,12 +2,18 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 
-
 ---
 
 ## Next
 
 * New {[Extract text to new page]} command
+* Improvement to listify commands by [Tristan Sokol](https://github.com/silverbulletmd/silverbullet/pull/290)
+* {[Extract text to new page]} command by [Tristan Sokol](https://github.com/silverbulletmd/silverbullet/pull/286)
+* SQL syntax highlighting in fenced code blocks by [Martin Kraft](https://github.com/silverbulletmd/silverbullet/pull/292)
+  ```sql
+  select * from my_table;
+  ```
+* Merged code for experimental mobile app (iOS only for now)
 
 ---
 
