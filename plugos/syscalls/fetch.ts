@@ -14,6 +14,7 @@ export async function sandboxFetch(
     req && {
       method: req.method,
       headers: req.headers,
+      body: req.body,
     },
   );
   const body = await (await result.blob()).arrayBuffer();
