@@ -1,4 +1,4 @@
-import { bundle, esbuild } from "./build.ts";
+import { bundle, esbuild } from "./build_web.ts";
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 

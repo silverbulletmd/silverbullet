@@ -5,7 +5,7 @@ export type FileEncoding = "string" | "arraybuffer" | "dataurl";
 export type FileData = ArrayBuffer | string;
 export interface SpacePrimitives {
   // Pages
-  fetchFileList(): Promise<FileMeta[]>;
+  fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }>;
   readFile(
     name: string,
     encoding: FileEncoding,
@@ -16,8 +16,9 @@ export interface SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta>;
-  deleteFile(name: string): Promise<void>;
+  deleteFile(name: string, timestamp?: number): Promise<void>;
 
   // Plugs
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any>;
