@@ -24,6 +24,7 @@ import {
   markdown,
   runScopeHandlers,
   searchKeymap,
+  sqlLanguage,
   standardKeymap,
   StreamLanguage,
   syntaxHighlighting,
@@ -32,7 +33,6 @@ import {
   ViewPlugin,
   ViewUpdate,
   yamlLanguage,
-  sqlLanguage,
 } from "../common/deps.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import {
@@ -525,7 +525,7 @@ export class Editor {
             ),
           ],
         }),
-        inlineImagesPlugin(),
+        inlineImagesPlugin(this.space),
         highlightSpecialChars(),
         history(),
         drawSelection(),

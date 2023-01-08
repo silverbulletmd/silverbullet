@@ -6,7 +6,7 @@ import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
-import { Directory } from "../web/deps.ts";
+import { Directory } from "./deps.ts";
 import { CapacitorSpacePrimitives } from "./spaces/capacitor_space_primitives.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 

@@ -7,10 +7,14 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
-import { Capacitor, Directory, Filesystem } from "../deps.ts";
+import type { Space } from "../../common/spaces/space.ts";
 
 class InlineImageWidget extends WidgetType {
-  constructor(readonly url: string, readonly title: string) {
+  constructor(
+    readonly url: string,
+    readonly title: string,
+    readonly space: Space,
+  ) {
     super();
   }
 
@@ -24,16 +28,21 @@ class InlineImageWidget extends WidgetType {
       img.src = this.url;
     } else {
       // Specific to mobile
-      if (Capacitor.isNativePlatform()) {
-        Filesystem.getUri({
-          path: this.url,
-          directory: Directory.Documents,
-        }).then((uri) => {
-          img.src = Capacitor.convertFileSrc(uri.uri);
-        });
-      } else {
-        img.src = `fs/${this.url}`;
-      }
+      this.space.readAttachment(decodeURI(this.url), "dataurl").then(
+        ({ data }) => {
+          img.src = data as string;
+        },
+      );
+      // if (Capacitor.isNativePlatform()) {
+      //   Filesystem.getUri({
+      //     path: this.url,
+      //     directory: Directory.Documents,
+      //   }).then((uri) => {
+      //     img.src = Capacitor.convertFileSrc(uri.uri);
+      //   });
+      // } else {
+      //   img.src = `fs/${this.url}`;
+      // }
     }
 
     img.alt = this.title;
@@ -45,7 +54,7 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-export function inlineImagesPlugin() {
+export function inlineImagesPlugin(space: Space) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
@@ -67,7 +76,7 @@ export function inlineImagesPlugin() {
         const title = imageRexexResult.groups.title;
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title),
+            widget: new InlineImageWidget(url, title, space),
           }).range(node.to),
         );
       },

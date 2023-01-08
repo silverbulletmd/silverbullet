@@ -9,7 +9,7 @@ import {
   base64Encode,
 } from "../../plugos/asset_bundle/base64.ts";
 import type { Plug } from "../../plugos/plug.ts";
-import { Capacitor, Directory, Encoding, Filesystem } from "../deps.ts";
+import { Directory, Encoding, Filesystem } from "../deps.ts";
 import { mime } from "../../plugos/deps.ts";
 
 export class CapacitorSpacePrimitives implements SpacePrimitives {
