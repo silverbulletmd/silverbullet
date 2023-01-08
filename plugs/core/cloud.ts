@@ -6,6 +6,8 @@ import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
+import { CapacitorHttp } from "@capacitor/core";
+import { sandboxFetch } from "../../plug-api/plugos-syscall/fetch.ts";
 
 const pagePrefix = "💭 ";
 
@@ -27,15 +29,16 @@ export async function readFileCloud(
     url = `http://${url}`;
   }
   let text = "";
+
   try {
     const r = await fetch(`${url}.md`);
     text = await r.text();
-    if (r.status !== 200) {
+    if (!r.ok) {
       text = `ERROR: ${text}`;
     }
   } catch (e: any) {
-    console.error("ERROR", e.message);
-    text = e.message;
+    console.error("ERROR thrown", e.message);
+    text = `ERROR: ${e.message}`;
   }
   text = await translateLinksWithPrefix(
     text,

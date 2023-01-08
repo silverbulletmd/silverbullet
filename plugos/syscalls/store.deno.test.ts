@@ -1,7 +1,7 @@
 import { assertEquals } from "../../test_deps.ts";
 import { createSandbox } from "../environments/deno_sandbox.ts";
 import { System } from "../system.ts";
-import { ensureTable, storeSyscalls } from "./store.deno.ts";
+import { ensureTable, storeSyscalls } from "./store.sqlite.ts";
 import { AsyncSQLite } from "../sqlite/async_sqlite.ts";
 
 Deno.test("Test store", async () => {

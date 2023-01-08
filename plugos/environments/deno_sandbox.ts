@@ -48,8 +48,8 @@ export function createSandbox(plug: Plug<any>) {
       type: "module",
       deno: {
         permissions: {
-          // Allow network access and servers (main use case: fetch)
-          net: true,
+          // Disallow network access
+          net: false,
           // This is required for console logging to work, apparently?
           env: true,
           // No talking to native code

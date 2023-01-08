@@ -4,7 +4,7 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { SpaceSystem } from "./space_system.ts";
-import { parseYamlSettings } from "../common/util.ts";
+import { ensureAndLoadSettings } from "../common/util.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -66,7 +66,7 @@ export class HttpServer {
   async start() {
     await this.systemBoot.start();
     await this.systemBoot.ensureSpaceIndex();
-    await this.ensureAndLoadSettings();
+    await ensureAndLoadSettings(this.systemBoot.space);
 
     this.addPasswordAuth(this.app);
 
@@ -147,34 +147,6 @@ export class HttpServer {
     console.log(
       `Silver Bullet is now running: http://${visibleHostname}:${this.port}`,
     );
-  }
-
-  async ensureAndLoadSettings() {
-    const space = this.systemBoot.space;
-    try {
-      await space.getPageMeta("SETTINGS");
-    } catch {
-      await space.writePage(
-        "SETTINGS",
-        this.systemBoot.assetBundle.readTextFileSync("SETTINGS_template.md"),
-        true,
-      );
-    }
-
-    const { text: settingsText } = await space.readPage("SETTINGS");
-    const settings = parseYamlSettings(settingsText);
-    if (!settings.indexPage) {
-      settings.indexPage = "index";
-    }
-
-    try {
-      await space.getPageMeta(settings.indexPage);
-    } catch {
-      await space.writePage(
-        settings.indexPage,
-        `Welcome to your new space!`,
-      );
-    }
   }
 
   private addPasswordAuth(app: Application) {

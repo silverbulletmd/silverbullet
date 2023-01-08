@@ -1,7 +1,7 @@
 // import { Knex } from "knex";
 import { SysCallMapping } from "../../plugos/system.ts";
-import { Query, queryToSql } from "../../plugos/syscalls/store.deno.ts";
-import { AsyncSQLite } from "../../plugos/sqlite/async_sqlite.ts";
+import { Query, queryToSql } from "../../plugos/syscalls/store.sqlite.ts";
+import { ISQLite } from "../../plugos/sqlite/sqlite_interface.ts";
 
 type Item = {
   page: string;
@@ -16,7 +16,7 @@ export type KV = {
 
 const tableName = "page_index";
 
-export async function ensureTable(db: AsyncSQLite): Promise<void> {
+export async function ensureTable(db: ISQLite): Promise<void> {
   const result = await db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
     tableName,
@@ -32,7 +32,7 @@ export async function ensureTable(db: AsyncSQLite): Promise<void> {
   }
 }
 
-export function pageIndexSyscalls(db: AsyncSQLite): SysCallMapping {
+export function pageIndexSyscalls(db: ISQLite): SysCallMapping {
   const apiObj: SysCallMapping = {
     "index.set": async (_ctx, page: string, key: string, value: any) => {
       await db.execute(

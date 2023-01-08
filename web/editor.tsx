@@ -24,6 +24,7 @@ import {
   markdown,
   runScopeHandlers,
   searchKeymap,
+  sqlLanguage,
   standardKeymap,
   StreamLanguage,
   syntaxHighlighting,
@@ -32,7 +33,6 @@ import {
   ViewPlugin,
   ViewUpdate,
   yamlLanguage,
-  sqlLanguage,
 } from "../common/deps.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import {
@@ -96,6 +96,7 @@ import type {
   CompleteEvent,
 } from "../plug-api/app_event.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
+import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -139,6 +140,7 @@ export class Editor {
   constructor(
     space: Space,
     system: System<SilverBulletHooks>,
+    eventHook: EventHook,
     parent: Element,
     urlPrefix: string,
     readonly builtinSettings: BuiltinSettings,
@@ -150,9 +152,7 @@ export class Editor {
     this.viewDispatch = () => {};
     this.indexPage = builtinSettings.indexPage;
 
-    // Event hook
-    this.eventHook = new EventHook();
-    this.system.addHook(this.eventHook);
+    this.eventHook = eventHook;
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -191,12 +191,8 @@ export class Editor {
       eventSyscalls(this.eventHook),
       editorSyscalls(this),
       spaceSyscalls(this),
-      indexerSyscalls(this.space),
-      fulltextSyscalls(this.space),
       systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      clientStoreSyscalls(),
-      storeSyscalls(this.space),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
@@ -484,6 +480,7 @@ export class Editor {
     }
     // deno-lint-ignore no-this-alias
     const editor = this;
+    let touchCount = 0;
 
     return EditorState.create({
       doc: this.collabState ? this.collabState.ytext.toString() : text,
@@ -528,7 +525,7 @@ export class Editor {
             ),
           ],
         }),
-        inlineImagesPlugin(),
+        inlineImagesPlugin(this.space),
         highlightSpecialChars(),
         history(),
         drawSelection(),
@@ -601,6 +598,29 @@ export class Editor {
           },
         ]),
         EditorView.domEventHandlers({
+          // This may result in duplicated touch events on mobile devices
+          touchmove: (event: TouchEvent, view: EditorView) => {
+            touchCount++;
+          },
+          touchend: (event: TouchEvent, view: EditorView) => {
+            if (touchCount === 0) {
+              safeRun(async () => {
+                const touch = event.changedTouches.item(0)!;
+                const clickEvent: ClickEvent = {
+                  page: pageName,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                  altKey: event.altKey,
+                  pos: view.posAtCoords({
+                    x: touch.clientX,
+                    y: touch.clientY,
+                  })!,
+                };
+                await this.dispatchAppEvent("page:click", clickEvent);
+              });
+            }
+            touchCount = 0;
+          },
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               const clickEvent: ClickEvent = {
@@ -1011,6 +1031,7 @@ export class Editor {
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
                 dispatch({ type: "start-navigate" });
+                this.space.updatePageList();
               },
             },
             {

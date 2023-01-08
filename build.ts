@@ -13,28 +13,25 @@ import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 
 // @ts-ignore trust me
-const esbuild: typeof esbuildWasm = Deno.run === undefined
+export const esbuild: typeof esbuildWasm = Deno.run === undefined
   ? esbuildWasm
   : esbuildNative;
 
-async function prepareAssets(dist: string) {
-  await copy("web/fonts", `${dist}/web`, { overwrite: true });
-  await copy("web/index.html", `${dist}/web/index.html`, {
+export async function prepareAssets(dist: string) {
+  await copy("web/fonts", `${dist}`, { overwrite: true });
+  await copy("web/index.html", `${dist}/index.html`, {
     overwrite: true,
   });
-  await copy("web/auth.html", `${dist}/web/auth.html`, {
+  await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
-  await copy("web/images/favicon.png", `${dist}/web/favicon.png`, {
+  await copy("web/images/favicon.png", `${dist}/favicon.png`, {
     overwrite: true,
   });
-  await copy("web/images/logo.png", `${dist}/web/logo.png`, {
+  await copy("web/images/logo.png", `${dist}/logo.png`, {
     overwrite: true,
   });
-  await copy("web/manifest.json", `${dist}/web/manifest.json`, {
-    overwrite: true,
-  });
-  await copy("server/SETTINGS_template.md", `${dist}/SETTINGS_template.md`, {
+  await copy("web/manifest.json", `${dist}/manifest.json`, {
     overwrite: true,
   });
   const compiler = sass(
@@ -44,53 +41,61 @@ async function prepareAssets(dist: string) {
     },
   );
   await Deno.writeTextFile(
-    `${dist}/web/main.css`,
+    `${dist}/main.css`,
     compiler.to_string("expanded") as string,
   );
   const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
   await Deno.writeTextFile(
-    `${dist}/web/global.plug.json`,
+    `${dist}/global.plug.json`,
     JSON.stringify(globalManifest, null, 2),
   );
 
   // HACK: Patch the JS by removing an invalid regex
-  let bundleJs = await Deno.readTextFile(`${dist}/web/client.js`);
+  let bundleJs = await Deno.readTextFile(`${dist}/client.js`);
   bundleJs = patchDenoLibJS(bundleJs);
-  await Deno.writeTextFile(`${dist}/web/client.js`, bundleJs);
-
-  await bundleFolder(dist, "dist/asset_bundle.json");
+  await Deno.writeTextFile(`${dist}/client.js`, bundleJs);
 }
 
-async function bundle(watch: boolean): Promise<void> {
+export async function bundle(
+  watch: boolean,
+  type: "web" | "mobile",
+  distDir: string,
+): Promise<void> {
   let building = false;
-  await doBuild();
+  await doBuild(`${type}/boot.ts`);
   let timer;
   if (watch) {
-    const watcher = Deno.watchFs(["web", "dist_bundle/_plug"]);
+    const watcher = Deno.watchFs([type, "dist_bundle/_plug"]);
     for await (const _event of watcher) {
       if (timer) {
         clearTimeout(timer);
       }
       timer = setTimeout(() => {
         console.log("Change detected, rebuilding...");
-        doBuild();
+        doBuild(`${type}/boot.ts`);
       }, 1000);
     }
   }
 
-  async function doBuild() {
+  async function doBuild(
+    mainScript: string,
+  ) {
     if (building) {
       return;
     }
     building = true;
+    if (type === "mobile") {
+      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
+    }
+
     await Promise.all([
       esbuild.build({
         entryPoints: {
-          client: "web/boot.ts",
+          client: mainScript,
           service_worker: "web/service_worker.ts",
           worker: "plugos/environments/sandbox_worker.ts",
         },
-        outdir: "./dist_bundle/web",
+        outdir: distDir,
         absWorkingDir: Deno.cwd(),
         bundle: true,
         treeShaking: true,
@@ -107,21 +112,27 @@ async function bundle(watch: boolean): Promise<void> {
         ],
       }),
     ]);
-    await prepareAssets("dist_bundle");
+
+    await prepareAssets(distDir);
+    if (type === "web") {
+      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
+    }
+
     building = false;
     console.log("Built!");
   }
 }
 
-const args = flags.parse(Deno.args, {
-  boolean: ["watch"],
-  alias: { w: "watch" },
-  default: {
-    watch: false,
-  },
-});
-
-await bundle(args.watch);
-if (!args.watch) {
-  esbuild.stop();
+if (import.meta.main) {
+  const args = flags.parse(Deno.args, {
+    boolean: ["watch"],
+    alias: { w: "watch" },
+    default: {
+      watch: false,
+    },
+  });
+  await bundle(args.watch, "web", "dist_bundle/web");
+  if (!args.watch) {
+    esbuild.stop();
+  }
 }

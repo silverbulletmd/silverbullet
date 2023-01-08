@@ -1,0 +1,21 @@
+{
+  "appId": "md.silverbullet",
+  "appName": "SilverBullet",
+  "bundledWebRuntime": false,
+  "webDir": "dist",
+  "backgroundColor": "#000",
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    },
+    "CapacitorSQLite": {
+      "iosDatabaseLocation": "Library"
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

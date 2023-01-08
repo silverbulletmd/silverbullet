@@ -7,6 +7,12 @@ import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "./types.ts";
+import { fulltextSyscalls } from "./syscalls/fulltext.ts";
+import { indexerSyscalls } from "./syscalls/index.ts";
+import { storeSyscalls } from "./syscalls/store.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 
 safeRun(async () => {
   const httpPrimitives = new HttpSpacePrimitives("");
@@ -35,6 +41,16 @@ safeRun(async () => {
   const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
 
+  // Register some web-specific syscall implementations
+  system.registerSyscalls(
+    [],
+    storeSyscalls(serverSpace),
+    indexerSyscalls(serverSpace),
+    clientStoreSyscalls(),
+    fulltextSyscalls(serverSpace),
+    sandboxFetchSyscalls(serverSpace),
+  );
+
   console.log("Booting...");
 
   const settings = parseYamlSettings(settingsPageText) as BuiltinSettings;
@@ -42,10 +58,14 @@ safeRun(async () => {
   if (!settings.indexPage) {
     settings.indexPage = "index";
   }
+  // Event hook
+  const eventHook = new EventHook();
+  system.addHook(eventHook);
 
   const editor = new Editor(
     serverSpace,
     system,
+    eventHook,
     document.getElementById("sb-root")!,
     "",
     settings,

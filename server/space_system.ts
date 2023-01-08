@@ -21,7 +21,7 @@ import shellSyscalls from "../plugos/syscalls/shell.deno.ts";
 import {
   ensureTable as ensureStoreTable,
   storeSyscalls,
-} from "../plugos/syscalls/store.deno.ts";
+} from "../plugos/syscalls/store.sqlite.ts";
 import { System } from "../plugos/system.ts";
 import { PageNamespaceHook } from "./hooks/page_namespace.ts";
 import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
@@ -36,6 +36,7 @@ import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 export const indexRequiredKey = "$spaceIndexed";
 
 // A composition of a PlugOS system attached to a Space for server-side use
@@ -116,6 +117,7 @@ export class SpaceSystem {
       systemSyscalls(this.loadPlugsFromSpace.bind(this), this.system),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
+      sandboxFetchSyscalls(),
     );
 
     // Danger zone, these syscalls require requesting specific permissions

@@ -1,4 +1,4 @@
-import { AsyncSQLite } from "../sqlite/async_sqlite.ts";
+import { ISQLite } from "../sqlite/sqlite_interface.ts";
 import { SysCallMapping } from "../system.ts";
 
 export type Item = {
@@ -12,7 +12,7 @@ export type KV = {
   value: any;
 };
 
-export async function ensureTable(db: AsyncSQLite, tableName: string) {
+export async function ensureTable(db: ISQLite, tableName: string) {
   const result = await db.query(
     `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
     tableName,
@@ -72,7 +72,7 @@ export function queryToSql(
 }
 
 export function storeSyscalls(
-  db: AsyncSQLite,
+  db: ISQLite,
   tableName: string,
 ): SysCallMapping {
   const apiObj: SysCallMapping = {

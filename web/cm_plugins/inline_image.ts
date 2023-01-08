@@ -7,8 +7,14 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
+import type { Space } from "../../common/spaces/space.ts";
+
 class InlineImageWidget extends WidgetType {
-  constructor(readonly url: string, readonly title: string) {
+  constructor(
+    readonly url: string,
+    readonly title: string,
+    readonly space: Space,
+  ) {
     super();
   }
 
@@ -21,8 +27,14 @@ class InlineImageWidget extends WidgetType {
     if (this.url.startsWith("http")) {
       img.src = this.url;
     } else {
-      img.src = `fs/${this.url}`;
+      // Specific to mobile
+      this.space.readAttachment(decodeURI(this.url), "dataurl").then(
+        ({ data }) => {
+          img.src = data as string;
+        },
+      );
     }
+
     img.alt = this.title;
     img.title = this.title;
     img.style.display = "block";
@@ -32,7 +44,7 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-export function inlineImagesPlugin() {
+export function inlineImagesPlugin(space: Space) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
@@ -54,7 +66,7 @@ export function inlineImagesPlugin() {
         const title = imageRexexResult.groups.title;
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title),
+            widget: new InlineImageWidget(url, title, space),
           }).range(node.to),
         );
       },

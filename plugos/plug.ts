@@ -9,7 +9,7 @@ export class Plug<HookT> {
   public manifest?: Manifest<HookT>;
   public assets?: AssetBundle;
   private sandboxFactory: (plug: Plug<HookT>) => Sandbox;
-  readonly runtimeEnv: RuntimeEnvironment;
+  readonly runtimeEnv?: RuntimeEnvironment;
   grantedPermissions: string[] = [];
   name: string;
   version: number;
@@ -23,7 +23,7 @@ export class Plug<HookT> {
     this.name = name;
     this.sandboxFactory = sandboxFactory;
     // this.sandbox = sandboxFactory(this);
-    this.runtimeEnv = system.runtimeEnv;
+    this.runtimeEnv = system.env;
     this.version = new Date().getTime();
   }
 
@@ -69,7 +69,7 @@ export class Plug<HookT> {
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
     }
-    return !funDef.env || funDef.env === this.runtimeEnv;
+    return !funDef.env || !this.runtimeEnv || funDef.env === this.runtimeEnv;
   }
 
   async invoke(name: string, args: any[]): Promise<any> {
