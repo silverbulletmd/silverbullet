@@ -15,13 +15,13 @@
     // Install lezer-generator with "npm install -g @lezer/generator"
     "generate": "deno run -A plugos/gen.ts && lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js",
     // Install npm dependencies for desktop app
-    "desktop:install": "cd desktop && npm install",
+    "desktop:deps": "cd desktop && npm install",
     // Run the desktop app for local development
     "desktop:run": "cd desktop && npm start",
     // Build the desktop app as a package for this platform
     "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make",
-    // Mobil
-    "mobile:sync": "cd mobile && npm i && npx cap sync",
+    // Mobile
+    "mobile:deps": "cd mobile && npm install && npx cap sync",
     "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy && npx cap open ios"
   },
 

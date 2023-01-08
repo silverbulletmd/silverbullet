@@ -16,16 +16,11 @@
     "@capacitor-community/sqlite": "^4.6.0",
     "@capacitor/android": "^4.6.1",
     "@capacitor/app": "^4.1.1",
-    "@capacitor/browser": "^4.1.0",
-    "@capacitor/clipboard": "^4.1.0",
     "@capacitor/core": "latest",
     "@capacitor/filesystem": "^4.1.4",
     "@capacitor/ios": "^4.6.1",
     "@capacitor/keyboard": "^4.1.0",
-    "@capacitor/network": "^4.1.0",
-    "@capacitor/share": "^4.1.0",
     "@capacitor/splash-screen": "latest",
-    "@capacitor/status-bar": "^4.1.1",
     "cordova-res": "^0.15.4"
   },
   "devDependencies": {

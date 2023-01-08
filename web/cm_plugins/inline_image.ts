@@ -33,16 +33,6 @@ class InlineImageWidget extends WidgetType {
           img.src = data as string;
         },
       );
-      // if (Capacitor.isNativePlatform()) {
-      //   Filesystem.getUri({
-      //     path: this.url,
-      //     directory: Directory.Documents,
-      //   }).then((uri) => {
-      //     img.src = Capacitor.convertFileSrc(uri.uri);
-      //   });
-      // } else {
-      //   img.src = `fs/${this.url}`;
-      // }
     }
 
     img.alt = this.title;
