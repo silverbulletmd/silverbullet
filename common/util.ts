@@ -49,7 +49,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
 export async function ensureAndLoadSettings(
   space: Space,
   dontCreate: boolean,
-): Promise<BuiltinSettings> {
+): Promise<any> {
   if (dontCreate) {
     return {
       indexPage: "index",
