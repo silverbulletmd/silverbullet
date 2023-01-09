@@ -11,16 +11,19 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   ) {
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
-    const l = await this.wrapped.fetchFileList();
-    return this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
-      .map((p) => ({
-        name: p,
-        contentType: "application/json",
-        lastModified: bootTime,
-        perm: "ro",
-        size: -1,
-      } as FileMeta)).concat(l);
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
+    const { files, timestamp } = await this.wrapped.fetchFileList();
+    return {
+      files: this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
+        .map((p) => ({
+          name: p,
+          contentType: "application/json",
+          lastModified: bootTime,
+          perm: "ro",
+          size: -1,
+        } as FileMeta)).concat(files),
+      timestamp,
+    };
   }
 
   readFile(
@@ -60,9 +63,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean | undefined,
+    selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
   }
 
   deleteFile(name: string): Promise<void> {

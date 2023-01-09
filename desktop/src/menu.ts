@@ -155,7 +155,18 @@ const template: MenuItemConstructorOptions[] = [
 
 if (process.platform === "darwin") {
   const name = app.getName();
-  template.unshift({ label: name, submenu: [] });
+  template.unshift({
+    label: name,
+    submenu: [
+      { role: "services" },
+      { type: "separator" },
+      { role: "hide" },
+      { role: "hideOthers" },
+      { role: "unhide" },
+      { type: "separator" },
+      { role: "quit" },
+    ],
+  });
 }
 
 export const menu = Menu.buildFromTemplate(template);

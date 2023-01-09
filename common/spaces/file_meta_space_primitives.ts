@@ -11,11 +11,11 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
   ) {
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
-    const list = await this.wrapped.fetchFileList();
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
+    const { files, timestamp } = await this.wrapped.fetchFileList();
     // Enrich the file list with custom meta data (for pages)
     const allFilesMap: Map<string, any> = new Map(
-      list.map((fm) => [fm.name, fm]),
+      files.map((fm) => [fm.name, fm]),
     );
     for (
       const { page, value } of await this.indexSyscalls["index.queryPrefix"](
@@ -35,7 +35,7 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    return [...allFilesMap.values()];
+    return { files: [...allFilesMap.values()], timestamp };
   }
 
   readFile(
@@ -53,13 +53,14 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean | undefined,
+    selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
   }
 
-  deleteFile(name: string): Promise<void> {
-    return this.wrapped.deleteFile(name);
+  deleteFile(name: string, timestamp?: number): Promise<void> {
+    return this.wrapped.deleteFile(name, timestamp);
   }
 
   // deno-lint-ignore no-explicit-any

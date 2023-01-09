@@ -29,12 +29,15 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return result;
   }
 
-  public async fetchFileList(): Promise<FileMeta[]> {
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
     const req = await this.authenticatedFetch(this.fsUrl, {
       method: "GET",
     });
 
-    return req.json();
+    return {
+      files: await req.json(),
+      timestamp: +req.headers.get("X-Timestamp")!,
+    };
   }
 
   async readFile(
@@ -77,6 +80,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    _selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
     let body: any = null;
 
@@ -93,6 +98,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       method: "PUT",
       headers: {
         "Content-type": "application/octet-stream",
+        "X-Timestamp": timestamp?.toString() || undefined,
       },
       body,
     });
@@ -100,9 +106,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return newMeta;
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(name: string, timestamp?: number): Promise<void> {
     const req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "DELETE",
+      headers: {
+        "X-Timestamp": timestamp?.toString() || undefined,
+      },
     });
     if (req.status !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);

@@ -15,6 +15,8 @@ function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
 }
 
+const excludedFiles = ["data.db", "sync.json"];
+
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
 
@@ -90,27 +92,38 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    _selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await Deno.mkdir(path.dirname(localPath), { recursive: true });
 
+      const file = await Deno.open(localPath, {
+        write: true,
+        create: true,
+        truncate: true,
+      });
+
       // Actually write the file
       switch (encoding) {
         case "string":
-          await Deno.writeTextFile(`${localPath}`, data as string);
+          await Deno.write(file.rid, new TextEncoder().encode(data as string));
           break;
         case "dataurl":
-          await Deno.writeFile(
-            localPath,
-            base64DecodeDataUrl(data as string),
-          );
+          await Deno.write(file.rid, base64DecodeDataUrl(data as string));
           break;
         case "arraybuffer":
-          await Deno.writeFile(localPath, new Uint8Array(data as ArrayBuffer));
+          await Deno.write(file.rid, new Uint8Array(data as ArrayBuffer));
           break;
       }
+
+      if (timestamp) {
+        console.log("Seting mtime to", new Date(timestamp));
+        await Deno.futime(file.rid, new Date(), new Date(timestamp));
+      }
+      file.close();
 
       // Fetch new metadata
       const s = await Deno.stat(localPath);
@@ -149,7 +162,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     await Deno.remove(localPath);
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
     const allFiles: FileMeta[] = [];
     for await (
       const file of walk(this.rootPath, {
@@ -165,8 +178,12 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
+        const name = fullPath.substring(this.rootPath.length + 1);
+        if (excludedFiles.includes(name)) {
+          continue;
+        }
         allFiles.push({
-          name: fullPath.substring(this.rootPath.length + 1),
+          name: name,
           lastModified: s.mtime!.getTime(),
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,
@@ -181,7 +198,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       }
     }
 
-    return allFiles;
+    return {
+      files: allFiles,
+      timestamp: Date.now(),
+    };
   }
 
   // Plugs

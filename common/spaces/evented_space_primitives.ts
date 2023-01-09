@@ -7,7 +7,7 @@ import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
 
-  fetchFileList(): Promise<FileMeta[]> {
+  fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
     return this.wrapped.fetchFileList();
   }
 
@@ -35,13 +35,15 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate: boolean,
+    selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
       encoding,
       data,
       selfUpdate,
+      timestamp,
     );
     // This can happen async
     if (name.endsWith(".md")) {
@@ -81,11 +83,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return this.wrapped.getFileMeta(name);
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(name: string, timestamp?: number): Promise<void> {
     if (name.endsWith(".md")) {
       const pageName = name.substring(0, name.length - 3);
       await this.eventHook.dispatchEvent("page:deleted", pageName);
     }
-    return this.wrapped.deleteFile(name);
+    return this.wrapped.deleteFile(name, timestamp);
   }
 }

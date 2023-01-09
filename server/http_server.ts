@@ -5,6 +5,8 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { SpaceSystem } from "./space_system.ts";
 import { ensureAndLoadSettings } from "../common/util.ts";
+import { TrashSpacePrimitives } from "../common/spaces/trash_space_primitives.ts";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -14,6 +16,7 @@ export type ServerOptions = {
   assetBundle: AssetBundle;
   user?: string;
   pass?: string;
+  bareMode?: boolean;
 };
 
 const staticLastModified = new Date().toUTCString();
@@ -26,6 +29,7 @@ export class HttpServer {
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
+  bareMode: boolean;
 
   constructor(options: ServerOptions) {
     this.hostname = options.hostname;
@@ -37,6 +41,7 @@ export class HttpServer {
       options.pagesPath,
       options.dbPath,
     );
+    this.bareMode = options.bareMode || false;
 
     // Second, for loading plug JSON files with absolute or relative (from CWD) paths
     this.systemBoot.eventHook.addLocalListener(
@@ -66,7 +71,7 @@ export class HttpServer {
   async start() {
     await this.systemBoot.start();
     await this.systemBoot.ensureSpaceIndex();
-    await ensureAndLoadSettings(this.systemBoot.space);
+    await ensureAndLoadSettings(this.systemBoot.space, this.bareMode);
 
     this.addPasswordAuth(this.app);
 
@@ -207,7 +212,9 @@ export class HttpServer {
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
-      response.body = JSON.stringify(await spacePrimitives.fetchFileList());
+      const { files, timestamp } = await spacePrimitives.fetchFileList();
+      response.headers.set("X-Timestamp", "" + timestamp);
+      response.body = JSON.stringify(files);
     });
 
     fsRouter
@@ -249,11 +256,13 @@ export class HttpServer {
         console.log("Saving file", name);
 
         try {
+          const timestamp = request.headers.get("X-Timestamp");
           const meta = await spacePrimitives.writeFile(
             name,
             "arraybuffer",
             await request.body().value,
             false,
+            timestamp ? +timestamp : undefined,
           );
           response.status = 200;
           response.headers.set("Content-Type", meta.contentType);
@@ -282,10 +291,14 @@ export class HttpServer {
           // console.error("Options failed", err);
         }
       })
-      .delete("\/(.+)", async ({ response, params }) => {
+      .delete("\/(.+)", async ({ request, response, params }) => {
         const name = params[0];
         try {
-          await spacePrimitives.deleteFile(name);
+          const timestamp = request.headers.get("X-Timestamp");
+          await spacePrimitives.deleteFile(
+            name,
+            timestamp ? +timestamp : undefined,
+          );
           response.status = 200;
           response.body = "OK";
         } catch (e: any) {

@@ -12,14 +12,39 @@ import type { Plug } from "../../plugos/plug.ts";
 import { Directory, Encoding, Filesystem } from "../deps.ts";
 import { mime } from "../../plugos/deps.ts";
 
+// Stores timestamps (specifically lastModified timestamps) for files for
+// spaces that don't natively support it (like Capacitor's FS API)
+export interface TimestampStorage {
+  get(name: string): Promise<number | null>;
+  set(name: string, value: number): Promise<void>;
+}
+
+// Trivial in memory timestamp storage, only useful for testing
+export class InMemoryTimestampStore implements TimestampStorage {
+  private timestamps: Record<string, number> = {};
+
+  get(name: string): Promise<number | null> {
+    return Promise.resolve(this.timestamps[name] || null);
+  }
+  set(name: string, value: number): Promise<void> {
+    this.timestamps[name] = value;
+    return Promise.resolve();
+  }
+}
+
 export class CapacitorSpacePrimitives implements SpacePrimitives {
-  constructor(readonly source: Directory, readonly root: string) {
+  constructor(
+    readonly source: Directory,
+    readonly root: string,
+    readonly timestampStorage: TimestampStorage,
+  ) {
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
     const allFiles: FileMeta[] = [];
     const directory = this.source;
     const root = this.root;
+    const timestampStorage = this.timestampStorage;
 
     async function readAllFiles(dir: string) {
       const files = await Filesystem.readdir({
@@ -28,9 +53,10 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       });
       for (const file of files.files) {
         if (file.type === "file") {
+          const name = `${dir}/${file.name}`.substring(1);
           allFiles.push({
-            name: `${dir}/${file.name}`.substring(1),
-            lastModified: file.mtime,
+            name: name,
+            lastModified: await timestampStorage.get(name) || file.mtime,
             perm: "rw",
             contentType: mime.getType(file.name) || "application/octet-stream",
             size: file.size,
@@ -41,8 +67,10 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       }
     }
     await readAllFiles("");
-    console.log("allFiles", allFiles);
-    return allFiles;
+    return {
+      files: allFiles,
+      timestamp: Date.now(),
+    };
   }
   async readFile(
     name: string,
@@ -94,7 +122,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       return {
         name,
         contentType: mime.getType(name) || "application/octet-stream",
-        lastModified: statResult.mtime,
+        lastModified: await this.timestampStorage.get(name) || statResult.mtime,
         perm: "rw",
         size: statResult.size,
       };
@@ -107,6 +135,8 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
     switch (encoding) {
       case "string":
@@ -134,6 +164,9 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
           recursive: true,
         });
         break;
+    }
+    if (timestamp) {
+      await this.timestampStorage.set(name, timestamp);
     }
     return this.getFileMeta(name);
   }

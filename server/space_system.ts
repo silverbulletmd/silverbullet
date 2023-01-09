@@ -23,8 +23,8 @@ import {
   storeSyscalls,
 } from "../plugos/syscalls/store.sqlite.ts";
 import { System } from "../plugos/system.ts";
-import { PageNamespaceHook } from "./hooks/page_namespace.ts";
-import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
+import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
+import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import {
   ensureTable as ensureIndexTable,
   pageIndexSyscalls,
@@ -37,6 +37,7 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
+import { TrashSpacePrimitives } from "../common/spaces/trash_space_primitives.ts";
 export const indexRequiredKey = "$spaceIndexed";
 
 // A composition of a PlugOS system attached to a Space for server-side use
@@ -44,7 +45,7 @@ export class SpaceSystem {
   public system: System<SilverBulletHooks>;
   public space: Space;
   public eventHook: EventHook;
-  public spacePrimitives: SpacePrimitives;
+  public spacePrimitives: TrashSpacePrimitives;
 
   private db: AsyncSQLite;
 
@@ -77,19 +78,22 @@ export class SpaceSystem {
     const indexSyscalls = pageIndexSyscalls(this.db);
     // The space
     try {
-      this.spacePrimitives = new FileMetaSpacePrimitives(
-        new AssetBundlePlugSpacePrimitives(
-          new EventedSpacePrimitives(
-            new PlugSpacePrimitives(
-              new DiskSpacePrimitives(pagesPath),
-              namespaceHook,
-              "server",
+      this.spacePrimitives = new TrashSpacePrimitives(
+        new FileMetaSpacePrimitives(
+          new AssetBundlePlugSpacePrimitives(
+            new EventedSpacePrimitives(
+              new PlugSpacePrimitives(
+                new DiskSpacePrimitives(pagesPath),
+                namespaceHook,
+                "server",
+              ),
+              this.eventHook,
             ),
-            this.eventHook,
+            assetBundle,
           ),
-          assetBundle,
+          indexSyscalls,
         ),
-        indexSyscalls,
+        "_trash/",
       );
       this.space = new Space(this.spacePrimitives);
     } catch (e: any) {

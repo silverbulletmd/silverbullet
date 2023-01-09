@@ -1,8 +1,8 @@
 import { Editor } from "../web/editor.tsx";
 import { ensureAndLoadSettings, safeRun } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
-import { PlugSpacePrimitives } from "../server/hooks/plug_space_primitives.ts";
-import { PageNamespaceHook } from "../server/hooks/page_namespace.ts";
+import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
+import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";

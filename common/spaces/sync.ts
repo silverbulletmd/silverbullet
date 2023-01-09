@@ -1,13 +1,13 @@
-import type { FileMeta, PageMeta } from "../types.ts";
+import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
+import { TrashSpacePrimitives } from "./trash_space_primitives.ts";
 
 export class SpaceSync {
   constructor(
-    private primary: SpacePrimitives,
-    private secondary: SpacePrimitives,
+    private primary: TrashSpacePrimitives,
+    private secondary: TrashSpacePrimitives,
     public primaryLastSync: number,
     public secondaryLastSync: number,
-    private trashPrefix: string,
   ) {}
 
   // Strategy: Primary wins
@@ -39,25 +39,8 @@ export class SpaceSync {
     };
   }
 
-  async syncableFiles(
-    spacePrimitives: SpacePrimitives,
-  ): Promise<{ files: FileMeta[]; nowTimestamp: number }> {
-    const filesData = await spacePrimitives.fetchFileList();
-    return {
-      files: filesData.files.filter(
-        (files) => !files.name.startsWith(this.trashPrefix),
-      ),
-      nowTimestamp: filesData.timestamp,
-    };
-  }
-
-  async trashFiles(space: SpacePrimitives): Promise<PageMeta[]> {
-    return (await space.fetchFileList()).files
-      .filter((fileMeta) => fileMeta.name.startsWith(this.trashPrefix))
-      .map((fileMeta) => ({
-        ...fileMeta,
-        name: fileMeta.name.substring(this.trashPrefix.length),
-      }));
+  syncCandidates(files: FileMeta[]): FileMeta[] {
+    return files.filter((f) => !f.name.startsWith("_plug/"));
   }
 
   async syncFiles(
@@ -68,25 +51,31 @@ export class SpaceSync {
   ): Promise<number> {
     let syncOps = 0;
 
-    const { files: primaryAllPagesSet, nowTimestamp: primarySyncTimestamp } =
-      await this.syncableFiles(this.primary);
-    const allFilesPrimary = new Map(primaryAllPagesSet.map((p) => [p.name, p]));
+    const {
+      files: primaryAllPages,
+      trashFiles: primaryAllTrash,
+      timestamp: primarySyncTimestamp,
+    } = await this.primary.seggregateFileList();
+    const allFilesPrimary = new Map(
+      this.syncCandidates(primaryAllPages).map((p) => [p.name, p]),
+    );
     const {
       files: secondaryAllFilesSet,
-      nowTimestamp: secondarySyncTimestamp,
-    } = await this.syncableFiles(this.secondary);
+      trashFiles: secondaryAllTrash,
+      timestamp: secondarySyncTimestamp,
+    } = await this.secondary.seggregateFileList();
     const allFilesSecondary = new Map(
-      secondaryAllFilesSet.map((p) => [p.name, p]),
+      this.syncCandidates(secondaryAllFilesSet).map((p) => [p.name, p]),
     );
 
     const allTrashPrimary = new Map(
-      (await this.trashFiles(this.primary))
+      primaryAllTrash
         // Filter out old trash
         .filter((p) => p.lastModified > this.primaryLastSync)
         .map((p) => [p.name, p]),
     );
     const allTrashSecondary = new Map(
-      (await this.trashFiles(this.secondary))
+      secondaryAllTrash
         // Filter out old trash
         .filter((p) => p.lastModified > this.secondaryLastSync)
         .map((p) => [p.name, p]),
@@ -148,7 +137,7 @@ export class SpaceSync {
           // Secondary updated, but not primary (checked above)
           // Push from secondary to primary
           console.log("Changed page on secondary", name, "syncing to primary");
-          let fileData = await this.secondary.readFile(name, "arraybuffer");
+          const fileData = await this.secondary.readFile(name, "arraybuffer");
           await this.primary.writeFile(
             name,
             "arraybuffer",

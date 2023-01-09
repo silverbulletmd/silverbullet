@@ -5,7 +5,10 @@ import {
   SpacePrimitives,
 } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
-import { NamespaceOperation, PageNamespaceHook } from "./page_namespace.ts";
+import {
+  NamespaceOperation,
+  PageNamespaceHook,
+} from "../hooks/page_namespace.ts";
 import { base64DecodeDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
@@ -33,7 +36,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return false;
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
+  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
     const allFiles: FileMeta[] = [];
     for (const { plug, name, operation } of this.hook.spaceFunctions) {
       if (operation === "listFiles") {
@@ -46,11 +49,14 @@ export class PlugSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    const result = await this.wrapped.fetchFileList();
-    for (const pm of result) {
+    const { files, timestamp } = await this.wrapped.fetchFileList();
+    for (const pm of files) {
       allFiles.push(pm);
     }
-    return allFiles;
+    return {
+      files: allFiles,
+      timestamp,
+    };
   }
 
   async readFile(
@@ -90,6 +96,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
+    timestamp?: number,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
@@ -97,20 +104,21 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       encoding,
       data,
       selfUpdate,
+      timestamp,
     );
     if (result) {
       return result;
     }
 
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
   }
 
-  deleteFile(name: string): Promise<void> {
-    const result = this.performOperation("deleteFile", name);
+  deleteFile(name: string, timestamp?: number): Promise<void> {
+    const result = this.performOperation("deleteFile", name, timestamp);
     if (result) {
       return result;
     }
-    return this.wrapped.deleteFile(name);
+    return this.wrapped.deleteFile(name, timestamp);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {

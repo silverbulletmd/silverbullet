@@ -21,6 +21,10 @@ await new Command()
   .arguments("<folder:string>")
   .option("--hostname <hostname:string>", "Hostname or address to listen on")
   .option("-p, --port <port:number>", "Port to listen on")
+  .option("--sync <url:string>", "Sync with another server")
+  .option("--bare [type:boolean]", "Don't auto generate pages", {
+    default: false,
+  })
   .option("--db <dbfile:string>", "Filename for the database", {
     default: "data.db",
   })

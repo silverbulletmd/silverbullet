@@ -116,8 +116,8 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async listPlugs(): Promise<string[]> {
-    const allFiles = await this.space.fetchFileList();
-    return allFiles
+    const { files } = await this.space.fetchFileList();
+    return files
       .filter((fileMeta) => fileMeta.name.endsWith(".plug.json"))
       .map((fileMeta) => fileMeta.name);
   }
@@ -171,13 +171,13 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async fetchPageList(): Promise<PageMeta[]> {
-    return (await this.space.fetchFileList())
+    return (await this.space.fetchFileList()).files
       .filter((fileMeta) => fileMeta.name.endsWith(".md"))
       .map(fileMetaToPageMeta);
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
-    return (await this.space.fetchFileList()).filter(
+    return (await this.space.fetchFileList()).files.filter(
       (fileMeta) =>
         !fileMeta.name.endsWith(".md") &&
         !fileMeta.name.endsWith(".plug.json") &&

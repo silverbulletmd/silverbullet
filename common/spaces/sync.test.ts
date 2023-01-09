@@ -1,106 +1,119 @@
 import { SpaceSync } from "./sync.ts";
-import { PageMeta } from "../types.ts";
-import { Space } from "./space.ts";
+import { FileMeta } from "../types.ts";
+import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
+import { TrashSpacePrimitives } from "./trash_space_primitives.ts";
+import { assertEquals } from "../../test_deps.ts";
 
 Deno.test("Test store", async () => {
-  let primary = new Space(new IndexedDBSpacePrimitives("primary"), true);
-  let secondary = new Space(
-    new IndexedDBSpacePrimitives("secondary", -5000),
-    true,
-  );
-  let sync = new SpaceSync(primary, secondary, 0, 0, "_trash/");
+  const skew = 1000 * 60 * 60 * 24 * 7;
 
-  async function conflictResolver(pageMeta1: PageMeta, pageMeta2: PageMeta) {}
+  const primaryPath = await Deno.makeTempDir();
+  const secondaryPath = await Deno.makeTempDir();
+  console.log("Primary", primaryPath);
+  console.log("Secondary", secondaryPath);
+  const primary = new TrashSpacePrimitives(
+    new DiskSpacePrimitives(primaryPath),
+    "_trash/",
+    skew,
+  );
+  const secondary = new TrashSpacePrimitives(
+    new DiskSpacePrimitives(secondaryPath),
+    "_trash/",
+  );
+  const sync = new SpaceSync(primary, secondary, 0, 0);
+
+  async function conflictResolver(_fm1: FileMeta, _fm2: FileMeta) {}
 
   // Write one page to primary
-  await primary.writePage("index", "Hello");
-  expect((await secondary.listPages()).size).toBe(0);
-  await syncPages(conflictResolver);
-  expect((await secondary.listPages()).size).toBe(1);
-  expect((await secondary.readPage("index")).text).toBe("Hello");
+  await primary.writeFile("index", "string", "Hello");
+  assertEquals((await secondary.fetchFileList()).files.length, 0);
+  await syncFiles(conflictResolver);
+  assertEquals((await secondary.fetchFileList()).files.length, 1);
+  assertEquals((await secondary.readFile("index", "string")).data, "Hello");
 
   // Should be a no-op
-  expect(await syncPages()).toBe(0);
+  assertEquals(await syncFiles(), 0);
 
   // Now let's make a change on the secondary
-  await secondary.writePage("index", "Hello!!");
-  await secondary.writePage("test", "Test page");
+  await secondary.writeFile("index", "string", "Hello!!");
+  await secondary.writeFile("test", "string", "Test page");
 
   // And sync it
-  await syncPages();
+  await syncFiles();
 
-  expect(primary.listPages().size).toBe(2);
-  expect(secondary.listPages().size).toBe(2);
+  assertEquals((await primary.fetchFileList()).files.length, 2);
+  assertEquals((await secondary.fetchFileList()).files.length, 2);
 
-  expect((await primary.readPage("index")).text).toBe("Hello!!");
+  assertEquals((await primary.readFile("index", "string")).data, "Hello!!");
 
   // Let's make some random edits on both ends
-  await primary.writePage("index", "1");
-  await primary.writePage("index2", "2");
-  await secondary.writePage("index3", "3");
-  await secondary.writePage("index4", "4");
-  await syncPages();
+  await primary.writeFile("index", "string", "1");
+  await primary.writeFile("index2", "string", "2");
+  await secondary.writeFile("index3", "string", "3");
+  await secondary.writeFile("index4", "string", "4");
+  await syncFiles();
 
-  expect((await primary.listPages()).size).toBe(5);
-  expect((await secondary.listPages()).size).toBe(5);
+  assertEquals((await primary.fetchFileList()).files.length, 5);
+  assertEquals((await secondary.fetchFileList()).files.length, 5);
 
-  expect(await syncPages()).toBe(0);
+  assertEquals(await syncFiles(), 0);
 
   console.log("Deleting pages");
   // Delete some pages
-  await primary.deletePage("index");
-  await primary.deletePage("index3");
+  await primary.deleteFile("index");
+  await primary.deleteFile("index3");
 
-  console.log("Pages", await primary.listPages());
-  console.log("Trash", await primary.listTrash());
+  const { files, trashFiles } = await primary.seggregateFileList();
+  console.log("Pages", files);
+  console.log("Trash", trashFiles);
 
-  await syncPages();
+  await syncFiles();
 
-  expect((await primary.listPages()).size).toBe(3);
-  expect((await secondary.listPages()).size).toBe(3);
+  assertEquals((await primary.fetchFileList()).files.length, 3);
+  assertEquals((await secondary.fetchFileList()).files.length, 3);
 
   // No-op
-  expect(await syncPages()).toBe(0);
+  assertEquals(await syncFiles(), 0);
 
-  await secondary.deletePage("index4");
-  await primary.deletePage("index2");
+  await secondary.deleteFile("index4");
+  await primary.deleteFile("index2");
 
-  await syncPages();
+  await syncFiles();
 
   // Just "test" left
-  expect((await primary.listPages()).size).toBe(1);
-  expect((await secondary.listPages()).size).toBe(1);
+  assertEquals((await primary.fetchFileList()).files.length, 1);
+  assertEquals((await secondary.fetchFileList()).files.length, 1);
 
   // No-op
-  expect(await syncPages()).toBe(0);
+  assertEquals(await syncFiles(), 0);
 
-  await secondary.writePage("index", "I'm back");
+  await secondary.writeFile("index", "string", "I'm back");
 
-  await syncPages();
+  await syncFiles();
 
-  expect((await primary.readPage("index")).text).toBe("I'm back");
+  assertEquals((await primary.readFile("index", "string")).data, "I'm back");
 
   // Cause a conflict
-  await primary.writePage("index", "Hello 1");
-  await secondary.writePage("index", "Hello 2");
+  await primary.writeFile("index", "string", "Hello 1");
+  await secondary.writeFile("index", "string", "Hello 2");
 
-  await syncPages(SpaceSync.primaryConflictResolver(primary, secondary));
+  await syncFiles(SpaceSync.primaryConflictResolver(primary, secondary));
 
   // Sync conflicting copy back
-  await syncPages();
+  await syncFiles();
 
   // Verify that primary won
-  expect((await primary.readPage("index")).text).toBe("Hello 1");
-  expect((await secondary.readPage("index")).text).toBe("Hello 1");
+  assertEquals((await primary.readFile("index", "string")).data, "Hello 1");
+  assertEquals((await secondary.readFile("index", "string")).data, "Hello 1");
 
   // test + index + index.conflicting copy
-  expect((await primary.listPages()).size).toBe(3);
-  expect((await secondary.listPages()).size).toBe(3);
+  assertEquals((await primary.fetchFileList()).files.length, 3);
+  assertEquals((await secondary.fetchFileList()).files.length, 3);
 
-  async function syncPages(
+  async function syncFiles(
     conflictResolver?: (
-      pageMeta1: PageMeta,
-      pageMeta2: PageMeta,
+      fileMeta1: FileMeta,
+      fileMeta2: FileMeta,
     ) => Promise<void>,
   ): Promise<number> {
     // Awesome practice: adding sleeps to fix issues!
@@ -111,7 +124,7 @@ Deno.test("Test store", async () => {
   }
 });
 
-function sleep(ms: number = 5): Promise<void> {
+function sleep(ms = 5): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
