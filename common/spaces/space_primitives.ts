@@ -21,7 +21,7 @@ export interface SpacePrimitives {
     // Used by sync
     timestamp?: number,
   ): Promise<FileMeta>;
-  deleteFile(name: string, timestamp?: number): Promise<void>;
+  deleteFile(name: string): Promise<void>;
 
   // Plugs
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any>;

@@ -113,12 +113,12 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
   }
 
-  deleteFile(name: string, timestamp?: number): Promise<void> {
-    const result = this.performOperation("deleteFile", name, timestamp);
+  deleteFile(name: string): Promise<void> {
+    const result = this.performOperation("deleteFile", name);
     if (result) {
       return result;
     }
-    return this.wrapped.deleteFile(name, timestamp);
+    return this.wrapped.deleteFile(name);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {

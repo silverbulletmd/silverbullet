@@ -20,7 +20,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   private initialPageListLoad = true;
   private saving = false;
 
-  constructor(private space: SpacePrimitives) {
+  constructor(private spacePrimitives: SpacePrimitives) {
     super();
   }
 
@@ -81,7 +81,7 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   async deletePage(name: string): Promise<void> {
     await this.getPageMeta(name); // Check if page exists, if not throws Error
-    await this.space.deleteFile(`${name}.md`);
+    await this.spacePrimitives.deleteFile(`${name}.md`);
 
     this.pageMetaCache.delete(name);
     this.emit("pageDeleted", name);
@@ -91,7 +91,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   async getPageMeta(name: string): Promise<PageMeta> {
     const oldMeta = this.pageMetaCache.get(name);
     const newMeta = fileMetaToPageMeta(
-      await this.space.getFileMeta(`${name}.md`),
+      await this.spacePrimitives.getFileMeta(`${name}.md`),
     );
     if (oldMeta) {
       if (oldMeta.lastModified !== newMeta.lastModified) {
@@ -108,7 +108,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     name: string,
     args: any[],
   ): Promise<any> {
-    return this.space.invokeFunction(plug, env, name, args);
+    return this.spacePrimitives.invokeFunction(plug, env, name, args);
   }
 
   listPages(): Set<PageMeta> {
@@ -116,18 +116,21 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async listPlugs(): Promise<string[]> {
-    const { files } = await this.space.fetchFileList();
+    const { files } = await this.spacePrimitives.fetchFileList();
     return files
       .filter((fileMeta) => fileMeta.name.endsWith(".plug.json"))
       .map((fileMeta) => fileMeta.name);
   }
 
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.space.proxySyscall(plug, name, args);
+    return this.spacePrimitives.proxySyscall(plug, name, args);
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    const pageData = await this.space.readFile(`${name}.md`, "string");
+    const pageData = await this.spacePrimitives.readFile(
+      `${name}.md`,
+      "string",
+    );
     const previousMeta = this.pageMetaCache.get(name);
     const newMeta = fileMetaToPageMeta(pageData.meta);
     if (previousMeta) {
@@ -159,7 +162,12 @@ export class Space extends EventEmitter<SpaceEvents> {
     try {
       this.saving = true;
       const pageMeta = fileMetaToPageMeta(
-        await this.space.writeFile(`${name}.md`, "string", text, selfUpdate),
+        await this.spacePrimitives.writeFile(
+          `${name}.md`,
+          "string",
+          text,
+          selfUpdate,
+        ),
       );
       if (!selfUpdate) {
         this.emit("pageChanged", pageMeta);
@@ -171,14 +179,18 @@ export class Space extends EventEmitter<SpaceEvents> {
   }
 
   async fetchPageList(): Promise<PageMeta[]> {
-    return (await this.space.fetchFileList()).files
-      .filter((fileMeta) => fileMeta.name.endsWith(".md"))
+    return (await this.spacePrimitives.fetchFileList()).files
+      // Filter on two criteria: not in trash and ends with .md
+      .filter((fileMeta) =>
+        !fileMeta.name.startsWith("_trash/") && fileMeta.name.endsWith(".md")
+      )
       .map(fileMetaToPageMeta);
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
-    return (await this.space.fetchFileList()).files.filter(
+    return (await this.spacePrimitives.fetchFileList()).files.filter(
       (fileMeta) =>
+        !fileMeta.name.startsWith("_trash/") &&
         !fileMeta.name.endsWith(".md") &&
         !fileMeta.name.endsWith(".plug.json") &&
         fileMeta.name !== "data.db",
@@ -195,11 +207,11 @@ export class Space extends EventEmitter<SpaceEvents> {
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: AttachmentMeta }> {
-    return this.space.readFile(name, encoding);
+    return this.spacePrimitives.readFile(name, encoding);
   }
 
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    return this.space.getFileMeta(name);
+    return this.spacePrimitives.getFileMeta(name);
   }
 
   writeAttachment(
@@ -208,11 +220,11 @@ export class Space extends EventEmitter<SpaceEvents> {
     data: FileData,
     selfUpdate?: boolean | undefined,
   ): Promise<AttachmentMeta> {
-    return this.space.writeFile(name, encoding, data, selfUpdate);
+    return this.spacePrimitives.writeFile(name, encoding, data, selfUpdate);
   }
 
   deleteAttachment(name: string): Promise<void> {
-    return this.space.deleteFile(name);
+    return this.spacePrimitives.deleteFile(name);
   }
 
   private metaCacher(name: string, meta: PageMeta): PageMeta {

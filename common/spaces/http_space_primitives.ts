@@ -106,12 +106,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return newMeta;
   }
 
-  async deleteFile(name: string, timestamp?: number): Promise<void> {
+  async deleteFile(name: string): Promise<void> {
     const req = await this.authenticatedFetch(`${this.fsUrl}/${name}`, {
       method: "DELETE",
-      headers: {
-        "X-Timestamp": timestamp?.toString() || undefined,
-      },
     });
     if (req.status !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);

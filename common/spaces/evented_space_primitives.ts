@@ -64,17 +64,20 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           throw Error("Data urls not supported in this context");
       }
 
-      this.eventHook
-        .dispatchEvent("page:saved", pageName)
-        .then(() => {
-          return this.eventHook.dispatchEvent("page:index_text", {
-            name: pageName,
-            text,
+      if (!name.startsWith("_trash/")) {
+        // Only trigger indexing events outside of the trash
+        this.eventHook
+          .dispatchEvent("page:saved", pageName)
+          .then(() => {
+            return this.eventHook.dispatchEvent("page:index_text", {
+              name: pageName,
+              text,
+            });
+          })
+          .catch((e) => {
+            console.error("Error dispatching page:saved event", e);
           });
-        })
-        .catch((e) => {
-          console.error("Error dispatching page:saved event", e);
-        });
+      }
     }
     return newMeta;
   }
@@ -83,11 +86,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return this.wrapped.getFileMeta(name);
   }
 
-  async deleteFile(name: string, timestamp?: number): Promise<void> {
+  async deleteFile(name: string): Promise<void> {
     if (name.endsWith(".md")) {
       const pageName = name.substring(0, name.length - 3);
       await this.eventHook.dispatchEvent("page:deleted", pageName);
     }
-    return this.wrapped.deleteFile(name, timestamp);
+    return this.wrapped.deleteFile(name);
   }
 }

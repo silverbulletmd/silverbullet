@@ -44,7 +44,7 @@ export function serveCommand(options: any, folder: string) {
     console.log("Starting sync");
     const syncSpace = new TrashSpacePrimitives(
       new HttpSpacePrimitives(syncUrl),
-      "_trash",
+      "_trash/",
     );
     let localTimestamp = 0, remoteTimestamp = 0;
     try {

@@ -59,8 +59,8 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
   }
 
-  deleteFile(name: string, timestamp?: number): Promise<void> {
-    return this.wrapped.deleteFile(name, timestamp);
+  deleteFile(name: string): Promise<void> {
+    return this.wrapped.deleteFile(name);
   }
 
   // deno-lint-ignore no-explicit-any

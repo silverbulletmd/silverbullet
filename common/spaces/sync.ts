@@ -51,6 +51,7 @@ export class SpaceSync {
   ): Promise<number> {
     let syncOps = 0;
 
+    console.log("Sync: Fetching primary file list");
     const {
       files: primaryAllPages,
       trashFiles: primaryAllTrash,
@@ -59,6 +60,7 @@ export class SpaceSync {
     const allFilesPrimary = new Map(
       this.syncCandidates(primaryAllPages).map((p) => [p.name, p]),
     );
+    console.log("Sync: Fetching secondary file list");
     const {
       files: secondaryAllFilesSet,
       trashFiles: secondaryAllTrash,
@@ -81,6 +83,7 @@ export class SpaceSync {
         .map((p) => [p.name, p]),
     );
 
+    console.log("Sync: iterating over primary file list");
     // Iterate over all pages on the primary first
     for (const [name, fileMetaPrimary] of allFilesPrimary.entries()) {
       const fileMetaSecondary = allFilesSecondary.get(fileMetaPrimary.name);
@@ -129,7 +132,7 @@ export class SpaceSync {
               "arraybuffer",
               fileData.data,
               false,
-              secondarySyncTimestamp,
+              secondarySyncTimestamp, // Setting this to sync time to have a locally non-skewed timestamp
             );
             syncOps++;
           }
@@ -143,7 +146,7 @@ export class SpaceSync {
             "arraybuffer",
             fileData.data,
             false,
-            primarySyncTimestamp,
+            primarySyncTimestamp, // Setting this to sync time to have a locally non-skewed timestamp
           );
           syncOps++;
         } else {
@@ -152,6 +155,7 @@ export class SpaceSync {
       }
     }
 
+    console.log("Sync: iterating over secondary file list");
     // Now do a simplified version in reverse, only detecting new pages
     for (const [name, fileMetaSecondary] of allFilesSecondary.entries()) {
       if (!allFilesPrimary.has(fileMetaSecondary.name)) {
@@ -175,6 +179,7 @@ export class SpaceSync {
       }
     }
 
+    console.log("Sync: Processing primary trash");
     // And finally, let's trash some pages
     for (const fileToDelete of allTrashPrimary.values()) {
       console.log("Deleting", fileToDelete.name, "on secondary");
@@ -188,6 +193,8 @@ export class SpaceSync {
         console.log("Page already gone", e.message);
       }
     }
+
+    console.log("Sync: Processing secondary trash");
 
     for (const fileToDelete of allTrashSecondary.values()) {
       console.log("Deleting", fileToDelete.name, "on primary");

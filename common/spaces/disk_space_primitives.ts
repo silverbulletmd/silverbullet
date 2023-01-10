@@ -15,7 +15,7 @@ function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
 }
 
-const excludedFiles = ["data.db", "sync.json"];
+const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;

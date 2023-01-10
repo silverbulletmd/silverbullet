@@ -5,8 +5,6 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { SpaceSystem } from "./space_system.ts";
 import { ensureAndLoadSettings } from "../common/util.ts";
-import { TrashSpacePrimitives } from "../common/spaces/trash_space_primitives.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -291,14 +289,10 @@ export class HttpServer {
           // console.error("Options failed", err);
         }
       })
-      .delete("\/(.+)", async ({ request, response, params }) => {
+      .delete("\/(.+)", async ({ response, params }) => {
         const name = params[0];
         try {
-          const timestamp = request.headers.get("X-Timestamp");
-          await spacePrimitives.deleteFile(
-            name,
-            timestamp ? +timestamp : undefined,
-          );
+          await spacePrimitives.deleteFile(name);
           response.status = 200;
           response.body = "OK";
         } catch (e: any) {

@@ -26,9 +26,9 @@ Deno.test("Test store", async () => {
 
   // Write one page to primary
   await primary.writeFile("index", "string", "Hello");
-  assertEquals((await secondary.fetchFileList()).files.length, 0);
+  assertEquals((await secondary.seggregateFileList()).files.length, 0);
   await syncFiles(conflictResolver);
-  assertEquals((await secondary.fetchFileList()).files.length, 1);
+  assertEquals((await secondary.seggregateFileList()).files.length, 1);
   assertEquals((await secondary.readFile("index", "string")).data, "Hello");
 
   // Should be a no-op
@@ -41,8 +41,8 @@ Deno.test("Test store", async () => {
   // And sync it
   await syncFiles();
 
-  assertEquals((await primary.fetchFileList()).files.length, 2);
-  assertEquals((await secondary.fetchFileList()).files.length, 2);
+  assertEquals((await primary.seggregateFileList()).files.length, 2);
+  assertEquals((await secondary.seggregateFileList()).files.length, 2);
 
   assertEquals((await primary.readFile("index", "string")).data, "Hello!!");
 
@@ -53,8 +53,8 @@ Deno.test("Test store", async () => {
   await secondary.writeFile("index4", "string", "4");
   await syncFiles();
 
-  assertEquals((await primary.fetchFileList()).files.length, 5);
-  assertEquals((await secondary.fetchFileList()).files.length, 5);
+  assertEquals((await primary.seggregateFileList()).files.length, 5);
+  assertEquals((await secondary.seggregateFileList()).files.length, 5);
 
   assertEquals(await syncFiles(), 0);
 
@@ -69,8 +69,8 @@ Deno.test("Test store", async () => {
 
   await syncFiles();
 
-  assertEquals((await primary.fetchFileList()).files.length, 3);
-  assertEquals((await secondary.fetchFileList()).files.length, 3);
+  assertEquals((await primary.seggregateFileList()).files.length, 3);
+  assertEquals((await secondary.seggregateFileList()).files.length, 3);
 
   // No-op
   assertEquals(await syncFiles(), 0);
@@ -81,8 +81,8 @@ Deno.test("Test store", async () => {
   await syncFiles();
 
   // Just "test" left
-  assertEquals((await primary.fetchFileList()).files.length, 1);
-  assertEquals((await secondary.fetchFileList()).files.length, 1);
+  assertEquals((await primary.seggregateFileList()).files.length, 1);
+  assertEquals((await secondary.seggregateFileList()).files.length, 1);
 
   // No-op
   assertEquals(await syncFiles(), 0);
@@ -107,8 +107,11 @@ Deno.test("Test store", async () => {
   assertEquals((await secondary.readFile("index", "string")).data, "Hello 1");
 
   // test + index + index.conflicting copy
-  assertEquals((await primary.fetchFileList()).files.length, 3);
-  assertEquals((await secondary.fetchFileList()).files.length, 3);
+  assertEquals((await primary.seggregateFileList()).files.length, 3);
+  assertEquals((await secondary.seggregateFileList()).files.length, 3);
+
+  await Deno.remove(primaryPath, { recursive: true });
+  await Deno.remove(secondaryPath, { recursive: true });
 
   async function syncFiles(
     conflictResolver?: (

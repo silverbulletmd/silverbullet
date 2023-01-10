@@ -10,23 +10,22 @@ export class TrashSpacePrimitives implements SpacePrimitives {
   ) {
   }
 
-  // Fetch all files, but omit the trash — hide trash for regular consumers
   async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
-    const { files, timestamp } = await this.seggregateFileList();
+    const { files, timestamp } = await this.wrapped.fetchFileList();
     return { files, timestamp: timestamp + this.timeskew };
   }
 
   public async seggregateFileList(): Promise<
     { files: FileMeta[]; trashFiles: FileMeta[]; timestamp: number }
   > {
-    const { files, timestamp } = await this.wrapped.fetchFileList();
+    const { files, timestamp } = await this.fetchFileList();
     return {
       files: files.filter((f) => !f.name.startsWith(this.prefix)),
       trashFiles: files.filter((f) => f.name.startsWith(this.prefix)).map(
         // Chop off the prefix
         (f) => ({ ...f, name: f.name.substring(this.prefix.length) }),
       ),
-      timestamp: timestamp + this.timeskew,
+      timestamp,
     };
   }
 
@@ -59,7 +58,7 @@ export class TrashSpacePrimitives implements SpacePrimitives {
 
   async deleteFile(
     name: string,
-    timestamp?: number | undefined,
+    timestamp?: number,
   ): Promise<void> {
     const fileData = await this.readFile(name, "arraybuffer");
     // Move to trash
@@ -68,12 +67,12 @@ export class TrashSpacePrimitives implements SpacePrimitives {
       "arraybuffer",
       fileData.data,
       true,
-      // Dated properly
       timestamp,
     );
 
     return this.wrapped.deleteFile(name);
   }
+
   proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
     return this.wrapped.proxySyscall(plug, name, args);
   }
