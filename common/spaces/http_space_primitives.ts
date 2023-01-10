@@ -8,18 +8,27 @@ import {
 import { mime } from "../../plugos/deps.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
-  fsUrl: string;
+  private fsUrl: string;
   private plugUrl: string;
 
-  constructor(url: string) {
+  constructor(url: string, readonly user?: string, readonly password?: string) {
     this.fsUrl = url + "/fs";
     this.plugUrl = url + "/plug";
   }
 
   private async authenticatedFetch(
     url: string,
-    options: any,
+    options: Record<string, any>,
   ): Promise<Response> {
+    if (this.user && this.password) {
+      // Explicitly set an auth cookie
+      if (!options.headers) {
+        options.headers = {};
+      }
+      options.headers["cookie"] = `auth=${
+        btoa(`${this.user}:${this.password}`)
+      }`;
+    }
     const result = await fetch(url, options);
     if (result.status === 401) {
       // Invalid credentials, reloading the browser should trigger authentication
@@ -29,15 +38,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return result;
   }
 
-  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
+  async fetchFileList(): Promise<FileMeta[]> {
     const req = await this.authenticatedFetch(this.fsUrl, {
       method: "GET",
     });
 
-    return {
-      files: await req.json(),
-      timestamp: +req.headers.get("X-Timestamp")!,
-    };
+    return req.json();
   }
 
   async readFile(
@@ -80,8 +86,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    _selfUpdate?: boolean,
-    timestamp?: number,
   ): Promise<FileMeta> {
     let body: any = null;
 
@@ -98,7 +102,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       method: "PUT",
       headers: {
         "Content-type": "application/octet-stream",
-        "X-Timestamp": timestamp?.toString() || undefined,
       },
       body,
     });

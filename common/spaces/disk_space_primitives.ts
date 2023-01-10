@@ -92,38 +92,27 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    _selfUpdate?: boolean,
-    timestamp?: number,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await Deno.mkdir(path.dirname(localPath), { recursive: true });
 
-      const file = await Deno.open(localPath, {
-        write: true,
-        create: true,
-        truncate: true,
-      });
-
       // Actually write the file
       switch (encoding) {
         case "string":
-          await Deno.write(file.rid, new TextEncoder().encode(data as string));
+          await Deno.writeTextFile(`${localPath}`, data as string);
           break;
         case "dataurl":
-          await Deno.write(file.rid, base64DecodeDataUrl(data as string));
+          await Deno.writeFile(
+            localPath,
+            base64DecodeDataUrl(data as string),
+          );
           break;
         case "arraybuffer":
-          await Deno.write(file.rid, new Uint8Array(data as ArrayBuffer));
+          await Deno.writeFile(localPath, new Uint8Array(data as ArrayBuffer));
           break;
       }
-
-      if (timestamp) {
-        console.log("Seting mtime to", new Date(timestamp));
-        await Deno.futime(file.rid, new Date(), new Date(timestamp));
-      }
-      file.close();
 
       // Fetch new metadata
       const s = await Deno.stat(localPath);
@@ -162,7 +151,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     await Deno.remove(localPath);
   }
 
-  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
+  async fetchFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
     for await (
       const file of walk(this.rootPath, {
@@ -198,10 +187,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       }
     }
 
-    return {
-      files: allFiles,
-      timestamp: Date.now(),
-    };
+    return allFiles;
   }
 
   // Plugs

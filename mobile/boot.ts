@@ -75,7 +75,10 @@ safeRun(async () => {
   const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
 
-  const settings = await ensureAndLoadSettings(serverSpace) as BuiltinSettings;
+  const settings = await ensureAndLoadSettings(
+    serverSpace,
+    false,
+  ) as BuiltinSettings;
 
   // Register some mobile-specific syscall implementations
   system.registerSyscalls(

@@ -3,8 +3,6 @@ import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
 import { assertEquals } from "../../test_deps.ts";
 
 Deno.test("Test store", async () => {
-  const skew = 1000 * 60 * 60 * 24 * 7;
-
   const primaryPath = await Deno.makeTempDir();
   const secondaryPath = await Deno.makeTempDir();
   console.log("Primary", primaryPath);
@@ -16,10 +14,10 @@ Deno.test("Test store", async () => {
 
   // Write one page to primary
   await primary.writeFile("index", "string", "Hello");
-  assertEquals((await secondary.fetchFileList()).files.length, 0);
+  assertEquals((await secondary.fetchFileList()).length, 0);
   console.log("Initial sync ops", await doSync());
 
-  assertEquals((await secondary.fetchFileList()).files.length, 1);
+  assertEquals((await secondary.fetchFileList()).length, 1);
   assertEquals((await secondary.readFile("index", "string")).data, "Hello");
 
   // Should be a no-op
@@ -32,8 +30,8 @@ Deno.test("Test store", async () => {
   // And sync it
   await doSync();
 
-  assertEquals((await primary.fetchFileList()).files.length, 2);
-  assertEquals((await secondary.fetchFileList()).files.length, 2);
+  assertEquals((await primary.fetchFileList()).length, 2);
+  assertEquals((await secondary.fetchFileList()).length, 2);
 
   assertEquals((await primary.readFile("index", "string")).data, "Hello!!");
 
@@ -44,8 +42,8 @@ Deno.test("Test store", async () => {
   await secondary.writeFile("index4", "string", "4");
   await doSync();
 
-  assertEquals((await primary.fetchFileList()).files.length, 5);
-  assertEquals((await secondary.fetchFileList()).files.length, 5);
+  assertEquals((await primary.fetchFileList()).length, 5);
+  assertEquals((await secondary.fetchFileList()).length, 5);
 
   assertEquals(await doSync(), 0);
 
@@ -56,8 +54,8 @@ Deno.test("Test store", async () => {
 
   await doSync();
 
-  assertEquals((await primary.fetchFileList()).files.length, 3);
-  assertEquals((await secondary.fetchFileList()).files.length, 3);
+  assertEquals((await primary.fetchFileList()).length, 3);
+  assertEquals((await secondary.fetchFileList()).length, 3);
 
   // No-op
   assertEquals(await doSync(), 0);
@@ -68,8 +66,8 @@ Deno.test("Test store", async () => {
   await doSync();
 
   // Just "test" left
-  assertEquals((await primary.fetchFileList()).files.length, 1);
-  assertEquals((await secondary.fetchFileList()).files.length, 1);
+  assertEquals((await primary.fetchFileList()).length, 1);
+  assertEquals((await secondary.fetchFileList()).length, 1);
 
   // No-op
   assertEquals(await doSync(), 0);
@@ -95,8 +93,8 @@ Deno.test("Test store", async () => {
   assertEquals((await secondary.readFile("index", "string")).data, "Hello 1");
 
   // test + index + index.conflicting copy
-  assertEquals((await primary.fetchFileList()).files.length, 3);
-  assertEquals((await secondary.fetchFileList()).files.length, 3);
+  assertEquals((await primary.fetchFileList()).length, 3);
+  assertEquals((await secondary.fetchFileList()).length, 3);
 
   console.log("Bringing a third device in the mix");
 

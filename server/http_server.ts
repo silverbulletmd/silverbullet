@@ -210,8 +210,7 @@ export class HttpServer {
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
-      const { files, timestamp } = await spacePrimitives.fetchFileList();
-      response.headers.set("X-Timestamp", "" + timestamp);
+      const files = await spacePrimitives.fetchFileList();
       response.body = JSON.stringify(files);
     });
 
@@ -254,13 +253,10 @@ export class HttpServer {
         console.log("Saving file", name);
 
         try {
-          const timestamp = request.headers.get("X-Timestamp");
           const meta = await spacePrimitives.writeFile(
             name,
             "arraybuffer",
             await request.body().value,
-            false,
-            timestamp ? +timestamp : undefined,
           );
           response.status = 200;
           response.headers.set("Content-Type", meta.contentType);

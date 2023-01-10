@@ -1,21 +1,20 @@
 import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
-export type SyncStatusItem = {
-  tagPrimary?: number;
-  tagSecondary?: number;
-};
-
 type SyncHash = number;
 
+// Tuple where the first value represents a lastModified timestamp for the primary space
+// and the second item the lastModified value of the secondary space
+export type SyncStatusItem = [SyncHash, SyncHash];
+
+// Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
 export class SpaceSync {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    private status: Map<string, SyncStatusItem>,
+    readonly snapshot: Map<string, SyncStatusItem>,
   ) {}
 
-  // Inspired by https://unterwaditzer.net/2016/sync-algorithm.html
   async syncFiles(
     conflictResolver?: (
       name: string,
@@ -26,12 +25,12 @@ export class SpaceSync {
     let operations = 0;
     console.log("Fetching snapshot from primary");
     const primaryAllPages = this.syncCandidates(
-      (await this.primary.fetchFileList()).files,
+      await this.primary.fetchFileList(),
     );
 
     console.log("Fetching snapshot from secondary");
     const secondaryAllPages = this.syncCandidates(
-      (await this.secondary.fetchFileList()).files,
+      await this.secondary.fetchFileList(),
     );
 
     const primaryFileMap = new Map<string, SyncHash>(
@@ -42,7 +41,7 @@ export class SpaceSync {
     );
 
     const allFilesToProcess = new Set([
-      ...this.status.keys(),
+      ...this.snapshot.keys(),
       ...primaryFileMap.keys(),
       ...secondaryFileMap.keys(),
     ]);
@@ -51,7 +50,7 @@ export class SpaceSync {
     for (const name of allFilesToProcess) {
       if (
         primaryFileMap.has(name) && !secondaryFileMap.has(name) &&
-        !this.status.has(name)
+        !this.snapshot.has(name)
       ) {
         // New file, created on primary, copy from primary to secondary
         console.log("New file created on primary, copying to secondary", name);
@@ -61,14 +60,14 @@ export class SpaceSync {
           "arraybuffer",
           data,
         );
-        this.status.set(name, {
-          tagPrimary: primaryFileMap.get(name),
-          tagSecondary: writtenMeta.lastModified,
-        });
+        this.snapshot.set(name, [
+          primaryFileMap.get(name)!,
+          writtenMeta.lastModified,
+        ]);
         operations++;
       } else if (
         secondaryFileMap.has(name) && !primaryFileMap.has(name) &&
-        !this.status.has(name)
+        !this.snapshot.has(name)
       ) {
         // New file, created on secondary, copy from secondary to primary
         console.log(
@@ -81,55 +80,55 @@ export class SpaceSync {
           "arraybuffer",
           data,
         );
-        this.status.set(name, {
-          tagPrimary: writtenMeta.lastModified,
-          tagSecondary: secondaryFileMap.get(name),
-        });
+        this.snapshot.set(name, [
+          writtenMeta.lastModified,
+          secondaryFileMap.get(name)!,
+        ]);
         operations++;
       } else if (
-        primaryFileMap.has(name) && this.status.has(name) &&
+        primaryFileMap.has(name) && this.snapshot.has(name) &&
         !secondaryFileMap.has(name)
       ) {
         // File deleted on B
         console.log("File deleted on secondary, deleting from primary", name);
         await this.primary.deleteFile(name);
-        this.status.delete(name);
+        this.snapshot.delete(name);
         operations++;
       } else if (
-        secondaryFileMap.has(name) && this.status.has(name) &&
+        secondaryFileMap.has(name) && this.snapshot.has(name) &&
         !primaryFileMap.has(name)
       ) {
         // File deleted on A
         console.log("File deleted on primary, deleting from secondary", name);
         await this.secondary.deleteFile(name);
-        this.status.delete(name);
+        this.snapshot.delete(name);
         operations++;
       } else if (
         primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-        !this.status.has(name)
+        !this.snapshot.has(name)
       ) {
         console.log(
           "Both sides have file, but no status, adding to status",
           name,
         );
-        this.status.set(name, {
-          tagPrimary: primaryFileMap.get(name),
-          tagSecondary: secondaryFileMap.get(name),
-        });
+        this.snapshot.set(name, [
+          primaryFileMap.get(name)!,
+          secondaryFileMap.get(name)!,
+        ]);
         operations++;
       } else if (
-        this.status.has(name) && !primaryFileMap.has(name) &&
+        this.snapshot.has(name) && !primaryFileMap.has(name) &&
         !secondaryFileMap.has(name)
       ) {
         // File deleted on both sides, :shrug:
         console.log("File deleted on both ends, deleting from status", name);
-        this.status.delete(name);
+        this.snapshot.delete(name);
         operations++;
       } else if (
         primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-        this.status.get(name) &&
-        primaryFileMap.get(name) !== this.status.get(name)!.tagPrimary &&
-        secondaryFileMap.get(name) === this.status.get(name)!.tagSecondary
+        this.snapshot.get(name) &&
+        primaryFileMap.get(name) !== this.snapshot.get(name)![0] &&
+        secondaryFileMap.get(name) === this.snapshot.get(name)![1]
       ) {
         // File has changed on primary, but not secondary: copy from primary to secondary
         console.log("File changed on primary, copying to secondary", name);
@@ -139,16 +138,16 @@ export class SpaceSync {
           "arraybuffer",
           data,
         );
-        this.status.set(name, {
-          tagPrimary: primaryFileMap.get(name),
-          tagSecondary: writtenMeta.lastModified,
-        });
+        this.snapshot.set(name, [
+          primaryFileMap.get(name)!,
+          writtenMeta.lastModified,
+        ]);
         operations++;
       } else if (
         primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-        this.status.get(name) &&
-        secondaryFileMap.get(name) !== this.status.get(name)!.tagSecondary &&
-        primaryFileMap.get(name) === this.status.get(name)!.tagPrimary
+        this.snapshot.get(name) &&
+        secondaryFileMap.get(name) !== this.snapshot.get(name)![1] &&
+        primaryFileMap.get(name) === this.snapshot.get(name)![0]
       ) {
         // File has changed on secondary, but not primary: copy from secondary to primary
         const { data } = await this.secondary.readFile(name, "arraybuffer");
@@ -157,21 +156,21 @@ export class SpaceSync {
           "arraybuffer",
           data,
         );
-        this.status.set(name, {
-          tagPrimary: writtenMeta.lastModified,
-          tagSecondary: secondaryFileMap.get(name),
-        });
+        this.snapshot.set(name, [
+          writtenMeta.lastModified,
+          secondaryFileMap.get(name)!,
+        ]);
         operations++;
       } else if (
         primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-        this.status.get(name) &&
-        secondaryFileMap.get(name) !== this.status.get(name)!.tagSecondary &&
-        primaryFileMap.get(name) !== this.status.get(name)!.tagPrimary
+        this.snapshot.get(name) &&
+        secondaryFileMap.get(name) !== this.snapshot.get(name)![1] &&
+        primaryFileMap.get(name) !== this.snapshot.get(name)![0]
       ) {
         // File changed on both ends, CONFLICT!
         console.log("File changed on both ends, conflict!", name);
         if (conflictResolver) {
-          this.status.set(
+          this.snapshot.set(
             name,
             await conflictResolver(name, this.primary, this.secondary),
           );
@@ -219,13 +218,9 @@ export class SpaceSync {
       "arraybuffer",
       newFileData.data,
       true,
-      newFileData.meta.lastModified,
     );
 
-    return {
-      tagPrimary: pageMeta1.lastModified,
-      tagSecondary: writeMeta.lastModified,
-    };
+    return [pageMeta1.lastModified, writeMeta.lastModified];
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {

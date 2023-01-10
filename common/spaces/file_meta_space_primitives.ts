@@ -11,8 +11,8 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
   ) {
   }
 
-  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
-    const { files, timestamp } = await this.wrapped.fetchFileList();
+  async fetchFileList(): Promise<FileMeta[]> {
+    const files = await this.wrapped.fetchFileList();
     // Enrich the file list with custom meta data (for pages)
     const allFilesMap: Map<string, any> = new Map(
       files.map((fm) => [fm.name, fm]),
@@ -35,7 +35,7 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    return { files: [...allFilesMap.values()], timestamp };
+    return [...allFilesMap.values()];
   }
 
   readFile(
@@ -54,9 +54,8 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
-    timestamp?: number,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
   }
 
   deleteFile(name: string): Promise<void> {

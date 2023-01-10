@@ -5,7 +5,7 @@ export type FileEncoding = "string" | "arraybuffer" | "dataurl";
 export type FileData = ArrayBuffer | string;
 export interface SpacePrimitives {
   // Returns a list of file meta data as well as the timestamp of this snapshot
-  fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }>;
+  fetchFileList(): Promise<FileMeta[]>;
   readFile(
     name: string,
     encoding: FileEncoding,
@@ -17,9 +17,6 @@ export interface SpacePrimitives {
     data: FileData,
     // Used to decide whether or not to emit change events
     selfUpdate?: boolean,
-    // Timestamp should be persisted as lastModified date for this file
-    // Used by sync
-    timestamp?: number,
   ): Promise<FileMeta>;
   deleteFile(name: string): Promise<void>;
 

@@ -36,7 +36,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     return false;
   }
 
-  async fetchFileList(): Promise<{ files: FileMeta[]; timestamp: number }> {
+  async fetchFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
     for (const { plug, name, operation } of this.hook.spaceFunctions) {
       if (operation === "listFiles") {
@@ -49,14 +49,11 @@ export class PlugSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    const { files, timestamp } = await this.wrapped.fetchFileList();
+    const files = await this.wrapped.fetchFileList();
     for (const pm of files) {
       allFiles.push(pm);
     }
-    return {
-      files: allFiles,
-      timestamp,
-    };
+    return allFiles;
   }
 
   async readFile(
@@ -96,7 +93,6 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
-    timestamp?: number,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
@@ -104,13 +100,12 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       encoding,
       data,
       selfUpdate,
-      timestamp,
     );
     if (result) {
       return result;
     }
 
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate, timestamp);
+    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
   }
 
   deleteFile(name: string): Promise<void> {
