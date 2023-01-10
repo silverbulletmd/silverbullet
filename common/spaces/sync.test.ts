@@ -13,12 +13,10 @@ Deno.test("Test store", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new TrashSpacePrimitives(
     new DiskSpacePrimitives(primaryPath),
-    "_trash/",
     skew,
   );
   const secondary = new TrashSpacePrimitives(
     new DiskSpacePrimitives(secondaryPath),
-    "_trash/",
   );
   const sync = new SpaceSync(primary, secondary, 0, 0);
 
@@ -63,9 +61,9 @@ Deno.test("Test store", async () => {
   await primary.deleteFile("index");
   await primary.deleteFile("index3");
 
-  const { files, trashFiles } = await primary.seggregateFileList();
-  console.log("Pages", files);
-  console.log("Trash", trashFiles);
+  // const { files, trashFiles } = await primary.seggregateFileList();
+  // console.log("Pages", files);
+  // console.log("Trash", trashFiles);
 
   await syncFiles();
 
@@ -110,8 +108,24 @@ Deno.test("Test store", async () => {
   assertEquals((await primary.seggregateFileList()).files.length, 3);
   assertEquals((await secondary.seggregateFileList()).files.length, 3);
 
+  console.log("Bringing a third device in the mix");
+
+  const ternaryPath = await Deno.makeTempDir();
+
+  console.log("Ternary", ternaryPath);
+
+  const ternary = new TrashSpacePrimitives(
+    new DiskSpacePrimitives(ternaryPath),
+    -skew,
+  );
+  const sync2 = new SpaceSync(secondary, ternary, 0, 0);
+  console.log("N ops", await sync2.syncFiles());
+  await sleep(2);
+  assertEquals(await sync2.syncFiles(), 0);
+
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });
+  await Deno.remove(ternaryPath, { recursive: true });
 
   async function syncFiles(
     conflictResolver?: (

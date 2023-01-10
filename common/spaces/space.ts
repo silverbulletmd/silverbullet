@@ -1,5 +1,5 @@
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
-import { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
+import { AttachmentMeta, FileMeta, PageMeta, trashPrefix } from "../types.ts";
 import { EventEmitter } from "../../plugos/event.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { plugPrefix } from "./constants.ts";
@@ -182,7 +182,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     return (await this.spacePrimitives.fetchFileList()).files
       // Filter on two criteria: not in trash and ends with .md
       .filter((fileMeta) =>
-        !fileMeta.name.startsWith("_trash/") && fileMeta.name.endsWith(".md")
+        !fileMeta.name.startsWith(trashPrefix) && fileMeta.name.endsWith(".md")
       )
       .map(fileMetaToPageMeta);
   }
@@ -190,7 +190,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
     return (await this.spacePrimitives.fetchFileList()).files.filter(
       (fileMeta) =>
-        !fileMeta.name.startsWith("_trash/") &&
+        !fileMeta.name.startsWith(trashPrefix) &&
         !fileMeta.name.endsWith(".md") &&
         !fileMeta.name.endsWith(".plug.json") &&
         fileMeta.name !== "data.db",

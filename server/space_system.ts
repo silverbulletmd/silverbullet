@@ -93,7 +93,6 @@ export class SpaceSystem {
           ),
           indexSyscalls,
         ),
-        "_trash/",
       );
       this.space = new Space(this.spacePrimitives);
     } catch (e: any) {

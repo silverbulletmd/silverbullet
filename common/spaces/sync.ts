@@ -16,21 +16,25 @@ export class SpaceSync {
     secondary: SpacePrimitives,
   ): (fileMeta1: FileMeta, fileMeta2: FileMeta) => Promise<void> {
     return async (pageMeta1, pageMeta2) => {
-      const pageName = pageMeta1.name;
-      const revisionPageName =
-        `${pageName}.conflicted.${pageMeta2.lastModified}`;
+      const fileName = pageMeta1.name;
+      const filePieces = fileName.split(".");
+      const fileNameBase = filePieces.slice(0, -1).join(".");
+      const fileNameExt = filePieces[filePieces.length - 1];
+      const revisionFileName = filePieces.length === 1
+        ? `${fileName}.conflicted.${pageMeta2.lastModified}`
+        : `${fileNameBase}.conflicted.${pageMeta2.lastModified}.${fileNameExt}`;
       // Copy secondary to conflict copy
-      const oldFileData = await secondary.readFile(pageName, "arraybuffer");
+      const oldFileData = await secondary.readFile(fileName, "arraybuffer");
       await secondary.writeFile(
-        revisionPageName,
+        revisionFileName,
         "arraybuffer",
         oldFileData.data,
       );
 
       // Write replacement on top
-      const newFileData = await primary.readFile(pageName, "arraybuffer");
+      const newFileData = await primary.readFile(fileName, "arraybuffer");
       await secondary.writeFile(
-        pageName,
+        fileName,
         "arraybuffer",
         newFileData.data,
         true,
@@ -125,6 +129,8 @@ export class SpaceSync {
               "Changed page on primary",
               name,
               "syncing to secondary",
+              new Date(fileMetaPrimary.lastModified),
+              new Date(this.primaryLastSync),
             );
             const fileData = await this.primary.readFile(name, "arraybuffer");
             await this.secondary.writeFile(
@@ -190,7 +196,7 @@ export class SpaceSync {
         );
         syncOps++;
       } catch (e: any) {
-        console.log("Page already gone", e.message);
+        console.log("File already gone", e.message);
       }
     }
 

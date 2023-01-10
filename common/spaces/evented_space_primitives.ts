@@ -1,7 +1,7 @@
 import { EventHook } from "../../plugos/hooks/event.ts";
 import { Plug } from "../../plugos/plug.ts";
 
-import { FileMeta } from "../types.ts";
+import { FileMeta, trashPrefix } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
@@ -64,7 +64,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           throw Error("Data urls not supported in this context");
       }
 
-      if (!name.startsWith("_trash/")) {
+      if (!name.startsWith(trashPrefix)) {
         // Only trigger indexing events outside of the trash
         this.eventHook
           .dispatchEvent("page:saved", pageName)
