@@ -11,7 +11,13 @@ export type SyncEndpoint = {
 // returns a new sync status to persist
 export function sync(
   endpoint: SyncEndpoint,
-  syncStatus: Record<string, SyncStatusItem>,
-): Promise<Record<string, SyncStatusItem>> {
-  return syscall("sync.sync", endpoint, syncStatus);
+  snapshot: Record<string, SyncStatusItem>,
+): Promise<
+  {
+    snapshot: Record<string, SyncStatusItem>;
+    operations: number;
+    error?: string;
+  }
+> {
+  return syscall("sync.sync", endpoint, snapshot);
 }

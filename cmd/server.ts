@@ -9,7 +9,6 @@ export function serveCommand(options: any, folder: string) {
   const pagesPath = path.resolve(Deno.cwd(), folder);
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
-  console.log("Options", options);
   const syncUrl: string | undefined = options.sync;
   const bareMode = options.bare;
 

@@ -96,6 +96,16 @@ Deno.test("Test store", async () => {
   assertEquals((await primary.fetchFileList()).length, 3);
   assertEquals((await secondary.fetchFileList()).length, 3);
 
+  // Introducing a fake conflict (same content, so not really conflicting)
+  await primary.writeFile("index", "string", "Hello 1");
+  await secondary.writeFile("index", "string", "Hello 1");
+
+  await doSync();
+  await doSync();
+
+  // test + index + previous index.conflicting copy but nothing more
+  assertEquals((await primary.fetchFileList()).length, 3);
+
   console.log("Bringing a third device in the mix");
 
   const ternaryPath = await Deno.makeTempDir();

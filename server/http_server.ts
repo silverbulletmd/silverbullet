@@ -302,7 +302,6 @@ export class HttpServer {
 
   private buildPlugRouter(): Router {
     const plugRouter = new Router();
-    // this.addPasswordAuth(plugRouter);
     const system = this.systemBoot.system;
 
     plugRouter.post(

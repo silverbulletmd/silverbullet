@@ -9,9 +9,14 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
     "sync.sync": async (
       _ctx,
       endpoint: SyncEndpoint,
-      syncStatus: Record<string, SyncStatusItem>,
+      snapshot: Record<string, SyncStatusItem>,
     ): Promise<
-      { newStatus: Record<string, SyncStatusItem>; operations: number }
+      {
+        snapshot: Record<string, SyncStatusItem>;
+        operations: number;
+        // The reason to not just throw an Error is so that the partially updated snapshot can still be saved
+        error?: string;
+      }
     > => {
       const syncSpace = new HttpSpacePrimitives(
         endpoint.url,
@@ -20,7 +25,7 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
       );
       // Convert from JSON to a Map
       const syncStatusMap = new Map<string, SyncStatusItem>(
-        Object.entries(syncStatus),
+        Object.entries(snapshot),
       );
       const spaceSync = new SpaceSync(
         localSpace,
@@ -28,15 +33,22 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
         syncStatusMap,
       );
 
-      const operations = await spaceSync.syncFiles(
-        SpaceSync.primaryConflictResolver,
-      );
-
-      return {
-        // And convert back to JSON
-        newStatus: Object.fromEntries(spaceSync.snapshot),
-        operations,
-      };
+      try {
+        const operations = await spaceSync.syncFiles(
+          SpaceSync.primaryConflictResolver,
+        );
+        return {
+          // And convert back to JSON
+          snapshot: Object.fromEntries(spaceSync.snapshot),
+          operations,
+        };
+      } catch (e: any) {
+        return {
+          snapshot: Object.fromEntries(spaceSync.snapshot),
+          operations: -1,
+          error: e.message,
+        };
+      }
     },
   };
 }

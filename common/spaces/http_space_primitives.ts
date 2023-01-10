@@ -30,9 +30,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       }`;
     }
     const result = await fetch(url, options);
-    if (result.status === 401) {
+    if (result.status === 401 || result.redirected) {
       // Invalid credentials, reloading the browser should trigger authentication
-      location.reload();
+      if (typeof location !== "undefined") {
+        location.reload();
+      }
+
       throw Error("Unauthorized");
     }
     return result;

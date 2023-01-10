@@ -6,3 +6,4 @@ export * as sandbox from "./sandbox.ts";
 export * as space from "./space.ts";
 export * as system from "./system.ts";
 export * as collab from "./collab.ts";
+export * as sync from "./sync.ts";
