@@ -1,221 +1,234 @@
 import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
-import { TrashSpacePrimitives } from "./trash_space_primitives.ts";
+
+export type SyncStatusItem = {
+  tagPrimary?: number;
+  tagSecondary?: number;
+};
+
+type SyncHash = number;
 
 export class SpaceSync {
   constructor(
-    private primary: TrashSpacePrimitives,
-    private secondary: TrashSpacePrimitives,
-    public primaryLastSync: number,
-    public secondaryLastSync: number,
+    private primary: SpacePrimitives,
+    private secondary: SpacePrimitives,
+    private status: Map<string, SyncStatusItem>,
   ) {}
 
+  // Inspired by https://unterwaditzer.net/2016/sync-algorithm.html
+  async syncFiles(
+    conflictResolver?: (
+      name: string,
+      primarySpace: SpacePrimitives,
+      secondarySpace: SpacePrimitives,
+    ) => Promise<SyncStatusItem>,
+  ): Promise<number> {
+    let operations = 0;
+    console.log("Fetching snapshot from primary");
+    const primaryAllPages = this.syncCandidates(
+      (await this.primary.fetchFileList()).files,
+    );
+
+    console.log("Fetching snapshot from secondary");
+    const secondaryAllPages = this.syncCandidates(
+      (await this.secondary.fetchFileList()).files,
+    );
+
+    const primaryFileMap = new Map<string, SyncHash>(
+      primaryAllPages.map((m) => [m.name, m.lastModified]),
+    );
+    const secondaryFileMap = new Map<string, SyncHash>(
+      secondaryAllPages.map((m) => [m.name, m.lastModified]),
+    );
+
+    const allFilesToProcess = new Set([
+      ...this.status.keys(),
+      ...primaryFileMap.keys(),
+      ...secondaryFileMap.keys(),
+    ]);
+
+    console.log("Iterating over all files");
+    for (const name of allFilesToProcess) {
+      if (
+        primaryFileMap.has(name) && !secondaryFileMap.has(name) &&
+        !this.status.has(name)
+      ) {
+        // New file, created on primary, copy from primary to secondary
+        console.log("New file created on primary, copying to secondary", name);
+        const { data } = await this.primary.readFile(name, "arraybuffer");
+        const writtenMeta = await this.secondary.writeFile(
+          name,
+          "arraybuffer",
+          data,
+        );
+        this.status.set(name, {
+          tagPrimary: primaryFileMap.get(name),
+          tagSecondary: writtenMeta.lastModified,
+        });
+        operations++;
+      } else if (
+        secondaryFileMap.has(name) && !primaryFileMap.has(name) &&
+        !this.status.has(name)
+      ) {
+        // New file, created on secondary, copy from secondary to primary
+        console.log(
+          "New file created on secondary, copying from secondary to primary",
+          name,
+        );
+        const { data } = await this.secondary.readFile(name, "arraybuffer");
+        const writtenMeta = await this.primary.writeFile(
+          name,
+          "arraybuffer",
+          data,
+        );
+        this.status.set(name, {
+          tagPrimary: writtenMeta.lastModified,
+          tagSecondary: secondaryFileMap.get(name),
+        });
+        operations++;
+      } else if (
+        primaryFileMap.has(name) && this.status.has(name) &&
+        !secondaryFileMap.has(name)
+      ) {
+        // File deleted on B
+        console.log("File deleted on secondary, deleting from primary", name);
+        await this.primary.deleteFile(name);
+        this.status.delete(name);
+        operations++;
+      } else if (
+        secondaryFileMap.has(name) && this.status.has(name) &&
+        !primaryFileMap.has(name)
+      ) {
+        // File deleted on A
+        console.log("File deleted on primary, deleting from secondary", name);
+        await this.secondary.deleteFile(name);
+        this.status.delete(name);
+        operations++;
+      } else if (
+        primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+        !this.status.has(name)
+      ) {
+        console.log(
+          "Both sides have file, but no status, adding to status",
+          name,
+        );
+        this.status.set(name, {
+          tagPrimary: primaryFileMap.get(name),
+          tagSecondary: secondaryFileMap.get(name),
+        });
+        operations++;
+      } else if (
+        this.status.has(name) && !primaryFileMap.has(name) &&
+        !secondaryFileMap.has(name)
+      ) {
+        // File deleted on both sides, :shrug:
+        console.log("File deleted on both ends, deleting from status", name);
+        this.status.delete(name);
+        operations++;
+      } else if (
+        primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+        this.status.get(name) &&
+        primaryFileMap.get(name) !== this.status.get(name)!.tagPrimary &&
+        secondaryFileMap.get(name) === this.status.get(name)!.tagSecondary
+      ) {
+        // File has changed on primary, but not secondary: copy from primary to secondary
+        console.log("File changed on primary, copying to secondary", name);
+        const { data } = await this.primary.readFile(name, "arraybuffer");
+        const writtenMeta = await this.secondary.writeFile(
+          name,
+          "arraybuffer",
+          data,
+        );
+        this.status.set(name, {
+          tagPrimary: primaryFileMap.get(name),
+          tagSecondary: writtenMeta.lastModified,
+        });
+        operations++;
+      } else if (
+        primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+        this.status.get(name) &&
+        secondaryFileMap.get(name) !== this.status.get(name)!.tagSecondary &&
+        primaryFileMap.get(name) === this.status.get(name)!.tagPrimary
+      ) {
+        // File has changed on secondary, but not primary: copy from secondary to primary
+        const { data } = await this.secondary.readFile(name, "arraybuffer");
+        const writtenMeta = await this.primary.writeFile(
+          name,
+          "arraybuffer",
+          data,
+        );
+        this.status.set(name, {
+          tagPrimary: writtenMeta.lastModified,
+          tagSecondary: secondaryFileMap.get(name),
+        });
+        operations++;
+      } else if (
+        primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+        this.status.get(name) &&
+        secondaryFileMap.get(name) !== this.status.get(name)!.tagSecondary &&
+        primaryFileMap.get(name) !== this.status.get(name)!.tagPrimary
+      ) {
+        // File changed on both ends, CONFLICT!
+        console.log("File changed on both ends, conflict!", name);
+        if (conflictResolver) {
+          this.status.set(
+            name,
+            await conflictResolver(name, this.primary, this.secondary),
+          );
+        } else {
+          throw Error(
+            `Sync conflict for ${name} with no conflict resolver specified`,
+          );
+        }
+        operations++;
+      } else {
+        // Nothing needs to happen
+      }
+    }
+
+    return operations;
+  }
+
   // Strategy: Primary wins
-  public static primaryConflictResolver(
+  public static async primaryConflictResolver(
+    name: string,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
-  ): (fileMeta1: FileMeta, fileMeta2: FileMeta) => Promise<void> {
-    return async (pageMeta1, pageMeta2) => {
-      const fileName = pageMeta1.name;
-      const filePieces = fileName.split(".");
-      const fileNameBase = filePieces.slice(0, -1).join(".");
-      const fileNameExt = filePieces[filePieces.length - 1];
-      const revisionFileName = filePieces.length === 1
-        ? `${fileName}.conflicted.${pageMeta2.lastModified}`
-        : `${fileNameBase}.conflicted.${pageMeta2.lastModified}.${fileNameExt}`;
-      // Copy secondary to conflict copy
-      const oldFileData = await secondary.readFile(fileName, "arraybuffer");
-      await secondary.writeFile(
-        revisionFileName,
-        "arraybuffer",
-        oldFileData.data,
-      );
+  ): Promise<SyncStatusItem> {
+    console.log("Hit a conflict for", name);
+    const filePieces = name.split(".");
+    const fileNameBase = filePieces.slice(0, -1).join(".");
+    const fileNameExt = filePieces[filePieces.length - 1];
+    const pageMeta1 = await primary.getFileMeta(name);
+    const pageMeta2 = await secondary.getFileMeta(name);
+    const revisionFileName = filePieces.length === 1
+      ? `${name}.conflicted.${pageMeta2.lastModified}`
+      : `${fileNameBase}.conflicted.${pageMeta2.lastModified}.${fileNameExt}`;
+    // Copy secondary to conflict copy
+    const oldFileData = await secondary.readFile(name, "arraybuffer");
+    await secondary.writeFile(
+      revisionFileName,
+      "arraybuffer",
+      oldFileData.data,
+    );
 
-      // Write replacement on top
-      const newFileData = await primary.readFile(fileName, "arraybuffer");
-      await secondary.writeFile(
-        fileName,
-        "arraybuffer",
-        newFileData.data,
-        true,
-        newFileData.meta.lastModified,
-      );
+    // Write replacement on top
+    const newFileData = await primary.readFile(name, "arraybuffer");
+    const writeMeta = await secondary.writeFile(
+      name,
+      "arraybuffer",
+      newFileData.data,
+      true,
+      newFileData.meta.lastModified,
+    );
+
+    return {
+      tagPrimary: pageMeta1.lastModified,
+      tagSecondary: writeMeta.lastModified,
     };
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {
     return files.filter((f) => !f.name.startsWith("_plug/"));
-  }
-
-  async syncFiles(
-    conflictResolver?: (
-      fileMeta1: FileMeta,
-      fileMeta2: FileMeta,
-    ) => Promise<void>,
-  ): Promise<number> {
-    let syncOps = 0;
-
-    console.log("Sync: Fetching primary file list");
-    const {
-      files: primaryAllPages,
-      trashFiles: primaryAllTrash,
-      timestamp: primarySyncTimestamp,
-    } = await this.primary.seggregateFileList();
-    const allFilesPrimary = new Map(
-      this.syncCandidates(primaryAllPages).map((p) => [p.name, p]),
-    );
-    console.log("Sync: Fetching secondary file list");
-    const {
-      files: secondaryAllFilesSet,
-      trashFiles: secondaryAllTrash,
-      timestamp: secondarySyncTimestamp,
-    } = await this.secondary.seggregateFileList();
-    const allFilesSecondary = new Map(
-      this.syncCandidates(secondaryAllFilesSet).map((p) => [p.name, p]),
-    );
-
-    const allTrashPrimary = new Map(
-      primaryAllTrash
-        // Filter out old trash
-        .filter((p) => p.lastModified > this.primaryLastSync)
-        .map((p) => [p.name, p]),
-    );
-    const allTrashSecondary = new Map(
-      secondaryAllTrash
-        // Filter out old trash
-        .filter((p) => p.lastModified > this.secondaryLastSync)
-        .map((p) => [p.name, p]),
-    );
-
-    console.log("Sync: iterating over primary file list");
-    // Iterate over all pages on the primary first
-    for (const [name, fileMetaPrimary] of allFilesPrimary.entries()) {
-      const fileMetaSecondary = allFilesSecondary.get(fileMetaPrimary.name);
-      if (!fileMetaSecondary) {
-        // New page on primary
-        // Let's check it's not on the deleted list
-        if (allTrashSecondary.has(name)) {
-          // Explicitly deleted, let's skip
-          continue;
-        }
-
-        // Push from primary to secondary
-        console.log("New page on primary", name, "syncing to secondary");
-        const pageData = await this.primary.readFile(name, "arraybuffer");
-        await this.secondary.writeFile(
-          name,
-          "arraybuffer",
-          pageData.data,
-          true,
-          secondarySyncTimestamp, // The reason for this is to not include it in the next sync cycle, we cannot blindly use the lastModified date due to time skew
-        );
-        syncOps++;
-      } else {
-        // Existing file
-        if (fileMetaPrimary.lastModified > this.primaryLastSync) {
-          // Primary updated since last sync
-          if (fileMetaSecondary.lastModified > this.secondaryLastSync) {
-            // Secondary also updated! CONFLICT
-            if (conflictResolver) {
-              await conflictResolver(fileMetaPrimary, fileMetaSecondary);
-            } else {
-              throw Error(
-                `Sync conflict for ${name} with no conflict resolver specified`,
-              );
-            }
-          } else {
-            // Ok, not changed on secondary, push it secondary
-            console.log(
-              "Changed page on primary",
-              name,
-              "syncing to secondary",
-              new Date(fileMetaPrimary.lastModified),
-              new Date(this.primaryLastSync),
-            );
-            const fileData = await this.primary.readFile(name, "arraybuffer");
-            await this.secondary.writeFile(
-              name,
-              "arraybuffer",
-              fileData.data,
-              false,
-              secondarySyncTimestamp, // Setting this to sync time to have a locally non-skewed timestamp
-            );
-            syncOps++;
-          }
-        } else if (fileMetaSecondary.lastModified > this.secondaryLastSync) {
-          // Secondary updated, but not primary (checked above)
-          // Push from secondary to primary
-          console.log("Changed page on secondary", name, "syncing to primary");
-          const fileData = await this.secondary.readFile(name, "arraybuffer");
-          await this.primary.writeFile(
-            name,
-            "arraybuffer",
-            fileData.data,
-            false,
-            primarySyncTimestamp, // Setting this to sync time to have a locally non-skewed timestamp
-          );
-          syncOps++;
-        } else {
-          // Neither updated, no-op
-        }
-      }
-    }
-
-    console.log("Sync: iterating over secondary file list");
-    // Now do a simplified version in reverse, only detecting new pages
-    for (const [name, fileMetaSecondary] of allFilesSecondary.entries()) {
-      if (!allFilesPrimary.has(fileMetaSecondary.name)) {
-        // New page on secondary
-        // Let's check it's not on the deleted list
-        if (allTrashPrimary.has(name)) {
-          // Explicitly deleted, let's skip
-          continue;
-        }
-        // Push from secondary to primary
-        console.log("New page on secondary", name, "pushing to primary");
-        const fileData = await this.secondary.readFile(name, "arraybuffer");
-        await this.primary.writeFile(
-          name,
-          "arraybuffer",
-          fileData.data,
-          false,
-          primarySyncTimestamp,
-        );
-        syncOps++;
-      }
-    }
-
-    console.log("Sync: Processing primary trash");
-    // And finally, let's trash some pages
-    for (const fileToDelete of allTrashPrimary.values()) {
-      console.log("Deleting", fileToDelete.name, "on secondary");
-      try {
-        await this.secondary.deleteFile(
-          fileToDelete.name,
-          secondarySyncTimestamp,
-        );
-        syncOps++;
-      } catch (e: any) {
-        console.log("File already gone", e.message);
-      }
-    }
-
-    console.log("Sync: Processing secondary trash");
-
-    for (const fileToDelete of allTrashSecondary.values()) {
-      console.log("Deleting", fileToDelete.name, "on primary");
-      try {
-        await this.primary.deleteFile(fileToDelete.name, primarySyncTimestamp);
-        syncOps++;
-      } catch (e: any) {
-        console.log("Page already gone", e.message);
-      }
-    }
-
-    // Setting last sync time to the timestamps we got back when fetching the page lists on each end
-    this.primaryLastSync = primarySyncTimestamp;
-    this.secondaryLastSync = secondarySyncTimestamp;
-
-    return syncOps;
   }
 }

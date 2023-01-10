@@ -1,5 +1,4 @@
 export const maximumAttachmentSize = 100 * 1024 * 1024; // 100 MB
-export const trashPrefix = "_trash/";
 
 export type FileMeta = {
   name: string;

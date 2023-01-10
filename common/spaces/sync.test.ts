@@ -1,7 +1,5 @@
-import { SpaceSync } from "./sync.ts";
-import { FileMeta } from "../types.ts";
+import { SpaceSync, SyncStatusItem } from "./sync.ts";
 import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
-import { TrashSpacePrimitives } from "./trash_space_primitives.ts";
 import { assertEquals } from "../../test_deps.ts";
 
 Deno.test("Test store", async () => {
@@ -11,36 +9,31 @@ Deno.test("Test store", async () => {
   const secondaryPath = await Deno.makeTempDir();
   console.log("Primary", primaryPath);
   console.log("Secondary", secondaryPath);
-  const primary = new TrashSpacePrimitives(
-    new DiskSpacePrimitives(primaryPath),
-    skew,
-  );
-  const secondary = new TrashSpacePrimitives(
-    new DiskSpacePrimitives(secondaryPath),
-  );
-  const sync = new SpaceSync(primary, secondary, 0, 0);
-
-  async function conflictResolver(_fm1: FileMeta, _fm2: FileMeta) {}
+  const primary = new DiskSpacePrimitives(primaryPath);
+  const secondary = new DiskSpacePrimitives(secondaryPath);
+  const statusMap = new Map<string, SyncStatusItem>();
+  const sync = new SpaceSync(primary, secondary, statusMap);
 
   // Write one page to primary
   await primary.writeFile("index", "string", "Hello");
-  assertEquals((await secondary.seggregateFileList()).files.length, 0);
-  await syncFiles(conflictResolver);
-  assertEquals((await secondary.seggregateFileList()).files.length, 1);
+  assertEquals((await secondary.fetchFileList()).files.length, 0);
+  console.log("Initial sync ops", await doSync());
+
+  assertEquals((await secondary.fetchFileList()).files.length, 1);
   assertEquals((await secondary.readFile("index", "string")).data, "Hello");
 
   // Should be a no-op
-  assertEquals(await syncFiles(), 0);
+  assertEquals(await doSync(), 0);
 
   // Now let's make a change on the secondary
   await secondary.writeFile("index", "string", "Hello!!");
   await secondary.writeFile("test", "string", "Test page");
 
   // And sync it
-  await syncFiles();
+  await doSync();
 
-  assertEquals((await primary.seggregateFileList()).files.length, 2);
-  assertEquals((await secondary.seggregateFileList()).files.length, 2);
+  assertEquals((await primary.fetchFileList()).files.length, 2);
+  assertEquals((await secondary.fetchFileList()).files.length, 2);
 
   assertEquals((await primary.readFile("index", "string")).data, "Hello!!");
 
@@ -49,64 +42,61 @@ Deno.test("Test store", async () => {
   await primary.writeFile("index2", "string", "2");
   await secondary.writeFile("index3", "string", "3");
   await secondary.writeFile("index4", "string", "4");
-  await syncFiles();
+  await doSync();
 
-  assertEquals((await primary.seggregateFileList()).files.length, 5);
-  assertEquals((await secondary.seggregateFileList()).files.length, 5);
+  assertEquals((await primary.fetchFileList()).files.length, 5);
+  assertEquals((await secondary.fetchFileList()).files.length, 5);
 
-  assertEquals(await syncFiles(), 0);
+  assertEquals(await doSync(), 0);
 
   console.log("Deleting pages");
   // Delete some pages
   await primary.deleteFile("index");
   await primary.deleteFile("index3");
 
-  // const { files, trashFiles } = await primary.seggregateFileList();
-  // console.log("Pages", files);
-  // console.log("Trash", trashFiles);
+  await doSync();
 
-  await syncFiles();
-
-  assertEquals((await primary.seggregateFileList()).files.length, 3);
-  assertEquals((await secondary.seggregateFileList()).files.length, 3);
+  assertEquals((await primary.fetchFileList()).files.length, 3);
+  assertEquals((await secondary.fetchFileList()).files.length, 3);
 
   // No-op
-  assertEquals(await syncFiles(), 0);
+  assertEquals(await doSync(), 0);
 
   await secondary.deleteFile("index4");
   await primary.deleteFile("index2");
 
-  await syncFiles();
+  await doSync();
 
   // Just "test" left
-  assertEquals((await primary.seggregateFileList()).files.length, 1);
-  assertEquals((await secondary.seggregateFileList()).files.length, 1);
+  assertEquals((await primary.fetchFileList()).files.length, 1);
+  assertEquals((await secondary.fetchFileList()).files.length, 1);
 
   // No-op
-  assertEquals(await syncFiles(), 0);
+  assertEquals(await doSync(), 0);
 
   await secondary.writeFile("index", "string", "I'm back");
 
-  await syncFiles();
+  await doSync();
 
   assertEquals((await primary.readFile("index", "string")).data, "I'm back");
 
   // Cause a conflict
+  console.log("Introducing a conflict now");
   await primary.writeFile("index", "string", "Hello 1");
   await secondary.writeFile("index", "string", "Hello 2");
 
-  await syncFiles(SpaceSync.primaryConflictResolver(primary, secondary));
+  await doSync();
 
   // Sync conflicting copy back
-  await syncFiles();
+  await doSync();
 
   // Verify that primary won
   assertEquals((await primary.readFile("index", "string")).data, "Hello 1");
   assertEquals((await secondary.readFile("index", "string")).data, "Hello 1");
 
   // test + index + index.conflicting copy
-  assertEquals((await primary.seggregateFileList()).files.length, 3);
-  assertEquals((await secondary.seggregateFileList()).files.length, 3);
+  assertEquals((await primary.fetchFileList()).files.length, 3);
+  assertEquals((await secondary.fetchFileList()).files.length, 3);
 
   console.log("Bringing a third device in the mix");
 
@@ -114,11 +104,12 @@ Deno.test("Test store", async () => {
 
   console.log("Ternary", ternaryPath);
 
-  const ternary = new TrashSpacePrimitives(
-    new DiskSpacePrimitives(ternaryPath),
-    -skew,
+  const ternary = new DiskSpacePrimitives(ternaryPath);
+  const sync2 = new SpaceSync(
+    secondary,
+    ternary,
+    new Map<string, SyncStatusItem>(),
   );
-  const sync2 = new SpaceSync(secondary, ternary, 0, 0);
   console.log("N ops", await sync2.syncFiles());
   await sleep(2);
   assertEquals(await sync2.syncFiles(), 0);
@@ -127,17 +118,13 @@ Deno.test("Test store", async () => {
   await Deno.remove(secondaryPath, { recursive: true });
   await Deno.remove(ternaryPath, { recursive: true });
 
-  async function syncFiles(
-    conflictResolver?: (
-      fileMeta1: FileMeta,
-      fileMeta2: FileMeta,
-    ) => Promise<void>,
-  ): Promise<number> {
-    // Awesome practice: adding sleeps to fix issues!
+  async function doSync() {
     await sleep(2);
-    let n = await sync.syncFiles(conflictResolver);
+    const r = await sync.syncFiles(
+      SpaceSync.primaryConflictResolver,
+    );
     await sleep(2);
-    return n;
+    return r;
   }
 });
 

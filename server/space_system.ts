@@ -37,7 +37,6 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
-import { TrashSpacePrimitives } from "../common/spaces/trash_space_primitives.ts";
 export const indexRequiredKey = "$spaceIndexed";
 
 // A composition of a PlugOS system attached to a Space for server-side use
@@ -45,7 +44,7 @@ export class SpaceSystem {
   public system: System<SilverBulletHooks>;
   public space: Space;
   public eventHook: EventHook;
-  public spacePrimitives: TrashSpacePrimitives;
+  public spacePrimitives: SpacePrimitives;
 
   private db: AsyncSQLite;
 
@@ -78,21 +77,19 @@ export class SpaceSystem {
     const indexSyscalls = pageIndexSyscalls(this.db);
     // The space
     try {
-      this.spacePrimitives = new TrashSpacePrimitives(
-        new FileMetaSpacePrimitives(
-          new AssetBundlePlugSpacePrimitives(
-            new EventedSpacePrimitives(
-              new PlugSpacePrimitives(
-                new DiskSpacePrimitives(pagesPath),
-                namespaceHook,
-                "server",
-              ),
-              this.eventHook,
+      this.spacePrimitives = new FileMetaSpacePrimitives(
+        new AssetBundlePlugSpacePrimitives(
+          new EventedSpacePrimitives(
+            new PlugSpacePrimitives(
+              new DiskSpacePrimitives(pagesPath),
+              namespaceHook,
+              "server",
             ),
-            assetBundle,
+            this.eventHook,
           ),
-          indexSyscalls,
+          assetBundle,
         ),
+        indexSyscalls,
       );
       this.space = new Space(this.spacePrimitives);
     } catch (e: any) {
