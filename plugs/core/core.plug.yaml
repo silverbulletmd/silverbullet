@@ -56,7 +56,10 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
-
+  findDeadLinks:
+    path: "./page.ts:findDeadLinks"
+    command:
+      name: "Find Dead Links"
   # Attachments
   attachmentQueryProvider:
     path: ./attachment.ts:attachmentQueryProvider

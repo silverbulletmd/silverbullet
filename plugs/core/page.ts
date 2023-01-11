@@ -278,3 +278,34 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
     tree: await markdown.parseMarkdown(text),
   });
 }
+
+export async function findDeadLinks() {
+  //https://github.com/gustf/js-levenshtein/blob/master/index.js
+  function _min(r, e, t, n, o) { return r < e || t < e ? r > t ? t + 1 : r + 1 : n === o ? e : e + 1 } function levenshtein(r, e) { if (r === e) return 0; if (r.length > e.length) { var t = r; r = e, e = t } for (var n = r.length, o = e.length; n > 0 && r.charCodeAt(n - 1) === e.charCodeAt(o - 1);)n--, o--; for (var h = 0; h < n && r.charCodeAt(h) === e.charCodeAt(h);)h++; if (o -= h, 0 === (n -= h) || o < 3) return o; var a, c, f, i, d, A, C, u, l, m, v, _, g = 0, s = []; for (a = 0; a < n; a++)s.push(a + 1), s.push(r.charCodeAt(h + a)); for (var p = s.length - 1; g < o - 3;)for (l = e.charCodeAt(h + (c = g)), m = e.charCodeAt(h + (f = g + 1)), v = e.charCodeAt(h + (i = g + 2)), _ = e.charCodeAt(h + (d = g + 3)), A = g += 4, a = 0; a < p; a += 2)c = _min(C = s[a], c, f, l, u = s[a + 1]), f = _min(c, f, i, m, u), i = _min(f, i, d, v, u), A = _min(i, d, A, _, u), s[a] = A, d = i, i = f, f = c, c = C; for (; g < o;)for (l = e.charCodeAt(h + (c = g)), A = ++g, a = 0; a < p; a += 2)C = s[a], s[a] = A = _min(C, c, A, l, s[a + 1]), c = C; return A }
+  let pages = await space.listPages()
+  pages = pages.map(p => p.name)
+  let content = await Promise.all(
+    pages.map(p =>
+      space.readPage(p).then(text => Array.from(text.matchAll(/\[\[([^\[\]\v]+)\]\]/gm), m => m[1]))
+    )
+  )
+  let text = '{[Find Dead Links]}\n'
+  console.log(content.flat(1))
+  let unique = [...new Set(content.flat(1))]
+  unique
+    .filter(c => !pages.includes(c) && !['{{today}}', '{{tomorrow}}', '{{yesterday}}', '{{lastWeek}}', '{{nextWeek}}', '{{page}}'].includes(c))
+    .forEach(link => {
+      console.log(link)
+      const distances = pages.map(p => levenshtein(p, link))
+      //https://devblogs.microsoft.com/oldnewthing/20140526-00/?p=903
+      console.log(`[[${link}]]`)
+      console.log(`Possible duplicate of [[${pages[distances.indexOf(Math.min.apply(Math, distances))]}]]`)
+      text += `### [[${link}]]
+Possible duplicate of [[${pages[distances.indexOf(Math.min.apply(Math, distances))]}]]
+`
+      console.log(link, pages[distances.indexOf(Math.min.apply(Math, distances))], distances.indexOf(Math.min.apply(Math, distances)))
+
+    });
+  await space.writePage(`☠️🔗 Dead Links`, text)
+  await editor.navigate(`☠️🔗 Dead Links`)
+}
