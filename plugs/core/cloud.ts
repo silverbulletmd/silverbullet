@@ -45,7 +45,7 @@ export async function readFileCloud(
     `${pagePrefix}${originalUrl.split("/")[0]}/`,
   );
   return {
-    data: encoding === "string" ? text : base64EncodedDataUrl(
+    data: encoding === "utf8" ? text : base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),

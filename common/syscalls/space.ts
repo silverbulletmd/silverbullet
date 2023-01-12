@@ -6,6 +6,8 @@ import {
   FileEncoding,
 } from "../../common/spaces/space_primitives.ts";
 
+import { FileMeta as PlugFileMeta } from "../../plug-api/plugos-syscall/types.ts";
+
 export default (space: Space): SysCallMapping => {
   return {
     "space.listPages": (): PageMeta[] => {
@@ -58,6 +60,10 @@ export default (space: Space): SysCallMapping => {
     },
     "space.deleteAttachment": async (_ctx, name: string) => {
       await space.deleteAttachment(name);
+    },
+
+    "space.listFiles": (_ctx, path: string): Promise<PlugFileMeta[]> => {
+      return space.listFiles(path);
     },
   };
 };

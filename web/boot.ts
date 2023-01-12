@@ -19,7 +19,7 @@ safeRun(async () => {
   let settingsPageText = "";
   try {
     settingsPageText = (
-      await httpPrimitives.readFile("SETTINGS.md", "string")
+      await httpPrimitives.readFile("SETTINGS.md", "utf8")
     ).data as string;
   } catch (e: any) {
     console.error("No settings page found", e.message);

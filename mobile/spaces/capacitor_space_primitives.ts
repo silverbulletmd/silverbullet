@@ -54,7 +54,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     let data: FileData | undefined;
     try {
       switch (encoding) {
-        case "string":
+        case "utf8":
           data = (await Filesystem.readFile({
             path: this.root + name,
             directory: this.source,
@@ -112,7 +112,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     data: FileData,
   ): Promise<FileMeta> {
     switch (encoding) {
-      case "string":
+      case "utf8":
         await Filesystem.writeFile({
           path: this.root + name,
           directory: this.source,

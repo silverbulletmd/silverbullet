@@ -659,7 +659,7 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "string");
+      const { data } = await this.space.readAttachment(plugName, "utf8");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }));
     this.rebuildEditorState();

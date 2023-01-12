@@ -75,7 +75,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           );
         }
         break;
-      case "string":
+      case "utf8":
         data = await res.text();
         break;
     }
@@ -94,7 +94,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     switch (encoding) {
       case "arraybuffer":
-      case "string":
+      case "utf8":
         body = data;
         break;
       case "dataurl":

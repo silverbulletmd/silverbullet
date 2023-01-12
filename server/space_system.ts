@@ -29,7 +29,7 @@ import {
   ensureTable as ensureIndexTable,
   pageIndexSyscalls,
 } from "./syscalls/index.ts";
-import spaceSyscalls from "./syscalls/space.ts";
+import spaceSyscalls from "../common/syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -147,7 +147,7 @@ export class SpaceSystem {
 
     console.log("Going to load", allPlugs.length, "plugs...");
     await Promise.all(allPlugs.map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "string");
+      const { data } = await this.space.readAttachment(plugName, "utf8");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }));
 

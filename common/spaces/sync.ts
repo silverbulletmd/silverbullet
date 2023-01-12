@@ -108,19 +108,6 @@ export class SpaceSync {
           this.snapshot.delete(name);
           operations++;
         } else if (
-          primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-          !this.snapshot.has(name)
-        ) {
-          console.log(
-            "Both sides have file, but no status, adding to status",
-            name,
-          );
-          this.snapshot.set(name, [
-            primaryFileMap.get(name)!,
-            secondaryFileMap.get(name)!,
-          ]);
-          operations++;
-        } else if (
           this.snapshot.has(name) && !primaryFileMap.has(name) &&
           !secondaryFileMap.has(name)
         ) {
@@ -166,12 +153,17 @@ export class SpaceSync {
           ]);
           operations++;
         } else if (
-          primaryFileMap.has(name) && secondaryFileMap.has(name) &&
-          this.snapshot.get(name) &&
-          secondaryFileMap.get(name) !== this.snapshot.get(name)![1] &&
-          primaryFileMap.get(name) !== this.snapshot.get(name)![0]
+          ( // File changed on both ends, but we don't have any info in the snapshot (resync scenario?): have to run through conflict handling
+            primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+            !this.snapshot.has(name)
+          ) ||
+          ( // File changed on both ends, CONFLICT!
+            primaryFileMap.has(name) && secondaryFileMap.has(name) &&
+            this.snapshot.get(name) &&
+            secondaryFileMap.get(name) !== this.snapshot.get(name)![1] &&
+            primaryFileMap.get(name) !== this.snapshot.get(name)![0]
+          )
         ) {
-          // File changed on both ends, CONFLICT!
           console.log("File changed on both ends, conflict!", name);
           if (conflictResolver) {
             this.snapshot.set(

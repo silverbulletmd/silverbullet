@@ -1,9 +1,13 @@
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
-import { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
+import { AttachmentMeta, PageMeta } from "../types.ts";
 import { EventEmitter } from "../../plugos/event.ts";
 import { Plug } from "../../plugos/plug.ts";
 import { plugPrefix } from "./constants.ts";
 import { safeRun } from "../util.ts";
+import {
+  FileMeta,
+  ProxyFileSystem,
+} from "../../plug-api/plugos-syscall/types.ts";
 
 const pageWatchInterval = 2000;
 
@@ -14,7 +18,8 @@ export type SpaceEvents = {
   pageListUpdated: (pages: Set<PageMeta>) => void;
 };
 
-export class Space extends EventEmitter<SpaceEvents> {
+export class Space extends EventEmitter<SpaceEvents>
+  implements ProxyFileSystem {
   pageMetaCache = new Map<string, PageMeta>();
   watchedPages = new Set<string>();
   private initialPageListLoad = true;
@@ -23,6 +28,31 @@ export class Space extends EventEmitter<SpaceEvents> {
   constructor(private spacePrimitives: SpacePrimitives) {
     super();
   }
+
+  // Filesystem interface implementation
+  async readFile(path: string, encoding: "dataurl" | "utf8"): Promise<string> {
+    return (await this.spacePrimitives.readFile(path, encoding)).data as string;
+  }
+  getFileMeta(path: string): Promise<FileMeta> {
+    return this.spacePrimitives.getFileMeta(path);
+  }
+  writeFile(
+    path: string,
+    text: string,
+    encoding: "dataurl" | "utf8",
+  ): Promise<FileMeta> {
+    return this.spacePrimitives.writeFile(path, encoding, text);
+  }
+  deleteFile(path: string): Promise<void> {
+    return this.spacePrimitives.deleteFile(path);
+  }
+  async listFiles(path: string): Promise<FileMeta[]> {
+    return (await this.spacePrimitives.fetchFileList()).filter((f) =>
+      f.name.startsWith(path)
+    );
+  }
+
+  // The more domain-specific methods
 
   public async updatePageList() {
     const newPageList = await this.fetchPageList();
@@ -129,7 +159,7 @@ export class Space extends EventEmitter<SpaceEvents> {
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     const pageData = await this.spacePrimitives.readFile(
       `${name}.md`,
-      "string",
+      "utf8",
     );
     const previousMeta = this.pageMetaCache.get(name);
     const newMeta = fileMetaToPageMeta(pageData.meta);
@@ -164,7 +194,7 @@ export class Space extends EventEmitter<SpaceEvents> {
       const pageMeta = fileMetaToPageMeta(
         await this.spacePrimitives.writeFile(
           `${name}.md`,
-          "string",
+          "utf8",
           text,
           selfUpdate,
         ),

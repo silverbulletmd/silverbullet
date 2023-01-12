@@ -2,14 +2,11 @@ import { path } from "../server/deps.ts";
 import { HttpServer } from "../server/http_server.ts";
 import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
-import { SpaceSync, SyncStatusItem } from "../common/spaces/sync.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 
 export function serveCommand(options: any, folder: string) {
   const pagesPath = path.resolve(Deno.cwd(), folder);
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
-  const syncUrl: string | undefined = options.sync;
   const bareMode = options.bare;
 
   console.log(
@@ -37,37 +34,4 @@ export function serveCommand(options: any, folder: string) {
     console.error("HTTP Server error", e);
     Deno.exit(1);
   });
-
-  if (syncUrl) {
-    console.log("Starting sync");
-    const syncSpace = new HttpSpacePrimitives(syncUrl);
-    let syncStatus = new Map<string, SyncStatusItem>();
-    try {
-      syncStatus = new Map(Object.entries(JSON.parse(
-        Deno.readTextFileSync("sync.json"),
-      )));
-    } catch {
-      console.log("No old sync timestamp found");
-    }
-    const spaceSync = new SpaceSync(
-      httpServer.systemBoot.spacePrimitives,
-      syncSpace,
-      syncStatus,
-    );
-
-    setInterval(() => {
-      console.log("Initiating sync");
-      spaceSync.syncFiles(
-        SpaceSync.primaryConflictResolver,
-      ).then((r) => {
-        console.log("Sync results", r);
-        Deno.writeTextFileSync(
-          "sync.json",
-          JSON.stringify(Object.fromEntries(syncStatus.entries())),
-        );
-      }).catch((e) => {
-        console.error("Sync error", e);
-      });
-    }, 5000);
-  }
 }

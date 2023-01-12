@@ -13,19 +13,19 @@ Deno.test("Test store", async () => {
   const sync = new SpaceSync(primary, secondary, statusMap);
 
   // Write one page to primary
-  await primary.writeFile("index", "string", "Hello");
+  await primary.writeFile("index", "utf8", "Hello");
   assertEquals((await secondary.fetchFileList()).length, 0);
   console.log("Initial sync ops", await doSync());
 
   assertEquals((await secondary.fetchFileList()).length, 1);
-  assertEquals((await secondary.readFile("index", "string")).data, "Hello");
+  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello");
 
   // Should be a no-op
   assertEquals(await doSync(), 0);
 
   // Now let's make a change on the secondary
-  await secondary.writeFile("index", "string", "Hello!!");
-  await secondary.writeFile("test", "string", "Test page");
+  await secondary.writeFile("index", "utf8", "Hello!!");
+  await secondary.writeFile("test", "utf8", "Test page");
 
   // And sync it
   await doSync();
@@ -33,13 +33,13 @@ Deno.test("Test store", async () => {
   assertEquals((await primary.fetchFileList()).length, 2);
   assertEquals((await secondary.fetchFileList()).length, 2);
 
-  assertEquals((await primary.readFile("index", "string")).data, "Hello!!");
+  assertEquals((await primary.readFile("index", "utf8")).data, "Hello!!");
 
   // Let's make some random edits on both ends
-  await primary.writeFile("index", "string", "1");
-  await primary.writeFile("index2", "string", "2");
-  await secondary.writeFile("index3", "string", "3");
-  await secondary.writeFile("index4", "string", "4");
+  await primary.writeFile("index", "utf8", "1");
+  await primary.writeFile("index2", "utf8", "2");
+  await secondary.writeFile("index3", "utf8", "3");
+  await secondary.writeFile("index4", "utf8", "4");
   await doSync();
 
   assertEquals((await primary.fetchFileList()).length, 5);
@@ -72,16 +72,16 @@ Deno.test("Test store", async () => {
   // No-op
   assertEquals(await doSync(), 0);
 
-  await secondary.writeFile("index", "string", "I'm back");
+  await secondary.writeFile("index", "utf8", "I'm back");
 
   await doSync();
 
-  assertEquals((await primary.readFile("index", "string")).data, "I'm back");
+  assertEquals((await primary.readFile("index", "utf8")).data, "I'm back");
 
   // Cause a conflict
   console.log("Introducing a conflict now");
-  await primary.writeFile("index", "string", "Hello 1");
-  await secondary.writeFile("index", "string", "Hello 2");
+  await primary.writeFile("index", "utf8", "Hello 1");
+  await secondary.writeFile("index", "utf8", "Hello 2");
 
   await doSync();
 
@@ -89,16 +89,16 @@ Deno.test("Test store", async () => {
   await doSync();
 
   // Verify that primary won
-  assertEquals((await primary.readFile("index", "string")).data, "Hello 1");
-  assertEquals((await secondary.readFile("index", "string")).data, "Hello 1");
+  assertEquals((await primary.readFile("index", "utf8")).data, "Hello 1");
+  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello 1");
 
   // test + index + index.conflicting copy
   assertEquals((await primary.fetchFileList()).length, 3);
   assertEquals((await secondary.fetchFileList()).length, 3);
 
   // Introducing a fake conflict (same content, so not really conflicting)
-  await primary.writeFile("index", "string", "Hello 1");
-  await secondary.writeFile("index", "string", "Hello 1");
+  await primary.writeFile("index", "utf8", "Hello 1");
+  await secondary.writeFile("index", "utf8", "Hello 1");
 
   await doSync();
   await doSync();

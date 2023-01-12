@@ -48,7 +48,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const pageName = name.substring(0, name.length - 3);
       let text = "";
       switch (encoding) {
-        case "string":
+        case "utf8":
           text = data as string;
           break;
         case "arraybuffer":

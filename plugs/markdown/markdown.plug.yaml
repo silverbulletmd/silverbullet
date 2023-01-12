@@ -24,13 +24,13 @@ functions:
     path: "./preview.ts:previewClickHandler"
     env: client
     events:
-        - preview:click
+      - preview:click
 
   # $share: file:* publisher for markdown files
   sharePublisher:
     path: ./share.ts:sharePublisher
     events:
-    - share:file
+      - share:file
 
   markdownWidget:
     path: ./widget.ts:markdownWidget

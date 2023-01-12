@@ -31,7 +31,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       const data = this.assetBundle.readFileSync(name);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
-        data: encoding === "string" ? new TextDecoder().decode(data) : data,
+        data: encoding === "utf8" ? new TextDecoder().decode(data) : data,
         meta: {
           lastModified: bootTime,
           size: data.byteLength,

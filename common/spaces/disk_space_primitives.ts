@@ -50,7 +50,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       let data: FileData | null = null;
       const contentType = lookupContentType(name);
       switch (encoding) {
-        case "string":
+        case "utf8":
           data = await Deno.readTextFile(localPath);
           break;
         case "dataurl":
@@ -100,7 +100,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
       // Actually write the file
       switch (encoding) {
-        case "string":
+        case "utf8":
           await Deno.writeTextFile(`${localPath}`, data as string);
           break;
         case "dataurl":
