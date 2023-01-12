@@ -25,7 +25,7 @@ export class Space extends EventEmitter<SpaceEvents>
   private initialPageListLoad = true;
   private saving = false;
 
-  constructor(private spacePrimitives: SpacePrimitives) {
+  constructor(readonly spacePrimitives: SpacePrimitives) {
     super();
   }
 

@@ -50,5 +50,14 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
         };
       }
     },
+    "sync.check": async (_ctx, endpoint: SyncEndpoint): Promise<void> => {
+      const syncSpace = new HttpSpacePrimitives(
+        endpoint.url,
+        endpoint.user,
+        endpoint.password,
+      );
+      // Let's just fetch the file list to see if it works
+      await syncSpace.fetchFileList();
+    },
   };
 }

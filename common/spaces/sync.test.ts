@@ -127,16 +127,16 @@ Deno.test("Test store", async () => {
   await Deno.remove(ternaryPath, { recursive: true });
 
   async function doSync() {
-    await sleep(2);
+    await sleep();
     const r = await sync.syncFiles(
       SpaceSync.primaryConflictResolver,
     );
-    await sleep(2);
+    await sleep();
     return r;
   }
 });
 
-function sleep(ms = 5): Promise<void> {
+function sleep(ms = 10): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });

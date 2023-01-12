@@ -23,6 +23,16 @@ export async function configureCommand() {
     password,
   };
 
+  try {
+    await sync.check(syncConfig);
+  } catch (e: any) {
+    await editor.flashNotification(
+      `Sync configuration failed: ${e.message}`,
+      "error",
+    );
+    return;
+  }
+
   await store.batchSet([
     { key: "sync.config", value: syncConfig },
     // Empty initial snapshot

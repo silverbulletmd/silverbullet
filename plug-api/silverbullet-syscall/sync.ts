@@ -21,3 +21,8 @@ export function sync(
 > {
   return syscall("sync.sync", endpoint, snapshot);
 }
+
+// Checks the sync endpoint for connectivity and authentication, throws and Error on failure
+export function check(endpoint: SyncEndpoint): Promise<void> {
+  return syscall("sync.check", endpoint);
+}
