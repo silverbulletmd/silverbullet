@@ -623,6 +623,29 @@ export class Editor {
             }
             touchCount = 0;
           },
+          mousedown: (event: MouseEvent, view: EditorView) => {
+            // Make sure <a> tags are clicked without moving the cursor there
+            if (!event.altKey && event.target instanceof Element) {
+              const parentA = event.target.closest("a");
+              if (parentA) {
+                event.stopPropagation();
+                event.preventDefault();
+                const clickEvent: ClickEvent = {
+                  page: pageName,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                  altKey: event.altKey,
+                  pos: view.posAtCoords({
+                    x: event.x,
+                    y: event.y,
+                  })!,
+                };
+                this.dispatchAppEvent("page:click", clickEvent).catch(
+                  console.error,
+                );
+              }
+            }
+          },
           click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               const clickEvent: ClickEvent = {

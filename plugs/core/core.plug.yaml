@@ -5,7 +5,7 @@ syntax:
   Hashtag:
     firstCharacters:
       - "#"
-    regex: "#[^#\\d\\s]+\\w+"
+    regex: "#[^#\\d\\s\\[\\]]+\\w+"
     className: sb-hashtag
   NakedURL:
     firstCharacters:

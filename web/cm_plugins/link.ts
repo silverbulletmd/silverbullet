@@ -36,44 +36,30 @@ export function linkPlugin(editor: Editor) {
         const cleanAnchor = anchorPart.substring(1); // cut off the initial [
         const cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
 
-        // Hide the whole thing
+        // Hide the start [
         widgets.push(
           invisibleDecoration.range(
             from,
-            to,
+            from + 1,
           ),
         );
-
+        // Wrap the link in a href
         widgets.push(
-          Decoration.widget({
-            widget: new LinkWidget(
-              {
-                text: cleanAnchor,
-                title: `Click to visit ${cleanLink}`,
-                cssClass: "sb-link",
-                href: cleanLink,
-                callback: (e) => {
-                  if (e.altKey) {
-                    // Move cursor into the link, approximate location
-                    return editor.editorView!.dispatch({
-                      selection: { anchor: from + 1 },
-                    });
-                  }
-                  // Dispatch click event to navigate there without moving the cursor
-                  const clickEvent: ClickEvent = {
-                    page: editor.currentPage!,
-                    ctrlKey: e.ctrlKey,
-                    metaKey: e.metaKey,
-                    altKey: e.altKey,
-                    pos: from,
-                  };
-                  editor.dispatchAppEvent("page:click", clickEvent).catch(
-                    console.error,
-                  );
-                },
-              },
-            ),
-          }).range(from),
+          Decoration.mark({
+            tagName: "a",
+            class: "sb-link",
+            attributes: {
+              href: cleanLink,
+              title: `Click to visit ${cleanLink}`,
+            },
+          }).range(from + 1, from + cleanAnchor.length + 1),
+        );
+        // Hide the tail end of the link
+        widgets.push(
+          invisibleDecoration.range(
+            from + cleanAnchor.length + 1,
+            to,
+          ),
         );
       },
     });
