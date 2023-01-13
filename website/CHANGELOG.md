@@ -14,6 +14,7 @@ release.
   select * from my_table;
   ```
 * Merged code for experimental mobile app (iOS only for now)
+* Experimental sync engine, to be documented once it matures
 
 ---
 
