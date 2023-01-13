@@ -9,7 +9,6 @@ import {
   StreamLanguage,
   Strikethrough,
   styleTags,
-  Table,
   tags as t,
   TaskList,
   yamlLanguage,
@@ -178,6 +177,7 @@ const directiveStart = /^\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
 const directiveEnd = /^\s*<!--\s*\/(.*?)-->\s*/;
 
 import { parser as directiveParser } from "./parse-query.js";
+import { Table } from "./table_parser.ts";
 
 const highlightingDirectiveParser = directiveParser.configure({
   props: [
