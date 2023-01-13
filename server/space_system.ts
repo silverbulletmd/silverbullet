@@ -23,13 +23,13 @@ import {
   storeSyscalls,
 } from "../plugos/syscalls/store.sqlite.ts";
 import { System } from "../plugos/system.ts";
-import { PageNamespaceHook } from "./hooks/page_namespace.ts";
-import { PlugSpacePrimitives } from "./hooks/plug_space_primitives.ts";
+import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
+import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import {
   ensureTable as ensureIndexTable,
   pageIndexSyscalls,
 } from "./syscalls/index.ts";
-import spaceSyscalls from "./syscalls/space.ts";
+import spaceSyscalls from "../common/syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -37,6 +37,7 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { AsyncSQLite } from "../plugos/sqlite/async_sqlite.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
+import { syncSyscalls } from "../common/syscalls/sync.ts";
 export const indexRequiredKey = "$spaceIndexed";
 
 // A composition of a PlugOS system attached to a Space for server-side use
@@ -111,6 +112,7 @@ export class SpaceSystem {
       storeSyscalls(this.db, "store"),
       fullTextSearchSyscalls(this.db, "fts"),
       spaceSyscalls(this.space),
+      syncSyscalls(this.spacePrimitives),
       eventSyscalls(this.eventHook),
       markdownSyscalls(buildMarkdown([])),
       esbuildSyscalls([globalModules]),
@@ -145,7 +147,7 @@ export class SpaceSystem {
 
     console.log("Going to load", allPlugs.length, "plugs...");
     await Promise.all(allPlugs.map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "string");
+      const { data } = await this.space.readAttachment(plugName, "utf8");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }));
 

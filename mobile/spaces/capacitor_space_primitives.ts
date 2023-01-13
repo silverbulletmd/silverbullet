@@ -13,7 +13,10 @@ import { Directory, Encoding, Filesystem } from "../deps.ts";
 import { mime } from "../../plugos/deps.ts";
 
 export class CapacitorSpacePrimitives implements SpacePrimitives {
-  constructor(readonly source: Directory, readonly root: string) {
+  constructor(
+    readonly source: Directory,
+    readonly root: string,
+  ) {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
@@ -28,8 +31,9 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       });
       for (const file of files.files) {
         if (file.type === "file") {
+          const name = `${dir}/${file.name}`.substring(1);
           allFiles.push({
-            name: `${dir}/${file.name}`.substring(1),
+            name: name,
             lastModified: file.mtime,
             perm: "rw",
             contentType: mime.getType(file.name) || "application/octet-stream",
@@ -41,7 +45,6 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
       }
     }
     await readAllFiles("");
-    console.log("allFiles", allFiles);
     return allFiles;
   }
   async readFile(
@@ -51,7 +54,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     let data: FileData | undefined;
     try {
       switch (encoding) {
-        case "string":
+        case "utf8":
           data = (await Filesystem.readFile({
             path: this.root + name,
             directory: this.source,
@@ -109,7 +112,7 @@ export class CapacitorSpacePrimitives implements SpacePrimitives {
     data: FileData,
   ): Promise<FileMeta> {
     switch (encoding) {
-      case "string":
+      case "utf8":
         await Filesystem.writeFile({
           path: this.root + name,
           directory: this.source,

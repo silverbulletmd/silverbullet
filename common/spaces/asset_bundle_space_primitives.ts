@@ -12,7 +12,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const l = await this.wrapped.fetchFileList();
+    const files = await this.wrapped.fetchFileList();
     return this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
       .map((p) => ({
         name: p,
@@ -20,7 +20,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
         lastModified: bootTime,
         perm: "ro",
         size: -1,
-      } as FileMeta)).concat(l);
+      } as FileMeta)).concat(files);
   }
 
   readFile(
@@ -31,7 +31,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       const data = this.assetBundle.readFileSync(name);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
-        data: encoding === "string" ? new TextDecoder().decode(data) : data,
+        data: encoding === "utf8" ? new TextDecoder().decode(data) : data,
         meta: {
           lastModified: bootTime,
           size: data.byteLength,
@@ -60,7 +60,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean | undefined,
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(name, encoding, data, selfUpdate);
   }

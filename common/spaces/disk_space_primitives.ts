@@ -15,6 +15,8 @@ function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
 }
 
+const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
+
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
 
@@ -48,7 +50,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       let data: FileData | null = null;
       const contentType = lookupContentType(name);
       switch (encoding) {
-        case "string":
+        case "utf8":
           data = await Deno.readTextFile(localPath);
           break;
         case "dataurl":
@@ -98,7 +100,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
       // Actually write the file
       switch (encoding) {
-        case "string":
+        case "utf8":
           await Deno.writeTextFile(`${localPath}`, data as string);
           break;
         case "dataurl":
@@ -165,8 +167,12 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
+        const name = fullPath.substring(this.rootPath.length + 1);
+        if (excludedFiles.includes(name)) {
+          continue;
+        }
         allFiles.push({
-          name: fullPath.substring(this.rootPath.length + 1),
+          name: name,
           lastModified: s.mtime!.getTime(),
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,

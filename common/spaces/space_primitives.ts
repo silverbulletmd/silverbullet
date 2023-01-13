@@ -1,10 +1,10 @@
 import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
 
-export type FileEncoding = "string" | "arraybuffer" | "dataurl";
+export type FileEncoding = "utf8" | "arraybuffer" | "dataurl";
 export type FileData = ArrayBuffer | string;
 export interface SpacePrimitives {
-  // Pages
+  // Returns a list of file meta data as well as the timestamp of this snapshot
   fetchFileList(): Promise<FileMeta[]>;
   readFile(
     name: string,
@@ -15,6 +15,7 @@ export interface SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    // Used to decide whether or not to emit change events
     selfUpdate?: boolean,
   ): Promise<FileMeta>;
   deleteFile(name: string): Promise<void>;

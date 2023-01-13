@@ -5,7 +5,10 @@ import {
   SpacePrimitives,
 } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
-import { NamespaceOperation, PageNamespaceHook } from "./page_namespace.ts";
+import {
+  NamespaceOperation,
+  PageNamespaceHook,
+} from "../hooks/page_namespace.ts";
 import { base64DecodeDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
@@ -46,8 +49,8 @@ export class PlugSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-    const result = await this.wrapped.fetchFileList();
-    for (const pm of result) {
+    const files = await this.wrapped.fetchFileList();
+    for (const pm of files) {
       allFiles.push(pm);
     }
     return allFiles;

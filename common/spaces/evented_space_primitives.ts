@@ -35,7 +35,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate: boolean,
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
@@ -48,7 +48,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const pageName = name.substring(0, name.length - 3);
       let text = "";
       switch (encoding) {
-        case "string":
+        case "utf8":
           text = data as string;
           break;
         case "arraybuffer":

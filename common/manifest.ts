@@ -4,7 +4,7 @@ import { CronHookT } from "../plugos/hooks/cron.deno.ts";
 import { EventHookT } from "../plugos/hooks/event.ts";
 import { CommandHookT } from "../web/hooks/command.ts";
 import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
-import { PageNamespaceHookT } from "../server/hooks/page_namespace.ts";
+import { PageNamespaceHookT } from "./hooks/page_namespace.ts";
 import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 
 export type SilverBulletHooks =

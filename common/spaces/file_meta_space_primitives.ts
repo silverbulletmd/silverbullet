@@ -12,10 +12,10 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const list = await this.wrapped.fetchFileList();
+    const files = await this.wrapped.fetchFileList();
     // Enrich the file list with custom meta data (for pages)
     const allFilesMap: Map<string, any> = new Map(
-      list.map((fm) => [fm.name, fm]),
+      files.map((fm) => [fm.name, fm]),
     );
     for (
       const { page, value } of await this.indexSyscalls["index.queryPrefix"](
@@ -53,7 +53,7 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean | undefined,
+    selfUpdate?: boolean,
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(name, encoding, data, selfUpdate);
   }

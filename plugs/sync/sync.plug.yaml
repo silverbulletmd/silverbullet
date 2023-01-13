@@ -1,0 +1,19 @@
+name: sync
+functions:
+  configureCommand:
+    path: sync.ts:configureCommand
+    command:
+      name: "Sync: Configure"
+
+  syncCommand:
+    path: sync.ts:syncCommand
+    command:
+      name: "Sync: Sync"
+
+  check:
+    env: server
+    path: sync.ts:check
+
+  performSync:
+    env: server
+    path: sync.ts:performSync

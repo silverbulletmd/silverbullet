@@ -7,6 +7,7 @@ export function serveCommand(options: any, folder: string) {
   const pagesPath = path.resolve(Deno.cwd(), folder);
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
+  const bareMode = options.bare;
 
   console.log(
     "Going to start Silver Bullet binding to",
@@ -27,6 +28,7 @@ export function serveCommand(options: any, folder: string) {
     dbPath: path.join(pagesPath, options.db),
     assetBundle: new AssetBundle(assetBundle as AssetJson),
     user: options.user,
+    bareMode,
   });
   httpServer.start().catch((e) => {
     console.error("HTTP Server error", e);

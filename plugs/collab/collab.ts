@@ -136,8 +136,8 @@ export async function readFileCollab(
   const text = `---\n$share: ${collabUri}\n---\n`;
 
   return {
-    // encoding === "arraybuffer" is not an option, so either it's "string" or "dataurl"
-    data: encoding === "string" ? text : base64EncodedDataUrl(
+    // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
+    data: encoding === "utf8" ? text : base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),

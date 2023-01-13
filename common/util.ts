@@ -1,6 +1,7 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { Space } from "./spaces/space.ts";
+import { BuiltinSettings } from "../web/types.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -45,7 +46,15 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
 }
 
-export async function ensureAndLoadSettings(space: Space) {
+export async function ensureAndLoadSettings(
+  space: Space,
+  dontCreate: boolean,
+): Promise<any> {
+  if (dontCreate) {
+    return {
+      indexPage: "index",
+    };
+  }
   try {
     await space.getPageMeta("SETTINGS");
   } catch {

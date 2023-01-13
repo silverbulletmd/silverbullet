@@ -5,6 +5,7 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { SpaceSystem } from "./space_system.ts";
 import { ensureAndLoadSettings } from "../common/util.ts";
+import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -14,6 +15,7 @@ export type ServerOptions = {
   assetBundle: AssetBundle;
   user?: string;
   pass?: string;
+  bareMode?: boolean;
 };
 
 const staticLastModified = new Date().toUTCString();
@@ -26,6 +28,7 @@ export class HttpServer {
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
+  bareMode: boolean;
 
   constructor(options: ServerOptions) {
     this.hostname = options.hostname;
@@ -37,6 +40,7 @@ export class HttpServer {
       options.pagesPath,
       options.dbPath,
     );
+    this.bareMode = options.bareMode || false;
 
     // Second, for loading plug JSON files with absolute or relative (from CWD) paths
     this.systemBoot.eventHook.addLocalListener(
@@ -66,7 +70,7 @@ export class HttpServer {
   async start() {
     await this.systemBoot.start();
     await this.systemBoot.ensureSpaceIndex();
-    await ensureAndLoadSettings(this.systemBoot.space);
+    await ensureAndLoadSettings(this.systemBoot.space, this.bareMode);
 
     this.addPasswordAuth(this.app);
 
@@ -207,7 +211,8 @@ export class HttpServer {
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
-      response.body = JSON.stringify(await spacePrimitives.fetchFileList());
+      const files = await spacePrimitives.fetchFileList();
+      response.body = JSON.stringify(files);
     });
 
     fsRouter
@@ -248,12 +253,21 @@ export class HttpServer {
         const name = params[0];
         console.log("Saving file", name);
 
+        let body: Uint8Array;
+        if (
+          request.headers.get("X-Content-Base64")
+        ) {
+          const content = await request.body({ type: "text" }).value;
+          body = base64Decode(content);
+        } else {
+          body = await request.body({ type: "bytes" }).value;
+        }
+
         try {
           const meta = await spacePrimitives.writeFile(
             name,
             "arraybuffer",
-            await request.body().value,
-            false,
+            body,
           );
           response.status = 200;
           response.headers.set("Content-Type", meta.contentType);
@@ -299,7 +313,6 @@ export class HttpServer {
 
   private buildPlugRouter(): Router {
     const plugRouter = new Router();
-    // this.addPasswordAuth(plugRouter);
     const system = this.systemBoot.system;
 
     plugRouter.post(

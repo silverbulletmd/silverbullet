@@ -97,6 +97,7 @@ import type {
 } from "../plug-api/app_event.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
+import { syncSyscalls } from "../common/syscalls/sync.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -195,6 +196,7 @@ export class Editor {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
+      syncSyscalls(this.space.spacePrimitives),
       collabSyscalls(this),
     );
 
@@ -659,7 +661,7 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "string");
+      const { data } = await this.space.readAttachment(plugName, "utf8");
       await this.system.load(JSON.parse(data as string), createSandbox);
     }));
     this.rebuildEditorState();

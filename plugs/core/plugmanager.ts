@@ -1,9 +1,7 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
 import type { Manifest } from "../../common/manifest.ts";
 import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
-
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
-import { writePage } from "$sb/silverbullet-syscall/space.ts";
 
 const plugsPrelude =
   "This file lists all plugs that SilverBullet will load. Run the {[Plugs: Update]} command to update and reload this list of plugs.\n\n";
@@ -82,7 +80,7 @@ export async function updatePlugs() {
     // console.log("Writing", `_plug/${manifest.name}`);
     await space.writeAttachment(
       `_plug/${manifest.name}.plug.json`,
-      "string",
+      "utf8",
       JSON.stringify(manifest),
     );
   }

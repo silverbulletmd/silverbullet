@@ -3,7 +3,7 @@ name: Build & Release
 on:
   push:
     tags:
-    - '*'
+      - "*"
 jobs:
   build:
     name: Build (${{ matrix.os }} - ${{ matrix.arch }})
@@ -72,6 +72,7 @@ jobs:
           files: |
             desktop/out/**/*.deb
             desktop/out/**/*Setup.exe
+            desktop/out/**/RELEASES
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
             dist/silverbullet.js
