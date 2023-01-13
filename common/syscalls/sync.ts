@@ -22,6 +22,8 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
         endpoint.url,
         endpoint.user,
         endpoint.password,
+        // Base64 PUTs to support mobile
+        true,
       );
       // Convert from JSON to a Map
       const syncStatusMap = new Map<string, SyncStatusItem>(

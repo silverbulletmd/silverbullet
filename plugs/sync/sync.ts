@@ -24,7 +24,7 @@ export async function configureCommand() {
   };
 
   try {
-    await sync.check(syncConfig);
+    await system.invokeFunction("server", "check", syncConfig);
   } catch (e: any) {
     await editor.flashNotification(
       `Sync configuration failed: ${e.message}`,
@@ -64,6 +64,11 @@ export async function syncCommand() {
       "error",
     );
   }
+}
+
+// Run on server
+export function check(config: SyncEndpoint) {
+  return sync.check(config);
 }
 
 // Run on server

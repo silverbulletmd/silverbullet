@@ -10,6 +10,10 @@ functions:
     command:
       name: "Sync: Sync"
 
+  check:
+    env: server
+    path: sync.ts:check
+
   performSync:
     env: server
     path: sync.ts:performSync

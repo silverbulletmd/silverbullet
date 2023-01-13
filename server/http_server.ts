@@ -5,6 +5,7 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { SpaceSystem } from "./space_system.ts";
 import { ensureAndLoadSettings } from "../common/util.ts";
+import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -252,11 +253,21 @@ export class HttpServer {
         const name = params[0];
         console.log("Saving file", name);
 
+        let body: Uint8Array;
+        if (
+          request.headers.get("X-Content-Base64")
+        ) {
+          const content = await request.body({ type: "text" }).value;
+          body = base64Decode(content);
+        } else {
+          body = await request.body({ type: "bytes" }).value;
+        }
+
         try {
           const meta = await spacePrimitives.writeFile(
             name,
             "arraybuffer",
-            await request.body().value,
+            body,
           );
           response.status = 200;
           response.headers.set("Content-Type", meta.contentType);
