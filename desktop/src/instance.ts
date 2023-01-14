@@ -151,6 +151,7 @@ export function newWindow(instance: Instance, windowState: WindowState) {
     width: windowState.width,
     x: windowState.x,
     y: windowState.y,
+    icon: process.resourcesPath + "/logo.png",
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },

@@ -51,7 +51,7 @@ const config: ForgeConfig = {
       : "SilverBullet",
     icon: "../web/images/logo",
     appBundleId: "md.silverbullet",
-    extraResource: [denoExecutableResource, "resources/silverbullet.js"],
+    extraResource: [denoExecutableResource, "resources/silverbullet.js", "resources/logo.png"],
     beforeCopyExtraResources: [(
       _buildPath: string,
       _electronVersion: string,
@@ -67,6 +67,7 @@ const config: ForgeConfig = {
         await downloadDeno(platform, arch);
         // Copy silverbullet.js
         fs.copyFileSync("../dist/silverbullet.js", "resources/silverbullet.js");
+        fs.copyFileSync("../web/images/logo.png", "resources/logo.png");
       }).then((r) => callback()).catch(callback);
     }],
     osxSign: {
@@ -81,10 +82,17 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      iconUrl: "https://silverbullet.md/icon.ico",
+      setupIcon: "../web/images/icon.ico"
+    }),
     new MakerZIP({}, ["darwin", "linux"]),
     new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerDeb({
+      options: {
+        icon: "../web/images/logo.png"
+      }
+    }),
   ],
 
   plugins: [
