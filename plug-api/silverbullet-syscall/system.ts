@@ -22,3 +22,8 @@ export function listCommands(): Promise<{ [key: string]: CommandDef }> {
 export function reloadPlugs() {
   syscall("system.reloadPlugs");
 }
+
+// Returns what runtime environment this plug is run in, e.g. "server" or "client" can be undefined, which would mean a hybrid environment (such as mobile)
+export function getEnv(): Promise<string | undefined> {
+  return syscall("system.getEnv");
+}

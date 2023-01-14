@@ -112,7 +112,7 @@ export class SpaceSystem {
       storeSyscalls(this.db, "store"),
       fullTextSearchSyscalls(this.db, "fts"),
       spaceSyscalls(this.space),
-      syncSyscalls(this.spacePrimitives),
+      syncSyscalls(this.spacePrimitives, this.system),
       eventSyscalls(this.eventHook),
       markdownSyscalls(buildMarkdown([])),
       esbuildSyscalls([globalModules]),

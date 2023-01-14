@@ -43,7 +43,7 @@ import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
-import { isMacLike, safeRun, throttle } from "../common/util.ts";
+import { isMacLike, safeRun } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -98,6 +98,7 @@ import type {
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { syncSyscalls } from "../common/syscalls/sync.ts";
+import { throttle } from "../common/async_util.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -196,7 +197,6 @@ export class Editor {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
-      syncSyscalls(this.space.spacePrimitives),
       collabSyscalls(this),
     );
 

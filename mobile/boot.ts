@@ -30,6 +30,7 @@ import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitive
 import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
+import { syncSyscalls } from "../common/syscalls/sync.ts";
 
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
@@ -86,6 +87,7 @@ safeRun(async () => {
     storeSyscalls(db, "store"),
     indexSyscalls,
     clientStoreSyscalls(db),
+    syncSyscalls(spacePrimitives, system),
     fullTextSearchSyscalls(db, "fts"),
     sandboxFetchSyscalls(),
   );

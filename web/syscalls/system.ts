@@ -50,5 +50,8 @@ export function systemSyscalls(
     "sandbox.getServerLogs": (ctx) => {
       return editor.space.proxySyscall(ctx.plug, "sandbox.getLogs", []);
     },
+    "system.getEnv": () => {
+      return system.env;
+    },
   };
 }

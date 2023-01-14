@@ -385,6 +385,8 @@ functions:
       name: "UI: Hide BHS"
       key: "Ctrl-Alt-b"
       mac: "Cmd-Alt-b"
+    events:
+      - log:hide
 
   # Link unfurl infrastructure
   unfurlLink:

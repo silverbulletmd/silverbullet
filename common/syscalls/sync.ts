@@ -1,10 +1,14 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { SyncEndpoint } from "../../plug-api/silverbullet-syscall/sync.ts";
 import { SpaceSync, SyncStatusItem } from "../spaces/sync.ts";
 import { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
 import { SpacePrimitives } from "../spaces/space_primitives.ts";
+import { race, timeout } from "../async_util.ts";
 
-export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
+export function syncSyscalls(
+  localSpace: SpacePrimitives,
+  system: System<any>,
+): SysCallMapping {
   return {
     "sync.sync": async (
       _ctx,
@@ -33,6 +37,8 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
         localSpace,
         syncSpace,
         syncStatusMap,
+        // Log to the "sync" plug sandbox
+        system.loadedPlugs.get("sync")!.sandbox!,
       );
 
       try {
@@ -58,8 +64,13 @@ export function syncSyscalls(localSpace: SpacePrimitives): SysCallMapping {
         endpoint.user,
         endpoint.password,
       );
-      // Let's just fetch the file list to see if it works
-      await syncSpace.fetchFileList();
+      // Let's just fetch the file list to see if it works with a timeout of 5s
+      try {
+        await race([syncSpace.fetchFileList(), timeout(5000)]);
+      } catch (e: any) {
+        console.error("Sync check failure", e.message);
+        throw e;
+      }
     },
   };
 }

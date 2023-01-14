@@ -1,7 +1,6 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { Space } from "./spaces/space.ts";
-import { BuiltinSettings } from "../web/types.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -11,18 +10,6 @@ export function safeRun(fn: () => Promise<void>) {
 
 export function isMacLike() {
   return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
-}
-
-export function throttle(func: () => void, limit: number) {
-  let timer: any = null;
-  return function () {
-    if (!timer) {
-      timer = setTimeout(() => {
-        func();
-        timer = null;
-      }, limit);
-    }
-  };
 }
 
 // TODO: This is naive, may be better to use a proper parser

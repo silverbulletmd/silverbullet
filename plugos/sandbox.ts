@@ -126,20 +126,25 @@ export class Sandbox {
         break;
       }
       case "log": {
-        this.logBuffer.push({
-          level: data.level!,
-          message: data.message!,
-          date: Date.now(),
-        });
-        if (this.logBuffer.length > this.maxLogBufferSize) {
-          this.logBuffer.shift();
-        }
-        console.log(`[Sandbox ${data.level}]`, data.message);
+        this.log(data.level!, data.message!);
         break;
       }
       default:
         console.error("Unknown message type", data);
     }
+  }
+
+  log(level: string, ...messageBits: any[]) {
+    const message = messageBits.map((a) => "" + a).join(" ");
+    this.logBuffer.push({
+      message,
+      level: level as LogLevel,
+      date: Date.now(),
+    });
+    if (this.logBuffer.length > this.maxLogBufferSize) {
+      this.logBuffer.shift();
+    }
+    console.log(`[Sandbox ${level}]`, message);
   }
 
   invoke(name: string, args: any[]): Promise<any> {

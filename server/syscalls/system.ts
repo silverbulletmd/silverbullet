@@ -31,5 +31,8 @@ export function systemSyscalls(
     "system.reloadPlugs": () => {
       return plugReloader();
     },
+    "system.getEnv": () => {
+      return system.env;
+    },
   };
 }

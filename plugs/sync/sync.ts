@@ -54,6 +54,8 @@ export async function syncCommand() {
   }
   await editor.flashNotification("Starting sync...");
   try {
+    await system.invokeFunction("server", "check", config);
+
     const operations = await system.invokeFunction("server", "performSync");
     await editor.flashNotification(
       `Sync complete. Performed ${operations} operations.`,

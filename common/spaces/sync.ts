@@ -1,3 +1,4 @@
+import { LogEntry } from "../../plugos/sandbox.ts";
 import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
@@ -7,12 +8,23 @@ type SyncHash = number;
 // and the second item the lastModified value of the secondary space
 export type SyncStatusItem = [SyncHash, SyncHash];
 
+export interface Logger {
+  log(level: string, ...messageBits: any[]): void;
+}
+
+class ConsoleLogger implements Logger {
+  log(_level: string, ...messageBits: any[]) {
+    console.log(...messageBits);
+  }
+}
+
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
 export class SpaceSync {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
     readonly snapshot: Map<string, SyncStatusItem>,
+    readonly logger: Logger = new ConsoleLogger(),
   ) {}
 
   async syncFiles(
@@ -21,15 +33,16 @@ export class SpaceSync {
       snapshot: Map<string, SyncStatusItem>,
       primarySpace: SpacePrimitives,
       secondarySpace: SpacePrimitives,
+      logger: Logger,
     ) => Promise<void>,
   ): Promise<number> {
     let operations = 0;
-    console.log("Fetching snapshot from primary");
+    this.logger.log("info", "Fetching snapshot from primary");
     const primaryAllPages = this.syncCandidates(
       await this.primary.fetchFileList(),
     );
 
-    console.log("Fetching snapshot from secondary");
+    this.logger.log("info", "Fetching snapshot from secondary");
     try {
       const secondaryAllPages = this.syncCandidates(
         await this.secondary.fetchFileList(),
@@ -48,14 +61,15 @@ export class SpaceSync {
         ...secondaryFileMap.keys(),
       ]);
 
-      console.log("Iterating over all files");
+      this.logger.log("info", "Iterating over all files");
       for (const name of allFilesToProcess) {
         if (
           primaryFileMap.has(name) && !secondaryFileMap.has(name) &&
           !this.snapshot.has(name)
         ) {
           // New file, created on primary, copy from primary to secondary
-          console.log(
+          this.logger.log(
+            "info",
             "New file created on primary, copying to secondary",
             name,
           );
@@ -75,7 +89,8 @@ export class SpaceSync {
           !this.snapshot.has(name)
         ) {
           // New file, created on secondary, copy from secondary to primary
-          console.log(
+          this.logger.log(
+            "info",
             "New file created on secondary, copying from secondary to primary",
             name,
           );
@@ -95,7 +110,11 @@ export class SpaceSync {
           !secondaryFileMap.has(name)
         ) {
           // File deleted on B
-          console.log("File deleted on secondary, deleting from primary", name);
+          this.logger.log(
+            "info",
+            "File deleted on secondary, deleting from primary",
+            name,
+          );
           await this.primary.deleteFile(name);
           this.snapshot.delete(name);
           operations++;
@@ -104,7 +123,11 @@ export class SpaceSync {
           !primaryFileMap.has(name)
         ) {
           // File deleted on A
-          console.log("File deleted on primary, deleting from secondary", name);
+          this.logger.log(
+            "info",
+            "File deleted on primary, deleting from secondary",
+            name,
+          );
           await this.secondary.deleteFile(name);
           this.snapshot.delete(name);
           operations++;
@@ -113,7 +136,11 @@ export class SpaceSync {
           !secondaryFileMap.has(name)
         ) {
           // File deleted on both sides, :shrug:
-          console.log("File deleted on both ends, deleting from status", name);
+          this.logger.log(
+            "info",
+            "File deleted on both ends, deleting from status",
+            name,
+          );
           this.snapshot.delete(name);
           operations++;
         } else if (
@@ -123,7 +150,11 @@ export class SpaceSync {
           secondaryFileMap.get(name) === this.snapshot.get(name)![1]
         ) {
           // File has changed on primary, but not secondary: copy from primary to secondary
-          console.log("File changed on primary, copying to secondary", name);
+          this.logger.log(
+            "info",
+            "File changed on primary, copying to secondary",
+            name,
+          );
           const { data } = await this.primary.readFile(name, "arraybuffer");
           const writtenMeta = await this.secondary.writeFile(
             name,
@@ -165,13 +196,18 @@ export class SpaceSync {
             primaryFileMap.get(name) !== this.snapshot.get(name)![0]
           )
         ) {
-          console.log("File changed on both ends, conflict!", name);
+          this.logger.log(
+            "info",
+            "File changed on both ends, potential conflict",
+            name,
+          );
           if (conflictResolver) {
             await conflictResolver(
               name,
               this.snapshot,
               this.primary,
               this.secondary,
+              this.logger,
             );
           } else {
             throw Error(
@@ -184,9 +220,10 @@ export class SpaceSync {
         }
       }
     } catch (e: any) {
-      console.error("Boom", e.message);
+      this.logger.log("error", "Sync error:", e.message);
       throw e;
     }
+    this.logger.log("info", "Sync complete, operations performed", operations);
 
     return operations;
   }
@@ -197,8 +234,9 @@ export class SpaceSync {
     snapshot: Map<string, SyncStatusItem>,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
+    logger: Logger,
   ): Promise<void> {
-    console.log("Hit a conflict for", name);
+    logger.log("info", "Starting conflict resolution for", name);
     const filePieces = name.split(".");
     const fileNameBase = filePieces.slice(0, -1).join(".");
     const fileNameExt = filePieces[filePieces.length - 1];
@@ -221,6 +259,7 @@ export class SpaceSync {
       }
       // Byte wise they're still the same, so no confict
       if (byteWiseMatch) {
+        logger.log("info", "Files are the same, no conflict");
         snapshot.set(name, [
           pageData1.meta.lastModified,
           pageData2.meta.lastModified,
@@ -231,7 +270,8 @@ export class SpaceSync {
     const revisionFileName = filePieces.length === 1
       ? `${name}.conflicted.${pageData2.meta.lastModified}`
       : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
-    console.log(
+    logger.log(
+      "info",
       "Going to create conflicting copy",
       revisionFileName,
     );
