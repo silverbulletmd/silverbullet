@@ -15,6 +15,10 @@ function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
 }
 
+function normalizeForwardSlashPath(path: string) {
+  return path.replaceAll("\\", "/");
+}
+
 const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
 
 export class DiskSpacePrimitives implements SpacePrimitives {
@@ -172,7 +176,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
           continue;
         }
         allFiles.push({
-          name: name,
+          name: normalizeForwardSlashPath(name),
           lastModified: s.mtime!.getTime(),
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,
