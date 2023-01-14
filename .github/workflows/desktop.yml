@@ -73,6 +73,7 @@ jobs:
             desktop/out/**/*.deb
             desktop/out/**/*Setup.exe
             desktop/out/**/RELEASES
+            desktop/out/**/*.nupkg
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
             dist/silverbullet.js
