@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { app, BrowserWindow, dialog, Menu, MenuItem, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, MenuItem, shell, nativeImage } from "electron";
 import portfinder from "portfinder";
 import fetch from "node-fetch";
 import { existsSync } from "node:fs";
@@ -144,14 +144,16 @@ export function findInstanceByUrl(url: URL) {
 
 let quitting = false;
 
+const icon = nativeImage.createFromPath(process.resourcesPath + "/logo.png");
 export function newWindow(instance: Instance, windowState: WindowState) {
   // Create the browser window.
+  console.log("Empty icon?", icon.isEmpty());
   const window = new BrowserWindow({
     height: windowState.height,
     width: windowState.width,
     x: windowState.x,
     y: windowState.y,
-    icon: process.resourcesPath + "/logo.png",
+    icon,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
