@@ -8,6 +8,11 @@ import {
   tags as t,
 } from "../deps.ts";
 
+// Forked from https://github.com/lezer-parser/markdown/blob/main/src/extension.ts
+// MIT License
+// Author: Marijn Haverbeke
+// Change made: Avoid wiki links with aliases [[link|alias]] from being parsed as table row separators
+
 function parseRow(
   cx: BlockContext,
   line: string,
