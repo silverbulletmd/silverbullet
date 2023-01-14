@@ -83,8 +83,8 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      iconUrl: "https://silverbullet.md/icon.ico",
-      setupIcon: "../web/images/icon.ico"
+      iconUrl: "https://silverbullet.md/logo.ico",
+      setupIcon: "../web/images/logo.ico"
     }),
     new MakerZIP({}, ["darwin", "linux"]),
     new MakerRpm({}),
