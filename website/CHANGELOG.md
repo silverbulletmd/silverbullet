@@ -4,7 +4,7 @@ release.
 
 ---
 
-## Next
+## 0.2.7
 
 * New {[Extract text to new page]} command
 * Improvement to listify commands by [Tristan Sokol](https://github.com/silverbulletmd/silverbullet/pull/290)
@@ -14,7 +14,8 @@ release.
   select * from my_table;
   ```
 * Merged code for experimental mobile app (iOS only for now)
-* Experimental sync engine, to be documented once it matures
+* Experimental sync support, to be documented once it matures
+* Various bug fixes
 
 ---
 
