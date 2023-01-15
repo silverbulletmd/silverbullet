@@ -4,8 +4,8 @@
     "install": "deno install -f -A --unstable silverbullet.ts",
     "check": "find web common server plugs cmd plug-api plugos -name '*.ts*' | xargs deno check",
     "test": "deno test -A --unstable",
-    "build": "deno run -A --unstable --check build_plugs.ts && deno run -A --unstable --check build_web.ts",
-    "plugs": "deno run -A --unstable --check build_plugs.ts",
+    "build": "deno run -A --unstable build_plugs.ts && deno run -A --unstable build_web.ts",
+    "plugs": "deno run -A --unstable build_plugs.ts",
     "watch-web": "deno run -A --unstable --check build_web.ts --watch",
     "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
     // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
