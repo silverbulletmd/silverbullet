@@ -39,7 +39,7 @@ export async function addPlugCommand() {
   }
   plugList.push(name);
   // await writeYamlPage("PLUGS", plugList, plugsPrelude);
-  await writePage(
+  await space.writePage(
     "PLUGS",
     plugsPrelude + "```yaml\n" + plugList.map((p) => `- ${p}`).join("\n") +
       "\n```",
