@@ -91,9 +91,7 @@ export async function updatePlugs() {
       "_plug/".length,
       existingPlug.length - ".plug.json".length,
     );
-    // console.log("Considering", plugName);
     if (!allPlugNames.includes(plugName)) {
-      // console.log("Removing plug", plugName);
       await space.deleteAttachment(existingPlug);
     }
   }

@@ -9,6 +9,7 @@ See the [original RFC](https://github.com/silverbulletmd/silverbullet/discussion
 
 Specific implementations for sharing are implemented in other plugs, specifically:
 <!-- #query page where share-support = true render [[template/page]] -->
+* [[🔌 Ghost]]
 * [[🔌 Markdown]]
 * [[🔌 Collab]]
 * [[🔌 Mattermost]]
