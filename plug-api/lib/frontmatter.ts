@@ -27,7 +27,7 @@ export function extractFrontmatter(
         if (!data.tags) {
           data.tags = [];
         }
-        if (!data.tags.includes(tagname)) {
+        if (Array.isArray(data.tags) && !data.tags.includes(tagname)) {
           data.tags.push(tagname);
         }
       }
