@@ -16,6 +16,7 @@ export async function sharePublisher(event: PublishEvent) {
   const markdownHtml = renderMarkdownToHtml(tree, {
     smartHardBreak: true,
   });
+
   const html =
     `<html><head><style>${css}</style></head><body><div id="root">${markdownHtml}</div></body></html>`;
   await rootFS.writeFile(path, html, "utf8");

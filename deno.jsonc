@@ -2,6 +2,7 @@
   "tasks": {
     "clean": "rm -rf dist dist_bundle",
     "install": "deno install -f -A --unstable silverbullet.ts",
+    "check": "find web common server plugs cmd plug-api plugos -name '*.ts*' | xargs deno check",
     "test": "deno test -A --unstable",
     "build": "deno run -A --unstable --check build_plugs.ts && deno run -A --unstable --check build_web.ts",
     "plugs": "deno run -A --unstable --check build_plugs.ts",
