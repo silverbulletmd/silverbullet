@@ -414,7 +414,6 @@ functions:
     path: ./stats.ts:statsCommand
     command:
       name: "Stats: Show"
-      key: "Shift-Alt-s"
 
   # Cloud pages
   readPageCloud:

@@ -9,6 +9,7 @@ functions:
     path: sync.ts:syncCommand
     command:
       name: "Sync: Sync"
+      key: "Shift-Alt-s"
 
   wipeAndSyncCommand:
     path: sync.ts:localWipeAndSyncCommand

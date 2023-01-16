@@ -1,4 +1,6 @@
-import { LogEntry } from "../../plugos/sandbox.ts";
+import { renderToText, replaceNodesMatching } from "../../plug-api/lib/tree.ts";
+import buildMarkdown from "../markdown_parser/parser.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
 import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
@@ -34,7 +36,7 @@ export class SpaceSync {
       primarySpace: SpacePrimitives,
       secondarySpace: SpacePrimitives,
       logger: Logger,
-    ) => Promise<void>,
+    ) => Promise<number>,
   ): Promise<number> {
     let operations = 0;
     this.logger.log("info", "Fetching snapshot from primary");
@@ -202,7 +204,7 @@ export class SpaceSync {
             name,
           );
           if (conflictResolver) {
-            await conflictResolver(
+            operations += await conflictResolver(
               name,
               this.snapshot,
               this.primary,
@@ -214,7 +216,6 @@ export class SpaceSync {
               `Sync conflict for ${name} with no conflict resolver specified`,
             );
           }
-          operations++;
         } else {
           // Nothing needs to happen
         }
@@ -235,7 +236,7 @@ export class SpaceSync {
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
     logger: Logger,
-  ): Promise<void> {
+  ): Promise<number> {
     logger.log("info", "Starting conflict resolution for", name);
     const filePieces = name.split(".");
     const fileNameBase = filePieces.slice(0, -1).join(".");
@@ -243,28 +244,50 @@ export class SpaceSync {
     const pageData1 = await primary.readFile(name, "arraybuffer");
     const pageData2 = await secondary.readFile(name, "arraybuffer");
 
-    let byteWiseMatch = true;
-    const arrayBuffer1 = new Uint8Array(pageData1.data as ArrayBuffer);
-    const arrayBuffer2 = new Uint8Array(pageData2.data as ArrayBuffer);
-    if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
-      byteWiseMatch = false;
-    }
-    if (byteWiseMatch) {
-      // Byte-wise comparison
-      for (let i = 0; i < arrayBuffer1.byteLength; i++) {
-        if (arrayBuffer1[i] !== arrayBuffer2[i]) {
-          byteWiseMatch = false;
-          break;
-        }
-      }
-      // Byte wise they're still the same, so no confict
-      if (byteWiseMatch) {
-        logger.log("info", "Files are the same, no conflict");
+    if (name.endsWith(".md")) {
+      logger.log("info", "File is markdown, using smart conflict resolution");
+      // Let's use a smartert check for markdown files, ignoring directive bodies
+      const pageText1 = removeDirectiveBody(
+        new TextDecoder().decode(pageData1.data as Uint8Array),
+      );
+      const pageText2 = removeDirectiveBody(
+        new TextDecoder().decode(pageData2.data as Uint8Array),
+      );
+      if (pageText1 === pageText2) {
+        logger.log(
+          "info",
+          "Files are the same (eliminating the directive bodies), no conflict",
+        );
         snapshot.set(name, [
           pageData1.meta.lastModified,
           pageData2.meta.lastModified,
         ]);
-        return;
+        return 0;
+      }
+    } else {
+      let byteWiseMatch = true;
+      const arrayBuffer1 = new Uint8Array(pageData1.data as ArrayBuffer);
+      const arrayBuffer2 = new Uint8Array(pageData2.data as ArrayBuffer);
+      if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
+        byteWiseMatch = false;
+      }
+      if (byteWiseMatch) {
+        // Byte-wise comparison
+        for (let i = 0; i < arrayBuffer1.byteLength; i++) {
+          if (arrayBuffer1[i] !== arrayBuffer2[i]) {
+            byteWiseMatch = false;
+            break;
+          }
+        }
+        // Byte wise they're still the same, so no confict
+        if (byteWiseMatch) {
+          logger.log("info", "Files are the same, no conflict");
+          snapshot.set(name, [
+            pageData1.meta.lastModified,
+            pageData2.meta.lastModified,
+          ]);
+          return 0;
+        }
       }
     }
     const revisionFileName = filePieces.length === 1
@@ -303,9 +326,25 @@ export class SpaceSync {
     );
 
     snapshot.set(name, [pageData1.meta.lastModified, writeMeta.lastModified]);
+    return 1;
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {
     return files.filter((f) => !f.name.startsWith("_plug/"));
   }
+}
+
+const markdownLanguage = buildMarkdown([]);
+
+export function removeDirectiveBody(text: string): string {
+  // Parse
+  const tree = parse(markdownLanguage, text);
+  // Remove bodies
+  replaceNodesMatching(tree, (node) => {
+    if (node.type === "DirectiveBody") {
+      return null;
+    }
+  });
+  // Turn back into text
+  return renderToText(tree);
 }

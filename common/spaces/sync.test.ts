@@ -1,4 +1,4 @@
-import { SpaceSync, SyncStatusItem } from "./sync.ts";
+import { removeDirectiveBody, SpaceSync, SyncStatusItem } from "./sync.ts";
 import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
 import { assertEquals } from "../../test_deps.ts";
 
@@ -100,11 +100,23 @@ Deno.test("Test store", async () => {
   await primary.writeFile("index", "utf8", "Hello 1");
   await secondary.writeFile("index", "utf8", "Hello 1");
 
+  // And two more files with different bodies, but only within a query directive — shouldn't conflict
+  await primary.writeFile(
+    "index.md",
+    "utf8",
+    "Hello\n<!-- #query page -->\nHello 1\n<!-- /query -->",
+  );
+  await secondary.writeFile(
+    "index.md",
+    "utf8",
+    "Hello\n<!-- #query page -->\nHello 2\n<!-- /query -->",
+  );
+
   await doSync();
   await doSync();
 
-  // test + index + previous index.conflicting copy but nothing more
-  assertEquals((await primary.fetchFileList()).length, 3);
+  // test + index + index.md + previous index.conflicting copy but nothing more
+  assertEquals((await primary.fetchFileList()).length, 4);
 
   console.log("Bringing a third device in the mix");
 
@@ -141,3 +153,23 @@ function sleep(ms = 10): Promise<void> {
     setTimeout(resolve, ms);
   });
 }
+
+Deno.test("Remove directive bodies", () => {
+  assertEquals(
+    removeDirectiveBody(`<!-- #query page -->
+This is a body
+bla bla bla
+<!-- /query -->
+Hello
+<!-- #include [[test]] -->
+This is a body
+<!-- /include -->
+`),
+    `<!-- #query page -->
+<!-- /query -->
+Hello
+<!-- #include [[test]] -->
+<!-- /include -->
+`,
+  );
+});
