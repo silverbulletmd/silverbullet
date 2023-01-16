@@ -60,7 +60,7 @@ export async function showLogsCommand() {
       serverDiv.scrollTop = serverDiv.scrollHeight;
 
       self.close = () => {
-        sendEvent("log:hide");
+        syscall("event.dispatch", "log:hide");
       };
 
       syscall("system.getEnv").then((env) => {

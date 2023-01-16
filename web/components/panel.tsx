@@ -62,6 +62,7 @@ window.addEventListener("message", (message) => {
   }
 });
 
+// DEPRECATED: Use syscall("event.dispatch", ...) instead
 function sendEvent(name, ...args) {
   window.parent.postMessage({ type: "event", name, args, }, "*");
 }
@@ -137,12 +138,20 @@ export function Panel({
         case "syscall": {
           const { id, name, args } = data;
           editor.system.localSyscall("core", name, args).then((result) => {
+            if (!iFrameRef.current?.contentWindow) {
+              // iFrame already went away
+              return;
+            }
             iFrameRef.current!.contentWindow!.postMessage({
               type: "syscall-response",
               id,
               result,
             });
           }).catch((e: any) => {
+            if (!iFrameRef.current?.contentWindow) {
+              // iFrame already went away
+              return;
+            }
             iFrameRef.current!.contentWindow!.postMessage({
               type: "syscall-response",
               id,
