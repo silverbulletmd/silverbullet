@@ -1,9 +1,9 @@
-SilverBullet now has a sync engine. Let’s still consider it _experimental_, but it’s ready for use.
+SilverBullet now has a sync engine. It’s still early in its development, so somewhat experimental. If you decided to use it **make back-ups**.
 
-The synchronization algorithm implemented is [pretty much this one described here](https://unterwaditzer.net/2016/sync-algorithm.html).
+The synchronization algorithm implemented is [pretty much the one described here](https://unterwaditzer.net/2016/sync-algorithm.html).
 
 ## Architecture
-You’ll use a single SilverBullet [[Server]] as your central synchronization space, then connect any other instances of SilverBullet (likely primarily [[Mobile]] and [[Desktop]] apps, but could also be other [[Server]] instances) to it. Each “client” instance keeps track of sync snapshots that it uses to figure out what files have changed where.
+To use SilverBullet sync, you’ll use a single SilverBullet [[Server]] as your central synchronization space, then connect any other instances of SilverBullet (likely primarily [[Mobile]] and [[Desktop]] apps, but could also be other [[Server]] instances) to it. Each “client” instance keeps track of sync snapshots that it uses to figure out what files have changed where.
 
 Let’s put this information in a graph, just because we can!
 
@@ -22,10 +22,12 @@ Here’s how to use SilverBullet’s sync functionality:
 2. Connect any other SilverBullet instance (likely the [[Desktop]] or [[Mobile]] app) to it via the {[Sync: Configure]} command. This will ask for:
    * A URL to connect to (the URL of the SB server configured under (1))
    * A username and password (optional) if you run the server with the `--user myuser:mypass` flag (as you should)
-3. {[Sync: Sync]} performs a sync. It stores a local sync snapshot (basically a list of timestamps for all files in your space) in its local SQLite database every time.
-4. Check {[Show Logs]} for sync logs.
+3. Now you have two options:
+    1. Perform a one-time “clean sync” _wiping all local content_ and syncing down content from the sync server. For this, use the {[Sync: Wipe Local Space and Sync]} command. This is likely what you want for e.g. an initial [[Mobile]] setup.
+    2. Use {[Sync: Sync]} to perform a regular sync, comparing the local and remote space and generating conflicts where appropriate.
+3. Check {[Show Logs]} for sync logs.
 
-Right now, sync needs to be triggered manually, so run {[Sync: Sync]} whenever you feel a sync is warranted.
+After this initial sync, **sync needs to be triggered manually**, so run {[Sync: Sync]} whenever you feel a sync is warranted.
 
 ## The sync process
 1. The sync engine compares two file listings: the local one and remote one, and figures out which files have been added, changed and removed on both ends. It uses timestamps to determine changes. Note this doesn’t make any assumptions about clocks being in sync, timezones etc.

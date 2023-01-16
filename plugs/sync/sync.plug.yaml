@@ -10,6 +10,11 @@ functions:
     command:
       name: "Sync: Sync"
 
+  wipeAndSyncCommand:
+    path: sync.ts:localWipeAndSyncCommand
+    command:
+      name: "Sync: Wipe Local Space and Sync"
+
   check:
     env: server
     path: sync.ts:check

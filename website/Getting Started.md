@@ -28,14 +28,14 @@ Don’t believe me, check this out, here’s a list of (max 10) pages in your sp
 |name           |
 |---------------|
 |Sync           |
+|SilverBullet   |
+|Getting Started|
 |Mobile         |
 |PLUGS          |
 |🔌 Plugs       |
 |Desktop        |
 |Server         |
-|SilverBullet   |
 |Download       |
-|Getting Started|
 |Markdown       |
 <!-- /query -->
 
@@ -49,7 +49,9 @@ In the case of `#include` this means the body will again be replaced with the pa
 Feel free to completely remove all content on this page and make it your own, it’s just to get you started.
 
 ## What next?
-Generally, you can find more information about SilverBullet on its official website. You have two ways to access it:
+If you plan to use SilverBullet on multiple devices, specifically on a [[Mobile]] device. Have a look at [[Sync]].
+
+Beyond that, you can find more information about SilverBullet on its official website. You have two ways to access it:
 
 1. Through its [regular website link](https://silverbullet.md/)
 2. Directly without leaving SilverBullet, through [[Cloud Links]], just click on this: [[SilverBullet]] (note that all of these will be read-only, for obvious reasons)
