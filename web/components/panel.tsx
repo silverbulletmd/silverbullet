@@ -8,6 +8,22 @@ export const panelHtml = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <base target="_top">
 <script>
+const pendingRequests = new Map();
+let syscallReqId = 0;
+
+self.syscall = async (name, ...args) => {
+  return await new Promise((resolve, reject) => {
+    syscallReqId++;
+    pendingRequests.set(syscallReqId, { resolve, reject });
+    window.parent.postMessage({
+      type: "syscall",
+      id: syscallReqId,
+      name,
+      args,
+    }, "*");
+  });
+};
+
 window.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {
@@ -20,6 +36,28 @@ window.addEventListener("message", (message) => {
           console.error("Error evaling script", e);
         }
       }
+      break;
+    case "syscall-response":
+      {
+        const syscallId = data.id;
+        const lookup = pendingRequests.get(syscallId);
+        if (!lookup) {
+          console.log(
+            "Current outstanding requests",
+            pendingRequests,
+            "looking up",
+            syscallId,
+          );
+          throw Error("Invalid request id");
+        }
+        pendingRequests.delete(syscallId);
+        if (data.error) {
+          lookup.reject(new Error(data.error));
+        } else {
+          lookup.resolve(data.result);
+        }
+      }
+
       break;
   }
 });
@@ -92,8 +130,27 @@ export function Panel({
       if (!data) {
         return;
       }
-      if (data.type === "event") {
-        editor.dispatchAppEvent(data.name, ...data.args);
+      switch (data.type) {
+        case "event":
+          editor.dispatchAppEvent(data.name, ...data.args);
+          break;
+        case "syscall": {
+          const { id, name, args } = data;
+          editor.system.localSyscall("core", name, args).then((result) => {
+            iFrameRef.current!.contentWindow!.postMessage({
+              type: "syscall-response",
+              id,
+              result,
+            });
+          }).catch((e: any) => {
+            iFrameRef.current!.contentWindow!.postMessage({
+              type: "syscall-response",
+              id,
+              error: e.message,
+            });
+          });
+          break;
+        }
       }
     };
     globalThis.addEventListener("message", messageListener);

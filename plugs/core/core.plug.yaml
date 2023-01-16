@@ -374,11 +374,9 @@ functions:
   showLogsCommand:
     path: ./debug.ts:showLogsCommand
     command:
-      name: "Debug: Show Logs"
+      name: "Show Logs"
       key: "Ctrl-Alt-l"
       mac: "Cmd-Alt-l"
-    events:
-      - log:reload
   hideBhsCommand:
     path: ./debug.ts:hideBhsCommand
     command:

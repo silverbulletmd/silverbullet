@@ -130,8 +130,8 @@ export class Editor {
       .dispatchEvent("editor:updated")
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
-  private system: System<SilverBulletHooks>;
-  private mdExtensions: MDExt[] = [];
+  system: System<SilverBulletHooks>;
+  mdExtensions: MDExt[] = [];
   urlPrefix: string;
   indexPage: string;
 

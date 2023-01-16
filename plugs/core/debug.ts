@@ -1,10 +1,4 @@
-import { sandbox } from "$sb/plugos-syscall/mod.ts";
-import {
-  editor,
-  markdown,
-  sandbox as serverSandbox,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function parsePageCommand() {
   console.log(
@@ -18,22 +12,13 @@ export async function parsePageCommand() {
 }
 
 export async function showLogsCommand() {
-  // Running in client/server mode?
-  const clientServer = !!(await system.getEnv());
-
-  if (clientServer) {
-    const clientLogs = await sandbox.getLogs();
-    const serverLogs = await serverSandbox.getServerLogs();
-    await editor.showPanel(
-      "bhs",
-      1,
-      `
+  await editor.showPanel(
+    "bhs",
+    1,
+    `
     <style>
-    #reload {
-      width: 75%;
-    }
     #close {
-      width: 20%;
+      width: 100%;
     }
     #client-log-header {
         position: absolute;
@@ -63,87 +48,43 @@ export async function showLogsCommand() {
         overflow: scroll;
     }
     </style>
-    <button onclick="self.reloadLogs()" id="reload">Reload</button>
     <button onclick="self.close()" id="close">Close</button>
     <div id="client-log-header">Client logs (max 100)</div>
-    <div id="client-log">
-      <pre>${
-        clientLogs
-          .map((le) => `[${le.level}] ${le.message}`)
-          .join("\n")
-      }</pre>
-    </div>
+    <div id="client-log">Loading...</div>
     <div id="server-log-header">Server logs (max 100)</div>
-    <div id="server-log">
-      <pre>${
-        serverLogs
-          .map((le) => `[${le.level}] ${le.message}`)
-          .join("\n")
-      }</pre>
-    </div>`,
-      `
-      var clientDiv = document.getElementById("client-log");
+    <div id="server-log">Loading...</div>`,
+    `
+      const clientDiv = document.getElementById("client-log");
       clientDiv.scrollTop = clientDiv.scrollHeight;
-      var serverDiv = document.getElementById("server-log");
+      const serverDiv = document.getElementById("server-log");
       serverDiv.scrollTop = serverDiv.scrollHeight;
 
-      self.reloadLogs = () => {
-        sendEvent("log:reload");
-      };
       self.close = () => {
         sendEvent("log:hide");
       };
+
+      syscall("system.getEnv").then((env) => {
+        const clientServerMode = !!env;
+        if (!clientServerMode) {
+          // Running in hybrid mode (mobile), so let's ignore server logs (they're the same as client logs)
+          serverDiv.style.display = "none";
+          clientDiv.style.width = "100%";
+          document.getElementById("server-log-header").style.display = "none";
+        }
+  
+        setInterval(() => {
+          Promise.resolve().then(async () => {
+            if(clientServerMode) {
+              const serverLogs = await syscall("sandbox.getServerLogs");
+              serverDiv.innerHTML = "<pre>" + serverLogs.map((le) => "[" + le.level + "] " + le.message).join("\\n") + "</pre>";
+            }
+            const clientLogs = await syscall("sandbox.getLogs");
+            clientDiv.innerHTML = "<pre>" + clientLogs.map((le) => "[" + le.level + "] " + le.message).join("\\n") + "</pre>";
+          }).catch(console.error);
+        }, 1000);
+      });
       `,
-    );
-  } else {
-    const logs = await sandbox.getLogs();
-    await editor.showPanel(
-      "bhs",
-      1,
-      `
-        <style>
-        #reload {
-          width: 75%;
-        }
-        #close {
-          width: 20%;
-        }
-        #log-header {
-          position: absolute;
-          left: 0;
-          top: 35px;
-        }
-        #log {
-          position: absolute;
-          left: 0;
-          top: 60px;
-          bottom: 0;
-          width: 100%;
-          overflow: scroll;
-        }
-        </style>
-        <button onclick="self.reloadLogs()" id="reload">Reload</button>
-        <button onclick="self.close()" id="close">Close</button>
-            <div id="log-header">Logs (max 100)</div>
-        <div id="log">
-          <pre>${
-        logs
-          .map((le) => `[${le.level}] ${le.message}`)
-          .join("\n")
-      }</pre>
-        </div>`,
-      `
-          var clientDiv = document.getElementById("log");
-          clientDiv.scrollTop = clientDiv.scrollHeight;
-          self.reloadLogs = () => {
-            sendEvent("log:reload");
-          };
-          self.close = () => {
-            sendEvent("log:hide");
-          };
-          `,
-    );
-  }
+  );
 }
 
 export async function hideBhsCommand() {
