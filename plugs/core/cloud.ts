@@ -6,8 +6,6 @@ import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
-import { CapacitorHttp } from "@capacitor/core";
-import { sandboxFetch } from "../../plug-api/plugos-syscall/fetch.ts";
 
 const pagePrefix = "💭 ";
 
@@ -67,7 +65,10 @@ async function translateLinksWithPrefix(
   replaceNodesMatching(tree, (tree) => {
     if (tree.type === "WikiLinkPage") {
       // Add the prefix in the link text
-      tree.children![0].text = prefix + tree.children![0].text;
+      if (!tree.children![0].text!.startsWith(pagePrefix)) {
+        // Only for links that aren't already cloud links
+        tree.children![0].text = prefix + tree.children![0].text;
+      }
     }
     return undefined;
   });
