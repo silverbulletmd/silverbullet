@@ -149,7 +149,7 @@ export class HttpServer {
       ? "localhost"
       : this.hostname;
     console.log(
-      `Silver Bullet is now running: http://${visibleHostname}:${this.port}`,
+      `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
     );
   }
 

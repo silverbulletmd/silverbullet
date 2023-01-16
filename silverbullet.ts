@@ -61,7 +61,7 @@ await new Command()
   })
   .action(invokeFunction)
   // upgrade
-  .command("upgrade", "Upgrade Silver Bullet")
+  .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)
   // version
   .command("version", "Get current version")

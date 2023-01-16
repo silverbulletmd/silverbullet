@@ -66,6 +66,7 @@ export async function ensureAndLoadSettings(
       `Hello! And welcome to your brand new SilverBullet space!
 
 <!-- #include [[💭 silverbullet.md/Getting Started]] -->
+Loading some onboarding content for you (but doing so does require a working internet connection)...
 <!-- /include -->`,
     );
   }

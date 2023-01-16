@@ -24,6 +24,6 @@ export async function fixCommand(_options: any, folder: string) {
     }
   }
   console.log(
-    "Alright then, that should be it. Try running Silver Bullet again.",
+    "Alright then, that should be it. Try running SilverBullet again.",
   );
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-echo "Now building Silver Bullet bundle"
+echo "Now building SilverBullet bundle"
 curl -fsSL https://deno.land/install.sh | sh
 export PATH=~/.deno/bin:$PATH
 

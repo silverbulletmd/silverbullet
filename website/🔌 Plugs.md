@@ -1,4 +1,4 @@
-Silver Bullet at its core is bare bones in terms of functionality, most of its power it gains from **plugs**.
+SilverBullet at its core is bare bones in terms of functionality, most of its power it gains from **plugs**.
 
 Plugs are an extension mechanism (implemented using a library called PlugOS that’s part of the silverbullet repo) that runs “plug” code on the server in Deno web workers ([with severely locked down permissions](https://deno.land/manual@v1.28.2/runtime/workers#instantiation-permissions)), and in the browser using web workers.
 
@@ -15,7 +15,7 @@ Each plug runs in its own _sandboxed environment_ and communicates with SB via _
 Plugs are distributed as self-contained JSON files (ending with `.plug.json`). Upon boot, SB will load all core plugs bundled with SB itself (listed below), as well as any additional plugs stored in the `_plug` folder in your space. Typically, management of plugs in the `_plug` folder is done using [[🔌 Core/Plug Management]].
 
 ## Core plugs
-These plugs are distributed with Silver Bullet and are automatically enabled:
+These plugs are distributed with SilverBullet and are automatically enabled:
 <!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
 * [[🔌 Collab]]  
 * [[🔌 Core]]  
@@ -42,7 +42,7 @@ These plugs are written either by third parties or distributed separately from t
 ## How to develop your own plug
 The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.
 
-Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yml`. This file defines all functions that form your plug. To be loadable by Silver Bullet (or any PlugOS-based system for that matter), it needs to be compiled into a JSON bundle (ending with `.plug.json`).
+Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yml`. This file defines all functions that form your plug. To be loadable by SilverBullet (or any PlugOS-based system for that matter), it needs to be compiled into a JSON bundle (ending with `.plug.json`).
 
 Generally, the way to do this is to run `silverbullet plug:compile` as follows:
 

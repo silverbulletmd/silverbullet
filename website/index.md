@@ -1,1 +1,1 @@
-Moved to [[Silver Bullet]]
+Moved to [[SilverBullet]]

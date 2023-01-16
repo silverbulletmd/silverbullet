@@ -32,7 +32,7 @@ $ source ~/.bashrc
 $ deno -V
 ```
 
-Then, just follow the standard [[Silver Bullet]] installation instructions:
+Then, just follow the standard [[SilverBullet]] installation instructions:
 
 ```shell
 $ deno install -f --name silverbullet -A --unstable https://get.silverbullet.md

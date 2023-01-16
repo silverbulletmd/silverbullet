@@ -10,14 +10,14 @@ export function serveCommand(options: any, folder: string) {
   const bareMode = options.bare;
 
   console.log(
-    "Going to start Silver Bullet binding to",
+    "Going to start SilverBullet binding to",
     `${hostname}:${port}`,
   );
   console.log("Serving pages from", pagesPath);
 
   if (hostname === "127.0.0.1") {
     console.log(
-      `_Note:_ Silver Bullet will only be available locally (via http://localhost:${port}), to allow outside connections, pass --host 0.0.0.0 as a flag.`,
+      `_Note:_ SilverBullet will only be available locally (via http://localhost:${port}), to allow outside connections, pass --host 0.0.0.0 as a flag.`,
     );
   }
 

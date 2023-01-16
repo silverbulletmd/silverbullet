@@ -1,6 +1,6 @@
-What does Silver Bullet look like? Well, have a look around. **You’re looking at it at this very moment!** 🤯
+What does SilverBullet look like? Well, have a look around. **You’re looking at it at this very moment!** 🤯
 
-Note that what you’re looking at is not a fully functional version, because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `deno` command (see here: [[Silver Bullet]]) to download and run it locally in its fully functioning mode.
+Note that what you’re looking at is not a fully functional version, because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `deno` command (see here: [[SilverBullet]]) to download and run it locally in its fully functioning mode.
 
 ## Start playing
 So, feel free to make some edits in this space. Don’t worry, you won’t break anything, nothing is saved (just reload the page to see).
@@ -18,13 +18,13 @@ Here are some things to try:
 * Hit `Cmd-p` (Mac) or `Ctrl-p` (Windows, Linux) to show a live preview for the current page on the side, if your brain doesn’t speak native Markdown yet.
 * Open this site on your phone or tablet and… it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based
-  browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
+  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
 Oh yeah, you can use fancy things like tables:
 
 | Page | Comment |
 |----------|----------|
-| [[Silver Bullet]] | Main product page |
+| [[SilverBullet]] | Main product page |
 | [[CHANGELOG]] | The latest updates |
 
 or code snippets, like JavaScript:
@@ -38,7 +38,7 @@ function helloWorld() {
 or YAML:
 
 ```yaml
-name: Silver Bullet
+name: SilverBullet
 rating: 5
 ```
 
@@ -53,4 +53,4 @@ There are a few features you don’t get to fully experience in this environment
 
 That’s all, now go install this baby already!
 
-Instructions here 👉 [[Silver Bullet]]
+Instructions here 👉 [[SilverBullet]]

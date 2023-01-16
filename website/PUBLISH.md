@@ -1,6 +1,6 @@
 ```yaml
-title: Silver Bullet
+title: SilverBullet
 publishAll: true
-indexPage: Silver Bullet
+indexPage: SilverBullet
 footerPage: website-footer
 ```

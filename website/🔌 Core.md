@@ -3,7 +3,7 @@ type: plug
 repo: https://github.com/silverbulletmd/silverbullet
 ---
 
-The core plug implements foundational functionality for Silver Bullet. It covers the following areas:
+The core plug implements foundational functionality for SilverBullet. It covers the following areas:
 
 * [[🔌 Core/Indexing]]
 * [[🔌 Core/Templates]]

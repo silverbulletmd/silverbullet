@@ -1,4 +1,4 @@
-Slash commands are built-in to Silver Bullet. You can trigger them by typing a `/` in your text (after whitespace).
+Slash commands are built-in to SilverBullet. You can trigger them by typing a `/` in your text (after whitespace).
 
 The [[🔌 Core]] plug provides a few helpful ones:
 

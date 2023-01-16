@@ -3,9 +3,9 @@ type: plug
 repo: https://github.com/silverbulletmd/silverbullet
 ---
 
-The Tasks plug implements a lot of the task support in Silver Bullet.
+The Tasks plug implements a lot of the task support in SilverBullet.
 
-Tasks in Silver Bullet are written using semi-standard task syntax:
+Tasks in SilverBullet are written using semi-standard task syntax:
 
 * [ ] This is a task
 

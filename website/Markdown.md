@@ -1,6 +1,8 @@
-Markdown is a plain text formatting system [originally developed by John Gruber](https://daringfireball.net/projects/markdown/). It has since been standardized into [CommonMark](https://commonmark.org/), which is what Silver Bullet uses (with some extensions).
+Markdown is a plain text formatting system [originally developed by John Gruber](https://daringfireball.net/projects/markdown/). It has since been standardized into [CommonMark](https://commonmark.org/), which is what SilverBullet uses (with some extensions).
 
-Specifically, Silver Bullet supports the following extensions to common mark:
+If you’re not yet familiar with Markdown [here is a good guide to get you started](https://www.markdownguide.org/basic-syntax/).
+
+We mentioned markdown _extensions_, here are the ones currently supported:
 
 * [[Frontmatter]]
 * Double-bracketed wiki links: `[[link to page]]`, optionally with aliases `[[link to page|alias]]`.

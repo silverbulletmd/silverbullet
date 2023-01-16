@@ -33,9 +33,9 @@ jobs:
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
         with:
           deno-version: v1.29.1
-      - name: Build Silver Bullet
+      - name: Build SilverBullet
         run: deno task build
-      - name: Create Silver Bullet bundle
+      - name: Create SilverBullet bundle
         run: deno task bundle
       - name: Set MacOS signing certs
         if: matrix.os == 'macOS-latest'

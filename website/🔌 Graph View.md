@@ -9,7 +9,7 @@ author: Bertjan Broeksema
 # SilverBullet plug for showing a graph view of the documents
 
 This plug aims to bring similar functionality as the Obsidian Graph view to
-Silver Bullet.
+SilverBullet.
 
 ## Installation
 

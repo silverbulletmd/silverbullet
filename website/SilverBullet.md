@@ -1,13 +1,13 @@
-Silver Bullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, Silver Bullet goes a bit beyond just that.
-
-_Quick links:_ [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [[CHANGELOG]], [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Zef on Mastodon](https://hachyderm.io/@zef), [Mattermost chat](https://silverbullet.cloud.mattermost.com/), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, SilverBullet goes a bit beyond _just_ that.
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Let’s have a look at some of Silver Bullet’s features.
+Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [[CHANGELOG]], [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Mattermost chat](https://silverbullet.cloud.mattermost.com/), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+
+To start, let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) and is installable as a [PWA](https://web.dev/progressive-web-apps/).
+* Runs in any modern browser (including on mobile) when run as a [[Server]], but can also be run ask a [[Desktop]] (and soon) [[Mobile]] app.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:
@@ -18,17 +18,17 @@ Let’s have a look at some of Silver Bullet’s features.
 * Experimental [[🔌 Collab|real-time collaboration support]].
 * Robust extension mechanism using [[🔌 Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
-* Silver Bullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
+* SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 ![Screencast screenshot](demo-video-screenshot.png)
-To get a good feel of what Silver Bullet is capable of, [have a look at this introduction video](https://youtu.be/VemS-cqAD5k).
+To get a good feel of what SilverBullet is capable of, [have a look at this introduction video](https://youtu.be/VemS-cqAD5k).
 
 ## Try it
 Here’s the kicker:
 
-==You are looking at a (more or less) operational copy of Silver Bullet **right now**==.
+==You are looking at a (more or less) operational copy of SilverBullet **right now**==.
 
-That’s right, **this very website is powered by Silver Bullet itself**. 🤯
+That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
 On this site, everything is editable just none of it persists (the back-end is read-only). So, edit away, reload the page and everything resets.
 
@@ -46,13 +46,13 @@ Don’t just sit there, try it!
 * Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
 * Open this site on your phone or tablet and... it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based
-  browser)? Click on that little icon to the right of your location bar that says “Install Silver Bullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
+  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
 
 Oh yeah, and you can use fancy things like tables:
 
 | Page | Comment |
 |----------|----------|
-| [[Silver Bullet]] | Main product page |
+| [[SilverBullet]] | Main product page |
 | [[CHANGELOG]] | The latest updates |
 
 or code snippets, like JavaScript:
@@ -66,7 +66,7 @@ function helloWorld() {
 or YAML:
 
 ```yaml
-name: Silver Bullet
+name: SilverBullet
 rating: 5
 ```
 
@@ -77,52 +77,26 @@ There are a few features you don’t get to fully experience in this environment
 * **Full-text search**.
 * **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 
+## Download SilverBullet
+Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then.
+
+<!-- #include [[Download]] -->
+You have three options to install and use SilverBullet. Pick your poison, as they say. Have a look at all three to decide what’s best for you:
+
+1. [[Server]] — install SilverBullet as a web server on your local machine or network, and access it via any web browser. This is the best choice for nerds 🤓.
+2. [[Desktop]] — install SilverBullet as a desktop application, editing a local folder of files. This is the best option for casual users.
+3. [[Mobile]] — install SilverBullet as a “native” mobile application (native: as in — distributed via the app store, and with an icon on your home screen). This is the best option for people with phones. More specifically, people with phones that don’t want to access the [[Server]] via their mobile browser, or have anxiety around Internet connectivity.
+<!-- /include -->
+
 ## Where to go from here
-Click on the links below to explore various aspects of Silver Bullet more in-depth:
+Click on the links below to explore various aspects of SilverBullet more in-depth:
 
 * [[CHANGELOG]]: What’s new?
-* [[🔌 Plugs]]: extensions available in Silver Bullet
-* [[💡 Inspiration]]: some of the projects that inspired Silver Bullet
-* [[🔨 Development]]: how to start hacking on Silver Bullet itself
-
-## Installing Silver Bullet
-This consists of two steps (unless Deno is already installed):
-
-1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
-2. Installing Silver Bullet itself
-
-### Install Silver Bullet
-With Deno installed, run:
-
-```shell
-deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
-```
-
-This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
-
-To run Silver Bullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
-
-```shell
-silverbullet <pages-path>
-```
-
-By default, Silver Bullet will bind to port `3000`, to use a different port use the `--port` flag. 
-
-For security reasons, by default Silver Bullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection.
-
-Once downloaded and booted, Silver Bullet will print out a URL to open SB in your browser.
-
-## Upgrading Silver Bullet
-Silver Bullet is regularly updated. To get the latest and greatest, simply run:
-
-```shell
-silverbullet upgrade
-```
-
-And restart Silver Bullet. You should be good to go.
+* [[🔌 Plugs]]: extensions available for, and as part of SilverBullet
+* [[💡 Inspiration]]: some of the projects that inspired SilverBullet
+* [[🔨 Development]]: how to start hacking on SilverBullet itself
 
 ## Support
-
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
 
 Want to chat with us? [We have a Mattermost instance](https://silverbullet.cloud.mattermost.com/), join us!

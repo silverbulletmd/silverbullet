@@ -117,7 +117,7 @@ Templates are predefined formats to render the body of the query.
 
 It is pretty easy. You just need to create a new page. However, it is
 recommended to create your templates using `template/[TEMPLATE_NAME]`
-convention. For this guide, we will create `template/plug` to display list of Plugs available in Silver Bullet. We will use this template in the Examples section below.
+convention. For this guide, we will create `template/plug` to display list of Plugs available in SilverBullet. We will use this template in the Examples section below.
 
 #### 5.2 What is the syntax?
 
@@ -127,7 +127,7 @@ We are using Handlebars which is a simple templating language. It is using doubl
 
 Let me break it down for you
 
-- `*` is creating a bullet point for each item in Silver Bullet
+- `*` is creating a bullet point for each item in SilverBullet
 - `[[{{name}}]]` is injecting the name of Plug and creating an internal link to
   the page of the Plug
 - `**{{author}}**` is injecting the author of the Plug and making it bold

@@ -11,9 +11,6 @@ if (import.meta.main) {
     },
   });
   await bundle(args.watch, "mobile", "mobile/dist");
-  await copy("mobile/index.html", `mobile/dist/index.html`, {
-    overwrite: true,
-  });
   if (!args.watch) {
     esbuild.stop();
   }

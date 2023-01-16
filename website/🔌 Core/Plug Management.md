@@ -1,6 +1,6 @@
 Plug management using the [[PLUGS]] file is also implemented in the [[🔌 Core]] plug.
 
-The optional [[PLUGS]] file is only processed when running the {[Plugs: Update]} command, in which case it will fetch all the listed plugs and copy them into the (hidden) `_plug/` folder in the user’s space. Silver Bullet loads these files on boot (or on demand after running the {[Plugs: Update]} command).
+The optional [[PLUGS]] file is only processed when running the {[Plugs: Update]} command, in which case it will fetch all the listed plugs and copy them into the (hidden) `_plug/` folder in the user’s space. SilverBullet loads these files on boot (or on demand after running the {[Plugs: Update]} command).
 
 You can also use the {[Plugs: Add]} to add a plug, which will automatically create a [[PLUGS]] if it does not yet exist.
 

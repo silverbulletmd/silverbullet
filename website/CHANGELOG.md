@@ -135,7 +135,7 @@ release.
 
 ## 0.1.3
 
-* Silver Bullet now runs on Windows!
+* SilverBullet now runs on Windows!
 * Frontmatter support! You can now use front matter in your markdown, to do this
   start your page with `---` and end it with `---`. This will now be the
   preferred way to define page metadata (although the old way will still work).
@@ -287,7 +287,7 @@ release.
   default is `index`). When navigating to this page, the page name will
   "disappear" from the URL. That is, the index URL will simply be
   `http://localhost:3000/`.
-  * This feature is now used in `website` and set to `Silver Bullet` there. To
+  * This feature is now used in `website` and set to `SilverBullet` there. To
     also make the title look nicer when visiting https://silverbullet.md
 
 ---

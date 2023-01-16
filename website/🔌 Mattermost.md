@@ -7,12 +7,12 @@ share-support: true
 ---
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-mattermost/main/README.md]] -->
-# Mattermost for Silver Bullet
+# Mattermost for SilverBullet
 This plug provides various integrations with the [Mattermost suite](https://www.mattermost.com) of products. Please follow the installation, configuration sections, and have a look at the example.
 
 Features:
 
-* Integration with [Silver Bullet Share](https://silverbullet.md/%F0%9F%94%8C_Share), allowing you to publish and update a page as a post on Mattermost, as well as load existing posts into SB as a page using the {[Share: Mattermost Post: Publish]} (to publish an existing page as a Mattermost post) and {[Share: Mattermost Post: Load]} (to load an existing post into SB) commands.
+* Integration with [SilverBullet Share](https://silverbullet.md/%F0%9F%94%8C_Share), allowing you to publish and update a page as a post on Mattermost, as well as load existing posts into SB as a page using the {[Share: Mattermost Post: Publish]} (to publish an existing page as a Mattermost post) and {[Share: Mattermost Post: Load]} (to load an existing post into SB) commands.
 * Access your saved posts via the `mm-saved` query provider
 * Unfurl support for posts (after dumping a permalink URL to a post in a page, use the {[Link: Unfurl]} command).
 * Boards support is WIP
