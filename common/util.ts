@@ -63,7 +63,10 @@ export async function ensureAndLoadSettings(
   } catch {
     await space.writePage(
       settings.indexPage,
-      `Welcome to your new space!`,
+      `Hello! And welcome to your brand new SilverBullet space!
+
+<!-- #include [[💭 silverbullet.md/Getting Started]] -->
+<!-- /include -->`,
     );
   }
 

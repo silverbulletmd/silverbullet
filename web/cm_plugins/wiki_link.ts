@@ -39,7 +39,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
             break;
           }
         }
-        if (cleanPage === "") {
+        if (cleanPage === "" || cleanPage.startsWith("💭")) {
           // Empty page name, or local @anchor use
           pageExists = true;
         }
