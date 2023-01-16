@@ -23,8 +23,8 @@ export default function reducer(
               : pageMeta
           ),
         ),
-        perm: action.meta.perm,
         currentPage: action.meta.name,
+        currentPageMeta: action.meta,
       };
     case "page-changed":
       return {

@@ -80,13 +80,9 @@ import { SlashCommandHook } from "./hooks/slash_command.ts";
 import { PathPageNavigator } from "./navigator.ts";
 import reducer from "./reducer.ts";
 import customMarkdownStyle from "./style.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { collabSyscalls } from "./syscalls/collab.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
-import { fulltextSyscalls } from "./syscalls/fulltext.ts";
-import { indexerSyscalls } from "./syscalls/index.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
-import { storeSyscalls } from "./syscalls/store.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
 
@@ -96,9 +92,8 @@ import type {
   CompleteEvent,
 } from "../plug-api/app_event.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
-import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
-import { syncSyscalls } from "../common/syscalls/sync.ts";
 import { throttle } from "../common/async_util.ts";
+import { readonlyMode } from "./cm_plugins/readonly.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -179,7 +174,7 @@ export class Editor {
     this.render(parent);
 
     this.editorView = new EditorView({
-      state: this.createEditorState("", ""),
+      state: this.createEditorState("", "", false),
       parent: document.getElementById("sb-editor")!,
     });
 
@@ -448,7 +443,11 @@ export class Editor {
     return this.eventHook.dispatchEvent(name, data);
   }
 
-  createEditorState(pageName: string, text: string): EditorState {
+  createEditorState(
+    pageName: string,
+    text: string,
+    readOnly: boolean,
+  ): EditorState {
     const commandKeyBindings: KeyBinding[] = [];
     for (const def of this.commandHook.editorCommands.values()) {
       if (def.command.key) {
@@ -491,6 +490,11 @@ export class Editor {
         EditorView.theme({}, { dark: this.viewState.uiOptions.darkMode }),
         // Enable vim mode, or not
         [...editor.viewState.uiOptions.vimMode ? [vim({ status: true })] : []],
+        [
+          ...readOnly || editor.viewState.uiOptions.forcedROMode
+            ? [readonlyMode()]
+            : [],
+        ],
         // The uber markdown mode
         markdown({
           base: buildMarkdown(this.mdExtensions),
@@ -708,12 +712,15 @@ export class Editor {
       this.saveState(this.currentPage);
 
       editorView.setState(
-        this.createEditorState(this.currentPage, editorView.state.sliceDoc()),
+        this.createEditorState(
+          this.currentPage,
+          editorView.state.sliceDoc(),
+          this.viewState.currentPageMeta?.perm === "ro",
+        ),
       );
       if (editorView.contentDOM) {
         this.tweakEditorDOM(
           editorView.contentDOM,
-          this.viewState.perm === "ro",
         );
       }
 
@@ -833,10 +840,14 @@ export class Editor {
       };
     }
 
-    const editorState = this.createEditorState(pageName, doc.text);
+    const editorState = this.createEditorState(
+      pageName,
+      doc.text,
+      doc.meta.perm === "ro",
+    );
     editorView.setState(editorState);
     if (editorView.contentDOM) {
-      this.tweakEditorDOM(editorView.contentDOM, doc.meta.perm === "ro");
+      this.tweakEditorDOM(editorView.contentDOM);
     }
     const stateRestored = this.restoreState(pageName);
     this.space.watchPage(pageName);
@@ -860,14 +871,10 @@ export class Editor {
     return stateRestored;
   }
 
-  tweakEditorDOM(contentDOM: HTMLElement, readOnly: boolean) {
+  tweakEditorDOM(contentDOM: HTMLElement) {
     contentDOM.spellcheck = true;
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
-    contentDOM.setAttribute(
-      "contenteditable",
-      readOnly || this.viewState.uiOptions.forcedROMode ? "false" : "true",
-    );
   }
 
   private restoreState(pageName: string): boolean {
@@ -919,7 +926,6 @@ export class Editor {
       if (editor.editorView) {
         editor.tweakEditorDOM(
           editor.editorView.contentDOM,
-          viewState.perm === "ro",
         );
       }
     }, [viewState.uiOptions.forcedROMode]);
