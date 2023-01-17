@@ -1,7 +1,5 @@
 ## Getting started
-The best way to get a good feel for what SilverBullet is like to use is to get your hands dirty. Not literally, that would be disgusting — wash your hands _before_ using SilverBullet please, keyboards are gross enough already, and before you say “but I’m using this on mobile” — don’t even get me started on mobile phone screens.
-
-After your hands are properly washed, here are some things for you to try:
+The best way to get a good feel for what SilverBullet is to immediately start playing with it. Here are some things for you to try:
 
 * Click on the page picker (book icon) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**.
   * Type the name of a non-existent page to create it.
@@ -20,36 +18,38 @@ Notice that as you move your cursor around on this page and you get close to or 
 
 Hadn’t we mentioned [[Markdown]] yet? Yeah, that’s the markup language you’ll use to add that dash of markup to your documents. It’s pretty simple to learn if you don’t know it already.
 
-You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[🔌 Directive]] (in this case `#include`). There are various types of directives, and while we’re not keeping score, likely the coolest ones are [[🔌 Directive/Query|queries]] — so you should definitely look into those.
+You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[🔌 Directive]] (in this case `#use`). There are various types of directives, and while we’re not keeping score, likely the coolest ones are [[🔌 Directive/Query|queries]] — so you should definitely look into those.
 
 Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by last modified date, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
 <!-- #query page select name order by lastModified desc limit 10 -->
 |name           |
 |---------------|
-|Sync           |
-|SilverBullet   |
-|Getting Started|
+|CHANGELOG      |
 |Mobile         |
+|Sync           |
+|Getting Started|
+|SilverBullet   |
 |PLUGS          |
 |🔌 Plugs       |
 |Desktop        |
 |Server         |
 |Download       |
-|Markdown       |
 <!-- /query -->
 
-That said, the directive used wrapping this page section is `#include` which simply inlines the content of another page into the current one. Directives recalculate their bodies in two scenarios:
+That said, the directive used wrapping this page section is `#use` which uses the content of another page as a template and inlines it. Directives recalculate their bodies in two scenarios:
 
 1. When you load/switch to a page
 2. When you explicitly run the {[Directives: Update]} command
 
-In the case of `#include` this means the body will again be replaced with the page included, so don’t be surprised when whatever you just updated inside of this directive block will be undone later. Just sayin’. [[🔌 Directive|Directives]] are a powerful feature, so you should definitely look into them once you get comfortable with the basics.
+In the case of `#use` this means the body will again be replaced with the page included, so don’t be surprised when whatever you just updated inside of this directive block will be undone later. Just sayin’. [[🔌 Directive|Directives]] are a powerful feature, so you should definitely look into them once you get comfortable with the basics.
 
 Feel free to completely remove all content on this page and make it your own, it’s just to get you started.
 
 ## What next?
 If you plan to use SilverBullet on multiple devices, specifically on a [[Mobile]] device. Have a look at [[Sync]].
+
+If you are a visual learner, you may [enjoy this introduction video on Youtube](https://youtu.be/VemS-cqAD5k).
 
 Beyond that, you can find more information about SilverBullet on its official website. You have two ways to access it:
 
