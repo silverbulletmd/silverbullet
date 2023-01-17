@@ -4,10 +4,10 @@ You’ve been told there is _no such thing_ as a [silver bullet](https://en.wiki
 
 Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[Sync]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Mattermost chat](https://silverbullet.cloud.mattermost.com/), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
-To start, let’s have a look at some of SilverBullet’s features.
+Now that we got that out of the way, let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) when run as a [[Server]], but can also be run ask a [[Desktop]] (and soon) [[Mobile]] app.
+* Runs in any modern browser (including on mobile) when run as a [[Server]], but can also be run as a [[Desktop]] and [[Mobile]] app.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:
