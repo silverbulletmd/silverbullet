@@ -11,7 +11,7 @@ import { FileMeta as PlugFileMeta } from "../../plug-api/plugos-syscall/types.ts
 export default (space: Space): SysCallMapping => {
   return {
     "space.listPages": (): PageMeta[] => {
-      return [...space.listPages()];
+      return space.listPages();
     },
     "space.readPage": async (
       _ctx,

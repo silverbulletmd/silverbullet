@@ -141,8 +141,8 @@ export class Space extends EventEmitter<SpaceEvents>
     return this.spacePrimitives.invokeFunction(plug, env, name, args);
   }
 
-  listPages(): Set<PageMeta> {
-    return new Set(this.pageMetaCache.values());
+  listPages(): PageMeta[] {
+    return [...new Set(this.pageMetaCache.values())];
   }
 
   async listPlugs(): Promise<string[]> {
@@ -254,7 +254,10 @@ export class Space extends EventEmitter<SpaceEvents>
   }
 
   private metaCacher(name: string, meta: PageMeta): PageMeta {
-    this.pageMetaCache.set(name, meta);
+    if (meta.lastModified !== 0) {
+      // Don't cache metadata for pages with a 0 lastModified timestamp (usualy dynamically generated pages)
+      this.pageMetaCache.set(name, meta);
+    }
     return meta;
   }
 }

@@ -7,14 +7,14 @@ import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
-const pagePrefix = "💭 ";
+export const cloudPrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
   encoding: FileEncoding,
 ): Promise<{ data: FileData; meta: FileMeta } | undefined> {
   const originalUrl = name.substring(
-    pagePrefix.length,
+    cloudPrefix.length,
     name.length - ".md".length,
   );
   let url = originalUrl;
@@ -29,7 +29,7 @@ export async function readFileCloud(
   let text = "";
 
   try {
-    const r = await fetch(`${url}.md`);
+    const r = await fetch(`${encodeURI(url)}.md`);
     text = await r.text();
     if (!r.ok) {
       text = `ERROR: ${text}`;
@@ -40,7 +40,7 @@ export async function readFileCloud(
   }
   text = await translateLinksWithPrefix(
     text,
-    `${pagePrefix}${originalUrl.split("/")[0]}/`,
+    `${cloudPrefix}${originalUrl.split("/")[0]}/`,
   );
   return {
     data: encoding === "utf8" ? text : base64EncodedDataUrl(
@@ -65,7 +65,7 @@ async function translateLinksWithPrefix(
   replaceNodesMatching(tree, (tree) => {
     if (tree.type === "WikiLinkPage") {
       // Add the prefix in the link text
-      if (!tree.children![0].text!.startsWith(pagePrefix)) {
+      if (!tree.children![0].text!.startsWith(cloudPrefix)) {
         // Only for links that aren't already cloud links
         tree.children![0].text = prefix + tree.children![0].text;
       }

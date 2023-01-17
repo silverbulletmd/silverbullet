@@ -1,6 +1,14 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+---
+
+## 0.2.8
+* [[Sync]] should now be usable and is documented
+* Windows and Mac [[Desktop]] apps now have proper icons (only Linux left)
+* [[Mobile]] app for iOS in TestFlight
+* New onboarding index page when you create a new space, pulling content from [[Getting Started]].
+* Various bug fixes
 
 ---
 
