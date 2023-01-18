@@ -172,7 +172,7 @@ export function attachmentExtension(editor: Editor) {
       return;
     }
 
-    const finalFileName = prompt(
+    const finalFileName = await editor.prompt(
       "File name for pasted attachment",
       suggestedName,
     );
