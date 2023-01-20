@@ -130,9 +130,12 @@ Deno.test("Test store", async () => {
     ternary,
     new Map<string, SyncStatusItem>(),
   );
-  console.log("N ops", await sync2.syncFiles());
+  console.log(
+    "N ops",
+    await sync2.syncFiles(SpaceSync.primaryConflictResolver),
+  );
   await sleep(2);
-  assertEquals(await sync2.syncFiles(), 0);
+  assertEquals(await sync2.syncFiles(SpaceSync.primaryConflictResolver), 0);
 
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });

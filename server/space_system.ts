@@ -8,7 +8,7 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { DenoCronHook } from "../plugos/hooks/cron.deno.ts";
+import { CronHook } from "../plugos/hooks/cron.ts";
 import { esbuildSyscalls } from "../plugos/syscalls/esbuild.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import fileSystemSyscalls from "../plugos/syscalls/fs.deno.ts";
@@ -103,7 +103,7 @@ export class SpaceSystem {
     }
 
     // The cron hook
-    this.system.addHook(new DenoCronHook());
+    this.system.addHook(new CronHook());
 
     // Register syscalls available on the server side
     this.system.registerSyscalls(

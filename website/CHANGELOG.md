@@ -1,8 +1,13 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
----
 
+---
+## Next
+* Fixed copy & paste, drag & drop of attachments in the [[Desktop]] app
+* Continuous [[Sync]]
+
+---
 ## 0.2.8
 * [[Sync]] should now be usable and is documented
 * Windows and Mac [[Desktop]] apps now have proper icons (only Linux left)

@@ -6,7 +6,7 @@ import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
-import { Directory } from "./deps.ts";
+import { CapacitorHttp, Directory } from "./deps.ts";
 import { CapacitorSpacePrimitives } from "./spaces/capacitor_space_primitives.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 
@@ -31,6 +31,7 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { syncSyscalls } from "../common/syscalls/sync.ts";
+import { CronHook } from "../plugos/hooks/cron.ts";
 
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
@@ -46,6 +47,8 @@ safeRun(async () => {
 
   const db = new CapacitorDb("data.db");
   await db.init();
+
+  system.addHook(new CronHook());
 
   // for store
   await ensureStoreTable(db, "store");

@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^4.6.0",
-    "@capacitor/android": "^4.6.1",
+    "@capacitor/android": "^4.6.2",
     "@capacitor/app": "^4.1.1",
-    "@capacitor/core": "latest",
+    "@capacitor/core": "^4.6.2",
     "@capacitor/filesystem": "^4.1.4",
-    "@capacitor/ios": "^4.6.1",
+    "@capacitor/ios": "^4.6.2",
     "@capacitor/keyboard": "^4.1.0",
     "@capacitor/splash-screen": "latest",
     "cordova-res": "^0.15.4"

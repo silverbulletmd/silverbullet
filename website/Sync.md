@@ -27,7 +27,10 @@ Here’s how to use SilverBullet’s sync functionality:
     2. Use {[Sync: Sync]} to perform a regular sync, comparing the local and remote space and generating conflicts where appropriate.
 3. Check {[Show Logs]} for sync logs.
 
-After this initial sync, **sync needs to be triggered manually**, so run {[Sync: Sync]} whenever you feel a sync is warranted.
+Sync is triggered:
+* Continuously when changes are made to a page in a client set up with sync, immediately after the page persists (single file sync)
+* Automatically every minute (full space sync)
+* Manually using the {[Sync: Sync]} command (full space sync)
 
 ## The sync process
 1. The sync engine compares two file listings: the local one and remote one, and figures out which files have been added, changed and removed on both ends. It uses timestamps to determine changes. Note this doesn’t make any assumptions about clocks being in sync, timezones etc.

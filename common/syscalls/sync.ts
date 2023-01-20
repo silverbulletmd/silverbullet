@@ -10,7 +10,7 @@ export function syncSyscalls(
   system: System<any>,
 ): SysCallMapping {
   return {
-    "sync.sync": async (
+    "sync.syncAll": async (
       _ctx,
       endpoint: SyncEndpoint,
       snapshot: Record<string, SyncStatusItem>,
@@ -22,27 +22,58 @@ export function syncSyscalls(
         error?: string;
       }
     > => {
-      const syncSpace = new HttpSpacePrimitives(
-        endpoint.url,
-        endpoint.user,
-        endpoint.password,
-        // Base64 PUTs to support mobile
-        true,
-      );
-      // Convert from JSON to a Map
-      const syncStatusMap = new Map<string, SyncStatusItem>(
-        Object.entries(snapshot),
-      );
-      const spaceSync = new SpaceSync(
-        localSpace,
-        syncSpace,
-        syncStatusMap,
-        // Log to the "sync" plug sandbox
-        system.loadedPlugs.get("sync")!.sandbox!,
-      );
+      const { spaceSync } = setupSync(endpoint, snapshot);
 
       try {
         const operations = await spaceSync.syncFiles(
+          SpaceSync.primaryConflictResolver,
+        );
+        return {
+          // And convert back to JSON
+          snapshot: Object.fromEntries(spaceSync.snapshot),
+          operations,
+        };
+      } catch (e: any) {
+        return {
+          snapshot: Object.fromEntries(spaceSync.snapshot),
+          operations: -1,
+          error: e.message,
+        };
+      }
+    },
+    "sync.syncFile": async (
+      _ctx,
+      endpoint: SyncEndpoint,
+      snapshot: Record<string, SyncStatusItem>,
+      name: string,
+    ): Promise<
+      {
+        snapshot: Record<string, SyncStatusItem>;
+        operations: number;
+        // The reason to not just throw an Error is so that the partially updated snapshot can still be saved
+        error?: string;
+      }
+    > => {
+      const { spaceSync, remoteSpace } = setupSync(endpoint, snapshot);
+      try {
+        const localHash = (await localSpace.getFileMeta(name)).lastModified;
+        let remoteHash: number | undefined = undefined;
+        try {
+          remoteHash =
+            (await race([remoteSpace.getFileMeta(name), timeout(1000)]))
+              .lastModified;
+        } catch (e: any) {
+          if (e.message.includes("File not found")) {
+            // File doesn't exist remotely, that's ok
+          } else {
+            throw e;
+          }
+        }
+
+        const operations = await spaceSync.syncFile(
+          name,
+          localHash,
+          remoteHash,
           SpaceSync.primaryConflictResolver,
         );
         return {
@@ -64,13 +95,41 @@ export function syncSyscalls(
         endpoint.user,
         endpoint.password,
       );
-      // Let's just fetch the file list to see if it works with a timeout of 5s
+      // Let's just fetch metadata for the SETTINGS.md file (which should always exist)
       try {
-        await race([syncSpace.fetchFileList(), timeout(5000)]);
+        await race([
+          syncSpace.getFileMeta("SETTINGS.md"),
+          timeout(2000),
+        ]);
       } catch (e: any) {
         console.error("Sync check failure", e.message);
         throw e;
       }
     },
   };
+
+  function setupSync(
+    endpoint: SyncEndpoint,
+    snapshot: Record<string, SyncStatusItem>,
+  ) {
+    const remoteSpace = new HttpSpacePrimitives(
+      endpoint.url,
+      endpoint.user,
+      endpoint.password,
+      // Base64 PUTs to support mobile
+      true,
+    );
+    // Convert from JSON to a Map
+    const syncStatusMap = new Map<string, SyncStatusItem>(
+      Object.entries(snapshot),
+    );
+    const spaceSync = new SpaceSync(
+      localSpace,
+      remoteSpace,
+      syncStatusMap,
+      // Log to the "sync" plug sandbox
+      system.loadedPlugs.get("sync")!.sandbox!,
+    );
+    return { spaceSync, remoteSpace };
+  }
 }
