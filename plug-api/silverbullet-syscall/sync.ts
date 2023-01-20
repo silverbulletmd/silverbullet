@@ -9,7 +9,7 @@ export type SyncEndpoint = {
 
 // Perform a sync with the server, based on the given status (to be persisted)
 // returns a new sync status to persist
-export function sync(
+export function syncAll(
   endpoint: SyncEndpoint,
   snapshot: Record<string, SyncStatusItem>,
 ): Promise<
@@ -19,7 +19,23 @@ export function sync(
     error?: string;
   }
 > {
-  return syscall("sync.sync", endpoint, snapshot);
+  return syscall("sync.syncAll", endpoint, snapshot);
+}
+
+// Perform a sync with the server, based on the given status (to be persisted)
+// returns a new sync status to persist
+export function syncFile(
+  endpoint: SyncEndpoint,
+  snapshot: Record<string, SyncStatusItem>,
+  name: string,
+): Promise<
+  {
+    snapshot: Record<string, SyncStatusItem>;
+    operations: number;
+    error?: string;
+  }
+> {
+  return syscall("sync.syncFile", endpoint, snapshot, name);
 }
 
 // Checks the sync endpoint for connectivity and authentication, throws and Error on failure

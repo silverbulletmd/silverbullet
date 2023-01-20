@@ -23,3 +23,10 @@ functions:
   performSync:
     env: server
     path: sync.ts:performSync
+    cron: "* * * * *"
+
+  syncPage:
+    path: sync.ts:syncPage
+    env: server
+    events:
+      - page:saved

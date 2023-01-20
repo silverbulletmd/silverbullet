@@ -7,7 +7,7 @@ export type CronHookT = {
   cron?: string | string[];
 };
 
-export class DenoCronHook implements Hook<CronHookT> {
+export class CronHook implements Hook<CronHookT> {
   apply(system: System<CronHookT>): void {
     let tasks: Cron[] = [];
     system.on({
@@ -42,7 +42,7 @@ export class DenoCronHook implements Hook<CronHookT> {
           for (const cronDef of crons) {
             tasks.push(
               new Cron(cronDef, () => {
-                console.log("Now acting on cron", cronDef);
+                // console.log("Now acting on cron", cronDef);
                 safeRun(async () => {
                   try {
                     await plug.invoke(name, [cronDef]);
