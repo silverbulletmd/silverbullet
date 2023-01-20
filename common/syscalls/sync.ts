@@ -59,9 +59,7 @@ export function syncSyscalls(
         const localHash = (await localSpace.getFileMeta(name)).lastModified;
         let remoteHash: number | undefined = undefined;
         try {
-          remoteHash =
-            (await race([remoteSpace.getFileMeta(name), timeout(1000)]))
-              .lastModified;
+          remoteHash = (await remoteSpace.getFileMeta(name)).lastModified;
         } catch (e: any) {
           if (e.message.includes("File not found")) {
             // File doesn't exist remotely, that's ok
@@ -95,12 +93,9 @@ export function syncSyscalls(
         endpoint.user,
         endpoint.password,
       );
-      // Let's just fetch metadata for the SETTINGS.md file (which should always exist)
+      // Let's just fetch the file list and see if it works
       try {
-        await race([
-          syncSpace.getFileMeta("SETTINGS.md"),
-          timeout(2000),
-        ]);
+        await syncSpace.fetchFileList();
       } catch (e: any) {
         console.error("Sync check failure", e.message);
         throw e;

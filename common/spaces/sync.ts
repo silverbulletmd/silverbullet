@@ -93,10 +93,11 @@ export class SpaceSync {
       logger: Logger,
     ) => Promise<number>,
   ): Promise<number> {
+    console.log("Syncing", name, primaryHash, secondaryHash);
     let operations = 0;
 
     if (
-      primaryHash && !secondaryHash &&
+      primaryHash !== undefined && secondaryHash === undefined &&
       !this.snapshot.has(name)
     ) {
       // New file, created on primary, copy from primary to secondary
@@ -117,7 +118,7 @@ export class SpaceSync {
       ]);
       operations++;
     } else if (
-      secondaryHash && !primaryHash &&
+      secondaryHash !== undefined && primaryHash === undefined &&
       !this.snapshot.has(name)
     ) {
       // New file, created on secondary, copy from secondary to primary
@@ -138,8 +139,8 @@ export class SpaceSync {
       ]);
       operations++;
     } else if (
-      primaryHash && this.snapshot.has(name) &&
-      !secondaryHash
+      primaryHash !== undefined && this.snapshot.has(name) &&
+      secondaryHash === undefined
     ) {
       // File deleted on B
       this.logger.log(
@@ -151,8 +152,8 @@ export class SpaceSync {
       this.snapshot.delete(name);
       operations++;
     } else if (
-      secondaryHash && this.snapshot.has(name) &&
-      !primaryHash
+      secondaryHash !== undefined && this.snapshot.has(name) &&
+      primaryHash === undefined
     ) {
       // File deleted on A
       this.logger.log(
@@ -164,8 +165,8 @@ export class SpaceSync {
       this.snapshot.delete(name);
       operations++;
     } else if (
-      this.snapshot.has(name) && !primaryHash &&
-      !secondaryHash
+      this.snapshot.has(name) && primaryHash === undefined &&
+      secondaryHash === undefined
     ) {
       // File deleted on both sides, :shrug:
       this.logger.log(
@@ -176,7 +177,7 @@ export class SpaceSync {
       this.snapshot.delete(name);
       operations++;
     } else if (
-      primaryHash && secondaryHash &&
+      primaryHash !== undefined && secondaryHash !== undefined &&
       this.snapshot.get(name) &&
       primaryHash !== this.snapshot.get(name)![0] &&
       secondaryHash === this.snapshot.get(name)![1]
@@ -199,7 +200,7 @@ export class SpaceSync {
       ]);
       operations++;
     } else if (
-      primaryHash && secondaryHash &&
+      primaryHash !== undefined && secondaryHash !== undefined &&
       this.snapshot.get(name) &&
       secondaryHash !== this.snapshot.get(name)![1] &&
       primaryHash === this.snapshot.get(name)![0]
@@ -218,7 +219,7 @@ export class SpaceSync {
       operations++;
     } else if (
       ( // File changed on both ends, but we don't have any info in the snapshot (resync scenario?): have to run through conflict handling
-        primaryHash && secondaryHash &&
+        primaryHash !== undefined && secondaryHash !== undefined &&
         !this.snapshot.has(name)
       ) ||
       ( // File changed on both ends, CONFLICT!

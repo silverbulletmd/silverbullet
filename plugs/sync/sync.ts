@@ -1,11 +1,5 @@
 import { store } from "$sb/plugos-syscall/mod.ts";
-import {
-  editor,
-  index,
-  space,
-  sync,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, space, sync, system } from "$sb/silverbullet-syscall/mod.ts";
 import type { SyncEndpoint } from "$sb/silverbullet-syscall/sync.ts";
 
 export async function configureCommand() {
@@ -136,12 +130,6 @@ export async function performSync() {
     return;
   }
 
-  try {
-    await sync.check(config);
-  } catch (e: any) {
-    console.error("Sync check failed", e.message);
-    return;
-  }
   // Check if sync not already in progress
   const ongoingSync: number | undefined = await store.get("sync.startTime");
   if (ongoingSync) {
