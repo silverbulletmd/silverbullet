@@ -1,6 +1,6 @@
-Code widgets are a SilverBullet specific “extensions” to [[Markdown]]. Technically, it’s not an extension — it just gives new semantics to markdown’s native fenced code blocks — code blocks that start with a triple backtick, specifying a programming language.
+Code widgets are a SilverBullet specific “extension” to [[Markdown]]. Technically, it’s not an extension — it just gives new meaning to markdown’s native fenced code blocks — code blocks that start with a triple backtick, specifying a programming language.
 
-Currently, SilverBullet provides two code widgets as part of its built in [[🔌 Plugs]]:
+Currently, SilverBullet provides two code widgets as part of its built-in [[🔌 Plugs]]:
 
 * `embed`
 * `markdown`
@@ -12,10 +12,11 @@ This allows you to embed internet content into your page inside of an iframe. Th
 
 Two examples.
 
-First, embedding the silverbullet.md website into the silverbullet.md website (inception!):
+First, embedding the silverbullet.md website inside the silverbullet.md website (inception!):
 
 ```embed
 url: https://silverbullet.md
+height: 500
 ```
 
 and a Youtube video: 
@@ -24,7 +25,7 @@ and a Youtube video:
 url: https://www.youtube.com/watch?v=VemS-cqAD5k
 ```
 
-Note, there is specific support for youtube videos — it automatically will set width, height and replace the URL with an embed URL.
+Note, there is specific support for youtube videos — it automatically will set width, height and replaces the URL with an embed URL.
 
 The body of an `embed` block is written in [[YAML]] and supports the following attributes:
 
@@ -33,7 +34,7 @@ The body of an `embed` block is written in [[YAML]] and supports the following a
 * `width` (optional): the width of the embedded page in pixels
 
 ## Markdown
-You can embed markdown inside of markdown and live preview it. Is this useful? 🤷 not really, it’s more of a demo of how this works. Nevertheless, to each their own, here’s an example:
+You can embed markdown inside of markdown and live preview it. Is this useful? 🤷 Not particularly, it’s more of a demo of how this works. Nevertheless, to each their own, here’s an example:
 
 ```markdown
 This is going to be **bold**
