@@ -1,5 +1,5 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import { index } from "$sb/silverbullet-syscall/mod.ts";
 import type {
   CompleteEvent,
   IndexTreeEvent,
@@ -14,7 +14,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
   const allTags = new Set<string>();
   collectNodesOfType(tree, "Hashtag").forEach((n) => {
-    allTags.add(n.children![0].text!);
+    allTags.add(n.children![0].text!.substring(1));
   });
   await index.batchSet(
     name,
