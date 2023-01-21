@@ -20,8 +20,11 @@ Now that we got that out of the way, let’s have a look at some of SilverBullet
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
-![Screencast screenshot](demo-video-screenshot.png)
-To get a good feel of what SilverBullet is capable of, [have a look at this introduction video](https://youtu.be/VemS-cqAD5k).
+To get a good feel of what SilverBullet is capable of, have a look at this introduction video.
+
+```embed
+url: https://youtu.be/VemS-cqAD5k
+```
 
 ## Try it
 Here’s the kicker:

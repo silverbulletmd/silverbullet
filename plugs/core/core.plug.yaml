@@ -409,6 +409,10 @@ functions:
     events:
       - unfurl:title-unfurl
 
+  embedWidget:
+    path: ./embed.ts:embedWidget
+    codeWidget: embed
+
   # Random stuff
   statsCommand:
     path: ./stats.ts:statsCommand

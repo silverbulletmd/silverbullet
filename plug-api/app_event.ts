@@ -42,3 +42,11 @@ export type CompleteEvent = {
   linePrefix: string;
   pos: number;
 };
+
+export type WidgetContent = {
+  html?: string;
+  script?: string;
+  url?: string;
+  height?: number;
+  width?: number;
+};

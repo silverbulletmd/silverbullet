@@ -6,6 +6,7 @@ release.
 ## Next
 * Fixed copy & paste, drag & drop of attachments in the [[Desktop]] app
 * Continuous [[Sync]]
+* Support for embedding [[Markdown/Code Widgets]].
 
 ---
 ## 0.2.8

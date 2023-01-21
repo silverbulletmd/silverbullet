@@ -89,7 +89,7 @@ function loadJsByUrl(url) {
 </script>
 </head>
 <body>
-Send me HTML
+Loading...
 </body>
 </html>`;
 

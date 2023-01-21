@@ -5,7 +5,7 @@ dist_bundle
 dist
 *.js.map
 website_build
-data.db
+data.db*
 publish-data.db
 /index.json
 .idea

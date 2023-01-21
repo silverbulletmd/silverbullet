@@ -1,3 +1,4 @@
+import { WidgetContent } from "../../plug-api/app_event.ts";
 import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
 import type { Editor } from "../editor.tsx";
@@ -20,6 +21,7 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
+    console.log("toDOM");
     const iframe = document.createElement("iframe");
     iframe.srcdoc = panelHtml;
     // iframe.style.height = "0";
@@ -60,17 +62,31 @@ class IFrameWidget extends WidgetType {
     iframe.onload = () => {
       // Subscribe to message event on global object (to receive messages from iframe)
       globalThis.addEventListener("message", messageListener);
-      this.codeWidgetCallback(this.bodyText).then(({ html, script }) => {
-        iframe.contentWindow!.postMessage({
-          type: "html",
-          html,
-          script,
-        });
-        iframe.contentWindow!.onunload = () => {
-          // Unsubscribing from events
-          globalThis.removeEventListener("message", messageListener);
-        };
-      });
+      // Only run this code once
+      iframe.onload = null;
+      this.codeWidgetCallback(this.bodyText).then(
+        (widgetContent: WidgetContent) => {
+          if (widgetContent.html) {
+            iframe.contentWindow!.postMessage({
+              type: "html",
+              html: widgetContent.html,
+              script: widgetContent.script,
+            });
+            // iframe.contentWindow!.onunload = () => {
+            //   // Unsubscribing from events
+            //   globalThis.removeEventListener("message", messageListener);
+            // };
+          } else if (widgetContent.url) {
+            iframe.contentWindow!.location.href = widgetContent.url;
+            if (widgetContent.height) {
+              iframe.style.height = widgetContent.height + "px";
+            }
+            if (widgetContent.width) {
+              iframe.style.width = widgetContent.width + "px";
+            }
+          }
+        },
+      );
     };
     return iframe;
   }
