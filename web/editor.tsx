@@ -501,7 +501,7 @@ export class Editor {
           codeLanguages: [
             LanguageDescription.of({
               name: "yaml",
-              alias: ["meta", "data"],
+              alias: ["meta", "data", "embed"],
               support: new LanguageSupport(StreamLanguage.define(yamlLanguage)),
             }),
             LanguageDescription.of({
