@@ -82,7 +82,7 @@ export async function bundle(
     }
     // Resolve path
     filePath = path.join(rootPath, filePath);
-    
+
     def.code = await compile(
       filePath,
       jsFunctionName,

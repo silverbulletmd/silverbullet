@@ -25,14 +25,14 @@ export async function listifySelection() {
 
   //if very first of doc, just add a bullet and end
   if (selection.to == 0 && selection.from == 0) {
-    await editor.insertAtCursor("* ")
-    return
+    await editor.insertAtCursor("* ");
+    return;
   }
 
   let from = selection.from;
   if (text[from] == "\n") {
     //end of line, need to find previous line break
-    from--
+    from--;
   }
   while (from >= 0 && text[from] !== "\n") {
     from--;
@@ -53,11 +53,12 @@ export async function numberListifySelection() {
   from++;
   text = text.slice(from, selection.to);
   let counter = 1;
-  text = `1. ${text.replaceAll(/\n(?!\n)/g, () => {
-    counter++;
-    return `\n${counter}. `;
-  })
-    }`;
+  text = `1. ${
+    text.replaceAll(/\n(?!\n)/g, () => {
+      counter++;
+      return `\n${counter}. `;
+    })
+  }`;
   await editor.replaceRange(from, selection.to, text);
 }
 

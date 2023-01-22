@@ -1,10 +1,7 @@
-import {
-  editor,
-  space,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function extractToPage() {
-  const newName = await editor.prompt(`New page title:`, 'new page');
+  const newName = await editor.prompt(`New page title:`, "new page");
   if (!newName) {
     return;
   }

@@ -51,8 +51,10 @@ export async function compile(
       inFile,
       `import {${functionName}} from "file://${
         // Replacaing \ with / for Windows
-        path.resolve(filePath).replaceAll("\\", "\\\\")
-      }";export default ${functionName};`,
+        path.resolve(filePath).replaceAll(
+          "\\",
+          "\\\\",
+        )}";export default ${functionName};`,
     );
   }
 

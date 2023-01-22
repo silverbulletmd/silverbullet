@@ -94,8 +94,8 @@ export {
 
 export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/yaml?external=@codemirror/language";
 export {
-  standardSQL as sqlLanguage,
   pgSQL as postgresqlLanguage,
+  standardSQL as sqlLanguage,
 } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/sql?external=@codemirror/language";
 export { rust as rustLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/rust?external=@codemirror/language";
 export { css as cssLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/css?external=@codemirror/language";
@@ -109,13 +109,13 @@ export { json as jsonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.
 export {
   c as cLanguage,
   cpp as cppLanguage,
-  java as javaLanguage,
   csharp as csharpLanguage,
-  scala as scalaLanguage,
+  dart as dartLanguage,
+  java as javaLanguage,
   kotlin as kotlinLanguage,
   objectiveC as objectiveCLanguage,
   objectiveCpp as objectiveCppLanguage,
-  dart as dartLanguage,
+  scala as scalaLanguage,
 } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/clike?external=@codemirror/language";
 
 export {

@@ -54,10 +54,14 @@
       "exclude": [
         "dist",
         "dist_bundle",
+        "desktop",
+        "mobile",
         "pages",
         "website",
+        "website_build",
         "test_space",
-        "plugos/environments/worker_bundle.json"
+        "plugos/environments/worker_bundle.json",
+        "README.md"
       ]
     }
   }

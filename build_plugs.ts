@@ -1,8 +1,6 @@
-import { path, expandGlobSync, flags } from "./plugos/deps.ts";
-import { bundleRun } from "./plugos/bin/plugos-bundle.ts"
-import {
-  esbuild,
-} from "./plugos/compile.ts";
+import { expandGlobSync, flags, path } from "./plugos/deps.ts";
+import { bundleRun } from "./plugos/bin/plugos-bundle.ts";
+import { esbuild } from "./plugos/compile.ts";
 
 if (import.meta.main) {
   const args = flags.parse(Deno.args, {
@@ -15,10 +13,10 @@ if (import.meta.main) {
     args.dist = path.resolve(path.join("dist_bundle", "_plug"));
   }
 
-  const manifests : string[] = [];
-  const pattern : string = path.join("plugs", "*", "*.plug.yaml");
+  const manifests: string[] = [];
+  const pattern: string = path.join("plugs", "*", "*.plug.yaml");
   for (const file of expandGlobSync(pattern)) {
-      manifests.push(file.path);
+    manifests.push(file.path);
   }
 
   await bundleRun(

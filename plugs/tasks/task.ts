@@ -116,7 +116,7 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
       const [page, pos] = ref.split("@");
-      let text = (await space.readPage(page));
+      let text = await space.readPage(page);
 
       const referenceMdTree = await markdown.parseMarkdown(text);
       // Adding +1 to immediately hit the task marker

@@ -9,7 +9,7 @@ document.getElementById("root").addEventListener("click", (e) => {
     syscall(
       "event.dispatch",
       "preview:click",
-      JSON.stringify(["pos", dataSet["pos"]])
+      JSON.stringify(["pos", dataSet["pos"]]),
     ).catch((e) => console.log("Error", e));
   }
 });

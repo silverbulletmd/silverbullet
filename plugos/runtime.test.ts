@@ -135,7 +135,6 @@ import { urlToPathname } from "./util.ts";
 const __dirname = urlToPathname(new URL(".", import.meta.url));
 
 Deno.test("Preload dependencies", async () => {
-  
   const globalModules = await plugOsBundle(
     `${__dirname}../plugs/global.plug.yaml`,
   );
