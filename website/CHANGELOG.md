@@ -3,10 +3,11 @@ release.
 
 
 ---
-## Next
+## 0.2.9
 * Fixed copy & paste, drag & drop of attachments in the [[Desktop]] app
 * Continuous [[Sync]]
 * Support for embedding [[Markdown/Code Widgets]].
+* Ability to set the editor font via the `fontFamily` setting in [[SETTINGS]] (restart the app/reload the page to make it go into effect).
 
 ---
 ## 0.2.8

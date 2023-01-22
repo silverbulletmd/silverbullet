@@ -14,7 +14,7 @@ export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
-  syncUrl?: string;
+  fontFamily?: string;
 };
 
 export type PanelConfig = {

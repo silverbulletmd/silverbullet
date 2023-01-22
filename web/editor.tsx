@@ -315,6 +315,13 @@ export class Editor {
       }
     });
 
+    if (this.builtinSettings.fontFamily) {
+      document.getElementById("sb-root")!.setAttribute(
+        "style",
+        `--editor-font: ${this.builtinSettings.fontFamily};`,
+      );
+    }
+
     await this.dispatchAppEvent("editor:init");
   }
 
