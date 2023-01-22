@@ -92,8 +92,32 @@ export {
   syntaxTree,
 } from "@codemirror/language";
 
-export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.2.0/mode/yaml?external=@codemirror/language";
-export { standardSQL as sqlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/sql?external=@codemirror/language";
+export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/yaml?external=@codemirror/language";
+export {
+  standardSQL as sqlLanguage,
+  pgSQL as postgresqlLanguage,
+} from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/sql?external=@codemirror/language";
+export { rust as rustLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/rust?external=@codemirror/language";
+export { css as cssLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/css?external=@codemirror/language";
+export { python as pythonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/python?external=@codemirror/language";
+export { protobuf as protobufLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/protobuf?external=@codemirror/language";
+export { shell as shellLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/shell?external=@codemirror/language";
+export { swift as swiftLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/swift?external=@codemirror/language";
+export { toml as tomlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/toml?external=@codemirror/language";
+export { xml as xmlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/xml?external=@codemirror/language";
+export { json as jsonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/javascript?external=@codemirror/language";
+export {
+  c as cLanguage,
+  cpp as cppLanguage,
+  java as javaLanguage,
+  csharp as csharpLanguage,
+  scala as scalaLanguage,
+  kotlin as kotlinLanguage,
+  objectiveC as objectiveCLanguage,
+  objectiveCpp as objectiveCppLanguage,
+  dart as dartLanguage,
+} from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/clike?external=@codemirror/language";
+
 export {
   javascriptLanguage,
   typescriptLanguage,

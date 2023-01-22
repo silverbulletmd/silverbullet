@@ -1,11 +1,15 @@
 // Third party web dependencies
 import {
   autocompletion,
+  cLanguage,
   closeBrackets,
   closeBracketsKeymap,
   CompletionContext,
   completionKeymap,
   CompletionResult,
+  cppLanguage,
+  csharpLanguage,
+  dartLanguage,
   drawSelection,
   dropCursor,
   EditorSelection,
@@ -16,22 +20,35 @@ import {
   historyKeymap,
   indentOnInput,
   indentWithTab,
+  javaLanguage,
   javascriptLanguage,
+  jsonLanguage,
   KeyBinding,
   keymap,
+  kotlinLanguage,
   LanguageDescription,
   LanguageSupport,
   markdown,
+  objectiveCLanguage,
+  objectiveCppLanguage,
+  postgresqlLanguage,
+  protobufLanguage,
+  pythonLanguage,
   runScopeHandlers,
+  rustLanguage,
+  scalaLanguage,
   searchKeymap,
+  shellLanguage,
   sqlLanguage,
   standardKeymap,
   StreamLanguage,
   syntaxHighlighting,
   syntaxTree,
+  tomlLanguage,
   typescriptLanguage,
   ViewPlugin,
   ViewUpdate,
+  xmlLanguage,
   yamlLanguage,
 } from "../common/deps.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
@@ -525,6 +542,117 @@ export class Editor {
               name: "sql",
               alias: ["sql"],
               support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "postgresql",
+              alias: ["pgsql", "postgres"],
+              support: new LanguageSupport(
+                StreamLanguage.define(postgresqlLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "rust",
+              alias: ["rs"],
+              support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "css",
+              support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "python",
+              alias: ["py"],
+              support: new LanguageSupport(
+                StreamLanguage.define(pythonLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "protobuf",
+              alias: ["proto"],
+              support: new LanguageSupport(
+                StreamLanguage.define(protobufLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "shell",
+              alias: ["sh", "bash", "zsh", "fish"],
+              support: new LanguageSupport(
+                StreamLanguage.define(shellLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "swift",
+              support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "toml",
+              support: new LanguageSupport(StreamLanguage.define(tomlLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "json",
+              support: new LanguageSupport(StreamLanguage.define(jsonLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "xml",
+              support: new LanguageSupport(StreamLanguage.define(xmlLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "c",
+              support: new LanguageSupport(StreamLanguage.define(cLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "cpp",
+              alias: ["c++", "cxx"],
+              support: new LanguageSupport(StreamLanguage.define(cppLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "java",
+              support: new LanguageSupport(StreamLanguage.define(javaLanguage)),
+            }),
+            LanguageDescription.of({
+              name: "csharp",
+              alias: ["c#", "cs"],
+              support: new LanguageSupport(
+                StreamLanguage.define(csharpLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "scala",
+              alias: ["sc"],
+              support: new LanguageSupport(
+                StreamLanguage.define(scalaLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "kotlin",
+              alias: ["kt", "kts"],
+              support: new LanguageSupport(
+                StreamLanguage.define(kotlinLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "objc",
+              alias: ["objective-c", "objectivec"],
+              support: new LanguageSupport(
+                StreamLanguage.define(objectiveCLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "objcpp",
+              alias: [
+                "objc++",
+                "objective-cpp",
+                "objectivecpp",
+                "objective-c++",
+                "objectivec++",
+              ],
+              support: new LanguageSupport(
+                StreamLanguage.define(objectiveCppLanguage),
+              ),
+            }),
+            LanguageDescription.of({
+              name: "dart",
+              support: new LanguageSupport(StreamLanguage.define(dartLanguage)),
             }),
           ],
           addKeymap: true,
