@@ -1,6 +1,10 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+---
+## Next
+* Syntax highlighting for a bunch of new languages: PgSQL, Rust, CSS, Python, Protobuf, Shell, Swift, toml, XML, JSON, C, C++, Java, C#, Scala, Kotlin, ObjectiveC, ObjectiveC++ and Dart
+* [[Vim]] support for VIMRC (see [[Vim]] documentation)
 
 ---
 ## 0.2.9

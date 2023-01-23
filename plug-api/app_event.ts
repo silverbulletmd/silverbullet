@@ -7,6 +7,7 @@ export type AppEvent =
   | "minieditor:complete"
   | "page:load"
   | "editor:init"
+  | "editor:modeswitch"
   | "plugs:loaded";
 
 export type QueryProviderEvent = {

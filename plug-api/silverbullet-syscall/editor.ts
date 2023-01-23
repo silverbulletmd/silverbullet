@@ -123,3 +123,8 @@ export function getUiOption(key: string): Promise<any> {
 export function setUiOption(key: string, value: any): Promise<void> {
   return syscall("editor.setUiOption", key, value);
 }
+
+// Vim specific
+export function vimEx(exCommand: string): Promise<any> {
+  return syscall("editor.vimEx", exCommand);
+}

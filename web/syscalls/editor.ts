@@ -1,5 +1,5 @@
 import { Editor } from "../editor.tsx";
-import { EditorView, Transaction } from "../deps.ts";
+import { EditorView, Transaction, Vim, vimGetCm } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { FilterOption } from "../../common/types.ts";
 
@@ -163,6 +163,10 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
         key,
         value,
       });
+    },
+    "editor.vimEx": (_ctx, exCommand: string) => {
+      const cm = vimGetCm(editor.editorView!)!;
+      return Vim.handleEx(cm, exCommand);
     },
   };
 

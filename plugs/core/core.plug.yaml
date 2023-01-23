@@ -22,10 +22,6 @@ functions:
     path: "./editor.ts:setEditorMode"
     events:
       - editor:init
-  toggleVimMode:
-    path: "./editor.ts:toggleVimMode"
-    command:
-      name: "Editor: Toggle Vim Mode"
   toggleDarkMode:
     path: "./editor.ts:toggleDarkMode"
     command:
@@ -432,3 +428,15 @@ functions:
     pageNamespace:
       pattern: "💭 .+"
       operation: getFileMeta
+
+  # Vim
+  toggleVimMode:
+    path: "./vim.ts:toggleVimMode"
+    command:
+      name: "Editor: Toggle Vim Mode"
+  loadVimRc:
+    path: "./vim.ts:loadVimRc"
+    command:
+      name: "Editor: Vim: Load VIMRC"
+    events:
+      - editor:modeswitch

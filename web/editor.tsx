@@ -149,7 +149,6 @@ export class Editor {
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
-  // enableVimMode = false;
 
   constructor(
     space: Space,
@@ -332,6 +331,7 @@ export class Editor {
       }
     });
 
+    // Need to find a nicer way of doing this stuff
     if (this.builtinSettings.fontFamily) {
       document.getElementById("sb-root")!.setAttribute(
         "style",
@@ -1067,6 +1067,7 @@ export class Editor {
 
     useEffect(() => {
       this.rebuildEditorState();
+      this.dispatchAppEvent("editor:modeswitch");
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
