@@ -2,8 +2,6 @@ import { Hook, Manifest } from "../types.ts";
 import { Cron } from "https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/croner.js";
 import { safeRun } from "../util.ts";
 import { System } from "../system.ts";
-import { timingSafeEqual } from "https://deno.land/std@0.152.0/crypto/timing_safe_equal";
-
 export type CronHookT = {
   cron?: string | string[];
 };
