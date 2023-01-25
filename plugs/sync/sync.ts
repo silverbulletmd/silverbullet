@@ -119,8 +119,8 @@ export function check(config: SyncEndpoint) {
   return sync.check(config);
 }
 
-// const syncTimeout = 1000 * 60 * 30; // 30 minutes
-const syncTimeout = 1000 * 20; // 20s
+const syncTimeout = 1000 * 60 * 10; // 10 minutes
+// const syncTimeout = 1000 * 20; // 20s
 
 // Run on server
 export async function performSync() {

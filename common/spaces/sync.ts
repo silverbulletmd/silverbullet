@@ -65,15 +65,19 @@ export class SpaceSync {
 
       this.logger.log("info", "Iterating over all files");
       for (const name of allFilesToProcess) {
-        operations += await this.syncFile(
-          name,
-          primaryFileMap.get(name),
-          secondaryFileMap.get(name),
-          conflictResolver,
-        );
+        try {
+          operations += await this.syncFile(
+            name,
+            primaryFileMap.get(name),
+            secondaryFileMap.get(name),
+            conflictResolver,
+          );
+        } catch (e: any) {
+          this.logger.log("error", "Error syncing file", name, e.message);
+        }
       }
     } catch (e: any) {
-      this.logger.log("error", "Sync error:", e.message);
+      this.logger.log("error", "General sync error:", e.message);
       throw e;
     }
     this.logger.log("info", "Sync complete, operations performed", operations);
@@ -206,6 +210,11 @@ export class SpaceSync {
       primaryHash === this.snapshot.get(name)![0]
     ) {
       // File has changed on secondary, but not primary: copy from secondary to primary
+      this.logger.log(
+        "info",
+        "File has changed on secondary, but not primary: copy from secondary to primary",
+        name,
+      );
       const { data } = await this.secondary.readFile(name, "arraybuffer");
       const writtenMeta = await this.primary.writeFile(
         name,
