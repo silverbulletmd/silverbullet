@@ -1,6 +1,7 @@
 import { app, Menu, MenuItemConstructorOptions, shell } from "electron";
 import { findInstanceByUrl, newWindow, openFolderPicker } from "./instance";
 import { newWindowState } from "./store";
+import os from "node:os";
 
 const template: MenuItemConstructorOptions[] = [
   {
@@ -25,14 +26,16 @@ const template: MenuItemConstructorOptions[] = [
           openFolderPicker();
         },
       },
-      {
-        role: "recentDocuments",
-        submenu: [
-          {
-            role: "clearRecentDocuments",
-          },
-        ],
-      },
+      os.platform() === "darwin"
+        ? {
+          role: "recentDocuments",
+          submenu: [
+            {
+              role: "clearRecentDocuments",
+            },
+          ],
+        }
+        : undefined,
       { type: "separator" },
       {
         label: "Quit",
