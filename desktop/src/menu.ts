@@ -35,7 +35,7 @@ const template: MenuItemConstructorOptions[] = [
             },
           ],
         }
-        : {type: "separator"},
+        : { type: "separator" },
       { type: "separator" },
       {
         label: "Quit",
@@ -162,6 +162,14 @@ const template: MenuItemConstructorOptions[] = [
       },
     ],
   },
+  {
+    label: "Help",
+    submenu: [
+      {
+        role: "about",
+      },
+    ],
+  },
 ];
 
 if (process.platform === "darwin") {
@@ -169,6 +177,7 @@ if (process.platform === "darwin") {
   template.unshift({
     label: name,
     submenu: [
+      { role: "about" },
       { role: "services" },
       { type: "separator" },
       { role: "hide" },
