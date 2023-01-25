@@ -103,7 +103,7 @@ export class SpaceSystem {
     }
 
     // The cron hook
-    this.system.addHook(new CronHook());
+    this.system.addHook(new CronHook(this.system));
 
     // Register syscalls available on the server side
     this.system.registerSyscalls(
