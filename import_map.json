@@ -20,6 +20,7 @@
     "yaml": "https://deno.land/std/encoding/yaml.ts",
 
     "@capacitor/core": "https://esm.sh/@capacitor/core@4.6.2",
-    "@capacitor/filesystem": "https://esm.sh/@capacitor/filesystem@4.1.4?external=@capacitor/core"
+    "@capacitor/filesystem": "https://esm.sh/@capacitor/filesystem@4.1.4?external=@capacitor/core",
+    "@capacitor/app": "https://esm.sh/@capacitor/app@4.1.1?external=@capacitor/core"
   }
 }

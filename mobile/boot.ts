@@ -6,7 +6,7 @@ import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
-import { CapacitorHttp, Directory } from "./deps.ts";
+import { Directory, CapacitorApp } from "./deps.ts";
 import { CapacitorSpacePrimitives } from "./spaces/capacitor_space_primitives.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 
@@ -48,7 +48,9 @@ safeRun(async () => {
   const db = new CapacitorDb("data.db");
   await db.init();
 
-  system.addHook(new CronHook());
+  const cronHook = new CronHook(system);
+
+  system.addHook(cronHook);
 
   // for store
   await ensureStoreTable(db, "store");
@@ -76,11 +78,11 @@ safeRun(async () => {
     indexSyscalls,
   );
 
-  const serverSpace = new Space(spacePrimitives);
-  serverSpace.watch();
+  const space = new Space(spacePrimitives);
+  space.watch();
 
   const settings = await ensureAndLoadSettings(
-    serverSpace,
+    space,
     false,
   ) as BuiltinSettings;
 
@@ -98,7 +100,7 @@ safeRun(async () => {
   console.log("Booting...");
 
   const editor = new Editor(
-    serverSpace,
+    space,
     system,
     eventHook,
     document.getElementById("sb-root")!,
@@ -107,4 +109,19 @@ safeRun(async () => {
   );
 
   await editor.init();
+
+  CapacitorApp.addListener("pause", () => {
+    console.log("PAUSING APP-------")
+    space.unwatch();
+    cronHook.stop();
+  });
+  CapacitorApp.addListener("resume", () => {
+    console.log("RESUMING APP-------")
+    space.watch();
+    cronHook.reloadCrons();
+  });
+
+  CapacitorApp.addListener("appRestoredResult", (result) => {
+    console.log("Restored state",  result)
+  })
 });

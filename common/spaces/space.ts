@@ -24,6 +24,7 @@ export class Space extends EventEmitter<SpaceEvents>
   watchedPages = new Set<string>();
   private initialPageListLoad = true;
   private saving = false;
+  watchInterval?: number;
 
   constructor(readonly spacePrimitives: SpacePrimitives) {
     super();
@@ -89,7 +90,10 @@ export class Space extends EventEmitter<SpaceEvents>
   }
 
   watch() {
-    setInterval(() => {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+    }
+    this.watchInterval = setInterval(() => {
       safeRun(async () => {
         if (this.saving) {
           return;
@@ -107,6 +111,12 @@ export class Space extends EventEmitter<SpaceEvents>
       });
     }, pageWatchInterval);
     this.updatePageList().catch(console.error);
+  }
+
+  unwatch() {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+    }
   }
 
   async deletePage(name: string): Promise<void> {

@@ -1,6 +1,3 @@
 [build]
 publish = "website_build"
-command = "./scripts/build_demo.sh"
-
-[context.demo]
-  command = "./scripts/build_demo.sh"
+command = "./scripts/build_website.sh"

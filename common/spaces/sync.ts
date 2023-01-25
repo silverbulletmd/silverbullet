@@ -357,7 +357,9 @@ export class SpaceSync {
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {
-    return files.filter((f) => !f.name.startsWith("_plug/"));
+    return files.filter((f) =>
+      !f.name.startsWith("_plug/") && f.lastModified > 0
+    );
   }
 }
 
