@@ -97,7 +97,7 @@ export class SpaceSync {
       logger: Logger,
     ) => Promise<number>,
   ): Promise<number> {
-    console.log("Syncing", name, primaryHash, secondaryHash);
+    // console.log("Syncing", name, primaryHash, secondaryHash);
     let operations = 0;
 
     if (
