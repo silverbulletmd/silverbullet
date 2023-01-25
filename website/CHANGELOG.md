@@ -5,6 +5,8 @@ release.
 ## Next
 * Syntax highlighting for a bunch of new languages: PgSQL, Rust, CSS, Python, Protobuf, Shell, Swift, toml, XML, JSON, C, C++, Java, C#, Scala, Kotlin, ObjectiveC, ObjectiveC++ and Dart
 * [[Vim]] support for VIMRC (see [[Vim]] documentation)
+* Desktop: “Open Recent” menu to quickly reopen recently opened spaces.
+* Sync bug fixes and better logging (in {[Show Logs]})
 
 ---
 ## 0.2.9

@@ -25,6 +25,14 @@ const template: MenuItemConstructorOptions[] = [
           openFolderPicker();
         },
       },
+      {
+        role: "recentDocuments",
+        submenu: [
+          {
+            role: "clearRecentDocuments",
+          },
+        ],
+      },
       { type: "separator" },
       {
         label: "Quit",

@@ -1,5 +1,13 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { app, BrowserWindow, dialog, Menu, MenuItem, shell, nativeImage } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  Menu,
+  MenuItem,
+  nativeImage,
+  shell,
+} from "electron";
 import portfinder from "portfinder";
 import fetch from "node-fetch";
 import { existsSync } from "node:fs";
@@ -55,6 +63,7 @@ async function folderPicker(): Promise<string> {
 export async function openFolderPicker() {
   const folderPath = await folderPicker();
   if (folderPath) {
+    app.addRecentDocument(folderPath);
     openFolder(newWindowState(folderPath));
   }
 }
