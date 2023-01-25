@@ -35,7 +35,7 @@ const template: MenuItemConstructorOptions[] = [
             },
           ],
         }
-        : undefined,
+        : {type: "separator"},
       { type: "separator" },
       {
         label: "Quit",
