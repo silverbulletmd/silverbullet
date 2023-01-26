@@ -1,11 +1,15 @@
-#!/bin/bash
+#!/bin/bash -e
 
 echo "Install Deno"
 curl -fsSL https://deno.land/install.sh | sh
 export PATH=~/.deno/bin:$PATH
+export DENO_PATH=$NETLIFY_CACHE_DIR/deno
+echo "NETLIFY_CACHE_DIR: $NETLIFY_CACHE_DIR"
+echo "DENO_PATH: $DENO_PATH"
 
 echo "Generating version number..."
 echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+
 
 echo "Building silver bullet"
 deno task build
