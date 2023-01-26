@@ -7,6 +7,7 @@ export function storeSyscalls(space: Space): SysCallMapping {
     [
       "store.queryPrefix",
       "store.get",
+      "store.has",
       "store.set",
       "store.batchSet",
       "store.delete",

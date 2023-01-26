@@ -135,6 +135,13 @@ export function storeSyscalls(
         return null;
       }
     },
+    "store.has": async (_ctx, key: string): Promise<boolean> => {
+      const result = await db.query(
+        `SELECT count(value) as cnt FROM ${tableName} WHERE key = ?`,
+        key,
+      );
+      return result[0].cnt === 1;
+    },
     "store.queryPrefix": async (_ctx, prefix: string) => {
       return (
         await db.query(
