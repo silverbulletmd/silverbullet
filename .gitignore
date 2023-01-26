@@ -10,3 +10,4 @@ publish-data.db
 /index.json
 .idea
 deno.lock
+node_modules
