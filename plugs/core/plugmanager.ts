@@ -61,6 +61,10 @@ export async function updatePlugs() {
       );
     }
   } catch (e: any) {
+    if (e.message.includes("Could not read file")) {
+      console.warn("No PLUGS page found, not loading anything");
+      return;
+    }
     throw new Error(`Error processing PLUGS: ${e.message}`);
   }
   console.log("Plug YAML", plugList);

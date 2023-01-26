@@ -7,6 +7,8 @@ export type AppEvent =
   | "minieditor:complete"
   | "page:load"
   | "editor:init"
+  | "editor:pageLoaded"
+  | "editor:pageReloaded"
   | "editor:modeswitch"
   | "plugs:loaded";
 

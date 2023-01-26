@@ -68,6 +68,20 @@ export async function syncCommand() {
   }
 }
 
+export async function disableCommand() {
+  if (
+    !(await editor.confirm(
+      "Are you sure you want to disable sync?",
+    ))
+  ) {
+    return;
+  }
+
+  // remove all sync related keys from the store
+  await store.deletePrefix("sync.");
+  await editor.flashNotification("Sync disabled.");
+}
+
 export async function localWipeAndSyncCommand() {
   let config: SyncEndpoint | undefined = await store.get("sync.config");
   if (!config) {
@@ -112,6 +126,22 @@ export async function localWipeAndSyncCommand() {
 
   // Starting actual sync
   await syncCommand();
+
+  // And finally loading all plugs
+  await system.invokeFunction("client", "core.updatePlugsCommand");
+}
+
+export async function syncOpenedPage() {
+  // Is sync on?
+  if (!(await store.has("sync.config"))) {
+    // Nope -> exit
+    return;
+  }
+  await system.invokeFunction(
+    "server",
+    "syncPage",
+    await editor.getCurrentPage(),
+  );
 }
 
 // Run on server
@@ -119,8 +149,8 @@ export function check(config: SyncEndpoint) {
   return sync.check(config);
 }
 
+// If a sync takes longer than this, we'll consider it timed out
 const syncTimeout = 1000 * 60 * 10; // 10 minutes
-// const syncTimeout = 1000 * 20; // 20s
 
 // Run on server
 export async function performSync() {

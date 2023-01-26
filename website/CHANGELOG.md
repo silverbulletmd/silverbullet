@@ -3,8 +3,15 @@ release.
 
 ---
 
-## Next
+## 0.2.11
 * Regression fix: hashtag completion works again
+* Sync improvements:
+  * Immediately trigger sync on file when opened in the editor (so you always get the latest version)
+  * Automatically perform a {[Plugs: Update]} after performing a {[Sync: Wipe Local Space and Sync]}
+  * New {[Sync: Disable]} command to disable sync (remove config and snapshot)
+* {[Plugs: Update]} no longer fails when there is no [[PLUGS]] file.
+* Desktop: New “Help” menu with link to documentation (silverbullet.md website) and About box with version number.
+* You now see a clear error message when querying an non-supported query source.
 
 ---
 ## 0.2.10

@@ -166,6 +166,12 @@ const template: MenuItemConstructorOptions[] = [
     label: "Help",
     submenu: [
       {
+        label: "Documentation",
+        click: () => {
+          shell.openExternal("https://silverbullet.md");
+        },
+      },
+      {
         role: "about",
       },
     ],

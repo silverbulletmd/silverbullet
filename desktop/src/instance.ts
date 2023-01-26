@@ -155,8 +155,6 @@ let quitting = false;
 
 const icon = nativeImage.createFromPath(process.resourcesPath + "/logo.png");
 export function newWindow(instance: Instance, windowState: WindowState) {
-  // Create the browser window.
-  console.log("Empty icon?", icon.isEmpty());
   const window = new BrowserWindow({
     height: windowState.height,
     width: windowState.width,

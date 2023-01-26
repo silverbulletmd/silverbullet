@@ -5,6 +5,11 @@ functions:
     command:
       name: "Sync: Configure"
 
+  disableCommand:
+    path: sync.ts:disableCommand
+    command:
+      name: "Sync: Disable"
+
   syncCommand:
     path: sync.ts:syncCommand
     command:
@@ -16,6 +21,11 @@ functions:
     command:
       name: "Sync: Wipe Local Space and Sync"
 
+  syncOpenedPage:
+    path: sync.ts:syncOpenedPage
+    events:
+      - editor:pageLoaded
+
   check:
     env: server
     path: sync.ts:check
@@ -23,8 +33,10 @@ functions:
   performSync:
     env: server
     path: sync.ts:performSync
+    # Sync every minute
     cron: "* * * * *"
 
+  # Automatically sync the current page upon change
   syncPage:
     path: sync.ts:syncPage
     env: server
