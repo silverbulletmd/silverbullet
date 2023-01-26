@@ -3,8 +3,7 @@
 echo "Install Deno"
 curl -fsSL https://deno.land/install.sh | sh
 export PATH=~/.deno/bin:$PATH
-export DENO_PATH=$NETLIFY_CACHE_DIR/deno
-echo "NETLIFY_CACHE_DIR: $NETLIFY_CACHE_DIR"
+export DENO_PATH=$PWD/deno_cache
 echo "DENO_PATH: $DENO_PATH"
 
 echo "Generating version number..."
