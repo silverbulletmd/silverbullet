@@ -2,6 +2,11 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+
+## Next
+* Regression fix: hashtag completion works again
+
+---
 ## 0.2.10
 * Syntax highlighting for a bunch of new languages — see [[Markdown/Syntax Highlighting]]: PgSQL, Rust, CSS, Python, Protobuf, Shell, Swift, toml, XML, JSON, C, C++, Java, C#, Scala, Kotlin, ObjectiveC, ObjectiveC++ and Dart
 * [[Vim]] support for VIMRC (see [[Vim]] documentation)

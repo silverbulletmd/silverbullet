@@ -27,7 +27,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
-  const tagPrefix = match[0];
+  const tagPrefix = match[0].substring(1);
   const allTags = await index.queryPrefix(`tag:${tagPrefix}`);
   return {
     from: completeEvent.pos - tagPrefix.length,
