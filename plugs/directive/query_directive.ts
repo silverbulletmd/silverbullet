@@ -18,15 +18,18 @@ export async function queryDirectiveRenderer(
     JSON.parse(replaceTemplateVars(JSON.stringify(query), pageName)),
   );
 
+  const eventName = `query:${parsedQuery.table}`;
+
   // console.log("Parsed query", parsedQuery);
   // Let's dispatch an event and see what happens
   const results = await events.dispatchEvent(
-    `query:${parsedQuery.table}`,
+    eventName,
     { query: parsedQuery, pageName: pageName },
     30 * 1000,
   );
   if (results.length === 0) {
-    return "";
+    // This means there was no handler for the event which means it's unsupported
+    return `**Error:** Unsupported query source '${parsedQuery.table}'`;
   } else if (results.length === 1) {
     if (parsedQuery.render) {
       const rendered = await renderTemplate(parsedQuery.render, results[0]);
