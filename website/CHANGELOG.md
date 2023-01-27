@@ -5,6 +5,8 @@ release.
 
 ## 0.2.11
 * Regression fix: hashtag completion works again
+* Mobile:
+  * App crashing/white screen after being in the background for some time should now be fixed
 * Sync improvements:
   * Immediately trigger sync on file when opened in the editor (so you always get the latest version)
   * Automatically perform a {[Plugs: Update]} after performing a {[Sync: Wipe Local Space and Sync]}
