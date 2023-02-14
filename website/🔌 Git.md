@@ -1,7 +1,7 @@
 ---
 type: plug
-uri: github:silverbulletmd/silverbullet-github/github.plug.json
-repo: https://github.com/silverbulletmd/silverbullet-github
+uri: github:silverbulletmd/silverbullet-git/git.plug.json
+repo: https://github.com/silverbulletmd/silverbullet-git
 author: Zef Hemel
 ---
 
