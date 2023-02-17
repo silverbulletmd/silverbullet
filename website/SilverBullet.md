@@ -2,7 +2,7 @@ SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/s
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[Sync]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/kZAW2Ady), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[Sync]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
 Now that we got that out of the way, let’s have a look at some of SilverBullet’s features.
 
@@ -102,4 +102,4 @@ Click on the links below to explore various aspects of SilverBullet more in-dept
 ## Support
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
 
-Want to chat with us? [Join our Discord](https://discord.gg/kZAW2Ady)!
+Want to chat with us? [Join our Discord](https://discord.gg/EvXbFucTxn)!
