@@ -80,7 +80,7 @@ async function actionClickOrActionEnter(
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
-      if (url.indexOf("://") === -1) {
+      if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
         url = decodeURIComponent(url);
         // attachment URL, let's fetch as a data url
         const dataUrl = await space.readAttachment(url);
