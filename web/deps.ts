@@ -13,7 +13,7 @@ export {
   Book as BookIcon,
   Home as HomeIcon,
   Terminal as TerminalIcon,
-} from "https://esm.sh/preact-feather@4.2.1";
+} from "https://esm.sh/preact-feather@4.2.1?external=preact";
 
 // Y collab
 export * as Y from "yjs";

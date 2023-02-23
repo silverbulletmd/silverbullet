@@ -786,6 +786,7 @@ export class Editor {
             }
           },
           click: (event: MouseEvent, view: EditorView) => {
+            console.log("Click handler")
             safeRun(async () => {
               const clickEvent: ClickEvent = {
                 page: pageName,

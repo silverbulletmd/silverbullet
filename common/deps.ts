@@ -15,8 +15,8 @@ export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
-export * as YAML from "https://deno.land/std@0.165.0/encoding/yaml.ts";
-export * as path from "https://deno.land/std@0.165.0/path/mod.ts";
+export * as YAML from "https://deno.land/std@0.177.0/encoding/yaml.ts";
+export * as path from "https://deno.land/std@0.177.0/path/mod.ts";
 
 export { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 
@@ -61,7 +61,7 @@ export {
 } from "@codemirror/view";
 export type { DecorationSet, KeyBinding } from "@codemirror/view";
 
-export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.0.5?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@@codemirror/lang-html";
+export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.1.0?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@@codemirror/lang-html";
 
 export {
   EditorSelection,
@@ -121,4 +121,4 @@ export {
 export {
   javascriptLanguage,
   typescriptLanguage,
-} from "https://esm.sh/@codemirror/lang-javascript@6.1.2?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
+} from "https://esm.sh/@codemirror/lang-javascript@6.1.4?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
