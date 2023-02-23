@@ -30,12 +30,12 @@ Deno.test("Markdown render", async () => {
   // console.log("HTML", html);
 });
 
-Deno.test("Smart hard break test", () => {
+Deno.test("Smart hard break test", async () => {
   const example = `**Hello**
 *world!*`;
   const lang = buildMarkdown([]);
   const tree = parse(lang, example);
-  const html = renderMarkdownToHtml(tree, {
+  const html = await renderMarkdownToHtml(tree, {
     failOnUnknown: true,
     smartHardBreak: true,
   });

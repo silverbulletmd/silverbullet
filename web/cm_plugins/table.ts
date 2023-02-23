@@ -15,11 +15,12 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Editor } from "../editor.tsx";
+import { urlToPathname } from "../../plugos/util.ts";
 
 class TableViewWidget extends WidgetType {
   constructor(
     readonly pos: number,
-    readonly editorView: EditorView,
+    readonly editor: Editor,
     readonly t: ParseTree,
   ) {
     super();
@@ -32,17 +33,31 @@ class TableViewWidget extends WidgetType {
       // Pulling data-pos to put the cursor in the right place, falling back
       // to the start of the table.
       const dataAttributes = (e.target as any).dataset;
-      this.editorView.dispatch({
+      this.editor.editorView!.dispatch({
         selection: {
           anchor: dataAttributes.pos ? +dataAttributes.pos : this.pos,
         },
       });
     });
 
-    dom.innerHTML = renderMarkdownToHtml(this.t, {
+    renderMarkdownToHtml(this.t, {
       // Annotate every element with its position so we can use it to put
       // the cursor there when the user clicks on the table.
       annotationPositions: true,
+      inlineAttachments: async (url): Promise<string> => {
+        if (!url.includes("://")) {
+          try {
+            const d = await this.editor.space.readAttachment(url, "dataurl");
+            return d.data as string;
+          } catch (e: any) {
+            console.error(e);
+            return url;
+          }
+        }
+        return url;
+      },
+    }).then((html) => {
+      dom.innerHTML = html;
     });
     return dom;
   }
@@ -90,7 +105,7 @@ export function tablePlugin(editor: Editor) {
           Decoration.widget({
             widget: new TableViewWidget(
               from,
-              editor.editorView!,
+              editor,
               lezerToParseTree(text, node.node),
             ),
           }).range(from),

@@ -7,7 +7,7 @@ export async function markdownWidget(
 ): Promise<WidgetContent> {
   const mdTree = await parseMarkdown(bodyText);
 
-  const html = renderMarkdownToHtml(mdTree, {
+  const html = await renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
   });
   return Promise.resolve({
