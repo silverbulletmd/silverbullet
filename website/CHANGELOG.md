@@ -3,6 +3,15 @@ release.
 
 ---
 
+## Next
+
+* Support template variables in a page template's `$name`
+* Reverted behavior of using up/down arrow keys to move between the page title and page content (and rename based on it). This resulted in undesirable behavior too often. You can now rename a page by clicking/tapping on the title, changing the name and hitting Enter or clicking anywhere outside the page title to apply the rename. 
+* Dependency upgrades
+* Various bug fixes
+
+---
+
 ## 0.2.11
 * Regression fix: hashtag completion works again
 * Mobile:
