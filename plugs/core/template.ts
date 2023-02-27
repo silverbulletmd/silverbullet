@@ -50,6 +50,22 @@ export async function instantiateTemplateCommand() {
   if (!pageName) {
     return;
   }
+
+  try {
+    // Fails if doesn't exist
+    space.getPageMeta(pageName);
+    // So, page exists, let's warn
+    if (
+      !await editor.confirm(
+        `Page ${pageName} already exists, are you sure you want to override it?`,
+      )
+    ) {
+      return;
+    }
+  } catch {
+    // The preferred scenario, let's keep going
+  }
+
   const pageText = replaceTemplateVars(renderToText(parseTree), pageName);
   await space.writePage(pageName, pageText);
   await editor.navigate(pageName);
