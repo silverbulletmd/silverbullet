@@ -36,6 +36,13 @@ export async function instantiateTemplateCommand() {
     "$disableDirectives",
   ]);
 
+  if (additionalPageMeta.$name) {
+    additionalPageMeta.$name = replaceTemplateVars(
+      additionalPageMeta.$name,
+      "",
+    );
+  }
+
   const pageName = await editor.prompt(
     "Name of new page",
     additionalPageMeta.$name,
