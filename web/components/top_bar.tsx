@@ -93,22 +93,6 @@ export function TopBar({
                     return onRename();
                   }
                 }}
-                onKeyUp={(view, event) => {
-                  // When moving cursor down, cancel and move back to editor
-                  if (event.key === "ArrowDown") {
-                    const parent =
-                      (event.target as any).parentElement.parentElement;
-                    // Unless we have autocomplete open
-                    if (
-                      parent.getElementsByClassName("cm-tooltip-autocomplete")
-                        .length === 0
-                    ) {
-                      onRename();
-                      return true;
-                    }
-                  }
-                  return false;
-                }}
                 completer={completer}
                 onEnter={(newName) => {
                   onRename(newName);

@@ -691,23 +691,6 @@ export class Editor {
           { selector: "FrontMatter", class: "sb-frontmatter" },
         ]),
         keymap.of([
-          {
-            key: "ArrowUp",
-            run: (view): boolean => {
-              // When going up while at the top of the document, focus the page name
-              const selection = view.state.selection.main;
-              const line = view.state.doc.lineAt(selection.from);
-              // Are we at the top of the document?
-              if (line.number === 1) {
-                // This can be done much nicer, but this is shorter, so... :)
-                document.querySelector<HTMLDivElement>(
-                  "#sb-current-page .cm-content",
-                )!.focus();
-                return true;
-              }
-              return false;
-            },
-          },
           ...smartQuoteKeymap,
           ...closeBracketsKeymap,
           ...standardKeymap,
@@ -786,7 +769,6 @@ export class Editor {
             }
           },
           click: (event: MouseEvent, view: EditorView) => {
-            console.log("Click handler")
             safeRun(async () => {
               const clickEvent: ClickEvent = {
                 page: pageName,
