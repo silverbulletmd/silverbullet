@@ -20,14 +20,25 @@ class ConsoleLogger implements Logger {
   }
 }
 
+export type SyncOptions = {
+  logger?: Logger;
+  excludePrefixes?: string[];
+};
+
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
 export class SpaceSync {
+  logger: ConsoleLogger;
+  excludePrefixes: string[];
+
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
     readonly snapshot: Map<string, SyncStatusItem>,
-    readonly logger: Logger = new ConsoleLogger(),
-  ) {}
+    readonly options: SyncOptions,
+  ) {
+    this.logger = options.logger || new ConsoleLogger();
+    this.excludePrefixes = options.excludePrefixes || [];
+  }
 
   async syncFiles(
     conflictResolver: (
@@ -99,6 +110,13 @@ export class SpaceSync {
   ): Promise<number> {
     // console.log("Syncing", name, primaryHash, secondaryHash);
     let operations = 0;
+
+    // Check if not matching one of the excluded prefixes
+    for (const prefix of this.excludePrefixes) {
+      if (name.startsWith(prefix)) {
+        return operations;
+      }
+    }
 
     if (
       primaryHash !== undefined && secondaryHash === undefined &&

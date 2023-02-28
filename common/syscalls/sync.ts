@@ -3,7 +3,6 @@ import type { SyncEndpoint } from "../../plug-api/silverbullet-syscall/sync.ts";
 import { SpaceSync, SyncStatusItem } from "../spaces/sync.ts";
 import { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
 import { SpacePrimitives } from "../spaces/space_primitives.ts";
-import { race, timeout } from "../async_util.ts";
 
 export function syncSyscalls(
   localSpace: SpacePrimitives,
@@ -122,8 +121,11 @@ export function syncSyscalls(
       localSpace,
       remoteSpace,
       syncStatusMap,
-      // Log to the "sync" plug sandbox
-      system.loadedPlugs.get("sync")!.sandbox!,
+      {
+        excludePrefixes: endpoint.excludePrefixes,
+        // Log to the "sync" plug sandbox
+        logger: system.loadedPlugs.get("sync")!.sandbox!,
+      },
     );
     return { spaceSync, remoteSpace };
   }

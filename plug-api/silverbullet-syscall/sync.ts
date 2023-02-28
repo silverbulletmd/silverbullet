@@ -5,6 +5,7 @@ export type SyncEndpoint = {
   url: string;
   user?: string;
   password?: string;
+  excludePrefixes?: string[];
 };
 
 // Perform a sync with the server, based on the given status (to be persisted)

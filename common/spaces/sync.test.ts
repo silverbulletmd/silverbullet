@@ -10,7 +10,7 @@ Deno.test("Test store", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
   const statusMap = new Map<string, SyncStatusItem>();
-  const sync = new SpaceSync(primary, secondary, statusMap);
+  const sync = new SpaceSync(primary, secondary, statusMap, {});
 
   // Write one page to primary
   await primary.writeFile("index", "utf8", "Hello");
@@ -129,6 +129,7 @@ Deno.test("Test store", async () => {
     secondary,
     ternary,
     new Map<string, SyncStatusItem>(),
+    {},
   );
   console.log(
     "N ops",
@@ -137,9 +138,25 @@ Deno.test("Test store", async () => {
   await sleep(2);
   assertEquals(await sync2.syncFiles(SpaceSync.primaryConflictResolver), 0);
 
+  // I had to look up what follows ternary (https://english.stackexchange.com/questions/25116/what-follows-next-in-the-sequence-unary-binary-ternary)
+  const quaternaryPath = await Deno.makeTempDir();
+  const quaternary = new DiskSpacePrimitives(quaternaryPath);
+  const sync3 = new SpaceSync(
+    secondary,
+    quaternary,
+    new Map<string, SyncStatusItem>(),
+    {
+      excludePrefixes: ["index"],
+    },
+  );
+  const selectingOps = await sync3.syncFiles(SpaceSync.primaryConflictResolver);
+
+  assertEquals(selectingOps, 1);
+
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });
   await Deno.remove(ternaryPath, { recursive: true });
+  await Deno.remove(quaternaryPath, { recursive: true });
 
   async function doSync() {
     await sleep();

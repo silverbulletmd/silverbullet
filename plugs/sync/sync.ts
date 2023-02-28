@@ -1,6 +1,7 @@
 import { store } from "$sb/plugos-syscall/mod.ts";
 import { editor, space, sync, system } from "$sb/silverbullet-syscall/mod.ts";
 import type { SyncEndpoint } from "$sb/silverbullet-syscall/sync.ts";
+import { readSetting } from "$sb/lib/settings_page.ts";
 
 export async function configureCommand() {
   const url = await editor.prompt(
@@ -160,6 +161,8 @@ export async function performSync() {
     return;
   }
 
+  await augmentSettings(config);
+
   // Check if sync not already in progress
   const ongoingSync: number | undefined = await store.get("sync.startTime");
   if (ongoingSync) {
@@ -196,12 +199,22 @@ export async function performSync() {
   }
 }
 
+async function augmentSettings(endpoint: SyncEndpoint) {
+  const syncSettings = await readSetting("sync", {});
+  if (syncSettings.excludePrefixes) {
+    endpoint.excludePrefixes = syncSettings.excludePrefixes;
+  }
+}
+
 export async function syncPage(page: string) {
   const config: SyncEndpoint = await store.get("sync.config");
   if (!config) {
     // Sync not configured
     return;
   }
+
+  await augmentSettings(config);
+
   // Check if sync not already in progress
   const ongoingSync: number | undefined = await store.get("sync.startTime");
   if (ongoingSync) {
