@@ -42,3 +42,5 @@ Sync is triggered:
 * The sync engine doesn’t synchronize `_plugs` code, so to update the plug list based on your [[PLUGS]] you have to manually run {[Plugs: Update]}.
 
 So, if you’re ready for this. Go try it. We do recommend: make regular backups in case the proverbial shit hits the fan, don’t say we didn’t warn you!
+
+You can tweaks some things in sync, such as excluding certain prefix from sync. For this, see the [[SETTINGS]] documentation.
