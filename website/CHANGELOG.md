@@ -3,11 +3,15 @@ release.
 
 ---
 
-## Next
+## 0.2.12
 
-* Support template variables in a page template's `$name`
 * Added support to override CSS styles on a per-space basis. This replaces the previous `fontFamily` setting. See [[STYLES]] for hints on how to use this new experimental feature.
-* Reverted behavior of using up/down arrow keys to move between the page title and page content (and rename based on it). This resulted in undesirable behavior too often. You can now rename a page by clicking/tapping on the title, changing the name and hitting Enter or clicking anywhere outside the page title to apply the rename. 
+* [[Sync]]: Support to exclude prefixes (via [[SETTINGS]])
+* Reverted behavior of using up/down arrow keys to move between the page title and page content (and rename based on it). This resulted in undesirable behavior too often. You can now rename a page by clicking/tapping on the title, changing the name and hitting Enter or clicking anywhere outside the page title to apply the rename.
+* Documentation updates (on https://silverbullet.md):
+  * [[Special Pages]]
+  * [[SETTINGS]]
+* Support template variables in a page template's `$name`
 * Dependency upgrades
 * Various bug fixes
 
