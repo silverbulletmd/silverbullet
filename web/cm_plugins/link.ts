@@ -1,4 +1,3 @@
-import { ClickEvent } from "../../plug-api/app_event.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import {
@@ -6,7 +5,6 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
-import { LinkWidget } from "./util.ts";
 
 export function linkPlugin(editor: Editor) {
   return decoratorStateField((state) => {

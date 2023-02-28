@@ -67,6 +67,7 @@ export function inlineImagesPlugin(space: Space) {
         widgets.push(
           Decoration.widget({
             widget: new InlineImageWidget(url, title, space),
+            block: true,
           }).range(node.to),
         );
       },

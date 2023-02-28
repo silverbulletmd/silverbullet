@@ -331,13 +331,7 @@ export class Editor {
       }
     });
 
-    // Need to find a nicer way of doing this stuff
-    if (this.builtinSettings.fontFamily) {
-      document.getElementById("sb-root")!.setAttribute(
-        "style",
-        `--editor-font: ${this.builtinSettings.fontFamily};`,
-      );
-    }
+    this.loadCustomStyles().catch(console.error);
 
     await this.dispatchAppEvent("editor:init");
   }
@@ -993,6 +987,21 @@ export class Editor {
     contentDOM.spellcheck = true;
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
+  }
+
+  async loadCustomStyles() {
+    try {
+      const { text: stylesText } = await this.space.readPage("STYLES");
+      const cssBlockRegex = /```css([^`]+)```/;
+      const match = cssBlockRegex.exec(stylesText);
+      if (!match) {
+        return;
+      }
+      const css = match[1];
+      document.getElementById("custom-styles")!.innerHTML = css;
+    } catch {
+      // Nuthin'
+    }
   }
 
   private restoreState(pageName: string): boolean {

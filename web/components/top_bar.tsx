@@ -40,7 +40,6 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
-  // const [theme, setTheme] = useState<string>(localStorage.theme ?? "light");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Another one of my less proud moments:
@@ -48,6 +47,11 @@ export function TopBar({
   // it this way. If you have a better way to do this, please let me know!
   useEffect(() => {
     function resizeHandler() {
+      const editorWidth = parseInt(
+        getComputedStyle(document.getElementById("sb-root")!).getPropertyValue(
+          "--editor-width",
+        ),
+      );
       const currentPageElement = document.getElementById("sb-current-page");
       if (currentPageElement) {
         // Temporarily make it very narrow to give the parent space
@@ -56,7 +60,7 @@ export function TopBar({
 
         // Then calculate a new width
         currentPageElement.style.width = `${
-          Math.min(650, innerDiv.clientWidth - 150)
+          Math.min(editorWidth - 150, innerDiv.clientWidth - 150)
         }px`;
       }
     }

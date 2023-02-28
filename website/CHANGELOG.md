@@ -6,6 +6,7 @@ release.
 ## Next
 
 * Support template variables in a page template's `$name`
+* Added support to override CSS styles on a per-space basis. This replaces the previous `fontFamily` setting. See [[STYLES]] for hints on how to use this new experimental feature.
 * Reverted behavior of using up/down arrow keys to move between the page title and page content (and rename based on it). This resulted in undesirable behavior too often. You can now rename a page by clicking/tapping on the title, changing the name and hitting Enter or clicking anywhere outside the page title to apply the rename. 
 * Dependency upgrades
 * Various bug fixes
@@ -36,7 +37,7 @@ release.
 * Fixed copy & paste, drag & drop of attachments in the [[Desktop]] app
 * Continuous [[Sync]]
 * Support for embedding [[Markdown/Code Widgets]].
-* Ability to set the editor font via the `fontFamily` setting in [[SETTINGS]] (restart the app/reload the page to make it go into effect).
+* ~~Ability to set the editor font via the `fontFamily` setting~~ in [[SETTINGS]] (restart the app/reload the page to make it go into effect). **Update**: now done via [[STYLES]]
 
 ---
 ## 0.2.8

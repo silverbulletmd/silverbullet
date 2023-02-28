@@ -8,13 +8,10 @@ export type Notification = {
   date: Date;
 };
 
-type EditorMode = "ro" | "rw";
-
 export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
-  fontFamily?: string;
 };
 
 export type PanelConfig = {

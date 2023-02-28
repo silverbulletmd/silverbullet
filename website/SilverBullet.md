@@ -96,7 +96,7 @@ Click on the links below to explore various aspects of SilverBullet more in-dept
 
 * [[CHANGELOG]]: What’s new?
 * [[🔌 Plugs]]: extensions available for, and as part of SilverBullet
-* [[💡 Inspiration]]: some of the projects that inspired SilverBullet
+* [[Special Pages]]: a few page names in Silver Bullet have special meaning
 * [[🔨 Development]]: how to start hacking on SilverBullet itself
 
 ## Support

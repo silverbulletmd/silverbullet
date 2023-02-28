@@ -49,7 +49,8 @@
     max-width: 100%;
 
     .inner {
-      max-width: 800px;
+      // Hack to not have SCSS precompile this value but use proper CSS variables
+      max-width: var(--#{"editor-width"});
       margin: auto;
       font-size: 28px;
       padding: 10px 0;
