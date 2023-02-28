@@ -22,8 +22,8 @@
     // Build the desktop app as a package for this platform
     "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make",
     // Mobile
-    "mobile:deps": "cd mobile && npm install && npx cap sync",
-    "mobile:clean-build": "deno task clean && deno task plugs && deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy",
+    "mobile:deps": "cd mobile && npm install",
+    "mobile:clean-build": "deno task clean && deno task plugs && deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap sync",
     "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy"
   },
 
