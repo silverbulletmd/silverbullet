@@ -53,7 +53,8 @@ export async function instantiateTemplateCommand() {
 
   try {
     // Fails if doesn't exist
-    space.getPageMeta(pageName);
+    await space.getPageMeta(pageName);
+
     // So, page exists, let's warn
     if (
       !await editor.confirm(
