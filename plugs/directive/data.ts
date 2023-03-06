@@ -35,7 +35,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           continue;
         }
         dataObjects.push({
-          key: `data:${name}@${i}`,
+          key: `data:${name}@${t.from! + i}`,
           value: doc,
         });
       }
