@@ -56,4 +56,4 @@ Beyond that, you can find more information about SilverBullet on its official we
 1. Through its [regular website link](https://silverbullet.md/)
 2. Directly without leaving SilverBullet, through [[Cloud Links]], just click on this: [[SilverBullet]] (note that all of these will be read-only, for obvious reasons)
 
-To keep up with the latest and greatest going-ons in SilverBullet land, keep an eye on the [[CHANGELOG]], regularly update your SilverBullet instance (`silverbullet upgrade` if you’re running the Deno version). If you run into any issues or have ideas on how to make SilverBullet even awesomer (yes, that’s a word), [join the conversation on GitHub](https://github.com/silverbulletmd/silverbullet).
+To keep up with the latest and greatest going-ons in SilverBullet land, keep an eye on the [[CHANGELOG]], and regularly update your SilverBullet instance (`silverbullet upgrade` if you’re running the Deno version). If you run into any issues or have ideas on how to make SilverBullet even awesomer (yes, that’s a word), [join the conversation on GitHub](https://github.com/silverbulletmd/silverbullet).
