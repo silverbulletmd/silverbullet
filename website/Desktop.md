@@ -10,12 +10,12 @@ Why would you want to install SilverBullet as a desktop application, as opposed 
 2. It auto updates (at least on Mac and Windows), so you don’t have to worry about upgrades.
 3. It’s easier to open multiple spaces without having to fiddle manually with starting multiple [[Server]] instances on different ports.
 
-Why would you _not_ want to use the Desktop version? You’re limited to only access your space on your desktop computer, whereas the [[Server]] simply exposes SilverBullet as a web server you can access from multiple devices. You can use [[Sync]] to work around this issue, however.
+Why would you _not_ want to use the Desktop version? You’re limited to only accessing your space on your desktop computer, whereas the [[Server]] simply exposes SilverBullet as a web server you can access from multiple devices. You can use [[Sync]] to work around this issue, however.
 
 Convinced? [visit the releases page](https://github.com/silverbulletmd/silverbullet/releases) to go download it.
 
 ## How it works
-What the SilverBullet desktop app technically does is spin up a SilverBullet [[Server]] locally on a random port, and then simply point a fancy looking window (with menus and stuff) at that local URL without all the usual browser chrome (hah, Chrome, funny).
+What the SilverBullet desktop app technically does is spin up a SilverBullet [[Server]] locally on a random port, and then simply point a fancy-looking window (with menus and stuff) at that local URL without all the usual browser chrome (hah, Chrome, funny).
 
 What ships in the desktop package:
 
