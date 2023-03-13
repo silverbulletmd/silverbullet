@@ -6,6 +6,7 @@ import type {
   QueryProviderEvent,
 } from "$sb/app_event.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { extractFrontmatter } from "../../plug-api/lib/frontmatter.ts";
 
 // Key space
 // tag:TAG => true (for completion)
@@ -13,6 +14,10 @@ import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
   const allTags = new Set<string>();
+  const { tags } = extractFrontmatter(tree);
+  if (Array.isArray(tags)) {
+    tags.forEach((t) => allTags.add(t));
+  }
   collectNodesOfType(tree, "Hashtag").forEach((n) => {
     allTags.add(n.children![0].text!.substring(1));
   });

@@ -3,6 +3,13 @@ release.
 
 ---
 
+## Next
+
+* Tags included in `tags` [[Frontmatter]] now included in hash tag auto complete
+* Regression fix: when instantiating a page from a template it would always claim the page already existed (even if it didn't)
+
+---
+
 ## 0.2.12
 
 * Added support to override CSS styles on a per-space basis. This replaces the previous `fontFamily` setting. See [[STYLES]] for hints on how to use this new experimental feature.
