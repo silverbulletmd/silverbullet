@@ -1,6 +1,6 @@
 What does SilverBullet look like? Well, have a look around. **You’re looking at it at this very moment!** 🤯
 
-Note that what you’re looking at is not a fully functional version, because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `deno` command (see here: [[SilverBullet]]) to download and run it locally in its fully functioning mode.
+Note that what you’re looking at is not a fully functional version because the _back-end is read-only_. That said, it should give you some feel for what it’s like to use SB before making the commitment of running a single `deno` command (see here: [[SilverBullet]]) to download and run it locally in its fully functioning mode.
 
 ## Start playing
 So, feel free to make some edits in this space. Don’t worry, you won’t break anything, nothing is saved (just reload the page to see).
