@@ -26,8 +26,9 @@ Deno.test("Test parser", () => {
     `task where completed = false and dueDate <= "{{today}}" order by dueDate desc limit 5`,
   );
   assertEquals(parsedQuery1.table, "task");
-  assertEquals(parsedQuery1.orderBy, "dueDate");
-  assertEquals(parsedQuery1.orderDesc, true);
+  assertEquals(parsedQuery1.ordering.length, 1);
+  assertEquals(parsedQuery1.ordering[0].orderBy, "dueDate");
+  assertEquals(parsedQuery1.ordering[0].orderDesc, true);
   assertEquals(parsedQuery1.limit, 5);
   assertEquals(parsedQuery1.filter.length, 2);
   assertEquals(parsedQuery1.filter[0], {
@@ -69,6 +70,7 @@ Deno.test("Test parser", () => {
     parseQuery(`gh-events where type in ["PushEvent", "somethingElse"]`),
     {
       table: "gh-events",
+      ordering: [],
       filter: [
         {
           op: "in",
@@ -81,12 +83,14 @@ Deno.test("Test parser", () => {
 
   assertEquals(parseQuery(`something render [[template/table]]`), {
     table: "something",
+    ordering: [],
     filter: [],
     render: "template/table",
   });
 
   assertEquals(parseQuery(`something render "template/table"`), {
     table: "something",
+    ordering: [],
     filter: [],
     render: "template/table",
   });
