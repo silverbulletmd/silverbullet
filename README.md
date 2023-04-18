@@ -86,6 +86,15 @@ deno task watch-server <PATH-TO-YOUR-SPACE>
 deno task watch-plugs
 ```
 
+To typecheck the entire codebase (recommended before submitting PR):
+```shell
+deno task check
+```
+
+To run unit tests:
+```shell
+deno task test
+```
 ## Feedback
 
 If you (hypothetically) find bugs or have feature requests, post them in
