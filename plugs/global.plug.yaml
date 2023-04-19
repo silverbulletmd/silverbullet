@@ -1,4 +1,4 @@
 name: global
 dependencies:
   "https://esm.sh/handlebars": "https://esm.sh/handlebars@4.7.7"
-  "https://deno.land/std/encoding/yaml.ts": "https://deno.land/std@0.165.0/encoding/yaml.ts"
+  "https://deno.land/std@0.184.0/yaml/mod.ts": "https://deno.land/std@0.184.0/yaml/mod.ts"

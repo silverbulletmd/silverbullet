@@ -5,7 +5,8 @@
   "webDir": "dist",
   "backgroundColor": "#000",
   "ios": {
-    "contentInset": "always"
+    "contentInset": "always",
+    "resize": "native"
   },
   "plugins": {
     "SplashScreen": {

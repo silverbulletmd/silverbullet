@@ -15,8 +15,8 @@ export type { Completion, CompletionResult } from "@codemirror/autocomplete";
 
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
-export * as YAML from "https://deno.land/std@0.177.0/encoding/yaml.ts";
-export * as path from "https://deno.land/std@0.177.0/path/mod.ts";
+export * as YAML from "https://deno.land/std@0.184.0/yaml/mod.ts";
+export * as path from "https://deno.land/std@0.184.0/path/mod.ts";
 
 export { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 

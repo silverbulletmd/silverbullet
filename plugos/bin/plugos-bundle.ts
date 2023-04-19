@@ -42,8 +42,9 @@ export async function bundle(
 
   // Imports
   // Imports currently only "import" dependencies at this point, importing means: assume they're preloaded so we don't need to bundle them
-  const plugCache = path.join(cacheDir()!, "plugos");
+  const plugCache = path.join(cacheDir()!, "plugos-imports");
   await Deno.mkdir(plugCache, { recursive: true });
+  // console.log("Cache dir", plugCache);
   const imports: Manifest<any>[] = [];
   for (const manifestUrl of manifest.imports || []) {
     // Safe file name

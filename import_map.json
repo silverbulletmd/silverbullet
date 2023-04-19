@@ -17,10 +17,10 @@
     "$sb/": "./plug-api/",
     "handlebars": "https://esm.sh/handlebars",
     "@lezer/lr": "https://esm.sh/@lezer/lr@1.3.3?external=@lezer/common",
-    "yaml": "https://deno.land/std/encoding/yaml.ts",
+    "yaml": "https://deno.land/std@0.184.0/yaml/mod.ts",
 
     "@capacitor/core": "https://esm.sh/@capacitor/core@4.6.2",
-    "@capacitor/filesystem": "https://esm.sh/@capacitor/filesystem@4.1.4?external=@capacitor/core",
-    "@capacitor/app": "https://esm.sh/@capacitor/app@4.1.1?external=@capacitor/core"
+    "@capacitor/filesystem": "https://esm.sh/@capacitor/filesystem@4.1.4",
+    "@capacitor/app": "https://esm.sh/@capacitor/app@4.1.1"
   }
 }
