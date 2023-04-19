@@ -3,8 +3,9 @@ release.
 
 ---
 
-## Next
+## 0.2.13
 
+* Support for multiple `order by` clauses in [[🔌 Directive/Query]] by [Siddhant Sanyam](https://github.com/silverbulletmd/silverbullet/pull/387)
 * Tags included in `tags` [[Frontmatter]] now included in hash tag auto complete
 * Regression fix: when instantiating a page from a template it would always claim the page already existed (even if it didn't)
 
