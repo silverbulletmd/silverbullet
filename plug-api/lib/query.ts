@@ -13,11 +13,25 @@ export type QueryFilter = {
   value: any;
 };
 
+export type QueryOrdering = {
+  orderBy: string;
+  orderDesc: boolean;
+};
+
 export type ParsedQuery = {
   table: string;
-  orderBy?: string;
-  orderDesc?: boolean;
   limit?: number;
+  ordering: QueryOrdering[];
+  /** @deprecated Please use ordering.
+   * Deprecated due to PR #387
+   * Currently holds ordering[0] if exists
+   */
+  orderBy?: string;
+  /** @deprecated Please use ordering.
+   * Deprecated due to PR #387
+   * Currently holds ordering[0] if exists
+   */
+  orderDesc?: boolean;
   filter: QueryFilter[];
   select?: string[];
   render?: string;
@@ -97,22 +111,22 @@ export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
       resultRecords.push(recordAny);
     }
   }
-  // Now the sorting
-  if (parsedQuery.orderBy) {
-    resultRecords = resultRecords.sort((a: any, b: any) => {
-      const orderBy = parsedQuery.orderBy!;
-      const orderDesc = parsedQuery.orderDesc!;
-      if (a[orderBy] === b[orderBy]) {
-        return 0;
-      }
 
-      if (a[orderBy] < b[orderBy]) {
-        return orderDesc ? 1 : -1;
-      } else {
-        return orderDesc ? -1 : 1;
+  if (parsedQuery.ordering.length > 0) {
+    resultRecords = resultRecords.sort((a: any, b: any) => {
+      for (const { orderBy, orderDesc } of parsedQuery.ordering) {
+        if (a[orderBy] < b[orderBy] || a[orderBy] === undefined) {
+          return orderDesc ? 1 : -1;
+        }
+        if (a[orderBy] > b[orderBy] || b[orderBy] === undefined) {
+          return orderDesc ? -1 : 1;
+        }
+        // Consider them equal. This way helps with comparing arrays (like tags)
       }
+      return 0;
     });
   }
+
   if (parsedQuery.limit) {
     resultRecords = resultRecords.slice(0, parsedQuery.limit);
   }

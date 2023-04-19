@@ -26,16 +26,33 @@ export function parseQuery(queryTree: ParseTree): ParsedQuery {
   const parsedQuery: ParsedQuery = {
     table: queryNode.children![0].children![0].text!,
     filter: [],
+    ordering: [],
   };
-  const orderByNode = findNodeOfType(queryNode, "OrderClause");
-  if (orderByNode) {
+
+  const orderByNodes = collectNodesOfType(queryNode, "OrderClause");
+  for (const orderByNode of orderByNodes) {
     const nameNode = findNodeOfType(orderByNode, "Name");
-    parsedQuery.orderBy = nameNode!.children![0].text!;
+    const orderBy = nameNode!.children![0].text!;
     const orderNode = findNodeOfType(orderByNode, "OrderDirection");
-    parsedQuery.orderDesc = orderNode
+    const orderDesc = orderNode
       ? orderNode.children![0].text! === "desc"
       : false;
+    parsedQuery.ordering.push({ orderBy, orderDesc });
   }
+  /**
+   * @deprecated due to PR #387
+   * We'll take the first ordering and send that as the deprecated
+   * fields orderBy and orderDesc. This way it will be backward
+   * Plugs using the old ParsedQuery.
+   * Remove this block completely when ParsedQuery no longer have
+   * those two fields
+   */
+  if (parsedQuery.ordering.length > 0) {
+    parsedQuery.orderBy = parsedQuery.ordering[0].orderBy;
+    parsedQuery.orderDesc = parsedQuery.ordering[0].orderDesc;
+  }
+  /** @end-deprecation due to PR #387  */
+
   const limitNode = findNodeOfType(queryNode, "LimitClause");
   if (limitNode) {
     const nameNode = findNodeOfType(limitNode, "Number");
