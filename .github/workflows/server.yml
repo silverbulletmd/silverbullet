@@ -24,8 +24,8 @@ jobs:
       - name: Compile for all platforms
         run: |
           deno task server:dist:linux-x86_64
-          deno task server:dist:apple-x86_64
-          deno task server:dist:apple-aarch64
+          deno task server:dist:darwin-x86_64
+          deno task server:dist:darwin-aarch64
           deno task server:dist:windows-x86_64
 
       - name: Release

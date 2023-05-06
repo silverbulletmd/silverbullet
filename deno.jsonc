@@ -14,8 +14,8 @@
     "bundle": "deno bundle silverbullet.ts dist/silverbullet.js",
     "compile": "deno compile -A --unstable --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts",
     "server:dist:linux-x86_64": "deno compile -A --unstable --target x86_64-unknown-linux-gnu --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet",
-    "server:dist:apple-x86_64": "deno compile -A --unstable --target x86_64-apple-darwin --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-apple-x86_64.zip silverbullet",
-    "server:dist:apple-aarch64": "deno compile -A --unstable --target aarch64-apple-darwin --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-apple-aarch64.zip silverbullet",
+    "server:dist:darwin-x86_64": "deno compile -A --unstable --target x86_64-apple-darwin --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-darwin-x86_64.zip silverbullet",
+    "server:dist:darwin-aarch64": "deno compile -A --unstable --target aarch64-apple-darwin --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-darwin-aarch64.zip silverbullet",
     "server:dist:windows-x86_64": "deno compile -A --unstable --target x86_64-pc-windows-msvc --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"

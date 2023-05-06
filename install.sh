@@ -8,8 +8,8 @@ if ! command -v unzip >/dev/null; then
 fi
 
 case $(uname -sm) in
-"Darwin x86_64") target="apple-x86_64" ;;
-"Darwin arm64") target="apple-aarch64" ;;
+"Darwin x86_64") target="darwin-x86_64" ;;
+"Darwin arm64") target="darwin-aarch64" ;;
 "Linux aarch64")
     echo "Error: Official SilverBullet builds for Linux aarch64 are not available." 1>&2
     exit 1
