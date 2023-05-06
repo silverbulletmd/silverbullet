@@ -15,7 +15,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
         with:
-          deno-version: v1.33.2
+          deno-version: v1.33
 
       - name: Run bundle build
         run: |
