@@ -30,20 +30,24 @@ class DenoWorkerWrapper implements WorkerLike {
   }
 }
 
-import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
+// import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
 
-const workerBundle = new AssetBundle(workerBundleJson);
+// const workerBundle = new AssetBundle(workerBundleJson);
+
+// import "./sandbox_worker.ts";
 
 export function createSandbox(plug: Plug<any>) {
-  const workerHref = URL.createObjectURL(
-    new Blob([
-      workerBundle.readFileSync("worker.js"),
-    ], {
-      type: "application/javascript",
-    }),
-  );
+  // const workerHref = URL.createObjectURL(
+  //   new Blob([
+  //     workerBundle.readFileSync("worker.js"),
+  //   ], {
+  //     type: "application/javascript",
+  //   }),
+  // );
   const worker = new Worker(
-    workerHref,
+    // workerHref,
+    // import.meta.resolve("./sandbox_worker.ts"),
+    new URL("./sandbox_worker.ts", import.meta.url),
     {
       type: "module",
       deno: {

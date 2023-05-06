@@ -1,0 +1,35 @@
+name: Server
+
+on:
+  push:
+   branches: ["main", "compile"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
+        with:
+          deno-version: v1.33.2
+
+      - name: Run bundle build
+        run: |
+          deno task build
+          deno task server:dist:linux-x86_64
+          deno task server:dist:apple-x86_64
+          deno task server:dist:apple-aarch64
+          deno task server:dist:windows-x86_64
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          files: |
+            silverbullet-*.zip

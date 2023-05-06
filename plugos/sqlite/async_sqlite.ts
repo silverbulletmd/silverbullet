@@ -1,8 +1,8 @@
-import { AssetBundle } from "../asset_bundle/bundle.ts";
+// import { AssetBundle } from "../asset_bundle/bundle.ts";
 import { ISQLite } from "./sqlite_interface.ts";
-import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
+// import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
 
-const workerBundle = new AssetBundle(workerBundleJson);
+// const workerBundle = new AssetBundle(workerBundleJson);
 
 export class AsyncSQLite implements ISQLite {
   worker: Worker;
@@ -13,15 +13,17 @@ export class AsyncSQLite implements ISQLite {
   >();
 
   constructor(readonly dbPath: string) {
-    const workerHref = URL.createObjectURL(
-      new Blob([
-        workerBundle.readFileSync("worker.js"),
-      ], {
-        type: "application/javascript",
-      }),
-    );
+    // const workerHref = URL.createObjectURL(
+    //   new Blob([
+    //     workerBundle.readFileSync("worker.js"),
+    //   ], {
+    //     type: "application/javascript",
+    //   }),
+    // );
     this.worker = new Worker(
-      workerHref,
+      new URL("./worker.ts", import.meta.url),
+      // import.meta.resolve("./worker.ts"),
+      // workerHref,
       {
         type: "module",
       },

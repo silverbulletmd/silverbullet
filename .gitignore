@@ -11,3 +11,7 @@ publish-data.db
 .idea
 deno.lock
 node_modules
+*.zip
+silverbullet-*
+silverbullet.*
+silverbullet
