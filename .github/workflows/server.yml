@@ -17,9 +17,12 @@ jobs:
         with:
           deno-version: v1.33
 
-      - name: Run bundle build
+      - name: Build bundles
         run: |
           deno task build
+
+      - name: Compile for all platforms
+        run: |
           deno task server:dist:linux-x86_64
           deno task server:dist:apple-x86_64
           deno task server:dist:apple-aarch64

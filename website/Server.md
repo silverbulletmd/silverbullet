@@ -4,28 +4,24 @@ The idea is simple: you run the web server (instructions below), point your brow
 
 You have two options to install and run SilverBullet as a server:
 
-1. Installation via Deno on your host system
+1. Installation right your host system
 2. Running it with Docker
 
-## Installation via Deno
-This consists of two steps (unless Deno is already installed — in which case we’re down to one):
+## Regular installation
+This will work on Linux and macOS machines only. If you're a Windows user, consider [[Desktop]] instead.
 
-1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
-2. Installing SilverBullet itself
-
-### Install SilverBullet
-With Deno installed, run:
+Run:
 
 ```shell
-deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+curl https://silverbullet.md/install.sh | sh
 ```
 
-This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
+This will install `silverbullet` into your current folder. You will likely want to move it to a more convenient location (made sure this is a place where it's writable for future upgrades.)
 
 To run SilverBullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
 
 ```shell
-silverbullet <pages-path>
+./silverbullet <pages-path>
 ```
 
 By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
@@ -38,7 +34,7 @@ Once downloaded and booted, SilverBullet will print out a URL to open SB in your
 SilverBullet is regularly updated. To get the latest and greatest, simply run:
 
 ```shell
-silverbullet upgrade
+./silverbullet upgrade
 ```
 
 And restart SilverBullet. You should be good to go.
