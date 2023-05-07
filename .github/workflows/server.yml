@@ -2,7 +2,9 @@ name: Server
 
 on:
   push:
-   branches: ["main", "compile"]
+    branches: ["main"]
+    tags:
+      - "*"
 
 jobs:
   build:

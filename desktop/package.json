@@ -1,6 +1,6 @@
 {
   "name": "silverbullet",
-  "version": "0.3.100",
+  "version": "0.3.101",
   "description": "Markdown as a platform",
   "main": ".webpack/main",
   "scripts": {
