@@ -34,8 +34,8 @@ jobs:
           deno-version: v1.33
       - name: Build SilverBullet
         run: deno task build
-      - name: Create SilverBullet bundle
-        run: deno task bundle
+      - name: Create SilverBullet server binary
+        run: deno task compile
       - name: Set MacOS signing certs
         if: matrix.os == 'macOS-latest'
         run: chmod +x scripts/add-macos-cert.sh && ./scripts/add-macos-cert.sh
