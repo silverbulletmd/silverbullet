@@ -1,4 +1,4 @@
 #!/bin/sh
 
-deno task bundle
+deno task compile
 docker build -t zefhemel/silverbullet .

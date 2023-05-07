@@ -9,7 +9,6 @@
     "server": "deno run -A --unstable --check silverbullet.ts",
     "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
     "watch-plugs": "deno run -A --unstable --check build_plugs.ts -w",
-    "bundle": "deno bundle silverbullet.ts dist/silverbullet.js",
     "compile": "mkdir -p bin && deno compile -A --unstable --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts -o bin/silverbullet silverbullet.ts",
     "server:dist:linux-x86_64": "deno compile -A --unstable --target x86_64-unknown-linux-gnu --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet",
     "server:dist:darwin-x86_64": "deno compile -A --unstable --target x86_64-apple-darwin --include plugos/environments/sandbox_worker.ts --include plugos/sqlite/worker.ts silverbullet.ts -o silverbullet && zip silverbullet-server-darwin-x86_64.zip silverbullet",
