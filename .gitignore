@@ -12,6 +12,6 @@ publish-data.db
 deno.lock
 node_modules
 *.zip
-silverbullet-*
-silverbullet.*
-silverbullet
+bin
+/silverbullet
+/silverbullet.exe

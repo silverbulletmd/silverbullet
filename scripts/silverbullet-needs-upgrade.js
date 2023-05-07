@@ -1,0 +1,1 @@
+console.log("The process to install and upgrade SilverBullet has changed! Please visit https://silverbullet.md/Server for new installation instructions.");
