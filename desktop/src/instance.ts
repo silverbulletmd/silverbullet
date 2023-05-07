@@ -32,20 +32,20 @@ type Instance = {
 export const runningServers = new Map<string, Instance>();
 
 // Should work for Liux and Mac
-let denoPath = `${process.resourcesPath}/deno`;
+let silverBulletServerPath = `${process.resourcesPath}/silverbullet`;
 
 // If not...
-if (!existsSync(denoPath)) {
+if (!existsSync(silverBulletServerPath)) {
   // Windows
   if (platform() === "win32") {
-    if (existsSync(`${process.resourcesPath}/deno.exe`)) {
-      denoPath = `${process.resourcesPath}/deno.exe`;
+    if (existsSync(`${process.resourcesPath}/silverbullet.exe`)) {
+      silverBulletServerPath = `${process.resourcesPath}/silverbullet.exe`;
     } else {
-      denoPath = "deno.exe";
+      silverBulletServerPath = "silverbullet.exe";
     }
   } else {
     // Everything else
-    denoPath = "deno";
+    silverBulletServerPath = "silverbullet";
   }
 }
 
@@ -73,16 +73,6 @@ export async function openFolder(windowState: WindowState): Promise<void> {
   newWindow(instance, windowState);
 }
 
-function determineSilverBulletScriptPath(): string {
-  let scriptPath = `${process.resourcesPath}/silverbullet.js`;
-  if (!existsSync(scriptPath)) {
-    console.log("Dev mode");
-    // Assumption: we're running in dev mode (npm start)
-    scriptPath = "../silverbullet.ts";
-  }
-  return scriptPath;
-}
-
 async function spawnInstance(pagePath: string): Promise<Instance> {
   let instance = runningServers.get(pagePath);
   if (instance) {
@@ -94,11 +84,7 @@ async function spawnInstance(pagePath: string): Promise<Instance> {
   portfinder.setHighestPort(3999);
   const port = await portfinder.getPortPromise();
 
-  const proc = spawn(denoPath, [
-    "run",
-    "-A",
-    "--unstable",
-    determineSilverBulletScriptPath(),
+  const proc = spawn(silverBulletServerPath, [
     "--port",
     "" + port,
     pagePath,

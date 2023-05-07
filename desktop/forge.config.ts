@@ -13,35 +13,10 @@ import { platform } from "node:os";
 import fs from "node:fs";
 import path from "node:path";
 import decompress from "decompress";
-import { downloadFile } from "./http_util";
 
-const denoVersion = "v1.29.1";
-
-const denoZip: Record<string, string> = {
-  "win32-x64": "deno-x86_64-pc-windows-msvc.zip",
-  "darwin-x64": "deno-x86_64-apple-darwin.zip",
-  "darwin-arm64": "deno-aarch64-apple-darwin.zip",
-  "linux-x64": "deno-x86_64-unknown-linux-gnu.zip",
-};
-
-const denoExecutableResource = platform() === "win32"
-  ? "resources/deno.exe"
-  : "resources/deno";
-
-async function downloadDeno(platform: string, arch: string): Promise<void> {
-  const folder = fs.mkdtempSync("deno-download");
-  const destFile = path.join(folder, "deno.zip");
-  const zipFile = denoZip[`${platform}-${arch}`];
-  if (!zipFile) {
-    throw new Error(`No deno binary for ${platform}-${arch}`);
-  }
-  await downloadFile(
-    `https://github.com/denoland/deno/releases/download/${denoVersion}/${zipFile}`,
-    destFile,
-  );
-  await decompress(destFile, "resources");
-  fs.rmSync(folder, { recursive: true });
-}
+const silverbulletServerExecutable = platform() === "win32"
+  ? "silverbullet.exe"
+  : "silverbullet";
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -51,7 +26,7 @@ const config: ForgeConfig = {
       : "SilverBullet",
     icon: "../web/images/logo",
     appBundleId: "md.silverbullet",
-    extraResource: [denoExecutableResource, "resources/silverbullet.js", "resources/logo.png"],
+    extraResource: [`resources/${silverbulletServerExecutable}`, "resources/logo.png"],
     beforeCopyExtraResources: [(
       _buildPath: string,
       _electronVersion: string,
@@ -59,14 +34,9 @@ const config: ForgeConfig = {
       arch: TargetArch,
       callback: (err?: Error | null) => void,
     ) => {
-      if (fs.existsSync(denoExecutableResource)) {
-        fs.rmSync(denoExecutableResource, { force: true });
-      }
       Promise.resolve().then(async () => {
-        // Download deno
-        await downloadDeno(platform, arch);
-        // Copy silverbullet.js
-        fs.copyFileSync("../dist/silverbullet.js", "resources/silverbullet.js");
+        // Copy silverbullet server executable
+        fs.copyFileSync(`../${silverbulletServerExecutable}`, `resources/${silverbulletServerExecutable}`);
         fs.copyFileSync("../web/images/logo.png", "resources/logo.png");
       }).then((r) => callback()).catch(callback);
     }],
