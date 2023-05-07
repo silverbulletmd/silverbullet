@@ -2,21 +2,24 @@ Installing SilverBullet as a (local) web server is the most mature, and most fle
 
 The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. This makes it a great option to access your space from various devices without requiring any type of sync. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
 
+## Supported operating systems
+* 64-bit Linux
+* Intel or Apple Silicon macOS
+* **Windows is currently not supported**, if there’s demand for it let us know. We recommend using [[Desktop]] on Windows instead.
+
 You have two options to install and run SilverBullet as a server:
 
-1. Installation right your host system
+1. Installation right on your host system
 2. Running it with Docker
 
 ## Regular installation
-This will work on Linux and macOS machines only. If you're a Windows user, consider [[Desktop]] instead.
-
-Run:
+Run the following in your terminal:
 
 ```shell
 curl https://silverbullet.md/install.sh | sh
 ```
 
-This will install `silverbullet` into your current folder. You will likely want to move it to a more convenient location (made sure this is a place where it's writable for future upgrades.)
+This will determine your operating system and download the appropriate `silverbullet` into your current folder. You will likely want to move it to a more convenient location in your PATH (made sure this is a place where it's writable for future upgrades.)
 
 To run SilverBullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
 
@@ -37,7 +40,7 @@ SilverBullet is regularly updated. To get the latest and greatest, simply run:
 ./silverbullet upgrade
 ```
 
-And restart SilverBullet. You should be good to go.
+If all goes well, this will upgrade silverbullet in-place. After the upgrade, restart SilverBullet. You should be good to go.
 
 ## Installing SilverBullet with Docker
 
@@ -74,3 +77,5 @@ To upgrade, simply pull the latest docker image (rebuilt and pushed after every 
 ```shell
 docker pull zefhemel/silverbullet
 ```
+
+Docker images are also available based on version, have a look at the [docker hub page](https://hub.docker.com/r/zefhemel/silverbullet).

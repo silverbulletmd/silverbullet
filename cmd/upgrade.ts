@@ -51,7 +51,6 @@ export async function upgradeCommand() {
     );
     return;
   }
-  // console.log(zipPath);
 
   const unzipCommand = new Deno.Command("unzip", {
     args: [
