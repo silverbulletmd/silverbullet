@@ -10,7 +10,6 @@ mkdir -p $DENO_DIR
 echo "Generating version number..."
 echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 
-
 echo "Building silver bullet"
 deno task build
 echo "Cleaning website build dir"

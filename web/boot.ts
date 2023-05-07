@@ -13,18 +13,15 @@ import { storeSyscalls } from "./syscalls/store.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
+import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { CronHook } from "../plugos/hooks/cron.ts";
+import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
+
+const localMode = true;
 
 safeRun(async () => {
-  const httpPrimitives = new HttpSpacePrimitives("");
-  let settingsPageText = "";
-  try {
-    settingsPageText = (
-      await httpPrimitives.readFile("SETTINGS.md", "utf8")
-    ).data as string;
-  } catch (e: any) {
-    console.error("No settings page found", e.message);
-  }
-
   // Instantiate a PlugOS system for the client
   const system = new System<SilverBulletHooks>("client");
 
@@ -32,11 +29,63 @@ safeRun(async () => {
   const namespaceHook = new PageNamespaceHook();
   system.addHook(namespaceHook);
 
-  const spacePrimitives = new PlugSpacePrimitives(
-    httpPrimitives,
-    namespaceHook,
-    "client",
-  );
+  let spacePrimitives: SpacePrimitives | undefined;
+  if (localMode) {
+    // Attach the page namespace hook
+    const namespaceHook = new PageNamespaceHook();
+    system.addHook(namespaceHook);
+
+    // Event hook
+    const eventHook = new EventHook();
+    system.addHook(eventHook);
+
+    const cronHook = new CronHook(system);
+
+    system.addHook(cronHook);
+
+    // // for store
+    // await ensureStoreTable(db, "store");
+    // // for clientStore
+    // await ensureStoreTable(db, "localData");
+    // await ensurePageIndexTable(db);
+    // await ensureFTSTable(db, "fts");
+
+    // const indexSyscalls = pageIndexSyscalls(db);
+
+    spacePrimitives = //new FileMetaSpacePrimitives(
+      // new AssetBundlePlugSpacePrimitives(
+      new EventedSpacePrimitives(
+        new PlugSpacePrimitives(
+          new IndexedDBSpacePrimitives(
+            "space",
+            globalThis.indexedDB,
+          ),
+          namespaceHook,
+        ),
+        eventHook,
+      );
+    // new AssetBundle(assetBundle),
+
+    //   indexSyscalls,
+    // );
+  } else {
+    const httpPrimitives = new HttpSpacePrimitives("");
+
+    spacePrimitives = new PlugSpacePrimitives(
+      httpPrimitives,
+      namespaceHook,
+      "client",
+    );
+  }
+  let settingsPageText = "";
+  try {
+    settingsPageText = (
+      await spacePrimitives.readFile("SETTINGS.md", "utf8")
+    ).data as string;
+  } catch (e: any) {
+    console.error("No settings page found", e.message);
+    settingsPageText = "```yaml\nindexPage: index\n```\n";
+  }
 
   const serverSpace = new Space(spacePrimitives);
   serverSpace.watch();
