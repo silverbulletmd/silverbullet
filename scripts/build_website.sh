@@ -40,8 +40,6 @@ deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 echo > website_build/empty.md
 
-echo "Bundling..."
-deno task bundle
 # Replace old bundled build with upgrade instruction script
 cp scripts/silverbullet-needs-upgrade.js website_build/silverbullet.js
 cp dist_bundle/web/global.plug.json website_build/
