@@ -11,8 +11,6 @@ import { rendererConfig } from "./webpack.renderer.config";
 import { platform } from "node:os";
 
 import fs from "node:fs";
-import path from "node:path";
-import decompress from "decompress";
 
 const silverbulletServerExecutable = platform() === "win32"
   ? "silverbullet.exe"
@@ -36,8 +34,9 @@ const config: ForgeConfig = {
     ) => {
       Promise.resolve().then(async () => {
         // Copy silverbullet server executable
-        fs.copyFileSync(`../bin/${silverbulletServerExecutable}`, `resources/${silverbulletServerExecutable}`);
+        fs.mkdirSync("resources", {recursive: true});
         fs.copyFileSync("../web/images/logo.png", "resources/logo.png");
+        fs.copyFileSync(`../bin/${silverbulletServerExecutable}`, `resources/${silverbulletServerExecutable}`);
       }).then((r) => callback()).catch(callback);
     }],
     osxSign: {
