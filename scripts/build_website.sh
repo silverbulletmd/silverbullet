@@ -42,6 +42,8 @@ echo > website_build/empty.md
 
 echo "Bundling..."
 deno task bundle
-cp dist/silverbullet.js website_build/
+# Replace old bundled build with upgrade instruction script
+cp scripts/silverbullet-needs-upgrade.js website_build/silverbullet.js
 cp dist_bundle/web/global.plug.json website_build/
 cp web/images/logo.ico website_build/
+cp install.sh website_build/

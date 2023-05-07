@@ -2,6 +2,12 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## 0.3.0
+* Big (somewhat breaking) distribution change: SilverBullet [[Server]] is [now distributed as a single binary](https://github.com/silverbulletmd/silverbullet/issues/397) (with Deno baked in, so no need to install/maintain Deno separately). This has the following implication for existing [[Server]] users that took the deno installation path before: you to **reinstall SilverBullet** via the [[Server|new instructions]] described (don’t worry, this is a single `curl | sh` command). If you run `silverbullet upgrade` you should get an upgrade notice the next time you run.
+  * Technically, this also changed how [[Desktop]] build work under the hood, but this should be transparent. You shouldn’t have to worry about it.
+* Improvements to dark mode by [Max Richter](https://github.com/silverbulletmd/silverbullet/pull/396)
+
+---
 
 ## 0.2.13
 

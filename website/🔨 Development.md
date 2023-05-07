@@ -17,12 +17,6 @@ And build it:
 deno task build
 ```
 
-For convenience, replace your `silverbullet` install with the one from this repo via:
-
-```shell
-deno task install
-```
-
 You can now run the server in “watch mode” (automatically restarting when you change source files) with:
 
 ```shell

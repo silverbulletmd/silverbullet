@@ -29,10 +29,9 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
       - name: Setup Deno
-        # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
         with:
-          deno-version: v1.32.5
+          deno-version: v1.33
       - name: Build SilverBullet
         run: deno task build
       - name: Create SilverBullet bundle
@@ -76,4 +75,3 @@ jobs:
             desktop/out/**/*.nupkg
             desktop/out/**/*.rpm
             desktop/out/**/*.zip
-            dist/silverbullet.js

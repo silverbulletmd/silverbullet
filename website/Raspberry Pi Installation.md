@@ -1,3 +1,5 @@
+UPDATE: These instrucitons are out of date and need to be updated
+
 There are currently no official 64-bit ARM Linux builds available of [Deno](https://deno.land/). However, there are [unofficial ones](https://github.com/LukeChannings/deno-arm64). Here’s how to set that up.
 
 > **Note** Compatibility note

@@ -9,7 +9,6 @@ echo "Generating version number..."
 echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 echo "Building..."
 deno task build
-deno task install
 
 rm -rf website_build
 silverbullet publish --index -o website_build website
