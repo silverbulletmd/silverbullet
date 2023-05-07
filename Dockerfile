@@ -1,6 +1,7 @@
-FROM alpine:3.17.3
+FROM frolvlad/alpine-glibc:alpine-3.17
 
-RUN adduser -D -H -u 1000 silverbullet && apk add tini
+RUN apk add tini
+RUN adduser -D -H -u 1000 silverbullet
 
 # The volume that will keep the space data
 # Create a volume first:
@@ -17,7 +18,7 @@ RUN mkdir -p /space
 RUN chown -R silverbullet /space
 
 # deno user id is 1000 in alpine image
-USER silverbullet
+#USER silverbullet
 
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
