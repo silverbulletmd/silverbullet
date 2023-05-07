@@ -36,4 +36,4 @@ jobs:
           push: true
           tags: |
             zefhemel/silverbullet:latest
-            zefhemel/silverbullet:${{ github.ref.split('/').last() }}
+            zefhemel/silverbullet:${{ github.ref_name }}
