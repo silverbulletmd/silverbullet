@@ -36,7 +36,7 @@ const config: ForgeConfig = {
     ) => {
       Promise.resolve().then(async () => {
         // Copy silverbullet server executable
-        fs.copyFileSync(`../${silverbulletServerExecutable}`, `resources/${silverbulletServerExecutable}`);
+        fs.copyFileSync(`../bin/${silverbulletServerExecutable}`, `resources/${silverbulletServerExecutable}`);
         fs.copyFileSync("../web/images/logo.png", "resources/logo.png");
       }).then((r) => callback()).catch(callback);
     }],
