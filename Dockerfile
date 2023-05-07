@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.28.3
+FROM denoland/deno:alpine-1.33.2
 
 # The volume that will keep the space data
 # Create a volume first:
