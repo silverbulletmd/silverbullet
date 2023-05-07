@@ -2,7 +2,8 @@ name: Docker
 
 on:
   push:
-    branches: ["main"]
+    tags:
+      - '*'
 
 jobs:
   docker-build-push:
@@ -33,4 +34,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: zefhemel/silverbullet:latest  
+          tags: |
+            zefhemel/silverbullet:latest
+            zefhemel/silverbullet:${{ github.ref_name }}
