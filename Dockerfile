@@ -6,12 +6,26 @@ FROM lukechannings/deno:v1.33.2
 #   docker run -v myspace:/space -it zefhemel/silverbullet
 VOLUME /space
 
+# Adding tini manually, as it's not included anymore in the new baseimage
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+
 # Copy the bundled version of silverbullet into the container
 ADD ./dist/silverbullet.js /silverbullet.js
 
 # Make sure the deno user has access to the space volume
-RUN mkdir -p /space
-RUN chown -R deno:deno /space
+RUN mkdir -p /space \
+ && chown -R deno:deno /space \
+ && chmod +x /tini \
+ && echo "**** cleanup ****" \
+ && apt-get -y autoremove \
+ && apt-get clean  \
+ && rm -rf \
+    /tmp/* \
+    /var/lib/apt/lists/* \
+    /var/tmp/* \
+    /var/log/* \
+    /usr/share/man
 
 # deno user id is 1000 in alpine image
 USER deno
