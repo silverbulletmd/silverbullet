@@ -6,9 +6,12 @@ FROM lukechannings/deno:v1.33.2
 #   docker run -v myspace:/space -it zefhemel/silverbullet
 VOLUME /space
 
+# Accept TARGETARCH as argument
+ARG TARGETARCH
+
 # Adding tini manually, as it's not included anymore in the new baseimage
 ENV TINI_VERSION v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
 
 # Copy the bundled version of silverbullet into the container
 ADD ./dist/silverbullet.js /silverbullet.js
