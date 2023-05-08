@@ -3,6 +3,13 @@ release.
 
 ---
 
+## Next
+
+* Added `Cmd-.` (Mac) and `Ctrl-.` (Linux/Windows) as an additional keyboard shortcut (to `Cmd-/`, `Ctrl-/`) for launching the command palette.
+* Improvements to dark mode by [Max Richter](https://github.com/silverbulletmd/silverbullet/pull/396)
+
+---
+
 ## 0.2.13
 
 * Support for multiple `order by` clauses in [[🔌 Directive/Query]] by [Siddhant Sanyam](https://github.com/silverbulletmd/silverbullet/pull/387)

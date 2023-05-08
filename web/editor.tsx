@@ -714,6 +714,17 @@ export class Editor {
               return true;
             },
           },
+          {
+            key: "Ctrl-.",
+            mac: "Cmd-.",
+            run: (): boolean => {
+              this.viewDispatch({
+                type: "show-palette",
+                context: this.getContext(),
+              });
+              return true;
+            },
+          },
         ]),
         EditorView.domEventHandlers({
           // This may result in duplicated touch events on mobile devices
