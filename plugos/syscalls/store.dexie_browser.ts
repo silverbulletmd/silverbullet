@@ -1,4 +1,4 @@
-import { Dexie } from "../deps.ts";
+import Dexie from "dexie";
 import { SysCallMapping } from "../system.ts";
 
 export type KV = {
