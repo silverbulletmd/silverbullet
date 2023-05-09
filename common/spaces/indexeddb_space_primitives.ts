@@ -10,11 +10,7 @@ import {
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 import { mime } from "../../plugos/deps.ts";
-// HEAD
 import Dexie, { IndexableType, Table } from "dexie";
-//
-import Dexie, { IndexableType, Table } from "https://esm.sh/dexie@3.2.2";
-//505baf3498d65b9e85b68dd3cd3469aaa525fab8
 type FileContent = {
   name: string;
   data: Uint8Array;

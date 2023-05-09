@@ -6,6 +6,6 @@ Deno.test("Page index", async () => {
   const syscalls = pageIndexSyscalls("test", indexedDB);
   const fakeCtx: any = {};
   await syscalls["index.set"](fakeCtx, "page1", "key", "value");
-  console.log(await syscalls["index.get"](fakeCtx, "page1", "key"));
+  // console.log(await syscalls["index.get"](fakeCtx, "page1", "key"));
   //   console.log("here");
 });

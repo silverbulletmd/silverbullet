@@ -2,10 +2,10 @@ import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { System } from "../../plugos/system.ts";
 
-import corePlug from "../../dist_bundle/_plug/core.plug.json" assert {
+import corePlug from "../../dist_plug_bundle/_plug/core.plug.json" assert {
   type: "json",
 };
-import tasksPlug from "../../dist_bundle/_plug/tasks.plug.json" assert {
+import tasksPlug from "../../dist_plug_bundle/_plug/tasks.plug.json" assert {
   type: "json",
 };
 import { createSandbox } from "../../plugos/environments/deno_sandbox.ts";
