@@ -1,4 +1,4 @@
-import Dexie from "https://esm.sh/dexie@3.2.2";
+import { Dexie } from "../deps.ts";
 import { SysCallMapping } from "../system.ts";
 
 export type KV = {
@@ -9,12 +9,15 @@ export type KV = {
 export function storeSyscalls(
   dbName: string,
   tableName: string,
+  indexedDB?: any,
 ): SysCallMapping {
-  const db = new Dexie(dbName);
+  const db = new Dexie(dbName, {
+    indexedDB,
+  });
   db.version(1).stores({
     [tableName]: "key",
   });
-  const items = db.table(tableName);
+  const items = db.table<KV, string>(tableName);
 
   return {
     "store.delete": async (_ctx, key: string) => {
@@ -50,6 +53,12 @@ export function storeSyscalls(
         key,
       });
       return result ? result.value : null;
+    },
+
+    "store.has": async (_ctx, key: string): Promise<boolean> => {
+      return await items.get({
+        key,
+      }) !== undefined;
     },
 
     "store.queryPrefix": async (

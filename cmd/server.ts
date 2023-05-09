@@ -1,6 +1,11 @@
 import { path } from "../server/deps.ts";
 import { HttpServer } from "../server/http_server.ts";
-import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
+import clientAssetBundle from "../dist/client_asset_bundle.json" assert {
+  type: "json",
+};
+import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
+  type: "json",
+};
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 
 export function serveCommand(options: any, folder: string) {
@@ -26,7 +31,8 @@ export function serveCommand(options: any, folder: string) {
     port: port,
     pagesPath: pagesPath,
     dbPath: path.join(pagesPath, options.db),
-    assetBundle: new AssetBundle(assetBundle as AssetJson),
+    clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+    plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     user: options.user,
     bareMode,
   });

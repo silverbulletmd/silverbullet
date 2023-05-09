@@ -241,9 +241,7 @@ export class Editor {
   async init() {
     this.focus();
 
-    const globalModules: any = await (
-      await fetch(`${this.urlPrefix}/global.plug.json`)
-    ).json();
+    const globalModules = JSON.parse(await this.space.readFile("global.plug.json", "utf8"));
 
     this.system.on({
       sandboxInitialized: async (sandbox) => {

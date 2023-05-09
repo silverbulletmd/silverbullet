@@ -25,7 +25,7 @@ export async function configureCommand() {
   };
 
   try {
-    await system.invokeFunction("server", "check", syncConfig);
+    await check(syncConfig);
   } catch (e: any) {
     await editor.flashNotification(
       `Sync configuration failed: ${e.message}`,
@@ -55,9 +55,9 @@ export async function syncCommand() {
   }
   await editor.flashNotification("Starting sync...");
   try {
-    await system.invokeFunction("server", "check", config);
+    await sync.check(config);
 
-    const operations = await system.invokeFunction("server", "performSync");
+    const operations = await performSync();
     await editor.flashNotification(
       `Sync complete. Performed ${operations} operations.`,
     );
@@ -138,11 +138,7 @@ export async function syncOpenedPage() {
     // Nope -> exit
     return;
   }
-  await system.invokeFunction(
-    "server",
-    "syncPage",
-    await editor.getCurrentPage(),
-  );
+  await syncPage(await editor.getCurrentPage());
 }
 
 // Run on server

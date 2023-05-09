@@ -10,7 +10,7 @@ import {
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 import { mime } from "../../plugos/deps.ts";
-import Dexie, { IndexableType, Table } from "https://esm.sh/dexie@3.2.2";
+import Dexie, { IndexableType, Table } from "dexie";
 
 type FileContent = {
   name: string;
@@ -138,7 +138,7 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
 
   invokeFunction(
     plug: Plug<any>,
-    env: string,
+    _env: string,
     name: string,
     args: any[],
   ): Promise<any> {

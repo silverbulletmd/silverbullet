@@ -2,6 +2,7 @@ import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
+import { mime } from "../../plugos/deps.ts";
 
 const bootTime = Date.now();
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
@@ -13,10 +14,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const files = await this.wrapped.fetchFileList();
-    return this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
+    return this.assetBundle.listFiles()
       .map((p) => ({
         name: p,
-        contentType: "application/json",
+        contentType: mime.getType(p) || "application/octet-stream",
         lastModified: bootTime,
         perm: "ro",
         size: -1,

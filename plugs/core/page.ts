@@ -272,7 +272,7 @@ export async function clearPageIndex(page: string) {
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
-  console.log("Reindexing", name);
+  // console.log("Reindexing", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: await markdown.parseMarkdown(text),

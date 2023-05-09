@@ -12,7 +12,8 @@ export type ServerOptions = {
   port: number;
   pagesPath: string;
   dbPath: string;
-  assetBundle: AssetBundle;
+  clientAssetBundle: AssetBundle;
+  plugAssetBundle: AssetBundle;
   user?: string;
   pass?: string;
   bareMode?: boolean;
@@ -36,7 +37,8 @@ export class HttpServer {
     this.app = new Application(); //{ serverConstructor: FlashServer });
     this.user = options.user;
     this.systemBoot = new SpaceSystem(
-      options.assetBundle,
+      options.clientAssetBundle,
+      options.plugAssetBundle,
       options.pagesPath,
       options.dbPath,
     );
@@ -82,16 +84,16 @@ export class HttpServer {
           return;
         }
         response.headers.set("Content-type", "text/html");
-        response.body = this.systemBoot.assetBundle.readTextFileSync(
-          "web/index.html",
+        response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+          "index.html",
         );
         response.headers.set("Last-Modified", staticLastModified);
         return;
       }
       try {
-        const assetName = `web${request.url.pathname}`;
+        const assetName = request.url.pathname.slice(1);
         if (
-          this.systemBoot.assetBundle.has(assetName) &&
+          this.systemBoot.clientAssetBundle.has(assetName) &&
           request.headers.get("If-Modified-Since") === staticLastModified
         ) {
           response.status = 304;
@@ -100,9 +102,9 @@ export class HttpServer {
         response.status = 200;
         response.headers.set(
           "Content-type",
-          this.systemBoot.assetBundle.getMimeType(assetName),
+          this.systemBoot.clientAssetBundle.getMimeType(assetName),
         );
-        const data = this.systemBoot.assetBundle.readFileSync(
+        const data = this.systemBoot.clientAssetBundle.readFileSync(
           assetName,
         );
         response.headers.set("Cache-Control", "no-cache");
@@ -130,8 +132,8 @@ export class HttpServer {
     // Fallback, serve index.html
     this.app.use((ctx) => {
       ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.systemBoot.assetBundle.readTextFileSync(
-        "web/index.html",
+      ctx.response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+        "index.html",
       );
     });
 
@@ -173,8 +175,8 @@ export class HttpServer {
         if (request.url.pathname === "/.auth") {
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
-            response.body = this.systemBoot.assetBundle.readTextFileSync(
-              "web/auth.html",
+            response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+              "auth.html",
             );
             return;
           } else if (request.method === "POST") {

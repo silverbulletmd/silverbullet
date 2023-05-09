@@ -3,7 +3,7 @@ import { SysCallMapping } from "../../plugos/system.ts";
 import { storeSyscalls } from "../../plugos/syscalls/store.dexie_browser.ts";
 
 export function clientStoreSyscalls(): SysCallMapping {
-  const storeCalls = storeSyscalls("local", "localData");
+  const storeCalls = storeSyscalls("local", "localData", globalThis.indexedDB);
   return proxySyscalls(
     ["clientStore.get", "clientStore.set", "clientStore.delete"],
     (ctx, name, ...args) => {

@@ -140,37 +140,37 @@ functions:
       - editor:complete
 
   # Full text search
-  searchIndex:
-    path: ./search.ts:pageIndex
-    events:
-      - page:index
-  searchUnindex:
-    path: "./search.ts:pageUnindex"
-    env: server
-    events:
-      - page:deleted
-  searchQueryProvider:
-    path: ./search.ts:queryProvider
-    events:
-      - query:full-text
-  searchCommand:
-    path: ./search.ts:searchCommand
-    command:
-      name: "Search Space"
-      key: Ctrl-Shift-f
-      mac: Cmd-Shift-f
-  readPageSearch:
-    path: ./search.ts:readFileSearch
-    env: server
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: readFile
-  getPageMetaSearch:
-    path: ./search.ts:getFileMetaSearch
-    env: server
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: getFileMeta
+  # searchIndex:
+  #   path: ./search.ts:pageIndex
+  #   events:
+  #     - page:index
+  # searchUnindex:
+  #   path: "./search.ts:pageUnindex"
+  #   env: server
+  #   events:
+  #     - page:deleted
+  # searchQueryProvider:
+  #   path: ./search.ts:queryProvider
+  #   events:
+  #     - query:full-text
+  # searchCommand:
+  #   path: ./search.ts:searchCommand
+  #   command:
+  #     name: "Search Space"
+  #     key: Ctrl-Shift-f
+  #     mac: Cmd-Shift-f
+  # readPageSearch:
+  #   path: ./search.ts:readFileSearch
+  #   env: server
+  #   pageNamespace:
+  #     pattern: "🔍 .+"
+  #     operation: readFile
+  # getPageMetaSearch:
+  #   path: ./search.ts:getFileMetaSearch
+  #   env: server
+  #   pageNamespace:
+  #     pattern: "🔍 .+"
+  #     operation: getFileMeta
 
   # Template commands
   insertTemplateText:

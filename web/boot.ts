@@ -1,59 +1,47 @@
 import { Editor } from "./editor.tsx";
 import { parseYamlSettings, safeRun } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "./types.ts";
-import { fulltextSyscalls } from "./syscalls/fulltext.ts";
-import { indexerSyscalls } from "./syscalls/index.ts";
-import { storeSyscalls } from "./syscalls/store.ts";
+import { pageIndexSyscalls } from "./syscalls/index.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
+import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 
-const localMode = true;
+import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
+  type: "json",
+};
+import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
+import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
-  const system = new System<SilverBulletHooks>("client");
+  const system = new System<SilverBulletHooks>();
 
   // Attach the page namespace hook
   const namespaceHook = new PageNamespaceHook();
   system.addHook(namespaceHook);
 
-  let spacePrimitives: SpacePrimitives | undefined;
-  if (localMode) {
-    // Attach the page namespace hook
-    const namespaceHook = new PageNamespaceHook();
-    system.addHook(namespaceHook);
+  // Event hook
+  const eventHook = new EventHook();
+  system.addHook(eventHook);
 
-    // Event hook
-    const eventHook = new EventHook();
-    system.addHook(eventHook);
+  const cronHook = new CronHook(system);
 
-    const cronHook = new CronHook(system);
+  system.addHook(cronHook);
 
-    system.addHook(cronHook);
+  const indexSyscalls = pageIndexSyscalls("page_index", globalThis.indexedDB);
 
-    // // for store
-    // await ensureStoreTable(db, "store");
-    // // for clientStore
-    // await ensureStoreTable(db, "localData");
-    // await ensurePageIndexTable(db);
-    // await ensureFTSTable(db, "fts");
-
-    // const indexSyscalls = pageIndexSyscalls(db);
-
-    spacePrimitives = //new FileMetaSpacePrimitives(
-      // new AssetBundlePlugSpacePrimitives(
+  const spacePrimitives = new FileMetaSpacePrimitives(
+    new AssetBundlePlugSpacePrimitives(
       new EventedSpacePrimitives(
         new PlugSpacePrimitives(
           new IndexedDBSpacePrimitives(
@@ -63,20 +51,12 @@ safeRun(async () => {
           namespaceHook,
         ),
         eventHook,
-      );
-    // new AssetBundle(assetBundle),
+      ),
+      new AssetBundle(plugAssetBundle),
+    ),
+    indexSyscalls,
+  );
 
-    //   indexSyscalls,
-    // );
-  } else {
-    const httpPrimitives = new HttpSpacePrimitives("");
-
-    spacePrimitives = new PlugSpacePrimitives(
-      httpPrimitives,
-      namespaceHook,
-      "client",
-    );
-  }
   let settingsPageText = "";
   try {
     settingsPageText = (
@@ -93,10 +73,10 @@ safeRun(async () => {
   // Register some web-specific syscall implementations
   system.registerSyscalls(
     [],
-    storeSyscalls(serverSpace),
-    indexerSyscalls(serverSpace),
+    storeSyscalls("store", "data", globalThis.indexedDB),
+    indexSyscalls,
     clientStoreSyscalls(),
-    fulltextSyscalls(serverSpace),
+    // fulltextSyscalls(serverSpace),
     sandboxFetchSyscalls(serverSpace),
   );
 
@@ -107,9 +87,6 @@ safeRun(async () => {
   if (!settings.indexPage) {
     settings.indexPage = "index";
   }
-  // Event hook
-  const eventHook = new EventHook();
-  system.addHook(eventHook);
 
   const editor = new Editor(
     serverSpace,

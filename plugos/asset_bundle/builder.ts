@@ -29,7 +29,10 @@ export async function bundleAssets(
   return bundle;
 }
 
-export async function bundleFolder(rootPath: string, bundlePath: string) {
+export async function bundleFolder(
+  rootPath: string,
+  bundlePath: string,
+) {
   const bundle = new AssetBundle();
   await Deno.mkdir(path.dirname(bundlePath), { recursive: true });
   for await (
@@ -37,7 +40,10 @@ export async function bundleFolder(rootPath: string, bundlePath: string) {
   ) {
     console.log("Bundling", filePath);
     const cleanPath = filePath.substring(`${rootPath}/`.length);
-    bundle.writeFileSync(cleanPath, await Deno.readFile(filePath));
+    bundle.writeFileSync(
+      cleanPath,
+      await Deno.readFile(filePath),
+    );
   }
   await Deno.writeTextFile(
     bundlePath,

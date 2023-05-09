@@ -1,7 +1,8 @@
 pages
 test_space
 .DS_Store
-dist_bundle
+dist_client_bundle
+dist_plug_bundle
 dist
 *.js.map
 website_build

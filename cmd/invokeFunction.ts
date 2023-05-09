@@ -1,6 +1,8 @@
 import { SpaceSystem } from "../server/space_system.ts";
 
-import assetBundle from "../dist/asset_bundle.json" assert { type: "json" };
+import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
+  type: "json",
+};
 import { path } from "../plugos/deps.ts";
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 
@@ -10,9 +12,10 @@ export async function invokeFunction(
   functionName: string,
   ...args: string[]
 ) {
-  console.log("Going to invoke funciton", functionName, "with args", args);
+  console.log("Going to invoke function", functionName, "with args", args);
   const spaceSystem = new SpaceSystem(
-    new AssetBundle(assetBundle as AssetJson),
+    new AssetBundle(),
+    new AssetBundle(plugAssetBundle as AssetJson),
     pagesPath,
     path.join(pagesPath, options.db),
   );

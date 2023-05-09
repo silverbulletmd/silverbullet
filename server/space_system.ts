@@ -50,12 +50,13 @@ export class SpaceSystem {
   private db: AsyncSQLite;
 
   constructor(
-    readonly assetBundle: AssetBundle,
+    readonly clientAssetBundle: AssetBundle,
+    readonly plugAssetBundle: AssetBundle,
     pagesPath: string,
     databasePath: string,
   ) {
     const globalModules = JSON.parse(
-      assetBundle.readTextFileSync(`web/global.plug.json`),
+      plugAssetBundle.readTextFileSync("global.plug.json"),
     );
 
     // Set up the PlugOS System
@@ -88,7 +89,7 @@ export class SpaceSystem {
             ),
             this.eventHook,
           ),
-          assetBundle,
+          plugAssetBundle,
         ),
         indexSyscalls,
       );

@@ -158,7 +158,10 @@ export class Space extends EventEmitter<SpaceEvents>
   async listPlugs(): Promise<string[]> {
     const files = await this.spacePrimitives.fetchFileList();
     return files
-      .filter((fileMeta) => fileMeta.name.endsWith(".plug.json"))
+      .filter((fileMeta) =>
+        fileMeta.name.startsWith(plugPrefix) &&
+        fileMeta.name.endsWith(".plug.json")
+      )
       .map((fileMeta) => fileMeta.name);
   }
 
