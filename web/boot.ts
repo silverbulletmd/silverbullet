@@ -11,14 +11,8 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
-import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-
-import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
-  type: "json",
-};
 import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { SyncEngine } from "./sync.ts";
@@ -42,18 +36,15 @@ safeRun(async () => {
   const indexSyscalls = pageIndexSyscalls("page_index", globalThis.indexedDB);
 
   const localSpacePrimitives = new FileMetaSpacePrimitives(
-    new AssetBundlePlugSpacePrimitives(
-      new EventedSpacePrimitives(
-        new PlugSpacePrimitives(
-          new IndexedDBSpacePrimitives(
-            "space",
-            globalThis.indexedDB,
-          ),
-          namespaceHook,
+    new EventedSpacePrimitives(
+      new PlugSpacePrimitives(
+        new IndexedDBSpacePrimitives(
+          "space",
+          globalThis.indexedDB,
         ),
-        eventHook,
+        namespaceHook,
       ),
-      new AssetBundle(plugAssetBundle),
+      eventHook,
     ),
     indexSyscalls,
   );
@@ -92,14 +83,14 @@ safeRun(async () => {
   // @ts-ignore: for convenience
   window.editor = editor;
 
-  await editor.init();
-
   const syncEngine = new SyncEngine(
     localSpacePrimitives,
     storeCalls,
     eventHook,
   );
   await syncEngine.init();
+  // await syncEngine.syncSpace();
+  await editor.init();
 
   setInterval(() => {
     syncEngine.syncSpace().catch(console.error);

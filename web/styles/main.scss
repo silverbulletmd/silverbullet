@@ -30,6 +30,15 @@
   font-style: italic;
 }
 
+html,
+body {
+  margin: 0;
+  height: 100%;
+  padding: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
 #sb-root {
   display: flex;
   flex-direction: column;

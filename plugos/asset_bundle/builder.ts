@@ -39,10 +39,12 @@ export async function bundleFolder(
     const { path: filePath } of walk(rootPath, { includeDirs: false })
   ) {
     console.log("Bundling", filePath);
+    const stat = await Deno.stat(filePath);
     const cleanPath = filePath.substring(`${rootPath}/`.length);
     bundle.writeFileSync(
       cleanPath,
       await Deno.readFile(filePath),
+      stat.mtime?.getTime(),
     );
   }
   await Deno.writeTextFile(

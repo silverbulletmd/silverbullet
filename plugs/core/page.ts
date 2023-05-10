@@ -31,7 +31,7 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
-  // console.log("Now indexing", name);
+  // console.log("Now indexing links for", name);
   const pageMeta = extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);

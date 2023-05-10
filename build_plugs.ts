@@ -16,12 +16,13 @@ if (import.meta.main) {
   }
 
   const targetDir = path.join("dist_plug_bundle", "_plug");
-  Deno.mkdir(targetDir, { recursive: true });
+  Deno.mkdirSync(targetDir, { recursive: true });
+  Deno.mkdirSync("dist", { recursive: true });
 
   // First build global plug
   const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
   await Deno.writeTextFile(
-    `dist_plug_bundle/_plug/global.plug.json`,
+    `dist/global.plug.json`,
     JSON.stringify(globalManifest, null, 2),
   );
 

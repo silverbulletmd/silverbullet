@@ -103,6 +103,8 @@ import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
 
+import globalPlug from "../dist/global.plug.json" assert { type: "json" };
+
 import type {
   AppEvent,
   ClickEvent,
@@ -241,13 +243,11 @@ export class Editor {
   async init() {
     this.focus();
 
-    const globalModules = JSON.parse(await this.space.readFile("global.plug.json", "utf8"));
-
     this.system.on({
       sandboxInitialized: async (sandbox) => {
         for (
           const [modName, code] of Object.entries(
-            globalModules.dependencies,
+            globalPlug.dependencies,
           )
         ) {
           await sandbox.loadDependency(modName, code as string);

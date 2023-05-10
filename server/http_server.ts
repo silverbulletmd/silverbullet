@@ -15,7 +15,7 @@ export type ServerOptions = {
   pass?: string;
 };
 
-const staticLastModified = new Date().toUTCString();
+// const staticLastModified = new Date().toUTCString();
 
 export class HttpServer {
   app: Application;
@@ -27,7 +27,7 @@ export class HttpServer {
   spacePrimitives: SpacePrimitives;
   clientAssetBundle: AssetBundle;
 
-  constructor(options: ServerOptions) {
+  constructor(private options: ServerOptions) {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
@@ -39,28 +39,38 @@ export class HttpServer {
     );
   }
 
+  renderIndexHtml() {
+    return this.clientAssetBundle.readTextFileSync("index.html").replaceAll(
+      "{{PAGES_PATH}}",
+      this.options.pagesPath,
+    );
+  }
+
   start() {
     this.addPasswordAuth(this.app);
 
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
-        if (request.headers.get("If-Modified-Since") === staticLastModified) {
+        const indexLastModified = utcDateString(
+          this.clientAssetBundle.getMtime("index.html"),
+        );
+
+        if (request.headers.get("If-Modified-Since") === indexLastModified) {
           response.status = 304;
           return;
         }
         response.headers.set("Content-type", "text/html");
-        response.body = this.clientAssetBundle.readTextFileSync(
-          "index.html",
-        );
-        response.headers.set("Last-Modified", staticLastModified);
+        response.body = this.renderIndexHtml();
+        response.headers.set("Last-Modified", indexLastModified);
         return;
       }
       try {
         const assetName = request.url.pathname.slice(1);
         if (
           this.clientAssetBundle.has(assetName) &&
-          request.headers.get("If-Modified-Since") === staticLastModified
+          request.headers.get("If-Modified-Since") ===
+            utcDateString(this.clientAssetBundle.getMtime(assetName))
         ) {
           response.status = 304;
           return;
@@ -75,7 +85,10 @@ export class HttpServer {
         );
         response.headers.set("Cache-Control", "no-cache");
         response.headers.set("Content-length", "" + data.length);
-        response.headers.set("Last-Modified", staticLastModified);
+        response.headers.set(
+          "Last-Modified",
+          utcDateString(this.clientAssetBundle.getMtime(assetName)),
+        );
 
         if (request.method === "GET") {
           response.body = data;
@@ -93,9 +106,7 @@ export class HttpServer {
     // Fallback, serve index.html
     this.app.use((ctx) => {
       ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.clientAssetBundle.readTextFileSync(
-        "index.html",
-      );
+      ctx.response.body = this.renderIndexHtml();
     });
 
     this.abortController = new AbortController();
@@ -280,4 +291,8 @@ export class HttpServer {
       console.log("stopped server");
     }
   }
+}
+
+function utcDateString(mtime: number): string {
+  return new Date(mtime).toUTCString();
 }
