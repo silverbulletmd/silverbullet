@@ -2,7 +2,7 @@
 import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
 import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
 
-export const esbuild: typeof esbuildWasm = Deno.run === undefined
+export const esbuild: typeof esbuildWasm = Deno.Command === undefined
   ? esbuildWasm
   : esbuildNative;
 

@@ -1,79 +1,45 @@
-import { Application, path, Router } from "./deps.ts";
-import { Manifest } from "../common/manifest.ts";
+import { Application, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { SpaceSystem } from "./space_system.ts";
-import { ensureAndLoadSettings } from "../common/util.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
+import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 
 export type ServerOptions = {
   hostname: string;
   port: number;
   pagesPath: string;
-  dbPath: string;
   clientAssetBundle: AssetBundle;
   plugAssetBundle: AssetBundle;
   user?: string;
   pass?: string;
-  bareMode?: boolean;
 };
 
 const staticLastModified = new Date().toUTCString();
 
 export class HttpServer {
   app: Application;
-  systemBoot: SpaceSystem;
   private hostname: string;
   private port: number;
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
-  bareMode: boolean;
+  spacePrimitives: SpacePrimitives;
+  clientAssetBundle: AssetBundle;
 
   constructor(options: ServerOptions) {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
     this.user = options.user;
-    this.systemBoot = new SpaceSystem(
-      options.clientAssetBundle,
+    this.clientAssetBundle = options.clientAssetBundle;
+    this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
+      new DiskSpacePrimitives(options.pagesPath),
       options.plugAssetBundle,
-      options.pagesPath,
-      options.dbPath,
     );
-    this.bareMode = options.bareMode || false;
-
-    // Second, for loading plug JSON files with absolute or relative (from CWD) paths
-    this.systemBoot.eventHook.addLocalListener(
-      "get-plug:file",
-      async (plugPath: string): Promise<Manifest> => {
-        const resolvedPath = path.resolve(plugPath);
-        try {
-          const manifestJson = await Deno.readTextFile(resolvedPath);
-          return JSON.parse(manifestJson);
-        } catch {
-          throw new Error(
-            `No such file: ${resolvedPath} or could not parse as JSON`,
-          );
-        }
-      },
-    );
-
-    // Rescan disk every 5s to detect any out-of-process file changes
-    setInterval(() => {
-      this.systemBoot.space.updatePageList().catch(console.error);
-    }, 5000);
-
-    // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
-    this.systemBoot.system.addHook(new EndpointHook(this.app, "/_"));
   }
 
-  async start() {
-    await this.systemBoot.start();
-    await this.systemBoot.ensureSpaceIndex();
-    await ensureAndLoadSettings(this.systemBoot.space, this.bareMode);
-
+  start() {
     this.addPasswordAuth(this.app);
 
     // Serve static files (javascript, css, html)
@@ -84,7 +50,7 @@ export class HttpServer {
           return;
         }
         response.headers.set("Content-type", "text/html");
-        response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+        response.body = this.clientAssetBundle.readTextFileSync(
           "index.html",
         );
         response.headers.set("Last-Modified", staticLastModified);
@@ -93,7 +59,7 @@ export class HttpServer {
       try {
         const assetName = request.url.pathname.slice(1);
         if (
-          this.systemBoot.clientAssetBundle.has(assetName) &&
+          this.clientAssetBundle.has(assetName) &&
           request.headers.get("If-Modified-Since") === staticLastModified
         ) {
           response.status = 304;
@@ -102,9 +68,9 @@ export class HttpServer {
         response.status = 200;
         response.headers.set(
           "Content-type",
-          this.systemBoot.clientAssetBundle.getMimeType(assetName),
+          this.clientAssetBundle.getMimeType(assetName),
         );
-        const data = this.systemBoot.clientAssetBundle.readFileSync(
+        const data = this.clientAssetBundle.readFileSync(
           assetName,
         );
         response.headers.set("Cache-Control", "no-cache");
@@ -120,19 +86,14 @@ export class HttpServer {
     });
 
     // Pages API
-    const fsRouter = this.buildFsRouter(this.systemBoot.spacePrimitives);
+    const fsRouter = this.buildFsRouter(this.spacePrimitives);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
-
-    // Plug API
-    const plugRouter = this.buildPlugRouter();
-    this.app.use(plugRouter.routes());
-    this.app.use(plugRouter.allowedMethods());
 
     // Fallback, serve index.html
     this.app.use((ctx) => {
       ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+      ctx.response.body = this.clientAssetBundle.readTextFileSync(
         "index.html",
       );
     });
@@ -175,7 +136,7 @@ export class HttpServer {
         if (request.url.pathname === "/.auth") {
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
-            response.body = this.systemBoot.clientAssetBundle.readTextFileSync(
+            response.body = this.clientAssetBundle.readTextFileSync(
               "auth.html",
             );
             return;
@@ -313,72 +274,8 @@ export class HttpServer {
     return new Router().use("/fs", fsRouter.routes());
   }
 
-  private buildPlugRouter(): Router {
-    const plugRouter = new Router();
-    const system = this.systemBoot.system;
-
-    plugRouter.post(
-      "/:plug/syscall/:name",
-      async (ctx) => {
-        const name = ctx.params.name;
-        const plugName = ctx.params.plug;
-        const args = await ctx.request.body().value;
-        const plug = system.loadedPlugs.get(plugName);
-        if (!plug) {
-          ctx.response.status = 404;
-          ctx.response.body = `Plug ${plugName} not found`;
-          return;
-        }
-        try {
-          const result = await system.syscallWithContext(
-            { plug },
-            name,
-            args,
-          );
-          ctx.response.headers.set("Content-Type", "application/json");
-          ctx.response.body = JSON.stringify(result);
-        } catch (e: any) {
-          console.log("Error", e);
-          ctx.response.status = 500;
-          ctx.response.body = e.message;
-          return;
-        }
-      },
-    );
-
-    plugRouter.post(
-      "/:plug/function/:name",
-      async (ctx) => {
-        const name = ctx.params.name;
-        const plugName = ctx.params.plug;
-        const args = await ctx.request.body().value;
-        const plug = system.loadedPlugs.get(plugName);
-        if (!plug) {
-          ctx.response.status = 404;
-          ctx.response.body = `Plug ${plugName} not found`;
-          return;
-        }
-        try {
-          const result = await plug.invoke(name, args);
-          ctx.response.headers.set("Content-Type", "application/json");
-          ctx.response.body = JSON.stringify(result);
-        } catch (e: any) {
-          ctx.response.status = 500;
-          // console.log("Error invoking function", e);
-          ctx.response.body = e.message;
-        }
-      },
-    );
-
-    return new Router().use("/plug", plugRouter.routes());
-  }
-
-  async stop() {
-    const system = this.systemBoot.system;
+  stop() {
     if (this.abortController) {
-      console.log("Stopping");
-      await system.unloadAll();
-      console.log("Stopped plugs");
       this.abortController.abort();
       console.log("stopped server");
     }

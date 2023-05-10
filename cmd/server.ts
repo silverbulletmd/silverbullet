@@ -12,7 +12,6 @@ export function serveCommand(options: any, folder: string) {
   const pagesPath = path.resolve(Deno.cwd(), folder);
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
-  const bareMode = options.bare;
 
   console.log(
     "Going to start SilverBullet binding to",
@@ -30,14 +29,9 @@ export function serveCommand(options: any, folder: string) {
     hostname,
     port: port,
     pagesPath: pagesPath,
-    dbPath: path.join(pagesPath, options.db),
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     user: options.user,
-    bareMode,
   });
-  httpServer.start().catch((e) => {
-    console.error("HTTP Server error", e);
-    Deno.exit(1);
-  });
+  httpServer.start();
 }

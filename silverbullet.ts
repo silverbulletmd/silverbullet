@@ -4,10 +4,8 @@ import { version } from "./version.ts";
 
 import { upgradeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
-import { fixCommand } from "./cmd/fix.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
-import { invokeFunction } from "./cmd/invokeFunction.ts";
 
 await new Command()
   .name("silverbullet")
@@ -32,10 +30,6 @@ await new Command()
     "'username:password' combo for BasicAuth authentication",
   )
   .action(serveCommand)
-  // fix
-  .command("fix", "Fix a broken space")
-  .arguments("<folder:string>")
-  .action(fixCommand)
   // plug:compile
   .command("plug:compile", "Bundle (compile) one or more plug manifests")
   .arguments("<...name.plug.yaml:string>")
@@ -53,13 +47,6 @@ await new Command()
   )
   .option("--importmap <path:string>", "Path to import map file to use")
   .action(plugCompileCommand)
-  // invokeFunction
-  .command("invokeFunction", "Invoke a specific plug function from the CLI")
-  .arguments("<path:string> <function:string> [...arguments:string]")
-  .option("--db <dbfile:string>", "Filename for the database", {
-    default: "data.db",
-  })
-  .action(invokeFunction)
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)
