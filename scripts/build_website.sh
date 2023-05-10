@@ -22,18 +22,18 @@ cp -r dist_client_bundle/* website_build/
 #curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.json > website_build/fs/_plug/mermaid.plug.json
 #echo "But remove some plugs"
 #rm -rf website_build/fs/_plug/{directive,plugmd,publish,share}.plug.json
-#echo "Copying netlify config files"
-#cp website/{_redirects,_headers} website_build/
+echo "Copying netlify config files"
+cp website/{_redirects,_headers} website_build/
 
-#echo "Copying website content into fs/"
-#cp -r website/* website_build/fs/
-#rm website_build/fs/{_redirects,_headers}
+echo "Copying website content into fs/"
+cp -r website/* website_build/fs/
+rm website_build/fs/{_redirects,_headers}
 
 echo "Copy website files another time into the root"
 cp -r website/* website_build/
 
 #echo "Generating file listing"
-#deno run -A scripts/generate_fs_list.ts > website_build/index.json
+deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 echo > website_build/empty.md
 

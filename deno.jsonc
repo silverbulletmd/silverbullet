@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "clean": "rm -rf dist dist_bundle",
+    "clean": "rm -rf dist dist_client_bundle dist_plug_bundle website_build",
     "install": "deno install -f -A --unstable --importmap import_map.json silverbullet.ts",
     "check": "find web common server plugs cmd plug-api plugos -name '*.ts*' | xargs deno check",
     "test": "deno test -A --unstable",

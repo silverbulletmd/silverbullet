@@ -1,5 +1,5 @@
 import { Editor } from "./editor.tsx";
-import { parseYamlSettings, safeRun } from "../common/util.ts";
+import { ensureAndLoadSettings, safeRun } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
@@ -21,6 +21,7 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
 };
 import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { SyncEngine } from "./sync.ts";
 
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
@@ -40,7 +41,7 @@ safeRun(async () => {
 
   const indexSyscalls = pageIndexSyscalls("page_index", globalThis.indexedDB);
 
-  const spacePrimitives = new FileMetaSpacePrimitives(
+  const localSpacePrimitives = new FileMetaSpacePrimitives(
     new AssetBundlePlugSpacePrimitives(
       new EventedSpacePrimitives(
         new PlugSpacePrimitives(
@@ -57,39 +58,31 @@ safeRun(async () => {
     indexSyscalls,
   );
 
-  let settingsPageText = "";
-  try {
-    settingsPageText = (
-      await spacePrimitives.readFile("SETTINGS.md", "utf8")
-    ).data as string;
-  } catch (e: any) {
-    console.error("No settings page found", e.message);
-    settingsPageText = "```yaml\nindexPage: index\n```\n";
-  }
+  const localSpace = new Space(localSpacePrimitives);
+  localSpace.watch();
 
-  const serverSpace = new Space(spacePrimitives);
-  serverSpace.watch();
-
+  const storeCalls = storeSyscalls("store", "data", globalThis.indexedDB);
   // Register some web-specific syscall implementations
   system.registerSyscalls(
     [],
-    storeSyscalls("store", "data", globalThis.indexedDB),
+    storeCalls,
     indexSyscalls,
     clientStoreSyscalls(),
     // fulltextSyscalls(serverSpace),
-    sandboxFetchSyscalls(serverSpace),
+    sandboxFetchSyscalls(localSpace),
   );
 
   console.log("Booting...");
 
-  const settings = parseYamlSettings(settingsPageText) as BuiltinSettings;
+  const settings =
+    (await ensureAndLoadSettings(localSpace, false)) as BuiltinSettings;
 
   if (!settings.indexPage) {
     settings.indexPage = "index";
   }
 
   const editor = new Editor(
-    serverSpace,
+    localSpace,
     system,
     eventHook,
     document.getElementById("sb-root")!,
@@ -100,6 +93,17 @@ safeRun(async () => {
   window.editor = editor;
 
   await editor.init();
+
+  const syncEngine = new SyncEngine(
+    localSpacePrimitives,
+    storeCalls,
+    eventHook,
+  );
+  await syncEngine.init();
+
+  setInterval(() => {
+    syncEngine.syncSpace().catch(console.error);
+  }, 10 * 1000);
 });
 
 if (navigator.serviceWorker) {

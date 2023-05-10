@@ -21,7 +21,7 @@ if (import.meta.main) {
   // First build global plug
   const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
   await Deno.writeTextFile(
-    `dist_plug_bundle/global.plug.json`,
+    `dist_plug_bundle/_plug/global.plug.json`,
     JSON.stringify(globalManifest, null, 2),
   );
 
