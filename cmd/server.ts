@@ -33,5 +33,5 @@ export function serveCommand(options: any, folder: string) {
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     user: options.user,
   });
-  httpServer.start();
+  httpServer.start().catch(console.error);
 }

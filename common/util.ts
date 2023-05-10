@@ -1,6 +1,7 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { Space } from "./spaces/space.ts";
+import { SpacePrimitives } from "./spaces/space_primitives.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -33,43 +34,50 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
 }
 
-export async function ensureAndLoadSettings(
-  space: Space,
-  dontCreate: boolean,
+export async function ensureSettingsAndIndex(
+  space: SpacePrimitives,
 ): Promise<any> {
-  if (dontCreate) {
-    return {
-      indexPage: "index",
-    };
-  }
   try {
-    await space.getPageMeta("SETTINGS");
+    await space.getFileMeta("SETTINGS.md");
   } catch {
-    await space.writePage(
-      "SETTINGS",
+    await space.writeFile(
+      "SETTINGS.md",
+      "utf8",
       SETTINGS_TEMPLATE,
       true,
     );
+    // Ok, then let's also write the index page
+    try {
+      await space.getFileMeta("index.md");
+    } catch {
+      await space.writeFile(
+        "index.md",
+        "utf8",
+        `Hello! And welcome to your brand new SilverBullet space!
+  
+  <!-- #use [[💭 silverbullet.md/Getting Started]] -->
+  Loading some onboarding content for you (but doing so does require a working internet connection)...
+  <!-- /use -->`,
+      );
+    }
   }
+}
 
-  const { text: settingsText } = await space.readPage("SETTINGS");
-  const settings = parseYamlSettings(settingsText);
-  if (!settings.indexPage) {
-    settings.indexPage = "index";
-  }
+export async function sha1(input: string): Promise<string> {
+  // create a new instance of the SHA-1 algorithm
+  const sha1Algo = "SHA-1";
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
 
-  try {
-    await space.getPageMeta(settings.indexPage);
-  } catch {
-    await space.writePage(
-      settings.indexPage,
-      `Hello! And welcome to your brand new SilverBullet space!
+  const buffer = await crypto.subtle.digest(sha1Algo, data);
 
-<!-- #use [[💭 silverbullet.md/Getting Started]] -->
-Loading some onboarding content for you (but doing so does require a working internet connection)...
-<!-- /use -->`,
-    );
-  }
+  // convert the buffer to a hex string
+  const hexString = Array.prototype.map.call(
+    new Uint8Array(buffer),
+    function (x) {
+      return ("00" + x.toString(16)).slice(-2);
+    },
+  ).join("");
 
-  return settings;
+  return hexString;
 }

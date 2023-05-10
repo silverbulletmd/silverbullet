@@ -1,13 +1,13 @@
 import { syscall } from "./syscall.ts";
 
 export function set(key: string, value: any): Promise<void> {
-  return syscall("clientStore.set", key, value);
+  return syscall("store.set", key, value);
 }
 
 export function get(key: string): Promise<any> {
-  return syscall("clientStore.get", key);
+  return syscall("store.get", key);
 }
 
 export function del(key: string): Promise<void> {
-  return syscall("clientStore.delete", key);
+  return syscall("store.delete", key);
 }

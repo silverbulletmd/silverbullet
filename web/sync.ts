@@ -5,6 +5,7 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { SysCallMapping } from "../plugos/system.ts";
 
 export class SyncEngine {
+  syncing = false;
   snapshot?: Map<string, SyncStatusItem>;
   remoteSpace?: HttpSpacePrimitives;
   spaceSync?: SpaceSync;
@@ -14,6 +15,9 @@ export class SyncEngine {
     private storeCalls: SysCallMapping,
     eventHook: EventHook,
   ) {
+    // TODO: Auth
+    this.remoteSpace = new HttpSpacePrimitives("");
+
     eventHook.addLocalListener("editor:pageLoaded", async (name) => {
       await this.syncFile(`${name}.md`);
     });
@@ -24,9 +28,6 @@ export class SyncEngine {
   }
 
   async init() {
-    // TODO: Auth
-    this.remoteSpace = new HttpSpacePrimitives("");
-
     const fakeCtx: any = {};
     const snapshot =
       (await this.storeCalls["store.get"](fakeCtx, "syncSnapshot")) ||
@@ -37,13 +38,18 @@ export class SyncEngine {
 
     this.spaceSync = new SpaceSync(
       this.localSpacePrimitives,
-      this.remoteSpace,
+      this.remoteSpace!,
       this.snapshot!,
       {},
     );
   }
 
   async syncSpace() {
+    if (this.syncing) {
+      console.log("Already syncing");
+      return;
+    }
+    this.syncing = true;
     try {
       await this.spaceSync!.syncFiles(
         SpaceSync.primaryConflictResolver,
@@ -52,16 +58,27 @@ export class SyncEngine {
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
+    this.syncing = false;
 
     console.log("Sync done");
   }
 
   async syncFile(name: string) {
+    if (this.syncing) {
+      console.log("Already syncing");
+      return;
+    }
+    this.syncing = true;
     console.log("Syncing file", name);
     try {
-      const localHash =
-        (await this.localSpacePrimitives.getFileMeta(name)).lastModified;
+      let localHash: number | undefined = undefined;
       let remoteHash: number | undefined = undefined;
+      try {
+        localHash =
+          (await this.localSpacePrimitives.getFileMeta(name)).lastModified;
+      } catch {
+        // Not present
+      }
       try {
         remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
       } catch (e: any) {
@@ -82,6 +99,7 @@ export class SyncEngine {
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
+    this.syncing = false;
     console.log("Sync done");
   }
 

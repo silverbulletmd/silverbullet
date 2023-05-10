@@ -4,6 +4,7 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
+import { ensureSettingsAndIndex } from "../common/util.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -41,13 +42,15 @@ export class HttpServer {
 
   renderIndexHtml() {
     return this.clientAssetBundle.readTextFileSync("index.html").replaceAll(
-      "{{PAGES_PATH}}",
+      "{{SPACE_PATH}}",
       this.options.pagesPath,
     );
   }
 
-  start() {
+  async start() {
     this.addPasswordAuth(this.app);
+
+    await ensureSettingsAndIndex(this.spacePrimitives);
 
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {

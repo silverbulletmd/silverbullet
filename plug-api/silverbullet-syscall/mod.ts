@@ -1,4 +1,4 @@
-export * as clientStore from "./clientStore.ts";
+export * as clientStore from "./store.ts";
 export * as editor from "./editor.ts";
 export * as index from "./index.ts";
 export * as markdown from "./markdown.ts";

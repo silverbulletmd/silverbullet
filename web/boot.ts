@@ -1,5 +1,5 @@
 import { Editor } from "./editor.tsx";
-import { ensureAndLoadSettings, safeRun } from "../common/util.ts";
+import { parseYamlSettings, safeRun, sha1 } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
@@ -8,7 +8,6 @@ import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "./types.ts";
 import { pageIndexSyscalls } from "./syscalls/index.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
@@ -17,9 +16,19 @@ import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { SyncEngine } from "./sync.ts";
 
+declare global {
+  interface Window {
+    // Injected via index.html
+    spacePath: string;
+  }
+}
+
 safeRun(async () => {
   // Instantiate a PlugOS system for the client
   const system = new System<SilverBulletHooks>();
+
+  // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
+  const dbPrefix = (await sha1(window.spacePath)).substring(0, 8);
 
   // Attach the page namespace hook
   const namespaceHook = new PageNamespaceHook();
@@ -33,13 +42,21 @@ safeRun(async () => {
 
   system.addHook(cronHook);
 
-  const indexSyscalls = pageIndexSyscalls("page_index", globalThis.indexedDB);
+  const indexSyscalls = pageIndexSyscalls(
+    `${dbPrefix}_page_index`,
+    globalThis.indexedDB,
+  );
+  const storeCalls = storeSyscalls(
+    `${dbPrefix}_store`,
+    "data",
+    globalThis.indexedDB,
+  );
 
   const localSpacePrimitives = new FileMetaSpacePrimitives(
     new EventedSpacePrimitives(
       new PlugSpacePrimitives(
         new IndexedDBSpacePrimitives(
-          "space",
+          `${dbPrefix}_space`,
           globalThis.indexedDB,
         ),
         namespaceHook,
@@ -52,24 +69,44 @@ safeRun(async () => {
   const localSpace = new Space(localSpacePrimitives);
   localSpace.watch();
 
-  const storeCalls = storeSyscalls("store", "data", globalThis.indexedDB);
   // Register some web-specific syscall implementations
   system.registerSyscalls(
     [],
     storeCalls,
     indexSyscalls,
-    clientStoreSyscalls(),
     // fulltextSyscalls(serverSpace),
     sandboxFetchSyscalls(localSpace),
   );
 
+  const syncEngine = new SyncEngine(
+    localSpacePrimitives,
+    storeCalls,
+    eventHook,
+  );
+  await syncEngine.init();
+
   console.log("Booting...");
 
-  const settings =
-    (await ensureAndLoadSettings(localSpace, false)) as BuiltinSettings;
+  let settingsText: string | undefined;
+
+  try {
+    settingsText = (await localSpace.readPage("SETTINGS")).text;
+  } catch {
+    console.log("No SETTINGS page, syncing...");
+    await syncEngine.syncFile("SETTINGS.md");
+    settingsText = (await localSpace.readPage("SETTINGS")).text;
+  }
+  const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
 
   if (!settings.indexPage) {
     settings.indexPage = "index";
+  }
+
+  try {
+    await localSpace.getPageMeta(settings.indexPage);
+  } catch {
+    console.log("No index page, syncing...");
+    await syncEngine.syncFile(settings.indexPage + ".md");
   }
 
   const editor = new Editor(
@@ -80,17 +117,12 @@ safeRun(async () => {
     "",
     settings,
   );
+
   // @ts-ignore: for convenience
   window.editor = editor;
 
-  const syncEngine = new SyncEngine(
-    localSpacePrimitives,
-    storeCalls,
-    eventHook,
-  );
-  await syncEngine.init();
-  // await syncEngine.syncSpace();
   await editor.init();
+  syncEngine.syncSpace().catch(console.error);
 
   setInterval(() => {
     syncEngine.syncSpace().catch(console.error);

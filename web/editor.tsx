@@ -1054,7 +1054,7 @@ export class Editor {
 
     useEffect(() => {
       if (viewState.currentPage) {
-        document.title = viewState.currentPage;
+        document.title = viewState.currentPage + (window.spacePath ? ` [${window.spacePath}]` : "");
       }
     }, [viewState.currentPage]);
 
