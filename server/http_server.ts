@@ -40,10 +40,14 @@ export class HttpServer {
     );
   }
 
+  // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
   renderIndexHtml() {
     return this.clientAssetBundle.readTextFileSync("index.html").replaceAll(
       "{{SPACE_PATH}}",
       this.options.pagesPath,
+    ).replaceAll(
+      "{{SYNC_ENDPOINT}}",
+      "/fs",
     );
   }
 
@@ -55,17 +59,9 @@ export class HttpServer {
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
-        const indexLastModified = utcDateString(
-          this.clientAssetBundle.getMtime("index.html"),
-        );
-
-        if (request.headers.get("If-Modified-Since") === indexLastModified) {
-          response.status = 304;
-          return;
-        }
+        // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
         response.headers.set("Content-type", "text/html");
         response.body = this.renderIndexHtml();
-        response.headers.set("Last-Modified", indexLastModified);
         return;
       }
       try {
@@ -188,6 +184,7 @@ export class HttpServer {
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
+      response.headers.set("X-Space-Path", this.options.pagesPath);
       const files = await spacePrimitives.fetchFileList();
       response.body = JSON.stringify(files);
     });

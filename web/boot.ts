@@ -4,6 +4,7 @@ import { Space } from "../common/spaces/space.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
+import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "./types.ts";
 import { pageIndexSyscalls } from "./syscalls/index.ts";
@@ -19,16 +20,27 @@ import { SyncEngine } from "./sync.ts";
 declare global {
   interface Window {
     // Injected via index.html
-    spacePath: string;
+    silverBulletConfig: {
+      spaceFolderPath: string;
+      syncEndpoint: string;
+    };
   }
 }
 
+// Used for full space sync
+const syncInterval = 10 * 1000;
+
 safeRun(async () => {
-  // Instantiate a PlugOS system for the client
+  const runtimeConfig = window.silverBulletConfig;
+
+  // Instantiate a PlugOS system
   const system = new System<SilverBulletHooks>();
 
   // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-  const dbPrefix = (await sha1(window.spacePath)).substring(0, 8);
+  const dbPrefix = (await sha1(runtimeConfig.spaceFolderPath)).substring(
+    0,
+    8,
+  );
 
   // Attach the page namespace hook
   const namespaceHook = new PageNamespaceHook();
@@ -38,8 +50,8 @@ safeRun(async () => {
   const eventHook = new EventHook();
   system.addHook(eventHook);
 
+  // Cron hook
   const cronHook = new CronHook(system);
-
   system.addHook(cronHook);
 
   const indexSyscalls = pageIndexSyscalls(
@@ -66,6 +78,19 @@ safeRun(async () => {
     indexSyscalls,
   );
 
+  // Track if any plugs have updated during sync cycle
+  let plugsUpdated = false;
+
+  eventHook.addLocalListener("plug:changed", async (fileName) => {
+    console.log("Plug updated, reloading:", fileName);
+    system.unload(fileName);
+    await system.load(
+      JSON.parse(await localSpace.readFile(fileName, "utf8")),
+      createSandbox,
+    );
+    plugsUpdated = true;
+  });
+
   const localSpace = new Space(localSpacePrimitives);
   localSpace.watch();
 
@@ -78,35 +103,38 @@ safeRun(async () => {
     sandboxFetchSyscalls(localSpace),
   );
 
-  const syncEngine = new SyncEngine(
-    localSpacePrimitives,
-    storeCalls,
-    eventHook,
-  );
-  await syncEngine.init();
+  let syncEngine: SyncEngine | undefined;
+
+  if (runtimeConfig.syncEndpoint) {
+    syncEngine = new SyncEngine(
+      localSpacePrimitives,
+      runtimeConfig.syncEndpoint,
+      storeCalls,
+      eventHook,
+      runtimeConfig.spaceFolderPath,
+    );
+    await syncEngine.init();
+  }
 
   console.log("Booting...");
 
-  let settingsText: string | undefined;
-
-  try {
-    settingsText = (await localSpace.readPage("SETTINGS")).text;
-  } catch {
-    console.log("No SETTINGS page, syncing...");
-    await syncEngine.syncFile("SETTINGS.md");
-    settingsText = (await localSpace.readPage("SETTINGS")).text;
-  }
-  const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
-
-  if (!settings.indexPage) {
-    settings.indexPage = "index";
-  }
+  const settings = await loadSettings(localSpace, syncEngine);
 
   try {
     await localSpace.getPageMeta(settings.indexPage);
   } catch {
-    console.log("No index page, syncing...");
-    await syncEngine.syncFile(settings.indexPage + ".md");
+    if (syncEngine) {
+      console.log("No index page, syncing...");
+      await syncEngine.syncFile(settings.indexPage + ".md");
+    }
+  }
+
+  if (syncEngine) {
+    syncEngine.syncSpace().then(updateAfterSync).catch(console.error);
+
+    setInterval(() => {
+      syncEngine!.syncSpace().then(updateAfterSync).catch(console.error);
+    }, syncInterval);
   }
 
   const editor = new Editor(
@@ -114,7 +142,6 @@ safeRun(async () => {
     system,
     eventHook,
     document.getElementById("sb-root")!,
-    "",
     settings,
   );
 
@@ -122,11 +149,45 @@ safeRun(async () => {
   window.editor = editor;
 
   await editor.init();
-  syncEngine.syncSpace().catch(console.error);
 
-  setInterval(() => {
-    syncEngine.syncSpace().catch(console.error);
-  }, 10 * 1000);
+  async function updateAfterSync(operations: number) {
+    // If something happened
+    if (operations > 0) {
+      // Update the page list
+      await localSpace.updatePageList();
+      if (plugsUpdated) {
+        // To register new commands, update editor state based on new plugs
+        editor.rebuildEditorState();
+      }
+    }
+    // Reset for next sync cycle
+    plugsUpdated = false;
+  }
+
+  async function loadSettings(
+    localSpace: Space,
+    syncEngine?: SyncEngine,
+  ): Promise<BuiltinSettings> {
+    let settingsText: string | undefined;
+
+    try {
+      settingsText = (await localSpace.readPage("SETTINGS")).text;
+    } catch {
+      if (syncEngine) {
+        console.log("No SETTINGS page, syncing...");
+        await syncEngine.syncFile("SETTINGS.md");
+        settingsText = (await localSpace.readPage("SETTINGS")).text;
+      } else {
+        settingsText = "```yaml\nindexPage: index\n```\n";
+      }
+    }
+    const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
+
+    if (!settings.indexPage) {
+      settings.indexPage = "index";
+    }
+    return settings;
+  }
 });
 
 if (navigator.serviceWorker) {

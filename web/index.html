@@ -9,6 +9,7 @@
 
   <title>SilverBullet</title>
   <script>
+    // Some global variables we need to make this work
     Deno = {
       args: [],
       build: {
@@ -23,14 +24,23 @@
         AlreadyExists: class extends Error { },
       }
     };
+    window.silverBulletConfig = {
+      // These {{VARIABLES}} are replaced by http_server.ts
+      spaceFolderPath: "{{SPACE_PATH}}",
+      syncEndpoint: "{{SYNC_ENDPOINT}}",
+    };
+    // But in case these variables aren't replaced by the server, fall back fully static mode (no sync)
+    if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
+      window.silverBulletConfig = {
+        spaceFolderPath: "",
+        syncEndpoint: ""
+      };
+    }
   </script>
   <style id="custom-styles">
   </style>
   <link rel="stylesheet" href="/main.css" />
   <script type="module" src="/client.js"></script>
-  <script>
-    window.spacePath = "{{SPACE_PATH}}";
-  </script>
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/x-icon" href="/favicon.png" />
 </head>

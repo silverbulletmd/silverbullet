@@ -74,8 +74,13 @@ export class SpaceSync {
         ...secondaryFileMap.keys(),
       ]);
 
+      const sortedFilenames = [...allFilesToProcess];
+      sortedFilenames.sort((a, _b) => {
+        // Just make sure that _plug/ files are processed first
+        return a.startsWith("_plug/") ? -1 : 1;
+      });
       this.logger.log("info", "Iterating over all files");
-      for (const name of allFilesToProcess) {
+      for (const name of sortedFilenames) {
         try {
           operations += await this.syncFile(
             name,

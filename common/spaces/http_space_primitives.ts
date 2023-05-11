@@ -1,25 +1,18 @@
 import { FileMeta } from "../types.ts";
-import { Plug } from "../../plugos/plug.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import {
   base64DecodeDataUrl,
-  base64Encode,
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 import { mime } from "../../plugos/deps.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
-  private fsUrl: string;
-  private plugUrl: string;
-
   constructor(
-    url: string,
+    readonly url: string,
+    readonly expectedSpacePath?: string,
     readonly user?: string,
     readonly password?: string,
-    readonly base64Put?: boolean,
   ) {
-    this.fsUrl = url + "/fs";
-    this.plugUrl = url + "/plug";
   }
 
   private async authenticatedFetch(
@@ -48,9 +41,17 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const req = await this.authenticatedFetch(this.fsUrl, {
+    const req = await this.authenticatedFetch(this.url, {
       method: "GET",
     });
+
+    if (
+      this.expectedSpacePath &&
+      req.headers.get("X-Space-Path") !== this.expectedSpacePath
+    ) {
+      alert("Space folder path different on server, reloading the page");
+      location.reload();
+    }
 
     return req.json();
   }
@@ -60,7 +61,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
-      `${this.fsUrl}/${encodeURI(name)}`,
+      `${this.url}/${encodeURI(name)}`,
       {
         method: "GET",
       },
@@ -115,14 +116,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
     };
-    if (this.base64Put) {
-      headers["X-Content-Base64"] = "true";
-      headers["Content-Type"] = "text/plain";
-      body = base64Encode(body);
-    }
 
     const res = await this.authenticatedFetch(
-      `${this.fsUrl}/${encodeURI(name)}`,
+      `${this.url}/${encodeURI(name)}`,
       {
         method: "PUT",
         headers,
@@ -135,7 +131,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async deleteFile(name: string): Promise<void> {
     const req = await this.authenticatedFetch(
-      `${this.fsUrl}/${encodeURI(name)}`,
+      `${this.url}/${encodeURI(name)}`,
       {
         method: "DELETE",
       },
@@ -147,7 +143,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async getFileMeta(name: string): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
-      `${this.fsUrl}/${encodeURI(name)}`,
+      `${this.url}/${encodeURI(name)}`,
       {
         method: "OPTIONS",
       },
@@ -168,61 +164,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     };
   }
 
-  // Plugs
-
-  async proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    const req = await this.authenticatedFetch(
-      `${this.plugUrl}/${plug.name}/syscall/${name}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json",
-        },
-        body: JSON.stringify(args),
-      },
-    );
-    if (req.status !== 200) {
-      const error = await req.text();
-      throw Error(error);
-    }
-    if (req.headers.get("Content-length") === "0") {
-      return;
-    }
-    return await req.json();
+  // Plugs are not supported
+  proxySyscall(): Promise<any> {
+    throw new Error("Not supported");
   }
 
-  async invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    // Invoke locally
-    if (!env || env === "client") {
-      return plug.invoke(name, args);
-    }
-    // Or dispatch to server
-    const req = await this.authenticatedFetch(
-      `${this.plugUrl}/${plug.name}/function/${name}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json",
-        },
-        body: JSON.stringify(args),
-      },
-    );
-    if (req.status !== 200) {
-      const error = await req.text();
-      throw Error(error);
-    }
-    if (req.headers.get("Content-length") === "0") {
-      return;
-    }
-    if (req.headers.get("Content-type")?.includes("application/json")) {
-      return await req.json();
-    } else {
-      return await req.text();
-    }
+  invokeFunction(): Promise<any> {
+    throw new Error("Not supported");
   }
 }

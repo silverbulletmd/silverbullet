@@ -119,13 +119,13 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return plug;
   }
 
-  async unload(name: string) {
+  unload(name: string) {
     // console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
-      throw Error(`Plug ${name} not found`);
+      return;
     }
-    await plug.stop();
+    plug.stop();
     this.emit("plugUnloaded", name);
     this.plugs.delete(name);
   }

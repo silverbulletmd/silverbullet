@@ -12,11 +12,13 @@ export class SyncEngine {
 
   constructor(
     private localSpacePrimitives: SpacePrimitives,
+    syncEndpoint: string,
     private storeCalls: SysCallMapping,
-    eventHook: EventHook,
+    private eventHook: EventHook,
+    expectedSpacePath: string,
   ) {
     // TODO: Auth
-    this.remoteSpace = new HttpSpacePrimitives("");
+    this.remoteSpace = new HttpSpacePrimitives(syncEndpoint, expectedSpacePath);
 
     eventHook.addLocalListener("editor:pageLoaded", async (name) => {
       await this.syncFile(`${name}.md`);
@@ -44,14 +46,15 @@ export class SyncEngine {
     );
   }
 
-  async syncSpace() {
+  async syncSpace(): Promise<number> {
     if (this.syncing) {
       console.log("Already syncing");
-      return;
+      return 0;
     }
     this.syncing = true;
+    let operations = 0;
     try {
-      await this.spaceSync!.syncFiles(
+      operations = await this.spaceSync!.syncFiles(
         SpaceSync.primaryConflictResolver,
       );
     } catch (e: any) {
@@ -59,13 +62,14 @@ export class SyncEngine {
     }
     await this.saveSnapshot();
     this.syncing = false;
-
+    this.eventHook.dispatchEvent("sync:done");
     console.log("Sync done");
+    return operations;
   }
 
   async syncFile(name: string) {
     if (this.syncing) {
-      console.log("Already syncing");
+      // console.log("Already syncing");
       return;
     }
     this.syncing = true;

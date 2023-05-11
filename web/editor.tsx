@@ -157,12 +157,10 @@ export class Editor {
     system: System<SilverBulletHooks>,
     eventHook: EventHook,
     parent: Element,
-    urlPrefix: string,
     readonly builtinSettings: BuiltinSettings,
   ) {
     this.space = space;
     this.system = system;
-    this.urlPrefix = urlPrefix;
     this.viewState = initialViewState;
     this.viewDispatch = () => {};
     this.indexPage = builtinSettings.indexPage;
@@ -198,7 +196,6 @@ export class Editor {
 
     this.pageNavigator = new PathPageNavigator(
       builtinSettings.indexPage,
-      urlPrefix,
     );
 
     this.system.registerSyscalls(

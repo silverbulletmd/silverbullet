@@ -74,6 +74,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           console.error("Error dispatching page:saved event", e);
         });
     }
+    if (name.endsWith(".plug.json")) {
+      await this.eventHook.dispatchEvent("plug:changed", name);
+    }
     return newMeta;
   }
 
