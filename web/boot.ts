@@ -94,15 +94,6 @@ safeRun(async () => {
   const localSpace = new Space(localSpacePrimitives);
   localSpace.watch();
 
-  // Register some web-specific syscall implementations
-  system.registerSyscalls(
-    [],
-    storeCalls,
-    indexSyscalls,
-    // fulltextSyscalls(serverSpace),
-    sandboxFetchSyscalls(localSpace),
-  );
-
   let syncEngine: SyncEngine | undefined;
 
   if (runtimeConfig.syncEndpoint) {
@@ -115,6 +106,15 @@ safeRun(async () => {
     );
     await syncEngine.init();
   }
+
+  // Register some web-specific syscall implementations
+  system.registerSyscalls(
+    [],
+    storeCalls,
+    indexSyscalls,
+    // fulltextSyscalls(serverSpace),
+    sandboxFetchSyscalls(syncEngine?.remoteSpace!),
+  );
 
   console.log("Booting...");
 

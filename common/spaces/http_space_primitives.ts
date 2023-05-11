@@ -15,16 +15,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   ) {
   }
 
-  private async authenticatedFetch(
+  public async authenticatedFetch(
     url: string,
-    options: Record<string, any>,
+    options: RequestInit,
   ): Promise<Response> {
     if (this.user && this.password) {
       // Explicitly set an auth cookie
       if (!options.headers) {
         options.headers = {};
       }
-      options.headers["cookie"] = `auth=${
+      (options.headers as Record<string, string>)["cookie"] = `auth=${
         btoa(`${this.user}:${this.password}`)
       }`;
     }

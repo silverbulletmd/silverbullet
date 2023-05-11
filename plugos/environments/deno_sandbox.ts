@@ -3,7 +3,6 @@ import { safeRun } from "../util.ts";
 import { Sandbox } from "../sandbox.ts";
 import { WorkerLike } from "./worker.ts";
 import { Plug } from "../plug.ts";
-import { AssetBundle } from "../asset_bundle/bundle.ts";
 
 class DenoWorkerWrapper implements WorkerLike {
   private worker: Worker;
@@ -30,20 +29,9 @@ class DenoWorkerWrapper implements WorkerLike {
   }
 }
 
-import workerBundleJson from "./worker_bundle.json" assert { type: "json" };
-
-const workerBundle = new AssetBundle(workerBundleJson);
-
 export function createSandbox(plug: Plug<any>) {
-  const workerHref = URL.createObjectURL(
-    new Blob([
-      workerBundle.readFileSync("worker.js"),
-    ], {
-      type: "application/javascript",
-    }),
-  );
   const worker = new Worker(
-    workerHref,
+    new URL("./sandbox_worker.ts", import.meta.url),
     {
       type: "module",
       deno: {

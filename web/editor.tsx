@@ -146,7 +146,6 @@ export class Editor {
   }, 1000);
   system: System<SilverBulletHooks>;
   mdExtensions: MDExt[] = [];
-  urlPrefix: string;
   indexPage: string;
 
   // Runtime state (that doesn't make sense in viewState)
@@ -1051,7 +1050,7 @@ export class Editor {
 
     useEffect(() => {
       if (viewState.currentPage) {
-        document.title = viewState.currentPage + (window.spacePath ? ` [${window.spacePath}]` : "");
+        document.title = viewState.currentPage;
       }
     }, [viewState.currentPage]);
 
