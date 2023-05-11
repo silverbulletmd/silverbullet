@@ -88,6 +88,7 @@ export class SyncEngine {
         // Not present
       }
       try {
+        // This is wasteful, but Netlify (silverbullet.md) doesn't support OPTIONS call (404s) so we'll just fetch the whole file
         const { meta } = await this.remoteSpace!.readFile(name, "utf8");
         remoteHash = meta.lastModified;
       } catch (e: any) {
