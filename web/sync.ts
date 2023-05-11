@@ -88,7 +88,8 @@ export class SyncEngine {
         // Not present
       }
       try {
-        remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
+        const { meta } = await this.remoteSpace!.readFile(name, "utf8");
+        remoteHash = meta.lastModified;
       } catch (e: any) {
         if (e.message.includes("File not found")) {
           // File doesn't exist remotely, that's ok

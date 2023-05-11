@@ -1,14 +1,14 @@
 #!/bin/bash -e
 
-echo "Install Deno"
-curl -fsSL https://deno.land/install.sh | sh
-export PATH=~/.deno/bin:$PATH
-export DENO_DIR=$PWD/deno_cache
-echo "DENO_DIR: $DENO_DIR"
-mkdir -p $DENO_DIR
+# echo "Install Deno"
+# curl -fsSL https://deno.land/install.sh | sh
+# export PATH=~/.deno/bin:$PATH
+# export DENO_DIR=$PWD/deno_cache
+# echo "DENO_DIR: $DENO_DIR"
+# mkdir -p $DENO_DIR
 
-echo "Generating version number..."
-echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+# echo "Generating version number..."
+# echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 
 echo "Building silver bullet"
 deno task build
