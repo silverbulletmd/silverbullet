@@ -18,10 +18,12 @@ mkdir -p website_build/fs/_plug
 echo "Copying silverbullet runtime files"
 cp -r dist_client_bundle/* website_build/
 
-#echo "And additional ones"
-#curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.json > website_build/fs/_plug/mermaid.plug.json
-#echo "But remove some plugs"
-#rm -rf website_build/fs/_plug/{directive,plugmd,publish,share}.plug.json
+echo "And all plugs"
+cp -r dist_bundle/_plug/* website_build/fs/_plug/
+echo "And additional ones"
+curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.json > website_build/fs/_plug/mermaid.plug.json
+echo "But remove some plugs"
+rm -rf website_build/fs/_plug/{plugmd}.plug.json
 echo "Copying netlify config files"
 cp website/{_redirects,_headers} website_build/
 
