@@ -1,7 +1,10 @@
 import type { SysCallMapping } from "../../plugos/system.ts";
-import type { SandboxFetchRequest } from "../../plug-api/plugos-syscall/fetch.ts";
 import type { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
-import { base64Encode } from "../../plugos/asset_bundle/base64.ts";
+import {
+  performLocalFetch,
+  ProxyFetchRequest,
+  ProxyFetchResponse,
+} from "../../common/proxy_fetch.ts";
 
 export function sandboxFetchSyscalls(
   httpSpacePrimitives?: HttpSpacePrimitives,
@@ -10,29 +13,25 @@ export function sandboxFetchSyscalls(
     "sandboxFetch.fetch": async (
       _ctx,
       url: string,
-      req: SandboxFetchRequest,
-    ) => {
+      options: ProxyFetchRequest,
+    ): Promise<ProxyFetchResponse> => {
+      // console.log("Got sandbox fetch ", url);
       if (!httpSpacePrimitives) {
-        // Execute from the browser directly
-        const result = await fetch(
-          url,
-          req && {
-            method: req.method,
-            headers: req.headers,
-            body: req.body,
-          },
-        );
-        const body = await (await result.blob()).arrayBuffer();
-        return {
-          ok: result.ok,
-          status: result.status,
-          headers: Object.fromEntries(result.headers.entries()),
-          base64Body: base64Encode(new Uint8Array(body)),
-        };
+        // No SB server to proxy the fetch available so let's execute the request directly
+        return performLocalFetch(url, options);
       }
-      httpSpacePrimitives.authenticatedFetch(url, {
-        method: "POST",
-      });
+      const resp = httpSpacePrimitives.authenticatedFetch(
+        httpSpacePrimitives.url,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            operation: "fetch",
+            url,
+            options,
+          }),
+        },
+      );
+      return (await resp).json();
     },
   };
 }

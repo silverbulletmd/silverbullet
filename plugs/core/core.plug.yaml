@@ -342,9 +342,6 @@ functions:
       name: "Plugs: Update"
       key: "Ctrl-Shift-p"
       mac: "Cmd-Shift-p"
-  updatePlugs:
-    path: ./plugmanager.ts:updatePlugs
-    env: server
   getPlugHTTPS:
     path: "./plugmanager.ts:getPlugHTTPS"
     events:
@@ -422,6 +419,12 @@ functions:
     pageNamespace:
       pattern: "💭 .+"
       operation: readFile
+  writePageCloud:
+    path: ./cloud.ts:writeFileCloud
+    env: server
+    pageNamespace:
+      pattern: "💭 .+"
+      operation: writeFile
   getPageMetaCloud:
     path: ./cloud.ts:getFileMetaCloud
     env: server

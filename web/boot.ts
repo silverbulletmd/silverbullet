@@ -16,6 +16,7 @@ import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primi
 import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { SyncEngine } from "./sync.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 
 declare global {
   interface Window {
@@ -64,15 +65,16 @@ safeRun(async () => {
     globalThis.indexedDB,
   );
 
+  const plugSpacePrimitives = new PlugSpacePrimitives(
+    new IndexedDBSpacePrimitives(
+      `${dbPrefix}_space`,
+      globalThis.indexedDB,
+    ),
+    namespaceHook,
+  );
   const localSpacePrimitives = new FileMetaSpacePrimitives(
     new EventedSpacePrimitives(
-      new PlugSpacePrimitives(
-        new IndexedDBSpacePrimitives(
-          `${dbPrefix}_space`,
-          globalThis.indexedDB,
-        ),
-        namespaceHook,
-      ),
+      plugSpacePrimitives,
       eventHook,
     ),
     indexSyscalls,
@@ -103,6 +105,9 @@ safeRun(async () => {
       storeCalls,
       eventHook,
       runtimeConfig.spaceFolderPath,
+      (path) => {
+        return !plugSpacePrimitives.isLikelyHandled(path);
+      },
     );
     await syncEngine.init();
   }
@@ -111,6 +116,7 @@ safeRun(async () => {
   system.registerSyscalls(
     [],
     storeCalls,
+    clientStoreSyscalls(storeCalls),
     indexSyscalls,
     // fulltextSyscalls(serverSpace),
     sandboxFetchSyscalls(syncEngine?.remoteSpace!),
@@ -120,6 +126,7 @@ safeRun(async () => {
 
   const settings = await loadSettings(localSpace, syncEngine);
 
+  // Ensure at least the index page is present so we have something to show on a fresh load while syncing the rest in the background
   try {
     await localSpace.getPageMeta(settings.indexPage);
   } catch {
@@ -151,14 +158,13 @@ safeRun(async () => {
   await editor.init();
 
   async function updateAfterSync(operations: number) {
-    // If something happened
     if (operations > 0) {
       // Update the page list
       await localSpace.updatePageList();
-      if (plugsUpdated) {
-        // To register new commands, update editor state based on new plugs
-        editor.rebuildEditorState();
-      }
+    }
+    if (plugsUpdated) {
+      // To register new commands, update editor state based on new plugs
+      editor.rebuildEditorState();
     }
     // Reset for next sync cycle
     plugsUpdated = false;

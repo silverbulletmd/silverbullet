@@ -10,52 +10,34 @@ type SyncHash = number;
 // and the second item the lastModified value of the secondary space
 export type SyncStatusItem = [SyncHash, SyncHash];
 
-export interface Logger {
-  log(level: string, ...messageBits: any[]): void;
-}
-
-class ConsoleLogger implements Logger {
-  log(_level: string, ...messageBits: any[]) {
-    console.log(...messageBits);
-  }
-}
-
 export type SyncOptions = {
-  logger?: Logger;
-  excludePrefixes?: string[];
+  conflictResolver: (
+    name: string,
+    snapshot: Map<string, SyncStatusItem>,
+    primarySpace: SpacePrimitives,
+    secondarySpace: SpacePrimitives,
+  ) => Promise<number>;
+  isSyncCandidate?: (path: string) => boolean;
 };
 
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
 export class SpaceSync {
-  logger: ConsoleLogger;
-  excludePrefixes: string[];
-
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
     readonly snapshot: Map<string, SyncStatusItem>,
     readonly options: SyncOptions,
   ) {
-    this.logger = options.logger || new ConsoleLogger();
-    this.excludePrefixes = options.excludePrefixes || [];
   }
 
-  async syncFiles(
-    conflictResolver: (
-      name: string,
-      snapshot: Map<string, SyncStatusItem>,
-      primarySpace: SpacePrimitives,
-      secondarySpace: SpacePrimitives,
-      logger: Logger,
-    ) => Promise<number>,
-  ): Promise<number> {
+  async syncFiles(): Promise<number> {
     let operations = 0;
-    this.logger.log("info", "Fetching snapshot from primary");
+    console.log("[sync]", "Fetching snapshot from primary");
     const primaryAllPages = this.syncCandidates(
       await this.primary.fetchFileList(),
     );
 
-    this.logger.log("info", "Fetching snapshot from secondary");
+    console.log("[sync]", "Fetching snapshot from secondary");
     try {
       const secondaryAllPages = this.syncCandidates(
         await this.secondary.fetchFileList(),
@@ -75,28 +57,29 @@ export class SpaceSync {
       ]);
 
       const sortedFilenames = [...allFilesToProcess];
-      sortedFilenames.sort((a, _b) => {
-        // Just make sure that _plug/ files are processed first
+      sortedFilenames.sort((a) => {
+        // Just make sure that _plug/ files appear first
+        // This is important for the initial sync: plugs are loaded the moment they are pulled into the space,
+        // which would activate e.g. any indexing logic for the remaining space content
         return a.startsWith("_plug/") ? -1 : 1;
       });
-      this.logger.log("info", "Iterating over all files");
+      // console.log("[sync]", "Iterating over all files");
       for (const name of sortedFilenames) {
         try {
           operations += await this.syncFile(
             name,
             primaryFileMap.get(name),
             secondaryFileMap.get(name),
-            conflictResolver,
           );
         } catch (e: any) {
-          this.logger.log("error", "Error syncing file", name, e.message);
+          console.log("error", "Error syncing file", name, e.message);
         }
       }
     } catch (e: any) {
-      this.logger.log("error", "General sync error:", e.message);
+      console.log("error", "General sync error:", e.message);
       throw e;
     }
-    this.logger.log("info", "Sync complete, operations performed", operations);
+    console.log("[sync]", "Sync complete, operations performed", operations);
 
     return operations;
   }
@@ -105,31 +88,20 @@ export class SpaceSync {
     name: string,
     primaryHash: SyncHash | undefined,
     secondaryHash: SyncHash | undefined,
-    conflictResolver: (
-      name: string,
-      snapshot: Map<string, SyncStatusItem>,
-      primarySpace: SpacePrimitives,
-      secondarySpace: SpacePrimitives,
-      logger: Logger,
-    ) => Promise<number>,
   ): Promise<number> {
+    if (this.options.isSyncCandidate && !this.options.isSyncCandidate(name)) {
+      return 0;
+    }
     // console.log("Syncing", name, primaryHash, secondaryHash);
     let operations = 0;
-
-    // Check if not matching one of the excluded prefixes
-    for (const prefix of this.excludePrefixes) {
-      if (name.startsWith(prefix)) {
-        return operations;
-      }
-    }
 
     if (
       primaryHash !== undefined && secondaryHash === undefined &&
       !this.snapshot.has(name)
     ) {
       // New file, created on primary, copy from primary to secondary
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "New file created on primary, copying to secondary",
         name,
       );
@@ -149,8 +121,8 @@ export class SpaceSync {
       !this.snapshot.has(name)
     ) {
       // New file, created on secondary, copy from secondary to primary
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "New file created on secondary, copying from secondary to primary",
         name,
       );
@@ -170,8 +142,8 @@ export class SpaceSync {
       secondaryHash === undefined
     ) {
       // File deleted on B
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File deleted on secondary, deleting from primary",
         name,
       );
@@ -183,8 +155,8 @@ export class SpaceSync {
       primaryHash === undefined
     ) {
       // File deleted on A
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File deleted on primary, deleting from secondary",
         name,
       );
@@ -196,8 +168,8 @@ export class SpaceSync {
       secondaryHash === undefined
     ) {
       // File deleted on both sides, :shrug:
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File deleted on both ends, deleting from status",
         name,
       );
@@ -210,8 +182,8 @@ export class SpaceSync {
       secondaryHash === this.snapshot.get(name)![1]
     ) {
       // File has changed on primary, but not secondary: copy from primary to secondary
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File changed on primary, copying to secondary",
         name,
       );
@@ -233,8 +205,8 @@ export class SpaceSync {
       primaryHash === this.snapshot.get(name)![0]
     ) {
       // File has changed on secondary, but not primary: copy from secondary to primary
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File has changed on secondary, but not primary: copy from secondary to primary",
         name,
       );
@@ -261,17 +233,16 @@ export class SpaceSync {
         primaryHash !== this.snapshot.get(name)![0]
       )
     ) {
-      this.logger.log(
-        "info",
+      console.log(
+        "[sync]",
         "File changed on both ends, potential conflict",
         name,
       );
-      operations += await conflictResolver(
+      operations += await this.options.conflictResolver!(
         name,
         this.snapshot,
         this.primary,
         this.secondary,
-        this.logger,
       );
     } else {
       // Nothing needs to happen
@@ -285,9 +256,8 @@ export class SpaceSync {
     snapshot: Map<string, SyncStatusItem>,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
-    logger: Logger,
   ): Promise<number> {
-    logger.log("info", "Starting conflict resolution for", name);
+    console.log("[sync]", "Starting conflict resolution for", name);
     const filePieces = name.split(".");
     const fileNameBase = filePieces.slice(0, -1).join(".");
     const fileNameExt = filePieces[filePieces.length - 1];
@@ -295,7 +265,10 @@ export class SpaceSync {
     const pageData2 = await secondary.readFile(name, "arraybuffer");
 
     if (name.endsWith(".md")) {
-      logger.log("info", "File is markdown, using smart conflict resolution");
+      console.log(
+        "[sync]",
+        "File is markdown, using smart conflict resolution",
+      );
       // Let's use a smartert check for markdown files, ignoring directive bodies
       const pageText1 = removeDirectiveBody(
         new TextDecoder().decode(pageData1.data as Uint8Array),
@@ -304,8 +277,8 @@ export class SpaceSync {
         new TextDecoder().decode(pageData2.data as Uint8Array),
       );
       if (pageText1 === pageText2) {
-        logger.log(
-          "info",
+        console.log(
+          "[sync]",
           "Files are the same (eliminating the directive bodies), no conflict",
         );
         snapshot.set(name, [
@@ -331,7 +304,8 @@ export class SpaceSync {
         }
         // Byte wise they're still the same, so no confict
         if (byteWiseMatch) {
-          logger.log("info", "Files are the same, no conflict");
+          console.log("[sync]", "Files are the same, no conflict");
+
           snapshot.set(name, [
             pageData1.meta.lastModified,
             pageData2.meta.lastModified,
@@ -343,8 +317,8 @@ export class SpaceSync {
     const revisionFileName = filePieces.length === 1
       ? `${name}.conflicted.${pageData2.meta.lastModified}`
       : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
-    logger.log(
-      "info",
+    console.log(
+      "[sync]",
       "Going to create conflicting copy",
       revisionFileName,
     );
@@ -380,10 +354,11 @@ export class SpaceSync {
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {
-    // return files.filter((f) =>
-    //   !f.name.startsWith("_plug/") && f.lastModified > 0
-    // );
-    return files;
+    if (this.options.isSyncCandidate) {
+      return files.filter((meta) => this.options.isSyncCandidate!(meta.name));
+    } else {
+      return files;
+    }
   }
 }
 

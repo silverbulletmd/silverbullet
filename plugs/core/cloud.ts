@@ -57,6 +57,14 @@ export async function readFileCloud(
   };
 }
 
+export function writeFileCloud(
+  name: string,
+  // encoding: FileEncoding,
+): Promise<FileMeta> {
+  console.log("Writing cloud file", name);
+  return getFileMetaCloud(name);
+}
+
 async function translateLinksWithPrefix(
   text: string,
   prefix: string,

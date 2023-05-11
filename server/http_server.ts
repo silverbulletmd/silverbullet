@@ -5,6 +5,7 @@ import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
+import { performLocalFetch } from "../common/proxy_fetch.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -187,6 +188,31 @@ export class HttpServer {
       response.headers.set("X-Space-Path", this.options.pagesPath);
       const files = await spacePrimitives.fetchFileList();
       response.body = JSON.stringify(files);
+    });
+
+    // RPC
+    fsRouter.post("/", async ({ request, response }) => {
+      const body = await request.body({ type: "json" }).value;
+      try {
+        switch (body.operation) {
+          case "fetch": {
+            delete body.operation;
+            const result = await performLocalFetch(body.url, body.options);
+            response.headers.set("Content-Type", "application/json");
+            response.body = JSON.stringify(result);
+            return;
+          }
+          default:
+            response.headers.set("Content-Type", "text/plain");
+            response.status = 400;
+            response.body = "Unknown operation";
+        }
+      } catch (e: any) {
+        console.log("Error", e);
+        response.status = 500;
+        response.body = e.message;
+        return;
+      }
     });
 
     fsRouter

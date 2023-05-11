@@ -10,7 +10,9 @@ Deno.test("Test store", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
   const statusMap = new Map<string, SyncStatusItem>();
-  const sync = new SpaceSync(primary, secondary, statusMap, {});
+  const sync = new SpaceSync(primary, secondary, statusMap, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+  });
 
   // Write one page to primary
   await primary.writeFile("index", "utf8", "Hello");
@@ -129,14 +131,16 @@ Deno.test("Test store", async () => {
     secondary,
     ternary,
     new Map<string, SyncStatusItem>(),
-    {},
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+    },
   );
   console.log(
     "N ops",
-    await sync2.syncFiles(SpaceSync.primaryConflictResolver),
+    await sync2.syncFiles(),
   );
   await sleep(2);
-  assertEquals(await sync2.syncFiles(SpaceSync.primaryConflictResolver), 0);
+  assertEquals(await sync2.syncFiles(), 0);
 
   // I had to look up what follows ternary (https://english.stackexchange.com/questions/25116/what-follows-next-in-the-sequence-unary-binary-ternary)
   const quaternaryPath = await Deno.makeTempDir();
@@ -146,10 +150,11 @@ Deno.test("Test store", async () => {
     quaternary,
     new Map<string, SyncStatusItem>(),
     {
-      excludePrefixes: ["index"],
+      isSyncCandidate: (path) => !path.startsWith("index"),
+      conflictResolver: SpaceSync.primaryConflictResolver,
     },
   );
-  const selectingOps = await sync3.syncFiles(SpaceSync.primaryConflictResolver);
+  const selectingOps = await sync3.syncFiles();
 
   assertEquals(selectingOps, 1);
 
@@ -160,9 +165,7 @@ Deno.test("Test store", async () => {
 
   async function doSync() {
     await sleep();
-    const r = await sync.syncFiles(
-      SpaceSync.primaryConflictResolver,
-    );
+    const r = await sync.syncFiles();
     await sleep();
     return r;
   }

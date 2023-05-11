@@ -16,6 +16,7 @@ export class SyncEngine {
     private storeCalls: SysCallMapping,
     private eventHook: EventHook,
     expectedSpacePath: string,
+    private isSyncCandidate: (path: string) => boolean,
   ) {
     // TODO: Auth
     this.remoteSpace = new HttpSpacePrimitives(syncEndpoint, expectedSpacePath);
@@ -42,7 +43,10 @@ export class SyncEngine {
       this.localSpacePrimitives,
       this.remoteSpace!,
       this.snapshot!,
-      {},
+      {
+        conflictResolver: SpaceSync.primaryConflictResolver,
+        isSyncCandidate: this.isSyncCandidate,
+      },
     );
   }
 
@@ -54,22 +58,22 @@ export class SyncEngine {
     this.syncing = true;
     let operations = 0;
     try {
-      operations = await this.spaceSync!.syncFiles(
-        SpaceSync.primaryConflictResolver,
-      );
+      operations = await this.spaceSync!.syncFiles();
     } catch (e: any) {
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
     this.syncing = false;
     this.eventHook.dispatchEvent("sync:done");
-    console.log("Sync done");
     return operations;
   }
 
   async syncFile(name: string) {
     if (this.syncing) {
       // console.log("Already syncing");
+      return;
+    }
+    if (!this.isSyncCandidate(name)) {
       return;
     }
     this.syncing = true;
@@ -97,14 +101,12 @@ export class SyncEngine {
         name,
         localHash,
         remoteHash,
-        SpaceSync.primaryConflictResolver,
       );
     } catch (e: any) {
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
     this.syncing = false;
-    console.log("Sync done");
   }
 
   async saveSnapshot() {

@@ -18,19 +18,34 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     private env?: string,
   ) {}
 
+  // Used e.g. by the sync engine to see if it should sync a certain path (likely not the case when we have a plug space override)
+  public isLikelyHandled(path: string): boolean {
+    for (
+      const { pattern, env } of this.hook.spaceFunctions
+    ) {
+      if (
+        path.match(pattern) &&
+        (!this.env || (env && env === this.env))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   performOperation(
     type: NamespaceOperation,
-    pageName: string,
+    path: string,
     ...args: any[]
   ): Promise<any> | false {
     for (
       const { operation, pattern, plug, name, env } of this.hook.spaceFunctions
     ) {
       if (
-        operation === type && pageName.match(pattern) &&
+        operation === type && path.match(pattern) &&
         (!this.env || (env && env === this.env))
       ) {
-        return plug.invoke(name, [pageName, ...args]);
+        return plug.invoke(name, [path, ...args]);
       }
     }
     return false;

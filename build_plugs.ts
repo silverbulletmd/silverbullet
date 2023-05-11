@@ -1,7 +1,8 @@
-import { expandGlobSync, flags, path } from "./plugos/deps.ts";
+import { flags, path } from "./plugos/deps.ts";
 import { bundleRun } from "./plugos/bin/plugos-bundle.ts";
 import { esbuild } from "./plugos/compile.ts";
 import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
+import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 
 if (import.meta.main) {
   const args = flags.parse(Deno.args, {
@@ -9,11 +10,9 @@ if (import.meta.main) {
     alias: { w: "watch" },
   });
 
-  const manifests = [];
-  const pattern: string = path.join("plugs", "*", "*.plug.yaml");
-  for (const file of expandGlobSync(pattern)) {
-    manifests.push(file.path);
-  }
+  const manifests = builtinPlugNames.map((name) =>
+    `./plugs/${name}/${name}.plug.yaml`
+  );
 
   const targetDir = path.join("dist_plug_bundle", "_plug");
   Deno.mkdirSync(targetDir, { recursive: true });
