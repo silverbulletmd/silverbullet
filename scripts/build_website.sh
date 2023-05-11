@@ -19,7 +19,7 @@ echo "Copying silverbullet runtime files"
 cp -r dist_client_bundle/* website_build/
 
 echo "And all plugs"
-cp -r dist_bundle/_plug/* website_build/fs/_plug/
+cp -r dist_plug_bundle/_plug/* website_build/fs/_plug/
 echo "And additional ones"
 curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.json > website_build/fs/_plug/mermaid.plug.json
 echo "But remove some plugs"
