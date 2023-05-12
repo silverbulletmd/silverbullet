@@ -112,6 +112,11 @@ async function buildCopyBundleAssets() {
     }),
   ]);
 
+  // Patch the service_worker {{CACHE_NAME}}
+  let swCode = await Deno.readTextFile("dist_client_bundle/service_worker.js");
+  swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
+  await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
+
   await copyAssets("dist_client_bundle");
   await bundleFolder("dist_client_bundle", "dist/client_asset_bundle.json");
 

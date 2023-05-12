@@ -57,7 +57,8 @@
     <header>
         <h1>Reset page</h1>
     </header>
-    <button onclick="resetAll()">Flush all databases</button>
+    <button onclick="resetAll()">Flush everything</button>
+    <button onclick="javascript:location='/'">Back</button>
 
     <script>
         function resetAll() {
@@ -71,10 +72,24 @@
                             return indexedDB.deleteDatabase(database.name).onsuccess = resolve;
                         });
                     })
-                ).then(() => {
-                    alert("All databases deleted");
-                    location = "/";
-                });
+                );
+            });
+
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.active.postMessage({ type: 'flushCache' });
+            });
+
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'cacheFlushed') {
+                    console.log('Cache flushed');
+                    navigator.serviceWorker.getRegistrations().then((registrations) => {
+                        for (const registration of registrations) {
+                            registration.unregister();
+                            console.log("Service worker unregistered");
+                        }
+                    });
+
+                }
             });
 
         }
