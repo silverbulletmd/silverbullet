@@ -61,7 +61,7 @@ self.addEventListener("fetch", (event: any) => {
   const cacheKey = precacheFiles[url.pathname] || event.request.url;
 
   event.respondWith(
-    caches.match(cacheKey, { cacheName: CACHE_NAME })
+    caches.match(cacheKey)
       .then((response) => {
         // Return the cached response if found
         if (response) {
@@ -72,7 +72,10 @@ self.addEventListener("fetch", (event: any) => {
         const requestUrl = new URL(event.request.url);
         if (!requestUrl.pathname.startsWith("/fs")) {
           // Page, let's serve index.html
-          return caches.match(precacheFiles["/"]);
+          return caches.match(precacheFiles["/"]).then((response) => {
+            // This shouldnt't happen, index.html not in the cache for some reason
+            return response || fetch(event.request);
+          });
         }
 
         return fetch(event.request);
