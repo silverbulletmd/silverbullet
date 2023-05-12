@@ -60,7 +60,12 @@ import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
-import { isMacLike, safeRun } from "../common/util.ts";
+import {
+  isMacLike,
+  parseYamlSettings,
+  safeRun,
+  simpleHash,
+} from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -113,6 +118,18 @@ import type {
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { throttle } from "../common/async_util.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
+import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
+import { CronHook } from "../plugos/hooks/cron.ts";
+import { pageIndexSyscalls } from "./syscalls/index.ts";
+import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
+import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
+import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
+import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
+import { shellSyscalls } from "./syscalls/shell.ts";
+import { SyncEngine } from "./sync.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -123,18 +140,31 @@ class PageState {
   ) {}
 }
 
+const syncInterval = 10 * 1000;
 const saveInterval = 1000;
 
+declare global {
+  interface Window {
+    // Injected via index.html
+    silverBulletConfig: {
+      spaceFolderPath: string;
+      syncEndpoint: string;
+    };
+    editor: Editor;
+  }
+}
+
+// TODO: Oh my god, need to refactor this
 export class Editor {
   readonly commandHook: CommandHook;
   readonly slashCommandHook: SlashCommandHook;
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
-  viewState: AppViewState;
+  viewState: AppViewState = initialViewState;
   // deno-lint-ignore ban-types
-  viewDispatch: Function;
+  viewDispatch: Function = () => {};
   space: Space;
-  pageNavigator: PathPageNavigator;
+  pageNavigator?: PathPageNavigator;
   eventHook: EventHook;
   codeWidgetHook: CodeWidgetHook;
 
@@ -146,25 +176,79 @@ export class Editor {
   }, 1000);
   system: System<SilverBulletHooks>;
   mdExtensions: MDExt[] = [];
-  indexPage: string;
+
+  // Track if plugs have been updated since sync cycle
+  private plugsUpdated = false;
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
+  syncEngine: SyncEngine;
+  settings?: BuiltinSettings;
 
   constructor(
-    space: Space,
-    system: System<SilverBulletHooks>,
-    eventHook: EventHook,
     parent: Element,
-    readonly builtinSettings: BuiltinSettings,
   ) {
-    this.space = space;
-    this.system = system;
-    this.viewState = initialViewState;
-    this.viewDispatch = () => {};
-    this.indexPage = builtinSettings.indexPage;
+    const runtimeConfig = window.silverBulletConfig;
 
-    this.eventHook = eventHook;
+    // Instantiate a PlugOS system
+    const system = new System<SilverBulletHooks>();
+    this.system = system;
+
+    // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
+    const dbPrefix = "" + simpleHash(runtimeConfig.spaceFolderPath);
+
+    // Attach the page namespace hook
+    const namespaceHook = new PageNamespaceHook();
+    system.addHook(namespaceHook);
+
+    // Event hook
+    this.eventHook = new EventHook();
+    system.addHook(this.eventHook);
+
+    // Cron hook
+    const cronHook = new CronHook(system);
+    system.addHook(cronHook);
+
+    const indexSyscalls = pageIndexSyscalls(
+      `${dbPrefix}_page_index`,
+      globalThis.indexedDB,
+    );
+    const storeCalls = storeSyscalls(
+      `${dbPrefix}_store`,
+      "data",
+      globalThis.indexedDB,
+    );
+
+    // Setup space
+    const plugSpacePrimitives = new PlugSpacePrimitives(
+      new IndexedDBSpacePrimitives(
+        `${dbPrefix}_space`,
+        globalThis.indexedDB,
+      ),
+      namespaceHook,
+    );
+
+    const localSpacePrimitives = new FileMetaSpacePrimitives(
+      new EventedSpacePrimitives(
+        plugSpacePrimitives,
+        this.eventHook,
+      ),
+      indexSyscalls,
+    );
+
+    this.space = new Space(localSpacePrimitives);
+    this.space.watch();
+
+    this.syncEngine = new SyncEngine(
+      localSpacePrimitives,
+      runtimeConfig.syncEndpoint,
+      storeCalls,
+      this.eventHook,
+      runtimeConfig.spaceFolderPath,
+      (path) => {
+        return !plugSpacePrimitives.isLikelyHandled(path);
+      },
+    );
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -193,10 +277,6 @@ export class Editor {
       parent: document.getElementById("sb-editor")!,
     });
 
-    this.pageNavigator = new PathPageNavigator(
-      builtinSettings.indexPage,
-    );
-
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
@@ -207,6 +287,12 @@ export class Editor {
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
+      storeCalls,
+      clientStoreSyscalls(storeCalls),
+      indexSyscalls,
+      sandboxFetchSyscalls(this.syncEngine.remoteSpace),
+      shellSyscalls(this.syncEngine.remoteSpace),
+      // fulltextSyscalls(serverSpace),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -230,6 +316,16 @@ export class Editor {
         this.viewDispatch({ type: "show-palette", context: this.getContext() });
       }
     });
+
+    this.eventHook.addLocalListener("plug:changed", async (fileName) => {
+      console.log("Plug updated, reloading:", fileName);
+      system.unload(fileName);
+      await system.load(
+        JSON.parse(await this.space.readFile(fileName, "utf8")),
+        createSandbox,
+      );
+      this.plugsUpdated = true;
+    });
   }
 
   get currentPage(): string | undefined {
@@ -238,6 +334,7 @@ export class Editor {
 
   async init() {
     this.focus();
+    await this.syncEngine.init();
 
     this.system.on({
       sandboxInitialized: async (sandbox) => {
@@ -266,6 +363,22 @@ export class Editor {
         });
       },
     });
+
+    // Load settings
+    this.settings = await this.loadSettings();
+
+    this.pageNavigator = new PathPageNavigator(
+      this.settings.indexPage,
+    );
+
+    // Ensure at least the current page is present so we have something to show on a fresh load while syncing the rest in the background
+    const currentPage = this.pageNavigator.getCurrentPage();
+    try {
+      await this.space.getPageMeta(currentPage);
+    } catch {
+      console.log(`No ${currentPage} page available, syncing...`);
+      await this.syncEngine.syncFile(currentPage + ".md");
+    }
 
     await this.reloadPlugs();
 
@@ -327,7 +440,49 @@ export class Editor {
 
     this.loadCustomStyles().catch(console.error);
 
+    // Kick off background sync
+    this.syncEngine.syncSpace().then(this.updateAfterSync.bind(this)).catch(
+      console.error,
+    );
+
+    setInterval(() => {
+      this.syncEngine.syncSpace().then(this.updateAfterSync.bind(this)).catch(
+        console.error,
+      );
+    }, syncInterval);
+
     await this.dispatchAppEvent("editor:init");
+  }
+
+  async updateAfterSync(operations: number) {
+    if (operations > 0) {
+      // Update the page list
+      await this.space.updatePageList();
+    }
+    if (this.plugsUpdated) {
+      // To register new commands, update editor state based on new plugs
+      this.rebuildEditorState();
+    }
+    // Reset for next sync cycle
+    this.plugsUpdated = false;
+  }
+
+  async loadSettings(): Promise<BuiltinSettings> {
+    let settingsText: string | undefined;
+
+    try {
+      settingsText = (await this.space.readPage("SETTINGS")).text;
+    } catch {
+      console.log("No SETTINGS page, syncing...");
+      await this.syncEngine.syncFile("SETTINGS.md");
+      settingsText = (await this.space.readPage("SETTINGS")).text;
+    }
+    const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
+
+    if (!settings.indexPage) {
+      settings.indexPage = "index";
+    }
+    return settings;
   }
 
   save(immediate = false): Promise<void> {
@@ -903,7 +1058,7 @@ export class Editor {
     newWindow = false,
   ) {
     if (!name) {
-      name = this.indexPage;
+      name = this.settings!.indexPage;
     }
 
     if (newWindow) {
@@ -913,7 +1068,7 @@ export class Editor {
       }
       return;
     }
-    await this.pageNavigator.navigate(name, pos, replaceState);
+    await this.pageNavigator!.navigate(name, pos, replaceState);
   }
 
   async loadPage(pageName: string): Promise<boolean> {

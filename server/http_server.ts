@@ -6,7 +6,6 @@ import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_sp
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
-import { ListenOptions } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -118,7 +117,6 @@ export class HttpServer {
       port: this.port,
       signal: this.abortController.signal,
     };
-    console.log(this.options);
     if (this.options.keyFile) {
       listenOptions.key = Deno.readTextFileSync(this.options.keyFile);
     }

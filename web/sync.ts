@@ -7,7 +7,7 @@ import { SysCallMapping } from "../plugos/system.ts";
 export class SyncEngine {
   syncing = false;
   snapshot?: Map<string, SyncStatusItem>;
-  remoteSpace?: HttpSpacePrimitives;
+  remoteSpace: HttpSpacePrimitives;
   spaceSync?: SpaceSync;
 
   constructor(

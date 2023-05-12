@@ -1,6 +1,5 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
-import { Space } from "./spaces/space.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 
 export function safeRun(fn: () => Promise<void>) {
