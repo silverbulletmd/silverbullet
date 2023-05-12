@@ -65,7 +65,6 @@ self.addEventListener("fetch", (event: any) => {
       .then((response) => {
         // Return the cached response if found
         if (response) {
-          // console.log("Cached", event.request);
           return response;
         }
 
