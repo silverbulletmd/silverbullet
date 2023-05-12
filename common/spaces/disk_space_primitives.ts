@@ -96,27 +96,38 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    _selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await Deno.mkdir(path.dirname(localPath), { recursive: true });
 
+      const file = await Deno.open(localPath, {
+        write: true,
+        create: true,
+        truncate: true,
+      });
+
       // Actually write the file
       switch (encoding) {
         case "utf8":
-          await Deno.writeTextFile(`${localPath}`, data as string);
+          await Deno.write(file.rid, new TextEncoder().encode(data as string));
           break;
         case "dataurl":
-          await Deno.writeFile(
-            localPath,
-            base64DecodeDataUrl(data as string),
-          );
+          await Deno.write(file.rid, base64DecodeDataUrl(data as string));
           break;
         case "arraybuffer":
-          await Deno.writeFile(localPath, new Uint8Array(data as ArrayBuffer));
+          await Deno.write(file.rid, new Uint8Array(data as ArrayBuffer));
           break;
       }
+
+      if (lastModified) {
+        console.log("Seting mtime to", new Date(lastModified));
+        await Deno.futime(file.rid, new Date(), new Date(lastModified));
+      }
+      file.close();
 
       // Fetch new metadata
       const s = await Deno.stat(localPath);

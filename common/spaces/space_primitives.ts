@@ -17,6 +17,7 @@ export interface SpacePrimitives {
     data: FileData,
     // Used to decide whether or not to emit change events
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta>;
   deleteFile(name: string): Promise<void>;
 

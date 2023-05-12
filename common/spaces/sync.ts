@@ -105,11 +105,13 @@ export class SpaceSync {
         "New file created on primary, copying to secondary",
         name,
       );
-      const { data } = await this.primary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.primary.readFile(name, "arraybuffer");
       const writtenMeta = await this.secondary.writeFile(
         name,
         "arraybuffer",
         data,
+        false,
+        meta.lastModified,
       );
       this.snapshot.set(name, [
         primaryHash,
@@ -126,11 +128,13 @@ export class SpaceSync {
         "New file created on secondary, copying from secondary to primary",
         name,
       );
-      const { data } = await this.secondary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.secondary.readFile(name, "arraybuffer");
       const writtenMeta = await this.primary.writeFile(
         name,
         "arraybuffer",
         data,
+        false,
+        meta.lastModified,
       );
       this.snapshot.set(name, [
         writtenMeta.lastModified,
@@ -187,11 +191,13 @@ export class SpaceSync {
         "File changed on primary, copying to secondary",
         name,
       );
-      const { data } = await this.primary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.primary.readFile(name, "arraybuffer");
       const writtenMeta = await this.secondary.writeFile(
         name,
         "arraybuffer",
         data,
+        false,
+        meta.lastModified,
       );
       this.snapshot.set(name, [
         primaryHash,
@@ -210,11 +216,13 @@ export class SpaceSync {
         "File has changed on secondary, but not primary: copy from secondary to primary",
         name,
       );
-      const { data } = await this.secondary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.secondary.readFile(name, "arraybuffer");
       const writtenMeta = await this.primary.writeFile(
         name,
         "arraybuffer",
         data,
+        false,
+        meta.lastModified,
       );
       this.snapshot.set(name, [
         writtenMeta.lastModified,

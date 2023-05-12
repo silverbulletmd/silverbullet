@@ -62,8 +62,15 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(
+      name,
+      encoding,
+      data,
+      selfUpdate,
+      lastModified,
+    );
   }
 
   deleteFile(name: string): Promise<void> {

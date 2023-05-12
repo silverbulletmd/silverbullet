@@ -81,6 +81,8 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    _selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     let content: ArrayBuffer | undefined;
 
@@ -99,7 +101,7 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
 
     const fileMeta: FileMeta = {
       name,
-      lastModified: Date.now(),
+      lastModified: lastModified || Date.now(),
       contentType: mime.getType(name) || "application/octet-stream",
       size: content.byteLength,
       perm: "rw",

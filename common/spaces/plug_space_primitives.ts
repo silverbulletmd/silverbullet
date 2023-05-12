@@ -108,6 +108,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
@@ -120,7 +121,13 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       return result;
     }
 
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(
+      name,
+      encoding,
+      data,
+      selfUpdate,
+      lastModified,
+    );
   }
 
   deleteFile(name: string): Promise<void> {

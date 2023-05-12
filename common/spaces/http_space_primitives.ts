@@ -98,6 +98,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
+    selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     let body: any = null;
 
@@ -116,6 +118,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
     };
+    if (lastModified) {
+      headers["X-Last-Modified"] = "" + lastModified;
+    }
 
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,

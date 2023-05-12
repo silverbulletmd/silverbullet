@@ -36,12 +36,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     encoding: FileEncoding,
     data: FileData,
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
       encoding,
       data,
       selfUpdate,
+      lastModified,
     );
     // This can happen async
     if (name.endsWith(".md")) {
