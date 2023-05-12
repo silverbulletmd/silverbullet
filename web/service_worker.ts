@@ -1,8 +1,6 @@
-import { compareSpecs } from "https://deno.land/std@0.152.0/http/_negotiation/common.ts";
-
 const CACHE_NAME = "{{CACHE_NAME}}";
 
-const precacheFiles = [
+const precacheFiles = Object.fromEntries([
   "/",
   "/auth.html",
   "/reset.html",
@@ -15,28 +13,39 @@ const precacheFiles = [
   "/logo.png",
   "/main.css",
   "/manifest.json",
-  "/service_worker.js",
   "/worker.js",
-];
+].map((path) => [path, path + "?v=" + Date.now(), path]));
 
 self.addEventListener("install", (event: any) => {
-  console.log("Installing...");
+  console.log("[Service worker]", "Installing service worker...");
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log("Now preaching", precacheFiles);
-        return cache.addAll(precacheFiles);
+        console.log(
+          "[Service worker]",
+          "Now pre-caching client files",
+        );
+        return cache.addAll(Object.values(precacheFiles)).then(() => {
+          console.log(
+            "[Service worker]",
+            Object.keys(precacheFiles).length,
+            "client files cached",
+          );
+          // @ts-ignore: No need to wait
+          self.skipWaiting();
+        });
       }),
   );
 });
 
 self.addEventListener("activate", (event: any) => {
+  console.log("[Service worker]", "Activating new service worker");
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log("Removing old cache", cacheName);
+            console.log("[Service worker]", "Removing old cache", cacheName);
             return caches.delete(cacheName);
           }
         }),
@@ -46,8 +55,13 @@ self.addEventListener("activate", (event: any) => {
 });
 
 self.addEventListener("fetch", (event: any) => {
+  const url = new URL(event.request.url);
+
+  // Use the custom cache key if available, otherwise use the request URL
+  const cacheKey = precacheFiles[url.pathname] || event.request.url;
+
   event.respondWith(
-    caches.match(event.request)
+    caches.match(cacheKey, { cacheName: CACHE_NAME })
       .then((response) => {
         // Return the cached response if found
         if (response) {
@@ -58,7 +72,7 @@ self.addEventListener("fetch", (event: any) => {
         const requestUrl = new URL(event.request.url);
         if (!requestUrl.pathname.startsWith("/fs")) {
           // Page, let's serve index.html
-          return caches.match(`${requestUrl.origin}/`);
+          return caches.match(precacheFiles["/"]);
         }
 
         return fetch(event.request);
@@ -70,7 +84,7 @@ self.addEventListener("message", (event: any) => {
   if (event.data.type === "flushCache") {
     caches.delete(CACHE_NAME)
       .then(() => {
-        console.log("Cache deleted");
+        console.log("[Service worker]", "Cache deleted");
         event.source.postMessage({ type: "cacheFlushed" });
       });
   }

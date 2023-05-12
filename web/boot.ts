@@ -2,7 +2,7 @@ import { safeRun } from "../common/util.ts";
 import { Editor } from "./editor.tsx";
 
 safeRun(async () => {
-  console.log("Booting 123");
+  console.log("Booting, Zef is cool");
 
   const editor = new Editor(
     document.getElementById("sb-root")!,
