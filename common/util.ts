@@ -63,21 +63,15 @@ export async function ensureSettingsAndIndex(
   }
 }
 
-export async function sha1(input: string): Promise<string> {
-  // create a new instance of the SHA-1 algorithm
-  const sha1Algo = "SHA-1";
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-
-  const buffer = await crypto.subtle.digest(sha1Algo, data);
-
-  // convert the buffer to a hex string
-  const hexString = Array.prototype.map.call(
-    new Uint8Array(buffer),
-    function (x) {
-      return ("00" + x.toString(16)).slice(-2);
-    },
-  ).join("");
-
-  return hexString;
+export function simpleHash(s: string): number {
+  let hash = 0,
+    i,
+    chr;
+  if (s.length === 0) return hash;
+  for (i = 0; i < s.length; i++) {
+    chr = s.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
 }

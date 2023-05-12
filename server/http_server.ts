@@ -6,6 +6,7 @@ import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_sp
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
+import { ListenOptions } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -15,6 +16,8 @@ export type ServerOptions = {
   plugAssetBundle: AssetBundle;
   user?: string;
   pass?: string;
+  certFile?: string;
+  keyFile?: string;
 };
 
 // const staticLastModified = new Date().toUTCString();
@@ -110,11 +113,19 @@ export class HttpServer {
     });
 
     this.abortController = new AbortController();
-    this.app.listen({
+    const listenOptions: any = {
       hostname: this.hostname,
       port: this.port,
       signal: this.abortController.signal,
-    })
+    };
+    console.log(this.options);
+    if (this.options.keyFile) {
+      listenOptions.key = Deno.readTextFileSync(this.options.keyFile);
+    }
+    if (this.options.certFile) {
+      listenOptions.cert = Deno.readTextFileSync(this.options.certFile);
+    }
+    this.app.listen(listenOptions)
       .catch((e: any) => {
         console.log("Server listen error:", e.message);
         Deno.exit(1);
@@ -196,10 +207,28 @@ export class HttpServer {
       try {
         switch (body.operation) {
           case "fetch": {
-            delete body.operation;
             const result = await performLocalFetch(body.url, body.options);
             response.headers.set("Content-Type", "application/json");
             response.body = JSON.stringify(result);
+            return;
+          }
+          case "shell": {
+            const p = new Deno.Command(body.cmd, {
+              args: body.args,
+              cwd: this.options.pagesPath,
+              stdout: "piped",
+              stderr: "piped",
+            });
+            const output = await p.output();
+            const stdout = new TextDecoder().decode(output.stdout);
+            const stderr = new TextDecoder().decode(output.stderr);
+
+            response.headers.set("Content-Type", "application/json");
+            response.body = JSON.stringify({
+              stdout,
+              stderr,
+              code: output.code,
+            });
             return;
           }
           default:

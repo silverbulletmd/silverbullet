@@ -32,6 +32,8 @@ export function serveCommand(options: any, folder: string) {
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     user: options.user,
+    keyFile: options.key,
+    certFile: options.cert,
   });
   httpServer.start().catch(console.error);
 }

@@ -29,6 +29,14 @@ await new Command()
     "--user <user:string>",
     "'username:password' combo for BasicAuth authentication",
   )
+  .option(
+    "--cert <certFile:string>",
+    "Path to TLS certificate",
+  )
+  .option(
+    "--key <keyFile:string>",
+    "Path to TLS key",
+  )
   .action(serveCommand)
   // plug:compile
   .command("plug:compile", "Bundle (compile) one or more plug manifests")

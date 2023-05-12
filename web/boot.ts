@@ -1,5 +1,5 @@
 import { Editor } from "./editor.tsx";
-import { parseYamlSettings, safeRun, sha1 } from "../common/util.ts";
+import { parseYamlSettings, safeRun, simpleHash } from "../common/util.ts";
 import { Space } from "../common/spaces/space.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
@@ -17,6 +17,7 @@ import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { SyncEngine } from "./sync.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { shellSyscalls } from "./syscalls/shell.ts";
 
 declare global {
   interface Window {
@@ -38,10 +39,7 @@ safeRun(async () => {
   const system = new System<SilverBulletHooks>();
 
   // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-  const dbPrefix = (await sha1(runtimeConfig.spaceFolderPath)).substring(
-    0,
-    8,
-  );
+  const dbPrefix = "" + simpleHash(runtimeConfig.spaceFolderPath);
 
   // Attach the page namespace hook
   const namespaceHook = new PageNamespaceHook();
@@ -120,6 +118,7 @@ safeRun(async () => {
     indexSyscalls,
     // fulltextSyscalls(serverSpace),
     sandboxFetchSyscalls(syncEngine?.remoteSpace!),
+    shellSyscalls(syncEngine?.remoteSpace!),
   );
 
   console.log("Booting...");
