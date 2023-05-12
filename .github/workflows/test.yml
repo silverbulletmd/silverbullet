@@ -19,9 +19,9 @@ jobs:
 
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
-        uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
+        uses: denoland/setup-deno
         with:
-          deno-version: v1.32.5
+          deno-version: v1.33
 
       - name: Run build
         run: deno task build
