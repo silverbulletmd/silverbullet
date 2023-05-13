@@ -36,6 +36,11 @@ export default function reducer(
         ...state,
         unsavedChanges: false,
       };
+    case "sync-change":
+      return {
+        ...state,
+        synced: action.synced,
+      };
     case "start-navigate":
       return {
         ...state,

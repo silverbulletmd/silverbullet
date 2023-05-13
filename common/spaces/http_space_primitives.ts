@@ -5,6 +5,7 @@ import {
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 import { mime } from "../../plugos/deps.ts";
+import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -49,6 +50,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       this.expectedSpacePath &&
       req.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
+      await flushCachesAndUnregisterServiceWorker();
       alert("Space folder path different on server, reloading the page");
       location.reload();
     }
@@ -98,7 +100,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     encoding: FileEncoding,
     data: FileData,
-    selfUpdate?: boolean,
+    _selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
     let body: any = null;

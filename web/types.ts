@@ -28,6 +28,7 @@ export type AppViewState = {
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
+  synced: boolean;
   panels: { [key: string]: PanelConfig };
   allPages: Set<PageMeta>;
   commands: Map<string, AppCommand>;
@@ -65,6 +66,7 @@ export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
+  synced: true,
   uiOptions: {
     vimMode: false,
     darkMode: false,
@@ -97,6 +99,7 @@ export type Action =
   | { type: "pages-listed"; pages: Set<PageMeta> }
   | { type: "page-changed" }
   | { type: "page-saved" }
+  | { type: "sync-change"; synced: boolean }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | {

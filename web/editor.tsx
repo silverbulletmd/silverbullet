@@ -106,7 +106,12 @@ import { collabSyscalls } from "./syscalls/collab.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
+import {
+  Action,
+  AppViewState,
+  BuiltinSettings,
+  initialViewState,
+} from "./types.ts";
 
 import globalPlug from "../dist/global.plug.json" assert { type: "json" };
 
@@ -161,8 +166,7 @@ export class Editor {
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState = initialViewState;
-  // deno-lint-ignore ban-types
-  viewDispatch: Function = () => {};
+  viewDispatch: (action: Action) => void = () => {};
   space: Space;
   pageNavigator?: PathPageNavigator;
   eventHook: EventHook;
@@ -450,6 +454,13 @@ export class Editor {
         console.error,
       );
     }, syncInterval);
+
+    this.eventHook.addLocalListener("sync:success", (name) => {
+      this.viewDispatch({ type: "sync-change", synced: true });
+    });
+    this.eventHook.addLocalListener("sync:error", (name) => {
+      this.viewDispatch({ type: "sync-change", synced: false });
+    });
 
     await this.dispatchAppEvent("editor:init");
   }
@@ -1316,6 +1327,7 @@ export class Editor {
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
+          synced={viewState.synced}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}

@@ -59,12 +59,13 @@ export class SyncEngine {
     let operations = 0;
     try {
       operations = await this.spaceSync!.syncFiles();
+      this.eventHook.dispatchEvent("sync:success");
     } catch (e: any) {
+      this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
     this.syncing = false;
-    this.eventHook.dispatchEvent("sync:done");
     return operations;
   }
 
@@ -104,7 +105,9 @@ export class SyncEngine {
         localHash,
         remoteHash,
       );
+      this.eventHook.dispatchEvent("sync:success");
     } catch (e: any) {
+      this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e);
     }
     await this.saveSnapshot();
