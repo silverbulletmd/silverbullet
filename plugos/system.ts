@@ -95,10 +95,10 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async load(
-    plugWorkerCode: string,
+    workerUrl: URL,
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, plugWorkerCode, sandboxFactory);
+    const plug = new Plug(this, workerUrl, sandboxFactory);
     await plug.ready;
     const manifest = plug.manifest!;
 

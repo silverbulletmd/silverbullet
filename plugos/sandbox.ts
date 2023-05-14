@@ -28,8 +28,7 @@ export class Sandbox {
     readonly plug: Plug<any>,
     workerOptions = {},
   ) {
-    const blob = new Blob([plug.workerCode], { type: "text/javascript" });
-    this.worker = new Worker(URL.createObjectURL(blob), {
+    this.worker = new Worker(plug.workerUrl, {
       ...workerOptions,
       type: "module",
     });

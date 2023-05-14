@@ -13,18 +13,18 @@ export class Plug<HookT> {
   grantedPermissions: string[] = [];
   // Only available after ready resolves
   name?: string;
-  workerCode: string;
+  workerUrl: URL;
 
   ready: Promise<void>;
 
   constructor(
     system: System<HookT>,
-    workerCode: string,
+    workerUrl: URL,
     sandboxFactory: (plug: Plug<HookT>) => Sandbox,
   ) {
     this.system = system;
     this.sandboxFactory = sandboxFactory;
-    this.workerCode = workerCode;
+    this.workerUrl = workerUrl;
     this.runtimeEnv = system.env;
 
     // Kick off worker

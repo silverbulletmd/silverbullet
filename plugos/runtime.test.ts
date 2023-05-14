@@ -32,7 +32,7 @@ Deno.test("Run a deno sandbox", async () => {
   );
 
   const plug = await system.load(
-    await Deno.readTextFile(path.resolve(".", "test.plug.js")),
+    new URL("test.plug.js", import.meta.url),
     createSandbox,
   );
 

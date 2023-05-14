@@ -44,6 +44,8 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     await index.set(name, "meta:", pageMeta);
   }
 
+  // throw new Error("Boom");
+
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
     if (toPage.includes("@")) {

@@ -1,5 +1,5 @@
-import { FileMeta } from "../types.ts";
-import { Plug } from "../../plugos/plug.ts";
+import type { FileMeta } from "../types.ts";
+import type { Plug } from "../../plugos/plug.ts";
 import type {
   FileData,
   FileEncoding,
@@ -10,16 +10,17 @@ import {
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
 import { mime } from "../../plugos/deps.ts";
-import Dexie, { IndexableType, Table } from "dexie";
-type FileContent = {
+import Dexie, { Table } from "dexie";
+
+export type FileContent = {
   name: string;
   data: Uint8Array;
 };
 
 export class IndexedDBSpacePrimitives implements SpacePrimitives {
   private db: Dexie;
-  filesMetaTable: Table<FileMeta, IndexableType>;
-  filesContentTable: Table<FileContent, IndexableType>;
+  filesMetaTable: Table<FileMeta, string>;
+  filesContentTable: Table<FileContent, string>;
 
   constructor(
     dbName: string,
@@ -33,7 +34,7 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
       fileContent: "name",
     });
     this.filesMetaTable = this.db.table("fileMeta");
-    this.filesContentTable = this.db.table("fileContent");
+    this.filesContentTable = this.db.table<FileContent, string>("fileContent");
   }
 
   fetchFileList(): Promise<FileMeta[]> {

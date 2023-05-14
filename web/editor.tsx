@@ -60,12 +60,7 @@ import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { Space } from "../common/spaces/space.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "../common/types.ts";
-import {
-  isMacLike,
-  parseYamlSettings,
-  safeRun,
-  simpleHash,
-} from "../common/util.ts";
+import { isMacLike, parseYamlSettings, safeRun } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -133,6 +128,8 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { SyncEngine } from "./sync.ts";
+import { yamlSyscalls } from "../common/syscalls/yaml.ts";
+import { simpleHash } from "../common/crypto.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -289,6 +286,7 @@ export class Editor {
       sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
+      yamlSyscalls(),
       storeCalls,
       clientStoreSyscalls(storeCalls),
       indexSyscalls,
@@ -323,7 +321,8 @@ export class Editor {
       console.log("Plug updated, reloading:", fileName);
       system.unload(fileName);
       await system.load(
-        await this.space.readFile(fileName, "utf8"),
+        // await this.space.readFile(fileName, "utf8"),
+        fileName,
         createSandbox,
       );
       this.plugsUpdated = true;
@@ -957,8 +956,10 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "utf8");
-      await this.system.load(data as string, createSandbox);
+      await this.system.load(
+        new URL(`/fs/${plugName}`, location.href),
+        createSandbox,
+      );
     }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");

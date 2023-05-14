@@ -21,6 +21,12 @@ if (navigator.serviceWorker) {
     .then(() => {
       console.log("Service worker registered...");
     });
+  navigator.serviceWorker.ready.then((registration) => {
+    registration.active!.postMessage({
+      type: "config",
+      config: window.silverBulletConfig,
+    });
+  });
 } else {
   console.log(
     "No launching service worker (not present, maybe because not running on localhost or over SSL)",

@@ -37,7 +37,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
           lastModified: bootTime,
           size: data.byteLength,
           perm: "ro",
-          contentType: "application/json",
+          contentType: this.assetBundle.getMimeType(name),
         } as FileMeta,
       });
     }
@@ -51,7 +51,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
         lastModified: bootTime,
         size: data.byteLength,
         perm: "ro",
-        contentType: "application/json",
+        contentType: this.assetBundle.getMimeType(name),
       } as FileMeta);
     }
     return this.wrapped.getFileMeta(name);

@@ -11,15 +11,11 @@ import { urlToPathname } from "../../plugos/util.ts";
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
   await system.load(
-    Deno.readTextFileSync(
-      new URL("../../dist_plug_bundle/_plug/core.plug.js", import.meta.url),
-    ),
+    new URL("../../dist_plug_bundle/_plug/core.plug.js", import.meta.url),
     createSandbox,
   );
   await system.load(
-    Deno.readTextFileSync(
-      new URL("../../dist_plug_bundle/_plug/tasks.plug.json", import.meta.url),
-    ),
+    new URL("../../dist_plug_bundle/_plug/tasks.plug.js", import.meta.url),
     createSandbox,
   );
   const lang = buildMarkdown(loadMarkdownExtensions(system));

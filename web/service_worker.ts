@@ -1,3 +1,7 @@
+import Dexie, {} from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
+import { simpleHash } from "../common/crypto.ts";
+import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
+
 const CACHE_NAME = "{{CACHE_NAME}}";
 
 const precacheFiles = Object.fromEntries([
@@ -54,6 +58,9 @@ self.addEventListener("activate", (event: any) => {
   );
 });
 
+let db: Dexie | undefined;
+let fileContentTable: Dexie.Table<FileContent, string> | undefined;
+
 self.addEventListener("fetch", (event: any) => {
   const url = new URL(event.request.url);
 
@@ -69,6 +76,31 @@ self.addEventListener("fetch", (event: any) => {
         }
 
         const requestUrl = new URL(event.request.url);
+        const pathname = requestUrl.pathname;
+        if (pathname.startsWith("/fs/_plug/")) {
+          console.log("Service plug code from space:", pathname);
+          if (fileContentTable) {
+            const plugPath = requestUrl.pathname.slice("/fs/".length);
+            return fileContentTable.get(plugPath).then(
+              (data) => {
+                if (data) {
+                  // console.log("Serving from space", plugPath);
+                  return new Response(data.data, {
+                    headers: {
+                      "Content-type": "application/javascript",
+                    },
+                  });
+                } else {
+                  console.error(
+                    "Did not find plug in synced files",
+                    plugPath,
+                  );
+                  return new Response("Not found");
+                }
+              },
+            );
+          }
+        }
         if (!requestUrl.pathname.startsWith("/fs")) {
           // Page, let's serve index.html
           return caches.match(precacheFiles["/"]).then((response) => {
@@ -87,7 +119,23 @@ self.addEventListener("message", (event: any) => {
     caches.delete(CACHE_NAME)
       .then(() => {
         console.log("[Service worker]", "Cache deleted");
+        db?.close();
         event.source.postMessage({ type: "cacheFlushed" });
       });
+  }
+  if (event.data.type === "config") {
+    const spaceFolderPath = event.data.config.spaceFolderPath;
+    const dbPrefix = "" + simpleHash(spaceFolderPath);
+
+    // Setup space
+    db = new Dexie(`${dbPrefix}_space`, {
+      indexedDB: globalThis.indexedDB,
+    });
+    db.version(1).stores({
+      fileMeta: "name",
+      fileContent: "name",
+    });
+
+    fileContentTable = db.table<FileContent, string>("fileContent");
   }
 });
