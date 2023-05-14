@@ -30,7 +30,7 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
     }
     return collectedSettings as T;
   } catch (e: any) {
-    if (e.message === "Page not found") {
+    if (e.message === "Not found") {
       // No settings yet, return default values for all
       return settings;
     }
@@ -47,7 +47,7 @@ export async function readSetting(
     const val = allSettings[key];
     return val === undefined ? defaultValue : val;
   } catch (e: any) {
-    if (e.message === "Page not found") {
+    if (e.message === "Not found") {
       // No settings yet, return default values for all
       return defaultValue;
     }

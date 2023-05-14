@@ -130,7 +130,7 @@ export async function readFileCollab(
   encoding: FileEncoding,
 ): Promise<{ data: FileData; meta: FileMeta }> {
   if (!name.endsWith(".md")) {
-    throw new Error("File not found");
+    throw new Error("Not found");
   }
   const collabUri = name.substring(0, name.length - ".md".length);
   const text = `---\n$share: ${collabUri}\n---\n`;

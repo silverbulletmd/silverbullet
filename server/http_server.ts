@@ -319,7 +319,7 @@ export class HttpServer {
           response.headers.set("X-Permission", meta.perm);
         } catch {
           response.status = 404;
-          response.body = "File not found";
+          response.body = "Not found";
           // console.error("Options failed", err);
         }
       })

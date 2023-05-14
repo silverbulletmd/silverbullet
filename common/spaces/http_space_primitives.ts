@@ -69,7 +69,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (res.status === 404) {
-      throw new Error(`Page not found`);
+      throw new Error(`Not found`);
     }
     let data: FileData | null = null;
     switch (encoding) {
@@ -156,7 +156,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (res.status === 404) {
-      throw new Error(`File not found`);
+      throw new Error(`Not found`);
     }
     return this.responseToMeta(name, res);
   }
