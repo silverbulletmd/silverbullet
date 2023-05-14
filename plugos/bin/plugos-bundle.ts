@@ -3,20 +3,18 @@
 
 import { Manifest } from "../types.ts";
 import { YAML } from "../../common/deps.ts";
-import {
-  compile,
-  CompileOptions,
-  esbuild,
-  sandboxCompileModule,
-} from "../compile.ts";
-import { cacheDir, flags, path } from "../deps.ts";
+import { CompileOptions, esbuild } from "../compile.ts";
+import { flags, path } from "../deps.ts";
 
 import { bundleAssets } from "../asset_bundle/builder.ts";
+import { denoPlugin } from "../forked/esbuild_deno_loader/mod.ts";
+import { patchDenoLibJS } from "../hack.ts";
 
-export async function bundle(
+export async function compileManifest(
   manifestPath: string,
+  destPath: string,
   options: CompileOptions = {},
-): Promise<Manifest<any>> {
+) {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
     await Deno.readTextFile(manifestPath),
@@ -26,13 +24,6 @@ export async function bundle(
     throw new Error(`Missing 'name' in ${manifestPath}`);
   }
 
-  // Dependencies
-  for (
-    const [name, moduleSpec] of Object.entries(manifest.dependencies || {})
-  ) {
-    manifest.dependencies![name] = await sandboxCompileModule(moduleSpec);
-  }
-
   // Assets
   const assetsBundle = await bundleAssets(
     path.resolve(rootPath),
@@ -40,82 +31,86 @@ export async function bundle(
   );
   manifest.assets = assetsBundle.toJSON();
 
-  // Imports
-  // Imports currently only "import" dependencies at this point, importing means: assume they're preloaded so we don't need to bundle them
-  const plugCache = path.join(cacheDir()!, "plugos-imports");
-  await Deno.mkdir(plugCache, { recursive: true });
-  // console.log("Cache dir", plugCache);
-  const imports: Manifest<any>[] = [];
-  for (const manifestUrl of manifest.imports || []) {
-    // Safe file name
-    const cachedManifestPath = manifestUrl.replaceAll(/[^a-zA-Z0-9]/g, "_");
-    try {
-      if (options.reload) {
-        throw new Error("Forced reload");
+  const jsFile = `
+import {setupMessageListener} from "${new URL(
+    "./../environments/sandbox_worker.ts",
+    import.meta.url,
+  )}";
+
+// Imports
+${
+    Object.entries(manifest.functions).map(([funcName, def]) => {
+      if (!def.path) {
+        return "";
       }
-      // Try to just load from the cache
-      const cachedManifest = JSON.parse(
-        await Deno.readTextFile(path.join(plugCache, cachedManifestPath)),
-      ) as Manifest<any>;
-      imports.push(cachedManifest);
-    } catch {
-      // Otherwise, download and cache
-      console.log("Caching plug", manifestUrl, "to", plugCache);
-      const cachedManifest = await (await fetch(manifestUrl))
-        .json() as Manifest<any>;
-      await Deno.writeTextFile(
-        path.join(plugCache, cachedManifestPath),
-        JSON.stringify(cachedManifest),
-      );
-      imports.push(cachedManifest);
-    }
+      let [filePath, jsFunctionName] = def.path.split(":");
+      // Resolve path
+      filePath = path.join(rootPath, filePath);
+
+      return `import {${jsFunctionName} as ${funcName}} from "file://${
+        // Replacaing \ with / for Windows
+        path.resolve(filePath).replaceAll(
+          "\\",
+          "\\\\",
+        )}";\n`;
+    }).join("")
   }
 
-  // Functions
-  for (const def of Object.values(manifest.functions || {})) {
-    if (!def.path) {
-      continue;
-    }
-    let jsFunctionName = "default",
-      filePath: string = def.path;
-    if (filePath.indexOf(":") !== -1) {
-      [filePath, jsFunctionName] = filePath.split(":");
-    }
-    // Resolve path
-    filePath = path.join(rootPath, filePath);
-
-    def.code = await compile(
-      filePath,
-      jsFunctionName,
-      {
-        ...options,
-        imports: [
-          manifest,
-          ...imports,
-          // This is mostly for testing
-          ...options.imports || [],
-        ],
-      },
-    );
-    delete def.path;
+// Function mapping
+export const functionMapping = {
+${
+    Object.entries(manifest.functions).map(([funcName, def]) => {
+      if (!def.path) {
+        return "";
+      }
+      return `  ${funcName}: ${funcName},\n`;
+    }).join("")
   }
-  return manifest;
-}
+};
 
-async function buildManifest(
-  manifestPath: string,
-  distPath: string,
-  options: CompileOptions = {},
-) {
-  const generatedManifest = await bundle(manifestPath, options);
-  const outFile = manifestPath.substring(
-    0,
-    manifestPath.length - path.extname(manifestPath).length,
-  ) + ".json";
-  const outPath = path.join(distPath, path.basename(outFile));
-  console.log("Emitting bundle to", outPath);
-  await Deno.writeTextFile(outPath, JSON.stringify(generatedManifest, null, 2));
-  return { generatedManifest, outPath };
+const manifest = ${JSON.stringify(manifest, null, 2)};
+
+setupMessageListener(functionMapping, manifest);
+`;
+
+  // console.log("Code:", jsFile);
+
+  const inFile = await Deno.makeTempFile({ suffix: ".js" });
+  const outFile = `${destPath}/${manifest.name}.plug.js`;
+  await Deno.writeTextFile(inFile, jsFile);
+
+  const result = await esbuild.build({
+    entryPoints: [path.basename(inFile)],
+    bundle: true,
+    format: "iife",
+    globalName: "mod",
+    platform: "browser",
+    sourcemap: options.debug ? "inline" : false,
+    minify: !options.debug,
+    outfile: outFile,
+    metafile: options.info,
+    // external: esBuildExternals(options.imports),
+    treeShaking: true,
+    plugins: [
+      denoPlugin({
+        // TODO do this differently
+        importMapURL: options.importMap ||
+          new URL("./../../import_map.json", import.meta.url),
+        loader: "native",
+      }),
+    ],
+    absWorkingDir: path.resolve(path.dirname(inFile)),
+  });
+
+  if (options.info) {
+    const text = await esbuild.analyzeMetafile(result.metafile!);
+    console.log("Bundle info for", manifestPath, text);
+  }
+
+  let jsCode = await Deno.readTextFile(outFile);
+  jsCode = patchDenoLibJS(jsCode);
+  await Deno.writeTextFile(outFile, jsCode);
+  console.log(`Plug ${manifest.name} written to ${outFile}.`);
 }
 
 export async function bundleRun(
@@ -125,6 +120,7 @@ export async function bundleRun(
   options: CompileOptions = {},
 ) {
   let building = false;
+  dist = path.resolve(dist);
   async function buildAll() {
     if (building) {
       return;
@@ -137,7 +133,7 @@ export async function bundleRun(
     await Promise.all(manifestFiles.map(async (plugManifestPath) => {
       const manifestPath = plugManifestPath as string;
       try {
-        await buildManifest(
+        await compileManifest(
           manifestPath,
           dist,
           options,

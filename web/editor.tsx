@@ -113,8 +113,6 @@ import {
   initialViewState,
 } from "./types.ts";
 
-import globalPlug from "../dist/global.plug.json" assert { type: "json" };
-
 import type {
   AppEvent,
   ClickEvent,
@@ -325,7 +323,7 @@ export class Editor {
       console.log("Plug updated, reloading:", fileName);
       system.unload(fileName);
       await system.load(
-        JSON.parse(await this.space.readFile(fileName, "utf8")),
+        await this.space.readFile(fileName, "utf8"),
         createSandbox,
       );
       this.plugsUpdated = true;
@@ -339,18 +337,6 @@ export class Editor {
   async init() {
     this.focus();
     await this.syncEngine.init();
-
-    this.system.on({
-      sandboxInitialized: async (sandbox) => {
-        for (
-          const [modName, code] of Object.entries(
-            globalPlug.dependencies,
-          )
-        ) {
-          await sandbox.loadDependency(modName, code as string);
-        }
-      },
-    });
 
     this.space.on({
       pageChanged: (meta) => {
@@ -972,7 +958,7 @@ export class Editor {
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       const { data } = await this.space.readAttachment(plugName, "utf8");
-      await this.system.load(JSON.parse(data as string), createSandbox);
+      await this.system.load(data as string, createSandbox);
     }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");

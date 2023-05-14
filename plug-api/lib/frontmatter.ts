@@ -1,24 +1,24 @@
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
   findNodeOfType,
   ParseTree,
   renderToText,
-  replaceNodesMatching,
-  traverseTree,
+  replaceNodesMatchingAsync,
+  traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 
 // Extracts front matter (or legacy "meta" code blocks) from a markdown document
 // optionally removes certain keys from the front matter
-export function extractFrontmatter(
+export async function extractFrontmatter(
   tree: ParseTree,
   removeKeys: string[] = [],
-): any {
+): Promise<any> {
   let data: any = {};
   addParentPointers(tree);
 
-  replaceNodesMatching(tree, (t) => {
+  await replaceNodesMatchingAsync(tree, async (t) => {
     // Find top-level hash tags
     if (t.type === "Hashtag") {
       // Check if if nested directly into a Paragraph
@@ -38,7 +38,7 @@ export function extractFrontmatter(
       const yamlNode = t.children![1].children![0];
       const yamlText = renderToText(yamlNode);
       try {
-        const parsedData: any = YAML.parse(yamlText);
+        const parsedData: any = await YAML.parse(yamlText);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };
         if (removeKeys.length > 0) {
@@ -51,7 +51,7 @@ export function extractFrontmatter(
             }
           }
           if (removedOne) {
-            yamlNode.text = YAML.stringify(newData);
+            yamlNode.text = await YAML.stringify(newData);
           }
         }
         // If nothing is left, let's just delete this whole block
@@ -92,7 +92,7 @@ export function extractFrontmatter(
         }
       }
       if (removedOne) {
-        codeTextNode.children![0].text = YAML.stringify(newData).trim();
+        codeTextNode.children![0].text = (await YAML.stringify(newData)).trim();
       }
     }
     // If nothing is left, let's just delete this whole block
@@ -112,26 +112,26 @@ export function extractFrontmatter(
 }
 
 // Updates the front matter of a markdown document and returns the text as a rendered string
-export function prepareFrontmatterDispatch(
+export async function prepareFrontmatterDispatch(
   tree: ParseTree,
   data: Record<string, any>,
-): any {
+): Promise<any> {
   let dispatchData: any = null;
-  traverseTree(tree, (t) => {
+  await traverseTreeAsync(tree, async (t) => {
     // Find FrontMatter and parse it
     if (t.type === "FrontMatter") {
       const bodyNode = t.children![1].children![0];
       const yamlText = renderToText(bodyNode);
 
       try {
-        const parsedYaml = YAML.parse(yamlText) as any;
+        const parsedYaml = await YAML.parse(yamlText) as any;
         const newData = { ...parsedYaml, ...data };
         // Patch inline
         dispatchData = {
           changes: {
             from: bodyNode.from,
             to: bodyNode.to,
-            insert: YAML.stringify(newData, { noArrayIndent: true }),
+            insert: await YAML.stringify(newData),
           },
         };
       } catch (e: any) {
@@ -147,7 +147,7 @@ export function prepareFrontmatterDispatch(
       changes: {
         from: 0,
         to: 0,
-        insert: "---\n" + YAML.stringify(data, { noArrayIndent: true }) +
+        insert: "---\n" + await YAML.stringify(data) +
           "---\n",
       },
     };

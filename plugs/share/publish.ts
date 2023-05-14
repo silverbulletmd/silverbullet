@@ -8,7 +8,7 @@ export async function publishCommand() {
   const text = await editor.getText();
   const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  const { $share } = extractFrontmatter(tree);
+  const { $share } = await extractFrontmatter(tree);
   if (!$share) {
     await editor.flashNotification("Saved.");
     return;

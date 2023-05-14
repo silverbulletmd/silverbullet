@@ -1,5 +1,4 @@
 import Handlebars from "handlebars";
-import * as YAML from "yaml";
 
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
@@ -97,21 +96,21 @@ export async function renderTemplate(
       s.length > to - from ? s.substring(from, to) + elipsis : s,
   );
 
-  Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
-    if (typeof prefix === "string") {
-      let yaml = YAML.stringify(v)
-        .split("\n")
-        .join("\n" + prefix)
-        .trim();
-      if (Array.isArray(v)) {
-        return "\n" + prefix + yaml;
-      } else {
-        return yaml;
-      }
-    } else {
-      return YAML.stringify(v).trim();
-    }
-  });
+  // Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
+  //   if (typeof prefix === "string") {
+  //     let yaml = (await YAML.stringify(v))
+  //       .split("\n")
+  //       .join("\n" + prefix)
+  //       .trim();
+  //     if (Array.isArray(v)) {
+  //       return "\n" + prefix + yaml;
+  //     } else {
+  //       return yaml;
+  //     }
+  //   } else {
+  //     return YAML.stringify(v).trim();
+  //   }
+  // });
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   const template = Handlebars.compile(templateText, { noEscape: true });

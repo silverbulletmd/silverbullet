@@ -20,7 +20,6 @@ export async function updateMarkdownPreview() {
   const html = await renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,
-    renderFrontMatter: true,
     inlineAttachments: async (url): Promise<string> => {
       if (!url.includes("://")) {
         try {

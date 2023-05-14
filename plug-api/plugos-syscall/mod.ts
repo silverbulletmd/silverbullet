@@ -6,4 +6,5 @@ export * as sandbox from "./sandbox.ts";
 export * as fulltext from "./fulltext.ts";
 export * as shell from "./shell.ts";
 export * as store from "./store.ts";
+export * as YAML from "./yaml.ts";
 export * from "./syscall.ts";

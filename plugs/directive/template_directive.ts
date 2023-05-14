@@ -48,7 +48,7 @@ export async function templateDirectiveRenderer(
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
     const tree = await markdown.parseMarkdown(templateText);
-    extractFrontmatter(tree, ["$disableDirectives"]);
+    await extractFrontmatter(tree, ["$disableDirectives"]);
     templateText = renderToText(tree);
     const templateFn = Handlebars.compile(
       replaceTemplateVars(templateText, pageName),

@@ -1,8 +1,8 @@
+import { Manifest } from "../../common/manifest.ts";
 import type { LogLevel } from "./custom_logger.ts";
 
 export type ControllerMessageType =
   | "inited"
-  | "dependency-inited"
   | "result"
   | "syscall"
   | "log";
@@ -17,6 +17,7 @@ export type ControllerMessage = {
   level?: LogLevel;
   message?: string;
   result?: any;
+  manifest?: Manifest;
 };
 
 export interface WorkerLike {
@@ -29,8 +30,6 @@ export interface WorkerLike {
 }
 
 export type WorkerMessageType =
-  | "load"
-  | "load-dependency"
   | "invoke"
   | "syscall-response";
 

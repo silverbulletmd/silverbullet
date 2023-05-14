@@ -17,4 +17,3 @@ silverbullet publish --index -o website_build website
 echo "Bundling..."
 deno task bundle
 cp dist/silverbullet.js website_build/
-cp dist_bundle/web/global.plug.json website_build/

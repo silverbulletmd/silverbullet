@@ -160,7 +160,7 @@ export class Space extends EventEmitter<SpaceEvents>
     return files
       .filter((fileMeta) =>
         fileMeta.name.startsWith(plugPrefix) &&
-        fileMeta.name.endsWith(".plug.json")
+        fileMeta.name.endsWith(".plug.js")
       )
       .map((fileMeta) => fileMeta.name);
   }
@@ -231,8 +231,7 @@ export class Space extends EventEmitter<SpaceEvents>
     return (await this.spacePrimitives.fetchFileList()).filter(
       (fileMeta) =>
         !fileMeta.name.endsWith(".md") &&
-        !fileMeta.name.endsWith(".plug.json") &&
-        fileMeta.name !== "data.db",
+        !fileMeta.name.endsWith(".plug.js"),
     );
   }
 

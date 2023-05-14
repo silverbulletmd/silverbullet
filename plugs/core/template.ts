@@ -31,7 +31,7 @@ export async function instantiateTemplateCommand() {
   );
 
   const parseTree = await markdown.parseMarkdown(text);
-  const additionalPageMeta = extractFrontmatter(parseTree, [
+  const additionalPageMeta = await extractFrontmatter(parseTree, [
     "$name",
     "$disableDirectives",
   ]);

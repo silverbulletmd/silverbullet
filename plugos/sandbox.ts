@@ -1,12 +1,9 @@
+import { Manifest } from "./types.ts";
 import type { LogLevel } from "./environments/custom_logger.ts";
-import {
-  ControllerMessage,
-  WorkerLike,
-  WorkerMessage,
-} from "./environments/worker.ts";
+import { ControllerMessage, WorkerMessage } from "./environments/worker.ts";
 import { Plug } from "./plug.ts";
 
-export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox;
+export type SandboxFactory<HookT> = (plug: Plug<any>) => Sandbox;
 
 export type LogEntry = {
   level: LogLevel;
@@ -15,85 +12,41 @@ export type LogEntry = {
 };
 
 export class Sandbox {
-  protected worker: WorkerLike;
+  protected worker: Worker;
   protected reqId = 0;
-  protected outstandingInits = new Map<string, () => void>();
   protected outstandingDependencyInits = new Map<string, () => void>();
   protected outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
   protected loadedFunctions = new Set<string>();
-  protected plug: Plug<any>;
   public logBuffer: LogEntry[] = [];
   public maxLogBufferSize = 100;
+  public manifest: Promise<Manifest<any>>;
 
-  constructor(plug: Plug<any>, worker: WorkerLike) {
-    worker.onMessage = this.onMessage.bind(this);
-    this.worker = worker;
-    this.plug = plug;
-  }
-
-  isLoaded(name: string) {
-    return this.loadedFunctions.has(name);
-  }
-
-  async load(name: string, code: string): Promise<void> {
-    await this.worker.ready;
-    const outstandingInit = this.outstandingInits.get(name);
-    if (outstandingInit) {
-      // Load already in progress, let's wait for it...
-      return new Promise((resolve) => {
-        this.outstandingInits.set(name, () => {
-          outstandingInit!();
-          resolve();
-        });
-      });
-    }
-    this.worker.postMessage({
-      type: "load",
-      name: name,
-      code: code,
-    } as WorkerMessage);
-    return new Promise((resolve) => {
-      this.outstandingInits.set(name, () => {
-        this.loadedFunctions.add(name);
-        this.outstandingInits.delete(name);
-        resolve();
-      });
+  constructor(
+    readonly plug: Plug<any>,
+    workerOptions = {},
+  ) {
+    const blob = new Blob([plug.workerCode], { type: "text/javascript" });
+    this.worker = new Worker(URL.createObjectURL(blob), {
+      ...workerOptions,
+      type: "module",
     });
-  }
+    this.manifest = new Promise((resolve) => {
+      this.worker.onmessage = (ev) => {
+        if (ev.data.type === "inited") {
+          resolve(ev.data.manifest);
+          return;
+        }
 
-  loadDependency(name: string, code: string): Promise<void> {
-    // console.log("Loading dependency", name);
-    this.worker.postMessage({
-      type: "load-dependency",
-      name: name,
-      code: code,
-    } as WorkerMessage);
-    return new Promise((resolve) => {
-      // console.log("Loaded dependency", name);
-      this.outstandingDependencyInits.set(name, () => {
-        this.outstandingDependencyInits.delete(name);
-        resolve();
-      });
+        this.onMessage(ev.data);
+      };
     });
   }
 
   async onMessage(data: ControllerMessage) {
     switch (data.type) {
-      case "inited": {
-        const initCb = this.outstandingInits.get(data.name!);
-        initCb && initCb();
-        this.outstandingInits.delete(data.name!);
-        break;
-      }
-      case "dependency-inited": {
-        const depInitCb = this.outstandingDependencyInits.get(data.name!);
-        depInitCb && depInitCb();
-        this.outstandingDependencyInits.delete(data.name!);
-        break;
-      }
       case "syscall":
         try {
           const result = await this.plug.syscall(data.name!, data.args!);

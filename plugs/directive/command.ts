@@ -14,7 +14,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   const pageName = await editor.getCurrentPage();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  const metaData = extractFrontmatter(tree, ["$disableDirectives"]);
+  const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
   if (metaData.$disableDirectives) {
     // Not updating, directives disabled
     return;

@@ -14,7 +14,7 @@ import { extractFrontmatter } from "../../plug-api/lib/frontmatter.ts";
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
   const allTags = new Set<string>();
-  const { tags } = extractFrontmatter(tree);
+  const { tags } = await extractFrontmatter(tree);
   if (Array.isArray(tags)) {
     tags.forEach((t) => allTags.add(t));
   }

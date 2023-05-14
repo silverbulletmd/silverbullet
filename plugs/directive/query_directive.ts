@@ -4,7 +4,7 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { renderTemplate } from "./util.ts";
 import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
-import { ParseTree } from "../../plug-api/lib/tree.ts";
+import { ParseTree } from "$sb/lib/tree.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,

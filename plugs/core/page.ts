@@ -32,7 +32,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
-  const pageMeta = extractFrontmatter(tree);
+  const pageMeta = await extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
     // Don't index meta data starting with $

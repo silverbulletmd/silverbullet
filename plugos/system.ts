@@ -95,32 +95,33 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async load(
-    manifest: Manifest<HookT>,
+    plugWorkerCode: string,
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
-    const name = manifest.name;
-    if (this.plugs.has(name)) {
-      await this.unload(name);
-    }
+    const plug = new Plug(this, plugWorkerCode, sandboxFactory);
+    await plug.ready;
+    const manifest = plug.manifest!;
+
     // Validate
     let errors: string[] = [];
     for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(manifest)];
+      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
     }
     if (errors.length > 0) {
       throw new Error(`Invalid manifest: ${errors.join(", ")}`);
     }
-    // Ok, let's load this thing!
-    const plug = new Plug(this, name, sandboxFactory);
-    console.log("Loading", name);
-    plug.load(manifest);
-    this.plugs.set(name, plug);
+    if (this.plugs.has(manifest.name)) {
+      this.unload(manifest.name);
+    }
+    console.log("Loaded plug", manifest.name);
+    this.plugs.set(manifest.name, plug);
+
     await this.emit("plugLoaded", plug);
     return plug;
   }
 
   unload(name: string) {
-    // console.log("Unloading", name);
+    console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
       return;
@@ -128,28 +129,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     plug.stop();
     this.emit("plugUnloaded", name);
     this.plugs.delete(name);
-  }
-
-  toJSON(): SystemJSON<HookT> {
-    const plugJSON: Manifest<HookT>[] = [];
-    for (const [_, plug] of this.plugs) {
-      if (!plug.manifest) {
-        continue;
-      }
-      plugJSON.push(plug.manifest);
-    }
-    return plugJSON;
-  }
-
-  async replaceAllFromJSON(
-    json: SystemJSON<HookT>,
-    sandboxFactory: SandboxFactory<HookT>,
-  ) {
-    await this.unloadAll();
-    for (const manifest of json) {
-      // console.log("Loading plug", manifest.name);
-      await this.load(manifest, sandboxFactory);
-    }
   }
 
   unloadAll(): Promise<void[]> {

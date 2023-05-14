@@ -19,8 +19,6 @@ if (typeof Deno === "undefined") {
   };
 }
 
-// deno-lint-ignore ban-types
-const loadedFunctions = new Map<string, Function>();
 const pendingRequests = new Map<
   number,
   {
@@ -61,7 +59,7 @@ const loadedModules = new Map<string, any>();
 
 // @ts-ignore: global to load dynamic imports
 self.require = (moduleName: string): any => {
-  // console.log("Requiring", moduleName, loadedModules.get(moduleName));
+  console.log("Requiring", moduleName);
   const mod = loadedModules.get(moduleName);
   if (!mod) {
     throw new Error(
@@ -76,90 +74,74 @@ self.console = new ConsoleLogger((level, message) => {
   workerPostMessage({ type: "log", level, message });
 }, false);
 
-function wrapScript(code: string) {
-  return `return (${code})["default"]`;
+export function setupMessageListener(
+  // deno-lint-ignore ban-types
+  functionMapping: Record<string, Function>,
+  manifest: Manifest,
+) {
+  self.addEventListener("message", (event: { data: WorkerMessage }) => {
+    safeRun(async () => {
+      const data = event.data;
+      switch (data.type) {
+        case "invoke":
+          {
+            const fn = functionMapping[data.name!];
+            if (!fn) {
+              throw new Error(`Function not loaded: ${data.name}`);
+            }
+            try {
+              const result = await Promise.resolve(fn(...(data.args || [])));
+              workerPostMessage({
+                type: "result",
+                id: data.id,
+                result: result,
+              } as ControllerMessage);
+            } catch (e: any) {
+              workerPostMessage({
+                type: "result",
+                id: data.id,
+                error: e.message,
+                stack: e.stack,
+              });
+              // console.error("Error invoking function", data.name, e.message);
+              // throw e;
+            }
+          }
+
+          break;
+        case "syscall-response":
+          {
+            const syscallId = data.id!;
+            const lookup = pendingRequests.get(syscallId);
+            if (!lookup) {
+              console.log(
+                "Current outstanding requests",
+                pendingRequests,
+                "looking up",
+                syscallId,
+              );
+              throw Error("Invalid request id");
+            }
+            pendingRequests.delete(syscallId);
+            if (data.error) {
+              lookup.reject(new Error(data.error));
+            } else {
+              lookup.resolve(data.result);
+            }
+          }
+
+          break;
+      }
+    });
+  });
+  // Signal initialization with manifest
+  workerPostMessage({
+    type: "inited",
+    manifest,
+  });
 }
 
-self.addEventListener("message", (event: { data: WorkerMessage }) => {
-  safeRun(async () => {
-    const data = event.data;
-    switch (data.type) {
-      case "load":
-        {
-          const fn2 = new Function(wrapScript(data.code!));
-          loadedFunctions.set(data.name!, fn2());
-          workerPostMessage({
-            type: "inited",
-            name: data.name,
-          });
-        }
-
-        break;
-      case "load-dependency":
-        {
-          // console.log("Received dep", data.name);
-          const fn3 = new Function(`return ${data.code!}`);
-          const v = fn3();
-          loadedModules.set(data.name!, v);
-          // console.log("Dep val", v);
-          workerPostMessage({
-            type: "dependency-inited",
-            name: data.name,
-          });
-        }
-        break;
-      case "invoke":
-        {
-          const fn = loadedFunctions.get(data.name!);
-          if (!fn) {
-            throw new Error(`Function not loaded: ${data.name}`);
-          }
-          try {
-            const result = await Promise.resolve(fn(...(data.args || [])));
-            workerPostMessage({
-              type: "result",
-              id: data.id,
-              result: result,
-            } as ControllerMessage);
-          } catch (e: any) {
-            workerPostMessage({
-              type: "result",
-              id: data.id,
-              error: e.message,
-              stack: e.stack,
-            });
-            // console.error("Error invoking function", data.name, e.message);
-            // throw e;
-          }
-        }
-
-        break;
-      case "syscall-response":
-        {
-          const syscallId = data.id!;
-          const lookup = pendingRequests.get(syscallId);
-          if (!lookup) {
-            console.log(
-              "Current outstanding requests",
-              pendingRequests,
-              "looking up",
-              syscallId,
-            );
-            throw Error("Invalid request id");
-          }
-          pendingRequests.delete(syscallId);
-          if (data.error) {
-            lookup.reject(new Error(data.error));
-          } else {
-            lookup.resolve(data.result);
-          }
-        }
-
-        break;
-    }
-  });
-});
-
 import { monkeyPatchFetch } from "../../plug-api/plugos-syscall/fetch.ts";
+import { Manifest } from "../../common/manifest.ts";
 
 monkeyPatchFetch();

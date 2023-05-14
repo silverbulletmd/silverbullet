@@ -9,7 +9,7 @@ import {
   extractFrontmatter,
   prepareFrontmatterDispatch,
 } from "$sb/lib/frontmatter.ts";
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 import {
   clientStore,
   collab,
@@ -67,7 +67,7 @@ export async function shareCommand() {
   await editor.save();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  let { $share } = extractFrontmatter(tree);
+  let { $share } = await extractFrontmatter(tree);
   if (!$share) {
     $share = [];
   }
@@ -95,7 +95,7 @@ export async function detectPage() {
   if (frontMatter) {
     const yamlText = renderToText(frontMatter.children![1].children![0]);
     try {
-      let { $share } = YAML.parse(yamlText) as any;
+      let { $share } = await YAML.parse(yamlText) as any;
       if (!$share) {
         return;
       }

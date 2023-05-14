@@ -21,9 +21,9 @@ cp -r dist_client_bundle/* website_build/
 echo "And all plugs"
 cp -r dist_plug_bundle/_plug/* website_build/fs/_plug/
 echo "And additional ones"
-curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.json > website_build/fs/_plug/mermaid.plug.json
+curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/fs/_plug/mermaid.plug.js
 echo "But remove some plugs"
-rm -rf website_build/fs/_plug/{plugmd}.plug.json
+rm -rf website_build/fs/_plug/{plugmd}.plug.js
 echo "Copying netlify config files"
 cp website/{_redirects,_headers} website_build/
 

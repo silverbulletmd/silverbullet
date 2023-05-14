@@ -6,7 +6,7 @@ export default function assetSyscalls(system: System<any>): SysCallMapping {
       ctx,
       name: string,
     ): string => {
-      return system.loadedPlugs.get(ctx.plug.name)!.assets!.readFileAsDataUrl(
+      return system.loadedPlugs.get(ctx.plug.name!)!.assets!.readFileAsDataUrl(
         name,
       );
     },

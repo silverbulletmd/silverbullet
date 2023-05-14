@@ -48,14 +48,15 @@ export class EventHook implements Hook<EventHookT> {
     }
     const responses: any[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
+      const manifest = await plug.manifest;
       for (
         const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
+          manifest!.functions,
         )
       ) {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
-          if (plug.canInvoke(name)) {
+          if (await plug.canInvoke(name)) {
             const result = await plug.invoke(name, [data]);
             if (result !== undefined) {
               responses.push(result);

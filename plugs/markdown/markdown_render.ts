@@ -4,14 +4,12 @@ import {
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
-import * as YAML from "yaml";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
 
 type MarkdownRenderOptions = {
   failOnUnknown?: true;
   smartHardBreak?: true;
   annotationPositions?: true;
-  renderFrontMatter?: true;
   attachmentUrlPrefix?: string;
   // When defined, use to inline images as data: urls
   inlineAttachments?: (url: string) => Promise<string>;
@@ -78,33 +76,7 @@ function render(
         body: cleanTags(mapRender(t.children!)),
       };
     case "FrontMatter":
-      if (options.renderFrontMatter) {
-        const yamlCode = renderToText(t.children![1]);
-        const parsedYaml = YAML.parse(yamlCode) as Record<string, any>;
-        const rows: Tag[] = [];
-        for (const [k, v] of Object.entries(parsedYaml)) {
-          rows.push({
-            name: "tr",
-            body: [
-              { name: "td", attrs: { class: "key" }, body: k },
-              {
-                name: "td",
-                attrs: { class: "value" },
-                body: YAML.stringify(v),
-              },
-            ],
-          });
-        }
-        return {
-          name: "table",
-          attrs: {
-            class: "front-matter",
-          },
-          body: rows,
-        };
-      } else {
-        return null;
-      }
+      return null;
     case "CommentBlock":
       // Remove, for now
       return null;

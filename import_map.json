@@ -2,6 +2,7 @@
   "imports": {
     "@codemirror/state": "https://esm.sh/@codemirror/state@6.2.0",
     "@lezer/common": "https://esm.sh/@lezer/common@1.0.2",
+    "@lezer/lr": "https://esm.sh/@lezer/lr@1.3.3?external=@lezer/common",
     "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight",
     "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.1?external=@lezer/common,@codemirror/language,@lezer/highlight",
     "@codemirror/language": "https://esm.sh/@codemirror/language@6.6.0?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight",
@@ -15,9 +16,7 @@
     "preact": "https://esm.sh/preact@10.11.1",
     "yjs": "https://esm.sh/yjs@13.5.42",
     "$sb/": "./plug-api/",
-    "handlebars": "https://esm.sh/handlebars",
-    "@lezer/lr": "https://esm.sh/@lezer/lr@1.3.3?external=@lezer/common",
-    "yaml": "https://deno.land/std@0.184.0/yaml/mod.ts",
+    "handlebars": "https://esm.sh/handlebars?target=es2022",
     "dexie": "https://esm.sh/dexie@3.2.2"
   }
 }
