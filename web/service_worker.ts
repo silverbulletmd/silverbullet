@@ -18,7 +18,6 @@ const precacheFiles = Object.fromEntries([
   "/logo.png",
   "/main.css",
   "/manifest.json",
-  "/worker.js",
 ].map((path) => [path, path + "?v=" + Date.now(), path]));
 
 self.addEventListener("install", (event: any) => {
