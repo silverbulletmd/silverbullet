@@ -1,6 +1,4 @@
 name: directive
-imports:
-  - https://get.silverbullet.md/global.plug.json
 functions:
   serverRenderDirective:
     path: ./command.ts:serverRenderDirective

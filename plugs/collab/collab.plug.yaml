@@ -1,6 +1,4 @@
 name: collab
-imports:
-  - https://get.silverbullet.md/global.plug.json
 functions:
   detectCollabPage:
     path: "./collab.ts:detectPage"

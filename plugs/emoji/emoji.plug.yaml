@@ -1,6 +1,4 @@
 name: emoji
-imports:
-  - https://get.silverbullet.md/global.plug.json
 functions:
   emojiCompleter:
     path: "./emoji.ts:emojiCompleter"
