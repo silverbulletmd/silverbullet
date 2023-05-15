@@ -1,4 +1,4 @@
-import { globToRegExp, path, walk } from "../deps.ts";
+import { globToRegExp, mime, path, walk } from "../deps.ts";
 import { AssetBundle } from "./bundle.ts";
 
 export async function bundleAssets(
@@ -23,7 +23,11 @@ export async function bundleAssets(
       }
     }
     if (match) {
-      bundle.writeFileSync(cleanPath, await Deno.readFile(file.path));
+      bundle.writeFileSync(
+        cleanPath,
+        mime.getType(cleanPath) || "application/octet-stream",
+        await Deno.readFile(file.path),
+      );
     }
   }
   return bundle;
@@ -43,6 +47,7 @@ export async function bundleFolder(
     const cleanPath = filePath.substring(`${rootPath}/`.length);
     bundle.writeFileSync(
       cleanPath,
+      mime.getType(filePath) || "application/octet-stream",
       await Deno.readFile(filePath),
       stat.mtime?.getTime(),
     );

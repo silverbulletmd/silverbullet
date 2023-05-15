@@ -1,5 +1,5 @@
-import { Manifest } from "../../common/manifest.ts";
-import type { LogLevel } from "./custom_logger.ts";
+import { Manifest } from "../common/manifest.ts";
+import type { LogLevel } from "./runtime/custom_logger.ts";
 
 export type ControllerMessageType =
   | "inited"

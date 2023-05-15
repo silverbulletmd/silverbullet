@@ -1,6 +1,6 @@
 import { Manifest } from "./types.ts";
-import type { LogLevel } from "./environments/custom_logger.ts";
-import { ControllerMessage, WorkerMessage } from "./environments/worker.ts";
+import type { LogLevel } from "./runtime/custom_logger.ts";
+import { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import { Plug } from "./plug.ts";
 
 export type SandboxFactory<HookT> = (plug: Plug<any>) => Sandbox;

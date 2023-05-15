@@ -122,3 +122,5 @@ export {
   javascriptLanguage,
   typescriptLanguage,
 } from "https://esm.sh/@codemirror/lang-javascript@6.1.4?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
+
+export { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";

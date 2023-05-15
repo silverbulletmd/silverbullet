@@ -1,7 +1,7 @@
 // IMPORTANT: After modifiying this file, run `deno task generate` in the SB root to regenerate the asset bundle (`worker_bundle.json`), which will be imported for the runtime.
 import { safeRun } from "../util.ts";
 import { ConsoleLogger } from "./custom_logger.ts";
-import type { ControllerMessage, WorkerMessage } from "./worker.ts";
+import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
 
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack

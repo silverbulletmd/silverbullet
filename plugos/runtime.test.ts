@@ -1,9 +1,8 @@
-import path from "https://deno.land/std@0.177.0/node/path.ts";
-import { compileManifest } from "./bin/plugos-bundle.ts";
 import { createSandbox } from "./environments/deno_sandbox.ts";
 import { System } from "./system.ts";
 import { assertEquals } from "../test_deps.ts";
-import { esbuild } from "./compile.ts";
+import { compileManifest } from "./compile.ts";
+import { esbuild } from "./deps.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");

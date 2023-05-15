@@ -2,7 +2,7 @@ import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
-import { mime } from "../../plugos/deps.ts";
+import { mime } from "../deps.ts";
 
 const bootTime = Date.now();
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {

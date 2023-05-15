@@ -9,8 +9,8 @@ import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
-import { mime } from "../../plugos/deps.ts";
 import Dexie, { Table } from "dexie";
+import { mime } from "../deps.ts";
 
 export type FileContent = {
   name: string;

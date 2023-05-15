@@ -4,7 +4,7 @@ import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
-import { mime } from "../../plugos/deps.ts";
+import { mime } from "../deps.ts";
 import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {

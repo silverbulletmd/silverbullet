@@ -1,10 +1,7 @@
-import * as esbuildWasm from "https://deno.land/x/esbuild@v0.17.18/wasm.js";
-import * as esbuildNative from "https://deno.land/x/esbuild@v0.17.18/mod.js";
+import { YAML } from "../common/deps.ts";
+import { denoPlugins, esbuild, path } from "./deps.ts";
 
-export const esbuild: typeof esbuildWasm = Deno.Command === undefined
-  ? esbuildWasm
-  : esbuildNative;
-
+import { bundleAssets } from "./asset_bundle/builder.ts";
 import { Manifest } from "./types.ts";
 
 export type CompileOptions = {
@@ -17,125 +14,165 @@ export type CompileOptions = {
   info?: boolean;
 };
 
-// function esBuildExternals(imports?: Manifest<any>[]) {
-//   if (!imports) {
-//     return [];
-//   }
-//   const externals: string[] = [];
-//   for (const manifest of imports) {
-//     for (const dep of Object.keys(manifest.dependencies || {})) {
-//       if (!externals.includes(dep)) {
-//         externals.push(dep);
-//       }
-//     }
-//   }
-//   return externals;
-// }
+export async function compileManifest(
+  manifestPath: string,
+  destPath: string,
+  options: CompileOptions = {},
+) {
+  const rootPath = path.dirname(manifestPath);
+  const manifest = YAML.parse(
+    await Deno.readTextFile(manifestPath),
+  ) as Manifest<any>;
 
-// export async function compile(
-//   filePath: string,
-//   functionName: string | undefined = undefined,
-//   options: CompileOptions = {},
-// ): Promise<string> {
-//   const outFile = await Deno.makeTempFile({ suffix: ".js" });
-//   let inFile = filePath;
+  if (!manifest.name) {
+    throw new Error(`Missing 'name' in ${manifestPath}`);
+  }
 
-//   if (functionName) {
-//     // Generate a new file importing just this one function and exporting it
-//     inFile = await Deno.makeTempFile({ suffix: ".ts" });
-//     await Deno.writeTextFile(
-//       inFile,
-//       `import {${functionName}} from "file://${
-//         // Replacaing \ with / for Windows
-//         path.resolve(filePath).replaceAll(
-//           "\\",
-//           "\\\\",
-//         )}";export default ${functionName};`,
-//     );
-//   }
+  // Assets
+  const assetsBundle = await bundleAssets(
+    path.resolve(rootPath),
+    manifest.assets as string[] || [],
+  );
+  manifest.assets = assetsBundle.toJSON();
 
-//   // console.log("External modules", excludeModules);
+  const jsFile = `
+import { setupMessageListener } from "${new URL(
+    "./runtime/worker_runtime.ts",
+    import.meta.url,
+  )}";
 
-//   try {
-//     // TODO: Figure out how to make source maps work correctly with eval() code
-//     const result = await esbuild.build({
-//       entryPoints: [path.basename(inFile)],
-//       bundle: true,
-//       format: "iife",
-//       globalName: "mod",
-//       platform: "browser",
-//       sourcemap: false, //debug ? "inline" : false,
-//       minify: !options.debug,
-//       outfile: outFile,
-//       metafile: options.info,
-//       external: esBuildExternals(options.imports),
-//       treeShaking: true,
-//       plugins: [
-//         denoPlugin({
-//           // TODO do this differently
-//           importMapURL: options.importMap ||
-//             new URL("./../import_map.json", import.meta.url),
-//           loader: "native",
-//         }),
-//       ],
-//       absWorkingDir: path.resolve(path.dirname(inFile)),
-//     });
+// Imports
+${
+    Object.entries(manifest.functions).map(([funcName, def]) => {
+      if (!def.path) {
+        return "";
+      }
+      let [filePath, jsFunctionName] = def.path.split(":");
+      // Resolve path
+      filePath = path.join(rootPath, filePath);
 
-//     if (options.info) {
-//       const text = await esbuild.analyzeMetafile(result.metafile!);
-//       console.log("Bundle info for", functionName, text);
-//     }
+      return `import {${jsFunctionName} as ${funcName}} from "file://${
+        // Replacaing \ with / for Windows
+        path.resolve(filePath).replaceAll(
+          "\\",
+          "\\\\",
+        )}";\n`;
+    }).join("")
+  }
 
-//     let jsCode = await Deno.readTextFile(outFile);
-//     jsCode = patchDenoLibJS(jsCode);
-//     await Deno.remove(outFile);
-//     return `(() => { ${jsCode} return mod;})()`;
-//   } finally {
-//     if (inFile !== filePath) {
-//       await Deno.remove(inFile);
-//     }
-//   }
-// }
+// Function mapping
+export const functionMapping = {
+${
+    Object.entries(manifest.functions).map(([funcName, def]) => {
+      if (!def.path) {
+        return "";
+      }
+      return `  ${funcName}: ${funcName},\n`;
+    }).join("")
+  }
+};
 
-// export async function compileModule(
-//   cwd: string,
-//   moduleName: string,
-//   options: CompileOptions = {},
-// ): Promise<string> {
-//   const inFile = path.resolve(cwd, "_in.ts");
-//   await Deno.writeTextFile(inFile, `export * from "${moduleName}";`);
-//   const code = await compile(inFile, undefined, options);
-//   await Deno.remove(inFile);
-//   return code;
-// }
+const manifest = ${JSON.stringify(manifest, null, 2)};
 
-// export async function sandboxCompile(
-//   filename: string,
-//   code: string,
-//   functionName?: string,
-//   options: CompileOptions = {},
-// ): Promise<string> {
-//   const tmpDir = await Deno.makeTempDir();
+setupMessageListener(functionMapping, manifest);
+`;
 
-//   await Deno.writeTextFile(`${tmpDir}/${filename}`, code);
-//   const jsCode = await compile(
-//     `${tmpDir}/${filename}`,
-//     functionName,
-//     options,
-//   );
-//   await Deno.remove(tmpDir, { recursive: true });
-//   return jsCode;
-// }
+  // console.log("Code:", jsFile);
 
-// export async function sandboxCompileModule(
-//   moduleUrl: string,
-//   options: CompileOptions = {},
-// ): Promise<string> {
-//   await Deno.writeTextFile(
-//     "_mod.ts",
-//     `module.exports = require("${moduleUrl}");`,
-//   );
-//   const code = await compile("_mod.ts", undefined, options);
-//   await Deno.remove("_mod.ts");
-//   return code;
-// }
+  const inFile = await Deno.makeTempFile({ suffix: ".js" });
+  const outFile = `${destPath}/${manifest.name}.plug.js`;
+  await Deno.writeTextFile(inFile, jsFile);
+
+  const result = await esbuild.build({
+    entryPoints: [path.basename(inFile)],
+    bundle: true,
+    format: "iife",
+    globalName: "mod",
+    platform: "browser",
+    sourcemap: options.debug ? "linked" : false,
+    minify: !options.debug,
+    outfile: outFile,
+    metafile: options.info,
+    // external: esBuildExternals(options.imports),
+    treeShaking: true,
+    plugins: [
+      {
+        name: "json",
+        setup: (build) =>
+          build.onLoad({ filter: /\.json$/ }, () => ({ loader: "json" })),
+      },
+      ...denoPlugins({
+        // TODO do this differently
+        importMapURL: options.importMap ||
+          new URL("../import_map.json", import.meta.url).toString(),
+        loader: "native",
+      }),
+    ],
+    absWorkingDir: path.resolve(path.dirname(inFile)),
+  });
+
+  if (options.info) {
+    const text = await esbuild.analyzeMetafile(result.metafile!);
+    console.log("Bundle info for", manifestPath, text);
+  }
+
+  let jsCode = await Deno.readTextFile(outFile);
+  jsCode = patchDenoLibJS(jsCode);
+  await Deno.writeTextFile(outFile, jsCode);
+  console.log(`Plug ${manifest.name} written to ${outFile}.`);
+}
+
+export async function compileManifests(
+  manifestFiles: string[],
+  dist: string,
+  watch: boolean,
+  options: CompileOptions = {},
+) {
+  let building = false;
+  dist = path.resolve(dist);
+  async function buildAll() {
+    if (building) {
+      return;
+    }
+    console.log("Building", manifestFiles);
+    building = true;
+    Deno.mkdirSync(dist, { recursive: true });
+    const startTime = Date.now();
+    // Build all plugs in parallel
+    await Promise.all(manifestFiles.map(async (plugManifestPath) => {
+      const manifestPath = plugManifestPath as string;
+      try {
+        await compileManifest(
+          manifestPath,
+          dist,
+          options,
+        );
+      } catch (e) {
+        console.error(`Error building ${manifestPath}:`, e);
+      }
+    }));
+    console.log(`Done building plugs in ${Date.now() - startTime}ms`);
+    building = false;
+  }
+
+  await buildAll();
+
+  if (watch) {
+    console.log("Watching for changes...");
+    const watcher = Deno.watchFs(manifestFiles.map((p) => path.dirname(p)));
+    for await (const event of watcher) {
+      if (event.paths.length > 0) {
+        if (event.paths[0].endsWith(".json")) {
+          continue;
+        }
+      }
+      console.log("Change detected, rebuilding...");
+      buildAll();
+    }
+  }
+}
+
+export function patchDenoLibJS(code: string): string {
+  // The Deno std lib has one occurence of a regex that Webkit JS doesn't (yet parse), we'll strip it because it's likely never invoked anyway, YOLO
+  return code.replaceAll("/(?<=\\n)/", "/()/");
+}

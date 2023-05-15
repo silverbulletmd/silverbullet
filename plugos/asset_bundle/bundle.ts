@@ -1,5 +1,4 @@
 import { base64Decode, base64EncodedDataUrl } from "./base64.ts";
-import { mime } from "../deps.ts";
 
 type DataUrl = string;
 
@@ -64,18 +63,27 @@ export class AssetBundle {
     return entry.mtime;
   }
 
-  writeFileSync(path: string, data: Uint8Array, mtime: number = Date.now()) {
+  writeFileSync(
+    path: string,
+    mimeType: string,
+    data: Uint8Array,
+    mtime: number = Date.now(),
+  ) {
     // Replace \ with / for windows
     path = path.replaceAll("\\", "/");
-    const mimeType = mime.getType(path) || "application/octet-stream";
     this.bundle[path] = {
       data: base64EncodedDataUrl(mimeType, data),
       mtime,
     };
   }
 
-  writeTextFileSync(path: string, s: string, mtime: number = Date.now()) {
-    this.writeFileSync(path, new TextEncoder().encode(s), mtime);
+  writeTextFileSync(
+    path: string,
+    mimeType: string,
+    s: string,
+    mtime: number = Date.now(),
+  ) {
+    this.writeFileSync(path, mimeType, new TextEncoder().encode(s), mtime);
   }
 
   toJSON(): AssetJson {

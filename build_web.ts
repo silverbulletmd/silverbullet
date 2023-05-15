@@ -5,9 +5,9 @@ import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
-import { patchDenoLibJS } from "./plugos/hack.ts";
 
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
+import { patchDenoLibJS } from "./plugos/compile.ts";
 
 // @ts-ignore trust me
 export const esbuild: typeof esbuildWasm = Deno.Command === undefined
@@ -90,7 +90,7 @@ async function buildCopyBundleAssets() {
       entryPoints: {
         client: "web/boot.ts",
         service_worker: "web/service_worker.ts",
-        worker: "plugos/environments/sandbox_worker.ts",
+        // worker: "plugos/environments/sandbox_worker.ts",
       },
       outdir: "dist_client_bundle",
       absWorkingDir: Deno.cwd(),

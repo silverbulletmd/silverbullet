@@ -1,5 +1,5 @@
-import { bundleRun } from "../plugos/bin/plugos-bundle.ts";
-import { esbuild } from "../plugos/compile.ts";
+import { compileManifests } from "../plugos/compile.ts";
+import { esbuild } from "../plugos/deps.ts";
 
 export async function plugCompileCommand(
   { watch, dist, debug, info, importmap }: {
@@ -11,7 +11,7 @@ export async function plugCompileCommand(
   },
   ...manifestPaths: string[]
 ) {
-  await bundleRun(
+  await compileManifests(
     manifestPaths,
     dist,
     watch,

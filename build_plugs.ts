@@ -1,6 +1,5 @@
-import { flags, path } from "./plugos/deps.ts";
-import { bundleRun } from "./plugos/bin/plugos-bundle.ts";
-import { esbuild } from "./plugos/compile.ts";
+import { esbuild, flags, path } from "./plugos/deps.ts";
+import { compileManifests } from "./plugos/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 
 if (import.meta.main) {
@@ -18,7 +17,7 @@ if (import.meta.main) {
   Deno.mkdirSync("dist", { recursive: true });
 
   // Build the other plugs
-  await bundleRun(
+  await compileManifests(
     manifests,
     targetDir,
     args.watch,

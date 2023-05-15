@@ -9,7 +9,7 @@ import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
 } from "../../plugos/asset_bundle/base64.ts";
-import { walk } from "../../plugos/deps.ts";
+import { walk } from "https://deno.land/std@0.165.0/fs/walk.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
