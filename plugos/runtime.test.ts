@@ -27,13 +27,13 @@ Deno.test("Run a deno sandbox", async () => {
 
   const tempDir = await Deno.makeTempDir();
 
-  await compileManifest(
+  const workerPath = await compileManifest(
     new URL("test.plug.yaml", import.meta.url).pathname,
     tempDir,
   );
 
   const plug = await system.load(
-    new URL("test.plug.js", `file://${tempDir}`),
+    new URL(`file://${workerPath}`),
     createSandbox,
   );
 

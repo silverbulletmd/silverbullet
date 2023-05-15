@@ -4,49 +4,47 @@ import { System } from "./system.ts";
 import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export class Plug<HookT> {
-  system: System<HookT>;
-  sandbox: Sandbox;
-  public manifest?: Manifest<HookT>;
-  public assets?: AssetBundle;
-  private sandboxFactory: (plug: Plug<HookT>) => Sandbox;
   readonly runtimeEnv?: RuntimeEnvironment;
-  grantedPermissions: string[] = [];
-  // Only available after ready resolves
-  name?: string;
-  workerUrl: URL;
 
+  public grantedPermissions: string[] = [];
+  public sandbox: Sandbox<HookT>;
+
+  // Resolves once the worker has been loaded
   ready: Promise<void>;
 
+  // Only available after ready resolves
+  public manifest?: Manifest<HookT>;
+  public assets?: AssetBundle;
+
   constructor(
-    system: System<HookT>,
-    workerUrl: URL,
-    sandboxFactory: (plug: Plug<HookT>) => Sandbox,
+    private system: System<HookT>,
+    public workerUrl: URL,
+    private sandboxFactory: (plug: Plug<HookT>) => Sandbox<HookT>,
   ) {
-    this.system = system;
-    this.sandboxFactory = sandboxFactory;
-    this.workerUrl = workerUrl;
     this.runtimeEnv = system.env;
 
     // Kick off worker
     this.sandbox = this.sandboxFactory(this);
-    this.ready = new Promise((resolve) => {
-      this.sandbox.manifest.then((manifest) => {
-        this.manifest = manifest;
-        this.name = manifest.name;
-        this.assets = new AssetBundle(
-          manifest.assets ? manifest.assets as AssetJson : {},
-        );
-        // TODO: These need to be explicitly granted, not just taken
-        this.grantedPermissions = manifest.requiredPermissions || [];
-        resolve();
-      });
+    this.ready = this.sandbox.ready.then(() => {
+      this.manifest = this.sandbox.manifest!;
+      this.assets = new AssetBundle(
+        this.manifest.assets ? this.manifest.assets as AssetJson : {},
+      );
+      // TODO: These need to be explicitly granted, not just taken
+      this.grantedPermissions = this.manifest.requiredPermissions || [];
     });
   }
 
+  get name(): string | undefined {
+    return this.manifest?.name;
+  }
+
+  // Invoke a syscall
   syscall(name: string, args: any[]): Promise<any> {
     return this.system.syscallWithContext({ plug: this }, name, args);
   }
 
+  // Checks if a function can be invoked (it may be restricted on its execution environment)
   async canInvoke(name: string) {
     await this.ready;
     const funDef = this.manifest!.functions[name];
@@ -56,8 +54,12 @@ export class Plug<HookT> {
     return !funDef.env || !this.runtimeEnv || funDef.env === this.runtimeEnv;
   }
 
+  // Invoke a function
   async invoke(name: string, args: any[]): Promise<any> {
+    // Ensure the worker is fully up and running
     await this.ready;
+
+    // Before we access the manifest
     const funDef = this.manifest!.functions[name];
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);

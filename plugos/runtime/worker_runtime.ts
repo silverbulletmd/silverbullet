@@ -1,6 +1,12 @@
-// IMPORTANT: After modifiying this file, run `deno task generate` in the SB root to regenerate the asset bundle (`worker_bundle.json`), which will be imported for the runtime.
-import { ConsoleLogger } from "./custom_logger.ts";
+// This is the runtime imported from the compiled plug worker code
+
 import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
+import { ConsoleLogger } from "./custom_logger.ts";
+import type { Manifest } from "../../common/manifest.ts";
+
+declare global {
+  function syscall(name: string, ...args: any[]): Promise<any>;
+}
 
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack
@@ -26,20 +32,11 @@ const pendingRequests = new Map<
   }
 >();
 
-function workerPostMessage(msg: ControllerMessage) {
-  if (typeof window !== "undefined" && window.parent !== window) {
-    window.parent.postMessage(msg, "*");
-  } else {
-    self.postMessage(msg);
-  }
-}
-
-declare global {
-  function syscall(name: string, ...args: any[]): Promise<any>;
-  // function require(moduleName: string): any;
-}
-
 let syscallReqId = 0;
+
+function workerPostMessage(msg: ControllerMessage) {
+  self.postMessage(msg);
+}
 
 self.syscall = async (name: string, ...args: any[]) => {
   return await new Promise((resolve, reject) => {
@@ -52,20 +49,6 @@ self.syscall = async (name: string, ...args: any[]) => {
       args,
     });
   });
-};
-
-const loadedModules = new Map<string, any>();
-
-// @ts-ignore: global to load dynamic imports
-self.require = (moduleName: string): any => {
-  console.log("Requiring", moduleName);
-  const mod = loadedModules.get(moduleName);
-  if (!mod) {
-    throw new Error(
-      `Dynamically importing non-preloaded library ${moduleName}`,
-    );
-  }
-  return mod;
 };
 
 // @ts-ignore: global overwrite on purpose
@@ -132,7 +115,6 @@ export function setupMessageListener(
   });
 }
 
+// Monkey patch fetch()
 import { monkeyPatchFetch } from "../../plug-api/plugos-syscall/fetch.ts";
-import { Manifest } from "../../common/manifest.ts";
-
 monkeyPatchFetch();

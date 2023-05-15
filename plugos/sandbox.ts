@@ -3,7 +3,7 @@ import type { LogLevel } from "./runtime/custom_logger.ts";
 import { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import { Plug } from "./plug.ts";
 
-export type SandboxFactory<HookT> = (plug: Plug<any>) => Sandbox;
+export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
 
 export type LogEntry = {
   level: LogLevel;
@@ -11,31 +11,36 @@ export type LogEntry = {
   date: number;
 };
 
-export class Sandbox {
-  protected worker: Worker;
-  protected reqId = 0;
-  protected outstandingDependencyInits = new Map<string, () => void>();
-  protected outstandingInvocations = new Map<
+/**
+ * Represents a "safe" execution environment for plug code
+ * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
+ */
+export class Sandbox<HookT> {
+  private worker: Worker;
+  private reqId = 0;
+  private outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
-  protected loadedFunctions = new Set<string>();
   public logBuffer: LogEntry[] = [];
   public maxLogBufferSize = 100;
-  public manifest: Promise<Manifest<any>>;
+
+  public ready: Promise<void>;
+  public manifest?: Manifest<HookT>;
 
   constructor(
-    readonly plug: Plug<any>,
+    readonly plug: Plug<HookT>,
     workerOptions = {},
   ) {
     this.worker = new Worker(plug.workerUrl, {
       ...workerOptions,
       type: "module",
     });
-    this.manifest = new Promise((resolve) => {
+    this.ready = new Promise((resolve) => {
       this.worker.onmessage = (ev) => {
         if (ev.data.type === "manifest") {
-          resolve(ev.data.manifest);
+          this.manifest = ev.data.manifest;
+          resolve();
           return;
         }
 

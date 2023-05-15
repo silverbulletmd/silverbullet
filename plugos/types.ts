@@ -24,6 +24,5 @@ export type RuntimeEnvironment = "client" | "server";
 
 export interface Hook<HookT> {
   validateManifest(manifest: Manifest<HookT>): string[];
-
   apply(system: System<HookT>): void;
 }

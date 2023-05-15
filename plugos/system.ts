@@ -1,20 +1,18 @@
-import { Hook, Manifest, RuntimeEnvironment } from "./types.ts";
+import { Hook, RuntimeEnvironment } from "./types.ts";
 import { EventEmitter } from "./event.ts";
-import { Sandbox, SandboxFactory } from "./sandbox.ts";
+import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
 }
 
-export type SystemJSON<HookT> = Manifest<HookT>[];
-
 export type SystemEvents<HookT> = {
   plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;
-  sandboxInitialized(sandbox: Sandbox, plug: Plug<HookT>): void | Promise<void>;
   plugUnloaded: (name: string) => void | Promise<void>;
 };
 
+// Passed to every syscall, allows to pass in additional context that the syscall may use
 export type SyscallContext = {
   plug: Plug<any>;
 };
@@ -99,10 +97,13 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
     const plug = new Plug(this, workerUrl, sandboxFactory);
+
+    // Wait for worker to boot, and pass back its manifest
     await plug.ready;
+    // and there it is!
     const manifest = plug.manifest!;
 
-    // Validate
+    // Validate the manifest
     let errors: string[] = [];
     for (const feature of this.enabledHooks) {
       errors = [...errors, ...feature.validateManifest(plug.manifest!)];

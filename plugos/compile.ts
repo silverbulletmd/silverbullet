@@ -17,7 +17,7 @@ export async function compileManifest(
   manifestPath: string,
   destPath: string,
   options: CompileOptions = {},
-) {
+): Promise<string> {
   const rootPath = path.dirname(manifestPath);
   const manifest = YAML.parse(
     await Deno.readTextFile(manifestPath),
@@ -119,6 +119,7 @@ setupMessageListener(functionMapping, manifest);
   jsCode = patchDenoLibJS(jsCode);
   await Deno.writeTextFile(outFile, jsCode);
   console.log(`Plug ${manifest.name} written to ${outFile}.`);
+  return outFile;
 }
 
 export async function compileManifests(

@@ -1,7 +1,8 @@
 import { Sandbox } from "../sandbox.ts";
 import { Plug } from "../plug.ts";
 
-export function createSandbox(plug: Plug<any>): Sandbox {
+// Uses Deno's permissions to lock the worker down significantly
+export function createSandbox<HookT>(plug: Plug<HookT>): Sandbox<HookT> {
   return new Sandbox(plug, {
     deno: {
       permissions: {
