@@ -1,20 +1,16 @@
-// import { esbuild } from "../../mod.ts";
-import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
-import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
+import * as esbuildWasm from "https://deno.land/x/esbuild@v0.17.18/wasm.js";
+import * as esbuildNative from "https://deno.land/x/esbuild@v0.17.18/mod.js";
 
 export const esbuild: typeof esbuildWasm = Deno.Command === undefined
   ? esbuildWasm
   : esbuildNative;
 
-import { path } from "./deps.ts";
-import { denoPlugin } from "./forked/esbuild_deno_loader/mod.ts";
-import { patchDenoLibJS } from "./hack.ts";
 import { Manifest } from "./types.ts";
 
 export type CompileOptions = {
   debug?: boolean;
   imports?: Manifest<any>[];
-  importMap?: URL;
+  importMap?: string;
   // Reload plug import cache
   reload?: boolean;
   // Print info on bundle size

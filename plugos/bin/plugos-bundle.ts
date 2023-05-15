@@ -7,8 +7,9 @@ import { CompileOptions, esbuild } from "../compile.ts";
 import { flags, path } from "../deps.ts";
 
 import { bundleAssets } from "../asset_bundle/builder.ts";
-import { denoPlugin } from "../forked/esbuild_deno_loader/mod.ts";
+// import { denoPlugin } from "../forked/esbuild_deno_loader/mod.ts";
 import { patchDenoLibJS } from "../hack.ts";
+import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
 
 export async function compileManifest(
   manifestPath: string,
@@ -92,10 +93,15 @@ setupMessageListener(functionMapping, manifest);
     // external: esBuildExternals(options.imports),
     treeShaking: true,
     plugins: [
-      denoPlugin({
+      {
+        name: "json",
+        setup: (build) =>
+          build.onLoad({ filter: /\.json$/ }, () => ({ loader: "json" })),
+      },
+      ...denoPlugins({
         // TODO do this differently
         importMapURL: options.importMap ||
-          new URL("./../../import_map.json", import.meta.url),
+          new URL("../../import_map.json", import.meta.url).toString(),
         loader: "native",
       }),
     ],
@@ -190,7 +196,7 @@ if (import.meta.main) {
       reload: args.reload,
       info: args.info,
       importMap: args.importmap
-        ? new URL(args.importmap, `file://${Deno.cwd()}/`)
+        ? new URL(args.importmap, `file://${Deno.cwd()}/`).toString()
         : undefined,
     },
   );

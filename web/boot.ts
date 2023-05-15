@@ -28,7 +28,7 @@ if (navigator.serviceWorker) {
     });
   });
 } else {
-  console.log(
-    "No launching service worker (not present, maybe because not running on localhost or over SSL)",
+  console.warn(
+    "No launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",
   );
 }

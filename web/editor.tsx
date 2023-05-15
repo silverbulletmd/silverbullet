@@ -322,7 +322,7 @@ export class Editor {
       system.unload(fileName);
       await system.load(
         // await this.space.readFile(fileName, "utf8"),
-        fileName,
+        new URL(`/fs/${fileName}`, location.href),
         createSandbox,
       );
       this.plugsUpdated = true;

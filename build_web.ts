@@ -1,8 +1,6 @@
-// -- esbuild --
-// @deno-types="https://deno.land/x/esbuild@v0.14.54/mod.d.ts"
-import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
-import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
-import { denoPlugin } from "https://deno.land/x/esbuild_deno_loader@0.6.0/mod.ts"; //"./esbuild_deno_loader/mod.ts";
+import * as esbuildWasm from "https://deno.land/x/esbuild@v0.17.18/wasm.js";
+import * as esbuildNative from "https://deno.land/x/esbuild@v0.17.18/mod.js";
+import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
 import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
@@ -105,8 +103,9 @@ async function buildCopyBundleAssets() {
       jsxFragment: "Fragment",
       jsxImportSource: "https://esm.sh/preact@10.11.1",
       plugins: [
-        denoPlugin({
-          importMapURL: new URL("./import_map.json", import.meta.url),
+        ...denoPlugins({
+          importMapURL: new URL("./import_map.json", import.meta.url)
+            .toString(),
         }),
       ],
     }),
