@@ -91,7 +91,7 @@ async function buildCopyBundleAssets() {
       bundle: true,
       treeShaking: true,
       sourcemap: "linked",
-      minify: true,
+      minify: false,
       jsxFactory: "h",
       jsx: "automatic",
       jsxFragment: "Fragment",
