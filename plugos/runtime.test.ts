@@ -26,13 +26,15 @@ Deno.test("Run a deno sandbox", async () => {
     },
   });
 
+  const tempDir = await Deno.makeTempDir();
+
   await compileManifest(
     new URL("test.plug.yaml", import.meta.url).pathname,
-    path.resolve("."),
+    tempDir,
   );
 
   const plug = await system.load(
-    new URL("test.plug.js", import.meta.url),
+    new URL("test.plug.js", `file://${tempDir}`),
     createSandbox,
   );
 
@@ -41,6 +43,8 @@ Deno.test("Run a deno sandbox", async () => {
   assertEquals("hello", await plug.invoke("boot", []));
 
   await system.unloadAll();
+
+  await Deno.remove(tempDir, { recursive: true });
 
   esbuild.stop();
 });

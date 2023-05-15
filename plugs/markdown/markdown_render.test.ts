@@ -23,10 +23,11 @@ Deno.test("Markdown render", async () => {
     urlToPathname(new URL("test/example.md", import.meta.url)),
   );
   const tree = parse(lang, testFile);
-  renderMarkdownToHtml(tree, {
+  await renderMarkdownToHtml(tree, {
     failOnUnknown: true,
   });
   // console.log("HTML", html);
+  await system.unloadAll();
 });
 
 Deno.test("Smart hard break test", async () => {

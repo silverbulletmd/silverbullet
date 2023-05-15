@@ -73,7 +73,7 @@ Deno.test("Test parsing", () => {
       };
     }
   });
-  console.log(JSON.stringify(mdTree, null, 2));
+  // console.log(JSON.stringify(mdTree, null, 2));
   let mdTree3 = parse(lang, mdTest3);
-  console.log(JSON.stringify(mdTree3, null, 2));
+  // console.log(JSON.stringify(mdTree3, null, 2));
 });
