@@ -65,7 +65,6 @@ import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { CollabState } from "./cm_plugins/collab.ts";
@@ -283,7 +282,6 @@ export class Editor {
       spaceSyscalls(this),
       systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
       yamlSyscalls(),

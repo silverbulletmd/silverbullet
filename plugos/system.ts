@@ -100,7 +100,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     const plug = new Plug(this, workerUrl, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
-    await Promise.race([plug.ready, timeout(2000)]);
+    await plug.ready;
     // and there it is!
     const manifest = plug.manifest!;
 

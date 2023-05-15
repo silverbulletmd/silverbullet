@@ -1,8 +1,7 @@
 // This is the runtime imported from the compiled plug worker code
 
-import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
-import { ConsoleLogger } from "./custom_logger.ts";
-import type { Manifest } from "../../common/manifest.ts";
+import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
+import type { Manifest } from "../common/manifest.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
@@ -51,11 +50,11 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
-const oldLogger = self.console;
-// @ts-ignore: global overwrite on purpose
-self.console = new ConsoleLogger((level, message) => {
-  workerPostMessage({ type: "log", level, message });
-}, false);
+// const oldLogger = self.console;
+// // @ts-ignore: global overwrite on purpose
+// self.console = new ConsoleLogger((level, message) => {
+//   workerPostMessage({ type: "log", level, message });
+// }, false);
 
 export function setupMessageListener(
   // deno-lint-ignore ban-types
@@ -80,7 +79,7 @@ export function setupMessageListener(
                 result: result,
               } as ControllerMessage);
             } catch (e: any) {
-              oldLogger.error("Sandbox error", e);
+              console.error(e);
               workerPostMessage({
                 type: "invr",
                 id: data.id!,
@@ -117,5 +116,5 @@ export function setupMessageListener(
 }
 
 // Monkey patch fetch()
-import { monkeyPatchFetch } from "../../plug-api/plugos-syscall/fetch.ts";
+import { monkeyPatchFetch } from "../plug-api/plugos-syscall/fetch.ts";
 monkeyPatchFetch();

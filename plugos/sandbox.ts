@@ -1,15 +1,8 @@
 import { Manifest } from "./types.ts";
-import type { LogLevel } from "./runtime/custom_logger.ts";
 import { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import { Plug } from "./plug.ts";
 
 export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
-
-export type LogEntry = {
-  level: LogLevel;
-  message: string;
-  date: number;
-};
 
 /**
  * Represents a "safe" execution environment for plug code
@@ -22,8 +15,6 @@ export class Sandbox<HookT> {
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
-  public logBuffer: LogEntry[] = [];
-  public maxLogBufferSize = 100;
 
   public ready: Promise<void>;
   public manifest?: Manifest<HookT>;
@@ -80,26 +71,9 @@ export class Sandbox<HookT> {
         }
         break;
       }
-      case "log": {
-        this.log(data.level!, data.message!);
-        break;
-      }
       default:
         console.error("Unknown message type", data);
     }
-  }
-
-  log(level: string, ...messageBits: any[]) {
-    const message = messageBits.map((a) => "" + a).join(" ");
-    this.logBuffer.push({
-      message,
-      level: level as LogLevel,
-      date: Date.now(),
-    });
-    if (this.logBuffer.length > this.maxLogBufferSize) {
-      this.logBuffer.shift();
-    }
-    console.log(`[Sandbox ${level}]`, message);
   }
 
   invoke(name: string, args: any[]): Promise<any> {

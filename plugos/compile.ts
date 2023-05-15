@@ -36,7 +36,7 @@ export async function compileManifest(
 
   const jsFile = `
 import { setupMessageListener } from "${new URL(
-    "./runtime/worker_runtime.ts",
+    "./worker_runtime.ts",
     import.meta.url,
   )}";
 

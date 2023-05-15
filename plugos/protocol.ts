@@ -1,5 +1,4 @@
 import type { Manifest } from "../common/manifest.ts";
-import type { LogLevel } from "./runtime/custom_logger.ts";
 
 // Messages received from the worker
 export type ControllerMessage =
@@ -21,12 +20,6 @@ export type ControllerMessage =
     id: number;
     name: string;
     args: any[];
-  }
-  | {
-    // Log message
-    type: "log";
-    level: LogLevel;
-    message: string;
   };
 
 // Messages received inside the worker

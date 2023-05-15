@@ -362,20 +362,6 @@ functions:
     path: ./debug.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
-  showLogsCommand:
-    path: ./debug.ts:showLogsCommand
-    command:
-      name: "Show Logs"
-      key: "Ctrl-Alt-l"
-      mac: "Cmd-Alt-l"
-  hideBhsCommand:
-    path: ./debug.ts:hideBhsCommand
-    command:
-      name: "UI: Hide BHS"
-      key: "Ctrl-Alt-b"
-      mac: "Cmd-Alt-b"
-    events:
-      - log:hide
 
   # Link unfurl infrastructure
   unfurlLink:

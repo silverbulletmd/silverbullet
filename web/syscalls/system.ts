@@ -47,9 +47,6 @@ export function systemSyscalls(
     "system.reloadPlugs": () => {
       return editor.reloadPlugs();
     },
-    "sandbox.getServerLogs": (ctx) => {
-      return editor.space.proxySyscall(ctx.plug, "sandbox.getLogs", []);
-    },
     "system.getEnv": () => {
       return system.env;
     },
