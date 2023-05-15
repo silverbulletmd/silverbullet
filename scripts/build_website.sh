@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-if [ "$1" != "local"]; then
+if [ "$1" != "local" ]; then
     echo "Install Deno"
     curl -fsSL https://deno.land/install.sh | sh
     export PATH=~/.deno/bin:$PATH
