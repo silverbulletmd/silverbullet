@@ -1,16 +1,20 @@
 #!/bin/bash -e
 
-echo "Install Deno"
-curl -fsSL https://deno.land/install.sh | sh
-export PATH=~/.deno/bin:$PATH
-export DENO_DIR=$PWD/deno_cache
-echo "DENO_DIR: $DENO_DIR"
-mkdir -p $DENO_DIR
+if [ "$1" != "local"]; then
+    echo "Install Deno"
+    curl -fsSL https://deno.land/install.sh | sh
+    export PATH=~/.deno/bin:$PATH
+    export DENO_DIR=$PWD/deno_cache
+    echo "DENO_DIR: $DENO_DIR"
+    mkdir -p $DENO_DIR
 
-echo "Generating version number..."
-echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+    echo "Generating version number..."
+    echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+fi
 
 echo "Building silver bullet"
+rm -rf website_build
+deno task clean
 deno task build
 echo "Cleaning website build dir"
 rm -rf website_build
@@ -20,8 +24,8 @@ cp -r dist_client_bundle/* website_build/
 
 echo "And all plugs"
 cp -r dist_plug_bundle/_plug/* website_build/fs/_plug/
-echo "And additional ones"
-curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/fs/_plug/mermaid.plug.js
+#echo "And additional ones"
+#curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/fs/_plug/mermaid.plug.js
 echo "But remove some plugs"
 rm -rf website_build/fs/_plug/{plugmd}.plug.js
 echo "Copying netlify config files"

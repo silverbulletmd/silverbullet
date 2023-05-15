@@ -19,7 +19,7 @@ export async function plugCompileCommand(
       debug: debug,
       info: info,
       importMap: importmap
-        ? new URL(importmap, `file://${Deno.cwd()}/`)
+        ? new URL(importmap, `file://${Deno.cwd()}/`).toString()
         : undefined,
     },
   );
