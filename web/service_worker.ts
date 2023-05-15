@@ -1,6 +1,7 @@
 import Dexie, {} from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 import { simpleHash } from "../common/crypto.ts";
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
+import { plugPrefix } from "../common/spaces/constants.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -77,7 +78,7 @@ self.addEventListener("fetch", (event: any) => {
 
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
-        if (pathname.startsWith("/fs/_plug/")) {
+        if (pathname.startsWith(`/fs/${plugPrefix}`)) {
           // console.log(
           //   "Service plug code from space:",
           //   pathname,

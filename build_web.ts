@@ -1,5 +1,3 @@
-import * as esbuildWasm from "https://deno.land/x/esbuild@v0.17.18/wasm.js";
-import * as esbuildNative from "https://deno.land/x/esbuild@v0.17.18/mod.js";
 import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
 import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
@@ -8,11 +6,7 @@ import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
 
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 import { patchDenoLibJS } from "./plugos/compile.ts";
-
-// @ts-ignore trust me
-export const esbuild: typeof esbuildWasm = Deno.Command === undefined
-  ? esbuildWasm
-  : esbuildNative;
+import { esbuild } from "./plugos/deps.ts";
 
 export async function bundleAll(
   watch: boolean,

@@ -92,7 +92,6 @@ setupMessageListener(functionMapping, manifest);
     minify: !options.debug,
     outfile: outFile,
     metafile: options.info,
-    // external: esBuildExternals(options.imports),
     treeShaking: true,
     plugins: [
       {

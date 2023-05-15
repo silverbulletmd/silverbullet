@@ -1,3 +1,4 @@
+import.meta.main = false;
 import { Command } from "https://deno.land/x/cliffy@v0.25.2/command/command.ts";
 
 import { version } from "./version.ts";
