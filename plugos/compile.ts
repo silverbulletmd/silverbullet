@@ -1,5 +1,4 @@
-import { YAML } from "../common/deps.ts";
-import { denoPlugins, esbuild, path } from "./deps.ts";
+import { denoPlugins, esbuild, path, YAML } from "./deps.ts";
 
 import { bundleAssets } from "./asset_bundle/builder.ts";
 import { Manifest } from "./types.ts";

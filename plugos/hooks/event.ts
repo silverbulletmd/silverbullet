@@ -1,6 +1,5 @@
 import type { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { safeRun } from "../util.ts";
 
 // System events:
 // - plug:load (plugName: string)
@@ -81,10 +80,8 @@ export class EventHook implements Hook<EventHookT> {
   apply(system: System<EventHookT>): void {
     this.system = system;
     this.system.on({
-      plugLoaded: (plug) => {
-        safeRun(async () => {
-          await this.dispatchEvent("plug:load", plug.name);
-        });
+      plugLoaded: async (plug) => {
+        await this.dispatchEvent("plug:load", plug.name);
       },
     });
   }

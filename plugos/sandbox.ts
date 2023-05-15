@@ -34,7 +34,7 @@ export class Sandbox {
     });
     this.manifest = new Promise((resolve) => {
       this.worker.onmessage = (ev) => {
-        if (ev.data.type === "inited") {
+        if (ev.data.type === "manifest") {
           resolve(ev.data.manifest);
           return;
         }
@@ -46,25 +46,25 @@ export class Sandbox {
 
   async onMessage(data: ControllerMessage) {
     switch (data.type) {
-      case "syscall":
+      case "sys":
         try {
           const result = await this.plug.syscall(data.name!, data.args!);
 
           this.worker.postMessage({
-            type: "syscall-response",
+            type: "sysr",
             id: data.id,
             result: result,
           } as WorkerMessage);
         } catch (e: any) {
           // console.error("Syscall fail", e);
           this.worker.postMessage({
-            type: "syscall-response",
+            type: "sysr",
             id: data.id,
             error: e.message,
           } as WorkerMessage);
         }
         break;
-      case "result": {
+      case "invr": {
         const resultCbs = this.outstandingInvocations.get(data.id!);
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
@@ -102,11 +102,11 @@ export class Sandbox {
   invoke(name: string, args: any[]): Promise<any> {
     this.reqId++;
     this.worker.postMessage({
-      type: "invoke",
+      type: "inv",
       id: this.reqId,
       name,
       args,
-    });
+    } as WorkerMessage);
     return new Promise((resolve, reject) => {
       this.outstandingInvocations.set(this.reqId, { resolve, reject });
     });

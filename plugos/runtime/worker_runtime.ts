@@ -1,5 +1,4 @@
 // IMPORTANT: After modifiying this file, run `deno task generate` in the SB root to regenerate the asset bundle (`worker_bundle.json`), which will be imported for the runtime.
-import { safeRun } from "../util.ts";
 import { ConsoleLogger } from "./custom_logger.ts";
 import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
 
@@ -47,7 +46,7 @@ self.syscall = async (name: string, ...args: any[]) => {
     syscallReqId++;
     pendingRequests.set(syscallReqId, { resolve, reject });
     workerPostMessage({
-      type: "syscall",
+      type: "sys",
       id: syscallReqId,
       name,
       args,
@@ -80,10 +79,10 @@ export function setupMessageListener(
   manifest: Manifest,
 ) {
   self.addEventListener("message", (event: { data: WorkerMessage }) => {
-    safeRun(async () => {
+    (async () => {
       const data = event.data;
       switch (data.type) {
-        case "invoke":
+        case "inv":
           {
             const fn = functionMapping[data.name!];
             if (!fn) {
@@ -92,34 +91,26 @@ export function setupMessageListener(
             try {
               const result = await Promise.resolve(fn(...(data.args || [])));
               workerPostMessage({
-                type: "result",
+                type: "invr",
                 id: data.id,
                 result: result,
               } as ControllerMessage);
             } catch (e: any) {
               workerPostMessage({
-                type: "result",
-                id: data.id,
+                type: "invr",
+                id: data.id!,
                 error: e.message,
                 stack: e.stack,
               });
-              // console.error("Error invoking function", data.name, e.message);
-              // throw e;
             }
           }
 
           break;
-        case "syscall-response":
+        case "sysr":
           {
-            const syscallId = data.id!;
+            const syscallId = data.id;
             const lookup = pendingRequests.get(syscallId);
             if (!lookup) {
-              console.log(
-                "Current outstanding requests",
-                pendingRequests,
-                "looking up",
-                syscallId,
-              );
               throw Error("Invalid request id");
             }
             pendingRequests.delete(syscallId);
@@ -132,11 +123,11 @@ export function setupMessageListener(
 
           break;
       }
-    });
+    })().catch(console.error);
   });
   // Signal initialization with manifest
   workerPostMessage({
-    type: "inited",
+    type: "manifest",
     manifest,
   });
 }

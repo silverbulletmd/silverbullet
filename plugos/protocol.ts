@@ -1,44 +1,48 @@
-import { Manifest } from "../common/manifest.ts";
+import type { Manifest } from "../common/manifest.ts";
 import type { LogLevel } from "./runtime/custom_logger.ts";
 
-export type ControllerMessageType =
-  | "inited"
-  | "result"
-  | "syscall"
-  | "log";
+// Messages received from the worker
+export type ControllerMessage =
+  | {
+    // Parsed manifest when worker is initialized
+    type: "manifest";
+    manifest: Manifest;
+  }
+  | {
+    // Function invocation result
+    type: "invr";
+    id: number;
+    error?: string;
+    stack?: string;
+    result?: any;
+  }
+  | {
+    // Syscall
+    type: "sys";
+    id: number;
+    name: string;
+    args: any[];
+  }
+  | {
+    // Log message
+    type: "log";
+    level: LogLevel;
+    message: string;
+  };
 
-export type ControllerMessage = {
-  type: ControllerMessageType;
-  id?: number;
-  name?: string;
-  args?: any[];
-  error?: string;
-  stack?: string;
-  level?: LogLevel;
-  message?: string;
-  result?: any;
-  manifest?: Manifest;
-};
-
-export interface WorkerLike {
-  ready: Promise<void>;
-  onMessage?: (message: any) => Promise<void>;
-
-  postMessage(message: any): void;
-
-  terminate(): void;
-}
-
-export type WorkerMessageType =
-  | "invoke"
-  | "syscall-response";
-
-export type WorkerMessage = {
-  type: WorkerMessageType;
-  id?: number;
-  name?: string;
-  code?: string;
-  args?: any[];
-  result?: any;
-  error?: any;
-};
+// Messages received inside the worker
+export type WorkerMessage =
+  | {
+    // Function invocation
+    type: "inv";
+    id: number;
+    name: string;
+    args: any[];
+  }
+  | {
+    // Syscall result
+    type: "sysr";
+    id: number;
+    result?: any;
+    error?: any;
+  };

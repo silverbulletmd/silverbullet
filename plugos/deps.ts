@@ -11,3 +11,4 @@ export const esbuild: typeof esbuildWasm = Deno.Command === undefined
   ? esbuildWasm
   : esbuildNative;
 export { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
+export * as YAML from "https://deno.land/std@0.184.0/yaml/mod.ts";

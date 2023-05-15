@@ -1,5 +1,4 @@
 import { EditorView, ViewPlugin, ViewUpdate } from "../deps.ts";
-import { safeRun } from "../../plugos/util.ts";
 import { maximumAttachmentSize } from "../../common/types.ts";
 import { Editor } from "../editor.tsx";
 
@@ -11,6 +10,7 @@ import {
   tables,
   taskListItems,
 } from "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.45";
+import { safeRun } from "../../common/util.ts";
 const turndownService = new TurndownService({
   hr: "---",
   codeBlockStyle: "fenced",
