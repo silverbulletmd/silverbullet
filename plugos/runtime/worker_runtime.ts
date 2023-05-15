@@ -51,6 +51,7 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
+const oldLogger = self.console;
 // @ts-ignore: global overwrite on purpose
 self.console = new ConsoleLogger((level, message) => {
   workerPostMessage({ type: "log", level, message });
@@ -79,11 +80,11 @@ export function setupMessageListener(
                 result: result,
               } as ControllerMessage);
             } catch (e: any) {
+              oldLogger.error("Sandbox error", e);
               workerPostMessage({
                 type: "invr",
                 id: data.id!,
                 error: e.message,
-                stack: e.stack,
               });
             }
           }

@@ -31,6 +31,19 @@ export async function updatePlugsCommand() {
     const allCustomPlugNames: string[] = [];
     for (const plugUri of plugList) {
       const [protocol, ...rest] = plugUri.split(":");
+
+      const plugNameMatch = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
+      if (!plugNameMatch) {
+        console.error(
+          "Could not extract plug name from ",
+          plugUri,
+          "ignoring...",
+        );
+        continue;
+      }
+
+      const plugName = plugNameMatch[1];
+
       const manifests = await events.dispatchEvent(
         `get-plug:${protocol}`,
         rest.join(":"),
@@ -39,13 +52,13 @@ export async function updatePlugsCommand() {
         console.error("Could not resolve plug", plugUri);
       }
       // console.log("Got manifests", plugUri, protocol, manifests);
-      const manifest = manifests[0];
-      allCustomPlugNames.push(manifest.name);
-      // console.log("Writing", `_plug/${manifest.name}`);
+      const workerCode = manifests[0] as string;
+      allCustomPlugNames.push(plugName);
+      // console.log("Writing", `_plug/${plugName}.plug.js`, workerCode);
       await space.writeAttachment(
-        `_plug/${manifest.name}.plug.json`,
+        `_plug/${plugName}.plug.js`,
         "utf8",
-        JSON.stringify(manifest),
+        workerCode,
       );
     }
 
@@ -54,7 +67,7 @@ export async function updatePlugsCommand() {
     for (const existingPlug of await space.listPlugs()) {
       const plugName = existingPlug.substring(
         "_plug/".length,
-        existingPlug.length - ".plug.json".length,
+        existingPlug.length - ".plug.js".length,
       );
       if (!allPlugNames.includes(plugName)) {
         await space.deleteAttachment(existingPlug);
@@ -98,17 +111,17 @@ export async function addPlugCommand() {
   system.reloadPlugs();
 }
 
-export async function getPlugHTTPS(url: string): Promise<Manifest> {
+export async function getPlugHTTPS(url: string): Promise<string> {
   const fullUrl = `https:${url}`;
-  console.log("Now fetching plug manifest from", fullUrl);
+  console.log("Now fetching plug code from", fullUrl);
   const req = await fetch(fullUrl);
   if (req.status !== 200) {
-    throw new Error(`Could not fetch plug manifest from ${fullUrl}`);
+    throw new Error(`Could not fetch plug code from ${fullUrl}`);
   }
-  return req.json();
+  return req.text();
 }
 
-export function getPlugGithub(identifier: string): Promise<Manifest> {
+export function getPlugGithub(identifier: string): Promise<string> {
   const [owner, repo, path] = identifier.split("/");
   let [repoClean, branch] = repo.split("@");
   if (!branch) {
@@ -121,7 +134,7 @@ export function getPlugGithub(identifier: string): Promise<Manifest> {
 
 export async function getPlugGithubRelease(
   identifier: string,
-): Promise<Manifest> {
+): Promise<string> {
   let [owner, repo, version] = identifier.split("/");
   if (!version || version === "latest") {
     console.log("fetching the latest version");
@@ -137,6 +150,6 @@ export async function getPlugGithubRelease(
     version = result.name;
   }
   const finalUrl =
-    `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.json`;
+    `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.js`;
   return getPlugHTTPS(finalUrl);
 }

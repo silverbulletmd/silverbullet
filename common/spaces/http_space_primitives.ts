@@ -13,23 +13,27 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     readonly expectedSpacePath?: string,
     readonly user?: string,
     readonly password?: string,
+    readonly additionalHeaders = {},
   ) {
+    // console.log("Additional headers", additionalHeaders);
   }
 
   public async authenticatedFetch(
     url: string,
     options: RequestInit,
   ): Promise<Response> {
+    if (!options.headers) {
+      options.headers = {};
+    }
+    options.headers = { ...this.additionalHeaders, ...options.headers };
     if (this.user && this.password) {
       // Explicitly set an auth cookie
-      if (!options.headers) {
-        options.headers = {};
-      }
       (options.headers as Record<string, string>)["cookie"] = `auth=${
         btoa(`${this.user}:${this.password}`)
       }`;
     }
-    const result = await fetch(url, options);
+
+    const result = await fetch(url, { ...options });
     if (result.status === 401 || result.redirected) {
       // Invalid credentials, reloading the browser should trigger authentication
       if (typeof location !== "undefined") {

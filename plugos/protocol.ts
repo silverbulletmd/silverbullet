@@ -13,7 +13,6 @@ export type ControllerMessage =
     type: "invr";
     id: number;
     error?: string;
-    stack?: string;
     result?: any;
   }
   | {

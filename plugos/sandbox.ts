@@ -74,9 +74,7 @@ export class Sandbox<HookT> {
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
           resultCbs &&
-            resultCbs.reject(
-              new Error(`${data.error}\nStack trace: ${data.stack}`),
-            );
+            resultCbs.reject(new Error(data.error));
         } else {
           resultCbs && resultCbs.resolve(data.result);
         }

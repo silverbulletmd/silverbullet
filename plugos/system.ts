@@ -2,6 +2,7 @@ import { Hook, RuntimeEnvironment } from "./types.ts";
 import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
+import { timeout } from "../common/async_util.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -99,7 +100,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     const plug = new Plug(this, workerUrl, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
-    await plug.ready;
+    await Promise.race([plug.ready, timeout(2000)]);
     // and there it is!
     const manifest = plug.manifest!;
 

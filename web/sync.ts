@@ -1,3 +1,4 @@
+import { undefinedType } from "https://deno.land/std@0.184.0/yaml/_type/undefined.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { SpaceSync, SyncStatusItem } from "../common/spaces/sync.ts";
@@ -19,7 +20,15 @@ export class SyncEngine {
     private isSyncCandidate: (path: string) => boolean,
   ) {
     // TODO: Auth
-    this.remoteSpace = new HttpSpacePrimitives(syncEndpoint, expectedSpacePath);
+    this.remoteSpace = new HttpSpacePrimitives(
+      syncEndpoint,
+      expectedSpacePath,
+      undefined,
+      undefined,
+      {
+        "X-Sync-Mode": "true",
+      },
+    );
 
     eventHook.addLocalListener("editor:pageLoaded", async (name) => {
       await this.syncFile(`${name}.md`);

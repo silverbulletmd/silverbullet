@@ -956,10 +956,14 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      await this.system.load(
-        new URL(`/fs/${plugName}`, location.href),
-        createSandbox,
-      );
+      try {
+        await this.system.load(
+          new URL(`/fs/${plugName}`, location.href),
+          createSandbox,
+        );
+      } catch (e: any) {
+        console.error("Could not load plug", plugName, "error:", e.message);
+      }
     }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");

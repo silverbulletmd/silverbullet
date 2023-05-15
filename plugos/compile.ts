@@ -88,7 +88,7 @@ setupMessageListener(functionMapping, manifest);
     format: "iife",
     globalName: "mod",
     platform: "browser",
-    sourcemap: options.debug ? "linked" : false,
+    sourcemap: options.debug ? "inline" : false,
     minify: !options.debug,
     outfile: outFile,
     metafile: options.info,

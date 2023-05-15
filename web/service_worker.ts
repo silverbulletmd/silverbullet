@@ -78,16 +78,28 @@ self.addEventListener("fetch", (event: any) => {
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
         if (pathname.startsWith("/fs/_plug/")) {
-          console.log("Service plug code from space:", pathname);
-          if (fileContentTable) {
+          // console.log(
+          //   "Service plug code from space:",
+          //   pathname,
+          //   [...event.request.headers.keys()],
+          // );
+          if (fileContentTable && !event.request.headers.has("x-sync-mode")) {
+            // Don't fetch from DB when in sync mode (because then updates plugs won't sync)
             const plugPath = requestUrl.pathname.slice("/fs/".length);
             return fileContentTable.get(plugPath).then(
               (data) => {
                 if (data) {
-                  // console.log("Serving from space", plugPath);
+                  console.log("Serving from space", plugPath);
+                  const src = new TextDecoder().decode(data.data);
+                  const match = /zef\d+/.exec(src);
+                  if (match) {
+                    console.log("EXTRACTED THIS", match);
+                  }
                   return new Response(data.data, {
                     headers: {
-                      "Content-type": "application/javascript",
+                      "Content-type": plugPath.endsWith(".js")
+                        ? "application/javascript"
+                        : "application/json",
                     },
                   });
                 } else {
@@ -99,6 +111,8 @@ self.addEventListener("fetch", (event: any) => {
                 }
               },
             );
+          } else {
+            return fetch(event.request);
           }
         }
         if (!requestUrl.pathname.startsWith("/fs")) {
