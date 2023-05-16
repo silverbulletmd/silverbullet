@@ -114,7 +114,10 @@ self.addEventListener("fetch", (event: any) => {
             return fetch(event.request);
           }
         }
-        if (!requestUrl.pathname.startsWith("/fs")) {
+        if (
+          !requestUrl.pathname.startsWith("/fs") &&
+          requestUrl.pathname !== "/.auth"
+        ) {
           // Page, let's serve index.html
           return caches.match(precacheFiles["/"]).then((response) => {
             // This shouldnt't happen, index.html not in the cache for some reason

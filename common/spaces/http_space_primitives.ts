@@ -28,10 +28,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const result = await fetch(url, { ...options });
-    if (result.status === 401 || result.redirected) {
+    if (
+      result.status === 401 || result.redirected ||
+      result.url.includes("/.auth")
+    ) {
       // Invalid credentials, reloading the browser should trigger authentication
       console.log("Going to redirect after", url);
       location.href = "/.auth?refer=" + location.pathname;
+      throw new Error("Invalid credentials");
     }
     return result;
   }
