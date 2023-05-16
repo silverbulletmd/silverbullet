@@ -364,6 +364,8 @@ export class Editor {
     } catch {
       console.log(`No ${currentPage} page available, syncing...`);
       await this.syncEngine.syncFile(currentPage + ".md");
+      // Initial sync, mark as unsynced
+      this.viewDispatch({ type: "sync-change", synced: false });
     }
 
     await this.reloadPlugs();
