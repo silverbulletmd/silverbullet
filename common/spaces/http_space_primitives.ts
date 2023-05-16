@@ -11,9 +11,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
     readonly expectedSpacePath?: string,
-    readonly user?: string,
-    readonly password?: string,
-    readonly additionalHeaders = {},
+    readonly syncMode = false,
   ) {
     // console.log("Additional headers", additionalHeaders);
   }
@@ -25,22 +23,15 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (!options.headers) {
       options.headers = {};
     }
-    options.headers = { ...this.additionalHeaders, ...options.headers };
-    if (this.user && this.password) {
-      // Explicitly set an auth cookie
-      (options.headers as Record<string, string>)["cookie"] = `auth=${
-        btoa(`${this.user}:${this.password}`)
-      }`;
+    if (this.syncMode) {
+      options.headers = { ...options.headers, ...{ "X-Sync-Mode": "true" } };
     }
 
     const result = await fetch(url, { ...options });
     if (result.status === 401 || result.redirected) {
       // Invalid credentials, reloading the browser should trigger authentication
-      if (typeof location !== "undefined") {
-        location.reload();
-      }
-
-      throw Error("Unauthorized");
+      console.log("Going to redirect after", url);
+      location.href = "/.auth?refer=" + location.pathname;
     }
     return result;
   }

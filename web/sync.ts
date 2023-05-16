@@ -23,11 +23,7 @@ export class SyncEngine {
     this.remoteSpace = new HttpSpacePrimitives(
       syncEndpoint,
       expectedSpacePath,
-      undefined,
-      undefined,
-      {
-        "X-Sync-Mode": "true",
-      },
+      true,
     );
 
     eventHook.addLocalListener("editor:pageLoaded", async (name) => {

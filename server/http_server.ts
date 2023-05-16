@@ -55,8 +55,6 @@ export class HttpServer {
   }
 
   async start() {
-    this.addPasswordAuth(this.app);
-
     await ensureSettingsAndIndex(this.spacePrimitives);
 
     // Serve static files (javascript, css, html)
@@ -100,16 +98,24 @@ export class HttpServer {
       }
     });
 
+    // Fallback, serve index.html
+    this.app.use(({ request, response }, next) => {
+      if (
+        !request.url.pathname.startsWith("/fs") &&
+        request.url.pathname !== "/.auth"
+      ) {
+        response.headers.set("Content-type", "text/html");
+        response.body = this.renderIndexHtml();
+      } else {
+        return next();
+      }
+    });
+
     // Pages API
     const fsRouter = this.buildFsRouter(this.spacePrimitives);
+    this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
-
-    // Fallback, serve index.html
-    this.app.use((ctx) => {
-      ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.renderIndexHtml();
-    });
 
     this.abortController = new AbortController();
     const listenOptions: any = {
