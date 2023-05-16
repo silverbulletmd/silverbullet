@@ -62,36 +62,41 @@
 
     <script>
         function resetAll() {
-            // get a list of all existing IndexedDB databases
-            indexedDB.databases().then((databases) => {
-                // loop through the list and delete each database
-                Promise.all(
-                    databases.map((database) => {
-                        console.log("Now deleting", database.name);
-                        return new Promise((resolve) => {
-                            return indexedDB.deleteDatabase(database.name).onsuccess = resolve;
+            if (indexedDB.databases) {
+                // get a list of all existing IndexedDB databases
+                indexedDB.databases().then((databases) => {
+                    // loop through the list and delete each database
+                    return Promise.all(
+                        databases.map((database) => {
+                            console.log("Now deleting", database.name);
+                            return new Promise((resolve) => {
+                                return indexedDB.deleteDatabase(database.name).onsuccess = resolve;
+                            });
+                        })
+                    );
+                }).then(() => {
+                    alert("All IndexedDB databases deleted");
+                });
+            }
+
+            if (navigator.serviceWorker) {
+                navigator.serviceWorker.ready.then((registration) => {
+                    registration.active.postMessage({ type: 'flushCache' });
+                });
+
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    if (event.data.type === 'cacheFlushed') {
+                        console.log('Cache flushed');
+                        navigator.serviceWorker.getRegistrations().then((registrations) => {
+                            for (const registration of registrations) {
+                                registration.unregister();
+                                alert("Service worker unregistered");
+                            }
                         });
-                    })
-                );
-            });
 
-            navigator.serviceWorker.ready.then((registration) => {
-                registration.active.postMessage({ type: 'flushCache' });
-            });
-
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data.type === 'cacheFlushed') {
-                    console.log('Cache flushed');
-                    navigator.serviceWorker.getRegistrations().then((registrations) => {
-                        for (const registration of registrations) {
-                            registration.unregister();
-                            console.log("Service worker unregistered");
-                        }
-                    });
-
-                }
-            });
-
+                    }
+                });
+            }
         }
     </script>
 </body>

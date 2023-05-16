@@ -73,18 +73,13 @@ name: SilverBullet
 rating: 5
 ```
 
-And here’s a query that lists all pages with back links to this particular page ([[SilverBullet]]), which is kept up to date automatically (learn more about [[🔌 Directive|directives]]).
-<!-- #query link render [[template/page]] -->
-* [[Raspberry Pi Installation]]
-* [[index]]
-* [[Sandbox]]
-* [[Sandbox]]
-* [[Sandbox]]
+And here’s a query that lists the last 5 modified pages in this space, which is kept up to date automatically (learn more about [[🔌 Directive|directives]]).
+<!-- #query page select name limit 5 order by lastModified desc render [[template/page]]-->
+* [[SilverBullet]]
+* [[Download]]
+* [[PWA]]
 * [[Getting Started]]
-* [[SilverBullet]]
-* [[SilverBullet]]
-* [[SilverBullet]]
-* [[SilverBullet]]
+* [[CHANGELOG]]
 <!-- /query -->
 
 
@@ -92,9 +87,9 @@ And here’s a query that lists all pages with back links to this particular pag
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then.
 
 <!-- #include [[Download]] -->
-Installing SilverBullet as a (local) web server is the most mature, and most flexible way to install SilverBullet. If mature and flexible is your thing, try this option!
+Installing SilverBullet as a (local) web server is pretty straight forward.
 
-The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. This makes it a great option to access your space from various devices without requiring any type of sync. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
+The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
 
 You have two options to install and run SilverBullet as a server:
 
@@ -105,7 +100,7 @@ You have two options to install and run SilverBullet as a server:
 This consists of two steps (unless Deno is already installed — in which case we’re down to one):
 
 1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
-2. Installing SilverBullet itself
+2. Installing SilverBullet itself (steps below)
 
 ### Install SilverBullet
 With Deno installed, run:
@@ -124,7 +119,7 @@ silverbullet <pages-path>
 
 By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
 
-For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection.
+For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add basic authentication.
 
 Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser.
 
@@ -171,6 +166,27 @@ To upgrade, simply pull the latest docker image (rebuilt and pushed after every 
 
 ```shell
 docker pull zefhemel/silverbullet
+```
+
+## Running SilverBullet on your network/Internet
+For SilverBullet to be offline capable (loadable without a network connection) it needs to accessed either via `http://localhost` or via TLS (a `https://`) URL. The most straight-forward way to do this is by using [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
+
+When you’re deploying on a public server accessible to the Internet, you can do this as follows:
+
+```shell
+$ sudo caddy reverse-proxy --to :3000 --from yourdomain.com:443
+```
+
+If you’re deploying on a local network and access your server via a VPN, this is a bit more tricky. The recommended setup here is to use [Tailscale](https://tailscale.com/) which now [support TLS certificates for your VPN servers](https://tailscale.com/kb/1153/enabling-https/). Once you have this enabled, get a certificate via:
+
+```shell
+$ tailscale cert yourserver.yourtsdomain.ts.net
+```
+
+Caddy can automatically find these certificates once provisioned, so you can just run:
+
+```shell
+$ sudo caddy reverse-proxy --to :3000 --from yourserver.yourtsdomain.ts.net:443
 ```
 <!-- /include -->
 
