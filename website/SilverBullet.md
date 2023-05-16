@@ -2,12 +2,12 @@ SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/s
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[Sync]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
 Now that we got that out of the way, let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) when run as a [[Server]], but can also be run as a [[Desktop]] and [[Mobile]] app.
+* Runs in any modern browser (including on mobile) as an **offline-first [[PWA]],** keeping the primary copy of your content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:
@@ -33,7 +33,7 @@ Here’s the kicker:
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable just none of it persists (the back-end is read-only). So, edit away, reload the page and everything resets.
+On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally.
 
 Don’t just sit there, try it!
 
@@ -49,7 +49,7 @@ Don’t just sit there, try it!
 * Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
 * Open this site on your phone or tablet and... it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based
-  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
+  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself). Now, unplug your network cable and reload the page. It still works!
 
 Oh yeah, and you can use fancy things like tables:
 
@@ -73,22 +73,105 @@ name: SilverBullet
 rating: 5
 ```
 
-There are a few features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
+And here’s a query that lists all pages with back links to this particular page ([[SilverBullet]]), which is kept up to date automatically (learn more about [[🔌 Directive|directives]]).
+<!-- #query link render [[template/page]] -->
+* [[Raspberry Pi Installation]]
+* [[index]]
+* [[Sandbox]]
+* [[Sandbox]]
+* [[Sandbox]]
+* [[Getting Started]]
+* [[SilverBullet]]
+* [[SilverBullet]]
+* [[SilverBullet]]
+* [[SilverBullet]]
+<!-- /query -->
 
-* Any edits you make and pages you add aren’t saved (kind of useful).
-* [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (look for sections with subtle curved lines around them, if you move your cursor inside you’ll see where their content is generated from), they just don’t update their content dynamically.
-* **Full-text search**.
-* **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
 
 ## Download SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then.
 
 <!-- #include [[Download]] -->
-You have three options to install and use SilverBullet. Pick your poison, as they say. Have a look at all three to decide what’s best for you:
+Installing SilverBullet as a (local) web server is the most mature, and most flexible way to install SilverBullet. If mature and flexible is your thing, try this option!
 
-1. [[Server]] — install SilverBullet as a web server on your local machine or network, and access it via any web browser. This is the best choice for nerds 🤓.
-2. [[Desktop]] — install SilverBullet as a desktop application, editing a local folder of files. This is the best option for casual users.
-3. [[Mobile]] — install SilverBullet as a “native” mobile application (native: as in — distributed via the app store, and with an icon on your home screen). This is the best option for people with phones. More specifically, people with phones that don’t want to access the [[Server]] via their mobile browser, or have anxiety around Internet connectivity.
+The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. This makes it a great option to access your space from various devices without requiring any type of sync. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
+
+You have two options to install and run SilverBullet as a server:
+
+1. Installation via Deno on your host system
+2. Running it with Docker
+
+## Installation via Deno
+This consists of two steps (unless Deno is already installed — in which case we’re down to one):
+
+1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
+2. Installing SilverBullet itself
+
+### Install SilverBullet
+With Deno installed, run:
+
+```shell
+deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+```
+
+This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
+
+To run SilverBullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
+
+```shell
+silverbullet <pages-path>
+```
+
+By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
+
+For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection.
+
+Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser.
+
+## Upgrading SilverBullet
+SilverBullet is regularly updated. To get the latest and greatest, simply run:
+
+```shell
+silverbullet upgrade
+```
+
+And restart SilverBullet. You should be good to go.
+
+## Installing SilverBullet with Docker
+
+There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silverbullet). To use it, first create a volume to keep your space (markdown) files:
+
+```shell
+docker volume create myspace
+```
+
+Then, run the container, e.g. as follows:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet
+```
+
+If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication) you can just append those to the command, e.g.:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
+```
+
+To build your own version of the docker image, run `./scripts/build_docker.sh`.
+
+You can also use docker-compose if you prefer. From a silverbullet check-out run:
+
+```shell
+PORT=3000 docker-compose up
+```
+
+or similar.
+
+To upgrade, simply pull the latest docker image (rebuilt and pushed after every commit to "main") and start the new container.
+
+```shell
+docker pull zefhemel/silverbullet
+```
 <!-- /include -->
 
 ## Where to go from here

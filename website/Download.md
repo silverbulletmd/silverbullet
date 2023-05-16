@@ -1,5 +1,101 @@
-You have three options to install and use SilverBullet. Pick your poison, as they say. Have a look at all three to decide what’s best for you:
+Installing SilverBullet as a (local) web server is pretty straight forward.
 
-1. [[Server]] — install SilverBullet as a web server on your local machine or network, and access it via any web browser. This is the best choice for nerds 🤓.
-2. [[Desktop]] — install SilverBullet as a desktop application, editing a local folder of files. This is the best option for casual users.
-3. [[Mobile]] — install SilverBullet as a “native” mobile application (native: as in — distributed via the app store, and with an icon on your home screen). This is the best option for people with phones. More specifically, people with phones that don’t want to access the [[Server]] via their mobile browser, or have anxiety around Internet connectivity.
+The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
+
+You have two options to install and run SilverBullet as a server:
+
+1. Installation via Deno on your host system
+2. Running it with Docker
+
+## Installation via Deno
+This consists of two steps (unless Deno is already installed — in which case we’re down to one):
+
+1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
+2. Installing SilverBullet itself (steps below)
+
+### Install SilverBullet
+With Deno installed, run:
+
+```shell
+deno install -f --name silverbullet -A --unstable https://get.silverbullet.md
+```
+
+This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
+
+To run SilverBullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
+
+```shell
+silverbullet <pages-path>
+```
+
+By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
+
+For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add basic authentication.
+
+Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser.
+
+## Upgrading SilverBullet
+SilverBullet is regularly updated. To get the latest and greatest, simply run:
+
+```shell
+silverbullet upgrade
+```
+
+And restart SilverBullet. You should be good to go.
+
+## Installing SilverBullet with Docker
+
+There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silverbullet). To use it, first create a volume to keep your space (markdown) files:
+
+```shell
+docker volume create myspace
+```
+
+Then, run the container, e.g. as follows:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet
+```
+
+If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication) you can just append those to the command, e.g.:
+
+```shell
+docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
+```
+
+To build your own version of the docker image, run `./scripts/build_docker.sh`.
+
+You can also use docker-compose if you prefer. From a silverbullet check-out run:
+
+```shell
+PORT=3000 docker-compose up
+```
+
+or similar.
+
+To upgrade, simply pull the latest docker image (rebuilt and pushed after every commit to "main") and start the new container.
+
+```shell
+docker pull zefhemel/silverbullet
+```
+
+## Running SilverBullet on your network/Internet
+For SilverBullet to be offline capable (loadable without a network connection) it needs to accessed either via `http://localhost` or via TLS (a `https://`) URL. The most straight-forward way to do this is by using [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
+
+When you’re deploying on a public server accessible to the Internet, you can do this as follows:
+
+```shell
+$ sudo caddy reverse-proxy --to :3000 --from yourdomain.com:443
+```
+
+If you’re deploying on a local network and access your server via a VPN, this is a bit more tricky. The recommended setup here is to use [Tailscale](https://tailscale.com/) which now [support TLS certificates for your VPN servers](https://tailscale.com/kb/1153/enabling-https/). Once you have this enabled, get a certificate via:
+
+```shell
+$ tailscale cert yourserver.yourtsdomain.ts.net
+```
+
+Caddy can automatically find these certificates once provisioned, so you can just run:
+
+```shell
+$ sudo caddy reverse-proxy --to :3000 --from yourserver.yourtsdomain.ts.net:443
+```

@@ -23,18 +23,18 @@ You will notice this whole page section is wrapped in a strange type of block. T
 Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by last modified date, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
 <!-- #query page select name order by lastModified desc limit 10 -->
-|name           |
-|---------------|
-|CHANGELOG      |
-|Mobile         |
-|Sync           |
-|Getting Started|
-|SilverBullet   |
-|PLUGS          |
-|🔌 Plugs       |
-|Desktop        |
-|Server         |
-|Download       |
+|name                     |
+|-------------------------|
+|CHANGELOG                |
+|🔨 Development           |
+|Server                   |
+|Raspberry Pi Installation|
+|STYLES                   |
+|Getting Started          |
+|Sandbox                  |
+|SETTINGS                 |
+|SilverBullet             |
+|🔌 Core/Templates        |
 <!-- /query -->
 
 That said, the directive used wrapping this page section is `#use` which uses the content of another page as a template and inlines it. Directives recalculate their bodies in two scenarios:
@@ -47,8 +47,6 @@ In the case of `#use` this means the body will again be replaced with the page i
 Feel free to completely remove all content on this page and make it your own, it’s just to get you started.
 
 ## What next?
-If you plan to use SilverBullet on multiple devices, specifically on a [[Mobile]] device. Have a look at [[Sync]].
-
 If you are a visual learner, you may [enjoy this introduction video on Youtube](https://youtu.be/VemS-cqAD5k).
 
 Beyond that, you can find more information about SilverBullet on its official website. You have two ways to access it:
