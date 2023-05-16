@@ -16,12 +16,10 @@ export default function reducer(
       return {
         ...state,
         isLoading: false,
-        allPages: new Set(
-          [...state.allPages].map((pageMeta) =>
-            pageMeta.name === action.meta.name
-              ? { ...pageMeta, lastOpened: Date.now() }
-              : pageMeta
-          ),
+        allPages: state.allPages.map((pageMeta) =>
+          pageMeta.name === action.meta.name
+            ? { ...pageMeta, lastOpened: Date.now() }
+            : pageMeta
         ),
         currentPage: action.meta.name,
         currentPageMeta: action.meta,

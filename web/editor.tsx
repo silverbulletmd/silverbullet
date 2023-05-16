@@ -235,7 +235,6 @@ export class Editor {
     );
 
     this.space = new Space(localSpacePrimitives);
-    this.space.watch();
 
     this.syncEngine = new SyncEngine(
       localSpacePrimitives,
@@ -1083,7 +1082,6 @@ export class Editor {
     // Persist current page state and nicely close page
     if (previousPage) {
       this.saveState(previousPage);
-      this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
         // And stop the collab session
@@ -1122,7 +1120,6 @@ export class Editor {
       this.tweakEditorDOM(editorView.contentDOM);
     }
     const stateRestored = this.restoreState(pageName);
-    this.space.watchPage(pageName);
 
     this.viewDispatch({
       type: "page-loaded",

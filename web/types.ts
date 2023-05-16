@@ -30,7 +30,7 @@ export type AppViewState = {
   unsavedChanges: boolean;
   synced: boolean;
   panels: { [key: string]: PanelConfig };
-  allPages: Set<PageMeta>;
+  allPages: PageMeta[];
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
@@ -78,7 +78,7 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
-  allPages: new Set(),
+  allPages: [],
   commands: new Map(),
   recentCommands: new Map(),
   notifications: [],
@@ -96,7 +96,7 @@ export const initialViewState: AppViewState = {
 export type Action =
   | { type: "page-loaded"; meta: PageMeta }
   | { type: "page-loading"; name: string }
-  | { type: "pages-listed"; pages: Set<PageMeta> }
+  | { type: "pages-listed"; pages: PageMeta[] }
   | { type: "page-changed" }
   | { type: "page-saved" }
   | { type: "sync-change"; synced: boolean }

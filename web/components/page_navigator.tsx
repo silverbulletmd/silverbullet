@@ -10,7 +10,7 @@ export function PageNavigator({
   darkMode,
   currentPage,
 }: {
-  allPages: Set<PageMeta>;
+  allPages: PageMeta[];
   vimMode: boolean;
   darkMode: boolean;
   onNavigate: (page: string | undefined) => void;

@@ -103,15 +103,14 @@ export function FilterList({
         hint: newHint,
       });
     }
-    setMatchingOptions(results);
 
-    // setText(originalPhrase);
+    setMatchingOptions(results);
     setSelectionOption(0);
   }
 
   useEffect(() => {
     updateFilter(text);
-  }, [options]);
+  }, [options, text]);
 
   useEffect(() => {
     function closer() {
@@ -147,7 +146,8 @@ export function FilterList({
               onSelect(undefined);
             }}
             onChange={(text) => {
-              updateFilter(text);
+              setText(text);
+              // updateFilter(text);
             }}
             onKeyUp={(view, e) => {
               // This event is triggered after the key has been processed by CM already
@@ -182,7 +182,7 @@ export function FilterList({
                   const text = view.state.sliceDoc();
                   if (completePrefix && text === "") {
                     setText(completePrefix);
-                    updateFilter(completePrefix);
+                    // updateFilter(completePrefix);
                     return true;
                   }
                   break;

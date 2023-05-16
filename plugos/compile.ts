@@ -5,7 +5,7 @@ import { Manifest } from "./types.ts";
 
 export type CompileOptions = {
   debug?: boolean;
-  imports?: Manifest<any>[];
+  runtimeUrl?: string;
   importMap?: string;
   // Reload plug import cache
   reload?: boolean;
@@ -35,10 +35,12 @@ export async function compileManifest(
   manifest.assets = assetsBundle.toJSON();
 
   const jsFile = `
-import { setupMessageListener } from "${new URL(
-    "./worker_runtime.ts",
-    import.meta.url,
-  )}";
+import { setupMessageListener } from "${
+    options.runtimeUrl || new URL(
+      "./worker_runtime.ts",
+      import.meta.url,
+    )
+  }";
 
 // Imports
 ${

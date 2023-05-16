@@ -9,19 +9,16 @@ import {
   ProxyFileSystem,
 } from "../../plug-api/plugos-syscall/types.ts";
 
-const pageWatchInterval = 2000;
-
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;
   pageChanged: (meta: PageMeta) => void;
   pageDeleted: (name: string) => void;
-  pageListUpdated: (pages: Set<PageMeta>) => void;
+  pageListUpdated: (pages: PageMeta[]) => void;
 };
 
 export class Space extends EventEmitter<SpaceEvents>
   implements ProxyFileSystem {
   pageMetaCache = new Map<string, PageMeta>();
-  watchedPages = new Set<string>();
   private initialPageListLoad = true;
   private saving = false;
   watchInterval?: number;
@@ -89,43 +86,13 @@ export class Space extends EventEmitter<SpaceEvents>
     this.initialPageListLoad = false;
   }
 
-  watch() {
-    if (this.watchInterval) {
-      clearInterval(this.watchInterval);
-    }
-    this.watchInterval = setInterval(() => {
-      safeRun(async () => {
-        if (this.saving) {
-          return;
-        }
-        for (const pageName of this.watchedPages) {
-          const oldMeta = this.pageMetaCache.get(pageName);
-          if (!oldMeta) {
-            // No longer in cache, meaning probably deleted let's unwatch
-            this.watchedPages.delete(pageName);
-            continue;
-          }
-          // This seems weird, but simply fetching it will compare to local cache and trigger an event if necessary
-          await this.getPageMeta(pageName);
-        }
-      });
-    }, pageWatchInterval);
-    this.updatePageList().catch(console.error);
-  }
-
-  unwatch() {
-    if (this.watchInterval) {
-      clearInterval(this.watchInterval);
-    }
-  }
-
   async deletePage(name: string): Promise<void> {
     await this.getPageMeta(name); // Check if page exists, if not throws Error
     await this.spacePrimitives.deleteFile(`${name}.md`);
 
     this.pageMetaCache.delete(name);
     this.emit("pageDeleted", name);
-    this.emit("pageListUpdated", new Set([...this.pageMetaCache.values()]));
+    this.emit("pageListUpdated", [...this.pageMetaCache.values()]);
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
@@ -187,14 +154,6 @@ export class Space extends EventEmitter<SpaceEvents>
       text: pageData.data as string,
       meta: meta,
     };
-  }
-
-  watchPage(pageName: string) {
-    this.watchedPages.add(pageName);
-  }
-
-  unwatchPage(pageName: string) {
-    this.watchedPages.delete(pageName);
   }
 
   async writePage(

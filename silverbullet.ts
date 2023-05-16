@@ -55,6 +55,7 @@ await new Command()
     { default: "." },
   )
   .option("--importmap <path:string>", "Path to import map file to use")
+  .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
