@@ -29,4 +29,4 @@ jobs:
         run: deno task check
 
       - name: Run tests
-        run: deno task test
+        run: deno task test --trace-ops
