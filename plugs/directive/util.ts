@@ -82,19 +82,7 @@ export async function renderTemplate(
   renderTemplate: string,
   data: any[],
 ): Promise<string> {
-  Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
-  Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
-  Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
-    v
-      .split("\n")
-      .map((l) => prefix + l)
-      .join("\n"));
-
-  Handlebars.registerHelper(
-    "substring",
-    (s: string, from: number, to: number, elipsis = "") =>
-      s.length > to - from ? s.substring(from, to) + elipsis : s,
-  );
+  registerHandlebarsHelpers();
 
   // Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
   //   if (typeof prefix === "string") {
@@ -115,4 +103,23 @@ export async function renderTemplate(
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   const template = Handlebars.compile(templateText, { noEscape: true });
   return template(data);
+}
+
+export function registerHandlebarsHelpers() {
+  Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
+  Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
+  Handlebars.registerHelper("escapeRegexp", (ts: any) => {
+    return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+  });
+  Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
+    v
+      .split("\n")
+      .map((l) => prefix + l)
+      .join("\n"));
+
+  Handlebars.registerHelper(
+    "substring",
+    (s: string, from: number, to: number, elipsis = "") =>
+      s.length > to - from ? s.substring(from, to) + elipsis : s,
+  );
 }

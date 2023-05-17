@@ -64,6 +64,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
+    if (this.assetBundle.has(name)) {
+      console.warn("Attempted to write to read-only asset file", name);
+      return this.getFileMeta(name);
+    }
     return this.wrapped.writeFile(
       name,
       encoding,
@@ -79,19 +83,5 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       return Promise.resolve();
     }
     return this.wrapped.deleteFile(name);
-  }
-
-  // deno-lint-ignore no-explicit-any
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.wrapped.proxySyscall(plug, name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.wrapped.invokeFunction(plug, env, name, args);
   }
 }

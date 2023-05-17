@@ -68,18 +68,4 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
   deleteFile(name: string): Promise<void> {
     return this.wrapped.deleteFile(name);
   }
-
-  // deno-lint-ignore no-explicit-any
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.wrapped.proxySyscall(plug, name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.wrapped.invokeFunction(plug, env, name, args);
-  }
 }

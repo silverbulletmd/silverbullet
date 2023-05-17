@@ -8,6 +8,7 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { serverUpdateDirectives } from "./command.ts";
+import { registerHandlebarsHelpers } from "./util.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -50,11 +51,12 @@ export async function templateDirectiveRenderer(
     const tree = await markdown.parseMarkdown(templateText);
     await extractFrontmatter(tree, ["$disableDirectives"]);
     templateText = renderToText(tree);
+    registerHandlebarsHelpers();
     const templateFn = Handlebars.compile(
       replaceTemplateVars(templateText, pageName),
       { noEscape: true },
     );
-    newBody = templateFn(parsedArgs);
+    newBody = templateFn({ ...parsedArgs, page: pageName });
 
     // Recursively render directives
     newBody = await serverUpdateDirectives(pageName, newBody);

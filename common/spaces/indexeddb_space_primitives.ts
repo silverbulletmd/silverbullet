@@ -131,19 +131,4 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     }
     return fileMeta;
   }
-
-  // Plugs
-
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return plug.syscall(name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    _env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return plug.invoke(name, args);
-  }
 }

@@ -169,13 +169,4 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
   }
-
-  // Plugs are not supported
-  proxySyscall(): Promise<any> {
-    throw new Error("Not supported");
-  }
-
-  invokeFunction(): Promise<any> {
-    throw new Error("Not supported");
-  }
 }

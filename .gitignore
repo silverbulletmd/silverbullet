@@ -7,3 +7,4 @@ website_build
 /index.json
 .idea
 deno.lock
+fly.toml

@@ -204,20 +204,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
     return allFiles;
   }
-
-  // Plugs
-  invokeFunction(
-    plug: Plug<any>,
-    _env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return plug.invoke(name, args);
-  }
-
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return plug.syscall(name, args);
-  }
 }
 
 function escapeRegExp(string: string) {

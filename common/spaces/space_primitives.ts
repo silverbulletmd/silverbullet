@@ -20,13 +20,4 @@ export interface SpacePrimitives {
     lastModified?: number,
   ): Promise<FileMeta>;
   deleteFile(name: string): Promise<void>;
-
-  // Plugs
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any>;
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any>;
 }

@@ -28,11 +28,11 @@ export function systemSyscalls(
         }
         name = functionName;
       }
-      if (env === "client") {
-        return plug.invoke(name, args);
-      }
+      // if (env === "client") {
+      return plug.invoke(name, args);
+      // }
 
-      return editor.space.invokeFunction(plug, env, name, args);
+      // return editor.space.invokeFunction(plug, env, name, args);
     },
     "system.invokeCommand": (ctx, name: string) => {
       return editor.runCommandByName(name);

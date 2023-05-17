@@ -109,15 +109,6 @@ export class Space extends EventEmitter<SpaceEvents>
     return this.metaCacher(name, newMeta);
   }
 
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.spacePrimitives.invokeFunction(plug, env, name, args);
-  }
-
   listPages(): PageMeta[] {
     return [...new Set(this.pageMetaCache.values())];
   }
@@ -130,10 +121,6 @@ export class Space extends EventEmitter<SpaceEvents>
         fileMeta.name.endsWith(".plug.js")
       )
       .map((fileMeta) => fileMeta.name);
-  }
-
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.spacePrimitives.proxySyscall(plug, name, args);
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

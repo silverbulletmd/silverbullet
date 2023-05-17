@@ -11,19 +11,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return this.wrapped.fetchFileList();
   }
 
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.wrapped.proxySyscall(plug, name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.wrapped.invokeFunction(plug, env, name, args);
-  }
-
   readFile(
     name: string,
     encoding: FileEncoding,
