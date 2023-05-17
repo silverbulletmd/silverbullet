@@ -51,6 +51,9 @@ export async function copyAssets(dist: string) {
   await copy("web/images/logo.png", `${dist}/logo.png`, {
     overwrite: true,
   });
+  await copy("web/images/logo-dock.png", `${dist}/logo-dock.png`, {
+    overwrite: true,
+  });
   await copy("web/manifest.json", `${dist}/manifest.json`, {
     overwrite: true,
   });

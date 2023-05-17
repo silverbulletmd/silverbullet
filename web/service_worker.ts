@@ -15,6 +15,7 @@ const precacheFiles = Object.fromEntries([
   "/iAWriterMonoS-Italic.woff2",
   "/iAWriterMonoS-Regular.woff2",
   "/logo.png",
+  "/logo-dock.png",
   "/main.css",
   "/manifest.json",
 ].map((path) => [path, path + "?v=" + Date.now(), path]));
