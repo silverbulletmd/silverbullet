@@ -64,7 +64,7 @@ export class SyncEngine {
     let operations = 0;
     try {
       operations = await this.spaceSync!.syncFiles();
-      this.eventHook.dispatchEvent("sync:success");
+      this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e);

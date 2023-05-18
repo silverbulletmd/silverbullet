@@ -439,8 +439,11 @@ export class Editor {
       );
     }, syncInterval);
 
-    this.eventHook.addLocalListener("sync:success", (name) => {
+    this.eventHook.addLocalListener("sync:success", (operations) => {
       this.viewDispatch({ type: "sync-change", synced: true });
+      if (operations) {
+        this.flashNotification(`Synced ${operations} files`, "info");
+      }
     });
     this.eventHook.addLocalListener("sync:error", (name) => {
       this.viewDispatch({ type: "sync-change", synced: false });
