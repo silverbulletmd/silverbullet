@@ -48,6 +48,17 @@ export function storeSyscalls(
       );
     },
 
+    "store.batchDelete": async (_ctx, keys: string[]) => {
+      await items.bulkDelete(keys);
+    },
+
+    "store.batchGet": async (
+      _ctx,
+      keys: string[],
+    ): Promise<(any | undefined)[]> => {
+      return (await items.bulkGet(keys)).map((result) => result?.value);
+    },
+
     "store.get": async (_ctx, key: string): Promise<any | null> => {
       const result = await items.get({
         key,

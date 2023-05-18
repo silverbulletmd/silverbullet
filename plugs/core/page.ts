@@ -23,6 +23,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { invokeFunction } from "../../plug-api/silverbullet-syscall/system.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -251,6 +252,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 export async function reindexSpace() {
   console.log("Clearing page index...");
   await index.clearPageIndex();
+  await invokeFunction("server", "search.clearIndex");
   console.log("Listing all pages");
   const pages = await space.listPages();
   let counter = 0;

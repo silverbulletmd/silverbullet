@@ -1,0 +1,13 @@
+name: search
+functions:
+  indexPage:
+    path: search.ts:indexPage
+    events:
+    - page:index
+  clearIndex:
+    path: search.ts:clearIndex
+
+  test:
+    path: search.ts:testCommand
+    command:
+      name: "Search: Test"

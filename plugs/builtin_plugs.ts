@@ -7,4 +7,5 @@ export const builtinPlugNames = [
   "markdown",
   "share",
   "tasks",
+  "search",
 ];

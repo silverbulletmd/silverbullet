@@ -31,6 +31,10 @@ export function get(key: string): Promise<any> {
   return syscall("store.get", key);
 }
 
+export function batchGet(keys: string[]): Promise<(any | undefined)[]> {
+  return syscall("store.batchGet", keys);
+}
+
 export function has(key: string): Promise<boolean> {
   return syscall("store.has", key);
 }
