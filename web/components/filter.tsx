@@ -10,6 +10,7 @@ import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
+import { fuzzySearchAndSort } from "./fuzzy_search.ts";
 
 function magicSorter(a: FilterOption, b: FilterOption): number {
   if (a.orderId && b.orderId) {
@@ -95,8 +96,10 @@ export function FilterList({
   const selectedElementRef = useRef<HTMLDivElement>(null);
 
   function updateFilter(originalPhrase: string) {
-    const foundExactMatch = false;
-    const results = fuzzySorter(originalPhrase, options);
+    const results = fuzzySearchAndSort(options, originalPhrase);
+    const foundExactMatch = !!results.find((result) =>
+      result.name === originalPhrase
+    );
     if (allowNew && !foundExactMatch && originalPhrase) {
       results.splice(1, 0, {
         name: originalPhrase,
@@ -220,14 +223,13 @@ export function FilterList({
                     <Icon width={16} height={16} />
                   </span>
                 )}
-                <span
-                  className="sb-name"
-                  dangerouslySetInnerHTML={{
-                    __html: option?.result?.indexes
-                      ? fuzzysort.highlight(option.result, "<b>", "</b>")!
-                      : escapeHtml(option.name),
-                  }}
+                <span className="sb-name" // dangerouslySetInnerHTML={{
+                  //   __html: option?.result?.indexes
+                  //     ? fuzzysort.highlight(option.result, "<b>", "</b>")!
+                  //     : escapeHtml(option.name),
+                  // }}
                 >
+                  {option.name}
                 </span>
                 {option.hint && <span className="sb-hint">{option.hint}</span>}
               </div>
