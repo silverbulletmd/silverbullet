@@ -1,6 +1,6 @@
 ---
 type: plug
-uri: github:silverbulletmd/silverbullet-twitter/twitter.plug.json
+uri: github:silverbulletmd/silverbullet-twitter/twitter.plug.js
 repo: https://github.com/silverbulletmd/silverbullet-twitter
 author: SilverBullet Authors
 ---
@@ -14,7 +14,7 @@ Currently the only thing this plug offers is unfurling links to tweets. To use, 
 Turns into:
 
     [Zef Hemel](https://twitter.com/zef/status/1547687321679511552):
-    > For those who missed my earlier posts on SilverBullet: it’s my new powerful note taking/PKM app. Demo video from a user’s perspective: https://t.co/MKauSTcUG3 How it works technically (plugins all the way down): https://t.co/sqCkAa0pem Repo: https://t.co/rrxQdyxze1
+    > For those who missed my earlier posts on Silver Bullet: it’s my new powerful note taking/PKM app. Demo video from a user’s perspective: https://t.co/MKauSTcUG3 How it works technically (plugins all the way down): https://t.co/sqCkAa0pem Repo: https://t.co/rrxQdyxze1
 
 ## Installation
 

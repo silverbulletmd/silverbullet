@@ -42,8 +42,8 @@ export function pageIndexSyscalls(
     "index.delete": (_ctx, page: string, key: string) => {
       return items.delete({ page, key });
     },
-    "index.get": (_ctx, page: string, key: string) => {
-      return items.get({ page, key });
+    "index.get": async (_ctx, page: string, key: string) => {
+      return (await items.get({ page, key }))?.value;
     },
     "index.queryPrefix": (_ctx, prefix: string) => {
       return items.where("key").startsWith(prefix).toArray();

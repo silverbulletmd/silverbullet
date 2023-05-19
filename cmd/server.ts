@@ -21,7 +21,7 @@ export function serveCommand(options: any, folder: string) {
 
   if (hostname === "127.0.0.1") {
     console.log(
-      `_Note:_ SilverBullet will only be available locally (via http://localhost:${port}), to allow outside connections, pass --host 0.0.0.0 as a flag.`,
+      `_Note:_ SilverBullet will only be available locally (via http://localhost:${port}), to allow outside connections, pass --hostname 0.0.0.0 as a flag.`,
     );
   }
 

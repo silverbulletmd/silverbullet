@@ -1,12 +1,12 @@
 ---
 type: plug
-uri: github:silverbulletmd/silverbullet-katex/katex.plug.json
+uri: github:silverbulletmd/silverbullet-katex/katex.plug.js
 repo: https://github.com/silverbulletmd/silverbullet-katex
 author: Zef Hemel
 ---
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-katex/main/README.md]] -->
-# SilverBullet KaTeX plug
+# Silver Bullet KaTeX plug
 
 ## Installation
 Run the {[Plugs: Add]} command and paste in: `github:silverbulletmd/silverbullet-katex/katex.plug.json`
@@ -26,7 +26,7 @@ And move your cursor outside of the block to live preview it!
 **Note:** [KaTeX](https://katex.org) itself is not bundled with this plug, it pulls the JavaScript, CSS and fonts from the JSDelivr CDN. This means _this plug will not work without an Internet connection_. The reason for this limitation is that it is not yet possible to distribute font files via plugs, and KaTeX depends on specific web fonts.
 
 ## Build
-Assuming you have Deno and SilverBullet installed, simply build using:
+Assuming you have Deno and Silver Bullet installed, simply build using:
 
 ```shell
 deno task build

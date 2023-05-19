@@ -182,6 +182,7 @@ export class Editor {
   collabState?: CollabState;
   syncService: SyncService;
   settings?: BuiltinSettings;
+  kvStore: DexieKVStore;
 
   constructor(
     parent: Element,
@@ -212,13 +213,13 @@ export class Editor {
       globalThis.indexedDB,
     );
 
-    const kvStore = new DexieKVStore(
+    this.kvStore = new DexieKVStore(
       `${dbPrefix}_store`,
       "data",
       globalThis.indexedDB,
     );
 
-    const storeCalls = storeSyscalls(kvStore);
+    const storeCalls = storeSyscalls(this.kvStore);
 
     // Setup space
     const plugSpacePrimitives = new PlugSpacePrimitives(
@@ -243,7 +244,7 @@ export class Editor {
     this.syncService = new SyncService(
       localSpacePrimitives,
       runtimeConfig.syncEndpoint,
-      kvStore,
+      this.kvStore,
       this.eventHook,
       runtimeConfig.spaceFolderPath,
       (path) => {
@@ -442,14 +443,13 @@ export class Editor {
       if (this.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
+        // Likely initial sync so let's show visually that we're synced now
+        this.flashNotification(`Synced ${operations} files`, "info");
       }
       // Reset for next sync cycle
       this.plugsUpdated = false;
 
       this.viewDispatch({ type: "sync-change", synced: true });
-      if (operations) {
-        this.flashNotification(`Synced ${operations} files`, "info");
-      }
     });
     this.eventHook.addLocalListener("sync:error", (name) => {
       this.viewDispatch({ type: "sync-change", synced: false });
