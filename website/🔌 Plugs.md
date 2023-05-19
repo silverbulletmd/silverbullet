@@ -52,7 +52,13 @@ Generally, the way to do this is to run `silverbullet plug:compile` as follows:
 silverbullet plug:compile yourplugname.plug.yaml
 ```
 
-However, if you use the plug template, this command is wrapped in your `deno.jsonc` file, so you can just run either:
+During development, you may want to compile plugs in debug mode, which will not minify them and generate source maps:
+
+```shell
+silverbullet plug:compile --debug yourplugname.plug.yaml
+```
+
+If you use the plug template, this command is wrapped in your `deno.jsonc` file, so you can just run either:
 
 ```shell
 deno task build
@@ -75,6 +81,11 @@ cp myplug.plug.js ~/myspace/_plug/
 ```
 
 Within seconds (watch your browser’s JavaScript console), your plug should be picked up, synced to your browser and loaded. No need to even reload the page.
+
+## Debugging
+Since plugs run in your browser, you can use the usual browser debugging tools. When you console.log things, these logs will appear in your browser’s JavaScript console.
+
+## Distribution
 
 Once you’re happy with your plug, you can distribute it in various ways:
 

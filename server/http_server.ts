@@ -251,7 +251,7 @@ export class HttpServer {
     fsRouter
       .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
-        // console.log("Loading file", name);
+        console.log("Loading file", name);
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
