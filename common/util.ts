@@ -53,10 +53,10 @@ export async function ensureSettingsAndIndex(
         "index.md",
         "utf8",
         `Hello! And welcome to your brand new SilverBullet space!
-  
-  <!-- #use [[💭 silverbullet.md/Getting Started]] -->
-  Loading some onboarding content for you (but doing so does require a working internet connection)...
-  <!-- /use -->`,
+
+<!-- #use [[💭 silverbullet.md/Getting Started]] -->
+Loading some onboarding content for you (but doing so does require a working internet connection)...
+<!-- /use -->`,
       );
     }
   }
