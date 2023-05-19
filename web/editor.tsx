@@ -126,9 +126,10 @@ import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitive
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
-import { SyncEngine } from "./sync.ts";
+import { SyncService } from "./sync_service.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
+import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 
 const frontMatterRegex = /^---\n(.*?)---\n/ms;
 
@@ -139,7 +140,6 @@ class PageState {
   ) {}
 }
 
-const syncInterval = 10 * 1000;
 const saveInterval = 1000;
 
 declare global {
@@ -180,7 +180,7 @@ export class Editor {
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
-  syncEngine: SyncEngine;
+  syncService: SyncService;
   settings?: BuiltinSettings;
 
   constructor(
@@ -211,11 +211,14 @@ export class Editor {
       `${dbPrefix}_page_index`,
       globalThis.indexedDB,
     );
-    const storeCalls = storeSyscalls(
+
+    const kvStore = new DexieKVStore(
       `${dbPrefix}_store`,
       "data",
       globalThis.indexedDB,
     );
+
+    const storeCalls = storeSyscalls(kvStore);
 
     // Setup space
     const plugSpacePrimitives = new PlugSpacePrimitives(
@@ -235,11 +238,12 @@ export class Editor {
     );
 
     this.space = new Space(localSpacePrimitives);
+    this.space.watch();
 
-    this.syncEngine = new SyncEngine(
+    this.syncService = new SyncService(
       localSpacePrimitives,
       runtimeConfig.syncEndpoint,
-      storeCalls,
+      kvStore,
       this.eventHook,
       runtimeConfig.spaceFolderPath,
       (path) => {
@@ -287,8 +291,8 @@ export class Editor {
       storeCalls,
       clientStoreSyscalls(storeCalls),
       indexSyscalls,
-      sandboxFetchSyscalls(this.syncEngine.remoteSpace),
-      shellSyscalls(this.syncEngine.remoteSpace),
+      sandboxFetchSyscalls(this.syncService.remoteSpace),
+      shellSyscalls(this.syncService.remoteSpace),
       // fulltextSyscalls(serverSpace),
     );
 
@@ -332,7 +336,6 @@ export class Editor {
 
   async init() {
     this.focus();
-    await this.syncEngine.init();
 
     this.space.on({
       pageChanged: (meta) => {
@@ -363,7 +366,7 @@ export class Editor {
       await this.space.getPageMeta(currentPage);
     } catch {
       console.log(`No ${currentPage} page available, syncing...`);
-      await this.syncEngine.syncFile(currentPage + ".md");
+      await this.syncService.syncFile(currentPage + ".md");
       // Initial sync, mark as unsynced
       this.viewDispatch({ type: "sync-change", synced: false });
     }
@@ -429,17 +432,20 @@ export class Editor {
     this.loadCustomStyles().catch(console.error);
 
     // Kick off background sync
-    this.syncEngine.syncSpace().then(this.updateAfterSync.bind(this)).catch(
-      console.error,
-    );
+    this.syncService.start();
 
-    setInterval(() => {
-      this.syncEngine.syncSpace().then(this.updateAfterSync.bind(this)).catch(
-        console.error,
-      );
-    }, syncInterval);
+    this.eventHook.addLocalListener("sync:success", async (operations) => {
+      if (operations > 0) {
+        // Update the page list
+        await this.space.updatePageList();
+      }
+      if (this.plugsUpdated) {
+        // To register new commands, update editor state based on new plugs
+        this.rebuildEditorState();
+      }
+      // Reset for next sync cycle
+      this.plugsUpdated = false;
 
-    this.eventHook.addLocalListener("sync:success", (operations) => {
       this.viewDispatch({ type: "sync-change", synced: true });
       if (operations) {
         this.flashNotification(`Synced ${operations} files`, "info");
@@ -452,19 +458,6 @@ export class Editor {
     await this.dispatchAppEvent("editor:init");
   }
 
-  async updateAfterSync(operations: number) {
-    if (operations > 0) {
-      // Update the page list
-      await this.space.updatePageList();
-    }
-    if (this.plugsUpdated) {
-      // To register new commands, update editor state based on new plugs
-      this.rebuildEditorState();
-    }
-    // Reset for next sync cycle
-    this.plugsUpdated = false;
-  }
-
   async loadSettings(): Promise<BuiltinSettings> {
     let settingsText: string | undefined;
 
@@ -472,7 +465,7 @@ export class Editor {
       settingsText = (await this.space.readPage("SETTINGS")).text;
     } catch {
       console.log("No SETTINGS page, syncing...");
-      await this.syncEngine.syncFile("SETTINGS.md");
+      await this.syncService.syncFile("SETTINGS.md");
       settingsText = (await this.space.readPage("SETTINGS")).text;
     }
     const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
@@ -1087,6 +1080,7 @@ export class Editor {
     // Persist current page state and nicely close page
     if (previousPage) {
       this.saveState(previousPage);
+      this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
         // And stop the collab session
@@ -1125,6 +1119,7 @@ export class Editor {
       this.tweakEditorDOM(editorView.contentDOM);
     }
     const stateRestored = this.restoreState(pageName);
+    this.space.watchPage(pageName);
 
     this.viewDispatch({
       type: "page-loaded",

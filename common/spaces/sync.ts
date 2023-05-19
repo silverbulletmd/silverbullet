@@ -18,6 +18,8 @@ export type SyncOptions = {
     secondarySpace: SpacePrimitives,
   ) => Promise<number>;
   isSyncCandidate?: (path: string) => boolean;
+  // Used to track progress, may want to pass more specific info later
+  onSyncProgress?: () => void;
 };
 
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
@@ -25,12 +27,12 @@ export class SpaceSync {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    readonly snapshot: Map<string, SyncStatusItem>,
+    // readonly snapshot: Map<string, SyncStatusItem>,
     readonly options: SyncOptions,
   ) {
   }
 
-  async syncFiles(): Promise<number> {
+  async syncFiles(snapshot: Map<string, SyncStatusItem>): Promise<number> {
     let operations = 0;
     console.log("[sync]", "Fetching snapshot from primary");
     const primaryAllPages = this.syncCandidates(
@@ -51,7 +53,7 @@ export class SpaceSync {
       );
 
       const allFilesToProcess = new Set([
-        ...this.snapshot.keys(),
+        ...snapshot.keys(),
         ...primaryFileMap.keys(),
         ...secondaryFileMap.keys(),
       ]);
@@ -67,6 +69,7 @@ export class SpaceSync {
       for (const name of sortedFilenames) {
         try {
           operations += await this.syncFile(
+            snapshot,
             name,
             primaryFileMap.get(name),
             secondaryFileMap.get(name),
@@ -85,6 +88,7 @@ export class SpaceSync {
   }
 
   async syncFile(
+    snapshot: Map<string, SyncStatusItem>,
     name: string,
     primaryHash: SyncHash | undefined,
     secondaryHash: SyncHash | undefined,
@@ -97,7 +101,7 @@ export class SpaceSync {
 
     if (
       primaryHash !== undefined && secondaryHash === undefined &&
-      !this.snapshot.has(name)
+      !snapshot.has(name)
     ) {
       // New file, created on primary, copy from primary to secondary
       console.log(
@@ -113,14 +117,14 @@ export class SpaceSync {
         false,
         meta.lastModified,
       );
-      this.snapshot.set(name, [
+      snapshot.set(name, [
         primaryHash,
         writtenMeta.lastModified,
       ]);
       operations++;
     } else if (
       secondaryHash !== undefined && primaryHash === undefined &&
-      !this.snapshot.has(name)
+      !snapshot.has(name)
     ) {
       // New file, created on secondary, copy from secondary to primary
       console.log(
@@ -136,13 +140,13 @@ export class SpaceSync {
         false,
         meta.lastModified,
       );
-      this.snapshot.set(name, [
+      snapshot.set(name, [
         writtenMeta.lastModified,
         secondaryHash,
       ]);
       operations++;
     } else if (
-      primaryHash !== undefined && this.snapshot.has(name) &&
+      primaryHash !== undefined && snapshot.has(name) &&
       secondaryHash === undefined
     ) {
       // File deleted on B
@@ -152,10 +156,10 @@ export class SpaceSync {
         name,
       );
       await this.primary.deleteFile(name);
-      this.snapshot.delete(name);
+      snapshot.delete(name);
       operations++;
     } else if (
-      secondaryHash !== undefined && this.snapshot.has(name) &&
+      secondaryHash !== undefined && snapshot.has(name) &&
       primaryHash === undefined
     ) {
       // File deleted on A
@@ -165,10 +169,10 @@ export class SpaceSync {
         name,
       );
       await this.secondary.deleteFile(name);
-      this.snapshot.delete(name);
+      snapshot.delete(name);
       operations++;
     } else if (
-      this.snapshot.has(name) && primaryHash === undefined &&
+      snapshot.has(name) && primaryHash === undefined &&
       secondaryHash === undefined
     ) {
       // File deleted on both sides, :shrug:
@@ -177,13 +181,13 @@ export class SpaceSync {
         "File deleted on both ends, deleting from status",
         name,
       );
-      this.snapshot.delete(name);
+      snapshot.delete(name);
       operations++;
     } else if (
       primaryHash !== undefined && secondaryHash !== undefined &&
-      this.snapshot.get(name) &&
-      primaryHash !== this.snapshot.get(name)![0] &&
-      secondaryHash === this.snapshot.get(name)![1]
+      snapshot.get(name) &&
+      primaryHash !== snapshot.get(name)![0] &&
+      secondaryHash === snapshot.get(name)![1]
     ) {
       // File has changed on primary, but not secondary: copy from primary to secondary
       console.log(
@@ -199,16 +203,16 @@ export class SpaceSync {
         false,
         meta.lastModified,
       );
-      this.snapshot.set(name, [
+      snapshot.set(name, [
         primaryHash,
         writtenMeta.lastModified,
       ]);
       operations++;
     } else if (
       primaryHash !== undefined && secondaryHash !== undefined &&
-      this.snapshot.get(name) &&
-      secondaryHash !== this.snapshot.get(name)![1] &&
-      primaryHash === this.snapshot.get(name)![0]
+      snapshot.get(name) &&
+      secondaryHash !== snapshot.get(name)![1] &&
+      primaryHash === snapshot.get(name)![0]
     ) {
       // File has changed on secondary, but not primary: copy from secondary to primary
       console.log(
@@ -224,7 +228,7 @@ export class SpaceSync {
         false,
         meta.lastModified,
       );
-      this.snapshot.set(name, [
+      snapshot.set(name, [
         writtenMeta.lastModified,
         secondaryHash,
       ]);
@@ -232,13 +236,13 @@ export class SpaceSync {
     } else if (
       ( // File changed on both ends, but we don't have any info in the snapshot (resync scenario?): have to run through conflict handling
         primaryHash !== undefined && secondaryHash !== undefined &&
-        !this.snapshot.has(name)
+        !snapshot.has(name)
       ) ||
       ( // File changed on both ends, CONFLICT!
         primaryHash && secondaryHash &&
-        this.snapshot.get(name) &&
-        secondaryHash !== this.snapshot.get(name)![1] &&
-        primaryHash !== this.snapshot.get(name)![0]
+        snapshot.get(name) &&
+        secondaryHash !== snapshot.get(name)![1] &&
+        primaryHash !== snapshot.get(name)![0]
       )
     ) {
       console.log(
@@ -248,12 +252,15 @@ export class SpaceSync {
       );
       operations += await this.options.conflictResolver!(
         name,
-        this.snapshot,
+        snapshot,
         this.primary,
         this.secondary,
       );
     } else {
       // Nothing needs to happen
+    }
+    if (this.options.onSyncProgress) {
+      this.options.onSyncProgress();
     }
     return operations;
   }

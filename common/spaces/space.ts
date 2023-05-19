@@ -1,7 +1,6 @@
 import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
 import { AttachmentMeta, PageMeta } from "../types.ts";
 import { EventEmitter } from "../../plugos/event.ts";
-import { Plug } from "../../plugos/plug.ts";
 import { plugPrefix } from "./constants.ts";
 import { safeRun } from "../util.ts";
 import {
@@ -16,12 +15,19 @@ export type SpaceEvents = {
   pageListUpdated: (pages: PageMeta[]) => void;
 };
 
+const pageWatchInterval = 5000;
+
 export class Space extends EventEmitter<SpaceEvents>
   implements ProxyFileSystem {
   pageMetaCache = new Map<string, PageMeta>();
+
+  // We do watch files in the background to detect changes
+  // This set of pages should only ever contain 1 page
+  watchedPages = new Set<string>();
+  watchInterval?: number;
+
   private initialPageListLoad = true;
   private saving = false;
-  watchInterval?: number;
 
   constructor(readonly spacePrimitives: SpacePrimitives) {
     super();
@@ -209,6 +215,46 @@ export class Space extends EventEmitter<SpaceEvents>
 
   deleteAttachment(name: string): Promise<void> {
     return this.spacePrimitives.deleteFile(name);
+  }
+
+  // Even though changes coming from a sync cycle will immediately trigger a reload
+  // there are scenarios in which other tabs run the sync, so we have to poll for changes
+  watch() {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+    }
+    this.watchInterval = setInterval(() => {
+      safeRun(async () => {
+        if (this.saving) {
+          return;
+        }
+        for (const pageName of this.watchedPages) {
+          const oldMeta = this.pageMetaCache.get(pageName);
+          if (!oldMeta) {
+            // No longer in cache, meaning probably deleted let's unwatch
+            this.watchedPages.delete(pageName);
+            continue;
+          }
+          // This seems weird, but simply fetching it will compare to local cache and trigger an event if necessary
+          await this.getPageMeta(pageName);
+        }
+      });
+    }, pageWatchInterval);
+    this.updatePageList().catch(console.error);
+  }
+
+  unwatch() {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+    }
+  }
+
+  watchPage(pageName: string) {
+    this.watchedPages.add(pageName);
+  }
+
+  unwatchPage(pageName: string) {
+    this.watchedPages.delete(pageName);
   }
 
   private metaCacher(name: string, meta: PageMeta): PageMeta {
