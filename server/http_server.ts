@@ -47,7 +47,7 @@ export class HttpServer {
   renderIndexHtml() {
     return this.clientAssetBundle.readTextFileSync("index.html").replaceAll(
       "{{SPACE_PATH}}",
-      this.options.pagesPath,
+      this.options.pagesPath.replaceAll("\\", "\\\\"),
     ).replaceAll(
       "{{SYNC_ENDPOINT}}",
       "/fs",

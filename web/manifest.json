@@ -5,7 +5,7 @@
     {
       "src": "/logo-dock.png",
       "type": "image/png",
-      "sizes": "any"
+      "sizes": "512x512"
     }
   ],
   "capture_links": "new-client",
