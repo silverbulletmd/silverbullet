@@ -227,7 +227,7 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 
 export async function reindexCommand() {
   await editor.flashNotification("Reindexing...");
-  await system.invokeFunction("server", "reindexSpace");
+  await reindexSpace();
   await editor.flashNotification("Reindexing done");
 }
 
@@ -248,11 +248,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   };
 }
 
-// Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");
   await index.clearPageIndex();
-  await invokeFunction("server", "search.clearIndex");
+  // Executed this way to not have to embed the search plug code here
+  await invokeFunction("client", "search.clearIndex");
   console.log("Listing all pages");
   const pages = await space.listPages();
   let counter = 0;

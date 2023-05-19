@@ -138,6 +138,7 @@ export function attachmentExtension(editor: Editor) {
 
   async function processFileTransfer(payload: File[]) {
     const data = await payload[0].arrayBuffer();
+    // data.byteLength > maximumAttachmentSize;
     await saveFile(data!, payload[0].name, payload[0].type);
   }
 

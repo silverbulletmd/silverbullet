@@ -18,14 +18,11 @@ await new Command()
   .usage("<options> <folder> | <command> (see below)")
   // Main command
   .arguments("<folder:string>")
-  .option("--hostname <hostname:string>", "Hostname or address to listen on")
+  .option(
+    "--hostname, -L <hostname:string>",
+    "Hostname or address to listen on",
+  )
   .option("-p, --port <port:number>", "Port to listen on")
-  .option("--bare [type:boolean]", "Don't auto generate pages", {
-    default: false,
-  })
-  .option("--db <dbfile:string>", "Filename for the database", {
-    default: "data.db",
-  })
   .option(
     "--user <user:string>",
     "'username:password' combo for BasicAuth authentication",
@@ -37,6 +34,10 @@ await new Command()
   .option(
     "--key <keyFile:string>",
     "Path to TLS key",
+  )
+  .option(
+    "--maxFileSize [type:number]",
+    "Do not sync/expose files larger than this (in MB)",
   )
   .action(serveCommand)
   // plug:compile

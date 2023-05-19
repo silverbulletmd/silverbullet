@@ -1,7 +1,5 @@
 name: directive
 functions:
-  serverRenderDirective:
-    path: ./command.ts:serverRenderDirective
   updateDirectivesOnPageCommand:
     path: ./command.ts:updateDirectivesOnPageCommand
     command:

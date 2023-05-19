@@ -2,8 +2,6 @@ name: Build & Release
 
 on:
   push:
-    branches:
-      - local
     tags:
       - "*"
 jobs:

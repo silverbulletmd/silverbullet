@@ -12,6 +12,7 @@ export function serveCommand(options: any, folder: string) {
   const pagesPath = path.resolve(Deno.cwd(), folder);
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
+  const maxFileSizeMB = options.maxFileSizeMB || 10;
 
   console.log(
     "Going to start SilverBullet binding to",
@@ -34,6 +35,7 @@ export function serveCommand(options: any, folder: string) {
     user: options.user,
     keyFile: options.key,
     certFile: options.cert,
+    maxFileSizeMB: +maxFileSizeMB,
   });
   httpServer.start().catch(console.error);
 }

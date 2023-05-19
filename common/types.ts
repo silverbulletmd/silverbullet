@@ -1,4 +1,4 @@
-export const maximumAttachmentSize = 100 * 1024 * 1024; // 100 MB
+export const maximumAttachmentSize = 10 * 1024 * 1024; // 10 MB
 
 export type FileMeta = {
   name: string;

@@ -51,12 +51,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     }
     const fullMatch = text.substring(tree.from!, tree.to!);
     try {
-      const promise = system.invokeFunction(
-        "server",
-        "serverRenderDirective",
-        pageName,
-        tree,
-      );
+      const promise = serverRenderDirective(pageName, tree);
       replacements.push({
         textPromise: promise,
         fullMatch,
@@ -118,7 +113,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
 
 // Called from client, running on server
 // The text passed here is going to be a single directive block (not a full page)
-export function serverRenderDirective(
+function serverRenderDirective(
   pageName: string,
   tree: ParseTree,
 ): Promise<string> {

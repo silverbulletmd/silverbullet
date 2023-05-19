@@ -10,7 +10,6 @@ functions:
 
   searchUnindex:
     path: "./search.ts:pageUnindex"
-    env: server
     events:
       - page:deleted
   searchQueryProvider:
@@ -26,21 +25,18 @@ functions:
 
   readPageSearch:
     path: ./search.ts:readFileSearch
-    env: server
     pageNamespace:
       pattern: "🔍 .+"
       operation: readFile
 
   writePageSearch:
     path: ./search.ts:writeFileSearch
-    env: server
     pageNamespace:
       pattern: "🔍 .+"
       operation: readFile
 
   getPageMetaSearch:
     path: ./search.ts:getFileMetaSearch
-    env: server
     pageNamespace:
       pattern: "🔍 .+"
       operation: getFileMeta

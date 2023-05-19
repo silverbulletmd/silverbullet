@@ -17,6 +17,7 @@ export type ServerOptions = {
   pass?: string;
   certFile?: string;
   keyFile?: string;
+  maxFileSizeMB?: number;
 };
 
 // const staticLastModified = new Date().toUTCString();
@@ -38,7 +39,9 @@ export class HttpServer {
     this.user = options.user;
     this.clientAssetBundle = options.clientAssetBundle;
     this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new DiskSpacePrimitives(options.pagesPath),
+      new DiskSpacePrimitives(options.pagesPath, {
+        maxFileSizeMB: options.maxFileSizeMB,
+      }),
       options.plugAssetBundle,
     );
   }

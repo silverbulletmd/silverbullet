@@ -24,10 +24,8 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
-
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
-    env: server
     events:
       - page:saved
       - page:deleted
@@ -43,9 +41,6 @@ functions:
     path: "./page.ts:reindexCommand"
     command:
       name: "Space: Reindex"
-  reindexSpace:
-    path: "./page.ts:reindexSpace"
-    env: server
   deletePage:
     path: "./page.ts:deletePage"
     command:
@@ -339,9 +334,6 @@ functions:
       mac: "Cmd-Shift-u"
       contexts:
         - NakedURL
-  unfurlExec:
-    env: server
-    path: ./link.ts:unfurlExec
 
   # Title-based link unfurl
   titleUnfurlOptions:
@@ -366,19 +358,16 @@ functions:
   # Cloud pages
   readPageCloud:
     path: ./cloud.ts:readFileCloud
-    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: readFile
   writePageCloud:
     path: ./cloud.ts:writeFileCloud
-    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: writeFile
   getPageMetaCloud:
     path: ./cloud.ts:getFileMetaCloud
-    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: getFileMeta

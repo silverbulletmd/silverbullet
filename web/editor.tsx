@@ -290,6 +290,7 @@ export class Editor {
       collabSyscalls(this),
       yamlSyscalls(),
       storeCalls,
+      // LEGACY
       clientStoreSyscalls(storeCalls),
       indexSyscalls,
       sandboxFetchSyscalls(this.syncService.remoteSpace),

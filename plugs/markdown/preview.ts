@@ -1,15 +1,10 @@
-import {
-  clientStore,
-  editor,
-  space,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
-import { asset } from "$sb/plugos-syscall/mod.ts";
-import { parseMarkdown } from "../../plug-api/silverbullet-syscall/markdown.ts";
+import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
+import { asset, store } from "$sb/plugos-syscall/mod.ts";
+import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 
 export async function updateMarkdownPreview() {
-  if (!(await clientStore.get("enableMarkdownPreview"))) {
+  if (!(await store.get("enableMarkdownPreview"))) {
     return;
   }
   const text = await editor.getText();
