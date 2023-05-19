@@ -74,11 +74,11 @@ rating: 5
 
 And here’s a query that lists the last 5 modified pages in this space, which is kept up to date automatically (learn more about [[🔌 Directive|directives]]).
 <!-- #query page select name limit 5 order by lastModified desc render [[template/page]]-->
+* [[CHANGELOG]]
+* [[🔌 Plugs]]
+* [[SilverBullet]]
 * [[🔌 Ghost]]
 * [[🔌 Github]]
-* [[🔌 Twitter]]
-* [[🔌 KaTeX]]
-* [[🔌 Mermaid]]
 <!-- /query -->
 
 
