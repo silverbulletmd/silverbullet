@@ -76,7 +76,7 @@ export async function shareCommand() {
   }
 
   removeParentPointers(tree);
-  const dispatchData = prepareFrontmatterDispatch(tree, {
+  const dispatchData = await prepareFrontmatterDispatch(tree, {
     $share: [...$share, `collab:${serverUrl}/${roomId}`],
   });
 
