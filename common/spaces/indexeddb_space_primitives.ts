@@ -1,5 +1,4 @@
 import type { FileMeta } from "../types.ts";
-import type { Plug } from "../../plugos/plug.ts";
 import type {
   FileData,
   FileEncoding,
