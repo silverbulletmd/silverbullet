@@ -49,7 +49,7 @@ export class SyncEngine {
       this.remoteSpace!,
       this.snapshot!,
       {
-        conflictResolver: SpaceSync.primaryConflictResolver,
+        conflictResolver: SyncEngine.plugAwareConflictResolver,
         isSyncCandidate: this.isSyncCandidate,
       },
     );
@@ -126,5 +126,48 @@ export class SyncEngine {
       "syncSnapshot",
       Object.fromEntries(this.snapshot!),
     );
+  }
+
+  public static async plugAwareConflictResolver(
+    name: string,
+    snapshot: Map<string, SyncStatusItem>,
+    primary: SpacePrimitives,
+    secondary: SpacePrimitives,
+  ): Promise<number> {
+    if (!name.startsWith("_plug/")) {
+      return SpaceSync.primaryConflictResolver(
+        name,
+        snapshot,
+        primary,
+        secondary,
+      );
+    }
+    console.log(
+      "[sync]",
+      "Conflict in plug",
+      name,
+      "will pick the version from secondary and be done with it.",
+    );
+    const fileMeta = await primary.getFileMeta(name);
+
+    // Read file from secondary
+    const { data } = await secondary.readFile(
+      name,
+      "arraybuffer",
+    );
+    // Write file to primary
+    const newMeta = await primary.writeFile(
+      name,
+      "arraybuffer",
+      data,
+      false,
+      fileMeta.lastModified,
+    );
+    // Update snapshot
+    snapshot.set(name, [
+      newMeta.lastModified,
+      fileMeta.lastModified,
+    ]);
+    return 1;
   }
 }

@@ -27,16 +27,10 @@ export function systemSyscalls(
           throw Error(`Plug ${plugName} not found`);
         }
         name = functionName;
-
-        console.log("Invoking in plug", plugName, functionName);
       }
-      // if (env === "client") {
       return plug.invoke(name, args);
-      // }
-
-      // return editor.space.invokeFunction(plug, env, name, args);
     },
-    "system.invokeCommand": (ctx, name: string) => {
+    "system.invokeCommand": (_ctx, name: string) => {
       return editor.runCommandByName(name);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
