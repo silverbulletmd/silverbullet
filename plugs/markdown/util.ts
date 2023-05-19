@@ -6,7 +6,7 @@ import {
 import { markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 export function encodePageUrl(name: string): string {
-  return name.replaceAll(" ", "_");
+  return name;
 }
 
 export async function cleanMarkdown(

@@ -77,7 +77,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
               {
                 text: linkText,
                 title: pageExists ? `Navigate to ${page}` : `Create ${page}`,
-                href: `/${page.replaceAll(" ", "_")}`,
+                href: `/${page}`,
                 cssClass: pageExists
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",

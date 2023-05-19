@@ -233,7 +233,7 @@ function render(
       return {
         name: "a",
         attrs: {
-          href: `/${ref.replaceAll(" ", "_").replace("@", "#")}`,
+          href: `/${ref.replace("@", "#")}`,
         },
         body: linkText,
       };
