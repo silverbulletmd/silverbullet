@@ -89,6 +89,7 @@ export class SyncService {
   }
 
   async registerSyncStop(): Promise<void> {
+    await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
   }
 
@@ -111,13 +112,11 @@ export class SyncService {
           // It's been a while since the last activity, let's sync the whole space
           // The reason to do this check is that there may be multiple tabs open each with their sync cycle
           await this.syncSpace();
-        } else {
-          console.log("Not time to sync yet...");
         }
       } catch (e: any) {
         console.error(e);
       }
-    }, syncInterval);
+    }, syncInterval / 2); // check every half the sync cycle because actually running the sync takes some time therefore we don't want to wait for the full cycle
   }
 
   async syncSpace(): Promise<number> {
