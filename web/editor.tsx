@@ -131,7 +131,7 @@ import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 
-const frontMatterRegex = /^---\n(.*?)---\n/ms;
+const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 class PageState {
   constructor(
@@ -377,7 +377,6 @@ export class Editor {
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
       console.log("Now navigating to", pageName);
-
       if (!this.editorView) {
         return;
       }
