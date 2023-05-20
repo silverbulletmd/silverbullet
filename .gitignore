@@ -8,3 +8,4 @@ website_build
 .idea
 deno.lock
 fly.toml
+env.sh

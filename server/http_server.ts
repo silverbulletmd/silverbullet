@@ -2,8 +2,6 @@ import { Application, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
 
@@ -12,7 +10,6 @@ export type ServerOptions = {
   port: number;
   pagesPath: string;
   clientAssetBundle: AssetBundle;
-  plugAssetBundle: AssetBundle;
   user?: string;
   pass?: string;
   certFile?: string;
@@ -29,21 +26,17 @@ export class HttpServer {
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
-  spacePrimitives: SpacePrimitives;
   clientAssetBundle: AssetBundle;
 
-  constructor(private options: ServerOptions) {
+  constructor(
+    private spacePrimitives: SpacePrimitives,
+    private options: ServerOptions,
+  ) {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
     this.user = options.user;
     this.clientAssetBundle = options.clientAssetBundle;
-    this.spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new DiskSpacePrimitives(options.pagesPath, {
-        maxFileSizeMB: options.maxFileSizeMB,
-      }),
-      options.plugAssetBundle,
-    );
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
