@@ -10,7 +10,7 @@ import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { S3SpacePrimitives } from "../common/spaces/s3_space_primitives.ts";
+import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 
 export function serveCommand(options: any, folder: string) {
   const hostname = options.hostname || "127.0.0.1";
