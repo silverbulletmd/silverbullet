@@ -1,10 +1,9 @@
 import { S3SpacePrimitives } from "./s3_space_primitives.ts";
 import { assert, assertEquals } from "../../test_deps.ts";
-import { ClientOptions } from "../fork/deno-s3-lite-client/client.ts";
 
 Deno.test("s3_space_primitives", async () => {
   return;
-  const options: ClientOptions = {
+  const options = {
     accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
     secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
     endPoint: "s3.eu-central-1.amazonaws.com",

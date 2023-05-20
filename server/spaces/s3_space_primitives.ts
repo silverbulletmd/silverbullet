@@ -1,5 +1,6 @@
-import { S3Client } from "../fork/deno-s3-lite-client/mod.ts";
-import type { ClientOptions } from "../fork/deno-s3-lite-client/client.ts";
+// We're explicitly using 0.4.0 to be able to hijack the path encoding, which is inconsisently broken in 0.5.0
+import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
+import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
 import {
   FileData,
   FileEncoding,
@@ -19,8 +20,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
   }
 
   private encodePath(name: string): string {
-    // return btoa(name);
-    return name;
+    return uriEscapePath(name);
   }
 
   private decodePath(encoded: string): string {
@@ -51,8 +51,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
       //   console.log("Fetching object", encodeURI(name));
       const obj = await this.client.getObject(this.encodePath(name));
 
-      const contentType = obj.headers.get("Content-Type") ||
-        "application/octet-stream";
+      const contentType = mime.getType(name) || "application/octet-stream";
       const meta: FileMeta = {
         name,
         perm: "rw",
@@ -131,4 +130,22 @@ export class S3SpacePrimitives implements SpacePrimitives {
   async deleteFile(name: string): Promise<void> {
     await this.client.deleteObject(this.encodePath(name));
   }
+}
+
+// Stolen from https://github.com/aws/aws-sdk-js/blob/master/lib/util.js
+
+export function uriEscapePath(string: string): string {
+  return string.split("/").map(uriEscape).join("/");
+}
+
+function uriEscape(string: string): string {
+  let output = encodeURIComponent(string);
+  output = output.replace(/[^A-Za-z0-9_.~\-%]+/g, escape);
+
+  // AWS percent-encodes some extra non-standard characters in a URI
+  output = output.replace(/[*]/g, function (ch) {
+    return "%" + ch.charCodeAt(0).toString(16).toUpperCase();
+  });
+
+  return output;
 }
