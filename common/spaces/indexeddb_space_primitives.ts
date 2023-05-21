@@ -1,9 +1,5 @@
 import type { FileMeta } from "../types.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
-import {
-  base64DecodeDataUrl,
-  base64EncodedDataUrl,
-} from "../../plugos/asset_bundle/base64.ts";
 import Dexie, { Table } from "dexie";
 import { mime } from "../deps.ts";
 

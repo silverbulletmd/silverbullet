@@ -1,6 +1,10 @@
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { SpaceSync, SyncStatusItem } from "../common/spaces/sync.ts";
+import {
+  SpaceSync,
+  SyncStatus,
+  SyncStatusItem,
+} from "../common/spaces/sync.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { KVStore } from "../plugos/lib/kv_store.ts";
 
@@ -26,6 +30,7 @@ const syncInterval = 10 * 1000; // Every 10s
 export class SyncService {
   remoteSpace: HttpSpacePrimitives;
   spaceSync: SpaceSync;
+  lastReportedSyncStatus = Date.now();
 
   constructor(
     private localSpacePrimitives: SpacePrimitives,
@@ -47,8 +52,8 @@ export class SyncService {
       {
         conflictResolver: SyncService.plugAwareConflictResolver,
         isSyncCandidate: this.isSyncCandidate,
-        onSyncProgress: () => {
-          this.registerSyncProgress().catch(console.error);
+        onSyncProgress: (status) => {
+          this.registerSyncProgress(status).catch(console.error);
         },
       },
     );
@@ -84,7 +89,13 @@ export class SyncService {
     await this.kvStore.set(syncLastActivityKey, Date.now());
   }
 
-  async registerSyncProgress(): Promise<void> {
+  async registerSyncProgress(status?: SyncStatus): Promise<void> {
+    // Emit a sync event at most every 10s
+    if (status && this.lastReportedSyncStatus < Date.now() - 10000) {
+      this.eventHook.dispatchEvent("sync:progress", status);
+      this.lastReportedSyncStatus = Date.now();
+      await this.saveSnapshot(status.snapshot);
+    }
     await this.kvStore.set(syncLastActivityKey, Date.now());
   }
 

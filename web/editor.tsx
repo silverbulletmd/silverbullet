@@ -130,6 +130,7 @@ import { SyncService } from "./sync_service.ts";
 import { yamlSyscalls } from "./syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
+import { SyncStatus } from "../common/spaces/sync.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -459,6 +460,15 @@ export class Editor {
     });
     this.eventHook.addLocalListener("sync:error", (name) => {
       this.viewDispatch({ type: "sync-change", synced: false });
+    });
+    this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
+      this.flashNotification(
+        `Sync: ${
+          Math.round(status.filesProcessed / status.totalFiles * 10000) /
+          100
+        }% — processed ${status.filesProcessed} out of ${status.totalFiles}`,
+        "info",
+      );
     });
 
     await this.dispatchAppEvent("editor:init");

@@ -24,6 +24,7 @@ Beside these architectural changes, a few other breaking changes were made to se
 * **In plugs**:
   * Plugs are now distributed as `.plug.js` files instead of `.plug.json` files. This greatly improves debugability (when you compile with `--debug` you get source maps, and can even set breakpoints) and drastically decreases their file size. All existing plugs need to be recompiled using the `silverbullet plug:compile` command, and the resulting `.plug.js` file commited. Then update your [[PLUGS]] page to point to the resulting `.plug.js` files.
 * **Breaking change** in URLs (if you bookmarked them before): spaces in page names used to be replaced with `_` to look nicer, however this was causing too many issues for people, so they’re no longer replaced and will appear as `%20` (regular URI encoding) now.
+* On mobile you can now tap with two fingers on the editor to open the page picker, and with three fingers to open the command palette.
 
 ## 0.2.14
 

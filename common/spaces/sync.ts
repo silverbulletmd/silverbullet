@@ -10,6 +10,12 @@ type SyncHash = number;
 // and the second item the lastModified value of the secondary space
 export type SyncStatusItem = [SyncHash, SyncHash];
 
+export type SyncStatus = {
+  filesProcessed: number;
+  totalFiles: number;
+  snapshot: Map<string, SyncStatusItem>;
+};
+
 export type SyncOptions = {
   conflictResolver: (
     name: string,
@@ -19,7 +25,7 @@ export type SyncOptions = {
   ) => Promise<number>;
   isSyncCandidate?: (path: string) => boolean;
   // Used to track progress, may want to pass more specific info later
-  onSyncProgress?: () => void;
+  onSyncProgress?: (syncStatus: SyncStatus) => void;
 };
 
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
@@ -27,7 +33,6 @@ export class SpaceSync {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    // readonly snapshot: Map<string, SyncStatusItem>,
     readonly options: SyncOptions,
   ) {
   }
@@ -66,6 +71,7 @@ export class SpaceSync {
         return a.startsWith("_plug/") ? -1 : 1;
       });
       // console.log("[sync]", "Iterating over all files");
+      let filesProcessed = 0;
       for (const name of sortedFilenames) {
         try {
           operations += await this.syncFile(
@@ -74,6 +80,14 @@ export class SpaceSync {
             primaryFileMap.get(name),
             secondaryFileMap.get(name),
           );
+          filesProcessed++;
+          if (this.options.onSyncProgress) {
+            this.options.onSyncProgress({
+              filesProcessed,
+              totalFiles: sortedFilenames.length,
+              snapshot,
+            });
+          }
         } catch (e: any) {
           console.log("error", "Error syncing file", name, e.message);
         }
@@ -254,9 +268,6 @@ export class SpaceSync {
       );
     } else {
       // Nothing needs to happen
-    }
-    if (this.options.onSyncProgress) {
-      this.options.onSyncProgress();
     }
     return operations;
   }

@@ -4,10 +4,6 @@ import { readAll } from "../deps.ts";
 import { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import {
-  base64DecodeDataUrl,
-  base64EncodedDataUrl,
-} from "../../plugos/asset_bundle/base64.ts";
 import { walk } from "https://deno.land/std@0.165.0/fs/walk.ts";
 
 function lookupContentType(path: string): string {
