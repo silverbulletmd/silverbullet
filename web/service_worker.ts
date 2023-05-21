@@ -18,7 +18,7 @@ const precacheFiles = Object.fromEntries([
   "/logo-dock.png",
   "/main.css",
   "/manifest.json",
-].map((path) => [path, path + "?v=" + Date.now(), path]));
+].map((path) => [path, path + "?v=" + CACHE_NAME, path]));
 
 self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");

@@ -27,7 +27,6 @@ export function serveCommand(options: any, folder: string) {
     );
   }
   let spacePrimitives: SpacePrimitives | undefined;
-  let pagesPath: string | undefined;
   if (folder === "s3://") {
     spacePrimitives = new AssetBundlePlugSpacePrimitives(
       new S3SpacePrimitives({
@@ -39,22 +38,21 @@ export function serveCommand(options: any, folder: string) {
       }),
       new AssetBundle(plugAssetBundle as AssetJson),
     );
-    pagesPath = ".";
   } else {
-    pagesPath = path.resolve(Deno.cwd(), folder);
+    folder = path.resolve(Deno.cwd(), folder);
     spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new DiskSpacePrimitives(pagesPath, {
+      new DiskSpacePrimitives(folder, {
         maxFileSizeMB: options.maxFileSizeMB,
       }),
       new AssetBundle(plugAssetBundle as AssetJson),
     );
   }
-  console.log("Serving pages from", pagesPath);
+  console.log("Serving pages from", folder);
 
   const httpServer = new HttpServer(spacePrimitives, {
     hostname,
     port: port,
-    pagesPath: pagesPath,
+    pagesPath: folder,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     user: options.user,
     keyFile: options.key,
