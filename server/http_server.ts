@@ -17,8 +17,6 @@ export type ServerOptions = {
   maxFileSizeMB?: number;
 };
 
-// const staticLastModified = new Date().toUTCString();
-
 export class HttpServer {
   app: Application;
   private hostname: string;
@@ -34,7 +32,7 @@ export class HttpServer {
   ) {
     this.hostname = options.hostname;
     this.port = options.port;
-    this.app = new Application(); //{ serverConstructor: FlashServer });
+    this.app = new Application();
     this.user = options.user;
     this.clientAssetBundle = options.clientAssetBundle;
   }
