@@ -21,7 +21,8 @@ Here’s how to use SilverBullet’s sync functionality:
 1. Set up a SilverBullet [[Server]] somewhere where all your other devices have access to it. This can be your local network, a VPN, or if you’re living the wild life — the public Internet (do put some SSL and authentication on it, please).
 2. Connect any other SilverBullet instance (likely the [[Desktop]] or [[Mobile]] app) to it via the {[Sync: Configure]} command. This will ask for:
    * A URL to connect to (the URL of the SB server configured under (1))
-   * A username and password (optional) if you run the server with the `--user myuser:mypass` flag (as you should)
+   * A username and password (optional) if you run the server with the `--user myuser:mypass` flag or the `SB_USER=myuser:mypass` environment variable (as you should)
+
 3. Now you have two options:
     1. Perform a one-time “clean sync” _wiping all local content_ and syncing down content from the sync server. For this, use the {[Sync: Wipe Local Space and Sync]} command. This is likely what you want for e.g. an initial [[Mobile]] setup.
     2. Use {[Sync: Sync]} to perform a regular sync, comparing the local and remote space and generating conflicts where appropriate.

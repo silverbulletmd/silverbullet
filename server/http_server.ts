@@ -34,7 +34,7 @@ export class HttpServer {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application(); //{ serverConstructor: FlashServer });
-    this.user = options.user;
+    this.user = options.user ?? Deno.env.get("SB_USER");
     this.systemBoot = new SpaceSystem(
       options.assetBundle,
       options.pagesPath,
