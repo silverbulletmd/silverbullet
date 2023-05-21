@@ -151,7 +151,8 @@ export class HttpServer {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
           if (!authCookie || authCookie !== b64User) {
-            response.redirect(`/.auth?refer=${request.url.pathname}`);
+            response.status = 401;
+            response.body = "Unauthorized, please authenticate";
             return;
           }
         }

@@ -13,7 +13,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     readonly expectedSpacePath?: string,
     readonly syncMode = false,
   ) {
-    // console.log("Additional headers", additionalHeaders);
   }
 
   public async authenticatedFetch(
@@ -29,8 +28,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     const result = await fetch(url, { ...options });
     if (
-      result.status === 401 || result.redirected ||
-      result.url.includes("/.auth")
+      result.status === 401
     ) {
       // Invalid credentials, reloading the browser should trigger authentication
       console.log("Going to redirect after", url);
@@ -41,20 +39,21 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const req = await this.authenticatedFetch(this.url, {
+    const resp = await this.authenticatedFetch(this.url, {
       method: "GET",
     });
 
     if (
+      resp.status === 200 &&
       this.expectedSpacePath &&
-      req.headers.get("X-Space-Path") !== this.expectedSpacePath
+      resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
       await flushCachesAndUnregisterServiceWorker();
       alert("Space folder path different on server, reloading the page");
       location.reload();
     }
 
-    return req.json();
+    return resp.json();
   }
 
   async readFile(
