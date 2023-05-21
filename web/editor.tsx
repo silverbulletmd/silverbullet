@@ -312,8 +312,14 @@ export class Editor {
     });
 
     globalThis.addEventListener("touchstart", (ev) => {
+      // Launch the page picker on a two-finger tap
+      if (ev.touches.length === 2) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        this.viewDispatch({ type: "start-navigate" });
+      }
       // Launch the command palette using a three-finger tap
-      if (ev.touches.length > 2) {
+      if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
         this.viewDispatch({ type: "show-palette", context: this.getContext() });
