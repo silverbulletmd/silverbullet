@@ -181,7 +181,7 @@ export async function postponeCommand() {
     return;
   }
   // Parse "naive" due date
-  let [yyyy, mm, dd] = date.split("-")
+  let [yyyy, mm, dd] = date.split("-").map(Number)
   // Create new naive Date object.
   // `monthIndex` parameter is zero-based, so subtract 1 from parsed month.
   const d = new Date(yyyy, mm - 1, dd);
