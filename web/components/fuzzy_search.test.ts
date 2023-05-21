@@ -1,4 +1,4 @@
-import { FilterOption } from "../../common/types.ts";
+import { FilterOption } from "../types.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { fuzzySearchAndSort } from "./fuzzy_search.ts";
 

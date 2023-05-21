@@ -5,58 +5,15 @@ import {
   useRef,
   useState,
 } from "../deps.ts";
-import { FilterOption } from "../../common/types.ts";
-import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
+import { FilterOption } from "../types.ts";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "./fuzzy_search.ts";
 
-function magicSorter(a: FilterOption, b: FilterOption): number {
-  if (a.orderId && b.orderId) {
-    return a.orderId < b.orderId ? -1 : 1;
-  }
-  if (a.orderId) {
-    return -1;
-  }
-  if (b.orderId) {
-    return 1;
-  }
-  return 0;
-}
-
 type FilterResult = FilterOption & {
   result?: any;
 };
-
-function simpleFilter(
-  pattern: string,
-  options: FilterOption[],
-): FilterOption[] {
-  const lowerPattern = pattern.toLowerCase();
-  return options.filter((option) => {
-    return option.name.toLowerCase().includes(lowerPattern);
-  });
-}
-
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function fuzzySorter(pattern: string, options: FilterOption[]): FilterResult[] {
-  return fuzzysort
-    .go(pattern, options, {
-      all: true,
-      key: "name",
-    })
-    .map((result: any) => ({ ...result.obj, result: result }))
-    .sort(magicSorter);
-}
 
 export function FilterList({
   placeholder,
@@ -89,7 +46,7 @@ export function FilterList({
 }) {
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    fuzzySorter("", options),
+    fuzzySearchAndSort(options, ""),
   );
   const [selectedOption, setSelectionOption] = useState(0);
 

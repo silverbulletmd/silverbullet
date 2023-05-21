@@ -1,8 +1,7 @@
 import { EventHook } from "../../plugos/hooks/event.ts";
-import { Plug } from "../../plugos/plug.ts";
 
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(private wrapped: SpacePrimitives, private eventHook: EventHook) {}
@@ -13,21 +12,18 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
-    return this.wrapped.readFile(name, encoding);
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    return this.wrapped.readFile(name);
   }
 
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
-      encoding,
       data,
       selfUpdate,
       lastModified,
@@ -36,20 +32,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     if (name.endsWith(".md")) {
       const pageName = name.substring(0, name.length - 3);
       let text = "";
-      switch (encoding) {
-        case "utf8":
-          text = data as string;
-          break;
-        case "arraybuffer":
-          {
-            const decoder = new TextDecoder("utf-8");
-            text = decoder.decode(data as ArrayBuffer);
-          }
-
-          break;
-        case "dataurl":
-          throw Error("Data urls not supported in this context");
-      }
+      const decoder = new TextDecoder("utf-8");
+      text = decoder.decode(data);
 
       this.eventHook
         .dispatchEvent("page:saved", pageName)

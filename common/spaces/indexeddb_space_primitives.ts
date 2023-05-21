@@ -1,9 +1,5 @@
 import type { FileMeta } from "../types.ts";
-import type {
-  FileData,
-  FileEncoding,
-  SpacePrimitives,
-} from "./space_primitives.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
@@ -42,8 +38,7 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const fileMeta = await this.filesMetaTable.get(name);
     if (!fileMeta) {
       throw new Error("Not found");
@@ -52,64 +47,27 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     if (!fileContent) {
       throw new Error("Not found");
     }
-    let data: FileData | undefined;
-    switch (encoding) {
-      case "arraybuffer":
-        {
-          data = fileContent.data.buffer;
-        }
-        break;
-      case "dataurl":
-        {
-          data = base64EncodedDataUrl(
-            mime.getType(name) || "application/octet-stream",
-            fileContent.data,
-          );
-        }
-        break;
-      case "utf8":
-        data = new TextDecoder().decode(fileContent.data);
-        break;
-    }
+
     return {
-      data: data,
+      data: fileContent.data,
       meta: fileMeta,
     };
   }
 
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     _selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
-    let content: ArrayBuffer | undefined;
-
-    switch (encoding) {
-      case "arraybuffer":
-        // actually we want an Uint8Array
-        content = data as ArrayBuffer;
-        break;
-      case "utf8":
-        content = new TextEncoder().encode(data as string);
-        break;
-      case "dataurl":
-        content = base64DecodeDataUrl(data as string);
-        break;
-    }
-
     const fileMeta: FileMeta = {
       name,
       lastModified: lastModified || Date.now(),
       contentType: mime.getType(name) || "application/octet-stream",
-      size: content.byteLength,
+      size: data.byteLength,
       perm: "rw",
     };
-    await this.filesContentTable.put({
-      name,
-      data: new Uint8Array(content),
-    });
+    await this.filesContentTable.put({ name, data });
     await this.filesMetaTable.put(fileMeta);
     return fileMeta;
   }

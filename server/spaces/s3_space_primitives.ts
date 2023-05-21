@@ -1,11 +1,7 @@
 // We're explicitly using 0.4.0 to be able to hijack the path encoding, which is inconsisently broken in 0.5.0
 import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
 import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
-import {
-  FileData,
-  FileEncoding,
-  SpacePrimitives,
-} from "../../common/spaces/space_primitives.ts";
+import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import {
   base64DecodeDataUrl,
@@ -45,8 +41,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     try {
       //   console.log("Fetching object", encodeURI(name));
       const obj = await this.client.getObject(this.encodePath(name));
@@ -59,26 +54,11 @@ export class S3SpacePrimitives implements SpacePrimitives {
         contentType,
         size: parseInt(obj.headers.get("Content-Length")!),
       };
-      switch (encoding) {
-        case "utf8":
-          return {
-            data: await obj.text(),
-            meta,
-          };
-        case "dataurl":
-          return {
-            data: base64EncodedDataUrl(
-              contentType,
-              new Uint8Array(await obj.arrayBuffer()),
-            ),
-            meta,
-          };
-        case "arraybuffer":
-          return {
-            data: new Uint8Array(await obj.arrayBuffer()),
-            meta,
-          };
-      }
+
+      return {
+        data: new Uint8Array(await obj.arrayBuffer()),
+        meta,
+      };
     } catch (e: any) {
       console.log("GOt error", e.message);
       if (e.message.includes("does not exist")) {
@@ -106,24 +86,9 @@ export class S3SpacePrimitives implements SpacePrimitives {
   }
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
   ): Promise<FileMeta> {
-    let content: Uint8Array | undefined;
-    switch (encoding) {
-      case "arraybuffer":
-        // actually we want an Uint8Array
-        content = new Uint8Array(data as ArrayBuffer);
-        break;
-      case "utf8":
-        content = new TextEncoder().encode(data as string);
-        break;
-      case "dataurl":
-        content = base64DecodeDataUrl(data as string);
-        break;
-    }
-    console.log("Key", this.encodePath(name));
-    await this.client.putObject(this.encodePath(name), content);
+    await this.client.putObject(this.encodePath(name), data);
     // TODO: Dangerous due to eventual consistency? maybe check with etag or versionid?
     return this.getFileMeta(name);
   }

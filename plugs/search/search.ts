@@ -1,10 +1,6 @@
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { store } from "$sb/plugos-syscall/mod.ts";
-import type {
-  FileData,
-  FileEncoding,
-} from "../../common/spaces/space_primitives.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
@@ -95,8 +91,7 @@ export async function searchCommand() {
 
 export async function readFileSearch(
   name: string,
-  encoding: FileEncoding,
-): Promise<{ data: FileData; meta: FileMeta }> {
+): Promise<{ data: string; meta: FileMeta }> {
   const phrase = name.substring(
     searchPrefix.length,
     name.length - ".md".length,
@@ -111,7 +106,7 @@ export async function readFileSearch(
 
   return {
     // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
-    data: encoding === "utf8" ? text : base64EncodedDataUrl(
+    data: base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),
@@ -125,9 +120,10 @@ export async function readFileSearch(
   };
 }
 
-export async function writeFileSearch(
+export function writeFileSearch(
   name: string,
-): Promise<FileMeta> {
+): FileMeta {
+  // Never actually writing this
   return getFileMetaSearch(name);
 }
 

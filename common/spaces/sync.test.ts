@@ -15,19 +15,22 @@ Deno.test("Test store", async () => {
   });
 
   // Write one page to primary
-  await primary.writeFile("index", "utf8", "Hello");
+  await primary.writeFile("index", stringToBytes("Hello"));
   assertEquals((await secondary.fetchFileList()).length, 0);
   console.log("Initial sync ops", await doSync());
 
   assertEquals((await secondary.fetchFileList()).length, 1);
-  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello");
+  assertEquals(
+    (await secondary.readFile("index")).data,
+    stringToBytes("Hello"),
+  );
 
   // Should be a no-op
   assertEquals(await doSync(), 0);
 
   // Now let's make a change on the secondary
-  await secondary.writeFile("index", "utf8", "Hello!!");
-  await secondary.writeFile("test", "utf8", "Test page");
+  await secondary.writeFile("index", stringToBytes("Hello!!"));
+  await secondary.writeFile("test", stringToBytes("Test page"));
 
   // And sync it
   await doSync();
@@ -35,13 +38,16 @@ Deno.test("Test store", async () => {
   assertEquals((await primary.fetchFileList()).length, 2);
   assertEquals((await secondary.fetchFileList()).length, 2);
 
-  assertEquals((await primary.readFile("index", "utf8")).data, "Hello!!");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("Hello!!"),
+  );
 
   // Let's make some random edits on both ends
-  await primary.writeFile("index", "utf8", "1");
-  await primary.writeFile("index2", "utf8", "2");
-  await secondary.writeFile("index3", "utf8", "3");
-  await secondary.writeFile("index4", "utf8", "4");
+  await primary.writeFile("index", stringToBytes("1"));
+  await primary.writeFile("index2", stringToBytes("2"));
+  await secondary.writeFile("index3", stringToBytes("3"));
+  await secondary.writeFile("index4", stringToBytes("4"));
   await doSync();
 
   assertEquals((await primary.fetchFileList()).length, 5);
@@ -74,16 +80,19 @@ Deno.test("Test store", async () => {
   // No-op
   assertEquals(await doSync(), 0);
 
-  await secondary.writeFile("index", "utf8", "I'm back");
+  await secondary.writeFile("index", stringToBytes("I'm back"));
 
   await doSync();
 
-  assertEquals((await primary.readFile("index", "utf8")).data, "I'm back");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("I'm back"),
+  );
 
   // Cause a conflict
   console.log("Introducing a conflict now");
-  await primary.writeFile("index", "utf8", "Hello 1");
-  await secondary.writeFile("index", "utf8", "Hello 2");
+  await primary.writeFile("index", stringToBytes("Hello 1"));
+  await secondary.writeFile("index", stringToBytes("Hello 2"));
 
   await doSync();
 
@@ -91,27 +100,33 @@ Deno.test("Test store", async () => {
   await doSync();
 
   // Verify that primary won
-  assertEquals((await primary.readFile("index", "utf8")).data, "Hello 1");
-  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello 1");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("Hello 1"),
+  );
+  assertEquals(
+    (await secondary.readFile("index")).data,
+    stringToBytes("Hello 1"),
+  );
 
   // test + index + index.conflicting copy
   assertEquals((await primary.fetchFileList()).length, 3);
   assertEquals((await secondary.fetchFileList()).length, 3);
 
   // Introducing a fake conflict (same content, so not really conflicting)
-  await primary.writeFile("index", "utf8", "Hello 1");
-  await secondary.writeFile("index", "utf8", "Hello 1");
+  await primary.writeFile("index", stringToBytes("Hello 1"));
+  await secondary.writeFile("index", stringToBytes("Hello 1"));
 
   // And two more files with different bodies, but only within a query directive — shouldn't conflict
   await primary.writeFile(
     "index.md",
-    "utf8",
-    "Hello\n<!-- #query page -->\nHello 1\n<!-- /query -->",
+    stringToBytes(
+      "Hello\n<!-- #query page -->\nHello 1\n<!-- /query -->",
+    ),
   );
   await secondary.writeFile(
     "index.md",
-    "utf8",
-    "Hello\n<!-- #query page -->\nHello 2\n<!-- /query -->",
+    stringToBytes("Hello\n<!-- #query page -->\nHello 2\n<!-- /query -->"),
   );
 
   await doSync();
@@ -195,3 +210,7 @@ Hello
 `,
   );
 });
+
+function stringToBytes(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}

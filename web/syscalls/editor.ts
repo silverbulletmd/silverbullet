@@ -1,7 +1,7 @@
 import { Editor } from "../editor.tsx";
 import { EditorView, Transaction, Vim, vimGetCm } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
-import { FilterOption } from "../../common/types.ts";
+import type { FilterOption } from "../types.ts";
 
 export function editorSyscalls(editor: Editor): SysCallMapping {
   const syscalls: SysCallMapping = {

@@ -57,9 +57,9 @@ import {
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
-import { Space } from "../common/spaces/space.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
-import { FilterOption, PageMeta } from "../common/types.ts";
+import { Space } from "./space.ts";
+import { markdownSyscalls } from "./syscalls/markdown.ts";
+import { FilterOption, PageMeta } from "./types.ts";
 import { isMacLike, parseYamlSettings, safeRun } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
@@ -127,7 +127,7 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { SyncService } from "./sync_service.ts";
-import { yamlSyscalls } from "../common/syscalls/yaml.ts";
+import { yamlSyscalls } from "./syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 

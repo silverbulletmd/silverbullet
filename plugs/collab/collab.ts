@@ -13,10 +13,6 @@ import { store, YAML } from "$sb/plugos-syscall/mod.ts";
 import { collab, editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 import { nanoid } from "https://esm.sh/nanoid@4.0.0";
-import {
-  FileData,
-  FileEncoding,
-} from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
@@ -120,10 +116,9 @@ export function shareNoop() {
   return true;
 }
 
-export async function readFileCollab(
+export function readFileCollab(
   name: string,
-  encoding: FileEncoding,
-): Promise<{ data: FileData; meta: FileMeta }> {
+): { data: string; meta: FileMeta } {
   if (!name.endsWith(".md")) {
     throw new Error("Not found");
   }
@@ -132,7 +127,7 @@ export async function readFileCollab(
 
   return {
     // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
-    data: encoding === "utf8" ? text : base64EncodedDataUrl(
+    data: base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),

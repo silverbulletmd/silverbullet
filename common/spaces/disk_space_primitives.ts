@@ -2,7 +2,7 @@
 import { path } from "../deps.ts";
 import { readAll } from "../deps.ts";
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 import {
   base64DecodeDataUrl,
@@ -49,36 +49,16 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const localPath = this.filenameToPath(name);
     try {
       const s = await Deno.stat(localPath);
-      let data: FileData | null = null;
       const contentType = lookupContentType(name);
-      switch (encoding) {
-        case "utf8":
-          data = await Deno.readTextFile(localPath);
-          break;
-        case "dataurl":
-          {
-            const f = await Deno.open(localPath, { read: true });
-            const buf = await readAll(f);
-            Deno.close(f.rid);
 
-            data = base64EncodedDataUrl(contentType, buf);
-          }
-          break;
-        case "arraybuffer":
-          {
-            const f = await Deno.open(localPath, { read: true });
-            const buf = await readAll(f);
-            Deno.close(f.rid);
+      const f = await Deno.open(localPath, { read: true });
+      const data = await readAll(f);
+      Deno.close(f.rid);
 
-            data = buf.buffer;
-          }
-          break;
-      }
       return {
         data,
         meta: {
@@ -97,8 +77,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     _selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
@@ -114,17 +93,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       });
 
       // Actually write the file
-      switch (encoding) {
-        case "utf8":
-          await Deno.write(file.rid, new TextEncoder().encode(data as string));
-          break;
-        case "dataurl":
-          await Deno.write(file.rid, base64DecodeDataUrl(data as string));
-          break;
-        case "arraybuffer":
-          await Deno.write(file.rid, new Uint8Array(data as ArrayBuffer));
-          break;
-      }
+      await Deno.write(file.rid, data);
 
       if (lastModified) {
         console.log("Seting mtime to", new Date(lastModified));

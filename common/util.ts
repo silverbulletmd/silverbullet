@@ -41,8 +41,7 @@ export async function ensureSettingsAndIndex(
   } catch {
     await space.writeFile(
       "SETTINGS.md",
-      "utf8",
-      SETTINGS_TEMPLATE,
+      new TextEncoder().encode(SETTINGS_TEMPLATE),
       true,
     );
     // Ok, then let's also write the index page
@@ -51,12 +50,13 @@ export async function ensureSettingsAndIndex(
     } catch {
       await space.writeFile(
         "index.md",
-        "utf8",
-        `Hello! And welcome to your brand new SilverBullet space!
+        new TextEncoder().encode(
+          `Hello! And welcome to your brand new SilverBullet space!
 
 <!-- #use [[💭 silverbullet.md/Getting Started]] -->
 Loading some onboarding content for you (but doing so does require a working internet connection)...
 <!-- /use -->`,
+        ),
       );
     }
   }

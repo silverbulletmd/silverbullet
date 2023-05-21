@@ -1,12 +1,17 @@
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
-import { AttachmentMeta, PageMeta } from "../types.ts";
-import { EventEmitter } from "../../plugos/event.ts";
-import { plugPrefix } from "./constants.ts";
-import { safeRun } from "../util.ts";
+import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { FileMeta } from "../common/types.ts";
+import { EventEmitter } from "../plugos/event.ts";
+import { plugPrefix } from "../common/spaces/constants.ts";
+import { safeRun } from "../common/util.ts";
 import {
-  FileMeta,
-  ProxyFileSystem,
-} from "../../plug-api/plugos-syscall/types.ts";
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
+} from "../plugos/asset_bundle/base64.ts";
+import { mime } from "./deps.ts";
+import { AttachmentMeta, PageMeta } from "./types.ts";
+
+export type FileEncoding = "utf8" | "arraybuffer" | "dataurl";
+export type FileData = ArrayBuffer | string;
 
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;
@@ -17,8 +22,7 @@ export type SpaceEvents = {
 
 const pageWatchInterval = 5000;
 
-export class Space extends EventEmitter<SpaceEvents>
-  implements ProxyFileSystem {
+export class Space extends EventEmitter<SpaceEvents> {
   pageMetaCache = new Map<string, PageMeta>();
 
   // We do watch files in the background to detect changes
@@ -33,30 +37,30 @@ export class Space extends EventEmitter<SpaceEvents>
     super();
   }
 
-  // Filesystem interface implementation
-  async readFile(path: string, encoding: "dataurl" | "utf8"): Promise<string> {
-    return (await this.spacePrimitives.readFile(path, encoding)).data as string;
-  }
-  getFileMeta(path: string): Promise<FileMeta> {
-    return this.spacePrimitives.getFileMeta(path);
-  }
-  writeFile(
-    path: string,
-    text: string,
-    encoding: "dataurl" | "utf8",
-  ): Promise<FileMeta> {
-    return this.spacePrimitives.writeFile(path, encoding, text);
-  }
-  deleteFile(path: string): Promise<void> {
-    return this.spacePrimitives.deleteFile(path);
-  }
-  async listFiles(path: string): Promise<FileMeta[]> {
-    return (await this.spacePrimitives.fetchFileList()).filter((f) =>
-      f.name.startsWith(path)
-    );
-  }
+  // // Filesystem interface implementation
+  // async readFile(path: string, encoding: "dataurl" | "utf8"): Promise<string> {
+  //   return (await this.spacePrimitives.readFile(path, encoding)).data as string;
+  // }
+  // getFileMeta(path: string): Promise<FileMeta> {
+  //   return this.spacePrimitives.getFileMeta(path);
+  // }
+  // writeFile(
+  //   path: string,
+  //   text: string,
+  //   encoding: "dataurl" | "utf8",
+  // ): Promise<FileMeta> {
+  //   return this.spacePrimitives.writeFile(path, encoding, text);
+  // }
+  // deleteFile(path: string): Promise<void> {
+  //   return this.spacePrimitives.deleteFile(path);
+  // }
+  // async listFiles(path: string): Promise<FileMeta[]> {
+  //   return (await this.spacePrimitives.fetchFileList()).filter((f) =>
+  //     f.name.startsWith(path)
+  //   );
+  // }
 
-  // The more domain-specific methods
+  // // The more domain-specific methods
 
   public async updatePageList() {
     const newPageList = await this.fetchPageList();
@@ -130,10 +134,7 @@ export class Space extends EventEmitter<SpaceEvents>
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
-    const pageData = await this.spacePrimitives.readFile(
-      `${name}.md`,
-      "utf8",
-    );
+    const pageData = await this.spacePrimitives.readFile(`${name}.md`);
     const previousMeta = this.pageMetaCache.get(name);
     const newMeta = fileMetaToPageMeta(pageData.meta);
     if (previousMeta) {
@@ -144,7 +145,7 @@ export class Space extends EventEmitter<SpaceEvents>
     }
     const meta = this.metaCacher(name, newMeta);
     return {
-      text: pageData.data as string,
+      text: new TextDecoder().decode(pageData.data),
       meta: meta,
     };
   }
@@ -159,8 +160,7 @@ export class Space extends EventEmitter<SpaceEvents>
       const pageMeta = fileMetaToPageMeta(
         await this.spacePrimitives.writeFile(
           `${name}.md`,
-          "utf8",
-          text,
+          new TextEncoder().encode(text),
           selfUpdate,
         ),
       );
@@ -193,11 +193,28 @@ export class Space extends EventEmitter<SpaceEvents>
    * @param encoding how the return value is expected to be encoded
    * @returns
    */
-  readAttachment(
+  async readAttachment(
     name: string,
     encoding: FileEncoding,
   ): Promise<{ data: FileData; meta: AttachmentMeta }> {
-    return this.spacePrimitives.readFile(name, encoding);
+    const { data, meta } = await this.spacePrimitives.readFile(name);
+    switch (encoding) {
+      case "arraybuffer":
+        return { data, meta };
+      case "dataurl":
+        return {
+          data: base64EncodedDataUrl(
+            mime.getType(name) || "application/octet-stream",
+            data,
+          ),
+          meta,
+        };
+      case "utf8":
+        return {
+          data: new TextDecoder().decode(data),
+          meta,
+        };
+    }
   }
 
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {
@@ -210,7 +227,26 @@ export class Space extends EventEmitter<SpaceEvents>
     data: FileData,
     selfUpdate?: boolean | undefined,
   ): Promise<AttachmentMeta> {
-    return this.spacePrimitives.writeFile(name, encoding, data, selfUpdate);
+    switch (encoding) {
+      case "arraybuffer":
+        return this.spacePrimitives.writeFile(
+          name,
+          data as Uint8Array,
+          selfUpdate,
+        );
+      case "dataurl":
+        return this.spacePrimitives.writeFile(
+          name,
+          base64DecodeDataUrl(data as string),
+          selfUpdate,
+        );
+      case "utf8":
+        return this.spacePrimitives.writeFile(
+          name,
+          new TextEncoder().encode(data as string),
+          selfUpdate,
+        );
+    }
   }
 
   deleteAttachment(name: string): Promise<void> {

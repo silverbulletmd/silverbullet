@@ -161,7 +161,7 @@ export class SyncService {
       }
       try {
         // This is wasteful, but Netlify (silverbullet.md) doesn't support OPTIONS call (404s) so we'll just fetch the whole file
-        const { meta } = await this.remoteSpace!.readFile(name, "utf8");
+        const { meta } = await this.remoteSpace!.readFile(name);
         remoteHash = meta.lastModified;
       } catch (e: any) {
         if (e.message === "Not found") {
@@ -210,12 +210,10 @@ export class SyncService {
     // Read file from secondary
     const { data } = await secondary.readFile(
       name,
-      "arraybuffer",
     );
     // Write file to primary
     const newMeta = await primary.writeFile(
       name,
-      "arraybuffer",
       data,
       false,
       fileMeta.lastModified,

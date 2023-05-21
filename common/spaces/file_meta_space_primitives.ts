@@ -1,6 +1,5 @@
-import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import type { SysCallMapping } from "../../plugos/system.ts";
 
 // Enriches the file list listing with custom metadata from the page index
@@ -40,9 +39,8 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
 
   readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
-    return this.wrapped.readFile(name, encoding);
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
@@ -51,14 +49,12 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
 
   writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(
       name,
-      encoding,
       data,
       selfUpdate,
       lastModified,

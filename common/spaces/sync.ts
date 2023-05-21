@@ -109,10 +109,9 @@ export class SpaceSync {
         "New file created on primary, copying to secondary",
         name,
       );
-      const { data, meta } = await this.primary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.primary.readFile(name);
       const writtenMeta = await this.secondary.writeFile(
         name,
-        "arraybuffer",
         data,
         false,
         meta.lastModified,
@@ -132,10 +131,9 @@ export class SpaceSync {
         "New file created on secondary, copying from secondary to primary",
         name,
       );
-      const { data, meta } = await this.secondary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.secondary.readFile(name);
       const writtenMeta = await this.primary.writeFile(
         name,
-        "arraybuffer",
         data,
         false,
         meta.lastModified,
@@ -195,10 +193,9 @@ export class SpaceSync {
         "File changed on primary, copying to secondary",
         name,
       );
-      const { data, meta } = await this.primary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.primary.readFile(name);
       const writtenMeta = await this.secondary.writeFile(
         name,
-        "arraybuffer",
         data,
         false,
         meta.lastModified,
@@ -220,10 +217,9 @@ export class SpaceSync {
         "File has changed on secondary, but not primary: copy from secondary to primary",
         name,
       );
-      const { data, meta } = await this.secondary.readFile(name, "arraybuffer");
+      const { data, meta } = await this.secondary.readFile(name);
       const writtenMeta = await this.primary.writeFile(
         name,
-        "arraybuffer",
         data,
         false,
         meta.lastModified,
@@ -276,8 +272,8 @@ export class SpaceSync {
     const filePieces = name.split(".");
     const fileNameBase = filePieces.slice(0, -1).join(".");
     const fileNameExt = filePieces[filePieces.length - 1];
-    const pageData1 = await primary.readFile(name, "arraybuffer");
-    const pageData2 = await secondary.readFile(name, "arraybuffer");
+    const pageData1 = await primary.readFile(name);
+    const pageData2 = await secondary.readFile(name);
 
     if (name.endsWith(".md")) {
       console.log(
@@ -286,10 +282,10 @@ export class SpaceSync {
       );
       // Let's use a smartert check for markdown files, ignoring directive bodies
       const pageText1 = removeDirectiveBody(
-        new TextDecoder().decode(pageData1.data as Uint8Array),
+        new TextDecoder().decode(pageData1.data),
       );
       const pageText2 = removeDirectiveBody(
-        new TextDecoder().decode(pageData2.data as Uint8Array),
+        new TextDecoder().decode(pageData2.data),
       );
       if (pageText1 === pageText2) {
         console.log(
@@ -304,8 +300,8 @@ export class SpaceSync {
       }
     } else {
       let byteWiseMatch = true;
-      const arrayBuffer1 = new Uint8Array(pageData1.data as ArrayBuffer);
-      const arrayBuffer2 = new Uint8Array(pageData2.data as ArrayBuffer);
+      const arrayBuffer1 = pageData1.data;
+      const arrayBuffer2 = pageData2.data;
       if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
         byteWiseMatch = false;
       }
@@ -341,12 +337,10 @@ export class SpaceSync {
     // Copy secondary to conflict copy
     const localConflictMeta = await primary.writeFile(
       revisionFileName,
-      "arraybuffer",
       pageData2.data,
     );
     const remoteConflictMeta = await secondary.writeFile(
       revisionFileName,
-      "arraybuffer",
       pageData2.data,
     );
 
@@ -359,7 +353,6 @@ export class SpaceSync {
     // Write replacement on top
     const writeMeta = await secondary.writeFile(
       name,
-      "arraybuffer",
       pageData1.data,
       true,
     );

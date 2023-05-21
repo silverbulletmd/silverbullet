@@ -1,5 +1,5 @@
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import {
   base64DecodeDataUrl,
   base64EncodedDataUrl,
@@ -58,8 +58,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,
       {
@@ -69,52 +68,18 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (res.status === 404) {
       throw new Error(`Not found`);
     }
-    let data: FileData | null = null;
-    switch (encoding) {
-      case "arraybuffer":
-        {
-          data = await res.arrayBuffer();
-        }
-        break;
-      case "dataurl":
-        {
-          data = base64EncodedDataUrl(
-            mime.getType(name) || "application/octet-stream",
-            new Uint8Array(await res.arrayBuffer()),
-          );
-        }
-        break;
-      case "utf8":
-        data = await res.text();
-        break;
-    }
     return {
-      data: data,
+      data: new Uint8Array(await res.arrayBuffer()),
       meta: this.responseToMeta(name, res),
     };
   }
 
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     _selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
-    let body: any = null;
-
-    switch (encoding) {
-      case "arraybuffer":
-        // actually we want an Uint8Array
-        body = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-        break;
-      case "utf8":
-        body = data;
-        break;
-      case "dataurl":
-        data = base64DecodeDataUrl(data as string);
-        break;
-    }
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
     };
@@ -127,7 +92,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       {
         method: "PUT",
         headers,
-        body,
+        body: data,
       },
     );
     const newMeta = this.responseToMeta(name, res);

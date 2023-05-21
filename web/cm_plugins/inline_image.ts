@@ -7,7 +7,7 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
-import type { Space } from "../../common/spaces/space.ts";
+import type { Space } from "../space.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(

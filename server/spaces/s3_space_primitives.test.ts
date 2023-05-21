@@ -14,11 +14,11 @@ Deno.test("s3_space_primitives", async () => {
   const primitives = new S3SpacePrimitives(options);
   console.log(await primitives.fetchFileList());
   console.log(
-    await primitives.writeFile("test+'s.txt", "utf8", "Hello world!"),
+    await primitives.writeFile("test+'s.txt", stringToBytes("Hello world!")),
   );
   assertEquals(
-    "Hello world!",
-    (await primitives.readFile("test+'s.txt", "utf8")).data,
+    stringToBytes("Hello world!"),
+    (await primitives.readFile("test+'s.txt")).data,
   );
   await primitives.deleteFile("test+'s.txt");
 
@@ -31,3 +31,7 @@ Deno.test("s3_space_primitives", async () => {
 
   //   console.log(await primitives.readFile("SETTINGS.md", "utf8"));
 });
+
+function stringToBytes(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}

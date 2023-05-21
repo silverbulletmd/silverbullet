@@ -2,7 +2,7 @@ import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
 import { CompletionContext, CompletionResult, TerminalIcon } from "../deps.ts";
 import { AppCommand } from "../hooks/command.ts";
-import { FilterOption } from "../../common/types.ts";
+import { FilterOption } from "../types.ts";
 
 export function CommandPalette({
   commands,

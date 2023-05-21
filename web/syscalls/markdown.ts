@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { Language } from "../deps.ts";
 import type { ParseTree } from "$sb/lib/tree.ts";
 

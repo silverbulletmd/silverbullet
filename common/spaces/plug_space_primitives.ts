@@ -1,15 +1,14 @@
-import { Plug } from "../../plugos/plug.ts";
-import {
-  FileData,
-  FileEncoding,
-  SpacePrimitives,
-} from "../../common/spaces/space_primitives.ts";
+import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import {
   NamespaceOperation,
   PageNamespaceHook,
 } from "../hooks/page_namespace.ts";
-import { base64DecodeDataUrl } from "../../plugos/asset_bundle/base64.ts";
+import {
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
+} from "../../plugos/asset_bundle/base64.ts";
+import { mime } from "../deps.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -73,26 +72,19 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
-    const wantArrayBuffer = encoding === "arraybuffer";
-    const result: { data: FileData; meta: FileMeta } | false = await this
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    const result: { data: string; meta: FileMeta } | false = await this
       .performOperation(
         "readFile",
         name,
-        wantArrayBuffer ? "dataurl" : encoding,
       );
     if (result) {
-      if (wantArrayBuffer) {
-        return {
-          data: base64DecodeDataUrl(result.data as string),
-          meta: result.meta,
-        };
-      } else {
-        return result;
-      }
+      return {
+        data: base64DecodeDataUrl(result.data),
+        meta: result.meta,
+      };
     }
-    return this.wrapped.readFile(name, encoding);
+    return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
@@ -105,16 +97,17 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
       name,
-      encoding,
-      data,
+      base64EncodedDataUrl(
+        mime.getType(name) || "application/octet-stream",
+        data,
+      ),
       selfUpdate,
     );
     if (result) {
@@ -123,7 +116,6 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
     return this.wrapped.writeFile(
       name,
-      encoding,
       data,
       selfUpdate,
       lastModified,

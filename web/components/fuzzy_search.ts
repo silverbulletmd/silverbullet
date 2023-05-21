@@ -1,4 +1,4 @@
-import { FilterOption } from "../../common/types.ts";
+import { FilterOption } from "../types.ts";
 
 export const fuzzySearchAndSort = (
   arr: FilterOption[],

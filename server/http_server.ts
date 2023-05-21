@@ -250,7 +250,6 @@ export class HttpServer {
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
-            "arraybuffer",
           );
           const lastModifiedHeader = new Date(attachmentData.meta.lastModified)
             .toUTCString();
@@ -270,7 +269,7 @@ export class HttpServer {
             lastModifiedHeader,
           );
           response.headers.set("Content-Type", attachmentData.meta.contentType);
-          response.body = attachmentData.data as ArrayBuffer;
+          response.body = attachmentData.data;
         } catch {
           // console.error("Error in main router", e);
           response.status = 404;
@@ -294,7 +293,6 @@ export class HttpServer {
         try {
           const meta = await spacePrimitives.writeFile(
             name,
-            "arraybuffer",
             body,
           );
           response.status = 200;

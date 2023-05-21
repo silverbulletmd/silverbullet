@@ -1,6 +1,5 @@
-import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
 import { mime } from "../deps.ts";
 
@@ -26,13 +25,12 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     if (this.assetBundle.has(name)) {
       const data = this.assetBundle.readFileSync(name);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
-        data: encoding === "utf8" ? new TextDecoder().decode(data) : data,
+        data,
         meta: {
           lastModified: bootTime,
           size: data.byteLength,
@@ -41,7 +39,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
         } as FileMeta,
       });
     }
-    return this.wrapped.readFile(name, encoding);
+    return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
@@ -59,8 +57,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
@@ -70,7 +67,6 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     }
     return this.wrapped.writeFile(
       name,
-      encoding,
       data,
       selfUpdate,
       lastModified,
