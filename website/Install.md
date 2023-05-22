@@ -19,7 +19,7 @@ This consists of two steps (unless Deno is already installed — in which case w
 With Deno installed, run:
 
 ```shell
-deno install -f --name silverbullet -A https://local.silverbullet.md/silverbullet.js
+deno install -f --name silverbullet -A https://silverbullet.md/silverbullet.js
 ```
 
 This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
@@ -30,9 +30,9 @@ To run SilverBullet, create a folder for your pages (it can be empty, or be an e
 silverbullet <pages-path>
 ```
 
-By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
+By default, SilverBullet will bind to port `3000`, to use a different port use the `-p` flag. 
 
-For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
+For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `-L 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
 
 Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser. Please make note of [[@tls|the use of HTTPs]].
 

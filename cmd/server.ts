@@ -15,7 +15,7 @@ import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 export function serveCommand(options: any, folder: string) {
   const hostname = options.hostname || "127.0.0.1";
   const port = options.port || 3000;
-  const maxFileSizeMB = options.maxFileSizeMB || 10;
+  const maxFileSizeMB = options.maxFileSizeMB || 20;
 
   console.log(
     "Going to start SilverBullet binding to",
@@ -23,7 +23,8 @@ export function serveCommand(options: any, folder: string) {
   );
   if (hostname === "127.0.0.1") {
     console.log(
-      `_Note:_ SilverBullet will only be available locally (via http://localhost:${port}), to allow outside connections, pass --hostname 0.0.0.0 as a flag.`,
+      `NOTE: SilverBullet will only be available locally (via http://localhost:${port}).
+To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminator on top.`,
     );
   }
   let spacePrimitives: SpacePrimitives | undefined;
@@ -38,6 +39,7 @@ export function serveCommand(options: any, folder: string) {
       }),
       new AssetBundle(plugAssetBundle as AssetJson),
     );
+    console.log("Running in S3 mode");
   } else {
     folder = path.resolve(Deno.cwd(), folder);
     spacePrimitives = new AssetBundlePlugSpacePrimitives(
