@@ -332,7 +332,7 @@ export class Editor {
       system.unload(fileName);
       await system.load(
         // await this.space.readFile(fileName, "utf8"),
-        new URL(`/fs/${fileName}`, location.href),
+        new URL(`/.fs/${fileName}`, location.href),
         createSandbox,
       );
       this.plugsUpdated = true;
@@ -969,7 +969,7 @@ export class Editor {
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       try {
         await this.system.load(
-          new URL(`/fs/${plugName}`, location.href),
+          new URL(`/.fs/${plugName}`, location.href),
           createSandbox,
         );
       } catch (e: any) {

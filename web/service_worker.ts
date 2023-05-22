@@ -77,7 +77,7 @@ self.addEventListener("fetch", (event: any) => {
 
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
-        if (pathname.startsWith(`/fs/${plugPrefix}`)) {
+        if (pathname.startsWith(`/.fs/${plugPrefix}`)) {
           // console.log(
           //   "Service plug code from space:",
           //   pathname,
@@ -85,7 +85,7 @@ self.addEventListener("fetch", (event: any) => {
           // );
           if (fileContentTable && !event.request.headers.has("x-sync-mode")) {
             // Don't fetch from DB when in sync mode (because then updates plugs won't sync)
-            const plugPath = requestUrl.pathname.slice("/fs/".length);
+            const plugPath = requestUrl.pathname.slice("/.fs/".length);
             return fileContentTable.get(plugPath).then(
               (data) => {
                 if (data) {
@@ -116,7 +116,7 @@ self.addEventListener("fetch", (event: any) => {
           }
         }
         if (
-          !requestUrl.pathname.startsWith("/fs") &&
+          !requestUrl.pathname.startsWith("/.fs") &&
           requestUrl.pathname !== "/.auth"
         ) {
           // Page, let's serve index.html

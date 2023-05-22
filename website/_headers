@@ -1,8 +1,6 @@
-/fs/_plug/*
-#  Content-Type: application/javascript
+/.fs/_plug/*
   X-Last-Modified: 1
   X-Permission: ro
-/fs/*
-#  Content-Type: text/markdown
+/.fs/*
   X-Last-Modified: 1
   X-Permission: rw

@@ -44,7 +44,7 @@ export class HttpServer {
       this.options.pagesPath.replaceAll("\\", "\\\\"),
     ).replaceAll(
       "{{SYNC_ENDPOINT}}",
-      "/fs",
+      "/.fs",
     );
   }
 
@@ -95,7 +95,7 @@ export class HttpServer {
     // Fallback, serve index.html
     this.app.use(({ request, response }, next) => {
       if (
-        !request.url.pathname.startsWith("/fs") &&
+        !request.url.pathname.startsWith("/.fs") &&
         request.url.pathname !== "/.auth"
       ) {
         response.headers.set("Content-type", "text/html");
@@ -334,7 +334,7 @@ export class HttpServer {
           response.body = e.message;
         }
       });
-    return new Router().use("/fs", fsRouter.routes());
+    return new Router().use("/.fs", fsRouter.routes());
   }
 
   stop() {
