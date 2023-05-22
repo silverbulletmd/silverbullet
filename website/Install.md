@@ -32,7 +32,7 @@ silverbullet <pages-path>
 
 By default, SilverBullet will bind to port `3000`, to use a different port use the `--port` flag. 
 
-For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add authentication.
+For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `--hostname 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
 
 Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser. Please make note of [[@tls|the use of HTTPs]].
 

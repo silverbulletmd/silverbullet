@@ -180,7 +180,11 @@ export async function postponeCommand() {
   if (!option) {
     return;
   }
-  const d = new Date(date);
+  // Parse "naive" due date
+  let [yyyy, mm, dd] = date.split("-").map(Number)
+  // Create new naive Date object.
+  // `monthIndex` parameter is zero-based, so subtract 1 from parsed month.
+  const d = new Date(yyyy, mm - 1, dd);
   switch (option.name) {
     case "a day":
       d.setDate(d.getDate() + 1);
@@ -192,6 +196,7 @@ export async function postponeCommand() {
       d.setDate(d.getDate() + ((7 - d.getDay() + 1) % 7 || 7));
       break;
   }
+  // console.log("New date", niceDate(d));
   await editor.dispatch({
     changes: {
       from: node.from,

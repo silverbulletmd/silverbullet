@@ -33,7 +33,7 @@ export class HttpServer {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application();
-    this.user = options.user;
+    this.user = options.user ?? Deno.env.get("SB_USER");
     this.clientAssetBundle = options.clientAssetBundle;
   }
 
