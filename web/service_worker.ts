@@ -114,12 +114,14 @@ self.addEventListener("fetch", (event: any) => {
             // Just fetch the file directly
             return fetch(event.request);
           }
-        } else {
+        } else if (pathname !== "/.auth") {
           // Must be a page URL, let's serve index.html which will handle it
           return caches.match(precacheFiles["/"]).then((response) => {
             // This shouldnt't happen, index.html not in the cache for some reason
             return response || fetch(event.request);
           });
+        } else {
+          return fetch(event.request);
         }
       }),
   );

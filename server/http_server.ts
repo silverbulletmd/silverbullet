@@ -39,7 +39,7 @@ export class HttpServer {
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
   renderIndexHtml() {
-    return this.clientAssetBundle.readTextFileSync(".static/index.html")
+    return this.clientAssetBundle.readTextFileSync(".client/index.html")
       .replaceAll(
         "{{SPACE_PATH}}",
         this.options.pagesPath.replaceAll("\\", "\\\\"),
@@ -159,7 +159,7 @@ export class HttpServer {
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
             response.body = this.clientAssetBundle.readTextFileSync(
-              "auth.html",
+              ".client/auth.html",
             );
             return;
           } else if (request.method === "POST") {
