@@ -3,7 +3,7 @@ name: Docker S3
 on:
   push:
     branches:
-      - "local"
+      - "main"
     tags:
       - "*"
 env:
@@ -74,7 +74,7 @@ jobs:
             # tag w/ full tag part of git tag: <https://github.com/docker/metadata-action#typesemver>
             # only present for `on.push.tags` !
             type=semver,pattern={{raw}},enable=true
-            type=edge,branch=local # usually this would be the develop branch
+            # type=edge,branch=local # usually this would be the develop branch
 
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
