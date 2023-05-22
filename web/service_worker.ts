@@ -1,7 +1,7 @@
 import Dexie, {} from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 import { simpleHash } from "../common/crypto.ts";
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
-import { plugPrefix } from "../common/spaces/constants.ts";
+import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -68,6 +68,7 @@ self.addEventListener("fetch", (event: any) => {
   const cacheKey = precacheFiles[url.pathname] || event.request.url;
 
   event.respondWith(
+    // Try the static (client) file cache first
     caches.match(cacheKey)
       .then((response) => {
         // Return the cached response if found
@@ -77,56 +78,49 @@ self.addEventListener("fetch", (event: any) => {
 
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
-        if (pathname.startsWith(`/.fs/${plugPrefix}`)) {
-          // console.log(
-          //   "Service plug code from space:",
-          //   pathname,
-          //   [...event.request.headers.keys()],
-          // );
+        // If this is a /.fs request, this can either be a plug worker load or an attachment load
+        if (pathname.startsWith("/.fs")) {
           if (fileContentTable && !event.request.headers.has("x-sync-mode")) {
-            // Don't fetch from DB when in sync mode (because then updates plugs won't sync)
-            const plugPath = requestUrl.pathname.slice("/.fs/".length);
-            return fileContentTable.get(plugPath).then(
+            console.log(
+              "Attempting to serve file from locally synced space:",
+              pathname,
+            );
+            // Don't fetch from DB when in sync mode (because then updates won't sync)
+            const path = decodeURIComponent(
+              requestUrl.pathname.slice("/.fs/".length),
+            );
+            return fileContentTable.get(path).then(
               (data) => {
                 if (data) {
-                  console.log("Serving from space", plugPath);
-                  const src = new TextDecoder().decode(data.data);
-                  const match = /zef\d+/.exec(src);
-                  if (match) {
-                    console.log("EXTRACTED THIS", match);
-                  }
+                  console.log("Serving from space", path);
                   return new Response(data.data, {
                     headers: {
-                      "Content-type": plugPath.endsWith(".js")
-                        ? "application/javascript"
-                        : "application/json",
+                      "Content-type": mime.getType(path) ||
+                        "application/octet-stream",
                     },
                   });
                 } else {
                   console.error(
-                    "Did not find plug in synced files",
-                    plugPath,
+                    "Did not find file in locally synced space",
+                    path,
                   );
-                  return new Response("Not found");
+                  return new Response("Not found", {
+                    status: 404,
+                  });
                 }
               },
             );
           } else {
+            // Just fetch the file directly
             return fetch(event.request);
           }
-        }
-        if (
-          !requestUrl.pathname.startsWith("/.fs") &&
-          requestUrl.pathname !== "/.auth"
-        ) {
-          // Page, let's serve index.html
+        } else {
+          // Must be a page URL, let's serve index.html which will handle it
           return caches.match(precacheFiles["/"]).then((response) => {
             // This shouldnt't happen, index.html not in the cache for some reason
             return response || fetch(event.request);
           });
         }
-
-        return fetch(event.request);
       }),
   );
 });

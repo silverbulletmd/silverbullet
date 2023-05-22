@@ -81,7 +81,8 @@ export class SpaceSync {
             secondaryFileMap.get(name),
           );
           filesProcessed++;
-          if (operations > 0 && this.options.onSyncProgress) {
+          // Only report something significant
+          if (operations > 1 && this.options.onSyncProgress) {
             this.options.onSyncProgress({
               filesProcessed,
               totalFiles: sortedFilenames.length,

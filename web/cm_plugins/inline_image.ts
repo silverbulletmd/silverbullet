@@ -28,11 +28,12 @@ class InlineImageWidget extends WidgetType {
       img.src = this.url;
     } else {
       // Load the image as a dataURL and inject it into the img's src attribute
-      this.space.readAttachment(decodeURIComponent(this.url), "dataurl").then(
-        ({ data }) => {
-          img.src = data as string;
-        },
-      );
+      // this.space.readAttachment(decodeURIComponent(this.url), "dataurl").then(
+      //   ({ data }) => {
+      //     img.src = data as string;
+      //   },
+      // );
+      img.src = `/.fs/${decodeURIComponent(this.url)}`;
     }
 
     img.alt = this.title;

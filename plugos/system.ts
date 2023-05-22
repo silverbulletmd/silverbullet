@@ -123,7 +123,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   unload(name: string) {
-    console.log("Unloading", name);
+    // console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
       return;

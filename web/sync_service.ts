@@ -1,4 +1,3 @@
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import {
   SpaceSync,
@@ -28,24 +27,16 @@ const syncInterval = 10 * 1000; // Every 10s
  * different browser tabs. It is using the KVStore to keep track of sync state.
  */
 export class SyncService {
-  remoteSpace: HttpSpacePrimitives;
   spaceSync: SpaceSync;
   lastReportedSyncStatus = Date.now();
 
   constructor(
     private localSpacePrimitives: SpacePrimitives,
-    syncEndpoint: string,
+    private remoteSpace: SpacePrimitives,
     private kvStore: KVStore,
     private eventHook: EventHook,
-    expectedSpacePath: string,
     private isSyncCandidate: (path: string) => boolean,
   ) {
-    this.remoteSpace = new HttpSpacePrimitives(
-      syncEndpoint,
-      expectedSpacePath,
-      true,
-    );
-
     this.spaceSync = new SpaceSync(
       this.localSpacePrimitives,
       this.remoteSpace!,

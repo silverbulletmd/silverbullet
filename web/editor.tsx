@@ -131,6 +131,8 @@ import { yamlSyscalls } from "./syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -163,6 +165,8 @@ export class Editor {
   viewState: AppViewState = initialViewState;
   viewDispatch: (action: Action) => void = () => {};
   space: Space;
+  remoteSpacePrimitives: HttpSpacePrimitives;
+
   pageNavigator?: PathPageNavigator;
   eventHook: EventHook;
   codeWidgetHook: CodeWidgetHook;
@@ -223,10 +227,20 @@ export class Editor {
     const storeCalls = storeSyscalls(this.kvStore);
 
     // Setup space
+    this.remoteSpacePrimitives = new HttpSpacePrimitives(
+      runtimeConfig.syncEndpoint,
+      runtimeConfig.spaceFolderPath,
+      true,
+    );
+
     const plugSpacePrimitives = new PlugSpacePrimitives(
-      new IndexedDBSpacePrimitives(
-        `${dbPrefix}_space`,
-        globalThis.indexedDB,
+      // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+      new FallbackSpacePrimitives(
+        new IndexedDBSpacePrimitives(
+          `${dbPrefix}_space`,
+          globalThis.indexedDB,
+        ),
+        this.remoteSpacePrimitives,
       ),
       namespaceHook,
     );
@@ -244,10 +258,9 @@ export class Editor {
 
     this.syncService = new SyncService(
       localSpacePrimitives,
-      runtimeConfig.syncEndpoint,
+      this.remoteSpacePrimitives,
       this.kvStore,
       this.eventHook,
-      runtimeConfig.spaceFolderPath,
       (path) => {
         return !plugSpacePrimitives.isLikelyHandled(path);
       },
@@ -294,9 +307,8 @@ export class Editor {
       // LEGACY
       clientStoreSyscalls(storeCalls),
       indexSyscalls,
-      sandboxFetchSyscalls(this.syncService.remoteSpace),
-      shellSyscalls(this.syncService.remoteSpace),
-      // fulltextSyscalls(serverSpace),
+      sandboxFetchSyscalls(this.remoteSpacePrimitives),
+      shellSyscalls(this.remoteSpacePrimitives),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -368,17 +380,6 @@ export class Editor {
     this.pageNavigator = new PathPageNavigator(
       this.settings.indexPage,
     );
-
-    // Ensure at least the current page is present so we have something to show on a fresh load while syncing the rest in the background
-    const currentPage = this.pageNavigator.getCurrentPage();
-    try {
-      await this.space.getPageMeta(currentPage);
-    } catch {
-      console.log(`No ${currentPage} page available, syncing...`);
-      await this.syncService.syncFile(currentPage + ".md");
-      // Initial sync, mark as unsynced
-      this.viewDispatch({ type: "sync-change", synced: false });
-    }
 
     await this.reloadPlugs();
 
@@ -479,10 +480,9 @@ export class Editor {
 
     try {
       settingsText = (await this.space.readPage("SETTINGS")).text;
-    } catch {
-      console.log("No SETTINGS page, syncing...");
-      await this.syncService.syncFile("SETTINGS.md");
-      settingsText = (await this.space.readPage("SETTINGS")).text;
+    } catch (e: any) {
+      console.log("No SETTINGS page, falling back to default");
+      settingsText = "```yaml\nindexPage: index\n```\n";
     }
     const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
 
