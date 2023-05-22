@@ -1,16 +1,16 @@
-name: Docker
+name: Docker S3
 
 on:
   push:
     branches:
-      - "main"
+      - "local"
     tags:
       - "*"
 env:
   DENO_VERSION: v1.33
   # Docker & Registries
   ARCHITECTURES: linux/amd64,linux/arm64
-  IMAGE_NAME: silverbullet
+  IMAGE_NAME: silverbullet-s3
   NAMESPACE_GITHUB: silverbulletmd
   NAMESPACE_DOCKER: zefhemel
 jobs:
@@ -82,7 +82,7 @@ jobs:
           context: .
           platforms: ${{ env.ARCHITECTURES }}
           push: true
-          file: Dockerfile
+          file: Dockerfile.s3
           # Disable to get rid of unknown architecture in ghcr
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
