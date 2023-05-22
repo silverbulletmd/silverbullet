@@ -6,3 +6,4 @@ export * as system from "./system.ts";
 export * as collab from "./collab.ts";
 // Legacy redirect, use "store" in $sb/plugos-syscall/mod.ts instead
 export * as clientStore from "./store.ts";
+export * as sync from "./sync.ts";

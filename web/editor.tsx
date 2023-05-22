@@ -133,6 +133,7 @@ import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
+import { syncSyscalls } from "./syscalls/sync.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -262,7 +263,8 @@ export class Editor {
       this.kvStore,
       this.eventHook,
       (path) => {
-        return !plugSpacePrimitives.isLikelyHandled(path);
+        // TODO: At some point we should remove the data.db exception here
+        return path !== "data.db" && !plugSpacePrimitives.isLikelyHandled(path);
       },
     );
 
@@ -305,9 +307,10 @@ export class Editor {
       collabSyscalls(this),
       yamlSyscalls(),
       storeCalls,
+      indexSyscalls,
+      syncSyscalls(this.syncService),
       // LEGACY
       clientStoreSyscalls(storeCalls),
-      indexSyscalls,
     );
 
     // Syscalls that require some additional permissions
@@ -461,8 +464,10 @@ export class Editor {
       if (this.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
-        // Likely initial sync so let's show visually that we're synced now
-        this.flashNotification(`Synced ${operations} files`, "info");
+        if (operations) {
+          // Likely initial sync so let's show visually that we're synced now
+          this.flashNotification(`Synced ${operations} files`, "info");
+        }
       }
       // Reset for next sync cycle
       this.plugsUpdated = false;
@@ -471,6 +476,12 @@ export class Editor {
     });
     this.eventHook.addLocalListener("sync:error", (name) => {
       this.viewDispatch({ type: "sync-change", synced: false });
+    });
+    this.eventHook.addLocalListener("sync:conflict", (name) => {
+      this.flashNotification(
+        `Sync: conflict detected for ${name} - conflict copy created`,
+        "error",
+      );
     });
     this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
       this.flashNotification(

@@ -170,7 +170,6 @@ export function FilterList({
                   setSelectionOption(idx);
                 }}
                 onClick={(e) => {
-                  console.log("Selecting", option);
                   e.stopPropagation();
                   onSelect(option);
                 }}

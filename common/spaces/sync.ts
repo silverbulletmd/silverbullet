@@ -337,6 +337,7 @@ export class SpaceSync {
         }
       }
     }
+    let operations = 0;
     const revisionFileName = filePieces.length === 1
       ? `${name}.conflicted.${pageData2.meta.lastModified}`
       : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
@@ -351,16 +352,12 @@ export class SpaceSync {
       revisionFileName,
       pageData2.data,
     );
+    operations++;
     const remoteConflictMeta = await secondary.writeFile(
       revisionFileName,
       pageData2.data,
     );
-
-    // Updating snapshot
-    snapshot.set(revisionFileName, [
-      localConflictMeta.lastModified,
-      remoteConflictMeta.lastModified,
-    ]);
+    operations++;
 
     // Write replacement on top
     const writeMeta = await secondary.writeFile(
@@ -368,9 +365,16 @@ export class SpaceSync {
       pageData1.data,
       true,
     );
+    operations++;
+
+    // Updating snapshot
+    snapshot.set(revisionFileName, [
+      localConflictMeta.lastModified,
+      remoteConflictMeta.lastModified,
+    ]);
 
     snapshot.set(name, [pageData1.meta.lastModified, writeMeta.lastModified]);
-    return 1;
+    return operations;
   }
 
   syncCandidates(files: FileMeta[]): FileMeta[] {

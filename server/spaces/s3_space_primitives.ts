@@ -57,6 +57,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
       };
     } catch (e: any) {
       console.log("GOt error", e.message);
+
       if (e.message.includes("does not exist")) {
         throw new Error(`Not found`);
       }
@@ -84,6 +85,10 @@ export class S3SpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
   ): Promise<FileMeta> {
+    if (data.byteLength === 0) {
+      // S3 doesn't like empty files, so we'll put a space in it. Not ideal, but it works. I hope.
+      data = new TextEncoder().encode(" ");
+    }
     await this.client.putObject(this.encodePath(name), data);
     // TODO: Dangerous due to eventual consistency? maybe check with etag or versionid?
     return this.getFileMeta(name);

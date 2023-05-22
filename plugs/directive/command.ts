@@ -1,4 +1,9 @@
-import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
+import {
+  editor,
+  markdown,
+  sync,
+  system,
+} from "$sb/silverbullet-syscall/mod.ts";
 import {
   ParseTree,
   removeParentPointers,
@@ -7,6 +12,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { syncSyscalls } from "../../web/syscalls/sync.ts";
 
 export async function updateDirectivesOnPageCommand(arg: any) {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
@@ -17,6 +23,11 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
   if (metaData.$disableDirectives) {
     // Not updating, directives disabled
+    return;
+  }
+
+  if (!(await sync.hasInitialSyncCompleted())) {
+    console.info("Initial sync hasn't completed yet, not updating directives.");
     return;
   }
 

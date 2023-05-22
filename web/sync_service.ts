@@ -41,7 +41,7 @@ export class SyncService {
       this.localSpacePrimitives,
       this.remoteSpace!,
       {
-        conflictResolver: SyncService.plugAwareConflictResolver,
+        conflictResolver: this.plugAwareConflictResolver.bind(this),
         isSyncCandidate: this.isSyncCandidate,
         onSyncProgress: (status) => {
           this.registerSyncProgress(status).catch(console.error);
@@ -72,6 +72,12 @@ export class SyncService {
       return false;
     }
     return true;
+  }
+
+  async hasInitialSyncCompleted(): Promise<boolean> {
+    // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
+    return !!(!(await this.kvStore.get(syncStartTimeKey)) &&
+      (await this.kvStore.get(syncLastActivityKey)));
   }
 
   async registerSyncStart(): Promise<void> {
@@ -187,19 +193,26 @@ export class SyncService {
     await this.kvStore.set(syncSnapshotKey, Object.fromEntries(snapshot));
   }
 
-  public static async plugAwareConflictResolver(
+  public async plugAwareConflictResolver(
     name: string,
     snapshot: Map<string, SyncStatusItem>,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
     if (!name.startsWith("_plug/")) {
-      return SpaceSync.primaryConflictResolver(
+      const operations = await SpaceSync.primaryConflictResolver(
         name,
         snapshot,
         primary,
         secondary,
       );
+
+      if (operations > 0) {
+        // Something happened -> conflict copy generated, let's report it
+        await this.eventHook.dispatchEvent("sync:conflict", name);
+      }
+
+      return operations;
     }
     console.log(
       "[sync]",
