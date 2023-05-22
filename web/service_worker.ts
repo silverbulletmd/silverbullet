@@ -1,7 +1,9 @@
-import Dexie, {} from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
-import { simpleHash } from "../common/crypto.ts";
-import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
+import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
+
+import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
+import { simpleHash } from "../common/crypto.ts";
+import { clientStore } from "../plug-api/silverbullet-syscall/mod.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -18,7 +20,7 @@ const precacheFiles = Object.fromEntries([
   "/.client/logo-dock.png",
   "/.client/main.css",
   "/.client/manifest.json",
-].map((path) => [path, path + "?v=" + CACHE_NAME, path]));
+].map((path) => [path, path + "?v=" + CACHE_NAME, path])); // Cache busting
 
 self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");
@@ -43,7 +45,7 @@ self.addEventListener("install", (event: any) => {
 });
 
 self.addEventListener("activate", (event: any) => {
-  console.log("[Service worker]", "Activating new service worker");
+  console.log("[Service worker]", "Activating new service worker!!!");
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -53,7 +55,11 @@ self.addEventListener("activate", (event: any) => {
             return caches.delete(cacheName);
           }
         }),
-      );
+      ).then(() => {
+        // Let's activate ourselves for all existing clients
+        // @ts-ignore: No need to wait, clients is a serviceworker thing
+        return clients.claim();
+      });
     }),
   );
 });

@@ -1,10 +1,5 @@
 import type { ClickEvent } from "$sb/app_event.ts";
-import {
-  editor,
-  markdown,
-  space,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import {
   addParentPointers,
   findNodeOfType,

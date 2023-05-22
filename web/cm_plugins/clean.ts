@@ -1,6 +1,6 @@
 import type { ClickEvent } from "../../plug-api/app_event.ts";
 import type { Extension } from "../deps.ts";
-import { Editor } from "../editor.tsx";
+import type { Editor } from "../editor.tsx";
 import { blockquotePlugin } from "./block_quote.ts";
 import { admonitionPlugin } from "./admonition.ts";
 import { directivePlugin } from "./directive.ts";
@@ -16,7 +16,7 @@ import { fencedCodePlugin } from "./fenced_code.ts";
 
 export function cleanModePlugins(editor: Editor) {
   return [
-    linkPlugin(editor),
+    linkPlugin(),
     directivePlugin(),
     blockquotePlugin(),
     admonitionPlugin(editor),

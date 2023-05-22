@@ -1,4 +1,6 @@
 name: directive
+requiredPermissions:
+  - fetch
 functions:
   updateDirectivesOnPageCommand:
     path: ./command.ts:updateDirectivesOnPageCommand

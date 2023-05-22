@@ -293,6 +293,7 @@ export class Editor {
       parent: document.getElementById("sb-editor")!,
     });
 
+    // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
@@ -307,7 +308,16 @@ export class Editor {
       // LEGACY
       clientStoreSyscalls(storeCalls),
       indexSyscalls,
+    );
+
+    // Syscalls that require some additional permissions
+    this.system.registerSyscalls(
+      ["fetch"],
       sandboxFetchSyscalls(this.remoteSpacePrimitives),
+    );
+
+    this.system.registerSyscalls(
+      ["shell"],
       shellSyscalls(this.remoteSpacePrimitives),
     );
 
@@ -361,8 +371,8 @@ export class Editor {
     this.space.on({
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
-          console.log("Page changed on disk, reloading");
-          this.flashNotification("Page changed on disk, reloading");
+          console.log("Page changed elsewhere, reloading");
+          this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();
         }
       },
@@ -553,7 +563,7 @@ export class Editor {
           id: id,
         });
       },
-      type === "info" ? 2000 : 5000,
+      type === "info" ? 4000 : 5000,
     );
   }
 

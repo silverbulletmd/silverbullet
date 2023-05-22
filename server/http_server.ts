@@ -213,6 +213,16 @@ export class HttpServer {
             return;
           }
           case "shell": {
+            // TODO: Have a nicer way to do this
+            if (this.options.pagesPath.startsWith("s3://")) {
+              response.status = 500;
+              response.body = JSON.stringify({
+                stdout: "",
+                stderr: "Cannot run shell commands with S3 backend",
+                code: 500,
+              });
+              return;
+            }
             const p = new Deno.Command(body.cmd, {
               args: body.args,
               cwd: this.options.pagesPath,

@@ -1,4 +1,6 @@
 name: core
+requiredPermissions:
+  - fetch
 syntax:
   Hashtag:
     firstCharacters:

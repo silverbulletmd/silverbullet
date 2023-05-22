@@ -1,12 +1,11 @@
 import { Decoration, syntaxTree } from "../deps.ts";
-import { Editor } from "../editor.tsx";
 import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
 
-export function linkPlugin(editor: Editor) {
+export function linkPlugin() {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
 
