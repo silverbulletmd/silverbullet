@@ -14,7 +14,7 @@ env:
   NAMESPACE_GITHUB: silverbulletmd
   NAMESPACE_DOCKER: zefhemel
 jobs:
-  docker-main:
+  docker-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -74,7 +74,7 @@ jobs:
             # tag w/ full tag part of git tag: <https://github.com/docker/metadata-action#typesemver>
             # only present for `on.push.tags` !
             type=semver,pattern={{raw}},enable=true
-            # type=edge,branch=develop # usually this would be the develop branch
+            type=edge,branch=local # usually this would be the develop branch
 
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
