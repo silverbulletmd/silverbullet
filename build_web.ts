@@ -35,6 +35,7 @@ export async function bundleAll(
 }
 
 export async function copyAssets(dist: string) {
+  await Deno.mkdir(dist, { recursive: true });
   await copy("web/fonts", `${dist}`, { overwrite: true });
   await copy("web/index.html", `${dist}/index.html`, {
     overwrite: true,
@@ -84,10 +85,16 @@ async function buildCopyBundleAssets() {
 
   await Promise.all([
     esbuild.build({
-      entryPoints: {
-        client: "web/boot.ts",
-        service_worker: "web/service_worker.ts",
-      },
+      entryPoints: [
+        {
+          in: "web/boot.ts",
+          out: ".client/client",
+        },
+        {
+          in: "web/service_worker.ts",
+          out: "service_worker",
+        },
+      ],
       outdir: "dist_client_bundle",
       absWorkingDir: Deno.cwd(),
       bundle: true,
@@ -112,7 +119,7 @@ async function buildCopyBundleAssets() {
   swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
   await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
 
-  await copyAssets("dist_client_bundle");
+  await copyAssets("dist_client_bundle/.client");
   await bundleFolder("dist_client_bundle", "dist/client_asset_bundle.json");
 
   console.log("Built!");

@@ -39,13 +39,14 @@ export class HttpServer {
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
   renderIndexHtml() {
-    return this.clientAssetBundle.readTextFileSync("index.html").replaceAll(
-      "{{SPACE_PATH}}",
-      this.options.pagesPath.replaceAll("\\", "\\\\"),
-    ).replaceAll(
-      "{{SYNC_ENDPOINT}}",
-      "/.fs",
-    );
+    return this.clientAssetBundle.readTextFileSync(".static/index.html")
+      .replaceAll(
+        "{{SPACE_PATH}}",
+        this.options.pagesPath.replaceAll("\\", "\\\\"),
+      ).replaceAll(
+        "{{SYNC_ENDPOINT}}",
+        "/.fs",
+      );
   }
 
   async start() {

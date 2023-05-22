@@ -7,17 +7,17 @@ const CACHE_NAME = "{{CACHE_NAME}}";
 
 const precacheFiles = Object.fromEntries([
   "/",
-  "/reset.html",
-  "/client.js",
-  "/favicon.png",
-  "/iAWriterMonoS-Bold.woff2",
-  "/iAWriterMonoS-BoldItalic.woff2",
-  "/iAWriterMonoS-Italic.woff2",
-  "/iAWriterMonoS-Regular.woff2",
-  "/logo.png",
-  "/logo-dock.png",
-  "/main.css",
-  "/manifest.json",
+  "/.client/reset.html",
+  "/.client/client.js",
+  "/.client/favicon.png",
+  "/.client/iAWriterMonoS-Bold.woff2",
+  "/.client/iAWriterMonoS-BoldItalic.woff2",
+  "/.client/iAWriterMonoS-Italic.woff2",
+  "/.client/iAWriterMonoS-Regular.woff2",
+  "/.client/logo.png",
+  "/.client/logo-dock.png",
+  "/.client/main.css",
+  "/.client/manifest.json",
 ].map((path) => [path, path + "?v=" + CACHE_NAME, path]));
 
 self.addEventListener("install", (event: any) => {

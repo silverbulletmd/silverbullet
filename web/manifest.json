@@ -3,7 +3,7 @@
   "name": "SilverBullet",
   "icons": [
     {
-      "src": "/logo-dock.png",
+      "src": "/.client/logo-dock.png",
       "type": "image/png",
       "sizes": "512x512"
     }

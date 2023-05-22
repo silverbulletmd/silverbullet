@@ -18,22 +18,23 @@ deno task clean
 deno task build
 echo "Cleaning website build dir"
 rm -rf website_build
-mkdir -p website_build/fs/_plug
+mkdir -p website_build/_fs/_plug website_build/_client
 echo "Copying silverbullet runtime files"
-cp -r dist_client_bundle/* website_build/
+cp dist_client_bundle/* website_build/
+cp -r dist_client_bundle/.client/* website_build/_client/
 
 echo "And all plugs"
-cp -r dist_plug_bundle/_plug/* website_build/fs/_plug/
+cp -r dist_plug_bundle/_plug/* website_build/_fs/_plug/
 #echo "And additional ones"
-curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/fs/_plug/mermaid.plug.js
+curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/_fs/_plug/mermaid.plug.js
 echo "But remove some plugs"
-rm -rf website_build/fs/_plug/{plugmd}.plug.js
+rm -rf website_build/_fs/_plug/{plugmd}.plug.js
 echo "Copying netlify config files"
 cp website/{_redirects,_headers} website_build/
 
 echo "Copying website content into fs/"
-cp -r website/* website_build/fs/
-rm website_build/fs/{_redirects,_headers}
+cp -r website/* website_build/_fs/
+rm website_build/_fs/{_redirects,_headers}
 
 echo "Copy website files another time into the root"
 cp -r website/* website_build/
