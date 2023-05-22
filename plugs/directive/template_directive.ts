@@ -9,6 +9,7 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { serverUpdateDirectives } from "./command.ts";
 import { registerHandlebarsHelpers } from "./util.ts";
+import { parse } from "../../plug-api/plugos-syscall/yaml.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -56,7 +57,10 @@ export async function templateDirectiveRenderer(
       replaceTemplateVars(templateText, pageName),
       { noEscape: true },
     );
-    newBody = templateFn({ ...parsedArgs, page: pageName });
+    if (typeof parsedArgs !== "string") {
+      (parsedArgs as any).page = pageName;
+    }
+    newBody = templateFn(parsedArgs);
 
     // Recursively render directives
     newBody = await serverUpdateDirectives(pageName, newBody);
