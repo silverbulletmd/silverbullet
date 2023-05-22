@@ -1278,7 +1278,9 @@ export class Editor {
             darkMode={viewState.uiOptions.darkMode}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
-              editor.focus();
+              setTimeout(() => {
+                editor.focus();
+              });
               if (page) {
                 safeRun(async () => {
                   await editor.navigate(page);
@@ -1291,7 +1293,9 @@ export class Editor {
           <CommandPalette
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
-              editor.focus();
+              setTimeout(() => {
+                editor.focus();
+              });
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
                 cmd
