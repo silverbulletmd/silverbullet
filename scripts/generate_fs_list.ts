@@ -6,6 +6,9 @@ import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 const rootDir = resolve("website_build/_fs");
 
+const lastModifiedTimestamp = +Deno.env.get("LAST_MODIFIED_TIMESTAMP")! ||
+  Date.now();
+
 const allFiles: FileMeta[] = [];
 for await (
   const file of walk(rootDir, {
@@ -18,7 +21,7 @@ for await (
   const s = await Deno.stat(fullPath);
   allFiles.push({
     name: fullPath.substring(rootDir.length + 1),
-    lastModified: s.mtime?.getTime() || 0,
+    lastModified: lastModifiedTimestamp,
     contentType: mime.getType(fullPath) || "application/octet-stream",
     size: s.size,
     perm: "rw",

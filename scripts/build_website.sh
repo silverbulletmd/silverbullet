@@ -8,9 +8,8 @@ if [ "$1" != "local" ]; then
     echo "DENO_DIR: $DENO_DIR"
     mkdir -p $DENO_DIR
 
-    # echo "Generating version number..."
-    # echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 fi
+
 
 echo "Building silver bullet"
 rm -rf website_build
@@ -29,8 +28,6 @@ cp -r dist_plug_bundle/_plug/* website_build/_fs/_plug/
 curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/_fs/_plug/mermaid.plug.js
 echo "But remove some plugs"
 rm -rf website_build/_fs/_plug/{plugmd}.plug.js
-echo "Copying netlify config files"
-cp website/{_redirects,_headers} website_build/
 
 echo "Copying website content into fs/"
 cp -r website/* website_build/_fs/
@@ -39,7 +36,11 @@ rm website_build/_fs/{_redirects,_headers}
 echo "Copy website files another time into the root"
 cp -r website/* website_build/
 
-#echo "Generating file listing"
+# Genereate random modified date, and replace in _headers too
+export LAST_MODIFIED_TIMESTAMP=$RANDOM
+
+cat website/_headers | sed "s/12345/$LAST_MODIFIED_TIMESTAMP/g" > website_build/_headers
+echo "Generating file listing"
 deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 echo > website_build/empty.md
