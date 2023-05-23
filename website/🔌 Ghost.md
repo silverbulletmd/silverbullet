@@ -28,7 +28,7 @@ Then, create a Custom Integration (in your Ghost control panel under Settings > 
         ```
 
 ## Usage
-The plugin hooks into Silver Bullet's [Share infrastructure](https://silverbullet.md/%F0%9F%94%8C_Share). Therefore to share a page as either a Ghost page or post, add a `$share` front matter key. For posts this should take the shape of:
+The plugin hooks into Silver Bullet's [Share infrastructure](https://silverbullet.md/%F0%9F%94%8C_Share). Therefore to share a page as either a Ghost page or post, add a `$share` front matter key. For posts, this should take the shape of:
 
         ---
         $share:
