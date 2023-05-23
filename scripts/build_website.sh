@@ -8,8 +8,8 @@ if [ "$1" != "local" ]; then
     echo "DENO_DIR: $DENO_DIR"
     mkdir -p $DENO_DIR
 
-    echo "Generating version number..."
-    echo "export const version = '$(git rev-parse HEAD)';" > version.ts
+    # echo "Generating version number..."
+    # echo "export const version = '$(git rev-parse HEAD)';" > version.ts
 fi
 
 echo "Building silver bullet"

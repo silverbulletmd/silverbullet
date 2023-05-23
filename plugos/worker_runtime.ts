@@ -50,12 +50,6 @@ self.syscall = async (name: string, ...args: any[]) => {
   });
 };
 
-// const oldLogger = self.console;
-// // @ts-ignore: global overwrite on purpose
-// self.console = new ConsoleLogger((level, message) => {
-//   workerPostMessage({ type: "log", level, message });
-// }, false);
-
 export function setupMessageListener(
   // deno-lint-ignore ban-types
   functionMapping: Record<string, Function>,
