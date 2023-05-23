@@ -183,6 +183,7 @@ export class Editor {
 
   // Track if plugs have been updated since sync cycle
   private plugsUpdated = false;
+  fullSyncCompleted = false;
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
@@ -460,6 +461,10 @@ export class Editor {
       if (operations > 0) {
         // Update the page list
         await this.space.updatePageList();
+      }
+      if (operations !== undefined) {
+        // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
+        this.fullSyncCompleted = true;
       }
       if (this.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
@@ -1450,7 +1455,6 @@ export class Editor {
 
   render(container: Element) {
     const ViewComponent = this.ViewComponent.bind(this);
-    // console.log(<ViewComponent />);
     preactRender(<ViewComponent />, container);
   }
 

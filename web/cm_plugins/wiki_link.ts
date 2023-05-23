@@ -28,7 +28,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         const [_fullMatch, page, pipePart, alias] = match;
 
         const allPages = editor.space.listPages();
-        let pageExists = false;
+        let pageExists = !editor.fullSyncCompleted;
         let cleanPage = page;
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
