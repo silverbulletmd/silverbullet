@@ -3,7 +3,7 @@ release.
 
 ---
 
-## 0.3.0
+## 0.3.1
 This is a big one.
 
 This is another big architectural shift warranting a major minor version bump 😉.
@@ -26,6 +26,8 @@ Besides these architectural changes, a few other breaking changes were made to s
 * **Breaking change** in URLs (if you bookmarked them before): spaces in page names used to be replaced with `_` to look nicer, however, this was causing too many issues for people, so they’re no longer replaced and will appear as `%20` (regular URI encoding) now.
 * On mobile, you can now tap with two fingers on the editor to open the page picker, and with three fingers to open the command palette.
 * Internal note: to avoid page/file name clashes in URLs, various internal URLs have changed, FS requests are now served from `/.fs` instead of `/fs`, and all client static files from `/.client` (was root before).
+
+---
 
 ## 0.2.14
 
