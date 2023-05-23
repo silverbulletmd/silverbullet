@@ -1,6 +1,6 @@
-Installing SilverBullet as a (local) web server is pretty straight forward.
+Installing SilverBullet as a (local) web server is pretty straightforward.
 
-The idea is simple: you run the web server (instructions below), point your browser at it and _go, go, go_! You can access the URL via your desktop browser, but also a mobile one. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
+The idea is simple: you run the web server (instructions below), point your browser at it, and _go, go, go_! You can access the URL via your desktop browser but also a mobile one. You could even go _full-on YOLO_ (that’s a technical term), and install it on a public cloud server somewhere and access it that way (be sure to at least enable authentication and put SSL on top of it, though).
 
 You have two options to install and run SilverBullet as a server:
 
@@ -24,15 +24,15 @@ deno install -f --name silverbullet -A https://silverbullet.md/silverbullet.js
 
 This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
 
-To run SilverBullet, create a folder for your pages (it can be empty, or be an existing folder with `.md` files) and run the following command in your terminal:
+To run SilverBullet, create a folder for your pages (it can be empty or be an existing folder with `.md` files) and run the following command in your terminal:
 
 ```shell
 silverbullet <pages-path>
 ```
 
-By default, SilverBullet will bind to port `3000`, to use a different port use the `-p` flag. 
+By default, SilverBullet will bind to port `3000`; to use a different port, use the `-p` flag.
 
-For security reasons, by default SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `-L 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
+For security reasons, by default, SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `-L 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
 
 Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser. Please make note of [[@tls|the use of HTTPs]].
 
@@ -53,13 +53,13 @@ There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silver
 docker volume create myspace
 ```
 
-Then, run the container, e.g. as follows:
+Then, run the container, e.g., as follows:
 
 ```shell
 docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet
 ```
 
-If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication) you can just append those to the command, e.g.:
+If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication), you can just append those to the command, e.g.:
 
 ```shell
 docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
@@ -83,7 +83,7 @@ docker pull zefhemel/silverbullet
 
 ## Running SilverBullet on your network/Internet
 $tls
-For SilverBullet to be offline capable (loadable without a network connection) it needs to accessed either via `localhost` or via TLS (a `https://`) URL. The most straight-forward way to do this is by using [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
+For SilverBullet to be offline capable (loadable without a network connection) it needs to be accessed either via `localhost` or via TLS (a `https://`) URL. The most straightforward way to do this is by using [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
 
 When you’re deploying on a public server accessible to the Internet, you can do this as follows:
 
@@ -91,7 +91,7 @@ When you’re deploying on a public server accessible to the Internet, you can d
 $ sudo caddy reverse-proxy --to :3000 --from yourdomain.com:443
 ```
 
-If you’re deploying on a local network and access your server via a VPN, this is a bit more tricky. The recommended setup here is to use [Tailscale](https://tailscale.com/) which now [support TLS certificates for your VPN servers](https://tailscale.com/kb/1153/enabling-https/). Once you have this enabled, get a certificate via:
+If you’re deploying on a local network and access your server via a VPN, this is a bit more tricky. The recommended setup here is to use [Tailscale](https://tailscale.com/) which now [supports TLS certificates for your VPN servers](https://tailscale.com/kb/1153/enabling-https/). Once you have this enabled, get a certificate via:
 
 ```shell
 $ tailscale cert yourserver.yourtsdomain.ts.net

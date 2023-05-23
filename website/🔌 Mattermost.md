@@ -46,7 +46,7 @@ In `SECRETS` provide a Mattermost personal access token (or hijack one from your
 
 * `mm-saved` fetches (by default 15) saved posts in Mattermost, you need to add a `where server = "community"` (with server name) clause to your query to select the mattermost server to query.
 
-To make the `mm-saved` query results look good, it's recommended you render your query results a template. Here is one to start with, you can keep it in e.g. `templates/mm-saved`:
+To make the `mm-saved` query results look good, it's recommended you render your query results with a template. Here is one to start with: you can keep it in e.g., `templates/mm-saved`:
 
     [{{username}}]({{url}}) in {{#if channelName}}**{{channelName}}**{{else}}a DM{{/if}} at _{{updatedAt}}_ {[Unsave]}:
 
