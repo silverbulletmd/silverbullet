@@ -28,13 +28,9 @@ export function systemSyscalls(
         }
         name = functionName;
       }
-      if (env === "client") {
-        return plug.invoke(name, args);
-      }
-
-      return editor.space.invokeFunction(plug, env, name, args);
+      return plug.invoke(name, args);
     },
-    "system.invokeCommand": (ctx, name: string) => {
+    "system.invokeCommand": (_ctx, name: string) => {
       return editor.runCommandByName(name);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
@@ -46,9 +42,6 @@ export function systemSyscalls(
     },
     "system.reloadPlugs": () => {
       return editor.reloadPlugs();
-    },
-    "sandbox.getServerLogs": (ctx) => {
-      return editor.space.proxySyscall(ctx.plug, "sandbox.getLogs", []);
     },
     "system.getEnv": () => {
       return system.env;

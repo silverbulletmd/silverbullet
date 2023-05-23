@@ -1,6 +1,6 @@
 ---
 type: plug
-uri: github:silverbulletmd/silverbullet-github/github.plug.json
+uri: github:silverbulletmd/silverbullet-github/github.plug.js
 repo: https://github.com/silverbulletmd/silverbullet-github
 author: Zef Hemel
 share-support: true
@@ -25,9 +25,9 @@ Then run the `Plugs: Update` command and off you go!
 ## Configuration
 To configure, add a `githubToken` key to your `SECRETS` page, this should be a [personal access token](https://github.com/settings/tokens):
 
-        ```yaml
-        githubToken: your-github-token
-        ```
+    ```yaml
+    githubToken: your-github-token
+    ```
 
 ## Query sources
 

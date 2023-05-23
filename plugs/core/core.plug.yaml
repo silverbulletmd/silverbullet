@@ -1,6 +1,6 @@
 name: core
-imports:
-  - https://get.silverbullet.md/global.plug.json
+requiredPermissions:
+  - fetch
 syntax:
   Hashtag:
     firstCharacters:
@@ -26,10 +26,8 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
-
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
-    env: server
     events:
       - page:saved
       - page:deleted
@@ -45,9 +43,6 @@ functions:
     path: "./page.ts:reindexCommand"
     command:
       name: "Space: Reindex"
-  reindexSpace:
-    path: "./page.ts:reindexSpace"
-    env: server
   deletePage:
     path: "./page.ts:deletePage"
     command:
@@ -138,40 +133,7 @@ functions:
     path: "./anchor.ts:anchorComplete"
     events:
       - editor:complete
-
-  # Full text search
-  searchIndex:
-    path: ./search.ts:pageIndex
-    events:
-      - page:index
-  searchUnindex:
-    path: "./search.ts:pageUnindex"
-    env: server
-    events:
-      - page:deleted
-  searchQueryProvider:
-    path: ./search.ts:queryProvider
-    events:
-      - query:full-text
-  searchCommand:
-    path: ./search.ts:searchCommand
-    command:
-      name: "Search Space"
-      key: Ctrl-Shift-f
-      mac: Cmd-Shift-f
-  readPageSearch:
-    path: ./search.ts:readFileSearch
-    env: server
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: readFile
-  getPageMetaSearch:
-    path: ./search.ts:getFileMetaSearch
-    env: server
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: getFileMeta
-
+  
   # Template commands
   insertTemplateText:
     path: "./template.ts:insertTemplateText"
@@ -342,9 +304,6 @@ functions:
       name: "Plugs: Update"
       key: "Ctrl-Shift-p"
       mac: "Cmd-Shift-p"
-  updatePlugs:
-    path: ./plugmanager.ts:updatePlugs
-    env: server
   getPlugHTTPS:
     path: "./plugmanager.ts:getPlugHTTPS"
     events:
@@ -367,20 +326,6 @@ functions:
     path: ./debug.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
-  showLogsCommand:
-    path: ./debug.ts:showLogsCommand
-    command:
-      name: "Show Logs"
-      key: "Ctrl-Alt-l"
-      mac: "Cmd-Alt-l"
-  hideBhsCommand:
-    path: ./debug.ts:hideBhsCommand
-    command:
-      name: "UI: Hide BHS"
-      key: "Ctrl-Alt-b"
-      mac: "Cmd-Alt-b"
-    events:
-      - log:hide
 
   # Link unfurl infrastructure
   unfurlLink:
@@ -391,9 +336,6 @@ functions:
       mac: "Cmd-Shift-u"
       contexts:
         - NakedURL
-  unfurlExec:
-    env: server
-    path: ./link.ts:unfurlExec
 
   # Title-based link unfurl
   titleUnfurlOptions:
@@ -418,13 +360,16 @@ functions:
   # Cloud pages
   readPageCloud:
     path: ./cloud.ts:readFileCloud
-    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: readFile
+  writePageCloud:
+    path: ./cloud.ts:writeFileCloud
+    pageNamespace:
+      pattern: "💭 .+"
+      operation: writeFile
   getPageMetaCloud:
     path: ./cloud.ts:getFileMetaCloud
-    env: server
     pageNamespace:
       pattern: "💭 .+"
       operation: getFileMeta

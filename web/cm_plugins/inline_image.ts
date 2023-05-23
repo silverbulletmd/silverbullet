@@ -7,7 +7,7 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
-import type { Space } from "../../common/spaces/space.ts";
+import type { Space } from "../space.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -27,12 +27,8 @@ class InlineImageWidget extends WidgetType {
     if (this.url.startsWith("http")) {
       img.src = this.url;
     } else {
-      // Load the image as a dataURL and inject it into the img's src attribute
-      this.space.readAttachment(decodeURIComponent(this.url), "dataurl").then(
-        ({ data }) => {
-          img.src = data as string;
-        },
-      );
+      // This is an attachment image, rewrite the URL a little
+      img.src = `/.fs/${decodeURIComponent(this.url)}`;
     }
 
     img.alt = this.title;

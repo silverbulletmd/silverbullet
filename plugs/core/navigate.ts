@@ -1,10 +1,5 @@
 import type { ClickEvent } from "$sb/app_event.ts";
-import {
-  editor,
-  markdown,
-  space,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
 import {
   addParentPointers,
   findNodeOfType,
@@ -82,9 +77,10 @@ async function actionClickOrActionEnter(
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
         url = decodeURIComponent(url);
-        // attachment URL, let's fetch as a data url
-        const dataUrl = await space.readAttachment(url);
-        return editor.downloadFile(url, dataUrl);
+        // // attachment URL, let's fetch as a data url
+        // const dataUrl = await space.readAttachment(url);
+        // return editor.downloadFile(url, dataUrl);
+        return editor.openUrl(`/.fs/${url}`);
       } else {
         await editor.openUrl(url);
       }

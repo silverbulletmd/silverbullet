@@ -72,10 +72,6 @@ class IFrameWidget extends WidgetType {
               html: widgetContent.html,
               script: widgetContent.script,
             });
-            // iframe.contentWindow!.onunload = () => {
-            //   // Unsubscribing from events
-            //   globalThis.removeEventListener("message", messageListener);
-            // };
           } else if (widgetContent.url) {
             iframe.contentWindow!.location.href = widgetContent.url;
             if (widgetContent.height) {

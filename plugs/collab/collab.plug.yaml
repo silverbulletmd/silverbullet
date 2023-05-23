@@ -1,6 +1,4 @@
 name: collab
-imports:
-  - https://get.silverbullet.md/global.plug.json
 functions:
   detectCollabPage:
     path: "./collab.ts:detectPage"
@@ -23,19 +21,16 @@ functions:
   # Space extension
   readPageCollab:
     path: ./collab.ts:readFileCollab
-    env: client
     pageNamespace:
       pattern: "collab:.+"
       operation: readFile
   writePageCollab:
     path: ./collab.ts:writeFileCollab
-    env: client
     pageNamespace:
       pattern: "collab:.+"
       operation: writeFile
   getPageMetaCollab:
     path: ./collab.ts:getFileMetaCollab
-    env: client
     pageNamespace:
       pattern: "collab:.+"
       operation: getFileMeta

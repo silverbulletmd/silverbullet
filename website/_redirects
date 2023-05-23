@@ -1,3 +1,5 @@
-/fs   /index.json 200
-/fs/* /empty.md   200
-/*    /index.html 200
+/.fs   /index.json 200
+/.fs/* /_fs/:splat 200!
+/.fs/* /empty.md   200
+/.client/* /_client/:splat 200!
+/*    /_client/index.html 200

@@ -4,7 +4,7 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { renderTemplate } from "./util.ts";
 import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
-import { ParseTree } from "../../plug-api/lib/tree.ts";
+import { ParseTree } from "$sb/lib/tree.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,
@@ -31,8 +31,12 @@ export async function queryDirectiveRenderer(
     // This means there was no handler for the event which means it's unsupported
     return `**Error:** Unsupported query source '${parsedQuery.table}'`;
   } else if (results.length === 1) {
+    // console.log("Parsed query", parsedQuery);
     if (parsedQuery.render) {
-      const rendered = await renderTemplate(parsedQuery.render, results[0]);
+      const rendered = await renderTemplate(
+        parsedQuery.render,
+        results[0],
+      );
       return rendered.trim();
     } else {
       if (results[0].length === 0) {

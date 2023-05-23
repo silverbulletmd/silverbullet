@@ -9,26 +9,17 @@ import {
   extractFrontmatter,
   prepareFrontmatterDispatch,
 } from "$sb/lib/frontmatter.ts";
-import * as YAML from "yaml";
-import {
-  clientStore,
-  collab,
-  editor,
-  markdown,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { store, YAML } from "$sb/plugos-syscall/mod.ts";
+import { collab, editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 import { nanoid } from "https://esm.sh/nanoid@4.0.0";
-import {
-  FileData,
-  FileEncoding,
-} from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 const defaultServer = "wss://collab.silverbullet.md";
 
 async function ensureUsername(): Promise<string> {
-  let username = await clientStore.get("collabUsername");
+  let username = await store.get("collabUsername");
   if (!username) {
     username = await editor.prompt(
       "Please enter a publicly visible user name (or cancel for 'anonymous'):",
@@ -36,7 +27,7 @@ async function ensureUsername(): Promise<string> {
     if (!username) {
       return "anonymous";
     } else {
-      await clientStore.set("collabUsername", username);
+      await store.set("collabUsername", username);
     }
   }
   return username;
@@ -67,7 +58,7 @@ export async function shareCommand() {
   await editor.save();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  let { $share } = extractFrontmatter(tree);
+  let { $share } = await extractFrontmatter(tree);
   if (!$share) {
     $share = [];
   }
@@ -76,7 +67,7 @@ export async function shareCommand() {
   }
 
   removeParentPointers(tree);
-  const dispatchData = prepareFrontmatterDispatch(tree, {
+  const dispatchData = await prepareFrontmatterDispatch(tree, {
     $share: [...$share, `collab:${serverUrl}/${roomId}`],
   });
 
@@ -95,7 +86,7 @@ export async function detectPage() {
   if (frontMatter) {
     const yamlText = renderToText(frontMatter.children![1].children![0]);
     try {
-      let { $share } = YAML.parse(yamlText) as any;
+      let { $share } = await YAML.parse(yamlText) as any;
       if (!$share) {
         return;
       }
@@ -125,19 +116,18 @@ export function shareNoop() {
   return true;
 }
 
-export async function readFileCollab(
+export function readFileCollab(
   name: string,
-  encoding: FileEncoding,
-): Promise<{ data: FileData; meta: FileMeta }> {
+): { data: string; meta: FileMeta } {
   if (!name.endsWith(".md")) {
-    throw new Error("File not found");
+    throw new Error("Not found");
   }
   const collabUri = name.substring(0, name.length - ".md".length);
   const text = `---\n$share: ${collabUri}\n---\n`;
 
   return {
     // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
-    data: encoding === "utf8" ? text : base64EncodedDataUrl(
+    data: base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),

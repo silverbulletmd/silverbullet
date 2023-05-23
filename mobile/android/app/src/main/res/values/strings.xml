@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">SilverBullet</string>
-    <string name="title_activity_main">SilverBullet</string>
-    <string name="package_name">md.silverbullet</string>
-    <string name="custom_url_scheme">md.silverbullet</string>
-</resources>

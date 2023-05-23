@@ -1,6 +1,6 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
-import { Space } from "./spaces/space.ts";
+import { SpacePrimitives } from "./spaces/space_primitives.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -33,43 +33,31 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
 }
 
-export async function ensureAndLoadSettings(
-  space: Space,
-  dontCreate: boolean,
+export async function ensureSettingsAndIndex(
+  space: SpacePrimitives,
 ): Promise<any> {
-  if (dontCreate) {
-    return {
-      indexPage: "index",
-    };
-  }
   try {
-    await space.getPageMeta("SETTINGS");
+    await space.getFileMeta("SETTINGS.md");
   } catch {
-    await space.writePage(
-      "SETTINGS",
-      SETTINGS_TEMPLATE,
+    await space.writeFile(
+      "SETTINGS.md",
+      new TextEncoder().encode(SETTINGS_TEMPLATE),
       true,
     );
-  }
-
-  const { text: settingsText } = await space.readPage("SETTINGS");
-  const settings = parseYamlSettings(settingsText);
-  if (!settings.indexPage) {
-    settings.indexPage = "index";
-  }
-
-  try {
-    await space.getPageMeta(settings.indexPage);
-  } catch {
-    await space.writePage(
-      settings.indexPage,
-      `Hello! And welcome to your brand new SilverBullet space!
+    // Ok, then let's also write the index page
+    try {
+      await space.getFileMeta("index.md");
+    } catch {
+      await space.writeFile(
+        "index.md",
+        new TextEncoder().encode(
+          `Hello! And welcome to your brand new SilverBullet space!
 
 <!-- #use [[💭 silverbullet.md/Getting Started]] -->
 Loading some onboarding content for you (but doing so does require a working internet connection)...
 <!-- /use -->`,
-    );
+        ),
+      );
+    }
   }
-
-  return settings;
 }

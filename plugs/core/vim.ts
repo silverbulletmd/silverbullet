@@ -1,11 +1,12 @@
 import { readCodeBlockPage } from "../../plug-api/lib/yaml_page.ts";
-import { clientStore, editor } from "$sb/silverbullet-syscall/mod.ts";
+import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import { store } from "$sb/plugos-syscall/mod.ts";
 
 export async function toggleVimMode() {
-  let vimMode = await clientStore.get("vimMode");
+  let vimMode = await store.get("vimMode");
   vimMode = !vimMode;
   await editor.setUiOption("vimMode", vimMode);
-  await clientStore.set("vimMode", vimMode);
+  await store.set("vimMode", vimMode);
 }
 
 export async function loadVimRc() {

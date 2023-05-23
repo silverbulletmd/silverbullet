@@ -1,5 +1,5 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
-import { CompleteEvent } from "../../plug-api/app_event.ts";
+import { CompleteEvent } from "$sb/app_event.ts";
 
 export async function queryComplete(completeEvent: CompleteEvent) {
   const match = /#query ([\w\-_]+)*$/.exec(completeEvent.linePrefix);

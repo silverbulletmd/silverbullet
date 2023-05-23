@@ -1,10 +1,8 @@
 import { createSandbox } from "./environments/deno_sandbox.ts";
 import { System } from "./system.ts";
-
-import {
-  assert,
-  assertEquals,
-} from "https://deno.land/std@0.165.0/testing/asserts.ts";
+import { assertEquals } from "../test_deps.ts";
+import { compileManifest } from "./compile.ts";
+import { esbuild } from "./deps.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
@@ -26,148 +24,26 @@ Deno.test("Run a deno sandbox", async () => {
       return "yay";
     },
   });
+
+  const tempDir = await Deno.makeTempDir();
+
+  const workerPath = await compileManifest(
+    new URL("test.plug.yaml", import.meta.url).pathname,
+    tempDir,
+  );
+
   const plug = await system.load(
-    {
-      name: "test",
-      requiredPermissions: ["dangerous"],
-      functions: {
-        addTen: {
-          code: `(() => {
-          return {
-            default: (n) => {
-              return n + 10;
-            }
-          };
-        })()`,
-        },
-        redirectTest: {
-          redirect: "addTen",
-        },
-        redirectTest2: {
-          redirect: "test.addTen",
-        },
-        addNumbersSyscall: {
-          code: `(() => {
-          return {
-            default: async (a, b) => {
-              return await self.syscall("addNumbers", a, b);
-            }
-          };
-        })()`,
-        },
-        errorOut: {
-          code: `(() => {
-          return {
-            default: () => {
-              throw Error("BOOM");
-            }
-          };
-        })()`,
-        },
-        errorOutSys: {
-          code: `(() => {
-          return {
-            default: async () => {
-              await self.syscall("failingSyscall");
-            }
-          };
-        })()`,
-        },
-        restrictedTest: {
-          code: `(() => {
-          return {
-            default: async () => {
-              await self.syscall("restrictedSyscall");
-            }
-          };
-        })()`,
-        },
-        dangerousTest: {
-          code: `(() => {
-          return {
-            default: async () => {
-              return await self.syscall("dangerousSyscall");
-            }
-          };
-        })()`,
-        },
-      },
-    },
+    new URL(`file://${workerPath}`),
     createSandbox,
   );
-  assertEquals(await plug.invoke("addTen", [10]), 20);
-  assertEquals(await plug.invoke("redirectTest", [10]), 20);
-  assertEquals(await plug.invoke("redirectTest2", [10]), 20);
-  for (let i = 0; i < 100; i++) {
-    assertEquals(await plug.invoke("addNumbersSyscall", [10, i]), 10 + i);
-  }
-  try {
-    await plug.invoke("errorOut", []);
-    assert(false);
-  } catch (e: any) {
-    assert(e.message.indexOf("BOOM") !== -1);
-  }
-  try {
-    await plug.invoke("errorOutSys", []);
-    assert(false);
-  } catch (e: any) {
-    assert(e.message.indexOf("#fail") !== -1);
-  }
-  try {
-    await plug.invoke("restrictedTest", []);
-    assert(false);
-  } catch (e: any) {
-    assert(
-      e.message.indexOf(
-        "Missing permission 'restricted' for syscall restrictedSyscall",
-      ) !== -1,
-    );
-  }
-  assertEquals(await plug.invoke("dangerousTest", []), "yay");
+
+  console.log("Plug", plug.manifest);
+
+  assertEquals("hello", await plug.invoke("boot", []));
 
   await system.unloadAll();
-});
 
-import { bundle as plugOsBundle } from "./bin/plugos-bundle.ts";
-import { esbuild } from "./compile.ts";
-import { urlToPathname } from "./util.ts";
+  await Deno.remove(tempDir, { recursive: true });
 
-const __dirname = urlToPathname(new URL(".", import.meta.url));
-
-Deno.test("Preload dependencies", async () => {
-  const globalModules = await plugOsBundle(
-    `${__dirname}../plugs/global.plug.yaml`,
-  );
-  const testPlugManifest = await plugOsBundle(
-    `${__dirname}test.plug.yaml`,
-    {
-      imports: [globalModules],
-    },
-  );
   esbuild.stop();
-
-  const system = new System("server");
-  system.on({
-    sandboxInitialized: async (sandbox) => {
-      for (
-        const [modName, code] of Object.entries(globalModules.dependencies!)
-      ) {
-        await sandbox.loadDependency(modName, code as string);
-      }
-    },
-  });
-
-  // Load test module
-  console.log("Loading test module");
-  const testPlug = await system.load(
-    testPlugManifest,
-    createSandbox,
-  );
-  console.log("Running");
-
-  const result = await testPlug.invoke("boot", []);
-
-  console.log("Result", result);
-
-  await system.unloadAll();
 });

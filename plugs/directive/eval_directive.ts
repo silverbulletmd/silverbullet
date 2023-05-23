@@ -1,6 +1,6 @@
 // This is some shocking stuff. My profession would kill me for this.
 
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
 
@@ -57,7 +57,7 @@ export async function evalDirectiveRenderer(
     } else if (Array.isArray(result)) {
       return jsonToMDTable(result);
     }
-    return YAML.stringify(result);
+    return await YAML.stringify(result);
   } catch (e: any) {
     return `**ERROR:** ${e.message}`;
   }

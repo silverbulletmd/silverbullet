@@ -1,6 +1,5 @@
 import type { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { safeRun } from "../util.ts";
 
 // System events:
 // - plug:load (plugName: string)
@@ -48,14 +47,15 @@ export class EventHook implements Hook<EventHookT> {
     }
     const responses: any[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
+      const manifest = await plug.manifest;
       for (
         const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
+          manifest!.functions,
         )
       ) {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
-          if (plug.canInvoke(name)) {
+          if (await plug.canInvoke(name)) {
             const result = await plug.invoke(name, [data]);
             if (result !== undefined) {
               responses.push(result);
@@ -80,10 +80,8 @@ export class EventHook implements Hook<EventHookT> {
   apply(system: System<EventHookT>): void {
     this.system = system;
     this.system.on({
-      plugLoaded: (plug) => {
-        safeRun(async () => {
-          await this.dispatchEvent("plug:load", plug.name);
-        });
+      plugLoaded: async (plug) => {
+        await this.dispatchEvent("plug:load", plug.name);
       },
     });
   }

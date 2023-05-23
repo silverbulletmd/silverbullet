@@ -1,8 +1,6 @@
-/fs/_plug/*
-  Content-Type: application/json
-  X-Last-Modified: 1
+/.fs/_plug/*
+  X-Last-Modified: 12345
   X-Permission: ro
-/fs/*
-  Content-Type: text/markdown
-  X-Last-Modified: 1
+/.fs/*
+  X-Last-Modified: 12345
   X-Permission: rw

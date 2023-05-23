@@ -1,6 +1,4 @@
 name: tasks
-imports:
-  - https://get.silverbullet.md/global.plug.json
 syntax:
   DeadlineDate:
     firstCharacters:
@@ -56,7 +54,6 @@ functions:
       contexts:
         - DeadlineDate
   previewTaskToggle:
-    env: client
     path: ./task.ts:previewTaskToggle
     events:
       - preview:click

@@ -1,5 +1,5 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption, PageMeta } from "../../common/types.ts";
+import { FilterOption, PageMeta } from "../types.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
 
 export function PageNavigator({
@@ -10,7 +10,7 @@ export function PageNavigator({
   darkMode,
   currentPage,
 }: {
-  allPages: Set<PageMeta>;
+  allPages: PageMeta[];
   vimMode: boolean;
   darkMode: boolean;
   onNavigate: (page: string | undefined) => void;

@@ -1,11 +1,11 @@
 import { safeRun } from "../common/util.ts";
 
 function encodePageUrl(name: string): string {
-  return name.replaceAll(" ", "_");
+  return name;
 }
 
 function decodePageUrl(url: string): string {
-  return url.replaceAll("_", " ");
+  return url;
 }
 
 export class PathPageNavigator {

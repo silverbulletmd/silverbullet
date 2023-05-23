@@ -1,23 +1,13 @@
+import type {
+  ProxyFetchRequest,
+  ProxyFetchResponse,
+} from "../../common/proxy_fetch.ts";
 import { base64Decode } from "../../plugos/asset_bundle/base64.ts";
-
-export type SandboxFetchRequest = {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: string;
-};
-
-export type SandboxFetchResponse = {
-  ok: boolean;
-  status: number;
-  headers: Record<string, string>;
-  // We base64 encode the body because the body can be binary data that we have to push through the worker boundary
-  base64Body: string;
-};
 
 export function sandboxFetch(
   url: string,
-  options?: SandboxFetchRequest,
-): Promise<SandboxFetchResponse> {
+  options?: ProxyFetchRequest,
+): Promise<ProxyFetchResponse> {
   // @ts-ignore: monkey patching fetch
   return syscall("sandboxFetch.fetch", url, options);
 }

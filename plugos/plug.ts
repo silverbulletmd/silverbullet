@@ -4,80 +4,66 @@ import { System } from "./system.ts";
 import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export class Plug<HookT> {
-  system: System<HookT>;
-  sandbox?: Sandbox;
+  readonly runtimeEnv?: RuntimeEnvironment;
+
+  public grantedPermissions: string[] = [];
+  public sandbox: Sandbox<HookT>;
+
+  // Resolves once the worker has been loaded
+  ready: Promise<void>;
+
+  // Only available after ready resolves
   public manifest?: Manifest<HookT>;
   public assets?: AssetBundle;
-  private sandboxFactory: (plug: Plug<HookT>) => Sandbox;
-  readonly runtimeEnv?: RuntimeEnvironment;
-  grantedPermissions: string[] = [];
-  name: string;
-  version: number;
 
   constructor(
-    system: System<HookT>,
-    name: string,
-    sandboxFactory: (plug: Plug<HookT>) => Sandbox,
+    private system: System<HookT>,
+    public workerUrl: URL,
+    private sandboxFactory: (plug: Plug<HookT>) => Sandbox<HookT>,
   ) {
-    this.system = system;
-    this.name = name;
-    this.sandboxFactory = sandboxFactory;
-    // this.sandbox = sandboxFactory(this);
     this.runtimeEnv = system.env;
-    this.version = new Date().getTime();
-  }
 
-  private sandboxInitialized: Promise<void> | undefined = undefined;
-  // Lazy load sandbox, guarantees that the sandbox is loaded
-  lazyInitSandbox(): Promise<void> {
-    if (this.sandboxInitialized) {
-      return this.sandboxInitialized;
-    }
-    this.sandboxInitialized = Promise.resolve().then(async () => {
-      console.log("Now starting sandbox for", this.name);
-      // Kick off worker
-      this.sandbox = this.sandboxFactory(this);
-      // Push in any dependencies
-      for (
-        const [dep, code] of Object.entries(this.manifest!.dependencies || {})
-      ) {
-        await this.sandbox.loadDependency(dep, code);
-      }
-      await this.system.emit("sandboxInitialized", this.sandbox, this);
+    // Kick off worker
+    this.sandbox = this.sandboxFactory(this);
+    this.ready = this.sandbox.ready.then(() => {
+      this.manifest = this.sandbox.manifest!;
+      this.assets = new AssetBundle(
+        this.manifest.assets ? this.manifest.assets as AssetJson : {},
+      );
+      // TODO: These need to be explicitly granted, not just taken
+      this.grantedPermissions = this.manifest.requiredPermissions || [];
     });
-    return this.sandboxInitialized;
   }
 
-  load(manifest: Manifest<HookT>) {
-    this.manifest = manifest;
-    this.assets = new AssetBundle(
-      manifest.assets ? manifest.assets as AssetJson : {},
-    );
-    // TODO: These need to be explicitly granted, not just taken
-    this.grantedPermissions = manifest.requiredPermissions || [];
+  get name(): string | undefined {
+    return this.manifest?.name;
   }
 
+  // Invoke a syscall
   syscall(name: string, args: any[]): Promise<any> {
     return this.system.syscallWithContext({ plug: this }, name, args);
   }
 
-  canInvoke(name: string) {
-    if (!this.manifest) {
-      return false;
-    }
-    const funDef = this.manifest.functions[name];
+  // Checks if a function can be invoked (it may be restricted on its execution environment)
+  async canInvoke(name: string) {
+    await this.ready;
+    const funDef = this.manifest!.functions[name];
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
     }
     return !funDef.env || !this.runtimeEnv || funDef.env === this.runtimeEnv;
   }
 
+  // Invoke a function
   async invoke(name: string, args: any[]): Promise<any> {
+    // Ensure the worker is fully up and running
+    await this.ready;
+
+    // Before we access the manifest
     const funDef = this.manifest!.functions[name];
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
     }
-    await this.lazyInitSandbox();
     const sandbox = this.sandbox!;
     if (funDef.redirect) {
       // Function redirect, look up
@@ -95,13 +81,10 @@ export class Plug<HookT> {
       }
       return plug.invoke(name, args);
     }
-    if (!sandbox.isLoaded(name)) {
-      if (!this.canInvoke(name)) {
-        throw new Error(
-          `Function ${name} is not available in ${this.runtimeEnv}`,
-        );
-      }
-      await sandbox.load(name, funDef.code!);
+    if (!await this.canInvoke(name)) {
+      throw new Error(
+        `Function ${name} is not available in ${this.runtimeEnv}`,
+      );
     }
     return await sandbox.invoke(name, args);
   }

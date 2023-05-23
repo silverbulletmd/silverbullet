@@ -1,13 +1,11 @@
-pages
-test_space
 .DS_Store
-dist_bundle
+dist_client_bundle
+dist_plug_bundle
 dist
 *.js.map
 website_build
-data.db*
-publish-data.db
 /index.json
 .idea
 deno.lock
-node_modules
+fly.toml
+env.sh

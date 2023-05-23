@@ -1,10 +1,4 @@
-import {
-  Decoration,
-  EditorState,
-  EditorView,
-  syntaxTree,
-  WidgetType,
-} from "../deps.ts";
+import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
@@ -15,7 +9,6 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Editor } from "../editor.tsx";
-import { urlToPathname } from "../../plugos/util.ts";
 
 class TableViewWidget extends WidgetType {
   constructor(

@@ -5,57 +5,15 @@ import {
   useRef,
   useState,
 } from "../deps.ts";
-import { FilterOption } from "../../common/types.ts";
-import fuzzysort from "https://esm.sh/fuzzysort@2.0.1";
+import { FilterOption } from "../types.ts";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
-
-function magicSorter(a: FilterOption, b: FilterOption): number {
-  if (a.orderId && b.orderId) {
-    return a.orderId < b.orderId ? -1 : 1;
-  }
-  if (a.orderId) {
-    return -1;
-  }
-  if (b.orderId) {
-    return 1;
-  }
-  return 0;
-}
+import { fuzzySearchAndSort } from "./fuzzy_search.ts";
 
 type FilterResult = FilterOption & {
   result?: any;
 };
-
-function simpleFilter(
-  pattern: string,
-  options: FilterOption[],
-): FilterOption[] {
-  const lowerPattern = pattern.toLowerCase();
-  return options.filter((option) => {
-    return option.name.toLowerCase().includes(lowerPattern);
-  });
-}
-
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function fuzzySorter(pattern: string, options: FilterOption[]): FilterResult[] {
-  return fuzzysort
-    .go(pattern, options, {
-      all: true,
-      key: "name",
-    })
-    .map((result: any) => ({ ...result.obj, result: result }))
-    .sort(magicSorter);
-}
 
 export function FilterList({
   placeholder,
@@ -88,30 +46,31 @@ export function FilterList({
 }) {
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    fuzzySorter("", options),
+    fuzzySearchAndSort(options, ""),
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
   const selectedElementRef = useRef<HTMLDivElement>(null);
 
   function updateFilter(originalPhrase: string) {
-    const foundExactMatch = false;
-    const results = fuzzySorter(originalPhrase, options);
+    const results = fuzzySearchAndSort(options, originalPhrase);
+    const foundExactMatch = !!results.find((result) =>
+      result.name === originalPhrase
+    );
     if (allowNew && !foundExactMatch && originalPhrase) {
       results.splice(1, 0, {
         name: originalPhrase,
         hint: newHint,
       });
     }
-    setMatchingOptions(results);
 
-    // setText(originalPhrase);
+    setMatchingOptions(results);
     setSelectionOption(0);
   }
 
   useEffect(() => {
     updateFilter(text);
-  }, [options]);
+  }, [options, text]);
 
   useEffect(() => {
     function closer() {
@@ -147,7 +106,8 @@ export function FilterList({
               onSelect(undefined);
             }}
             onChange={(text) => {
-              updateFilter(text);
+              setText(text);
+              // updateFilter(text);
             }}
             onKeyUp={(view, e) => {
               // This event is triggered after the key has been processed by CM already
@@ -182,7 +142,7 @@ export function FilterList({
                   const text = view.state.sliceDoc();
                   if (completePrefix && text === "") {
                     setText(completePrefix);
-                    updateFilter(completePrefix);
+                    // updateFilter(completePrefix);
                     return true;
                   }
                   break;
@@ -210,7 +170,6 @@ export function FilterList({
                   setSelectionOption(idx);
                 }}
                 onClick={(e) => {
-                  console.log("Selecting", option);
                   e.stopPropagation();
                   onSelect(option);
                 }}
@@ -220,14 +179,13 @@ export function FilterList({
                     <Icon width={16} height={16} />
                   </span>
                 )}
-                <span
-                  className="sb-name"
-                  dangerouslySetInnerHTML={{
-                    __html: option?.result?.indexes
-                      ? fuzzysort.highlight(option.result, "<b>", "</b>")!
-                      : escapeHtml(option.name),
-                  }}
+                <span className="sb-name" // dangerouslySetInnerHTML={{
+                  //   __html: option?.result?.indexes
+                  //     ? fuzzysort.highlight(option.result, "<b>", "</b>")!
+                  //     : escapeHtml(option.name),
+                  // }}
                 >
+                  {option.name}
                 </span>
                 {option.hint && <span className="sb-hint">{option.hint}</span>}
               </div>

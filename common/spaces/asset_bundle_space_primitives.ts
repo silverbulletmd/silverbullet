@@ -1,7 +1,7 @@
-import { Plug } from "../../plugos/plug.ts";
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
+import { mime } from "../deps.ts";
 
 const bootTime = Date.now();
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
@@ -13,10 +13,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const files = await this.wrapped.fetchFileList();
-    return this.assetBundle.listFiles().filter((p) => p.startsWith("_plug/"))
+    return this.assetBundle.listFiles()
       .map((p) => ({
         name: p,
-        contentType: "application/json",
+        contentType: mime.getType(p) || "application/octet-stream",
         lastModified: bootTime,
         perm: "ro",
         size: -1,
@@ -25,22 +25,21 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     if (this.assetBundle.has(name)) {
       const data = this.assetBundle.readFileSync(name);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
-        data: encoding === "utf8" ? new TextDecoder().decode(data) : data,
+        data,
         meta: {
           lastModified: bootTime,
           size: data.byteLength,
           perm: "ro",
-          contentType: "application/json",
+          contentType: this.assetBundle.getMimeType(name),
         } as FileMeta,
       });
     }
-    return this.wrapped.readFile(name, encoding);
+    return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
@@ -50,7 +49,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
         lastModified: bootTime,
         size: data.byteLength,
         perm: "ro",
-        contentType: "application/json",
+        contentType: this.assetBundle.getMimeType(name),
       } as FileMeta);
     }
     return this.wrapped.getFileMeta(name);
@@ -58,11 +57,20 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
 
   writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    if (this.assetBundle.has(name)) {
+      console.warn("Attempted to write to read-only asset file", name);
+      return this.getFileMeta(name);
+    }
+    return this.wrapped.writeFile(
+      name,
+      data,
+      selfUpdate,
+      lastModified,
+    );
   }
 
   deleteFile(name: string): Promise<void> {
@@ -71,19 +79,5 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       return Promise.resolve();
     }
     return this.wrapped.deleteFile(name);
-  }
-
-  // deno-lint-ignore no-explicit-any
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.wrapped.proxySyscall(plug, name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.wrapped.invokeFunction(plug, env, name, args);
   }
 }

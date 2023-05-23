@@ -1,4 +1,4 @@
-import { globToRegExp, path, walk } from "../deps.ts";
+import { globToRegExp, mime, path, walk } from "../deps.ts";
 import { AssetBundle } from "./bundle.ts";
 
 export async function bundleAssets(
@@ -23,21 +23,34 @@ export async function bundleAssets(
       }
     }
     if (match) {
-      bundle.writeFileSync(cleanPath, await Deno.readFile(file.path));
+      bundle.writeFileSync(
+        cleanPath,
+        mime.getType(cleanPath) || "application/octet-stream",
+        await Deno.readFile(file.path),
+      );
     }
   }
   return bundle;
 }
 
-export async function bundleFolder(rootPath: string, bundlePath: string) {
+export async function bundleFolder(
+  rootPath: string,
+  bundlePath: string,
+) {
   const bundle = new AssetBundle();
   await Deno.mkdir(path.dirname(bundlePath), { recursive: true });
   for await (
     const { path: filePath } of walk(rootPath, { includeDirs: false })
   ) {
     console.log("Bundling", filePath);
+    const stat = await Deno.stat(filePath);
     const cleanPath = filePath.substring(`${rootPath}/`.length);
-    bundle.writeFileSync(cleanPath, await Deno.readFile(filePath));
+    bundle.writeFileSync(
+      cleanPath,
+      mime.getType(filePath) || "application/octet-stream",
+      await Deno.readFile(filePath),
+      stat.mtime?.getTime(),
+    );
   }
   await Deno.writeTextFile(
     bundlePath,

@@ -1,20 +1,18 @@
-import { Hook, Manifest, RuntimeEnvironment } from "./types.ts";
+import { Hook, RuntimeEnvironment } from "./types.ts";
 import { EventEmitter } from "./event.ts";
-import { Sandbox, SandboxFactory } from "./sandbox.ts";
+import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
 }
 
-export type SystemJSON<HookT> = Manifest<HookT>[];
-
 export type SystemEvents<HookT> = {
   plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;
-  sandboxInitialized(sandbox: Sandbox, plug: Plug<HookT>): void | Promise<void>;
   plugUnloaded: (name: string) => void | Promise<void>;
 };
 
+// Passed to every syscall, allows to pass in additional context that the syscall may use
 export type SyscallContext = {
   plug: Plug<any>;
 };
@@ -95,61 +93,43 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async load(
-    manifest: Manifest<HookT>,
+    workerUrl: URL,
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
-    const name = manifest.name;
-    if (this.plugs.has(name)) {
-      await this.unload(name);
-    }
-    // Validate
+    const plug = new Plug(this, workerUrl, sandboxFactory);
+
+    // Wait for worker to boot, and pass back its manifest
+    await plug.ready;
+    // and there it is!
+    const manifest = plug.manifest!;
+
+    // Validate the manifest
     let errors: string[] = [];
     for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(manifest)];
+      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
     }
     if (errors.length > 0) {
       throw new Error(`Invalid manifest: ${errors.join(", ")}`);
     }
-    // Ok, let's load this thing!
-    const plug = new Plug(this, name, sandboxFactory);
-    console.log("Loading", name);
-    plug.load(manifest);
-    this.plugs.set(name, plug);
+    if (this.plugs.has(manifest.name)) {
+      this.unload(manifest.name);
+    }
+    console.log("Loaded plug", manifest.name);
+    this.plugs.set(manifest.name, plug);
+
     await this.emit("plugLoaded", plug);
     return plug;
   }
 
-  async unload(name: string) {
+  unload(name: string) {
     // console.log("Unloading", name);
     const plug = this.plugs.get(name);
     if (!plug) {
-      throw Error(`Plug ${name} not found`);
+      return;
     }
-    await plug.stop();
+    plug.stop();
     this.emit("plugUnloaded", name);
     this.plugs.delete(name);
-  }
-
-  toJSON(): SystemJSON<HookT> {
-    const plugJSON: Manifest<HookT>[] = [];
-    for (const [_, plug] of this.plugs) {
-      if (!plug.manifest) {
-        continue;
-      }
-      plugJSON.push(plug.manifest);
-    }
-    return plugJSON;
-  }
-
-  async replaceAllFromJSON(
-    json: SystemJSON<HookT>,
-    sandboxFactory: SandboxFactory<HookT>,
-  ) {
-    await this.unloadAll();
-    for (const manifest of json) {
-      // console.log("Loading plug", manifest.name);
-      await this.load(manifest, sandboxFactory);
-    }
   }
 
   unloadAll(): Promise<void[]> {

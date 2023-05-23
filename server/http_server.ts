@@ -1,98 +1,71 @@
-import { Application, path, Router } from "./deps.ts";
-import { Manifest } from "../common/manifest.ts";
+import { Application, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { SpaceSystem } from "./space_system.ts";
-import { ensureAndLoadSettings } from "../common/util.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
+import { ensureSettingsAndIndex } from "../common/util.ts";
+import { performLocalFetch } from "../common/proxy_fetch.ts";
 
 export type ServerOptions = {
   hostname: string;
   port: number;
   pagesPath: string;
-  dbPath: string;
-  assetBundle: AssetBundle;
+  clientAssetBundle: AssetBundle;
   user?: string;
   pass?: string;
-  bareMode?: boolean;
+  certFile?: string;
+  keyFile?: string;
+  maxFileSizeMB?: number;
 };
-
-const staticLastModified = new Date().toUTCString();
 
 export class HttpServer {
   app: Application;
-  systemBoot: SpaceSystem;
   private hostname: string;
   private port: number;
   user?: string;
   settings: { [key: string]: any } = {};
   abortController?: AbortController;
-  bareMode: boolean;
+  clientAssetBundle: AssetBundle;
 
-  constructor(options: ServerOptions) {
+  constructor(
+    private spacePrimitives: SpacePrimitives,
+    private options: ServerOptions,
+  ) {
     this.hostname = options.hostname;
     this.port = options.port;
-    this.app = new Application(); //{ serverConstructor: FlashServer });
+    this.app = new Application();
     this.user = options.user ?? Deno.env.get("SB_USER");
-    this.systemBoot = new SpaceSystem(
-      options.assetBundle,
-      options.pagesPath,
-      options.dbPath,
-    );
-    this.bareMode = options.bareMode || false;
+    this.clientAssetBundle = options.clientAssetBundle;
+  }
 
-    // Second, for loading plug JSON files with absolute or relative (from CWD) paths
-    this.systemBoot.eventHook.addLocalListener(
-      "get-plug:file",
-      async (plugPath: string): Promise<Manifest> => {
-        const resolvedPath = path.resolve(plugPath);
-        try {
-          const manifestJson = await Deno.readTextFile(resolvedPath);
-          return JSON.parse(manifestJson);
-        } catch {
-          throw new Error(
-            `No such file: ${resolvedPath} or could not parse as JSON`,
-          );
-        }
-      },
-    );
-
-    // Rescan disk every 5s to detect any out-of-process file changes
-    setInterval(() => {
-      this.systemBoot.space.updatePageList().catch(console.error);
-    }, 5000);
-
-    // Register the HTTP endpoint hook (with "/_/<plug-name>"" prefix, hardcoded for now)
-    this.systemBoot.system.addHook(new EndpointHook(this.app, "/_"));
+  // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
+  renderIndexHtml() {
+    return this.clientAssetBundle.readTextFileSync(".client/index.html")
+      .replaceAll(
+        "{{SPACE_PATH}}",
+        this.options.pagesPath.replaceAll("\\", "\\\\"),
+      ).replaceAll(
+        "{{SYNC_ENDPOINT}}",
+        "/.fs",
+      );
   }
 
   async start() {
-    await this.systemBoot.start();
-    await this.systemBoot.ensureSpaceIndex();
-    await ensureAndLoadSettings(this.systemBoot.space, this.bareMode);
-
-    this.addPasswordAuth(this.app);
+    await ensureSettingsAndIndex(this.spacePrimitives);
 
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
-        if (request.headers.get("If-Modified-Since") === staticLastModified) {
-          response.status = 304;
-          return;
-        }
+        // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
         response.headers.set("Content-type", "text/html");
-        response.body = this.systemBoot.assetBundle.readTextFileSync(
-          "web/index.html",
-        );
-        response.headers.set("Last-Modified", staticLastModified);
+        response.body = this.renderIndexHtml();
         return;
       }
       try {
-        const assetName = `web${request.url.pathname}`;
+        const assetName = request.url.pathname.slice(1);
         if (
-          this.systemBoot.assetBundle.has(assetName) &&
-          request.headers.get("If-Modified-Since") === staticLastModified
+          this.clientAssetBundle.has(assetName) &&
+          request.headers.get("If-Modified-Since") ===
+            utcDateString(this.clientAssetBundle.getMtime(assetName))
         ) {
           response.status = 304;
           return;
@@ -100,14 +73,17 @@ export class HttpServer {
         response.status = 200;
         response.headers.set(
           "Content-type",
-          this.systemBoot.assetBundle.getMimeType(assetName),
+          this.clientAssetBundle.getMimeType(assetName),
         );
-        const data = this.systemBoot.assetBundle.readFileSync(
+        const data = this.clientAssetBundle.readFileSync(
           assetName,
         );
         response.headers.set("Cache-Control", "no-cache");
         response.headers.set("Content-length", "" + data.length);
-        response.headers.set("Last-Modified", staticLastModified);
+        response.headers.set(
+          "Last-Modified",
+          utcDateString(this.clientAssetBundle.getMtime(assetName)),
+        );
 
         if (request.method === "GET") {
           response.body = data;
@@ -117,30 +93,38 @@ export class HttpServer {
       }
     });
 
+    // Fallback, serve index.html
+    this.app.use(({ request, response }, next) => {
+      if (
+        !request.url.pathname.startsWith("/.fs") &&
+        request.url.pathname !== "/.auth"
+      ) {
+        response.headers.set("Content-type", "text/html");
+        response.body = this.renderIndexHtml();
+      } else {
+        return next();
+      }
+    });
+
     // Pages API
-    const fsRouter = this.buildFsRouter(this.systemBoot.spacePrimitives);
+    const fsRouter = this.buildFsRouter(this.spacePrimitives);
+    this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
 
-    // Plug API
-    const plugRouter = this.buildPlugRouter();
-    this.app.use(plugRouter.routes());
-    this.app.use(plugRouter.allowedMethods());
-
-    // Fallback, serve index.html
-    this.app.use((ctx) => {
-      ctx.response.headers.set("Content-type", "text/html");
-      ctx.response.body = this.systemBoot.assetBundle.readTextFileSync(
-        "web/index.html",
-      );
-    });
-
     this.abortController = new AbortController();
-    this.app.listen({
+    const listenOptions: any = {
       hostname: this.hostname,
       port: this.port,
       signal: this.abortController.signal,
-    })
+    };
+    if (this.options.keyFile) {
+      listenOptions.key = Deno.readTextFileSync(this.options.keyFile);
+    }
+    if (this.options.certFile) {
+      listenOptions.cert = Deno.readTextFileSync(this.options.certFile);
+    }
+    this.app.listen(listenOptions)
       .catch((e: any) => {
         console.log("Server listen error:", e.message);
         Deno.exit(1);
@@ -166,15 +150,16 @@ export class HttpServer {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
           if (!authCookie || authCookie !== b64User) {
-            response.redirect(`/.auth?refer=${request.url.pathname}`);
+            response.status = 401;
+            response.body = "Unauthorized, please authenticate";
             return;
           }
         }
         if (request.url.pathname === "/.auth") {
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
-            response.body = this.systemBoot.assetBundle.readTextFileSync(
-              "web/auth.html",
+            response.body = this.clientAssetBundle.readTextFileSync(
+              ".client/auth.html",
             );
             return;
           } else if (request.method === "POST") {
@@ -211,18 +196,71 @@ export class HttpServer {
     // File list
     fsRouter.get("/", async ({ response }) => {
       response.headers.set("Content-type", "application/json");
+      response.headers.set("X-Space-Path", this.options.pagesPath);
       const files = await spacePrimitives.fetchFileList();
       response.body = JSON.stringify(files);
+    });
+
+    // RPC
+    fsRouter.post("/", async ({ request, response }) => {
+      const body = await request.body({ type: "json" }).value;
+      try {
+        switch (body.operation) {
+          case "fetch": {
+            const result = await performLocalFetch(body.url, body.options);
+            response.headers.set("Content-Type", "application/json");
+            response.body = JSON.stringify(result);
+            return;
+          }
+          case "shell": {
+            // TODO: Have a nicer way to do this
+            if (this.options.pagesPath.startsWith("s3://")) {
+              response.status = 500;
+              response.body = JSON.stringify({
+                stdout: "",
+                stderr: "Cannot run shell commands with S3 backend",
+                code: 500,
+              });
+              return;
+            }
+            const p = new Deno.Command(body.cmd, {
+              args: body.args,
+              cwd: this.options.pagesPath,
+              stdout: "piped",
+              stderr: "piped",
+            });
+            const output = await p.output();
+            const stdout = new TextDecoder().decode(output.stdout);
+            const stderr = new TextDecoder().decode(output.stderr);
+
+            response.headers.set("Content-Type", "application/json");
+            response.body = JSON.stringify({
+              stdout,
+              stderr,
+              code: output.code,
+            });
+            return;
+          }
+          default:
+            response.headers.set("Content-Type", "text/plain");
+            response.status = 400;
+            response.body = "Unknown operation";
+        }
+      } catch (e: any) {
+        console.log("Error", e);
+        response.status = 500;
+        response.body = e.message;
+        return;
+      }
     });
 
     fsRouter
       .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
-        // console.log("Loading file", name);
+        console.log("Loading file", name);
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
-            "arraybuffer",
           );
           const lastModifiedHeader = new Date(attachmentData.meta.lastModified)
             .toUTCString();
@@ -242,7 +280,7 @@ export class HttpServer {
             lastModifiedHeader,
           );
           response.headers.set("Content-Type", attachmentData.meta.contentType);
-          response.body = attachmentData.data as ArrayBuffer;
+          response.body = attachmentData.data;
         } catch {
           // console.error("Error in main router", e);
           response.status = 404;
@@ -266,7 +304,6 @@ export class HttpServer {
         try {
           const meta = await spacePrimitives.writeFile(
             name,
-            "arraybuffer",
             body,
           );
           response.status = 200;
@@ -292,7 +329,7 @@ export class HttpServer {
           response.headers.set("X-Permission", meta.perm);
         } catch {
           response.status = 404;
-          response.body = "File not found";
+          response.body = "Not found";
           // console.error("Options failed", err);
         }
       })
@@ -308,77 +345,17 @@ export class HttpServer {
           response.body = e.message;
         }
       });
-    return new Router().use("/fs", fsRouter.routes());
+    return new Router().use("/.fs", fsRouter.routes());
   }
 
-  private buildPlugRouter(): Router {
-    const plugRouter = new Router();
-    const system = this.systemBoot.system;
-
-    plugRouter.post(
-      "/:plug/syscall/:name",
-      async (ctx) => {
-        const name = ctx.params.name;
-        const plugName = ctx.params.plug;
-        const args = await ctx.request.body().value;
-        const plug = system.loadedPlugs.get(plugName);
-        if (!plug) {
-          ctx.response.status = 404;
-          ctx.response.body = `Plug ${plugName} not found`;
-          return;
-        }
-        try {
-          const result = await system.syscallWithContext(
-            { plug },
-            name,
-            args,
-          );
-          ctx.response.headers.set("Content-Type", "application/json");
-          ctx.response.body = JSON.stringify(result);
-        } catch (e: any) {
-          console.log("Error", e);
-          ctx.response.status = 500;
-          ctx.response.body = e.message;
-          return;
-        }
-      },
-    );
-
-    plugRouter.post(
-      "/:plug/function/:name",
-      async (ctx) => {
-        const name = ctx.params.name;
-        const plugName = ctx.params.plug;
-        const args = await ctx.request.body().value;
-        const plug = system.loadedPlugs.get(plugName);
-        if (!plug) {
-          ctx.response.status = 404;
-          ctx.response.body = `Plug ${plugName} not found`;
-          return;
-        }
-        try {
-          const result = await plug.invoke(name, args);
-          ctx.response.headers.set("Content-Type", "application/json");
-          ctx.response.body = JSON.stringify(result);
-        } catch (e: any) {
-          ctx.response.status = 500;
-          // console.log("Error invoking function", e);
-          ctx.response.body = e.message;
-        }
-      },
-    );
-
-    return new Router().use("/plug", plugRouter.routes());
-  }
-
-  async stop() {
-    const system = this.systemBoot.system;
+  stop() {
     if (this.abortController) {
-      console.log("Stopping");
-      await system.unloadAll();
-      console.log("Stopped plugs");
       this.abortController.abort();
       console.log("stopped server");
     }
   }
+}
+
+function utcDateString(mtime: number): string {
+  return new Date(mtime).toUTCString();
 }

@@ -16,7 +16,7 @@ export async function extractToPage() {
       `Page ${newName} already exists, cannot rename to existing page.`,
     );
   } catch (e: any) {
-    if (e.message.includes("not found")) {
+    if (e.message === "Not found") {
       // Expected not found error, so we can continue
     } else {
       await editor.flashNotification(e.message, "error");

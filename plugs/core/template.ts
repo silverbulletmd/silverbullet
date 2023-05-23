@@ -31,7 +31,7 @@ export async function instantiateTemplateCommand() {
   );
 
   const parseTree = await markdown.parseMarkdown(text);
-  const additionalPageMeta = extractFrontmatter(parseTree, [
+  const additionalPageMeta = await extractFrontmatter(parseTree, [
     "$name",
     "$disableDirectives",
   ]);
@@ -157,28 +157,25 @@ export async function dailyNoteCommand() {
     dailyNoteTemplate: "template/page/Daily Note",
     dailyNotePrefix: "📅 ",
   });
-  let dailyNoteTemplateText = "";
-  try {
-    dailyNoteTemplateText = await space.readPage(dailyNoteTemplate);
-  } catch {
-    console.warn(`No daily note template found at ${dailyNoteTemplate}`);
-  }
   const date = niceDate(new Date());
   const pageName = `${dailyNotePrefix}${date}`;
-  if (dailyNoteTemplateText) {
+
+  try {
+    await space.getPageMeta(pageName);
+  } catch {
+    // Doesn't exist, let's create
+    let dailyNoteTemplateText = "";
     try {
-      await space.getPageMeta(pageName);
+      dailyNoteTemplateText = await space.readPage(dailyNoteTemplate);
     } catch {
-      // Doesn't exist, let's create
-      await space.writePage(
-        pageName,
-        replaceTemplateVars(dailyNoteTemplateText, pageName),
-      );
+      console.warn(`No daily note template found at ${dailyNoteTemplate}`);
     }
-    await editor.navigate(pageName);
-  } else {
-    await editor.navigate(pageName);
+    await space.writePage(
+      pageName,
+      replaceTemplateVars(dailyNoteTemplateText, pageName),
+    );
   }
+  await editor.navigate(pageName);
 }
 
 function getWeekStartDate(monday = false) {

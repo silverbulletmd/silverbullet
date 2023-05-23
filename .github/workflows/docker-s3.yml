@@ -1,0 +1,89 @@
+name: Docker S3
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "*"
+env:
+  DENO_VERSION: v1.33
+  # Docker & Registries
+  ARCHITECTURES: linux/amd64,linux/arm64
+  IMAGE_NAME: silverbullet-s3
+  NAMESPACE_GITHUB: silverbulletmd
+  NAMESPACE_DOCKER: zefhemel
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU for multi-arch builds with buildx
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: ${{ env.ARCHITECTURES }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          platforms: ${{ env.ARCHITECTURES }}
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Run bundle build
+        run: |
+          deno task build
+          deno task bundle
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to the ghcr Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      #
+      # MetaData Extract Docu: <https://github.com/docker/metadata-action>
+      #
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: |
+            # Set the different image names(paces) for docker-hub & ghcr
+            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # <https://github.com/docker/metadata-action#typeref>
+            # minimal (short sha), enable f desired
+            # type=sha,enable=true,priority=100,prefix=commit-,suffix=,format=short
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # 
+            # tag w/ full tag part of git tag: <https://github.com/docker/metadata-action#typesemver>
+            # only present for `on.push.tags` !
+            type=semver,pattern={{raw}},enable=true
+            # type=edge,branch=local # usually this would be the develop branch
+
+      - name: Build and push main docker images
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          platforms: ${{ env.ARCHITECTURES }}
+          push: true
+          file: Dockerfile.s3
+          # Disable to get rid of unknown architecture in ghcr
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

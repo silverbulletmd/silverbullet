@@ -1,5 +1,4 @@
 import * as plugos from "../plugos/types.ts";
-import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 import { CronHookT } from "../plugos/hooks/cron.ts";
 import { EventHookT } from "../plugos/hooks/event.ts";
 import { CommandHookT } from "../web/hooks/command.ts";
@@ -10,7 +9,6 @@ import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 export type SilverBulletHooks =
   & CommandHookT
   & SlashCommandHookT
-  & EndpointHookT
   & CronHookT
   & EventHookT
   & CodeWidgetT

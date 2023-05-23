@@ -1,6 +1,4 @@
 name: markdown
-imports:
-  - https://get.silverbullet.md/global.plug.json
 assets:
   - "assets/*"
 requiredPermissions:
@@ -12,9 +10,9 @@ functions:
       name: "Markdown Preview: Toggle"
       key: Ctrl-p
       mac: Cmd-p
+
   preview:
     path: "./preview.ts:updateMarkdownPreview"
-    env: client
     events:
       - plug:load
       - editor:updated
@@ -22,15 +20,8 @@ functions:
       - editor:pageReloaded
   previewClickHandler:
     path: "./preview.ts:previewClickHandler"
-    env: client
     events:
       - preview:click
-
-  # $share: file:* publisher for markdown files
-  sharePublisher:
-    path: ./share.ts:sharePublisher
-    events:
-      - share:file
 
   markdownWidget:
     path: ./widget.ts:markdownWidget

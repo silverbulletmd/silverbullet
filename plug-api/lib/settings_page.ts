@@ -1,6 +1,6 @@
 import { readYamlPage } from "./yaml_page.ts";
 import { notifyUser } from "./util.ts";
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 
@@ -30,7 +30,7 @@ export async function readSettings<T extends object>(settings: T): Promise<T> {
     }
     return collectedSettings as T;
   } catch (e: any) {
-    if (e.message === "Page not found") {
+    if (e.message === "Not found") {
       // No settings yet, return default values for all
       return settings;
     }
@@ -47,7 +47,7 @@ export async function readSetting(
     const val = allSettings[key];
     return val === undefined ? defaultValue : val;
   } catch (e: any) {
-    if (e.message === "Page not found") {
+    if (e.message === "Not found") {
       // No settings yet, return default values for all
       return defaultValue;
     }
@@ -71,10 +71,9 @@ export async function writeSettings<T extends object>(settings: T) {
   // const doc = new YAML.Document();
   // doc.contents = writeSettings;
   const contents =
-    `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${
-      YAML.stringify(
+    `This page contains settings for configuring SilverBullet and its Plugs.\nAny changes outside of the yaml block will be overwritten.\n\`\`\`yaml\n${await YAML
+      .stringify(
         writeSettings,
-      )
-    }\n\`\`\``; // might need \r\n for windows?
+      )}\n\`\`\``; // might need \r\n for windows?
   await space.writePage(SETTINGS_PAGE, contents);
 }

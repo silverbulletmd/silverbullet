@@ -1,9 +1,7 @@
 name: directive
-imports:
-  - https://get.silverbullet.md/global.plug.json
+requiredPermissions:
+  - fetch
 functions:
-  serverRenderDirective:
-    path: ./command.ts:serverRenderDirective
   updateDirectivesOnPageCommand:
     path: ./command.ts:updateDirectivesOnPageCommand
     command:

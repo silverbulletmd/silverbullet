@@ -1,30 +1,20 @@
 {
   "tasks": {
-    "clean": "rm -rf dist dist_bundle",
-    "install": "deno install -f -A --unstable --importmap import_map.json silverbullet.ts",
-    "check": "find web common server plugs cmd plug-api plugos -name '*.ts*' | xargs deno check",
+    "clean": "rm -rf dist dist_client_bundle dist_plug_bundle website_build",
+    "install": "deno install -f -A --importmap import_map.json silverbullet.ts",
+    "check": "find . -name '*.ts*' | xargs deno check",
     "test": "deno test -A --unstable",
-    "build": "deno run -A --unstable build_plugs.ts && deno run -A --unstable build_web.ts",
-    "plugs": "deno run -A --unstable build_plugs.ts",
-    "watch-web": "deno run -A --unstable --check build_web.ts --watch",
-    "server": "deno run -A --unstable --check silverbullet.ts",
-    "watch-server": "deno run -A --unstable --check --watch silverbullet.ts",
+    "build": "deno run -A build_plugs.ts && deno run -A --unstable build_web.ts",
+    "plugs": "deno run -A build_plugs.ts",
+    "watch-web": "deno run -A --check build_web.ts --watch",
+    "server": "deno run -A --check silverbullet.ts",
+    "watch-server": "deno run -A --check --watch silverbullet.ts",
     // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
-    "watch-plugs": "deno run -A --unstable --check build_plugs.ts -w",
-    "bundle": "deno bundle silverbullet.ts dist/silverbullet.js",
+    "watch-plugs": "deno run -A --check build_plugs.ts -w",
+    "bundle": "deno run -A build_bundle.ts",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"
-    "generate": "deno run -A plugos/gen.ts && lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js",
-    // Install npm dependencies for desktop app
-    "desktop:deps": "cd desktop && npm install",
-    // Run the desktop app for local development
-    "desktop:run": "cd desktop && npm start",
-    // Build the desktop app as a package for this platform
-    "desktop:build": "deno task build && deno task bundle && cd desktop && npm run make",
-    // Mobile
-    "mobile:deps": "cd mobile && npm install",
-    "mobile:clean-build": "deno task clean && deno task plugs && deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap sync",
-    "mobile:build": "deno run -A --unstable --check build_mobile.ts && cd mobile && npx cap copy"
+    "generate": "deno run -A plugos/gen.ts && lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js"
   },
 
   "compilerOptions": {

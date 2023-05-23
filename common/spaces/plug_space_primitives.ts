@@ -1,15 +1,14 @@
-import { Plug } from "../../plugos/plug.ts";
-import {
-  FileData,
-  FileEncoding,
-  SpacePrimitives,
-} from "../../common/spaces/space_primitives.ts";
+import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import {
   NamespaceOperation,
   PageNamespaceHook,
 } from "../hooks/page_namespace.ts";
-import { base64DecodeDataUrl } from "../../plugos/asset_bundle/base64.ts";
+import {
+  base64DecodeDataUrl,
+  base64EncodedDataUrl,
+} from "../../plugos/asset_bundle/base64.ts";
+import { mime } from "../deps.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -18,19 +17,34 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     private env?: string,
   ) {}
 
+  // Used e.g. by the sync engine to see if it should sync a certain path (likely not the case when we have a plug space override)
+  public isLikelyHandled(path: string): boolean {
+    for (
+      const { pattern, env } of this.hook.spaceFunctions
+    ) {
+      if (
+        path.match(pattern) &&
+        (!this.env || (env && env === this.env))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   performOperation(
     type: NamespaceOperation,
-    pageName: string,
+    path: string,
     ...args: any[]
   ): Promise<any> | false {
     for (
       const { operation, pattern, plug, name, env } of this.hook.spaceFunctions
     ) {
       if (
-        operation === type && pageName.match(pattern) &&
+        operation === type && path.match(pattern) &&
         (!this.env || (env && env === this.env))
       ) {
-        return plug.invoke(name, [pageName, ...args]);
+        return plug.invoke(name, [path, ...args]);
       }
     }
     return false;
@@ -58,26 +72,19 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
-    const wantArrayBuffer = encoding === "arraybuffer";
-    const result: { data: FileData; meta: FileMeta } | false = await this
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    const result: { data: string; meta: FileMeta } | false = await this
       .performOperation(
         "readFile",
         name,
-        wantArrayBuffer ? "dataurl" : encoding,
       );
     if (result) {
-      if (wantArrayBuffer) {
-        return {
-          data: base64DecodeDataUrl(result.data as string),
-          meta: result.meta,
-        };
-      } else {
-        return result;
-      }
+      return {
+        data: base64DecodeDataUrl(result.data),
+        meta: result.meta,
+      };
     }
-    return this.wrapped.readFile(name, encoding);
+    return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
@@ -90,22 +97,29 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
       name,
-      encoding,
-      data,
+      base64EncodedDataUrl(
+        mime.getType(name) || "application/octet-stream",
+        data,
+      ),
       selfUpdate,
     );
     if (result) {
       return result;
     }
 
-    return this.wrapped.writeFile(name, encoding, data, selfUpdate);
+    return this.wrapped.writeFile(
+      name,
+      data,
+      selfUpdate,
+      lastModified,
+    );
   }
 
   deleteFile(name: string): Promise<void> {
@@ -114,18 +128,5 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       return result;
     }
     return this.wrapped.deleteFile(name);
-  }
-
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return this.wrapped.proxySyscall(plug, name, args);
-  }
-
-  invokeFunction(
-    plug: Plug<any>,
-    env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return this.wrapped.invokeFunction(plug, env, name, args);
   }
 }

@@ -1,7 +1,3 @@
-import type {
-  FileData,
-  FileEncoding,
-} from "../../common/spaces/space_primitives.ts";
 import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
@@ -11,8 +7,7 @@ export const cloudPrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
-  encoding: FileEncoding,
-): Promise<{ data: FileData; meta: FileMeta } | undefined> {
+): Promise<{ data: string; meta: FileMeta } | undefined> {
   const originalUrl = name.substring(
     cloudPrefix.length,
     name.length - ".md".length,
@@ -43,7 +38,7 @@ export async function readFileCloud(
     `${cloudPrefix}${originalUrl.split("/")[0]}/`,
   );
   return {
-    data: encoding === "utf8" ? text : base64EncodedDataUrl(
+    data: base64EncodedDataUrl(
       "text/markdown",
       new TextEncoder().encode(text),
     ),
@@ -55,6 +50,13 @@ export async function readFileCloud(
       perm: "ro",
     },
   };
+}
+
+export function writeFileCloud(
+  name: string,
+): Promise<FileMeta> {
+  console.log("Writing cloud file", name);
+  return getFileMetaCloud(name);
 }
 
 async function translateLinksWithPrefix(

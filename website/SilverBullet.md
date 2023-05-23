@@ -2,12 +2,12 @@ SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/s
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Download]], [[Sync]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Install]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
 Now that we got that out of the way, let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) when run as a [[Server]], but can also be run as a [[Desktop]] and [[Mobile]] app.
+* Runs in any modern browser (including on mobile) as an **offline-first [[PWA]],** keeping the primary copy of your content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]] further **reducing visual noise**, while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:
@@ -25,7 +25,6 @@ To get a good feel of what SilverBullet is capable of, have a look at this intro
 ```embed
 url: https://youtu.be/VemS-cqAD5k
 ```
-
 ## Try it
 Here’s the kicker:
 
@@ -33,7 +32,7 @@ Here’s the kicker:
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable just none of it persists (the back-end is read-only). So, edit away, reload the page and everything resets.
+On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally.
 
 Don’t just sit there, try it!
 
@@ -49,7 +48,7 @@ Don’t just sit there, try it!
 * Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
 * Open this site on your phone or tablet and... it just works!
 * Are you using a browser with **PWA support** (e.g. any Chromium-based
-  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself).
+  browser)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself). Now, unplug your network cable and reload the page. It still works!
 
 Oh yeah, and you can use fancy things like tables:
 
@@ -73,23 +72,8 @@ name: SilverBullet
 rating: 5
 ```
 
-There are a few features you don’t get to fully experience in this environment, because they rely on a working back-end, such as:
-
-* Any edits you make and pages you add aren’t saved (kind of useful).
-* [[🔌 Directive|Directives]] are disabled, although you will see them being used across this site (look for sections with subtle curved lines around them, if you move your cursor inside you’ll see where their content is generated from), they just don’t update their content dynamically.
-* **Full-text search**.
-* **Extending** and updating SB’s functionality by installing additional [[🔌 Plugs]] (SB parlance for plug-ins) and writing your own.
-
-## Download SilverBullet
-Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then.
-
-<!-- #include [[Download]] -->
-You have three options to install and use SilverBullet. Pick your poison, as they say. Have a look at all three to decide what’s best for you:
-
-1. [[Server]] — install SilverBullet as a web server on your local machine or network, and access it via any web browser. This is the best choice for nerds 🤓.
-2. [[Desktop]] — install SilverBullet as a desktop application, editing a local folder of files. This is the best option for casual users.
-3. [[Mobile]] — install SilverBullet as a “native” mobile application (native: as in — distributed via the app store, and with an icon on your home screen). This is the best option for people with phones. More specifically, people with phones that don’t want to access the [[Server]] via their mobile browser, or have anxiety around Internet connectivity.
-<!-- /include -->
+## Install SilverBullet
+Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to the [[Install]] and enjoy!
 
 ## Where to go from here
 Click on the links below to explore various aspects of SilverBullet more in-depth:

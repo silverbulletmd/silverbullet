@@ -1,5 +1,5 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
-import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PublishEvent } from "$sb/app_event.ts";
 
@@ -8,7 +8,7 @@ export async function publishCommand() {
   const text = await editor.getText();
   const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  const { $share } = extractFrontmatter(tree);
+  const { $share } = await extractFrontmatter(tree);
   if (!$share) {
     await editor.flashNotification("Saved.");
     return;
@@ -23,15 +23,14 @@ export async function publishCommand() {
   await editor.flashNotification("Sharing...");
   // Delegate actual publishing to the server
   try {
-    await system.invokeFunction("server", "publish", pageName, $share);
+    await publish(pageName, $share);
     await editor.flashNotification("Done!");
   } catch (e: any) {
     await editor.flashNotification(e.message, "error");
   }
 }
 
-// Runs on server side
-export async function publish(pageName: string, uris: string[]) {
+async function publish(pageName: string, uris: string[]) {
   for (const uri of uris) {
     const publisher = uri.split(":")[0];
     const results = await events.dispatchEvent(

@@ -1,13 +1,13 @@
 ---
 type: plug
-uri: github:silverbulletmd/silverbullet-ghost/ghost.plug.json
+uri: github:silverbulletmd/silverbullet-ghost/ghost.plug.js
 repo: https://github.com/silverbulletmd/silverbullet-ghost
 author: Zef Hemel
 share-support: true
 ---
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-ghost/main/README.md]] -->
-# Ghost plug for SilverBullet
+# Ghost plug for Silver Bullet
 
 This allows you to publish your pages as [Ghost](https://ghost.org/) pages or posts. I use it to publish [Zef+](https://zef.plus).
 
@@ -28,7 +28,7 @@ Then, create a Custom Integration (in your Ghost control panel under Settings > 
         ```
 
 ## Usage
-The plugin hooks into SilverBullet's [Share infrastructure](https://silverbullet.md/%F0%9F%94%8C_Share). Therefore to share a page as either a Ghost page or post, add a `$share` front matter key. For posts this should take the shape of:
+The plugin hooks into Silver Bullet's [Share infrastructure](https://silverbullet.md/%F0%9F%94%8C_Share). Therefore to share a page as either a Ghost page or post, add a `$share` front matter key. For posts, this should take the shape of:
 
         ---
         $share:

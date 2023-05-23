@@ -23,6 +23,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { invokeFunction } from "../../plug-api/silverbullet-syscall/system.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -31,8 +32,8 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
-  // console.log("Now indexing", name);
-  const pageMeta = extractFrontmatter(tree);
+  // console.log("Now indexing links for", name);
+  const pageMeta = await extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
     // Don't index meta data starting with $
@@ -43,6 +44,8 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
     await index.set(name, "meta:", pageMeta);
   }
+
+  // throw new Error("Boom");
 
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
@@ -118,7 +121,7 @@ export async function renamePage(cmdDef: any) {
       `Page ${newName} already exists, cannot rename to existing page.`,
     );
   } catch (e: any) {
-    if (e.message.includes("not found")) {
+    if (e.message === "Not found") {
       // Expected not found error, so we can continue
     } else {
       await editor.flashNotification(e.message, "error");
@@ -224,7 +227,7 @@ async function getBackLinks(pageName: string): Promise<BackLink[]> {
 
 export async function reindexCommand() {
   await editor.flashNotification("Reindexing...");
-  await system.invokeFunction("server", "reindexSpace");
+  await reindexSpace();
   await editor.flashNotification("Reindexing done");
 }
 
@@ -245,10 +248,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   };
 }
 
-// Server functions
 export async function reindexSpace() {
   console.log("Clearing page index...");
   await index.clearPageIndex();
+  // Executed this way to not have to embed the search plug code here
+  await invokeFunction("client", "search.clearIndex");
   console.log("Listing all pages");
   const pages = await space.listPages();
   let counter = 0;
@@ -272,7 +276,7 @@ export async function clearPageIndex(page: string) {
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
-  console.log("Reindexing", name);
+  // console.log("Reindexing", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: await markdown.parseMarkdown(text),

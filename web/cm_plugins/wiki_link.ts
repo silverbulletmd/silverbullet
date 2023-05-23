@@ -28,7 +28,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         const [_fullMatch, page, pipePart, alias] = match;
 
         const allPages = editor.space.listPages();
-        let pageExists = false;
+        let pageExists = !editor.fullSyncCompleted;
         let cleanPage = page;
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
@@ -77,7 +77,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
               {
                 text: linkText,
                 title: pageExists ? `Navigate to ${page}` : `Create ${page}`,
-                href: `/${page.replaceAll(" ", "_")}`,
+                href: `/${page}`,
                 cssClass: pageExists
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",

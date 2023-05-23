@@ -1,5 +1,5 @@
 import { nodeAtPos } from "$sb/lib/tree.ts";
-import { editor, markdown, system } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 import { events } from "$sb/plugos-syscall/mod.ts";
 
 type UnfurlOption = {
@@ -26,16 +26,17 @@ export async function unfurlCommand() {
     return;
   }
   try {
-    const replacement = await system.invokeFunction(
-      "server",
-      "unfurlExec",
-      selectedUnfurl.id,
+    const replacement = await events.dispatchEvent(
+      `unfurl:${selectedUnfurl.id}`,
       url,
     );
+    if (replacement.length === 0) {
+      throw new Error("Unfurl failed");
+    }
     await editor.replaceRange(
       nakedUrlNode?.from!,
       nakedUrlNode?.to!,
-      replacement,
+      replacement[0],
     );
   } catch (e: any) {
     await editor.flashNotification(e.message, "error");
@@ -49,16 +50,6 @@ export function titleUnfurlOptions(): UnfurlOption[] {
       name: "Extract title",
     },
   ];
-}
-
-// Run on the server because plugs will likely rely on fetch for this
-export async function unfurlExec(id: string, url: string): Promise<string> {
-  const replacement = await events.dispatchEvent(`unfurl:${id}`, url);
-  if (replacement.length === 0) {
-    throw new Error("Unfurl failed");
-  } else {
-    return replacement[0];
-  }
 }
 
 const titleRegex = /<title[^>]*>\s*([^<]+)\s*<\/title\s*>/i;

@@ -69,6 +69,25 @@ export function collectNodesMatching(
   return results;
 }
 
+export async function collectNodesMatchingAsync(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => Promise<boolean>,
+): Promise<ParseTree[]> {
+  if (await matchFn(tree)) {
+    return [tree];
+  }
+  let results: ParseTree[] = [];
+  if (tree.children) {
+    for (const child of tree.children) {
+      results = [
+        ...results,
+        ...await collectNodesMatchingAsync(child, matchFn),
+      ];
+    }
+  }
+  return results;
+}
+
 // return value: returning undefined = not matched, continue, null = delete, new node = replace
 export function replaceNodesMatching(
   tree: ParseTree,
@@ -88,6 +107,29 @@ export function replaceNodesMatching(
         }
       } else {
         replaceNodesMatching(child, substituteFn);
+      }
+    }
+  }
+}
+
+export async function replaceNodesMatchingAsync(
+  tree: ParseTree,
+  substituteFn: (tree: ParseTree) => Promise<ParseTree | null | undefined>,
+) {
+  if (tree.children) {
+    const children = tree.children.slice();
+    for (const child of children) {
+      const subst = await substituteFn(child);
+      if (subst !== undefined) {
+        const pos = tree.children.indexOf(child);
+        if (subst) {
+          tree.children.splice(pos, 1, subst);
+        } else {
+          // null = delete
+          tree.children.splice(pos, 1);
+        }
+      } else {
+        replaceNodesMatchingAsync(child, substituteFn);
       }
     }
   }
@@ -114,6 +156,15 @@ export function traverseTree(
 ): void {
   // Do a collect, but ignore the result
   collectNodesMatching(tree, matchFn);
+}
+
+export async function traverseTreeAsync(
+  tree: ParseTree,
+  // Return value = should stop traversal?
+  matchFn: (tree: ParseTree) => Promise<boolean>,
+): Promise<void> {
+  // Do a collect, but ignore the result
+  await collectNodesMatchingAsync(tree, matchFn);
 }
 
 // Finds non-text node at position

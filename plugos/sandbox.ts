@@ -1,132 +1,74 @@
-import type { LogLevel } from "./environments/custom_logger.ts";
-import {
-  ControllerMessage,
-  WorkerLike,
-  WorkerMessage,
-} from "./environments/worker.ts";
+import { Manifest } from "./types.ts";
+import { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import { Plug } from "./plug.ts";
 
-export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox;
+export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
 
-export type LogEntry = {
-  level: LogLevel;
-  message: string;
-  date: number;
-};
-
-export class Sandbox {
-  protected worker: WorkerLike;
-  protected reqId = 0;
-  protected outstandingInits = new Map<string, () => void>();
-  protected outstandingDependencyInits = new Map<string, () => void>();
-  protected outstandingInvocations = new Map<
+/**
+ * Represents a "safe" execution environment for plug code
+ * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
+ */
+export class Sandbox<HookT> {
+  private worker: Worker;
+  private reqId = 0;
+  private outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
-  protected loadedFunctions = new Set<string>();
-  protected plug: Plug<any>;
-  public logBuffer: LogEntry[] = [];
-  public maxLogBufferSize = 100;
 
-  constructor(plug: Plug<any>, worker: WorkerLike) {
-    worker.onMessage = this.onMessage.bind(this);
-    this.worker = worker;
-    this.plug = plug;
-  }
+  public ready: Promise<void>;
+  public manifest?: Manifest<HookT>;
 
-  isLoaded(name: string) {
-    return this.loadedFunctions.has(name);
-  }
-
-  async load(name: string, code: string): Promise<void> {
-    await this.worker.ready;
-    const outstandingInit = this.outstandingInits.get(name);
-    if (outstandingInit) {
-      // Load already in progress, let's wait for it...
-      return new Promise((resolve) => {
-        this.outstandingInits.set(name, () => {
-          outstandingInit!();
-          resolve();
-        });
-      });
-    }
-    this.worker.postMessage({
-      type: "load",
-      name: name,
-      code: code,
-    } as WorkerMessage);
-    return new Promise((resolve) => {
-      this.outstandingInits.set(name, () => {
-        this.loadedFunctions.add(name);
-        this.outstandingInits.delete(name);
-        resolve();
-      });
+  constructor(
+    readonly plug: Plug<HookT>,
+    workerOptions = {},
+  ) {
+    this.worker = new Worker(plug.workerUrl, {
+      ...workerOptions,
+      type: "module",
     });
-  }
+    this.ready = new Promise((resolve) => {
+      this.worker.onmessage = (ev) => {
+        if (ev.data.type === "manifest") {
+          this.manifest = ev.data.manifest;
+          resolve();
+          return;
+        }
 
-  loadDependency(name: string, code: string): Promise<void> {
-    // console.log("Loading dependency", name);
-    this.worker.postMessage({
-      type: "load-dependency",
-      name: name,
-      code: code,
-    } as WorkerMessage);
-    return new Promise((resolve) => {
-      // console.log("Loaded dependency", name);
-      this.outstandingDependencyInits.set(name, () => {
-        this.outstandingDependencyInits.delete(name);
-        resolve();
-      });
+        this.onMessage(ev.data);
+      };
     });
   }
 
   async onMessage(data: ControllerMessage) {
     switch (data.type) {
-      case "inited": {
-        const initCb = this.outstandingInits.get(data.name!);
-        initCb && initCb();
-        this.outstandingInits.delete(data.name!);
-        break;
-      }
-      case "dependency-inited": {
-        const depInitCb = this.outstandingDependencyInits.get(data.name!);
-        depInitCb && depInitCb();
-        this.outstandingDependencyInits.delete(data.name!);
-        break;
-      }
-      case "syscall":
+      case "sys":
         try {
           const result = await this.plug.syscall(data.name!, data.args!);
 
           this.worker.postMessage({
-            type: "syscall-response",
+            type: "sysr",
             id: data.id,
             result: result,
           } as WorkerMessage);
         } catch (e: any) {
           // console.error("Syscall fail", e);
           this.worker.postMessage({
-            type: "syscall-response",
+            type: "sysr",
             id: data.id,
             error: e.message,
           } as WorkerMessage);
         }
         break;
-      case "result": {
+      case "invr": {
         const resultCbs = this.outstandingInvocations.get(data.id!);
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
           resultCbs &&
-            resultCbs.reject(
-              new Error(`${data.error}\nStack trace: ${data.stack}`),
-            );
+            resultCbs.reject(new Error(data.error));
         } else {
           resultCbs && resultCbs.resolve(data.result);
         }
-        break;
-      }
-      case "log": {
-        this.log(data.level!, data.message!);
         break;
       }
       default:
@@ -134,27 +76,14 @@ export class Sandbox {
     }
   }
 
-  log(level: string, ...messageBits: any[]) {
-    const message = messageBits.map((a) => "" + a).join(" ");
-    this.logBuffer.push({
-      message,
-      level: level as LogLevel,
-      date: Date.now(),
-    });
-    if (this.logBuffer.length > this.maxLogBufferSize) {
-      this.logBuffer.shift();
-    }
-    console.log(`[Sandbox ${level}]`, message);
-  }
-
   invoke(name: string, args: any[]): Promise<any> {
     this.reqId++;
     this.worker.postMessage({
-      type: "invoke",
+      type: "inv",
       id: this.reqId,
       name,
       args,
-    });
+    } as WorkerMessage);
     return new Promise((resolve, reject) => {
       this.outstandingInvocations.set(this.reqId, { resolve, reject });
     });

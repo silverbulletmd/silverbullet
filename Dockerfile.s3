@@ -1,0 +1,24 @@
+# This Dockerfile is used to build a Docker image that runs silverbullet with an S3 bucket as a backend
+# Configure it with the following environment variables
+
+# AWS_ACCESS_KEY_ID=XXXX
+# AWS_SECRET_ACCESS_KEY=XXXX
+# AWS_ENDPOINT=s3.eu-central-1.amazonaws.com
+# AWS_REGION=eu-central-1
+# AWS_BUCKET=my-sb-bucket
+
+FROM denoland/deno:alpine-1.33.2
+
+# Copy the bundled version of silverbullet into the container
+ADD ./dist/silverbullet.js /silverbullet.js
+
+# deno user id is 1000 in alpine image
+USER deno
+
+# Expose port 3000
+# Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
+EXPOSE 3000
+
+# Run the server, allowing to pass in additional argument at run time, e.g.
+#   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
+ENTRYPOINT deno run -A /silverbullet.js -L 0.0.0.0 s3://

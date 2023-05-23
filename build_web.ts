@@ -1,23 +1,41 @@
-// -- esbuild --
-// @deno-types="https://deno.land/x/esbuild@v0.14.54/mod.d.ts"
-import * as esbuildWasm from "https://deno.land/x/esbuild@v0.14.54/wasm.js";
-import * as esbuildNative from "https://deno.land/x/esbuild@v0.14.54/mod.js";
-import { denoPlugin } from "https://deno.land/x/esbuild_deno_loader@0.6.0/mod.ts"; //"./esbuild_deno_loader/mod.ts";
+import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
 import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
 import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
-import { patchDenoLibJS } from "./plugos/hack.ts";
-import { bundle as plugOsBundle } from "./plugos/bin/plugos-bundle.ts";
 
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
+import { patchDenoLibJS } from "./plugos/compile.ts";
+import { esbuild } from "./plugos/deps.ts";
 
-// @ts-ignore trust me
-export const esbuild: typeof esbuildWasm = Deno.run === undefined
-  ? esbuildWasm
-  : esbuildNative;
+export async function bundleAll(
+  watch: boolean,
+): Promise<void> {
+  let building = false;
+  await buildCopyBundleAssets();
+  let timer;
+  if (watch) {
+    const watcher = Deno.watchFs(["web", "dist_plug_bundle"]);
+    for await (const _event of watcher) {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        console.log("Change detected, rebuilding...");
+        if (building) {
+          return;
+        }
+        building = true;
+        buildCopyBundleAssets().finally(() => {
+          building = false;
+        });
+      }, 1000);
+    }
+  }
+}
 
-export async function prepareAssets(dist: string) {
+export async function copyAssets(dist: string) {
+  await Deno.mkdir(dist, { recursive: true });
   await copy("web/fonts", `${dist}`, { overwrite: true });
   await copy("web/index.html", `${dist}/index.html`, {
     overwrite: true,
@@ -25,10 +43,16 @@ export async function prepareAssets(dist: string) {
   await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
+  await copy("web/reset.html", `${dist}/reset.html`, {
+    overwrite: true,
+  });
   await copy("web/images/favicon.png", `${dist}/favicon.png`, {
     overwrite: true,
   });
   await copy("web/images/logo.png", `${dist}/logo.png`, {
+    overwrite: true,
+  });
+  await copy("web/images/logo-dock.png", `${dist}/logo-dock.png`, {
     overwrite: true,
   });
   await copy("web/manifest.json", `${dist}/manifest.json`, {
@@ -44,83 +68,61 @@ export async function prepareAssets(dist: string) {
     `${dist}/main.css`,
     compiler.to_string("expanded") as string,
   );
-  const globalManifest = await plugOsBundle("./plugs/global.plug.yaml");
-  await Deno.writeTextFile(
-    `${dist}/global.plug.json`,
-    JSON.stringify(globalManifest, null, 2),
-  );
 
   // HACK: Patch the JS by removing an invalid regex
   let bundleJs = await Deno.readTextFile(`${dist}/client.js`);
   bundleJs = patchDenoLibJS(bundleJs);
   await Deno.writeTextFile(`${dist}/client.js`, bundleJs);
 }
+async function buildCopyBundleAssets() {
+  await Deno.mkdir("dist_client_bundle", { recursive: true });
+  await Deno.mkdir("dist_plug_bundle", { recursive: true });
 
-export async function bundle(
-  watch: boolean,
-  type: "web" | "mobile",
-  distDir: string,
-): Promise<void> {
-  let building = false;
-  await doBuild(`${type}/boot.ts`);
-  let timer;
-  if (watch) {
-    const watcher = Deno.watchFs([type, "dist_bundle/_plug"]);
-    for await (const _event of watcher) {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        console.log("Change detected, rebuilding...");
-        doBuild(`${type}/boot.ts`);
-      }, 1000);
-    }
-  }
+  await bundleFolder(
+    "dist_plug_bundle",
+    "dist/plug_asset_bundle.json",
+  );
 
-  async function doBuild(
-    mainScript: string,
-  ) {
-    if (building) {
-      return;
-    }
-    building = true;
-    if (type === "mobile") {
-      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
-    }
-
-    await Promise.all([
-      esbuild.build({
-        entryPoints: {
-          client: mainScript,
-          service_worker: "web/service_worker.ts",
-          worker: "plugos/environments/sandbox_worker.ts",
+  await Promise.all([
+    esbuild.build({
+      entryPoints: [
+        {
+          in: "web/boot.ts",
+          out: ".client/client",
         },
-        outdir: distDir,
-        absWorkingDir: Deno.cwd(),
-        bundle: true,
-        treeShaking: true,
-        sourcemap: "linked",
-        minify: true,
-        jsxFactory: "h",
-        jsx: "automatic",
-        jsxFragment: "Fragment",
-        jsxImportSource: "https://esm.sh/preact@10.11.1",
-        plugins: [
-          denoPlugin({
-            importMapURL: new URL("./import_map.json", import.meta.url),
-          }),
-        ],
-      }),
-    ]);
+        {
+          in: "web/service_worker.ts",
+          out: "service_worker",
+        },
+      ],
+      outdir: "dist_client_bundle",
+      absWorkingDir: Deno.cwd(),
+      bundle: true,
+      treeShaking: true,
+      sourcemap: "linked",
+      minify: true,
+      jsxFactory: "h",
+      jsx: "automatic",
+      jsxFragment: "Fragment",
+      jsxImportSource: "https://esm.sh/preact@10.11.1",
+      plugins: [
+        ...denoPlugins({
+          importMapURL: new URL("./import_map.json", import.meta.url)
+            .toString(),
+        }),
+      ],
+    }),
+  ]);
 
-    await prepareAssets(distDir);
-    if (type === "web") {
-      await bundleFolder("dist_bundle", "dist/asset_bundle.json");
-    }
+  // Patch the service_worker {{CACHE_NAME}}
+  let swCode = await Deno.readTextFile("dist_client_bundle/service_worker.js");
+  swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
+  await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
 
-    building = false;
-    console.log("Built!");
-  }
+  await copyAssets("dist_client_bundle/.client");
+  await bundleFolder("dist_client_bundle", "dist/client_asset_bundle.json");
+
+  console.log("Built!");
 }
 
 if (import.meta.main) {
@@ -131,7 +133,7 @@ if (import.meta.main) {
       watch: false,
     },
   });
-  await bundle(args.watch, "web", "dist_bundle/web");
+  await bundleAll(args.watch);
   if (!args.watch) {
     esbuild.stop();
   }

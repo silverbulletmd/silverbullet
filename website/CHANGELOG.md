@@ -3,7 +3,33 @@ release.
 
 ---
 
-## Next
+## 0.3.1
+This is a big one.
+
+This is another big architectural shift warranting a major minor version bump 😉.
+
+A detailed description of what happened [can be found in this PR](https://github.com/silverbulletmd/silverbullet/pull/403), the TL;DR is this:
+
+* SilverBullet in this version is going **_all in_ on being an offline-capable [PWA](https://web.dev/progressive-web-apps/)**. This means the desktop and mobile applications will no longer be maintained. However, the value those applications brought (offline capability) has now been built right into the “regular web” version without the burden of having to maintain a desktop app for three platforms, and a mobile app for two.
+* Upon first launch in a modern browser, SilverBullet will now _sync a full copy of your entire space locally_ (into your browser’s IndexedDB database). When a network connection to the server is available, it will sync files with it. On the server, files are still kept as regular files, nothing changes here.
+  * To avoid accidentally syncing ginormous (that’s a technical term) files to your browser, by default files > 20MB are not exposed. This puts an effective **file size limit of 20MB on files** in your space, this limit is configurable with the `--maxFileSize` flag (file a file size in MB) when running `silverbullet`.
+* After the first launch, you can disconnect from your network and your application should still be available: reload the page; restart the browser; reboot your machine, and everything still works. Note that while you’re offline, your title bar will appear in yellow to indicate this “offline” state.
+* All processing (all [[🔌 Plugs]] logic) is now running in the browser. Previously, some of this work was offloaded to the server. No more, the server is now a dumb file store. You can (and probably should) delete your `data.db` file, which was previously used to store state on the server side.
+* From a UI perspective little changes, except for a few things related to sync:
+  * While SB is in an out-of-sync state, the title bar will appear yellow. This will also happen when it cannot reach the server. SB is still fully functional in this state. Once the connection is restored, all changes while offline are synced back to the server.
+  * Upon initial load, a full sync will take place, which — depending on the size of your space — may take some time. Or even blow up completely, if you have a big amount of data there.
+* To reset your browser state (flush out your entire space, caches and data stores) visit the `/.client/reset.html` page, e.g. at http://localhost:3000/.client/reset.html and push the button. Note that any unsynced changes will be wiped.
+
+Besides these architectural changes, a few other breaking changes were made to seize the moment:
+* **In plugs**:
+  * Plugs are now distributed as `.plug.js` files instead of `.plug.json` files. This greatly improves debugability (when you compile with `--debug` you get source maps, and can even set breakpoints) and drastically decreases their file size. All existing plugs need to be recompiled using the `silverbullet plug:compile` command, and the resulting `.plug.js` file commited. Then update your [[PLUGS]] page to point to the resulting `.plug.js` files.
+* **Breaking change** in URLs (if you bookmarked them before): spaces in page names used to be replaced with `_` to look nicer, however, this was causing too many issues for people, so they’re no longer replaced and will appear as `%20` (regular URI encoding) now.
+* On mobile, you can now tap with two fingers on the editor to open the page picker, and with three fingers to open the command palette.
+* Internal note: to avoid page/file name clashes in URLs, various internal URLs have changed, FS requests are now served from `/.fs` instead of `/fs`, and all client static files from `/.client` (was root before).
+
+---
+
+## 0.2.14
 
 * Added `Cmd-.` (Mac) and `Ctrl-.` (Linux/Windows) as an additional keyboard shortcut (to `Cmd-/`, `Ctrl-/`) for launching the command palette.
 * Improvements to dark mode by [Max Richter](https://github.com/silverbulletmd/silverbullet/pull/396)

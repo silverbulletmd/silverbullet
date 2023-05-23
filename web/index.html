@@ -6,13 +6,22 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <base href="/" />
-
+  <link rel="apple-touch-icon" href="/.client/logo.png">
   <title>SilverBullet</title>
   <script>
+    // Some global variables we need to make this work
     Deno = {
       args: [],
       build: {
         arch: "x86_64",
+      },
+      core: {
+        runMicrotasks() {
+          // console.log("Not supported");
+        },
+        setHasTickScheduled() {
+          // console.log("Not supported");
+        }
       },
       env: {
         get(key) {
@@ -23,24 +32,25 @@
         AlreadyExists: class extends Error { },
       }
     };
-  </script>
-  <style>
-    html,
-    body {
-      margin: 0;
-      height: 100%;
-      padding: 0;
-      width: 100%;
-      overflow: hidden;
+    window.silverBulletConfig = {
+      // These {{VARIABLES}} are replaced by http_server.ts
+      spaceFolderPath: "{{SPACE_PATH}}",
+      syncEndpoint: "{{SYNC_ENDPOINT}}",
+    };
+    // But in case these variables aren't replaced by the server, fall back fully static mode (no sync)
+    if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
+      window.silverBulletConfig = {
+        spaceFolderPath: "",
+        syncEndpoint: "/.fs"
+      };
     }
-  </style>
+  </script>
   <style id="custom-styles">
-
   </style>
-  <link rel="stylesheet" href="/main.css" />
-  <script type="module" src="/client.js"></script>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/x-icon" href="/favicon.png" />
+  <link rel="stylesheet" href="/.client/main.css" />
+  <script type="module" src="/.client/client.js"></script>
+  <link rel="manifest" href="/.client/manifest.json" />
+  <link rel="icon" type="image/x-icon" href="/.client/favicon.png" />
 </head>
 
 <body>

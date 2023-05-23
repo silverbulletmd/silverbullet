@@ -1,6 +1,6 @@
 import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
 import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 export async function readCodeBlockPage(
   pageName: string,
@@ -58,8 +58,6 @@ export async function writeYamlPage(
   data: any,
   prelude = "",
 ): Promise<void> {
-  const text = YAML.stringify(data, {
-    noCompatMode: true,
-  });
+  const text = await YAML.stringify(data);
   await space.writePage(pageName, prelude + "```yaml\n" + text + "\n```");
 }

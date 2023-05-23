@@ -1,76 +1,13 @@
+import { safeRun } from "../common/util.ts";
 import { Editor } from "./editor.tsx";
-import { parseYamlSettings, safeRun } from "../common/util.ts";
-import { Space } from "../common/spaces/space.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
-import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { System } from "../plugos/system.ts";
-import { BuiltinSettings } from "./types.ts";
-import { fulltextSyscalls } from "./syscalls/fulltext.ts";
-import { indexerSyscalls } from "./syscalls/index.ts";
-import { storeSyscalls } from "./syscalls/store.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 
 safeRun(async () => {
-  const httpPrimitives = new HttpSpacePrimitives("");
-  let settingsPageText = "";
-  try {
-    settingsPageText = (
-      await httpPrimitives.readFile("SETTINGS.md", "utf8")
-    ).data as string;
-  } catch (e: any) {
-    console.error("No settings page found", e.message);
-  }
-
-  // Instantiate a PlugOS system for the client
-  const system = new System<SilverBulletHooks>("client");
-
-  // Attach the page namespace hook
-  const namespaceHook = new PageNamespaceHook();
-  system.addHook(namespaceHook);
-
-  const spacePrimitives = new PlugSpacePrimitives(
-    httpPrimitives,
-    namespaceHook,
-    "client",
-  );
-
-  const serverSpace = new Space(spacePrimitives);
-  serverSpace.watch();
-
-  // Register some web-specific syscall implementations
-  system.registerSyscalls(
-    [],
-    storeSyscalls(serverSpace),
-    indexerSyscalls(serverSpace),
-    clientStoreSyscalls(),
-    fulltextSyscalls(serverSpace),
-    sandboxFetchSyscalls(serverSpace),
-  );
-
-  console.log("Booting...");
-
-  const settings = parseYamlSettings(settingsPageText) as BuiltinSettings;
-
-  if (!settings.indexPage) {
-    settings.indexPage = "index";
-  }
-  // Event hook
-  const eventHook = new EventHook();
-  system.addHook(eventHook);
+  console.log("Booting");
 
   const editor = new Editor(
-    serverSpace,
-    system,
-    eventHook,
     document.getElementById("sb-root")!,
-    "",
-    settings,
   );
-  // @ts-ignore: for convenience
+
   window.editor = editor;
 
   await editor.init();
@@ -84,8 +21,14 @@ if (navigator.serviceWorker) {
     .then(() => {
       console.log("Service worker registered...");
     });
+  navigator.serviceWorker.ready.then((registration) => {
+    registration.active!.postMessage({
+      type: "config",
+      config: window.silverBulletConfig,
+    });
+  });
 } else {
-  console.log(
-    "No launching service worker (not present, maybe because not running on localhost or over SSL)",
+  console.warn(
+    "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",
   );
 }

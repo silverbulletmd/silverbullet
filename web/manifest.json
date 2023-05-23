@@ -3,15 +3,15 @@
   "name": "SilverBullet",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/.client/logo-dock.png",
       "type": "image/png",
-      "sizes": "1024x1024"
+      "sizes": "512x512"
     }
   ],
   "capture_links": "new-client",
   "start_url": "/",
   "display": "standalone",
   "scope": "/",
-  "theme_color": "#000",
+  "theme_color": "#e1e1e1",
   "description": "Markdown as a platform"
 }

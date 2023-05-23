@@ -9,23 +9,28 @@ Deno.test("Test store", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
-  const statusMap = new Map<string, SyncStatusItem>();
-  const sync = new SpaceSync(primary, secondary, statusMap, {});
+  const snapshot = new Map<string, SyncStatusItem>();
+  const sync = new SpaceSync(primary, secondary, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+  });
 
   // Write one page to primary
-  await primary.writeFile("index", "utf8", "Hello");
+  await primary.writeFile("index", stringToBytes("Hello"));
   assertEquals((await secondary.fetchFileList()).length, 0);
   console.log("Initial sync ops", await doSync());
 
   assertEquals((await secondary.fetchFileList()).length, 1);
-  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello");
+  assertEquals(
+    (await secondary.readFile("index")).data,
+    stringToBytes("Hello"),
+  );
 
   // Should be a no-op
   assertEquals(await doSync(), 0);
 
   // Now let's make a change on the secondary
-  await secondary.writeFile("index", "utf8", "Hello!!");
-  await secondary.writeFile("test", "utf8", "Test page");
+  await secondary.writeFile("index", stringToBytes("Hello!!"));
+  await secondary.writeFile("test", stringToBytes("Test page"));
 
   // And sync it
   await doSync();
@@ -33,13 +38,16 @@ Deno.test("Test store", async () => {
   assertEquals((await primary.fetchFileList()).length, 2);
   assertEquals((await secondary.fetchFileList()).length, 2);
 
-  assertEquals((await primary.readFile("index", "utf8")).data, "Hello!!");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("Hello!!"),
+  );
 
   // Let's make some random edits on both ends
-  await primary.writeFile("index", "utf8", "1");
-  await primary.writeFile("index2", "utf8", "2");
-  await secondary.writeFile("index3", "utf8", "3");
-  await secondary.writeFile("index4", "utf8", "4");
+  await primary.writeFile("index", stringToBytes("1"));
+  await primary.writeFile("index2", stringToBytes("2"));
+  await secondary.writeFile("index3", stringToBytes("3"));
+  await secondary.writeFile("index4", stringToBytes("4"));
   await doSync();
 
   assertEquals((await primary.fetchFileList()).length, 5);
@@ -72,16 +80,19 @@ Deno.test("Test store", async () => {
   // No-op
   assertEquals(await doSync(), 0);
 
-  await secondary.writeFile("index", "utf8", "I'm back");
+  await secondary.writeFile("index", stringToBytes("I'm back"));
 
   await doSync();
 
-  assertEquals((await primary.readFile("index", "utf8")).data, "I'm back");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("I'm back"),
+  );
 
   // Cause a conflict
   console.log("Introducing a conflict now");
-  await primary.writeFile("index", "utf8", "Hello 1");
-  await secondary.writeFile("index", "utf8", "Hello 2");
+  await primary.writeFile("index", stringToBytes("Hello 1"));
+  await secondary.writeFile("index", stringToBytes("Hello 2"));
 
   await doSync();
 
@@ -89,27 +100,33 @@ Deno.test("Test store", async () => {
   await doSync();
 
   // Verify that primary won
-  assertEquals((await primary.readFile("index", "utf8")).data, "Hello 1");
-  assertEquals((await secondary.readFile("index", "utf8")).data, "Hello 1");
+  assertEquals(
+    (await primary.readFile("index")).data,
+    stringToBytes("Hello 1"),
+  );
+  assertEquals(
+    (await secondary.readFile("index")).data,
+    stringToBytes("Hello 1"),
+  );
 
   // test + index + index.conflicting copy
   assertEquals((await primary.fetchFileList()).length, 3);
   assertEquals((await secondary.fetchFileList()).length, 3);
 
   // Introducing a fake conflict (same content, so not really conflicting)
-  await primary.writeFile("index", "utf8", "Hello 1");
-  await secondary.writeFile("index", "utf8", "Hello 1");
+  await primary.writeFile("index", stringToBytes("Hello 1"));
+  await secondary.writeFile("index", stringToBytes("Hello 1"));
 
   // And two more files with different bodies, but only within a query directive — shouldn't conflict
   await primary.writeFile(
     "index.md",
-    "utf8",
-    "Hello\n<!-- #query page -->\nHello 1\n<!-- /query -->",
+    stringToBytes(
+      "Hello\n<!-- #query page -->\nHello 1\n<!-- /query -->",
+    ),
   );
   await secondary.writeFile(
     "index.md",
-    "utf8",
-    "Hello\n<!-- #query page -->\nHello 2\n<!-- /query -->",
+    stringToBytes("Hello\n<!-- #query page -->\nHello 2\n<!-- /query -->"),
   );
 
   await doSync();
@@ -128,15 +145,17 @@ Deno.test("Test store", async () => {
   const sync2 = new SpaceSync(
     secondary,
     ternary,
-    new Map<string, SyncStatusItem>(),
-    {},
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+    },
   );
+  const snapshot2 = new Map<string, SyncStatusItem>();
   console.log(
     "N ops",
-    await sync2.syncFiles(SpaceSync.primaryConflictResolver),
+    await sync2.syncFiles(snapshot2),
   );
   await sleep(2);
-  assertEquals(await sync2.syncFiles(SpaceSync.primaryConflictResolver), 0);
+  assertEquals(await sync2.syncFiles(snapshot2), 0);
 
   // I had to look up what follows ternary (https://english.stackexchange.com/questions/25116/what-follows-next-in-the-sequence-unary-binary-ternary)
   const quaternaryPath = await Deno.makeTempDir();
@@ -144,12 +163,12 @@ Deno.test("Test store", async () => {
   const sync3 = new SpaceSync(
     secondary,
     quaternary,
-    new Map<string, SyncStatusItem>(),
     {
-      excludePrefixes: ["index"],
+      isSyncCandidate: (path) => !path.startsWith("index"),
+      conflictResolver: SpaceSync.primaryConflictResolver,
     },
   );
-  const selectingOps = await sync3.syncFiles(SpaceSync.primaryConflictResolver);
+  const selectingOps = await sync3.syncFiles(new Map());
 
   assertEquals(selectingOps, 1);
 
@@ -160,9 +179,7 @@ Deno.test("Test store", async () => {
 
   async function doSync() {
     await sleep();
-    const r = await sync.syncFiles(
-      SpaceSync.primaryConflictResolver,
-    );
+    const r = await sync.syncFiles(snapshot);
     await sleep();
     return r;
   }
@@ -193,3 +210,7 @@ Hello
 `,
   );
 });
+
+function stringToBytes(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}

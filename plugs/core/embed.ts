@@ -1,4 +1,4 @@
-import * as YAML from "yaml";
+import { YAML } from "$sb/plugos-syscall/mod.ts";
 import type { WidgetContent } from "$sb/app_event.ts";
 
 type EmbedConfig = {
@@ -20,11 +20,11 @@ function extractYoutubeVideoId(url: string) {
   return null;
 }
 
-export function embedWidget(
+export async function embedWidget(
   bodyText: string,
-): WidgetContent {
+): Promise<WidgetContent> {
   try {
-    const data: EmbedConfig = YAML.parse(bodyText) as any;
+    const data: EmbedConfig = await YAML.parse(bodyText) as any;
     let url = data.url;
     const youtubeVideoId = extractYoutubeVideoId(url);
     if (youtubeVideoId) {

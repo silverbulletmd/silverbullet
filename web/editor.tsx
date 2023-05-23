@@ -57,15 +57,14 @@ import {
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
-import { Space } from "../common/spaces/space.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
-import { FilterOption, PageMeta } from "../common/types.ts";
-import { isMacLike, safeRun } from "../common/util.ts";
+import { Space } from "./space.ts";
+import { markdownSyscalls } from "./syscalls/markdown.ts";
+import { FilterOption, PageMeta } from "./types.ts";
+import { isMacLike, parseYamlSettings, safeRun } from "../common/util.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import sandboxSyscalls from "../plugos/syscalls/sandbox.ts";
 import { System } from "../plugos/system.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { CollabState } from "./cm_plugins/collab.ts";
@@ -101,7 +100,12 @@ import { collabSyscalls } from "./syscalls/collab.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { AppViewState, BuiltinSettings, initialViewState } from "./types.ts";
+import {
+  Action,
+  AppViewState,
+  BuiltinSettings,
+  initialViewState,
+} from "./types.ts";
 
 import type {
   AppEvent,
@@ -111,8 +115,27 @@ import type {
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { throttle } from "../common/async_util.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
+import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
+import { CronHook } from "../plugos/hooks/cron.ts";
+import { pageIndexSyscalls } from "./syscalls/index.ts";
+import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
+import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
+import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
+import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
+import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
+import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
+import { shellSyscalls } from "./syscalls/shell.ts";
+import { SyncService } from "./sync_service.ts";
+import { yamlSyscalls } from "./syscalls/yaml.ts";
+import { simpleHash } from "../common/crypto.ts";
+import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
+import { SyncStatus } from "../common/spaces/sync.ts";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
+import { syncSyscalls } from "./syscalls/sync.ts";
 
-const frontMatterRegex = /^---\n(.*?)---\n/ms;
+const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 class PageState {
   constructor(
@@ -123,16 +146,29 @@ class PageState {
 
 const saveInterval = 1000;
 
+declare global {
+  interface Window {
+    // Injected via index.html
+    silverBulletConfig: {
+      spaceFolderPath: string;
+      syncEndpoint: string;
+    };
+    editor: Editor;
+  }
+}
+
+// TODO: Oh my god, need to refactor this
 export class Editor {
   readonly commandHook: CommandHook;
   readonly slashCommandHook: SlashCommandHook;
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
-  viewState: AppViewState;
-  // deno-lint-ignore ban-types
-  viewDispatch: Function;
+  viewState: AppViewState = initialViewState;
+  viewDispatch: (action: Action) => void = () => {};
   space: Space;
-  pageNavigator: PathPageNavigator;
+  remoteSpacePrimitives: HttpSpacePrimitives;
+
+  pageNavigator?: PathPageNavigator;
   eventHook: EventHook;
   codeWidgetHook: CodeWidgetHook;
 
@@ -144,28 +180,94 @@ export class Editor {
   }, 1000);
   system: System<SilverBulletHooks>;
   mdExtensions: MDExt[] = [];
-  urlPrefix: string;
-  indexPage: string;
+
+  // Track if plugs have been updated since sync cycle
+  private plugsUpdated = false;
+  fullSyncCompleted = false;
 
   // Runtime state (that doesn't make sense in viewState)
   collabState?: CollabState;
+  syncService: SyncService;
+  settings?: BuiltinSettings;
+  kvStore: DexieKVStore;
 
   constructor(
-    space: Space,
-    system: System<SilverBulletHooks>,
-    eventHook: EventHook,
     parent: Element,
-    urlPrefix: string,
-    readonly builtinSettings: BuiltinSettings,
   ) {
-    this.space = space;
-    this.system = system;
-    this.urlPrefix = urlPrefix;
-    this.viewState = initialViewState;
-    this.viewDispatch = () => {};
-    this.indexPage = builtinSettings.indexPage;
+    const runtimeConfig = window.silverBulletConfig;
 
-    this.eventHook = eventHook;
+    // Instantiate a PlugOS system
+    const system = new System<SilverBulletHooks>();
+    this.system = system;
+
+    // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
+    const dbPrefix = "" + simpleHash(runtimeConfig.spaceFolderPath);
+
+    // Attach the page namespace hook
+    const namespaceHook = new PageNamespaceHook();
+    system.addHook(namespaceHook);
+
+    // Event hook
+    this.eventHook = new EventHook();
+    system.addHook(this.eventHook);
+
+    // Cron hook
+    const cronHook = new CronHook(system);
+    system.addHook(cronHook);
+
+    const indexSyscalls = pageIndexSyscalls(
+      `${dbPrefix}_page_index`,
+      globalThis.indexedDB,
+    );
+
+    this.kvStore = new DexieKVStore(
+      `${dbPrefix}_store`,
+      "data",
+      globalThis.indexedDB,
+    );
+
+    const storeCalls = storeSyscalls(this.kvStore);
+
+    // Setup space
+    this.remoteSpacePrimitives = new HttpSpacePrimitives(
+      runtimeConfig.syncEndpoint,
+      runtimeConfig.spaceFolderPath,
+      true,
+    );
+
+    const plugSpacePrimitives = new PlugSpacePrimitives(
+      // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+      new FallbackSpacePrimitives(
+        new IndexedDBSpacePrimitives(
+          `${dbPrefix}_space`,
+          globalThis.indexedDB,
+        ),
+        this.remoteSpacePrimitives,
+      ),
+      namespaceHook,
+    );
+
+    const localSpacePrimitives = new FileMetaSpacePrimitives(
+      new EventedSpacePrimitives(
+        plugSpacePrimitives,
+        this.eventHook,
+      ),
+      indexSyscalls,
+    );
+
+    this.space = new Space(localSpacePrimitives);
+    this.space.watch();
+
+    this.syncService = new SyncService(
+      localSpacePrimitives,
+      this.remoteSpacePrimitives,
+      this.kvStore,
+      this.eventHook,
+      (path) => {
+        // TODO: At some point we should remove the data.db exception here
+        return path !== "data.db" && !plugSpacePrimitives.isLikelyHandled(path);
+      },
+    );
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -194,11 +296,7 @@ export class Editor {
       parent: document.getElementById("sb-editor")!,
     });
 
-    this.pageNavigator = new PathPageNavigator(
-      builtinSettings.indexPage,
-      urlPrefix,
-    );
-
+    // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
@@ -206,9 +304,25 @@ export class Editor {
       spaceSyscalls(this),
       systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      sandboxSyscalls(this.system),
       assetSyscalls(this.system),
       collabSyscalls(this),
+      yamlSyscalls(),
+      storeCalls,
+      indexSyscalls,
+      syncSyscalls(this.syncService),
+      // LEGACY
+      clientStoreSyscalls(storeCalls),
+    );
+
+    // Syscalls that require some additional permissions
+    this.system.registerSyscalls(
+      ["fetch"],
+      sandboxFetchSyscalls(this.remoteSpacePrimitives),
+    );
+
+    this.system.registerSyscalls(
+      ["shell"],
+      shellSyscalls(this.remoteSpacePrimitives),
     );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -225,12 +339,29 @@ export class Editor {
     });
 
     globalThis.addEventListener("touchstart", (ev) => {
+      // Launch the page picker on a two-finger tap
+      if (ev.touches.length === 2) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        this.viewDispatch({ type: "start-navigate" });
+      }
       // Launch the command palette using a three-finger tap
-      if (ev.touches.length > 2) {
+      if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
         this.viewDispatch({ type: "show-palette", context: this.getContext() });
       }
+    });
+
+    this.eventHook.addLocalListener("plug:changed", async (fileName) => {
+      console.log("Plug updated, reloading:", fileName);
+      system.unload(fileName);
+      await system.load(
+        // await this.space.readFile(fileName, "utf8"),
+        new URL(`/.fs/${fileName}`, location.href),
+        createSandbox,
+      );
+      this.plugsUpdated = true;
     });
   }
 
@@ -241,27 +372,11 @@ export class Editor {
   async init() {
     this.focus();
 
-    const globalModules: any = await (
-      await fetch(`${this.urlPrefix}/global.plug.json`)
-    ).json();
-
-    this.system.on({
-      sandboxInitialized: async (sandbox) => {
-        for (
-          const [modName, code] of Object.entries(
-            globalModules.dependencies,
-          )
-        ) {
-          await sandbox.loadDependency(modName, code as string);
-        }
-      },
-    });
-
     this.space.on({
       pageChanged: (meta) => {
         if (this.currentPage === meta.name) {
-          console.log("Page changed on disk, reloading");
-          this.flashNotification("Page changed on disk, reloading");
+          console.log("Page changed elsewhere, reloading");
+          this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();
         }
       },
@@ -273,11 +388,17 @@ export class Editor {
       },
     });
 
+    // Load settings
+    this.settings = await this.loadSettings();
+
+    this.pageNavigator = new PathPageNavigator(
+      this.settings.indexPage,
+    );
+
     await this.reloadPlugs();
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
       console.log("Now navigating to", pageName);
-
       if (!this.editorView) {
         return;
       }
@@ -333,7 +454,68 @@ export class Editor {
 
     this.loadCustomStyles().catch(console.error);
 
+    // Kick off background sync
+    this.syncService.start();
+
+    this.eventHook.addLocalListener("sync:success", async (operations) => {
+      if (operations > 0) {
+        // Update the page list
+        await this.space.updatePageList();
+      }
+      if (operations !== undefined) {
+        // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
+        this.fullSyncCompleted = true;
+      }
+      if (this.plugsUpdated) {
+        // To register new commands, update editor state based on new plugs
+        this.rebuildEditorState();
+        if (operations) {
+          // Likely initial sync so let's show visually that we're synced now
+          this.flashNotification(`Synced ${operations} files`, "info");
+        }
+      }
+      // Reset for next sync cycle
+      this.plugsUpdated = false;
+
+      this.viewDispatch({ type: "sync-change", synced: true });
+    });
+    this.eventHook.addLocalListener("sync:error", (name) => {
+      this.viewDispatch({ type: "sync-change", synced: false });
+    });
+    this.eventHook.addLocalListener("sync:conflict", (name) => {
+      this.flashNotification(
+        `Sync: conflict detected for ${name} - conflict copy created`,
+        "error",
+      );
+    });
+    this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
+      this.flashNotification(
+        `Sync: ${
+          Math.round(status.filesProcessed / status.totalFiles * 10000) /
+          100
+        }% — processed ${status.filesProcessed} out of ${status.totalFiles}`,
+        "info",
+      );
+    });
+
     await this.dispatchAppEvent("editor:init");
+  }
+
+  async loadSettings(): Promise<BuiltinSettings> {
+    let settingsText: string | undefined;
+
+    try {
+      settingsText = (await this.space.readPage("SETTINGS")).text;
+    } catch (e: any) {
+      console.log("No SETTINGS page, falling back to default");
+      settingsText = "```yaml\nindexPage: index\n```\n";
+    }
+    const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
+
+    if (!settings.indexPage) {
+      settings.indexPage = "index";
+    }
+    return settings;
   }
 
   save(immediate = false): Promise<void> {
@@ -397,7 +579,7 @@ export class Editor {
           id: id,
         });
       },
-      type === "info" ? 2000 : 5000,
+      type === "info" ? 4000 : 5000,
     );
   }
 
@@ -811,8 +993,14 @@ export class Editor {
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      const { data } = await this.space.readAttachment(plugName, "utf8");
-      await this.system.load(JSON.parse(data as string), createSandbox);
+      try {
+        await this.system.load(
+          new URL(`/.fs/${plugName}`, location.href),
+          createSandbox,
+        );
+      } catch (e: any) {
+        console.error("Could not load plug", plugName, "error:", e.message);
+      }
     }));
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
@@ -909,7 +1097,7 @@ export class Editor {
     newWindow = false,
   ) {
     if (!name) {
-      name = this.indexPage;
+      name = this.settings!.indexPage;
     }
 
     if (newWindow) {
@@ -919,7 +1107,7 @@ export class Editor {
       }
       return;
     }
-    await this.pageNavigator.navigate(name, pos, replaceState);
+    await this.pageNavigator!.navigate(name, pos, replaceState);
   }
 
   async loadPage(pageName: string): Promise<boolean> {
@@ -1095,7 +1283,9 @@ export class Editor {
             darkMode={viewState.uiOptions.darkMode}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
-              editor.focus();
+              setTimeout(() => {
+                editor.focus();
+              });
               if (page) {
                 safeRun(async () => {
                   await editor.navigate(page);
@@ -1108,7 +1298,9 @@ export class Editor {
           <CommandPalette
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
-              editor.focus();
+              setTimeout(() => {
+                editor.focus();
+              });
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
                 cmd
@@ -1167,6 +1359,7 @@ export class Editor {
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
+          synced={viewState.synced}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}
@@ -1262,7 +1455,6 @@ export class Editor {
 
   render(container: Element) {
     const ViewComponent = this.ViewComponent.bind(this);
-    // console.log(<ViewComponent />);
     preactRender(<ViewComponent />, container);
   }
 

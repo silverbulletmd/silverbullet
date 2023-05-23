@@ -1,10 +1,9 @@
 import { base64Decode, base64EncodedDataUrl } from "./base64.ts";
-import { mime } from "../deps.ts";
 
 type DataUrl = string;
 
 // Mapping from path -> `data:mimetype;base64,base64-encoded-data` strings
-export type AssetJson = Record<string, DataUrl>;
+export type AssetJson = Record<string, { data: DataUrl; mtime: number }>;
 
 export class AssetBundle {
   readonly bundle: AssetJson;
@@ -28,7 +27,7 @@ export class AssetBundle {
     if (!content) {
       throw new Error(`No such file ${path}`);
     }
-    const data = content.split(",", 2)[1];
+    const data = content.data.split(",", 2)[1];
     return base64Decode(data);
   }
 
@@ -37,7 +36,7 @@ export class AssetBundle {
     if (!content) {
       throw new Error(`No such file ${path}`);
     }
-    return content;
+    return content.data;
   }
 
   readTextFileSync(
@@ -49,22 +48,42 @@ export class AssetBundle {
   getMimeType(
     path: string,
   ): string {
-    const content = this.bundle[path];
-    if (!content) {
+    const entry = this.bundle[path];
+    if (!entry) {
       throw new Error(`No such file ${path}`);
     }
-    return content.split(";")[0].split(":")[1];
+    return entry.data.split(";")[0].split(":")[1];
   }
 
-  writeFileSync(path: string, data: Uint8Array) {
+  getMtime(path: string): number {
+    const entry = this.bundle[path];
+    if (!entry) {
+      throw new Error(`No such file ${path}`);
+    }
+    return entry.mtime;
+  }
+
+  writeFileSync(
+    path: string,
+    mimeType: string,
+    data: Uint8Array,
+    mtime: number = Date.now(),
+  ) {
     // Replace \ with / for windows
     path = path.replaceAll("\\", "/");
-    const mimeType = mime.getType(path) || "application/octet-stream";
-    this.bundle[path] = base64EncodedDataUrl(mimeType, data);
+    this.bundle[path] = {
+      data: base64EncodedDataUrl(mimeType, data),
+      mtime,
+    };
   }
 
-  writeTextFileSync(path: string, s: string) {
-    this.writeFileSync(path, new TextEncoder().encode(s));
+  writeTextFileSync(
+    path: string,
+    mimeType: string,
+    s: string,
+    mtime: number = Date.now(),
+  ) {
+    this.writeFileSync(path, mimeType, new TextEncoder().encode(s), mtime);
   }
 
   toJSON(): AssetJson {

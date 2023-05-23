@@ -2,14 +2,9 @@
 import { path } from "../deps.ts";
 import { readAll } from "../deps.ts";
 import { FileMeta } from "../types.ts";
-import { FileData, FileEncoding, SpacePrimitives } from "./space_primitives.ts";
-import { Plug } from "../../plugos/plug.ts";
+import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import {
-  base64DecodeDataUrl,
-  base64EncodedDataUrl,
-} from "../../plugos/asset_bundle/base64.ts";
-import { walk } from "../../plugos/deps.ts";
+import { walk } from "https://deno.land/std@0.165.0/fs/walk.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -21,10 +16,14 @@ function normalizeForwardSlashPath(path: string) {
 
 const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
 
+export type DiskSpaceOptions = {
+  maxFileSizeMB?: number;
+};
+
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
 
-  constructor(rootPath: string) {
+  constructor(rootPath: string, private options: DiskSpaceOptions = {}) {
     this.rootPath = Deno.realPathSync(rootPath);
   }
 
@@ -46,36 +45,16 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async readFile(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: FileMeta }> {
+  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const localPath = this.filenameToPath(name);
     try {
       const s = await Deno.stat(localPath);
-      let data: FileData | null = null;
       const contentType = lookupContentType(name);
-      switch (encoding) {
-        case "utf8":
-          data = await Deno.readTextFile(localPath);
-          break;
-        case "dataurl":
-          {
-            const f = await Deno.open(localPath, { read: true });
-            const buf = await readAll(f);
-            Deno.close(f.rid);
 
-            data = base64EncodedDataUrl(contentType, buf);
-          }
-          break;
-        case "arraybuffer":
-          {
-            const f = await Deno.open(localPath, { read: true });
-            const buf = await readAll(f);
-            Deno.close(f.rid);
+      const f = await Deno.open(localPath, { read: true });
+      const data = await readAll(f);
+      Deno.close(f.rid);
 
-            data = buf.buffer;
-          }
-          break;
-      }
       return {
         data,
         meta: {
@@ -94,29 +73,29 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async writeFile(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
+    _selfUpdate?: boolean,
+    lastModified?: number,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(name);
     try {
       // Ensure parent folder exists
       await Deno.mkdir(path.dirname(localPath), { recursive: true });
 
+      const file = await Deno.open(localPath, {
+        write: true,
+        create: true,
+        truncate: true,
+      });
+
       // Actually write the file
-      switch (encoding) {
-        case "utf8":
-          await Deno.writeTextFile(`${localPath}`, data as string);
-          break;
-        case "dataurl":
-          await Deno.writeFile(
-            localPath,
-            base64DecodeDataUrl(data as string),
-          );
-          break;
-        case "arraybuffer":
-          await Deno.writeFile(localPath, new Uint8Array(data as ArrayBuffer));
-          break;
+      await Deno.write(file.rid, data);
+
+      if (lastModified) {
+        console.log("Seting mtime to", new Date(lastModified));
+        await Deno.futime(file.rid, new Date(), new Date(lastModified));
       }
+      file.close();
 
       // Fetch new metadata
       const s = await Deno.stat(localPath);
@@ -171,6 +150,13 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
+        // Don't list file exceeding the maximum file size
+        if (
+          this.options.maxFileSizeMB &&
+          s.size / (1024 * 1024) > this.options.maxFileSizeMB
+        ) {
+          continue;
+        }
         const name = fullPath.substring(this.rootPath.length + 1);
         if (excludedFiles.includes(name)) {
           continue;
@@ -192,20 +178,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     }
 
     return allFiles;
-  }
-
-  // Plugs
-  invokeFunction(
-    plug: Plug<any>,
-    _env: string,
-    name: string,
-    args: any[],
-  ): Promise<any> {
-    return plug.invoke(name, args);
-  }
-
-  proxySyscall(plug: Plug<any>, name: string, args: any[]): Promise<any> {
-    return plug.syscall(name, args);
   }
 }
 

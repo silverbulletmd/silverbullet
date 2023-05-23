@@ -31,7 +31,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
 
   buildAllCommands(system: System<CommandHookT>) {
     this.editorCommands.clear();
-    for (let plug of system.loadedPlugs.values()) {
+    for (const plug of system.loadedPlugs.values()) {
       for (
         const [name, functionDef] of Object.entries(
           plug.manifest!.functions,
@@ -62,7 +62,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   }
 
   validateManifest(manifest: Manifest<CommandHookT>): string[] {
-    let errors = [];
+    const errors = [];
     for (const [name, functionDef] of Object.entries(manifest.functions)) {
       if (!functionDef.command) {
         continue;
