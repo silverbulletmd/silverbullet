@@ -7,7 +7,7 @@ author: SilverBullet Authors
 
 <!-- #include [[https://raw.githubusercontent.com/silverbulletmd/silverbullet-twitter/main/README.md]] -->
 # SilverBullet for Twitter
-Currently the only thing this plug offers is unfurling links to tweets. To use, paste in a link to a Tweet like `https://twitter.com/zef/status/1547943418403295232`, then run the `Link: Unfurl` command and select `Tweet content` to "enrich" the tweet URL with the content of the linked tweet, e.g.
+Currently, the only thing this plug offers is unfurling links to tweets. To use, paste in a link to a Tweet like `https://twitter.com/zef/status/1547943418403295232`, then run the `Link: Unfurl` command and select `Tweet content` to "enrich" the tweet URL with the content of the linked tweet, e.g.
 
     https://twitter.com/zef/status/1547687321679511552
 
@@ -24,5 +24,5 @@ Open (`cmd+k`) your `PLUGS` note in SilverBullet and add this plug to the list:
 - github:silverbulletmd/silverbullet-twitter/twitter.plug.json
 ```
 
-Then run the `Plugs: Update` command and off you go!
+Then run the `Plugs: Update` command, and off you go!
 <!-- /include -->

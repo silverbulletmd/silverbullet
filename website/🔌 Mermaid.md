@@ -40,7 +40,7 @@ Or to watch for changes and rebuild automatically
 deno task watch
 ```
 
-Then, load the locally built plug, add it to your `PLUGS` note with an absolute path, for instance:
+Then, load the locally built plug and add it to your `PLUGS` note with an absolute path, for instance:
 
 ```
 - file:/Users/you/path/to/mermaid.plug.json
