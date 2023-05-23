@@ -4,9 +4,8 @@ import { bundleAssets } from "./asset_bundle/builder.ts";
 import { Manifest } from "./types.ts";
 import { version } from "../version.ts";
 
-// const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);
-const workerRuntimeUrl =
-  `https://deno.land/x/silverbullet@${version}/plugos/worker_runtime.ts`;
+const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);
+// const workerRuntimeUrl =  `https://deno.land/x/silverbullet@${version}/plugos/worker_runtime.ts`;
 
 export type CompileOptions = {
   debug?: boolean;

@@ -1,4 +1,5 @@
 import { ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { sync } from "../../plug-api/silverbullet-syscall/mod.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";
 import { queryDirectiveRenderer } from "./query_directive.ts";
@@ -52,6 +53,14 @@ export async function directiveDispatcher(
     }
   } else {
     // #query
+    if (!(await sync.hasInitialSyncCompleted())) {
+      console.info(
+        "Initial sync hasn't completed yet, not updating query directives.",
+      );
+      // Render the query directive as-is
+      return renderToText(directiveTree);
+    }
+
     const newBody = await directiveRenderers["query"](
       "query",
       pageName,

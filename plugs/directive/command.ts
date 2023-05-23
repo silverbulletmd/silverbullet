@@ -1,18 +1,11 @@
+import { editor, markdown, sync } from "$sb/silverbullet-syscall/mod.ts";
 import {
-  editor,
-  markdown,
-  sync,
-  system,
-} from "$sb/silverbullet-syscall/mod.ts";
-import {
-  ParseTree,
   removeParentPointers,
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { syncSyscalls } from "../../web/syscalls/sync.ts";
 
 export async function updateDirectivesOnPageCommand(arg: any) {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
@@ -26,10 +19,10 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     return;
   }
 
-  if (!(await sync.hasInitialSyncCompleted())) {
-    console.info("Initial sync hasn't completed yet, not updating directives.");
-    return;
-  }
+  // if (!(await sync.hasInitialSyncCompleted())) {
+  //   console.info("Initial sync hasn't completed yet, not updating directives.");
+  //   return;
+  // }
 
   // If this page is shared ($share) via collab: disable directives as well
   // due to security concerns
@@ -62,7 +55,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     }
     const fullMatch = text.substring(tree.from!, tree.to!);
     try {
-      const promise = serverRenderDirective(pageName, tree);
+      const promise = renderDirectives(pageName, tree);
       replacements.push({
         textPromise: promise,
         fullMatch,
@@ -122,17 +115,8 @@ export async function updateDirectivesOnPageCommand(arg: any) {
   }
 }
 
-// Called from client, running on server
-// The text passed here is going to be a single directive block (not a full page)
-function serverRenderDirective(
-  pageName: string,
-  tree: ParseTree,
-): Promise<string> {
-  return renderDirectives(pageName, tree);
-}
-
 // Pure server driven implementation of directive updating
-export async function serverUpdateDirectives(
+export async function updateDirectives(
   pageName: string,
   text: string,
 ) {

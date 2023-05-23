@@ -7,9 +7,8 @@ import Handlebars from "handlebars";
 import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
-import { serverUpdateDirectives } from "./command.ts";
+import { updateDirectives } from "./command.ts";
 import { registerHandlebarsHelpers } from "./util.ts";
-import { parse } from "../../plug-api/plugos-syscall/yaml.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -63,7 +62,7 @@ export async function templateDirectiveRenderer(
     newBody = templateFn(parsedArgs);
 
     // Recursively render directives
-    newBody = await serverUpdateDirectives(pageName, newBody);
+    newBody = await updateDirectives(pageName, newBody);
   }
   return newBody.trim();
 }

@@ -3,7 +3,7 @@ FROM lukechannings/deno:v1.33.2
 # Create a volume first:
 #   docker volume create myspace
 # Then bind-mount it when running the container with the -v flag, e.g.:
-#   docker run -v myspace:/space -it zefhemel/silverbullet
+#   docker run -v myspace:/space -p3000:3000 -it zefhemel/silverbullet
 VOLUME /space
 
 # Accept TARGETARCH as argument
@@ -22,6 +22,7 @@ ENV SILVERBULLET_USERNAME silverbullet
 RUN mkdir -p /space \
     && addgroup --gid ${SILVERBULLET_UID_GID} silverbullet \
     && adduser --uid ${SILVERBULLET_UID_GID} --gid ${SILVERBULLET_UID_GID} ${SILVERBULLET_USERNAME} \
+    && chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /space \
     && chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /deno-dir \
     && chmod +x /tini \
     && echo "**** cleanup ****" \
@@ -43,4 +44,4 @@ EXPOSE 3000
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
-ENTRYPOINT chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /space && /tini -- deno run -A /silverbullet.js -L0.0.0.0 /space
+ENTRYPOINT /tini -- deno run -A /silverbullet.js -L0.0.0.0 /space
