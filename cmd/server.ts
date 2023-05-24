@@ -12,10 +12,24 @@ import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 
-export function serveCommand(options: any, folder: string) {
+export function serveCommand(
+  options: any,
+  folder?: string,
+) {
   const hostname = options.hostname || "127.0.0.1";
-  const port = options.port || 3000;
+  const port = options.port ||
+    (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
   const maxFileSizeMB = options.maxFileSizeMB || 20;
+
+  if (!folder) {
+    folder = Deno.env.get("SB_FOLDER");
+    if (!folder) {
+      console.error(
+        "No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.",
+      );
+      Deno.exit(1);
+    }
+  }
 
   console.log(
     "Going to start SilverBullet binding to",
@@ -56,7 +70,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     port: port,
     pagesPath: folder,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-    user: options.user,
+    user: options.user ?? Deno.env.get("SB_USER"),
     keyFile: options.key,
     certFile: options.cert,
     maxFileSizeMB: +maxFileSizeMB,

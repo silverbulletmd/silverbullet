@@ -17,7 +17,7 @@ await new Command()
   })
   .usage("<options> <folder> | <command> (see below)")
   // Main command
-  .arguments("<folder:string>")
+  .arguments("[folder:string]")
   .option(
     "--hostname, -L <hostname:string>",
     "Hostname or address to listen on",

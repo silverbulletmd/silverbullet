@@ -19,7 +19,7 @@ This consists of two steps (unless Deno is already installed — in which case w
 With Deno installed, run:
 
 ```shell
-deno install -f --name silverbullet -A https://silverbullet.md/silverbullet.js
+deno install -f --name silverbullet -A https://get.silverbullet.md
 ```
 
 This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
