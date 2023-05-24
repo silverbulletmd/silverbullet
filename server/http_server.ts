@@ -208,6 +208,7 @@ export class HttpServer {
         switch (body.operation) {
           case "fetch": {
             const result = await performLocalFetch(body.url, body.options);
+            console.log("Proxying fetch request to", body.url);
             response.headers.set("Content-Type", "application/json");
             response.body = JSON.stringify(result);
             return;

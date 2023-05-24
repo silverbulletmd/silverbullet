@@ -469,6 +469,7 @@ export class Editor {
       if (this.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
+        this.dispatchAppEvent("editor:pageLoaded", this.currentPage);
         if (operations) {
           // Likely initial sync so let's show visually that we're synced now
           this.flashNotification(`Synced ${operations} files`, "info");
