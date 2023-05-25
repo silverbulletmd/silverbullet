@@ -336,6 +336,7 @@ export class HttpServer {
       })
       .delete("\/(.+)", async ({ response, params }) => {
         const name = params[0];
+        console.log("Deleting file", name);
         try {
           await spacePrimitives.deleteFile(name);
           response.status = 200;
