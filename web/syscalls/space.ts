@@ -1,7 +1,6 @@
 import { Editor } from "../editor.tsx";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { AttachmentMeta, PageMeta } from "../types.ts";
-import { FileData, FileEncoding } from "../space.ts";
 
 export function spaceSyscalls(editor: Editor): SysCallMapping {
   const space = editor.space;
@@ -44,8 +43,8 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     "space.readAttachment": async (
       _ctx,
       name: string,
-    ): Promise<FileData> => {
-      return (await space.readAttachment(name, "dataurl")).data;
+    ): Promise<Uint8Array> => {
+      return (await space.readAttachment(name)).data;
     },
     "space.getAttachmentMeta": async (
       _ctx,
@@ -53,13 +52,12 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
     ): Promise<AttachmentMeta> => {
       return await space.getAttachmentMeta(name);
     },
-    "space.writeAttachment": async (
+    "space.writeAttachment": (
       _ctx,
       name: string,
-      encoding: FileEncoding,
-      data: string,
+      data: Uint8Array,
     ): Promise<AttachmentMeta> => {
-      return await space.writeAttachment(name, encoding, data);
+      return space.writeAttachment(name, data);
     },
     "space.deleteAttachment": async (_ctx, name: string) => {
       await space.deleteAttachment(name);

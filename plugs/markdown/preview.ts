@@ -12,17 +12,12 @@ export async function updateMarkdownPreview() {
   // const cleanMd = await cleanMarkdown(text);
   const css = await asset.readAsset("assets/styles.css");
   const js = await asset.readAsset("assets/handler.js");
-  const html = await renderMarkdownToHtml(mdTree, {
+  const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,
-    inlineAttachments: async (url): Promise<string> => {
+    inlineAttachments: (url) => {
       if (!url.includes("://")) {
-        try {
-          return await space.readAttachment(url);
-        } catch (e: any) {
-          console.error(e);
-          return url;
-        }
+        return `/.fs/${url}`;
       }
       return url;
     },

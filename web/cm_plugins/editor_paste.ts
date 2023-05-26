@@ -180,7 +180,7 @@ export function attachmentExtension(editor: Editor) {
     if (!finalFileName) {
       return;
     }
-    await editor.space.writeAttachment(finalFileName, "arraybuffer", data!);
+    await editor.space.writeAttachment(finalFileName, new Uint8Array(data));
     let attachmentMarkdown = `[${finalFileName}](${
       encodeURIComponent(finalFileName)
     })`;

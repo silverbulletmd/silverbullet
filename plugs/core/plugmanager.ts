@@ -57,8 +57,7 @@ export async function updatePlugsCommand() {
       // console.log("Writing", `_plug/${plugName}.plug.js`, workerCode);
       await space.writeAttachment(
         `_plug/${plugName}.plug.js`,
-        "utf8",
-        workerCode,
+        new TextEncoder().encode(workerCode),
       );
     }
 

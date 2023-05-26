@@ -10,9 +10,6 @@ import {
 import { mime } from "./deps.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
 
-export type FileEncoding = "utf8" | "arraybuffer" | "dataurl";
-export type FileData = ArrayBuffer | string;
-
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;
   pageChanged: (meta: PageMeta) => void;
@@ -190,31 +187,12 @@ export class Space extends EventEmitter<SpaceEvents> {
   /**
    * Reads an attachment
    * @param name path of the attachment
-   * @param encoding how the return value is expected to be encoded
    * @returns
    */
-  async readAttachment(
+  readAttachment(
     name: string,
-    encoding: FileEncoding,
-  ): Promise<{ data: FileData; meta: AttachmentMeta }> {
-    const { data, meta } = await this.spacePrimitives.readFile(name);
-    switch (encoding) {
-      case "arraybuffer":
-        return { data, meta };
-      case "dataurl":
-        return {
-          data: base64EncodedDataUrl(
-            mime.getType(name) || "application/octet-stream",
-            data,
-          ),
-          meta,
-        };
-      case "utf8":
-        return {
-          data: new TextDecoder().decode(data),
-          meta,
-        };
-    }
+  ): Promise<{ data: Uint8Array; meta: AttachmentMeta }> {
+    return this.spacePrimitives.readFile(name);
   }
 
   getAttachmentMeta(name: string): Promise<AttachmentMeta> {
@@ -223,30 +201,14 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   writeAttachment(
     name: string,
-    encoding: FileEncoding,
-    data: FileData,
+    data: Uint8Array,
     selfUpdate?: boolean | undefined,
   ): Promise<AttachmentMeta> {
-    switch (encoding) {
-      case "arraybuffer":
-        return this.spacePrimitives.writeFile(
-          name,
-          data as Uint8Array,
-          selfUpdate,
-        );
-      case "dataurl":
-        return this.spacePrimitives.writeFile(
-          name,
-          base64DecodeDataUrl(data as string),
-          selfUpdate,
-        );
-      case "utf8":
-        return this.spacePrimitives.writeFile(
-          name,
-          new TextEncoder().encode(data as string),
-          selfUpdate,
-        );
-    }
+    return this.spacePrimitives.writeFile(
+      name,
+      data as Uint8Array,
+      selfUpdate,
+    );
   }
 
   deleteAttachment(name: string): Promise<void> {

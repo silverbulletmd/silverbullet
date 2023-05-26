@@ -3,7 +3,6 @@ import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
-import { clientStore } from "../plug-api/silverbullet-syscall/mod.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 

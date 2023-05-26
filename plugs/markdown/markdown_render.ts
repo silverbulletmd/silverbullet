@@ -12,7 +12,7 @@ type MarkdownRenderOptions = {
   annotationPositions?: true;
   attachmentUrlPrefix?: string;
   // When defined, use to inline images as data: urls
-  inlineAttachments?: (url: string) => Promise<string>;
+  inlineAttachments?: (url: string) => string;
 };
 
 function cleanTags(values: (Tag | null)[]): Tag[] {
@@ -364,34 +364,34 @@ function render(
   }
 }
 
-async function traverseTag(
+function traverseTag(
   t: Tag,
-  fn: (t: Tag) => Promise<void>,
-): Promise<void> {
-  await fn(t);
+  fn: (t: Tag) => void,
+) {
+  fn(t);
   if (typeof t === "string") {
     return;
   }
   if (t.body) {
     for (const child of t.body) {
-      await traverseTag(child, fn);
+      traverseTag(child, fn);
     }
   }
 }
 
-export async function renderMarkdownToHtml(
+export function renderMarkdownToHtml(
   t: ParseTree,
   options: MarkdownRenderOptions = {},
 ) {
   preprocess(t, options);
   const htmlTree = posPreservingRender(t, options);
   if (htmlTree && options.inlineAttachments) {
-    await traverseTag(htmlTree, async (t) => {
+    traverseTag(htmlTree, (t) => {
       if (typeof t === "string") {
         return;
       }
       if (t.name === "img") {
-        t.attrs!.src = await options.inlineAttachments!(t.attrs!.src!);
+        t.attrs!.src = options.inlineAttachments!(t.attrs!.src!);
       }
     });
   }

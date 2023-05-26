@@ -42,23 +42,21 @@ export function getAttachmentMeta(name: string): Promise<AttachmentMeta> {
  */
 export function readAttachment(
   name: string,
-): Promise<string> {
+): Promise<{ data: Uint8Array; meta: AttachmentMeta }> {
   return syscall("space.readAttachment", name);
 }
 
 /**
  * Writes an attachment to the space
  * @param name path of the attachment to write
- * @param encoding encoding of the data ("utf8" or "dataurl)
  * @param data data itself
  * @returns
  */
 export function writeAttachment(
   name: string,
-  encoding: "utf8" | "dataurl",
-  data: string,
+  data: Uint8Array,
 ): Promise<AttachmentMeta> {
-  return syscall("space.writeAttachment", name, encoding, data);
+  return syscall("space.writeAttachment", name, data);
 }
 
 /**
