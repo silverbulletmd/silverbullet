@@ -12,6 +12,8 @@ your accumulated knowledge in creative ways specific to you.
 
 <img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-pwa.png" height="400"/><img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-ios.png" height="400"/>
 
+SilverBullet is implemented as an offline-first PWA: it syncs all your content into the client (browser) and performs most processing there, allowing full offline operation after first load.
+
 For more in-depth information, an interactive demo, and links to more
 background, check out the [SilverBullet website](https://silverbullet.md)
 (published from this repo’s `website/` folder).
