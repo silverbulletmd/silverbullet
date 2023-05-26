@@ -28,4 +28,4 @@ export {
   getCM as vimGetCm,
   Vim,
   vim,
-} from "https://esm.sh/@replit/codemirror-vim@6.0.4?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";
+} from "https://esm.sh/@replit/codemirror-vim@6.0.14?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands";
