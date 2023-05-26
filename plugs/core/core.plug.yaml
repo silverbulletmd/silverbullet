@@ -327,6 +327,16 @@ functions:
     command:
       name: "Debug: Parse Document"
 
+  versionCommand:
+    path: ./help.ts:versionCommand
+    command:
+      name: "Help: Version"
+
+  gettingStartedCommand:
+    path: ./help.ts:gettingStartedCommand
+    command:
+      name: "Help: Getting Started"
+
   # Link unfurl infrastructure
   unfurlLink:
     path: ./link.ts:unfurlCommand
