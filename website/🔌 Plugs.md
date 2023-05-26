@@ -29,7 +29,7 @@ These plugs are distributed with SilverBullet and are automatically enabled:
 ## Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution:
 <!-- #query page where type = "plug" and uri != null order by name render [[template/plug]] -->
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/Willyfrog/silverbullet-backlinks)) 
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/silverbulletmd/silverbullet-backlinks)) 
 * [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost)) 
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-git)) 
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github)) 

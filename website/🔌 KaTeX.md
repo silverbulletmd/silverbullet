@@ -9,7 +9,7 @@ author: Zef Hemel
 # Silver Bullet KaTeX plug
 
 ## Installation
-Run the {[Plugs: Add]} command and paste in: `github:silverbulletmd/silverbullet-katex/katex.plug.json`
+Run the {[Plugs: Add]} command and paste in: `github:silverbulletmd/silverbullet-katex/katex.plug.js`
 
 That's all!
 
@@ -23,7 +23,7 @@ Put a latex block in your markdown:
 
 And move your cursor outside of the block to live preview it!
 
-**Note:** [KaTeX](https://katex.org) itself is not bundled with this plug; it pulls the JavaScript, CSS and fonts from the JSDelivr CDN. This means _this plug will not work without an Internet connection_. This limitation is because it is not yet possible to distribute font files via plugs, and KaTeX depends on specific web fonts.
+**Note:** [KaTeX](https://katex.org) itself is not bundled with this plug, it pulls the JavaScript, CSS and fonts from the JSDelivr CDN. This means _this plug will not work without an Internet connection_. The reason for this limitation is that it is not yet possible to distribute font files via plugs, and KaTeX depends on specific web fonts.
 
 ## Build
 Assuming you have Deno and Silver Bullet installed, simply build using:
@@ -38,7 +38,7 @@ Or to watch for changes and rebuild automatically
 deno task watch
 ```
 
-Then, load the locally built plug and add it to your `PLUGS` note with an absolute path, for instance:
+Then, load the locally built plug, add it to your `PLUGS` note with an absolute path, for instance:
 
 ```
 - file:/Users/you/path/to/katex.plug.json
