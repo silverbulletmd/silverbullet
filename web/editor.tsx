@@ -270,7 +270,7 @@ export class Editor {
       },
     );
 
-    this.space = new Space(localSpacePrimitives);
+    this.space = new Space(localSpacePrimitives, this.kvStore);
     this.space.watch();
 
     this.syncService = new SyncService(

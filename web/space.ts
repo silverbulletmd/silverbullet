@@ -3,12 +3,9 @@ import { FileMeta } from "../common/types.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
-import {
-  base64DecodeDataUrl,
-  base64EncodedDataUrl,
-} from "../plugos/asset_bundle/base64.ts";
-import { mime } from "./deps.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
+import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
+import { throttle } from "../common/async_util.ts";
 
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;
@@ -22,6 +19,23 @@ const pageWatchInterval = 5000;
 export class Space extends EventEmitter<SpaceEvents> {
   pageMetaCache = new Map<string, PageMeta>();
 
+  imageHeightCache: Record<string, number> = {};
+
+  debouncedCacheFlush = throttle(() => {
+    this.kvStore.set("imageHeightCache", this.imageHeightCache).catch(
+      console.error,
+    );
+    console.log("Flushed image height cache to store");
+  }, 5000);
+
+  setCachedImageHeight(url: string, height: number) {
+    this.imageHeightCache[url] = height;
+    this.debouncedCacheFlush();
+  }
+  getCachedImageHeight(url: string): number {
+    return this.imageHeightCache[url] ?? -1;
+  }
+
   // We do watch files in the background to detect changes
   // This set of pages should only ever contain 1 page
   watchedPages = new Set<string>();
@@ -30,34 +44,18 @@ export class Space extends EventEmitter<SpaceEvents> {
   private initialPageListLoad = true;
   private saving = false;
 
-  constructor(readonly spacePrimitives: SpacePrimitives) {
+  constructor(
+    readonly spacePrimitives: SpacePrimitives,
+    private kvStore: DexieKVStore,
+  ) {
     super();
+    this.kvStore.get("imageHeightCache").then((cache) => {
+      if (cache) {
+        console.log("Loaded image height cache from KV store", cache);
+        this.imageHeightCache = cache;
+      }
+    });
   }
-
-  // // Filesystem interface implementation
-  // async readFile(path: string, encoding: "dataurl" | "utf8"): Promise<string> {
-  //   return (await this.spacePrimitives.readFile(path, encoding)).data as string;
-  // }
-  // getFileMeta(path: string): Promise<FileMeta> {
-  //   return this.spacePrimitives.getFileMeta(path);
-  // }
-  // writeFile(
-  //   path: string,
-  //   text: string,
-  //   encoding: "dataurl" | "utf8",
-  // ): Promise<FileMeta> {
-  //   return this.spacePrimitives.writeFile(path, encoding, text);
-  // }
-  // deleteFile(path: string): Promise<void> {
-  //   return this.spacePrimitives.deleteFile(path);
-  // }
-  // async listFiles(path: string): Promise<FileMeta[]> {
-  //   return (await this.spacePrimitives.fetchFileList()).filter((f) =>
-  //     f.name.startsWith(path)
-  //   );
-  // }
-
-  // // The more domain-specific methods
 
   public async updatePageList() {
     const newPageList = await this.fetchPageList();
