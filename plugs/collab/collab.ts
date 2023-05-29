@@ -110,6 +110,7 @@ export async function detectPage() {
       console.error("Error parsing YAML", e);
     }
   }
+  await ping();
 }
 
 export function shareNoop() {
@@ -160,3 +161,48 @@ export function writeFileCollab(name: string): FileMeta {
     perm: "rw",
   };
 }
+
+const clientId = nanoid();
+let currentCollabId: string | undefined;
+
+const localCollabServer = location.protocol === "http:"
+  ? `ws://${location.host}/.ws-collab`
+  : `wss://${location.host}/.ws-collab`;
+
+async function ping() {
+  try {
+    const currentPage = await editor.getCurrentPage();
+    const { collabId } = await collab.ping(
+      clientId,
+      currentPage,
+    );
+    console.log("Collab ID", collabId);
+    if (!collabId && currentCollabId) {
+      // Stop collab
+      console.log("Stopping collab");
+      // editor.flashNotification("Closing real-time collaboration mode.");
+      currentCollabId = undefined;
+      await collab.stop();
+    } else if (collabId && collabId !== currentCollabId) {
+      // Start collab
+      console.log("Starting collab");
+      editor.flashNotification("Opening page in real-time collaboration mode.");
+      currentCollabId = collabId;
+      await collab.start(
+        localCollabServer,
+        `${collabId}/${currentPage}`,
+        "you",
+      );
+    }
+  } catch (e: any) {
+    // console.error("Ping error", e);
+    if (e.message.includes("Failed to fetch") && currentCollabId) {
+      console.log("Offline, stopping collab");
+      currentCollabId = undefined;
+      await collab.stop();
+    }
+  }
+}
+setInterval(() => {
+  ping().catch(console.error);
+}, 5000);

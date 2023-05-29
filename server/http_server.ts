@@ -7,6 +7,7 @@ import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
+import { CollabServer } from "./collab.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -29,6 +30,7 @@ export class HttpServer {
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
+  collab: CollabServer;
 
   constructor(
     spacePrimitives: SpacePrimitives,
@@ -62,6 +64,8 @@ export class HttpServer {
         }
       },
     );
+    this.collab = new CollabServer(this.spacePrimitives);
+    this.collab.start();
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -123,7 +127,8 @@ export class HttpServer {
     this.app.use(({ request, response }, next) => {
       if (
         !request.url.pathname.startsWith("/.fs") &&
-        request.url.pathname !== "/.auth"
+        request.url.pathname !== "/.auth" &&
+        !request.url.pathname.startsWith("/.ws")
       ) {
         response.headers.set("Content-type", "text/html");
         response.body = this.renderIndexHtml();
@@ -137,6 +142,8 @@ export class HttpServer {
     this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
+
+    this.collab.route(this.app);
 
     this.abortController = new AbortController();
     const listenOptions: any = {
@@ -271,6 +278,15 @@ export class HttpServer {
               stderr,
               code: output.code,
             });
+            return;
+          }
+          case "ping": {
+            response.headers.set("Content-Type", "application/json");
+            // console.log("Got ping", body);
+            response.body = JSON.stringify(
+              this.collab.ping(body.clientId, body.page),
+            );
+            // console.log(this.collab);
             return;
           }
           default:

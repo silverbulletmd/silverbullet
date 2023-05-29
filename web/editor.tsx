@@ -389,7 +389,8 @@ export class Editor {
 
     this.space.on({
       pageChanged: (meta) => {
-        if (this.currentPage === meta.name) {
+        // Only reload when watching the current page (to avoid reloading when switching pages and in collab mode)
+        if (this.space.watchInterval && this.currentPage === meta.name) {
           console.log("Page changed elsewhere, reloading");
           this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();
@@ -1144,8 +1145,7 @@ export class Editor {
         await this.save(true);
         // And stop the collab session
         if (this.collabState) {
-          this.collabState.stop();
-          this.collabState = undefined;
+          this.stopCollab();
         }
       }
     }
@@ -1226,10 +1226,18 @@ export class Editor {
     if (pageState) {
       // Restore state
       editorView.scrollDOM.scrollTop = pageState!.scrollTop;
-      editorView.dispatch({
-        selection: pageState.selection,
-        scrollIntoView: true,
-      });
+      try {
+        editorView.dispatch({
+          selection: pageState.selection,
+          scrollIntoView: true,
+        });
+      } catch {
+        // This is fine, just go to the top
+        editorView.dispatch({
+          selection: { anchor: 0 },
+          scrollIntoView: true,
+        });
+      }
     } else {
       editorView.scrollDOM.scrollTop = 0;
       editorView.dispatch({
@@ -1508,12 +1516,24 @@ export class Editor {
     }
     const initialText = this.editorView!.state.sliceDoc();
     this.collabState = new CollabState(serverUrl, token, username);
-    this.collabState.collabProvider.once("sync", (synced: boolean) => {
-      if (this.collabState?.ytext.toString() === "") {
-        console.log("Synced value is empty, putting back original text");
-        this.collabState?.ytext.insert(0, initialText);
-      }
-    });
+    // this.collabState.collabProvider.on("synced", () => {
+    //   if (this.collabState?.ytext.toString() === "") {
+    //     console.error("Synced value is empty, putting back original text");
+    //     this.collabState?.ytext.insert(0, initialText);
+    //   }
+    // });
     this.rebuildEditorState();
+    // Don't watch for local changes in this mode
+    this.space.unwatch();
+  }
+
+  stopCollab() {
+    if (this.collabState) {
+      this.collabState.stop();
+      this.collabState = undefined;
+      this.rebuildEditorState();
+    }
+    // Start file watching again
+    this.space.watch();
   }
 }

@@ -1,4 +1,4 @@
-import { Extension, WebsocketProvider, Y, yCollab } from "../deps.ts";
+import { Extension, HocuspocusProvider, Y, yCollab } from "../deps.ts";
 
 const userColors = [
   { color: "#30bced", light: "#30bced33" },
@@ -12,27 +12,27 @@ const userColors = [
 ];
 
 export class CollabState {
-  ydoc: Y.Doc;
-  collabProvider: WebsocketProvider;
-  ytext: Y.Text;
-  yundoManager: Y.UndoManager;
+  public ytext: Y.Text;
+  private collabProvider: HocuspocusProvider;
+  private yundoManager: Y.UndoManager;
 
-  constructor(serverUrl: string, token: string, username: string) {
-    this.ydoc = new Y.Doc();
-    this.collabProvider = new WebsocketProvider(
-      serverUrl,
-      token,
-      this.ydoc,
-    );
+  constructor(serverUrl: string, name: string, username: string) {
+    this.collabProvider = new HocuspocusProvider({
+      url: serverUrl,
+      name: name,
+    });
 
     this.collabProvider.on("status", (e: any) => {
       console.log("Collab status change", e);
     });
-    this.collabProvider.on("sync", (e: any) => {
-      console.log("Sync status", e);
-    });
+    // this.collabProvider.on("sync", (e: any) => {
+    //   console.log("Sync status", e);
+    // });
+    // this.collabProvider.on("synced", (e: any) => {
+    //   console.log("Synced status", e);
+    // });
 
-    this.ytext = this.ydoc.getText("codemirror");
+    this.ytext = this.collabProvider.document.getText("codemirror");
     this.yundoManager = new Y.UndoManager(this.ytext);
 
     const randomColor =
@@ -46,6 +46,7 @@ export class CollabState {
   }
 
   stop() {
+    this.collabProvider.disconnect();
     this.collabProvider.destroy();
   }
 

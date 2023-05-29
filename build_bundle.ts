@@ -13,12 +13,23 @@ await esbuild.build({
   sourcemap: false,
   minify: false,
   plugins: [
+    // ESBuild plugin to make npm modules external
+    {
+      name: "npm-external",
+      setup(build: any) {
+        build.onResolve({ filter: /^npm:/ }, (args: any) => {
+          return {
+            path: args.path,
+            external: true,
+          };
+        });
+      },
+    },
     {
       name: "json",
       setup: (build) =>
         build.onLoad({ filter: /\.json$/ }, () => ({ loader: "json" })),
     },
-
     ...denoPlugins({
       importMapURL: new URL("./import_map.json", import.meta.url)
         .toString(),

@@ -51,7 +51,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     super();
     this.kvStore.get("imageHeightCache").then((cache) => {
       if (cache) {
-        console.log("Loaded image height cache from KV store", cache);
+        // console.log("Loaded image height cache from KV store", cache);
         this.imageHeightCache = cache;
       }
     });
