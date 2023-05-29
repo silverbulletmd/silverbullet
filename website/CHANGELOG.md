@@ -4,6 +4,7 @@ release.
 ## Next
 
 * Added `spaceIgnore` setting to not sync specific folders or file patterns to the client, see [[SETTINGS]] for documentation
+* Much improved image loading behavior on page (previously scroll bars would jump up and down like a mad person)
 
 
 ---
