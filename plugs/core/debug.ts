@@ -10,3 +10,7 @@ export async function parsePageCommand() {
     ),
   );
 }
+
+export async function resetClientCommand() {
+  editor.openUrl("/.client/reset.html");
+}

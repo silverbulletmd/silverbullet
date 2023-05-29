@@ -326,6 +326,11 @@ functions:
     path: ./debug.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
+  resetClientCommand:
+    path: ./debug.ts:resetClientCommand
+    command:
+      name: "Debug: Reset Client"
+
 
   versionCommand:
     path: ./help.ts:versionCommand
