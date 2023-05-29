@@ -20,9 +20,9 @@ weeklyNoteMonday: false
 # Markdown
 previewOnRHS: true
 
-# Sync
-sync:
-  # Do not sync pages with a specific prefix
-  excludePrefixes:
-  - PLUGS
+# Defines files to ignore in a format compatible with .gitignore
+spaceIgnore: |
+   dist
+   largefolder
+   *.mp4
 ```

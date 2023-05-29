@@ -15,6 +15,7 @@ import {
   EditorSelection,
   EditorState,
   EditorView,
+  gitIgnoreCompiler,
   highlightSpecialChars,
   history,
   historyKeymap,
@@ -134,6 +135,8 @@ import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
+import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
+import { globToRegExp } from "https://deno.land/std@0.189.0/path/glob.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -247,12 +250,24 @@ export class Editor {
       namespaceHook,
     );
 
-    const localSpacePrimitives = new FileMetaSpacePrimitives(
-      new EventedSpacePrimitives(
-        plugSpacePrimitives,
-        this.eventHook,
+    let fileFilterFn: (s: string) => boolean = () => true;
+    const localSpacePrimitives = new FilteredSpacePrimitives(
+      new FileMetaSpacePrimitives(
+        new EventedSpacePrimitives(
+          plugSpacePrimitives,
+          this.eventHook,
+        ),
+        indexSyscalls,
       ),
-      indexSyscalls,
+      (meta) => fileFilterFn(meta.name),
+      async () => {
+        await this.loadSettings();
+        if (typeof this.settings?.spaceIgnore === "string") {
+          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+        } else {
+          fileFilterFn = () => true;
+        }
+      },
     );
 
     this.space = new Space(localSpacePrimitives);
@@ -458,6 +473,7 @@ export class Editor {
     this.syncService.start();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
+      // console.log("Operations", operations);
       if (operations > 0) {
         // Update the page list
         await this.space.updatePageList();

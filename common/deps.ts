@@ -124,3 +124,5 @@ export {
 } from "https://esm.sh/@codemirror/lang-javascript@6.1.8?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
 
 export { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
+
+export { compile as gitIgnoreCompiler } from "https://esm.sh/gitignore-parser@0.0.2";

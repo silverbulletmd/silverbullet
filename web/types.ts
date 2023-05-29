@@ -33,6 +33,8 @@ export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
+  // Format: compatible with docker ignore
+  spaceIgnore?: string;
 };
 
 export type PanelConfig = {

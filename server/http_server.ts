@@ -4,6 +4,9 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
+import { BuiltinSettings } from "../web/types.ts";
+import { gitIgnoreCompiler } from "./deps.ts";
+import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -22,12 +25,13 @@ export class HttpServer {
   private hostname: string;
   private port: number;
   user?: string;
-  settings: { [key: string]: any } = {};
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
+  settings?: BuiltinSettings;
+  spacePrimitives: SpacePrimitives;
 
   constructor(
-    private spacePrimitives: SpacePrimitives,
+    spacePrimitives: SpacePrimitives,
     private options: ServerOptions,
   ) {
     this.hostname = options.hostname;
@@ -35,6 +39,29 @@ export class HttpServer {
     this.app = new Application();
     this.user = options.user;
     this.clientAssetBundle = options.clientAssetBundle;
+
+    let fileFilterFn: (s: string) => boolean = () => true;
+    this.spacePrimitives = new FilteredSpacePrimitives(
+      spacePrimitives,
+      (meta) => {
+        // Don't list file exceeding the maximum file size
+        if (
+          options.maxFileSizeMB &&
+          meta.size / (1024 * 1024) > options.maxFileSizeMB
+        ) {
+          return false;
+        }
+        return fileFilterFn(meta.name);
+      },
+      async () => {
+        await this.reloadSettings();
+        if (typeof this.settings?.spaceIgnore === "string") {
+          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+        } else {
+          fileFilterFn = () => true;
+        }
+      },
+    );
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -50,8 +77,7 @@ export class HttpServer {
   }
 
   async start() {
-    await ensureSettingsAndIndex(this.spacePrimitives);
-
+    await this.reloadSettings();
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {
       if (request.url.pathname === "/") {
@@ -135,6 +161,11 @@ export class HttpServer {
     console.log(
       `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
     );
+  }
+
+  async reloadSettings() {
+    // TODO: Throttle this?
+    this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
   }
 
   private addPasswordAuth(app: Application) {

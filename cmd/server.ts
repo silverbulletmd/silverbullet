@@ -43,37 +43,33 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   }
   let spacePrimitives: SpacePrimitives | undefined;
   if (folder === "s3://") {
-    spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new S3SpacePrimitives({
-        accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
-        secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
-        endPoint: Deno.env.get("AWS_ENDPOINT")!,
-        region: Deno.env.get("AWS_REGION")!,
-        bucket: Deno.env.get("AWS_BUCKET")!,
-      }),
-      new AssetBundle(plugAssetBundle as AssetJson),
-    );
+    spacePrimitives = new S3SpacePrimitives({
+      accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
+      secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
+      endPoint: Deno.env.get("AWS_ENDPOINT")!,
+      region: Deno.env.get("AWS_REGION")!,
+      bucket: Deno.env.get("AWS_BUCKET")!,
+    });
     console.log("Running in S3 mode");
   } else {
+    // Regular disk mode
     folder = path.resolve(Deno.cwd(), folder);
-    spacePrimitives = new AssetBundlePlugSpacePrimitives(
-      new DiskSpacePrimitives(folder, {
-        maxFileSizeMB: options.maxFileSizeMB,
-      }),
-      new AssetBundle(plugAssetBundle as AssetJson),
-    );
+    spacePrimitives = new DiskSpacePrimitives(folder);
   }
-  console.log("Serving pages from", folder);
+  spacePrimitives = new AssetBundlePlugSpacePrimitives(
+    spacePrimitives,
+    new AssetBundle(plugAssetBundle as AssetJson),
+  );
 
-  const httpServer = new HttpServer(spacePrimitives, {
+  const httpServer = new HttpServer(spacePrimitives!, {
     hostname,
     port: port,
-    pagesPath: folder,
+    pagesPath: folder!,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     user: options.user ?? Deno.env.get("SB_USER"),
     keyFile: options.key,
     certFile: options.cert,
     maxFileSizeMB: +maxFileSizeMB,
   });
-  httpServer.start().catch(console.error);
+  return httpServer.start();
 }

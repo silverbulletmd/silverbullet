@@ -36,14 +36,18 @@ export function parseYamlSettings(settingsMarkdown: string): {
 export async function ensureSettingsAndIndex(
   space: SpacePrimitives,
 ): Promise<any> {
+  let settingsText: string | undefined;
   try {
-    await space.getFileMeta("SETTINGS.md");
+    settingsText = new TextDecoder().decode(
+      (await space.readFile("SETTINGS.md")).data,
+    );
   } catch {
     await space.writeFile(
       "SETTINGS.md",
       new TextEncoder().encode(SETTINGS_TEMPLATE),
       true,
     );
+    settingsText = SETTINGS_TEMPLATE;
     // Ok, then let's also write the index page
     try {
       await space.getFileMeta("index.md");
@@ -60,4 +64,6 @@ Loading some onboarding content for you (but doing so does require a working int
       );
     }
   }
+
+  return parseYamlSettings(settingsText);
 }

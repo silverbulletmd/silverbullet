@@ -16,14 +16,10 @@ function normalizeForwardSlashPath(path: string) {
 
 const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
 
-export type DiskSpaceOptions = {
-  maxFileSizeMB?: number;
-};
-
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
 
-  constructor(rootPath: string, private options: DiskSpaceOptions = {}) {
+  constructor(rootPath: string) {
     this.rootPath = Deno.realPathSync(rootPath);
   }
 
@@ -150,13 +146,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
-        // Don't list file exceeding the maximum file size
-        if (
-          this.options.maxFileSizeMB &&
-          s.size / (1024 * 1024) > this.options.maxFileSizeMB
-        ) {
-          continue;
-        }
         const name = fullPath.substring(this.rootPath.length + 1);
         if (excludedFiles.includes(name)) {
           continue;

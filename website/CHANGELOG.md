@@ -1,6 +1,11 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+## Next
+
+* Added `spaceIgnore` setting to not sync specific folders or file patterns to the client, see [[SETTINGS]] for documentation
+
+
 ---
 
 ## 0.3.1
