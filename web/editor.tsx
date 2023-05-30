@@ -951,38 +951,39 @@ export class Editor {
             touchCount = 0;
           },
           mousedown: (event: MouseEvent, view: EditorView) => {
-            // Make sure <a> tags are clicked without moving the cursor there
-            if (!event.altKey && event.target instanceof Element) {
-              const parentA = event.target.closest("a");
-              if (parentA) {
-                event.stopPropagation();
-                event.preventDefault();
-                const clickEvent: ClickEvent = {
-                  page: pageName,
-                  ctrlKey: event.ctrlKey,
-                  metaKey: event.metaKey,
-                  altKey: event.altKey,
-                  pos: view.posAtCoords({
-                    x: event.x,
-                    y: event.y,
-                  })!,
-                };
-                this.dispatchAppEvent("page:click", clickEvent).catch(
-                  console.error,
-                );
-              }
-            }
-          },
-          click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
-              const clickEvent: ClickEvent = {
+              const pos = view.posAtCoords(event)!;
+              const potentialClickEvent: ClickEvent = {
                 page: pageName,
                 ctrlKey: event.ctrlKey,
                 metaKey: event.metaKey,
                 altKey: event.altKey,
-                pos: view.posAtCoords(event)!,
+                pos: view.posAtCoords({
+                  x: event.x,
+                  y: event.y,
+                })!,
               };
-              await this.dispatchAppEvent("page:click", clickEvent);
+              // Make sure <a> tags are clicked without moving the cursor there
+              if (!event.altKey && event.target instanceof Element) {
+                const parentA = event.target.closest("a");
+                if (parentA) {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  await this.dispatchAppEvent(
+                    "page:click",
+                    potentialClickEvent,
+                  );
+                  return;
+                }
+              }
+
+              const distanceX = event.x - view.coordsAtPos(pos)!.left;
+              // What we're trying to determine here is if the click occured anywhere near the looked up position
+              // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
+              // Fixes #357
+              if (distanceX <= view.defaultCharacterWidth) {
+                await this.dispatchAppEvent("page:click", potentialClickEvent);
+              }
             });
           },
         }),
