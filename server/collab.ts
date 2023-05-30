@@ -107,7 +107,7 @@ export class CollabServer {
     const internalPort = getAvailablePortSync();
     const hocuspocus = new Hocuspocus({
       port: internalPort,
-      address: "localhost",
+      address: "127.0.0.1",
       quiet: true,
       onLoadDocument: async (doc) => {
         console.log("[Hocuspocus]", "Requesting doc load", doc.documentName);
@@ -115,7 +115,8 @@ export class CollabServer {
         const pageName = pageNamePieces.join("/");
         const collabPage = this.pages.get(pageName);
         if (!collabPage || collabPage.collabId !== collabId) {
-          // This can happen after a server restart, where old clients are still trying to continue on an old session
+          // This can happen after a server restart (or a multi-server setup which we don't yet support),
+          // where old clients are still trying to continue on an old session
           // This will self-correct when the client discovers that the collabId has changed
           // Until then: HARD PASS (meaning: don't send a document)
           console.warn(
@@ -127,6 +128,7 @@ export class CollabServer {
         }
         try {
           const yText = doc.document.getText("codemirror");
+          // Read document from space and load it into Yjs
           const { data } = await this.spacePrimitives.readFile(
             `${pageName}.md`,
           );
@@ -154,6 +156,7 @@ export class CollabServer {
     });
 
     hocuspocus.listen();
+
     app.use((ctx) => {
       if (ctx.request.url.pathname === "/.ws") {
         const sock = ctx.upgrade();

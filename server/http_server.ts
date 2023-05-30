@@ -281,12 +281,12 @@ export class HttpServer {
             return;
           }
           case "ping": {
+            // RPC to check (for collab purposes) which client has what page open
             response.headers.set("Content-Type", "application/json");
             // console.log("Got ping", body);
             response.body = JSON.stringify(
               this.collab.ping(body.clientId, body.page),
             );
-            // console.log(this.collab);
             return;
           }
           default:
