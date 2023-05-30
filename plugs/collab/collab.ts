@@ -162,7 +162,16 @@ export function writeFileCollab(name: string): FileMeta {
   };
 }
 
-const clientId = nanoid();
+// Generate a random client ID and store it in the store
+// clientIDs will be unique per device
+const clientId = store.get("collabClientId").then(async (clientId) => {
+  if (!clientId) {
+    clientId = nanoid();
+    await store.set("collabClientId", clientId);
+  }
+  return clientId;
+});
+
 let currentCollabId: string | undefined;
 
 const localCollabServer = location.protocol === "http:"
@@ -173,20 +182,24 @@ async function ping() {
   try {
     const currentPage = await editor.getCurrentPage();
     const { collabId } = await collab.ping(
-      clientId,
+      await clientId,
       currentPage,
     );
     console.log("Collab ID", collabId);
     if (!collabId && currentCollabId) {
       // Stop collab
       console.log("Stopping collab");
-      // editor.flashNotification("Closing real-time collaboration mode.");
+      editor.flashNotification(
+        "Other users have left this page, switched back to single-user mode.",
+      );
       currentCollabId = undefined;
       await collab.stop();
     } else if (collabId && collabId !== currentCollabId) {
       // Start collab
       console.log("Starting collab");
-      editor.flashNotification("Opening page in real-time collaboration mode.");
+      editor.flashNotification(
+        "Another device has joined this page, switched to multi-user mode.",
+      );
       currentCollabId = collabId;
       await collab.start(
         localCollabServer,
