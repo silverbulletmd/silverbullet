@@ -46,8 +46,12 @@ export class CollabState {
   }
 
   stop() {
-    this.collabProvider.disconnect();
+    // this.collabProvider.disconnect();
+    console.log("[COLLAB] Destroying collab provider");
     this.collabProvider.destroy();
+    // For whatever reason, destroy() doesn't properly clean up everything so we need to help a bit
+    this.collabProvider.configuration.websocketProvider.webSocket = null;
+    this.collabProvider.configuration.websocketProvider.destroy();
   }
 
   collabExtension(): Extension {
