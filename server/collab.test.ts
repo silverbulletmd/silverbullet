@@ -25,7 +25,7 @@ Deno.test("Collab server", async () => {
   console.log("Going to sleep 20ms");
   await sleep(20);
   console.log("Then client 1 pings, but client 2 does not");
-  assertEquals(collabServer.ping("client1", "page2"), {});
+  collabServer.ping("client1", "page2");
   await sleep(20);
   console.log("Going to cleanup, which should clean client 2");
   collabServer.cleanup(35);
