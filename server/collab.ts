@@ -111,7 +111,20 @@ export class CollabServer {
       quiet: true,
       onLoadDocument: async (doc) => {
         console.log("[Hocuspocus]", "Requesting doc load", doc.documentName);
-        const pageName = doc.documentName.split("/").slice(1).join("/");
+        const [collabId, ...pageNamePieces] = doc.documentName.split("/");
+        const pageName = pageNamePieces.join("/");
+        const collabPage = this.pages.get(pageName);
+        if (!collabPage || collabPage.collabId !== collabId) {
+          // This can happen after a server restart, where old clients are still trying to continue on an old session
+          // This will self-correct when the client discovers that the collabId has changed
+          // Until then: HARD PASS (meaning: don't send a document)
+          console.warn(
+            "[Hocuspocus]",
+            "Client tried to connect to old session",
+            doc.documentName,
+          );
+          return;
+        }
         try {
           const yText = doc.document.getText("codemirror");
           const { data } = await this.spacePrimitives.readFile(

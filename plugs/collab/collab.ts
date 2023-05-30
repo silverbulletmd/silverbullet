@@ -172,6 +172,7 @@ const clientId = store.get("collabClientId").then(async (clientId) => {
   return clientId;
 });
 
+let lastCollabPage: string | undefined;
 let currentCollabId: string | undefined;
 
 const localCollabServer = location.protocol === "http:"
@@ -189,16 +190,18 @@ async function ping() {
     if (!collabId && currentCollabId) {
       // Stop collab
       console.log("Stopping collab");
-      editor.flashNotification(
-        "Other users have left this page, switched back to single-user mode.",
-      );
+      if (lastCollabPage === currentPage) {
+        editor.flashNotification(
+          "Other users have left this page, switched back to single-user mode.",
+        );
+      }
       currentCollabId = undefined;
       await collab.stop();
     } else if (collabId && collabId !== currentCollabId) {
       // Start collab
       console.log("Starting collab");
       editor.flashNotification(
-        "Another device has joined this page, switched to multi-user mode.",
+        "Opening page in multi-user mode.",
       );
       currentCollabId = collabId;
       await collab.start(
@@ -206,6 +209,9 @@ async function ping() {
         `${collabId}/${currentPage}`,
         "you",
       );
+    }
+    if (currentCollabId) {
+      lastCollabPage = currentPage;
     }
   } catch (e: any) {
     // console.error("Ping error", e);
