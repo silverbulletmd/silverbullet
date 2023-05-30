@@ -83,6 +83,7 @@ self.addEventListener("fetch", (event: any) => {
 
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
+        // console.log("In service worker, pathname is", pathname);
         // If this is a /.fs request, this can either be a plug worker load or an attachment load
         if (pathname.startsWith("/.fs")) {
           if (fileContentTable && !event.request.headers.has("x-sync-mode")) {

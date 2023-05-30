@@ -1,9 +1,7 @@
 import { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { AssetBundle } from "../../plugos/asset_bundle/bundle.ts";
-import { mime } from "../deps.ts";
 
-const bootTime = Date.now();
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
@@ -16,8 +14,8 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     return this.assetBundle.listFiles()
       .map((p) => ({
         name: p,
-        contentType: mime.getType(p) || "application/octet-stream",
-        lastModified: bootTime,
+        contentType: this.assetBundle.getMimeType(p),
+        lastModified: this.assetBundle.getMtime(p),
         perm: "ro",
         size: -1,
       } as FileMeta)).concat(files);
@@ -32,10 +30,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       return Promise.resolve({
         data,
         meta: {
-          lastModified: bootTime,
+          contentType: this.assetBundle.getMimeType(name),
+          lastModified: this.assetBundle.getMtime(name),
           size: data.byteLength,
           perm: "ro",
-          contentType: this.assetBundle.getMimeType(name),
         } as FileMeta,
       });
     }
@@ -46,10 +44,10 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     if (this.assetBundle.has(name)) {
       const data = this.assetBundle.readFileSync(name);
       return Promise.resolve({
-        lastModified: bootTime,
+        contentType: this.assetBundle.getMimeType(name),
+        lastModified: this.assetBundle.getMtime(name),
         size: data.byteLength,
         perm: "ro",
-        contentType: this.assetBundle.getMimeType(name),
       } as FileMeta);
     }
     return this.wrapped.getFileMeta(name);
