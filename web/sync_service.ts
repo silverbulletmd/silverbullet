@@ -165,6 +165,16 @@ export class SyncService {
     await this.registerSyncStop();
   }
 
+  // Reach out out to remote space, fetch the latest lastModified time and update the local snapshot
+  // This is used when exiting collab mode
+  async fetchAndPersistRemoteLastModified(path: string) {
+    const meta = await this.remoteSpace.getFileMeta(path);
+    await this.updateRemoteLastModified(
+      meta.name,
+      meta.lastModified,
+    );
+  }
+
   // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync when local changes happen
   async updateLocalLastModified(path: string, lastModified: number) {
     await this.noOngoingSync();

@@ -1,4 +1,5 @@
 import { Extension, HocuspocusProvider, Y, yCollab } from "../deps.ts";
+import { SyncService } from "../sync_service.ts";
 
 const userColors = [
   { color: "#30bced", light: "#30bced33" },
@@ -17,15 +18,31 @@ export class CollabState {
   private yundoManager: Y.UndoManager;
 
   constructor(
-    serverUrl: string,
-    name: string,
-    username: string,
-    onStateless: (data: any) => any,
+    private serverUrl: string,
+    private pageName: string,
+    private token: string,
+    private username: string,
+    private syncService: SyncService,
   ) {
     this.collabProvider = new HocuspocusProvider({
       url: serverUrl,
-      name: name,
-      onStateless,
+      name: token,
+
+      // Receive broadcasted messages from the server (right now only "page has been persisted" notifications)
+      onStateless: (
+        { payload },
+      ) => {
+        const message = JSON.parse(payload);
+        switch (message.type) {
+          case "persisted": {
+            // Received remote persist notification, updating snapshot
+            syncService.updateRemoteLastModified(
+              message.path,
+              message.lastModified,
+            ).catch(console.error);
+          }
+        }
+      },
     });
 
     this.collabProvider.on("status", (e: any) => {
@@ -46,12 +63,18 @@ export class CollabState {
   }
 
   stop() {
-    // this.collabProvider.disconnect();
     console.log("[COLLAB] Destroying collab provider");
     this.collabProvider.destroy();
     // For whatever reason, destroy() doesn't properly clean up everything so we need to help a bit
     this.collabProvider.configuration.websocketProvider.webSocket = null;
     this.collabProvider.configuration.websocketProvider.destroy();
+
+    // When stopping collaboration, we're going back to sync mode. Make sure we got the latest and greatest remote timestamp to avoid
+    // conflicts
+    this.syncService.fetchAndPersistRemoteLastModified(`${this.pageName}.md`)
+      .catch(
+        console.error,
+      );
   }
 
   collabExtension(): Extension {

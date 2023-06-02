@@ -1155,7 +1155,7 @@ export class Editor {
         await this.save(true);
         // And stop the collab session
         if (this.collabState) {
-          this.stopCollab(previousPage);
+          this.stopCollab();
         }
       }
     }
@@ -1525,49 +1525,25 @@ export class Editor {
       this.collabState.stop();
     }
     const initialText = this.editorView!.state.sliceDoc();
-    this.collabState = new CollabState(serverUrl, token, username, (
-      { payload },
-    ) => {
-      const message = JSON.parse(payload);
-      switch (message.type) {
-        case "persisted": {
-          // console.log(
-          //   "Received remote persist notification, updating snapshot",
-          //   message,
-          // );
-          this.syncService.updateRemoteLastModified(
-            message.path,
-            message.lastModified,
-          ).catch(console.error);
-        }
-      }
-    });
+    this.collabState = new CollabState(
+      serverUrl,
+      this.currentPage!,
+      token,
+      username,
+      this.syncService,
+    );
 
-    // this.collabState.collabProvider.on("synced", () => {
-    //   if (this.collabState?.ytext.toString() === "") {
-    //     console.error("Synced value is empty, putting back original text");
-    //     this.collabState?.ytext.insert(0, initialText);
-    //   }
-    // });
     this.rebuildEditorState();
+
     // Don't watch for local changes in this mode
     this.space.unwatch();
   }
 
-  stopCollab(pageName: string) {
+  stopCollab() {
     if (this.collabState) {
       this.collabState.stop();
       this.collabState = undefined;
       this.rebuildEditorState();
-      // Switching off collab mode
-      this.syncService.remoteSpace.getFileMeta(`${pageName}.md`).then(
-        (meta) => {
-          return this.syncService.updateRemoteLastModified(
-            meta.name,
-            meta.lastModified,
-          );
-        },
-      ).catch(console.error);
     }
     // Start file watching again
     this.space.watch();
