@@ -1,3 +1,4 @@
+import { sleep } from "../common/async_util.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import {
   SpaceSync,
@@ -31,8 +32,8 @@ export class SyncService {
   lastReportedSyncStatus = Date.now();
 
   constructor(
-    private localSpacePrimitives: SpacePrimitives,
-    private remoteSpace: SpacePrimitives,
+    readonly localSpacePrimitives: SpacePrimitives,
+    readonly remoteSpace: SpacePrimitives,
     private kvStore: KVStore,
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
@@ -53,8 +54,18 @@ export class SyncService {
       await this.syncFile(`${name}.md`);
     });
 
-    eventHook.addLocalListener("page:saved", async (name) => {
-      await this.syncFile(`${name}.md`);
+    eventHook.addLocalListener("page:saved", async (name, meta) => {
+      const path = `${name}.md`;
+      await this.syncFile(path);
+      if (!this.isSyncCandidate(path)) {
+        // So we're editing a page and just saved it, but it's not a sync candidate
+        // Assumption: we're in collab mode for this file, so we're going to constantly update our local hash
+        console.log(
+          "Locally updating last modified in snapshot becaus we're in collab mode",
+          meta,
+        );
+        await this.updateLocalLastModified(path, meta.lastModified);
+      }
     });
   }
 
@@ -82,8 +93,13 @@ export class SyncService {
 
   async registerSyncStart(): Promise<void> {
     // Assumption: this is called after an isSyncing() check
-    await this.kvStore.set(syncStartTimeKey, Date.now());
-    await this.kvStore.set(syncLastActivityKey, Date.now());
+    await this.kvStore.batchSet([{
+      key: syncStartTimeKey,
+      value: Date.now(),
+    }, {
+      key: syncLastActivityKey,
+      value: Date.now(),
+    }]);
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
@@ -106,6 +122,80 @@ export class SyncService {
     return new Map<string, SyncStatusItem>(
       Object.entries(snapshot),
     );
+  }
+
+  // Await a moment when the sync is no longer running
+  async noOngoingSync(): Promise<void> {
+    // Not completely safe, could have race condition on setting the syncStartTimeKey
+    while (await this.isSyncing()) {
+      await sleep(100);
+    }
+  }
+
+  // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync with the remote
+  async updateRemoteLastModified(path: string, lastModified: number) {
+    await this.noOngoingSync();
+    await this.registerSyncStart();
+    const snapshot = await this.getSnapshot();
+    const entry = snapshot.get(path);
+    if (entry) {
+      snapshot.set(path, [entry[0], lastModified]);
+    } else {
+      // In the unlikely scenario that a space first openen on a collab page before every being synced
+      try {
+        console.log(
+          "Received lastModified time for file not in snapshot",
+          path,
+          lastModified,
+        );
+        snapshot.set(path, [
+          (await this.localSpacePrimitives.getFileMeta(path)).lastModified,
+          lastModified,
+        ]);
+      } catch (e) {
+        console.warn(
+          "Received lastModified time for non-existing file not in snapshot",
+          path,
+          lastModified,
+          e,
+        );
+      }
+    }
+    await this.saveSnapshot(snapshot);
+    await this.registerSyncStop();
+  }
+
+  // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync when local changes happen
+  async updateLocalLastModified(path: string, lastModified: number) {
+    await this.noOngoingSync();
+    await this.registerSyncStart();
+    const snapshot = await this.getSnapshot();
+    const entry = snapshot.get(path);
+    if (entry) {
+      snapshot.set(path, [lastModified, entry[1]]);
+    } else {
+      // In the unlikely scenario that a space first openen on a collab page before every being synced
+      try {
+        console.log(
+          "Setting lastModified time for file not in snapshot",
+          path,
+          lastModified,
+        );
+        snapshot.set(path, [
+          lastModified,
+          (await this.localSpacePrimitives.getFileMeta(path)).lastModified,
+        ]);
+      } catch (e) {
+        console.warn(
+          "Received lastModified time for non-existing file not in snapshot",
+          path,
+          lastModified,
+          e,
+        );
+      }
+    }
+    await this.saveSnapshot(snapshot);
+    await this.registerSyncStop();
   }
 
   start() {
@@ -159,8 +249,8 @@ export class SyncService {
     console.log("Syncing file", name);
     const snapshot = await this.getSnapshot();
     try {
-      let localHash: number | undefined = undefined;
-      let remoteHash: number | undefined = undefined;
+      let localHash: number | undefined;
+      let remoteHash: number | undefined;
       try {
         localHash =
           (await this.localSpacePrimitives.getFileMeta(name)).lastModified;
@@ -169,8 +259,7 @@ export class SyncService {
       }
       try {
         // This is wasteful, but Netlify (silverbullet.md) doesn't support OPTIONS call (404s) so we'll just fetch the whole file
-        const { meta } = await this.remoteSpace!.readFile(name);
-        remoteHash = meta.lastModified;
+        remoteHash = (await this.remoteSpace!.readFile(name)).meta.lastModified;
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
@@ -220,10 +309,8 @@ export class SyncService {
       name,
       "will pick the version from secondary and be done with it.",
     );
-    const fileMeta = await primary.getFileMeta(name);
-
     // Read file from secondary
-    const { data } = await secondary.readFile(
+    const { data, meta } = await secondary.readFile(
       name,
     );
     // Write file to primary
@@ -231,13 +318,14 @@ export class SyncService {
       name,
       data,
       false,
-      fileMeta.lastModified,
+      meta.lastModified,
     );
     // Update snapshot
     snapshot.set(name, [
       newMeta.lastModified,
-      fileMeta.lastModified,
+      meta.lastModified,
     ]);
+
     return 1;
   }
 }

@@ -60,7 +60,14 @@ export class CollabServer {
         };
       }
       nextCollabPage.clients.add(clientId);
-      if (nextCollabPage.clients.size === 2) {
+      // console.log(
+      //   "Current number of clients for",
+      //   currentPage,
+      //   "is",
+      //   nextCollabPage.clients.size,
+      //   nextCollabPage.collabId,
+      // );
+      if (nextCollabPage.clients.size > 1 && !nextCollabPage.collabId) {
         // Create a new collabId
         nextCollabPage.collabId = nanoid();
       }
@@ -111,8 +118,7 @@ export class CollabServer {
       quiet: true,
       onLoadDocument: async (doc) => {
         console.log("[Hocuspocus]", "Requesting doc load", doc.documentName);
-        const [collabId, ...pageNamePieces] = doc.documentName.split("/");
-        const pageName = pageNamePieces.join("/");
+        const [collabId, pageName] = splitCollabId(doc.documentName);
         const collabPage = this.pages.get(pageName);
         if (!collabPage || collabPage.collabId !== collabId) {
           // This can happen after a server restart (or a multi-server setup which we don't yet support),
@@ -139,6 +145,30 @@ export class CollabServer {
         } catch (e) {
           console.error("Error loading doc", e);
         }
+      },
+      onStoreDocument: async (data) => {
+        const [_, pageName] = splitCollabId(data.documentName);
+        const path = `${pageName}.md`;
+        const text = data.document.getText("codemirror").toString();
+        console.log(
+          "[Hocuspocus]",
+          "Persisting",
+          pageName,
+          "to space on server",
+        );
+        const meta = await this.spacePrimitives.writeFile(
+          path,
+          new TextEncoder().encode(text),
+        );
+        // Broadcast new persisted lastModified date
+        data.document.broadcastStateless(
+          JSON.stringify({
+            type: "persisted",
+            path,
+            lastModified: meta.lastModified,
+          }),
+        );
+        return;
       },
       onDisconnect: (client) => {
         console.log("[Hocuspocus]", "Client disconnected", client.clientsCount);
@@ -204,4 +234,10 @@ export class CollabServer {
       }
     });
   }
+}
+
+function splitCollabId(documentName: string): [string, string] {
+  const [collabId, ...pageNamePieces] = documentName.split("/");
+  const pageName = pageNamePieces.join("/");
+  return [collabId, pageName];
 }

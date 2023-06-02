@@ -279,6 +279,12 @@ export class Editor {
       this.kvStore,
       this.eventHook,
       (path) => {
+        // Do not sync the current page if it's in collab mode (server will will handle persistence)
+        // console.log("Checking", path);
+        if (this.collabState && path === `${this.currentPage}.md`) {
+          console.log("Collab mode, not syncing current page", path);
+          return false;
+        }
         // TODO: At some point we should remove the data.db exception here
         return path !== "data.db" && !plugSpacePrimitives.isLikelyHandled(path);
       },
@@ -952,7 +958,10 @@ export class Editor {
           },
           mousedown: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
-              const pos = view.posAtCoords(event)!;
+              const pos = view.posAtCoords(event);
+              if (!pos) {
+                return;
+              }
               const potentialClickEvent: ClickEvent = {
                 page: pageName,
                 ctrlKey: event.ctrlKey,
@@ -1146,7 +1155,7 @@ export class Editor {
         await this.save(true);
         // And stop the collab session
         if (this.collabState) {
-          this.stopCollab();
+          this.stopCollab(previousPage);
         }
       }
     }
@@ -1516,7 +1525,24 @@ export class Editor {
       this.collabState.stop();
     }
     const initialText = this.editorView!.state.sliceDoc();
-    this.collabState = new CollabState(serverUrl, token, username);
+    this.collabState = new CollabState(serverUrl, token, username, (
+      { payload },
+    ) => {
+      const message = JSON.parse(payload);
+      switch (message.type) {
+        case "persisted": {
+          // console.log(
+          //   "Received remote persist notification, updating snapshot",
+          //   message,
+          // );
+          this.syncService.updateRemoteLastModified(
+            message.path,
+            message.lastModified,
+          ).catch(console.error);
+        }
+      }
+    });
+
     // this.collabState.collabProvider.on("synced", () => {
     //   if (this.collabState?.ytext.toString() === "") {
     //     console.error("Synced value is empty, putting back original text");
@@ -1528,11 +1554,20 @@ export class Editor {
     this.space.unwatch();
   }
 
-  stopCollab() {
+  stopCollab(pageName: string) {
     if (this.collabState) {
       this.collabState.stop();
       this.collabState = undefined;
       this.rebuildEditorState();
+      // Switching off collab mode
+      this.syncService.remoteSpace.getFileMeta(`${pageName}.md`).then(
+        (meta) => {
+          return this.syncService.updateRemoteLastModified(
+            meta.name,
+            meta.lastModified,
+          );
+        },
+      ).catch(console.error);
     }
     // Start file watching again
     this.space.watch();

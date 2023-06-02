@@ -13,24 +13,24 @@ const userColors = [
 
 export class CollabState {
   public ytext: Y.Text;
-  private collabProvider: HocuspocusProvider;
+  collabProvider: HocuspocusProvider;
   private yundoManager: Y.UndoManager;
 
-  constructor(serverUrl: string, name: string, username: string) {
+  constructor(
+    serverUrl: string,
+    name: string,
+    username: string,
+    onStateless: (data: any) => any,
+  ) {
     this.collabProvider = new HocuspocusProvider({
       url: serverUrl,
       name: name,
+      onStateless,
     });
 
     this.collabProvider.on("status", (e: any) => {
       console.log("Collab status change", e);
     });
-    // this.collabProvider.on("sync", (e: any) => {
-    //   console.log("Sync status", e);
-    // });
-    // this.collabProvider.on("synced", (e: any) => {
-    //   console.log("Synced status", e);
-    // });
 
     this.ytext = this.collabProvider.document.getText("codemirror");
     this.yundoManager = new Y.UndoManager(this.ytext);
