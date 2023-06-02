@@ -186,7 +186,7 @@ async function ping() {
       await clientId,
       currentPage,
     );
-    console.log("Collab ID", collabId);
+    // console.log("Collab ID", collabId);
     if (!collabId && currentCollabId) {
       // Stop collab
       console.log("Stopping collab");

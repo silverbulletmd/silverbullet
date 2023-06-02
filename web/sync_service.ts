@@ -60,10 +60,10 @@ export class SyncService {
       if (!this.isSyncCandidate(path)) {
         // So we're editing a page and just saved it, but it's not a sync candidate
         // Assumption: we're in collab mode for this file, so we're going to constantly update our local hash
-        console.log(
-          "Locally updating last modified in snapshot becaus we're in collab mode",
-          meta,
-        );
+        // console.log(
+        //   "Locally updating last modified in snapshot becaus we're in collab mode",
+        //   meta,
+        // );
         await this.updateLocalLastModified(path, meta.lastModified);
       }
     });
