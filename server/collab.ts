@@ -1,5 +1,4 @@
 import { Hocuspocus } from "npm:@hocuspocus/server@2.0.6";
-import { getAvailablePortSync } from "https://deno.land/x/port@1.0.0/mod.ts";
 import { nanoid } from "https://esm.sh/nanoid@4.0.0";
 import { race, timeout } from "../common/async_util.ts";
 import { Application } from "./deps.ts";
@@ -108,13 +107,8 @@ export class CollabServer {
     }
   }
 
-  route(app: Application) {
-    // The way this works is that we spin up a separate WS server locally and then proxy requests to it
-    // This is the only way I could get Hocuspocus to work with Deno
-    const internalPort = getAvailablePortSync();
+  route(app: Express.Application) {
     const hocuspocus = new Hocuspocus({
-      port: internalPort,
-      address: "127.0.0.1",
       quiet: true,
       onLoadDocument: async (doc) => {
         console.log("[Hocuspocus]", "Requesting doc load", doc.documentName);
@@ -185,55 +179,10 @@ export class CollabServer {
       },
     });
 
-    hocuspocus.listen();
-
-    app.use((ctx) => {
-      if (ctx.request.url.pathname === "/.ws") {
-        const sock = ctx.upgrade();
-        sock.onmessage = (e) => {
-          console.log("WS: Got message", e.data);
-        };
-      }
-      // Websocket proxy to hocuspocus
-      if (ctx.request.url.pathname === "/.ws-collab") {
-        const sock = ctx.upgrade();
-
-        const ws = new WebSocket(`ws://localhost:${internalPort}`);
-        const wsReady = race([
-          new Promise<void>((resolve) => {
-            ws.onopen = () => {
-              resolve();
-            };
-          }),
-          timeout(1000),
-        ]).catch(() => {
-          console.error("Timeout waiting for collab to open websocket");
-          sock.close();
-        });
-        sock.onmessage = (e) => {
-          // console.log("Got message", e);
-          wsReady.then(() => ws.send(e.data)).catch(console.error);
-        };
-        sock.onclose = () => {
-          if (ws.OPEN) {
-            ws.close();
-          }
-        };
-        ws.onmessage = (e) => {
-          if (sock.OPEN) {
-            sock.send(e.data);
-          } else {
-            console.error("Got message from websocket but socket is not open");
-          }
-        };
-        ws.onclose = () => {
-          if (sock.OPEN) {
-            sock.close();
-          }
-        };
-      }
+    // hocuspocus.listen();
+    app.ws("/.ws-collab", (ws, req) => {
+      hocuspocus.handleConnection(ws, req);
     });
-  }
 }
 
 function splitCollabId(documentName: string): [string, string] {

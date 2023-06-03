@@ -1,13 +1,23 @@
-import { Application, Router } from "./deps.ts";
+// import { Application, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { CollabServer } from "./collab.ts";
+
+// @deno-types="npm:@types/express@4.17.15"
+import express from "npm:express@4.18.2";
+import cookieParser from "npm:cookie-parser";
+
+// @deno-types="npm:@types/express-ws"
+import expressWebsockets from "npm:express-ws@5.0.2";
+
+import { Buffer } from "node:buffer";
+// @deno-types="npm:body-parser@1.19.2"
+import bodyParser from "npm:body-parser@1.19.2";
 
 export type ServerOptions = {
   hostname: string;
@@ -22,7 +32,7 @@ export type ServerOptions = {
 };
 
 export class HttpServer {
-  app: Application;
+  private app: express.Express;
   private hostname: string;
   private port: number;
   user?: string;
@@ -38,7 +48,7 @@ export class HttpServer {
   ) {
     this.hostname = options.hostname;
     this.port = options.port;
-    this.app = new Application();
+    this.app = expressWebsockets(express()).app;
     this.user = options.user;
     this.clientAssetBundle = options.clientAssetBundle;
 
@@ -82,92 +92,72 @@ export class HttpServer {
 
   async start() {
     await this.reloadSettings();
-    // Serve static files (javascript, css, html)
-    this.app.use(async ({ request, response }, next) => {
-      if (request.url.pathname === "/") {
-        // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
-        response.headers.set("Content-type", "text/html");
-        response.body = this.renderIndexHtml();
-        return;
-      }
+    this.app.use(cookieParser());
+    this.app.all(/^(\/((?!\.fs).)*)$/, (req, res) => {
+      // console.log(req.path, req.method);
       try {
-        const assetName = request.url.pathname.slice(1);
-        if (
-          this.clientAssetBundle.has(assetName) &&
-          request.headers.get("If-Modified-Since") ===
-            utcDateString(this.clientAssetBundle.getMtime(assetName))
-        ) {
-          response.status = 304;
+        const assetName = req.path.slice(1);
+        if (this.clientAssetBundle.has(assetName)) {
+          console.log("Serving asset", assetName);
+          if (
+            req.header("If-Modified-Since") ===
+              utcDateString(this.clientAssetBundle.getMtime(assetName))
+          ) {
+            res.status(304);
+            res.send();
+            return;
+          }
+          res.status(200);
+          res.header(
+            "Content-type",
+            this.clientAssetBundle.getMimeType(assetName),
+          );
+          const data = this.clientAssetBundle.readFileSync(
+            assetName,
+          );
+          res.header("Cache-Control", "no-cache");
+          // res.header("Content-Length", "" + data.length);
+          res.header(
+            "Last-Modified",
+            utcDateString(this.clientAssetBundle.getMtime(assetName)),
+          );
+
+          if (req.method === "GET") {
+            const buf = Buffer.from(data);
+            console.log("Buffer length", buf.length, assetName);
+            res.send(buf);
+            // res.send
+          } else {
+            res.send();
+          }
           return;
         }
-        response.status = 200;
-        response.headers.set(
-          "Content-type",
-          this.clientAssetBundle.getMimeType(assetName),
-        );
-        const data = this.clientAssetBundle.readFileSync(
-          assetName,
-        );
-        response.headers.set("Cache-Control", "no-cache");
-        response.headers.set("Content-length", "" + data.length);
-        response.headers.set(
-          "Last-Modified",
-          utcDateString(this.clientAssetBundle.getMtime(assetName)),
-        );
-
-        if (request.method === "GET") {
-          response.body = data;
-        }
-      } catch {
-        await next();
+      } catch (e: any) {
+        console.error("Error", e);
       }
-    });
 
-    // Fallback, serve index.html
-    this.app.use(({ request, response }, next) => {
-      if (
-        !request.url.pathname.startsWith("/.fs") &&
-        request.url.pathname !== "/.auth" &&
-        !request.url.pathname.startsWith("/.ws")
-      ) {
-        response.headers.set("Content-type", "text/html");
-        response.body = this.renderIndexHtml();
-      } else {
-        return next();
-      }
+      res.status(200);
+      res.header("Content-Type", "text/html");
+      res.send(this.renderIndexHtml());
     });
 
     // Pages API
-    const fsRouter = this.buildFsRouter(this.spacePrimitives);
-    this.addPasswordAuth(this.app);
-    this.app.use(fsRouter.routes());
-    this.app.use(fsRouter.allowedMethods());
-
-    this.collab.route(this.app);
-
-    this.abortController = new AbortController();
-    const listenOptions: any = {
-      hostname: this.hostname,
-      port: this.port,
-      signal: this.abortController.signal,
-    };
-    if (this.options.keyFile) {
-      listenOptions.key = Deno.readTextFileSync(this.options.keyFile);
-    }
-    if (this.options.certFile) {
-      listenOptions.cert = Deno.readTextFileSync(this.options.certFile);
-    }
-    this.app.listen(listenOptions)
-      .catch((e: any) => {
-        console.log("Server listen error:", e.message);
-        Deno.exit(1);
-      });
-    const visibleHostname = this.hostname === "0.0.0.0"
-      ? "localhost"
-      : this.hostname;
-    console.log(
-      `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
+    this.app.use(
+      "/.fs",
+      // passwordMiddleware,
+      this.buildFsRouter(this.spacePrimitives),
     );
+    this.app.listen(this.port, this.hostname, () => {
+      const visibleHostname = this.hostname === "0.0.0.0"
+        ? "localhost"
+        : this.hostname;
+      console.log(
+        `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
+      );
+    });
+    // return;
+
+    // this.collab.route(this.app);
   }
 
   async reloadSettings() {
@@ -175,7 +165,11 @@ export class HttpServer {
     this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
   }
 
-  private addPasswordAuth(app: Application) {
+  private passwordAuth(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) {
     const excludedPaths = [
       "/manifest.json",
       "/favicon.png",
@@ -184,127 +178,130 @@ export class HttpServer {
     ];
     if (this.user) {
       const b64User = btoa(this.user);
-      app.use(async ({ request, response, cookies }, next) => {
-        if (!excludedPaths.includes(request.url.pathname)) {
-          const authCookie = await cookies.get("auth");
-          if (!authCookie || authCookie !== b64User) {
-            response.status = 401;
-            response.body = "Unauthorized, please authenticate";
-            return;
-          }
+      if (!excludedPaths.includes(req.path)) {
+        const authCookie = req.cookies["auth"];
+        if (!authCookie || authCookie !== b64User) {
+          res.status(401);
+          res.send("Unauthorized, please authenticate");
+          return;
         }
-        if (request.url.pathname === "/.auth") {
-          if (request.method === "GET") {
-            response.headers.set("Content-type", "text/html");
-            response.body = this.clientAssetBundle.readTextFileSync(
-              ".client/auth.html",
-            );
-            return;
-          } else if (request.method === "POST") {
-            const values = await request.body({ type: "form" }).value;
-            const username = values.get("username"),
-              password = values.get("password"),
-              refer = values.get("refer");
-            if (this.user === `${username}:${password}`) {
-              await cookies.set("auth", b64User, {
-                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
-                sameSite: "strict",
-              });
-              response.redirect(refer || "/");
-              // console.log("All headers", request.headers);
-            } else {
-              response.redirect("/.auth?error=1");
-            }
-            return;
+      }
+      if (req.path === "/.auth") {
+        if (req.method === "GET") {
+          res.header("Content-type", "text/html");
+          res.send(this.clientAssetBundle.readTextFileSync(
+            ".client/auth.html",
+          ));
+          return;
+        } else if (req.method === "POST") {
+          bodyParser.urlencoded({ extended: false })(req, res, next);
+          // const values = req.body;
+          const username = req.body.username,
+            password = req.body.password,
+            refer = req.body.refer;
+          if (this.user === `${username}:${password}`) {
+            res.cookie("auth", b64User, {
+              expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
+              sameSite: "strict",
+            });
+            res.redirect(refer || "/");
+            // console.log("All headers", request.headers);
           } else {
-            response.status = 401;
-            response.body = "Unauthorized";
-            return;
+            res.redirect("/.auth?error=1");
           }
+          return;
         } else {
-          // Unauthenticated access to excluded paths
-          await next();
+          res.status(401);
+          res.send("Unauthorized");
+          return;
         }
-      });
+      } else {
+        // Unauthenticated access to excluded paths
+        next();
+      }
     }
   }
 
-  private buildFsRouter(spacePrimitives: SpacePrimitives): Router {
-    const fsRouter = new Router();
+  private buildFsRouter(spacePrimitives: SpacePrimitives): express.Router {
+    const fsRouter = express.Router();
     // File list
-    fsRouter.get("/", async ({ response }) => {
-      response.headers.set("Content-type", "application/json");
-      response.headers.set("X-Space-Path", this.options.pagesPath);
-      const files = await spacePrimitives.fetchFileList();
-      response.body = JSON.stringify(files);
-    });
-
-    // RPC
-    fsRouter.post("/", async ({ request, response }) => {
-      const body = await request.body({ type: "json" }).value;
-      try {
-        switch (body.operation) {
-          case "fetch": {
-            const result = await performLocalFetch(body.url, body.options);
-            console.log("Proxying fetch request to", body.url);
-            response.headers.set("Content-Type", "application/json");
-            response.body = JSON.stringify(result);
-            return;
-          }
-          case "shell": {
-            // TODO: Have a nicer way to do this
-            if (this.options.pagesPath.startsWith("s3://")) {
-              response.status = 500;
-              response.body = JSON.stringify({
-                stdout: "",
-                stderr: "Cannot run shell commands with S3 backend",
-                code: 500,
-              });
+    fsRouter.route("/").get(async (_req, res) => {
+      res.header("X-Space-Path", this.options.pagesPath);
+      res.json(await spacePrimitives.fetchFileList());
+    }).post(
+      bodyParser.json({
+        type: "*/*",
+      }),
+      async (req, res) => {
+        // console.log("RPC", req.body);
+        const body = req.body;
+        try {
+          switch (body.operation) {
+            case "fetch": {
+              const result = await performLocalFetch(body.url, body.options);
+              console.log("Proxying fetch request to", body.url);
+              res.header("Content-Type", "application/json");
+              res.send(JSON.stringify(result));
               return;
             }
-            const p = new Deno.Command(body.cmd, {
-              args: body.args,
-              cwd: this.options.pagesPath,
-              stdout: "piped",
-              stderr: "piped",
-            });
-            const output = await p.output();
-            const stdout = new TextDecoder().decode(output.stdout);
-            const stderr = new TextDecoder().decode(output.stderr);
+            case "shell": {
+              // TODO: Have a nicer way to do this
+              if (this.options.pagesPath.startsWith("s3://")) {
+                res.status(500);
+                res.header("Content-Type", "application/json");
+                res.send(JSON.stringify({
+                  stdout: "",
+                  stderr: "Cannot run shell commands with S3 backend",
+                  code: 500,
+                }));
+                return;
+              }
+              const p = new Deno.Command(body.cmd, {
+                args: body.args,
+                cwd: this.options.pagesPath,
+                stdout: "piped",
+                stderr: "piped",
+              });
+              const output = await p.output();
+              const stdout = new TextDecoder().decode(output.stdout);
+              const stderr = new TextDecoder().decode(output.stderr);
 
-            response.headers.set("Content-Type", "application/json");
-            response.body = JSON.stringify({
-              stdout,
-              stderr,
-              code: output.code,
-            });
-            return;
+              res.header("Content-Type", "application/json");
+              res.send(JSON.stringify({
+                stdout,
+                stderr,
+                code: output.code,
+              }));
+              return;
+            }
+            case "ping": {
+              // RPC to check (for collab purposes) which client has what page open
+              res.header("Content-Type", "application/json");
+              // console.log("Got ping", body);
+              res.send(JSON.stringify(
+                this.collab.ping(body.clientId, body.page),
+              ));
+              return;
+            }
+            default:
+              res.header("Content-Type", "text/plain");
+              res.status(400);
+              res.send("Unknown operation");
           }
-          case "ping": {
-            // RPC to check (for collab purposes) which client has what page open
-            response.headers.set("Content-Type", "application/json");
-            // console.log("Got ping", body);
-            response.body = JSON.stringify(
-              this.collab.ping(body.clientId, body.page),
-            );
-            return;
-          }
-          default:
-            response.headers.set("Content-Type", "text/plain");
-            response.status = 400;
-            response.body = "Unknown operation";
+        } catch (e: any) {
+          console.log("Error", e);
+          res.status(500);
+          res.send(e.message);
+          return;
         }
-      } catch (e: any) {
-        console.log("Error", e);
-        response.status = 500;
-        response.body = e.message;
-        return;
-      }
-    });
+      },
+    );
 
     fsRouter
-      .get("\/(.+)", async ({ params, response, request }) => {
-        const name = params[0];
+      .route(/\/(.+)/)
+      .get(async (req, res) => {
+        const name = req.params[0];
+
         console.log("Loading file", name);
         try {
           const attachmentData = await spacePrimitives.readFile(
@@ -312,89 +309,83 @@ export class HttpServer {
           );
           const lastModifiedHeader = new Date(attachmentData.meta.lastModified)
             .toUTCString();
-          if (request.headers.get("If-Modified-Since") === lastModifiedHeader) {
-            response.status = 304;
+          if (req.header("If-Modified-Since") === lastModifiedHeader) {
+            res.status(304);
+            res.end();
             return;
           }
-          response.status = 200;
-          response.headers.set(
+          res.status(200);
+          res.header(
             "X-Last-Modified",
             "" + attachmentData.meta.lastModified,
           );
-          response.headers.set("Cache-Control", "no-cache");
-          response.headers.set("X-Permission", attachmentData.meta.perm);
-          response.headers.set(
+          res.header("Cache-Control", "no-cache");
+          res.header("X-Permission", attachmentData.meta.perm);
+          res.header(
             "Last-Modified",
             lastModifiedHeader,
           );
-          response.headers.set("Content-Type", attachmentData.meta.contentType);
-          response.body = attachmentData.data;
+          res.header("Content-Type", attachmentData.meta.contentType);
+          res.send(Buffer.from(attachmentData.data));
         } catch {
           // console.error("Error in main router", e);
-          response.status = 404;
-          response.body = "";
+          res.status(404);
+          res.end();
         }
       })
-      .put("\/(.+)", async ({ request, response, params }) => {
-        const name = params[0];
-        console.log("Saving file", name);
+      .put(
+        bodyParser.raw({ type: "*/*", limit: "100mb" }),
+        async (req, res) => {
+          const name = req.params[0];
+          console.log("Saving file", name);
 
-        let body: Uint8Array;
-        if (
-          request.headers.get("X-Content-Base64")
-        ) {
-          const content = await request.body({ type: "text" }).value;
-          body = base64Decode(content);
-        } else {
-          body = await request.body({ type: "bytes" }).value;
-        }
-
-        try {
-          const meta = await spacePrimitives.writeFile(
-            name,
-            body,
-          );
-          response.status = 200;
-          response.headers.set("Content-Type", meta.contentType);
-          response.headers.set("X-Last-Modified", "" + meta.lastModified);
-          response.headers.set("X-Content-Length", "" + meta.size);
-          response.headers.set("X-Permission", meta.perm);
-          response.body = "OK";
-        } catch (err) {
-          response.status = 500;
-          response.body = "Write failed";
-          console.error("Pipeline failed", err);
-        }
-      })
-      .options("\/(.+)", async ({ response, params }) => {
-        const name = params[0];
+          try {
+            const meta = await spacePrimitives.writeFile(
+              name,
+              new Uint8Array(req.body as ArrayBuffer),
+            );
+            res.status(200);
+            res.header("Content-Type", meta.contentType);
+            res.header("X-Last-Modified", "" + meta.lastModified);
+            res.header("X-Content-Length", "" + meta.size);
+            res.header("X-Permission", meta.perm);
+            res.send("OK");
+          } catch (err) {
+            res.status(500);
+            res.send("Write failed");
+            console.error("Pipeline failed", err);
+          }
+        },
+      )
+      .options(async (req, res) => {
+        const name = req.params[0];
         try {
           const meta = await spacePrimitives.getFileMeta(name);
-          response.status = 200;
-          response.headers.set("Content-Type", meta.contentType);
-          response.headers.set("X-Last-Modified", "" + meta.lastModified);
-          response.headers.set("X-Content-Length", "" + meta.size);
-          response.headers.set("X-Permission", meta.perm);
+          res.status(200);
+          res.header("Content-Type", meta.contentType);
+          res.header("X-Last-Modified", "" + meta.lastModified);
+          res.header("X-Content-Length", "" + meta.size);
+          res.header("X-Permission", meta.perm);
         } catch {
-          response.status = 404;
-          response.body = "Not found";
+          res.status(404);
+          res.send("Not found");
           // console.error("Options failed", err);
         }
       })
-      .delete("\/(.+)", async ({ response, params }) => {
-        const name = params[0];
+      .delete(async (req, res) => {
+        const name = req.params[0];
         console.log("Deleting file", name);
         try {
           await spacePrimitives.deleteFile(name);
-          response.status = 200;
-          response.body = "OK";
+          res.status(200);
+          res.send("OK");
         } catch (e: any) {
           console.error("Error deleting attachment", e);
-          response.status = 200;
-          response.body = e.message;
+          res.status(200);
+          res.send(e.message);
         }
       });
-    return new Router().use("/.fs", fsRouter.routes());
+    return fsRouter;
   }
 
   stop() {
