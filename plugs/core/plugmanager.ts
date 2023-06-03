@@ -21,7 +21,7 @@ export async function updatePlugsCommand() {
         );
       }
     } catch (e: any) {
-      if (e.message.includes("Could not read file")) {
+      if (e.message.includes("Not found")) {
         console.warn("No PLUGS page found, not loading anything");
         return;
       }

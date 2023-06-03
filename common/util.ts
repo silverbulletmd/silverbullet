@@ -41,14 +41,19 @@ export async function ensureSettingsAndIndex(
     settingsText = new TextDecoder().decode(
       (await space.readFile("SETTINGS.md")).data,
     );
-  } catch {
-    await space.writeFile(
-      "SETTINGS.md",
-      new TextEncoder().encode(SETTINGS_TEMPLATE),
-      true,
-    );
+  } catch (e: any) {
+    if (e.message === "Not found") {
+      await space.writeFile(
+        "SETTINGS.md",
+        new TextEncoder().encode(SETTINGS_TEMPLATE),
+        true,
+      );
+    } else {
+      console.error("Error reading settings", e.message);
+      console.error("Falling back to default settings");
+    }
     settingsText = SETTINGS_TEMPLATE;
-    // Ok, then let's also write the index page
+    // Ok, then let's also check the index page
     try {
       await space.getFileMeta("index.md");
     } catch {
