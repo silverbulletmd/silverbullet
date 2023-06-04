@@ -373,7 +373,7 @@ export class Editor {
 
     globalThis.addEventListener("beforeunload", (e) => {
       console.log("Pinging with with undefined page name");
-      this.collabManager.ping(undefined, this.currentPage);
+      this.collabManager.updatePresence(undefined, this.currentPage);
     });
 
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
@@ -1536,7 +1536,7 @@ export class Editor {
     const initialText = this.editorView!.state.sliceDoc();
     this.collabState = new CollabState(
       serverUrl,
-      this.currentPage!,
+      `${this.currentPage!}.md`,
       token,
       username,
       this.syncService,

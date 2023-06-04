@@ -280,10 +280,10 @@ export class HttpServer {
             });
             return;
           }
-          case "ping": {
+          case "presence": {
             // RPC to check (for collab purposes) which client has what page open
             response.headers.set("Content-Type", "application/json");
-            console.log("Got ping", body);
+            console.log("Got presence update", body);
             response.body = JSON.stringify(
               this.collab.ping(
                 body.clientId,

@@ -31,7 +31,7 @@ export class PathPageNavigator {
         `${this.root}/${encodedPage}`,
       );
     }
-    window.dispatchEvent(
+    globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
         state: { page, pos },
       }),
@@ -60,12 +60,12 @@ export class PathPageNavigator {
         }
       });
     };
-    window.addEventListener("popstate", cb);
+    globalThis.addEventListener("popstate", cb);
     cb();
   }
 
   decodeURI(): [string, number | string] {
-    let [page, pos] = decodeURI(
+    const [page, pos] = decodeURI(
       location.pathname.substring(this.root.length + 1),
     ).split("@");
     if (pos) {

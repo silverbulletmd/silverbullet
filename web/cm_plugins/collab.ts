@@ -21,7 +21,7 @@ export class CollabState {
 
   constructor(
     serverUrl: string,
-    readonly pageName: string,
+    readonly path: string,
     readonly token: string,
     username: string,
     private syncService: SyncService,
@@ -62,11 +62,11 @@ export class CollabState {
       color: randomColor.color,
       colorLight: randomColor.light,
     });
-    syncService.excludeFromSync(`${pageName}.md`).catch(console.error);
+    syncService.excludeFromSync(path).catch(console.error);
 
     this.interval = setInterval(() => {
       // Ping the store to make sure the file remains in exclusion
-      syncService.excludeFromSync(`${pageName}.md`).catch(console.error);
+      syncService.excludeFromSync(path).catch(console.error);
     }, 1000);
   }
 
@@ -81,9 +81,8 @@ export class CollabState {
     // When stopping collaboration, we're going back to sync mode. Make sure we got the latest and greatest remote timestamp to avoid
     // conflicts
     safeRun(async () => {
-      const path = `${this.pageName}.md`;
-      await this.syncService.unExcludeFromSync(path);
-      await this.syncService.fetchAndPersistRemoteLastModified(path);
+      await this.syncService.unExcludeFromSync(this.path);
+      await this.syncService.fetchAndPersistRemoteLastModified(this.path);
     });
   }
 

@@ -15,18 +15,18 @@ export class CollabManager {
       "editor:pageLoaded",
       (pageName, previousPage) => {
         console.log("Page loaded", pageName, previousPage);
-        this.ping(pageName, previousPage).catch(console.error);
+        this.updatePresence(pageName, previousPage).catch(console.error);
       },
     );
   }
 
   start() {
     setInterval(() => {
-      this.ping(this.editor.currentPage!).catch(console.error);
+      this.updatePresence(this.editor.currentPage!).catch(console.error);
     }, collabPingInterval);
   }
 
-  async ping(currentPage?: string, previousPage?: string) {
+  async updatePresence(currentPage?: string, previousPage?: string) {
     try {
       const resp = await this.editor.remoteSpacePrimitives.authenticatedFetch(
         this.editor.remoteSpacePrimitives.url,
@@ -36,7 +36,7 @@ export class CollabManager {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            operation: "ping",
+            operation: "presence",
             clientId: this.clientId,
             previousPage,
             currentPage,
@@ -50,7 +50,7 @@ export class CollabManager {
       if (!collabId && this.editor.collabState) {
         // Stop collab
         console.log("Stopping collab");
-        if (this.editor.collabState.pageName === currentPage) {
+        if (this.editor.collabState.path === `${currentPage}.md`) {
           this.editor.flashNotification(
             "Other users have left this page, switched back to single-user mode.",
           );
@@ -64,7 +64,7 @@ export class CollabManager {
         );
         this.editor.startCollab(
           this.localCollabServer,
-          `${collabId}/${currentPage}`,
+          `${collabId}/${currentPage}.md`,
           "you",
         );
       }

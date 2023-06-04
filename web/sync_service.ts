@@ -205,7 +205,7 @@ export class SyncService {
   async fetchAndPersistRemoteLastModified(path: string) {
     const meta = await this.remoteSpace.getFileMeta(path);
     await this.updateRemoteLastModified(
-      meta.name,
+      path,
       meta.lastModified,
     );
   }
@@ -241,7 +241,7 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop();
-    console.log("All done!");
+    // console.log("All done!");
   }
 
   start() {

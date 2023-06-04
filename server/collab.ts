@@ -98,13 +98,12 @@ export class CollabServer {
       address: "127.0.0.1",
       quiet: true,
       onStoreDocument: async (data) => {
-        const [_, pageName] = splitCollabId(data.documentName);
-        const path = `${pageName}.md`;
+        const [_, path] = splitCollabId(data.documentName);
         const text = data.document.getText("codemirror").toString();
         console.log(
           "[Hocuspocus]",
           "Persisting",
-          pageName,
+          path,
           "to space on server",
         );
         const meta = await this.spacePrimitives.writeFile(
@@ -188,7 +187,7 @@ export class CollabServer {
 }
 
 function splitCollabId(documentName: string): [string, string] {
-  const [collabId, ...pageNamePieces] = documentName.split("/");
-  const pageName = pageNamePieces.join("/");
-  return [collabId, pageName];
+  const [collabId, ...pathPieces] = documentName.split("/");
+  const path = pathPieces.join("/");
+  return [collabId, path];
 }
