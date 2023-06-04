@@ -110,7 +110,6 @@ export async function detectPage() {
       console.error("Error parsing YAML", e);
     }
   }
-  await ping();
 }
 
 export function shareNoop() {
@@ -161,67 +160,3 @@ export function writeFileCollab(name: string): FileMeta {
     perm: "rw",
   };
 }
-
-// Generate a random client ID and store it in the store
-// clientIDs will be unique per device
-const clientId = store.get("collabClientId").then(async (clientId) => {
-  if (!clientId) {
-    clientId = nanoid();
-    await store.set("collabClientId", clientId);
-  }
-  return clientId;
-});
-
-let lastCollabPage: string | undefined;
-let currentCollabId: string | undefined;
-
-const localCollabServer = location.protocol === "http:"
-  ? `ws://${location.host}/.ws-collab`
-  : `wss://${location.host}/.ws-collab`;
-
-async function ping() {
-  try {
-    const currentPage = await editor.getCurrentPage();
-    const { collabId } = await collab.ping(
-      await clientId,
-      currentPage,
-    );
-    // console.log("Collab ID", collabId);
-    if (!collabId && currentCollabId) {
-      // Stop collab
-      console.log("Stopping collab");
-      if (lastCollabPage === currentPage) {
-        editor.flashNotification(
-          "Other users have left this page, switched back to single-user mode.",
-        );
-      }
-      currentCollabId = undefined;
-      await collab.stop();
-    } else if (collabId && collabId !== currentCollabId) {
-      // Start collab
-      console.log("Starting collab");
-      editor.flashNotification(
-        "Opening page in multi-user mode.",
-      );
-      currentCollabId = collabId;
-      await collab.start(
-        localCollabServer,
-        `${collabId}/${currentPage}`,
-        "you",
-      );
-    }
-    if (currentCollabId) {
-      lastCollabPage = currentPage;
-    }
-  } catch (e: any) {
-    // console.error("Ping error", e);
-    if (e.message.includes("Failed to fetch") && currentCollabId) {
-      console.log("Offline, stopping collab");
-      currentCollabId = undefined;
-      await collab.stop();
-    }
-  }
-}
-setInterval(() => {
-  ping().catch(console.error);
-}, 5000);

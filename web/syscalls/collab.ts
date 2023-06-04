@@ -16,23 +16,5 @@ export function collabSyscalls(editor: Editor): SysCallMapping {
     ) => {
       editor.stopCollab();
     },
-    "collab.ping": async (
-      _ctx,
-      clientId: string,
-      currentPage: string,
-    ) => {
-      const resp = await editor.remoteSpacePrimitives.authenticatedFetch(
-        editor.remoteSpacePrimitives.url,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            operation: "ping",
-            clientId,
-            page: currentPage,
-          }),
-        },
-      );
-      return resp.json();
-    },
   };
 }

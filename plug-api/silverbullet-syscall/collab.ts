@@ -7,7 +7,3 @@ export function start(serverUrl: string, token: string, username: string) {
 export function stop() {
   return syscall("collab.stop");
 }
-
-export function ping(clientId: string, currentPage: string) {
-  return syscall("collab.ping", clientId, currentPage);
-}

@@ -17,6 +17,8 @@ const syncStartTimeKey = "syncStartTime";
 // Keeps the last time an activity was registered, used to detect if a sync is still alive and whether a new one should be started already
 const syncLastActivityKey = "syncLastActivity";
 
+const syncExcludePrefix = "syncExclude:";
+
 // maximum time between two activities before we consider a sync crashed
 const syncMaxIdleTimeout = 1000 * 20; // 20s
 
@@ -115,6 +117,40 @@ export class SyncService {
   async registerSyncStop(): Promise<void> {
     await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
+  }
+
+  // Temporarily exclude a specific file from sync (e.g. when in collab mode)
+  excludeFromSync(path: string): Promise<void> {
+    return this.kvStore.set(syncExcludePrefix + path, Date.now());
+  }
+
+  unExcludeFromSync(path: string): Promise<void> {
+    return this.kvStore.del(syncExcludePrefix + path);
+  }
+
+  async isExcludedFromSync(path: string): Promise<boolean> {
+    const lastExcluded = await this.kvStore.get(syncExcludePrefix + path);
+    return lastExcluded && Date.now() - lastExcluded < syncMaxIdleTimeout;
+  }
+
+  async fetchAllExcludedFromSync(): Promise<string[]> {
+    const entries = await this.kvStore.queryPrefix(syncExcludePrefix);
+    const expiredPaths: string[] = [];
+    const now = Date.now();
+    const result = entries.filter(({ key, value }) => {
+      if (now - value > syncMaxIdleTimeout) {
+        expiredPaths.push(key);
+        return false;
+      }
+      return true;
+    }).map(({ key }) => key.slice(syncExcludePrefix.length));
+
+    if (expiredPaths.length > 0) {
+      console.log("Purging expired sync exclusions: ", expiredPaths);
+      await this.kvStore.batchDelete(expiredPaths);
+    }
+
+    return result;
   }
 
   async getSnapshot(): Promise<Map<string, SyncStatusItem>> {
@@ -235,8 +271,15 @@ export class SyncService {
     await this.registerSyncStart();
     let operations = 0;
     const snapshot = await this.getSnapshot();
+    // Fetch the list of files that are excluded from sync (e.g. because they're in collab mode)
+    const excludedFromSync = await this.fetchAllExcludedFromSync();
+    console.log("Excluded from sync", excludedFromSync);
     try {
-      operations = await this.spaceSync!.syncFiles(snapshot);
+      operations = await this.spaceSync!.syncFiles(
+        snapshot,
+        (path) =>
+          this.isSyncCandidate(path) && !excludedFromSync.includes(path),
+      );
       this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);
@@ -252,7 +295,7 @@ export class SyncService {
       // console.log("Already syncing");
       return;
     }
-    if (!this.isSyncCandidate(name)) {
+    if (!this.isSyncCandidate(name) || (await this.isExcludedFromSync(name))) {
       return;
     }
     await this.registerSyncStart();

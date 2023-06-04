@@ -4,16 +4,15 @@ import { nanoid } from "https://esm.sh/nanoid@4.0.0";
 import { race, timeout } from "../common/async_util.ts";
 import { Application } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { collabPingInterval } from "../plugs/collab/constants.ts";
 
 type CollabPage = {
-  clients: Set<string>; // clientIds
+  clients: Map<string, number>; // clientId -> lastPing
   collabId?: string;
 };
 
-const pingInterval = 5000;
-
 export class CollabServer {
-  clients: Map<string, { openPage: string; lastPing: number }> = new Map();
+  // clients: Map<string, { openPage: string; lastPing: number }> = new Map();
   pages: Map<string, CollabPage> = new Map();
 
   constructor(private spacePrimitives: SpacePrimitives) {
@@ -21,89 +20,71 @@ export class CollabServer {
 
   start() {
     setInterval(() => {
-      this.cleanup(3 * pingInterval);
-    }, pingInterval);
+      this.cleanup(3 * collabPingInterval);
+    }, collabPingInterval);
   }
 
-  ping(clientId: string, currentPage: string): { collabId?: string } {
-    let clientState = this.clients.get(clientId);
-    let collabId: string | undefined;
-    if (!clientState) {
-      clientState = {
-        openPage: "",
-        lastPing: Date.now(),
-      };
-    } else {
-      clientState.lastPing = Date.now();
-    }
-    if (currentPage !== clientState.openPage) {
+  ping(
+    clientId: string,
+    currentPage?: string,
+    previousPage?: string,
+  ): { collabId?: string } {
+    if (previousPage && currentPage !== previousPage) {
       // Client switched pages
       // Update last page record
-      const lastCollabPage = this.pages.get(clientState.openPage);
+      const lastCollabPage = this.pages.get(previousPage);
       if (lastCollabPage) {
         lastCollabPage.clients.delete(clientId);
+        if (lastCollabPage.clients.size === 1) {
+          delete lastCollabPage.collabId;
+        }
         if (lastCollabPage.clients.size === 0) {
-          // Cleanup
-          this.pages.delete(clientState.openPage);
-        } else {
-          if (lastCollabPage.clients.size === 1) {
-            delete lastCollabPage.collabId;
-          }
-          this.pages.set(clientState.openPage, lastCollabPage);
+          this.pages.delete(previousPage);
         }
       }
+    }
+
+    if (currentPage) {
       // Update new page
       let nextCollabPage = this.pages.get(currentPage);
       if (!nextCollabPage) {
         nextCollabPage = {
-          clients: new Set(),
+          clients: new Map(),
         };
+        this.pages.set(currentPage, nextCollabPage);
       }
-      nextCollabPage.clients.add(clientId);
-      // console.log(
-      //   "Current number of clients for",
-      //   currentPage,
-      //   "is",
-      //   nextCollabPage.clients.size,
-      //   nextCollabPage.collabId,
-      // );
+      // Register last ping from us
+      nextCollabPage.clients.set(clientId, Date.now());
+
       if (nextCollabPage.clients.size > 1 && !nextCollabPage.collabId) {
         // Create a new collabId
         nextCollabPage.collabId = nanoid();
       }
-      clientState.openPage = currentPage;
-      this.pages.set(currentPage, nextCollabPage);
-      collabId = nextCollabPage.collabId;
-    } else {
-      // Page didn't change
-      collabId = this.pages.get(currentPage)?.collabId;
-    }
-    this.clients.set(clientId, clientState);
-    if (collabId) {
-      return { collabId };
+      // console.log("State", this.pages);
+      if (nextCollabPage.collabId) {
+        return { collabId: nextCollabPage.collabId };
+      } else {
+        return {};
+      }
     } else {
       return {};
     }
   }
 
   cleanup(timeout: number) {
-    // Clean up clients that haven't pinged for some time
-    for (const [clientId, clientState] of this.clients) {
-      if (Date.now() - clientState.lastPing > timeout) {
-        console.log("[Collab]", "Ejecting client", clientId);
-        this.clients.delete(clientId);
-        const collabPage = this.pages.get(clientState.openPage);
-        if (collabPage) {
-          collabPage.clients.delete(clientId);
-          if (collabPage.clients.size === 0) {
-            this.pages.delete(clientState.openPage);
-          } else {
-            if (collabPage.clients.size === 1) {
-              delete collabPage.collabId;
-            }
-            this.pages.set(clientState.openPage, collabPage);
-          }
+    // Clean up pages and their clients that haven't pinged for some time
+    for (const [pageName, page] of this.pages) {
+      for (const [clientId, lastPing] of page.clients) {
+        if (Date.now() - lastPing > timeout) {
+          page.clients.delete(clientId);
         }
+      }
+      if (page.clients.size === 1) {
+        // If there's only one client left, we don't need to keep the collabId around anymore
+        delete page.collabId;
+      }
+      if (page.clients.size === 0) {
+        this.pages.delete(pageName);
       }
     }
   }
@@ -188,12 +169,12 @@ export class CollabServer {
     hocuspocus.listen();
 
     app.use((ctx) => {
-      if (ctx.request.url.pathname === "/.ws") {
-        const sock = ctx.upgrade();
-        sock.onmessage = (e) => {
-          console.log("WS: Got message", e.data);
-        };
-      }
+      // if (ctx.request.url.pathname === "/.ws") {
+      //   const sock = ctx.upgrade();
+      //   sock.onmessage = (e) => {
+      //     console.log("WS: Got message", e.data);
+      //   };
+      // }
       // Websocket proxy to hocuspocus
       if (ctx.request.url.pathname === "/.ws-collab") {
         const sock = ctx.upgrade();

@@ -136,7 +136,7 @@ import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { globToRegExp } from "https://deno.land/std@0.189.0/path/glob.ts";
+import { CollabManager } from "./collab_manager.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -193,6 +193,7 @@ export class Editor {
   syncService: SyncService;
   settings?: BuiltinSettings;
   kvStore: DexieKVStore;
+  collabManager: CollabManager;
 
   constructor(
     parent: Element,
@@ -213,6 +214,8 @@ export class Editor {
     // Event hook
     this.eventHook = new EventHook();
     system.addHook(this.eventHook);
+
+    this.collabManager = new CollabManager(this);
 
     // Cron hook
     const cronHook = new CronHook(system);
@@ -279,12 +282,6 @@ export class Editor {
       this.kvStore,
       this.eventHook,
       (path) => {
-        // Do not sync the current page if it's in collab mode (server will will handle persistence)
-        // console.log("Checking", path);
-        if (this.collabState && path === `${this.currentPage}.md`) {
-          console.log("Collab mode, not syncing current page", path);
-          return false;
-        }
         // TODO: At some point we should remove the data.db exception here
         return path !== "data.db" && !plugSpacePrimitives.isLikelyHandled(path);
       },
@@ -372,6 +369,11 @@ export class Editor {
         ev.preventDefault();
         this.viewDispatch({ type: "show-palette", context: this.getContext() });
       }
+    });
+
+    globalThis.addEventListener("beforeunload", (e) => {
+      console.log("Pinging with with undefined page name");
+      this.collabManager.ping(undefined, this.currentPage);
     });
 
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
@@ -478,6 +480,7 @@ export class Editor {
 
     // Kick off background sync
     this.syncService.start();
+    this.collabManager.start();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -1197,9 +1200,10 @@ export class Editor {
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
-      this.eventHook.dispatchEvent("editor:pageLoaded", pageName).catch(
-        console.error,
-      );
+      this.eventHook.dispatchEvent("editor:pageLoaded", pageName, previousPage)
+        .catch(
+          console.error,
+        );
     } else {
       this.eventHook.dispatchEvent("editor:pageReloaded", pageName).catch(
         console.error,

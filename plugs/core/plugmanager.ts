@@ -1,5 +1,4 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
-import type { Manifest } from "../../common/manifest.ts";
 import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
 import { builtinPlugNames } from "../builtin_plugs.ts";

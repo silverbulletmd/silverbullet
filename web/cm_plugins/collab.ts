@@ -1,3 +1,4 @@
+import { safeRun } from "../../common/util.ts";
 import { Extension, HocuspocusProvider, Y, yCollab } from "../deps.ts";
 import { SyncService } from "../sync_service.ts";
 
@@ -16,12 +17,13 @@ export class CollabState {
   public ytext: Y.Text;
   collabProvider: HocuspocusProvider;
   private yundoManager: Y.UndoManager;
+  interval: number;
 
   constructor(
-    private serverUrl: string,
-    private pageName: string,
-    private token: string,
-    private username: string,
+    serverUrl: string,
+    readonly pageName: string,
+    readonly token: string,
+    username: string,
     private syncService: SyncService,
   ) {
     this.collabProvider = new HocuspocusProvider({
@@ -60,10 +62,17 @@ export class CollabState {
       color: randomColor.color,
       colorLight: randomColor.light,
     });
+    syncService.excludeFromSync(`${pageName}.md`).catch(console.error);
+
+    this.interval = setInterval(() => {
+      // Ping the store to make sure the file remains in exclusion
+      syncService.excludeFromSync(`${pageName}.md`).catch(console.error);
+    }, 1000);
   }
 
   stop() {
     console.log("[COLLAB] Destroying collab provider");
+    clearInterval(this.interval);
     this.collabProvider.destroy();
     // For whatever reason, destroy() doesn't properly clean up everything so we need to help a bit
     this.collabProvider.configuration.websocketProvider.webSocket = null;
@@ -71,10 +80,11 @@ export class CollabState {
 
     // When stopping collaboration, we're going back to sync mode. Make sure we got the latest and greatest remote timestamp to avoid
     // conflicts
-    this.syncService.fetchAndPersistRemoteLastModified(`${this.pageName}.md`)
-      .catch(
-        console.error,
-      );
+    safeRun(async () => {
+      const path = `${this.pageName}.md`;
+      await this.syncService.unExcludeFromSync(path);
+      await this.syncService.fetchAndPersistRemoteLastModified(path);
+    });
   }
 
   collabExtension(): Extension {
