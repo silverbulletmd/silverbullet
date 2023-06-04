@@ -56,16 +56,15 @@ export class SyncService {
       await this.syncFile(`${name}.md`);
     });
 
-    eventHook.addLocalListener("page:saved", async (name, meta) => {
+    eventHook.addLocalListener("editor:pageSaved", async (name, meta) => {
       const path = `${name}.md`;
       await this.syncFile(path);
-      if (!this.isSyncCandidate(path)) {
-        // So we're editing a page and just saved it, but it's not a sync candidate
+      if (await this.isExcludedFromSync(path)) {
+        // So we're editing a page and just saved it, but it's excluded from sync
         // Assumption: we're in collab mode for this file, so we're going to constantly update our local hash
-        // console.log(
-        //   "Locally updating last modified in snapshot becaus we're in collab mode",
-        //   meta,
-        // );
+        console.log(
+          "Locally updating last modified in snapshot because we're in collab mode",
+        );
         await this.updateLocalLastModified(path, meta.lastModified);
       }
     });
@@ -242,6 +241,7 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop();
+    console.log("All done!");
   }
 
   start() {

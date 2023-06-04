@@ -45,7 +45,7 @@ export class CollabManager {
         },
       );
       const { collabId } = await resp.json();
-      console.log("Collab ID", collabId);
+      // console.log("Collab ID", collabId);
       const previousCollabId = this.editor.collabState?.token.split("/")[0];
       if (!collabId && this.editor.collabState) {
         // Stop collab
@@ -70,7 +70,9 @@ export class CollabManager {
       }
     } catch (e: any) {
       // console.error("Ping error", e);
-      if (e.message.includes("Failed to fetch") && this.editor.collabState) {
+      if (
+        e.message.toLowerCase().includes("failed") && this.editor.collabState
+      ) {
         console.log("Offline, stopping collab");
         this.editor.stopCollab();
       }

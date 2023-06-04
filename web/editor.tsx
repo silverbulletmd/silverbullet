@@ -567,8 +567,13 @@ export class Editor {
                 this.editorView!.state.sliceDoc(0),
                 true,
               )
-              .then(() => {
+              .then(async (meta) => {
                 this.viewDispatch({ type: "page-saved" });
+                await this.dispatchAppEvent(
+                  "editor:pageSaved",
+                  this.currentPage,
+                  meta,
+                );
                 resolve();
               })
               .catch((e) => {
@@ -666,8 +671,8 @@ export class Editor {
     });
   }
 
-  dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
-    return this.eventHook.dispatchEvent(name, data);
+  dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
+    return this.eventHook.dispatchEvent(name, ...args);
   }
 
   createEditorState(
@@ -1536,6 +1541,16 @@ export class Editor {
       username,
       this.syncService,
     );
+
+    this.collabState.collabProvider.on("synced", () => {
+      if (this.collabState!.ytext.toString() === "") {
+        console.log(
+          "[Collab]",
+          "Synced value is empty (new collab session), inserting local copy",
+        );
+        this.collabState!.ytext.insert(0, initialText);
+      }
+    });
 
     this.rebuildEditorState();
 

@@ -9,6 +9,7 @@ export type AppEvent =
   | "editor:init"
   | "editor:pageLoaded"
   | "editor:pageReloaded"
+  | "editor:pageSaved"
   | "editor:modeswitch"
   | "plugs:loaded";
 

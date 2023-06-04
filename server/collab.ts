@@ -97,36 +97,6 @@ export class CollabServer {
       port: internalPort,
       address: "127.0.0.1",
       quiet: true,
-      onLoadDocument: async (doc) => {
-        console.log("[Hocuspocus]", "Requesting doc load", doc.documentName);
-        const [collabId, pageName] = splitCollabId(doc.documentName);
-        const collabPage = this.pages.get(pageName);
-        if (!collabPage || collabPage.collabId !== collabId) {
-          // This can happen after a server restart (or a multi-server setup which we don't yet support),
-          // where old clients are still trying to continue on an old session
-          // This will self-correct when the client discovers that the collabId has changed
-          // Until then: HARD PASS (meaning: don't send a document)
-          console.warn(
-            "[Hocuspocus]",
-            "Client tried to connect to old session",
-            doc.documentName,
-          );
-          return;
-        }
-        try {
-          const yText = doc.document.getText("codemirror");
-          // Read document from space and load it into Yjs
-          const { data } = await this.spacePrimitives.readFile(
-            `${pageName}.md`,
-          );
-
-          yText.insert(0, new TextDecoder().decode(data));
-          console.log("[Hocuspocus]", "Loaded document from space");
-          return doc.document;
-        } catch (e) {
-          console.error("Error loading doc", e);
-        }
-      },
       onStoreDocument: async (data) => {
         const [_, pageName] = splitCollabId(data.documentName);
         const path = `${pageName}.md`;
