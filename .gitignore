@@ -11,3 +11,4 @@ fly.toml
 env.sh
 node_modules
 *.db
+test_space
