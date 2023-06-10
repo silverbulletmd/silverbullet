@@ -13,6 +13,7 @@ export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;
   description: string;
   callback: () => void;
+  href?: string;
 };
 
 export function TopBar({
@@ -118,17 +119,21 @@ export function TopBar({
               </div>
             )}
             <div className="sb-actions">
-              {actionButtons.map((actionButton) => (
-                <button
-                  onClick={(e) => {
-                    actionButton.callback();
-                    e.stopPropagation();
-                  }}
-                  title={actionButton.description}
-                >
-                  <actionButton.icon size={18} />
-                </button>
-              ))}
+              {actionButtons.map((actionButton) => {
+                const button =
+                    <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          actionButton.callback();
+                          e.stopPropagation();
+                        }}
+                        title={actionButton.description}
+                    >
+                      <actionButton.icon size={18} />
+                    </button>
+
+                return actionButton.href !== undefined ? (<a href={actionButton.href}>{button}</a>) : button;
+              })}
             </div>
           </div>
         </div>

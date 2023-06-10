@@ -9,3 +9,4 @@ website_build
 deno.lock
 fly.toml
 env.sh
+test_space

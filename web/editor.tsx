@@ -1405,6 +1405,7 @@ export class Editor {
               callback: () => {
                 editor.navigate("");
               },
+              href: "",
             },
             {
               icon: BookIcon,
