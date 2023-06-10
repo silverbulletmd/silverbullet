@@ -273,7 +273,7 @@ export class SyncService {
     const snapshot = await this.getSnapshot();
     // Fetch the list of files that are excluded from sync (e.g. because they're in collab mode)
     const excludedFromSync = await this.fetchAllExcludedFromSync();
-    console.log("Excluded from sync", excludedFromSync);
+    // console.log("Excluded from sync", excludedFromSync);
     try {
       operations = await this.spaceSync!.syncFiles(
         snapshot,
