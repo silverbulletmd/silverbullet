@@ -5,6 +5,7 @@ import { Application } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { collabPingInterval } from "../plugs/collab/constants.ts";
 import { Hocuspocus } from "./deps.ts";
+
 type CollabPage = {
   clients: Map<string, number>; // clientId -> lastPing
   collabId?: string;

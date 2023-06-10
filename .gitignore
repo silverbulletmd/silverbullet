@@ -10,3 +10,4 @@ deno.lock
 fly.toml
 env.sh
 node_modules
+*.db

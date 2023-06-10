@@ -7,7 +7,6 @@ import { upgradeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
-import { collabServerCommand } from "./cmd/collab_server.ts";
 
 await new Command()
   .name("silverbullet")
@@ -59,13 +58,6 @@ await new Command()
   .option("--importmap <path:string>", "Path to import map file to use")
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
-  // server:collab
-  .command("server:collab", "Run a collab server for external collaboration")
-  .option("-p, --port <port:number>", "Port to bind to", {
-    default: 1337,
-  })
-  .arguments("[data:string]")
-  .action(collabServerCommand)
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)
