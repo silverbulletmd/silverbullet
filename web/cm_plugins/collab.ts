@@ -17,7 +17,7 @@ export class CollabState {
   public ytext: Y.Text;
   collabProvider: HocuspocusProvider;
   private yundoManager: Y.UndoManager;
-  interval: number;
+  interval?: number;
 
   constructor(
     serverUrl: string,
@@ -25,6 +25,7 @@ export class CollabState {
     readonly token: string,
     username: string,
     private syncService: SyncService,
+    public isLocalCollab: boolean,
   ) {
     this.collabProvider = new HocuspocusProvider({
       url: serverUrl,
@@ -62,17 +63,21 @@ export class CollabState {
       color: randomColor.color,
       colorLight: randomColor.light,
     });
-    syncService.excludeFromSync(path).catch(console.error);
-
-    this.interval = setInterval(() => {
-      // Ping the store to make sure the file remains in exclusion
+    if (isLocalCollab) {
       syncService.excludeFromSync(path).catch(console.error);
-    }, 1000);
+
+      this.interval = setInterval(() => {
+        // Ping the store to make sure the file remains in exclusion
+        syncService.excludeFromSync(path).catch(console.error);
+      }, 1000);
+    }
   }
 
   stop() {
     console.log("[COLLAB] Destroying collab provider");
-    clearInterval(this.interval);
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     this.collabProvider.destroy();
     // For whatever reason, destroy() doesn't properly clean up everything so we need to help a bit
     this.collabProvider.configuration.websocketProvider.webSocket = null;

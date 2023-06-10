@@ -45,6 +45,12 @@ export class CollabManager {
         },
       );
       const { collabId } = await resp.json();
+
+      if (this.editor.collabState && !this.editor.collabState.isLocalCollab) {
+        // We're in a remote collab mode, don't do anything
+        return;
+      }
+
       // console.log("Collab ID", collabId);
       const previousCollabId = this.editor.collabState?.token.split("/")[0];
       if (!collabId && this.editor.collabState) {
@@ -66,6 +72,7 @@ export class CollabManager {
           this.localCollabServer,
           `${collabId}/${currentPage}.md`,
           "you",
+          true,
         );
       }
     } catch (e: any) {

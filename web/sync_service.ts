@@ -62,9 +62,9 @@ export class SyncService {
       if (await this.isExcludedFromSync(path)) {
         // So we're editing a page and just saved it, but it's excluded from sync
         // Assumption: we're in collab mode for this file, so we're going to constantly update our local hash
-        console.log(
-          "Locally updating last modified in snapshot because we're in collab mode",
-        );
+        // console.log(
+        //   "Locally updating last modified in snapshot because we're in collab mode",
+        // );
         await this.updateLocalLastModified(path, meta.lastModified);
       }
     });

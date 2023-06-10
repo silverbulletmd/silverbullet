@@ -1528,7 +1528,12 @@ export class Editor {
     return;
   }
 
-  startCollab(serverUrl: string, token: string, username: string) {
+  startCollab(
+    serverUrl: string,
+    token: string,
+    username: string,
+    isLocalCollab = false,
+  ) {
     if (this.collabState) {
       // Clean up old collab state
       this.collabState.stop();
@@ -1540,6 +1545,7 @@ export class Editor {
       token,
       username,
       this.syncService,
+      isLocalCollab,
     );
 
     this.collabState.collabProvider.on("synced", () => {

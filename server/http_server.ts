@@ -285,7 +285,7 @@ export class HttpServer {
             response.headers.set("Content-Type", "application/json");
             console.log("Got presence update", body);
             response.body = JSON.stringify(
-              this.collab.ping(
+              this.collab.updatePresence(
                 body.clientId,
                 body.currentPage,
                 body.previousPage,
