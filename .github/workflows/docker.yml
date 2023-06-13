@@ -7,7 +7,6 @@ on:
     tags:
       - "*"
 env:
-  DENO_VERSION: v1.34
   # Docker & Registries
   ARCHITECTURES: linux/amd64,linux/arm64
   IMAGE_NAME: silverbullet
@@ -32,10 +31,10 @@ jobs:
           platforms: ${{ env.ARCHITECTURES }}
 
       - name: Setup Deno
-        uses: denoland/setup-deno@d4873ceeec10de6275fecd1f94b6985369d40231
+        uses: denoland/setup-deno@v1
         with:
-          deno-version: ${{ env.DENO_VERSION }}
-
+          deno-version: v1.34
+  
       - name: Run bundle build
         run: |
           deno task build
