@@ -32,7 +32,7 @@ silverbullet <pages-path>
 
 By default, SilverBullet will bind to port `3000`; to use a different port, use the `-p` flag.
 
-For security reasons, by default, SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `-L 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection. Credentials can also be specified with the `SB_USER` environment variable, `SB_USER=username:password`. If both are specified, the `--user` flag takes precedence.
+For security reasons, by default, SilverBullet only allows connections via `localhost` (or `127.0.0.1`). To also allow connections from the network, pass a `-L 0.0.0.0` flag (0.0.0.0 for all connections, or insert a specific address to limit the host), ideally combined with `--user username:password` to add BasicAuth password protection.
 
 Once downloaded and booted, SilverBullet will print out a URL to open SB in your browser. Please make note of [[@tls|the use of HTTPs]].
 
@@ -104,3 +104,11 @@ $ sudo caddy reverse-proxy --to :3000 --from yourserver.yourtsdomain.ts.net:443
 ```
 
 If you access SilverBullet via plain HTTP (outside of localhost) everything _should_ still mostly work, except offline mode.
+
+## Environment variables
+You can configure SB with environment variables instead of flags as well. The following environment variables are supported:
+
+* `SB_USER`: Sets single-user credentials (like `--user`), e.g. `SB_USER=pete:1234`
+* `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
+* `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
+* `SB_AUTH`: Loads an [[Authentication]] database from a (JSON encoded) string, e.g. `SB_AUTH=$(cat /path/to/.auth.json)`

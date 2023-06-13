@@ -1,10 +1,11 @@
 {
   "imports": {
     "@lezer/common": "https://esm.sh/@lezer/common@1.0.2",
-    "@lezer/lr": "https://esm.sh/@lezer/lr@1.3.5?external=@lezer/common",
-    "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight",
-    "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.3?external=@lezer/common,@codemirror/language,@lezer/highlight",
-    "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.1.6?external=@lezer/common",
+    "@lezer/lr": "https://esm.sh/@lezer/lr@1.3.5?external=@lezer/common&target=deno",
+    "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.0.2?external=@lezer/common,@codemirror/language,@lezer/highlight,@lezer/lr",
+    "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.3?external=@lezer/common,@codemirror/language,@lezer/highlight,@lezer/lr",
+    "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.1.6?external=@lezer/common,@lezer/lr",
+    "@lezer/html": "https://esm.sh/@lezer/html@1.3.4?external=@lezer/common,@lezer/lr",
 
     "@codemirror/state": "https://esm.sh/@codemirror/state@6.2.1",
     "@codemirror/language": "https://esm.sh/@codemirror/language@6.7.0?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight",
@@ -12,11 +13,12 @@
     "@codemirror/view": "https://esm.sh/@codemirror/view@6.9.0?external=@codemirror/state,@lezer/common",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.7.1?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.2.1?external=@codemirror/state,@lezer/common",
-    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.3?external=@codemirror/language,@codemirror/autocomplete,@codemirror/lang-css,@codemirror/state",
+    "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.2.0?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/lr,@lezer/html",
+    "@codemirror/lang-html": "https://esm.sh/@codemirror/lang-html@6.4.3?external=@codemirror/language,@codemirror/autocomplete,@codemirror/lang-css,@codemirror/state,@lezer/lr,@lezer/html",
     "@codemirror/search": "https://esm.sh/@codemirror/search@6.4.0?external=@codemirror/state,@codemirror/view",
 
     "preact": "https://esm.sh/preact@10.11.1",
-    "yjs": "https://esm.sh/yjs@13.5.42",
+    "yjs": "https://esm.sh/yjs@13.5.42?target=es2022",
     "$sb/": "./plug-api/",
     "handlebars": "https://esm.sh/handlebars@4.7.7?target=es2022",
     "dexie": "https://esm.sh/dexie@3.2.2"

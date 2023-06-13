@@ -7,7 +7,7 @@ on:
     tags:
       - "*"
 env:
-  DENO_VERSION: v1.33
+  DENO_VERSION: v1.34
   # Docker & Registries
   ARCHITECTURES: linux/amd64,linux/arm64
   IMAGE_NAME: silverbullet

@@ -37,7 +37,10 @@ export class SpaceSync {
   ) {
   }
 
-  async syncFiles(snapshot: Map<string, SyncStatusItem>): Promise<number> {
+  async syncFiles(
+    snapshot: Map<string, SyncStatusItem>,
+    isSyncCandidate = this.options.isSyncCandidate,
+  ): Promise<number> {
     let operations = 0;
     console.log("[sync]", "Fetching snapshot from primary");
     const primaryAllPages = this.syncCandidates(
@@ -73,6 +76,9 @@ export class SpaceSync {
       // console.log("[sync]", "Iterating over all files");
       let filesProcessed = 0;
       for (const name of sortedFilenames) {
+        if (isSyncCandidate && !isSyncCandidate(name)) {
+          continue;
+        }
         try {
           operations += await this.syncFile(
             snapshot,

@@ -61,7 +61,7 @@ export {
 } from "@codemirror/view";
 export type { DecorationSet, KeyBinding } from "@codemirror/view";
 
-export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.1.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@@codemirror/lang-html";
+export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.1.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@codemirror/lang-html";
 
 export {
   EditorSelection,

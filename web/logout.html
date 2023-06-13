@@ -55,13 +55,16 @@
 
 <body>
     <header>
-        <h1>Reset page</h1>
+        <h1>Logout</h1>
     </header>
-    <button onclick="resetAll()">Flush everything</button>
-    <button onclick="javascript:location='/'">Back</button>
+    <button onclick="resetAll()">Logout</button>
+    <button onclick="javascript:location='/'">Cancel</button>
 
     <script>
         function resetAll() {
+            // Reset local storage username
+            localStorage.removeItem("username");
+
             if (indexedDB.databases) {
                 // get a list of all existing IndexedDB databases
                 indexedDB.databases().then((databases) => {
@@ -75,8 +78,12 @@
                         })
                     );
                 }).then(() => {
-                    alert("All IndexedDB databases deleted");
+                    alert("Flushed local data, you're now logged out");
+                    location.href = "/.auth?logout";
                 });
+            } else {
+                alert("Cannot flush local data (Firefox user?), will now log you out");
+                location.href = "/.auth?logout";
             }
 
             if (navigator.serviceWorker) {
@@ -90,7 +97,6 @@
                         navigator.serviceWorker.getRegistrations().then((registrations) => {
                             for (const registration of registrations) {
                                 registration.unregister();
-                                alert("Service worker unregistered");
                             }
                         });
 

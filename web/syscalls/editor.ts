@@ -32,10 +32,14 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.reloadPage": async () => {
       await editor.reloadPage();
     },
-    "editor.openUrl": (_ctx, url: string) => {
-      const win = window.open(url, "_blank");
-      if (win) {
-        win.focus();
+    "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
+      if (!existingWindow) {
+        const win = window.open(url, "_blank");
+        if (win) {
+          win.focus();
+        }
+      } else {
+        location.href = url;
       }
     },
     "editor.downloadFile": (_ctx, filename: string, dataUrl: string) => {

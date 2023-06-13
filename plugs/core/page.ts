@@ -9,7 +9,6 @@ import {
   index,
   markdown,
   space,
-  system,
 } from "$sb/silverbullet-syscall/mod.ts";
 
 import { events } from "$sb/plugos-syscall/mod.ts";

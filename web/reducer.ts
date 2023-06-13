@@ -43,6 +43,8 @@ export default function reducer(
       return {
         ...state,
         showPageNavigator: true,
+        showCommandPalette: false,
+        showFilterBox: false,
       };
     case "stop-navigate":
       return {
@@ -69,6 +71,8 @@ export default function reducer(
       return {
         ...state,
         showCommandPalette: true,
+        showPageNavigator: false,
+        showFilterBox: false,
         showCommandPaletteContext: action.context,
       };
     }

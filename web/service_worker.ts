@@ -8,7 +8,7 @@ const CACHE_NAME = "{{CACHE_NAME}}";
 
 const precacheFiles = Object.fromEntries([
   "/",
-  "/.client/reset.html",
+  "/.client/logout.html",
   "/.client/client.js",
   "/.client/favicon.png",
   "/.client/iAWriterMonoS-Bold.woff2",
@@ -83,13 +83,14 @@ self.addEventListener("fetch", (event: any) => {
 
         const requestUrl = new URL(event.request.url);
         const pathname = requestUrl.pathname;
+        // console.log("In service worker, pathname is", pathname);
         // If this is a /.fs request, this can either be a plug worker load or an attachment load
         if (pathname.startsWith("/.fs")) {
           if (fileContentTable && !event.request.headers.has("x-sync-mode")) {
-            console.log(
-              "Attempting to serve file from locally synced space:",
-              pathname,
-            );
+            // console.log(
+            //   "Attempting to serve file from locally synced space:",
+            //   pathname,
+            // );
             // Don't fetch from DB when in sync mode (because then updates won't sync)
             const path = decodeURIComponent(
               requestUrl.pathname.slice("/.fs/".length),
@@ -97,7 +98,7 @@ self.addEventListener("fetch", (event: any) => {
             return fileContentTable.get(path).then(
               (data) => {
                 if (data) {
-                  console.log("Serving from space", path);
+                  // console.log("Serving from space", path);
                   return new Response(data.data, {
                     headers: {
                       "Content-type": mime.getType(path) ||

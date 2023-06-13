@@ -14,7 +14,7 @@ export function collabSyscalls(editor: Editor): SysCallMapping {
     "collab.stop": (
       _ctx,
     ) => {
-      editor.collabState?.stop();
+      editor.stopCollab();
     },
   };
 }

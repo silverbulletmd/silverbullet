@@ -136,7 +136,7 @@ import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { globToRegExp } from "https://deno.land/std@0.189.0/path/glob.ts";
+import { CollabManager } from "./collab_manager.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -193,6 +193,7 @@ export class Editor {
   syncService: SyncService;
   settings?: BuiltinSettings;
   kvStore: DexieKVStore;
+  collabManager: CollabManager;
 
   constructor(
     parent: Element,
@@ -213,6 +214,8 @@ export class Editor {
     // Event hook
     this.eventHook = new EventHook();
     system.addHook(this.eventHook);
+
+    this.collabManager = new CollabManager(this);
 
     // Cron hook
     const cronHook = new CronHook(system);
@@ -368,6 +371,11 @@ export class Editor {
       }
     });
 
+    globalThis.addEventListener("beforeunload", (e) => {
+      console.log("Pinging with with undefined page name");
+      this.collabManager.updatePresence(undefined, this.currentPage);
+    });
+
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
       console.log("Plug updated, reloading:", fileName);
       system.unload(fileName);
@@ -389,7 +397,8 @@ export class Editor {
 
     this.space.on({
       pageChanged: (meta) => {
-        if (this.currentPage === meta.name) {
+        // Only reload when watching the current page (to avoid reloading when switching pages and in collab mode)
+        if (this.space.watchInterval && this.currentPage === meta.name) {
           console.log("Page changed elsewhere, reloading");
           this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();
@@ -471,6 +480,7 @@ export class Editor {
 
     // Kick off background sync
     this.syncService.start();
+    this.collabManager.start();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -557,8 +567,13 @@ export class Editor {
                 this.editorView!.state.sliceDoc(0),
                 true,
               )
-              .then(() => {
+              .then(async (meta) => {
                 this.viewDispatch({ type: "page-saved" });
+                await this.dispatchAppEvent(
+                  "editor:pageSaved",
+                  this.currentPage,
+                  meta,
+                );
                 resolve();
               })
               .catch((e) => {
@@ -656,8 +671,8 @@ export class Editor {
     });
   }
 
-  dispatchAppEvent(name: AppEvent, data?: any): Promise<any[]> {
-    return this.eventHook.dispatchEvent(name, data);
+  dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
+    return this.eventHook.dispatchEvent(name, ...args);
   }
 
   createEditorState(
@@ -950,38 +965,42 @@ export class Editor {
             touchCount = 0;
           },
           mousedown: (event: MouseEvent, view: EditorView) => {
-            // Make sure <a> tags are clicked without moving the cursor there
-            if (!event.altKey && event.target instanceof Element) {
-              const parentA = event.target.closest("a");
-              if (parentA) {
-                event.stopPropagation();
-                event.preventDefault();
-                const clickEvent: ClickEvent = {
-                  page: pageName,
-                  ctrlKey: event.ctrlKey,
-                  metaKey: event.metaKey,
-                  altKey: event.altKey,
-                  pos: view.posAtCoords({
-                    x: event.x,
-                    y: event.y,
-                  })!,
-                };
-                this.dispatchAppEvent("page:click", clickEvent).catch(
-                  console.error,
-                );
-              }
-            }
-          },
-          click: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
-              const clickEvent: ClickEvent = {
+              const pos = view.posAtCoords(event);
+              if (!pos) {
+                return;
+              }
+              const potentialClickEvent: ClickEvent = {
                 page: pageName,
                 ctrlKey: event.ctrlKey,
                 metaKey: event.metaKey,
                 altKey: event.altKey,
-                pos: view.posAtCoords(event)!,
+                pos: view.posAtCoords({
+                  x: event.x,
+                  y: event.y,
+                })!,
               };
-              await this.dispatchAppEvent("page:click", clickEvent);
+              // Make sure <a> tags are clicked without moving the cursor there
+              if (!event.altKey && event.target instanceof Element) {
+                const parentA = event.target.closest("a");
+                if (parentA) {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  await this.dispatchAppEvent(
+                    "page:click",
+                    potentialClickEvent,
+                  );
+                  return;
+                }
+              }
+
+              const distanceX = event.x - view.coordsAtPos(pos)!.left;
+              // What we're trying to determine here is if the click occured anywhere near the looked up position
+              // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
+              // Fixes #357
+              if (distanceX <= view.defaultCharacterWidth) {
+                await this.dispatchAppEvent("page:click", potentialClickEvent);
+              }
             });
           },
         }),
@@ -1107,6 +1126,10 @@ export class Editor {
     this.editorView!.focus();
   }
 
+  getUsername(): string {
+    return localStorage.getItem("username") || "you";
+  }
+
   async navigate(
     name: string,
     pos?: number | string,
@@ -1144,8 +1167,7 @@ export class Editor {
         await this.save(true);
         // And stop the collab session
         if (this.collabState) {
-          this.collabState.stop();
-          this.collabState = undefined;
+          this.stopCollab();
         }
       }
     }
@@ -1187,9 +1209,10 @@ export class Editor {
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
-      this.eventHook.dispatchEvent("editor:pageLoaded", pageName).catch(
-        console.error,
-      );
+      this.eventHook.dispatchEvent("editor:pageLoaded", pageName, previousPage)
+        .catch(
+          console.error,
+        );
     } else {
       this.eventHook.dispatchEvent("editor:pageReloaded", pageName).catch(
         console.error,
@@ -1226,10 +1249,18 @@ export class Editor {
     if (pageState) {
       // Restore state
       editorView.scrollDOM.scrollTop = pageState!.scrollTop;
-      editorView.dispatch({
-        selection: pageState.selection,
-        scrollIntoView: true,
-      });
+      try {
+        editorView.dispatch({
+          selection: pageState.selection,
+          scrollIntoView: true,
+        });
+      } catch {
+        // This is fine, just go to the top
+        editorView.dispatch({
+          selection: { anchor: 0 },
+          scrollIntoView: true,
+        });
+      }
     } else {
       editorView.scrollDOM.scrollTop = 0;
       editorView.dispatch({
@@ -1405,6 +1436,7 @@ export class Editor {
               callback: () => {
                 editor.navigate("");
               },
+              href: "",
             },
             {
               icon: BookIcon,
@@ -1501,19 +1533,49 @@ export class Editor {
     return;
   }
 
-  startCollab(serverUrl: string, token: string, username: string) {
+  startCollab(
+    serverUrl: string,
+    token: string,
+    username: string,
+    isLocalCollab = false,
+  ) {
     if (this.collabState) {
       // Clean up old collab state
       this.collabState.stop();
     }
     const initialText = this.editorView!.state.sliceDoc();
-    this.collabState = new CollabState(serverUrl, token, username);
-    this.collabState.collabProvider.once("sync", (synced: boolean) => {
-      if (this.collabState?.ytext.toString() === "") {
-        console.log("Synced value is empty, putting back original text");
-        this.collabState?.ytext.insert(0, initialText);
+    this.collabState = new CollabState(
+      serverUrl,
+      `${this.currentPage!}.md`,
+      token,
+      username,
+      this.syncService,
+      isLocalCollab,
+    );
+
+    this.collabState.collabProvider.on("synced", () => {
+      if (this.collabState!.ytext.toString() === "") {
+        console.log(
+          "[Collab]",
+          "Synced value is empty (new collab session), inserting local copy",
+        );
+        this.collabState!.ytext.insert(0, initialText);
       }
     });
+
     this.rebuildEditorState();
+
+    // Don't watch for local changes in this mode
+    this.space.unwatch();
+  }
+
+  stopCollab() {
+    if (this.collabState) {
+      this.collabState.stop();
+      this.collabState = undefined;
+      this.rebuildEditorState();
+    }
+    // Start file watching again
+    this.space.watch();
   }
 }

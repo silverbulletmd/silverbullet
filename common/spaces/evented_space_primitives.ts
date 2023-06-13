@@ -36,7 +36,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       text = decoder.decode(data);
 
       this.eventHook
-        .dispatchEvent("page:saved", pageName)
+        .dispatchEvent("page:saved", pageName, newMeta)
         .then(() => {
           return this.eventHook.dispatchEvent("page:index_text", {
             name: pageName,
