@@ -42,7 +42,7 @@ export async function copyAssets(dist: string) {
   await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
-  await copy("web/reset.html", `${dist}/reset.html`, {
+  await copy("web/logout.html", `${dist}/logout.html`, {
     overwrite: true,
   });
   await copy("web/images/favicon.png", `${dist}/favicon.png`, {

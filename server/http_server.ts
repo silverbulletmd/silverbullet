@@ -8,13 +8,14 @@ import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { CollabServer } from "./collab.ts";
+import { Authenticator } from "./auth.ts";
 
 export type ServerOptions = {
   hostname: string;
   port: number;
   pagesPath: string;
   clientAssetBundle: AssetBundle;
-  user?: string;
+  authenticator: Authenticator;
   pass?: string;
   certFile?: string;
   keyFile?: string;
@@ -25,12 +26,12 @@ export class HttpServer {
   app: Application;
   private hostname: string;
   private port: number;
-  user?: string;
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
   collab: CollabServer;
+  authenticator: Authenticator;
 
   constructor(
     spacePrimitives: SpacePrimitives,
@@ -39,7 +40,7 @@ export class HttpServer {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application();
-    this.user = options.user;
+    this.authenticator = options.authenticator;
     this.clientAssetBundle = options.clientAssetBundle;
 
     let fileFilterFn: (s: string) => boolean = () => true;
@@ -139,7 +140,7 @@ export class HttpServer {
 
     // Pages API
     const fsRouter = this.buildFsRouter(this.spacePrimitives);
-    this.addPasswordAuth(this.app);
+    await this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
 
@@ -175,25 +176,40 @@ export class HttpServer {
     this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
   }
 
-  private addPasswordAuth(app: Application) {
+  private async addPasswordAuth(app: Application) {
     const excludedPaths = [
       "/manifest.json",
       "/favicon.png",
       "/logo.png",
       "/.auth",
     ];
-    if (this.user) {
-      const b64User = btoa(this.user);
+    if ((await this.authenticator.getAllUsers()).length > 0) {
       app.use(async ({ request, response, cookies }, next) => {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
-          if (!authCookie || authCookie !== b64User) {
+          if (!authCookie) {
             response.status = 401;
             response.body = "Unauthorized, please authenticate";
             return;
           }
+          const [username, hashedPassword] = authCookie.split(":");
+          if (
+            !await this.authenticator.authenticateHashed(
+              username,
+              hashedPassword,
+            )
+          ) {
+            response.status = 401;
+            response.body = "Invalid username/password, please reauthenticate";
+            return;
+          }
         }
+
         if (request.url.pathname === "/.auth") {
+          if (request.url.search === "?logout") {
+            await cookies.delete("auth");
+            // Implicit fallthrough to login page
+          }
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
             response.body = this.clientAssetBundle.readTextFileSync(
@@ -202,11 +218,15 @@ export class HttpServer {
             return;
           } else if (request.method === "POST") {
             const values = await request.body({ type: "form" }).value;
-            const username = values.get("username"),
-              password = values.get("password"),
+            const username = values.get("username")!,
+              password = values.get("password")!,
               refer = values.get("refer");
-            if (this.user === `${username}:${password}`) {
-              await cookies.set("auth", b64User, {
+            const hashedPassword = await this.authenticator.authenticate(
+              username,
+              password,
+            );
+            if (hashedPassword) {
+              await cookies.set("auth", `${username}:${hashedPassword}`, {
                 expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
                 sameSite: "strict",
               });

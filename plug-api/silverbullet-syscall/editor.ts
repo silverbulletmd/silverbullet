@@ -42,8 +42,8 @@ export function reloadPage(): Promise<void> {
   return syscall("editor.reloadPage");
 }
 
-export function openUrl(url: string): Promise<void> {
-  return syscall("editor.openUrl", url);
+export function openUrl(url: string, existingWindow = false): Promise<void> {
+  return syscall("editor.openUrl", url, existingWindow);
 }
 
 // Force the client to download the file in dataUrl with filename as file name

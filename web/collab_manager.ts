@@ -71,7 +71,7 @@ export class CollabManager {
         this.editor.startCollab(
           this.localCollabServer,
           `${collabId}/${currentPage}.md`,
-          "you",
+          this.editor.getUsername(),
           true,
         );
       }

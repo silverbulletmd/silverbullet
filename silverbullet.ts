@@ -7,6 +7,7 @@ import { upgradeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
+import { userAdd } from "./cmd/user_add.ts";
 
 await new Command()
   .name("silverbullet")
@@ -26,6 +27,10 @@ await new Command()
   .option(
     "--user <user:string>",
     "'username:password' combo for BasicAuth authentication",
+  )
+  .option(
+    "--auth <auth.json:string>",
+    "User authentication file to use for authentication",
   )
   .option(
     "--cert <certFile:string>",
@@ -58,6 +63,13 @@ await new Command()
   .option("--importmap <path:string>", "Path to import map file to use")
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
+  .command("user:add", "Add a new user to an authentication file")
+  .arguments("[.auth.json:string]")
+  .option("-G, --group <name:string>", "Add user to group", {
+    collect: true,
+    default: [] as string[],
+  })
+  .action(userAdd)
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)

@@ -1126,6 +1126,10 @@ export class Editor {
     this.editorView!.focus();
   }
 
+  getUsername(): string {
+    return localStorage.getItem("username") || "you";
+  }
+
   async navigate(
     name: string,
     pos?: number | string,

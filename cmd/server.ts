@@ -11,8 +11,10 @@ import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_sp
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
+import { Authenticator } from "../server/auth.ts";
+import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
 
-export function serveCommand(
+export async function serveCommand(
   options: any,
   folder?: string,
 ) {
@@ -61,12 +63,30 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     new AssetBundle(plugAssetBundle as AssetJson),
   );
 
+  const authStore = new JSONKVStore();
+  const authenticator = new Authenticator(authStore);
+
+  const flagUser = options.user ?? Deno.env.get("SB_USER");
+  if (flagUser) {
+    // If explicitly added via env/parameter, add on the fly
+    const [username, password] = flagUser.split(":");
+    await authenticator.register(username, password, ["admin"]);
+  }
+
+  if (options.auth) {
+    // Load auth file
+    console.log("Loading authentication credentials from", options.auth);
+    await authStore.load(options.auth);
+  }
+
+  // console.log("ALl options", options);
+
   const httpServer = new HttpServer(spacePrimitives!, {
     hostname,
     port: port,
     pagesPath: folder!,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-    user: options.user ?? Deno.env.get("SB_USER"),
+    authenticator,
     keyFile: options.key,
     certFile: options.cert,
     maxFileSizeMB: +maxFileSizeMB,
