@@ -4,7 +4,11 @@ export class JSONKVStore implements KVStore {
   private data: { [key: string]: any } = {};
 
   async load(path: string) {
-    this.data = JSON.parse(await Deno.readTextFile(path));
+    this.loadString(await Deno.readTextFile(path));
+  }
+
+  loadString(jsonString: string) {
+    this.data = JSON.parse(jsonString);
   }
 
   async save(path: string) {

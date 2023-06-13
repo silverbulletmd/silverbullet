@@ -83,6 +83,7 @@ await new Command()
     "--auth <auth.json:string>",
     "User authentication file to use",
   )
+  .action(userDelete)
   .command("user:chgrp", "Update user groups")
   .arguments("[username:string]")
   .option(

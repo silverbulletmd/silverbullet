@@ -3,8 +3,9 @@ release.
 
 ## Next
 
-* **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This is in preparation of opening up SB to multiple accounts later on. And obviously, this only works when in online mode.
+* **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This only works when a connection with the server can be established.
   * This **breaks** existing [[🔌 Collab]] links, since we switched real-time collaboration libraries. We’re still looking at the best way to keep supporting this feature.
+* [[Authentication|Multi-user authentication]]: you can now allow multiple user accounts authenticate, which makes the real-time collaboration support actually useful. This feature is still experimental and will likely evolve over time.
 * Added `spaceIgnore` setting to not sync specific folders or file patterns to the client, see [[SETTINGS]] for documentation
 * Much improved image loading behavior on page (previously scroll bars would jump up and down like a mad person)
 * Various bug fixes and quality of life improvements

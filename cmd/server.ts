@@ -75,8 +75,22 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
 
   if (options.auth) {
     // Load auth file
-    console.log("Loading authentication credentials from", options.auth);
-    await authStore.load(options.auth);
+    const authFile: string = options.auth;
+    console.log("Loading authentication credentials from", authFile);
+    await authStore.load(authFile);
+    (async () => {
+      // Asynchronously kick off file watcher
+      for await (const _event of Deno.watchFs(options.auth)) {
+        console.log("Authentication file changed, reloading...");
+        await authStore.load(authFile);
+      }
+    })().catch(console.error);
+  }
+
+  const envAuth = Deno.env.get("SB_AUTH");
+  if (envAuth) {
+    console.log("Loading authentication from SB_AUTH");
+    authStore.loadString(envAuth);
   }
 
   // console.log("ALl options", options);

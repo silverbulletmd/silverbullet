@@ -330,6 +330,11 @@ export class HttpServer {
       .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
         console.log("Loading file", name);
+        if (name.startsWith(".")) {
+          // Don't expose hidden files
+          response.status = 404;
+          return;
+        }
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
@@ -362,6 +367,11 @@ export class HttpServer {
       .put("\/(.+)", async ({ request, response, params }) => {
         const name = params[0];
         console.log("Saving file", name);
+        if (name.startsWith(".")) {
+          // Don't expose hidden files
+          response.status = 403;
+          return;
+        }
 
         let body: Uint8Array;
         if (
