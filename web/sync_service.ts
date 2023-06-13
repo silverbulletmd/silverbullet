@@ -1,3 +1,4 @@
+import { sleep } from "../common/async_util.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import {
   SpaceSync,
@@ -16,6 +17,8 @@ const syncStartTimeKey = "syncStartTime";
 // Keeps the last time an activity was registered, used to detect if a sync is still alive and whether a new one should be started already
 const syncLastActivityKey = "syncLastActivity";
 
+const syncExcludePrefix = "syncExclude:";
+
 // maximum time between two activities before we consider a sync crashed
 const syncMaxIdleTimeout = 1000 * 20; // 20s
 
@@ -31,8 +34,8 @@ export class SyncService {
   lastReportedSyncStatus = Date.now();
 
   constructor(
-    private localSpacePrimitives: SpacePrimitives,
-    private remoteSpace: SpacePrimitives,
+    readonly localSpacePrimitives: SpacePrimitives,
+    readonly remoteSpace: SpacePrimitives,
     private kvStore: KVStore,
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
@@ -53,8 +56,17 @@ export class SyncService {
       await this.syncFile(`${name}.md`);
     });
 
-    eventHook.addLocalListener("page:saved", async (name) => {
-      await this.syncFile(`${name}.md`);
+    eventHook.addLocalListener("editor:pageSaved", async (name, meta) => {
+      const path = `${name}.md`;
+      await this.syncFile(path);
+      if (await this.isExcludedFromSync(path)) {
+        // So we're editing a page and just saved it, but it's excluded from sync
+        // Assumption: we're in collab mode for this file, so we're going to constantly update our local hash
+        // console.log(
+        //   "Locally updating last modified in snapshot because we're in collab mode",
+        // );
+        await this.updateLocalLastModified(path, meta.lastModified);
+      }
     });
   }
 
@@ -82,8 +94,13 @@ export class SyncService {
 
   async registerSyncStart(): Promise<void> {
     // Assumption: this is called after an isSyncing() check
-    await this.kvStore.set(syncStartTimeKey, Date.now());
-    await this.kvStore.set(syncLastActivityKey, Date.now());
+    await this.kvStore.batchSet([{
+      key: syncStartTimeKey,
+      value: Date.now(),
+    }, {
+      key: syncLastActivityKey,
+      value: Date.now(),
+    }]);
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
@@ -101,11 +118,130 @@ export class SyncService {
     await this.kvStore.del(syncStartTimeKey);
   }
 
+  // Temporarily exclude a specific file from sync (e.g. when in collab mode)
+  excludeFromSync(path: string): Promise<void> {
+    return this.kvStore.set(syncExcludePrefix + path, Date.now());
+  }
+
+  unExcludeFromSync(path: string): Promise<void> {
+    return this.kvStore.del(syncExcludePrefix + path);
+  }
+
+  async isExcludedFromSync(path: string): Promise<boolean> {
+    const lastExcluded = await this.kvStore.get(syncExcludePrefix + path);
+    return lastExcluded && Date.now() - lastExcluded < syncMaxIdleTimeout;
+  }
+
+  async fetchAllExcludedFromSync(): Promise<string[]> {
+    const entries = await this.kvStore.queryPrefix(syncExcludePrefix);
+    const expiredPaths: string[] = [];
+    const now = Date.now();
+    const result = entries.filter(({ key, value }) => {
+      if (now - value > syncMaxIdleTimeout) {
+        expiredPaths.push(key);
+        return false;
+      }
+      return true;
+    }).map(({ key }) => key.slice(syncExcludePrefix.length));
+
+    if (expiredPaths.length > 0) {
+      console.log("Purging expired sync exclusions: ", expiredPaths);
+      await this.kvStore.batchDelete(expiredPaths);
+    }
+
+    return result;
+  }
+
   async getSnapshot(): Promise<Map<string, SyncStatusItem>> {
     const snapshot = (await this.kvStore.get(syncSnapshotKey)) || {};
     return new Map<string, SyncStatusItem>(
       Object.entries(snapshot),
     );
+  }
+
+  // Await a moment when the sync is no longer running
+  async noOngoingSync(): Promise<void> {
+    // Not completely safe, could have race condition on setting the syncStartTimeKey
+    while (await this.isSyncing()) {
+      await sleep(100);
+    }
+  }
+
+  // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync with the remote
+  async updateRemoteLastModified(path: string, lastModified: number) {
+    await this.noOngoingSync();
+    await this.registerSyncStart();
+    const snapshot = await this.getSnapshot();
+    const entry = snapshot.get(path);
+    if (entry) {
+      snapshot.set(path, [entry[0], lastModified]);
+    } else {
+      // In the unlikely scenario that a space first openen on a collab page before every being synced
+      try {
+        console.log(
+          "Received lastModified time for file not in snapshot",
+          path,
+          lastModified,
+        );
+        snapshot.set(path, [
+          (await this.localSpacePrimitives.getFileMeta(path)).lastModified,
+          lastModified,
+        ]);
+      } catch (e) {
+        console.warn(
+          "Received lastModified time for non-existing file not in snapshot",
+          path,
+          lastModified,
+          e,
+        );
+      }
+    }
+    await this.saveSnapshot(snapshot);
+    await this.registerSyncStop();
+  }
+
+  // Reach out out to remote space, fetch the latest lastModified time and update the local snapshot
+  // This is used when exiting collab mode
+  async fetchAndPersistRemoteLastModified(path: string) {
+    const meta = await this.remoteSpace.getFileMeta(path);
+    await this.updateRemoteLastModified(
+      path,
+      meta.lastModified,
+    );
+  }
+
+  // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync when local changes happen
+  async updateLocalLastModified(path: string, lastModified: number) {
+    await this.noOngoingSync();
+    await this.registerSyncStart();
+    const snapshot = await this.getSnapshot();
+    const entry = snapshot.get(path);
+    if (entry) {
+      snapshot.set(path, [lastModified, entry[1]]);
+    } else {
+      // In the unlikely scenario that a space first openen on a collab page before every being synced
+      try {
+        console.log(
+          "Setting lastModified time for file not in snapshot",
+          path,
+          lastModified,
+        );
+        snapshot.set(path, [
+          lastModified,
+          (await this.localSpacePrimitives.getFileMeta(path)).lastModified,
+        ]);
+      } catch (e) {
+        console.warn(
+          "Received lastModified time for non-existing file not in snapshot",
+          path,
+          lastModified,
+          e,
+        );
+      }
+    }
+    await this.saveSnapshot(snapshot);
+    await this.registerSyncStop();
+    // console.log("All done!");
   }
 
   start() {
@@ -135,8 +271,15 @@ export class SyncService {
     await this.registerSyncStart();
     let operations = 0;
     const snapshot = await this.getSnapshot();
+    // Fetch the list of files that are excluded from sync (e.g. because they're in collab mode)
+    const excludedFromSync = await this.fetchAllExcludedFromSync();
+    // console.log("Excluded from sync", excludedFromSync);
     try {
-      operations = await this.spaceSync!.syncFiles(snapshot);
+      operations = await this.spaceSync!.syncFiles(
+        snapshot,
+        (path) =>
+          this.isSyncCandidate(path) && !excludedFromSync.includes(path),
+      );
       this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);
@@ -152,15 +295,15 @@ export class SyncService {
       // console.log("Already syncing");
       return;
     }
-    if (!this.isSyncCandidate(name)) {
+    if (!this.isSyncCandidate(name) || (await this.isExcludedFromSync(name))) {
       return;
     }
     await this.registerSyncStart();
     console.log("Syncing file", name);
     const snapshot = await this.getSnapshot();
     try {
-      let localHash: number | undefined = undefined;
-      let remoteHash: number | undefined = undefined;
+      let localHash: number | undefined;
+      let remoteHash: number | undefined;
       try {
         localHash =
           (await this.localSpacePrimitives.getFileMeta(name)).lastModified;
@@ -169,8 +312,7 @@ export class SyncService {
       }
       try {
         // This is wasteful, but Netlify (silverbullet.md) doesn't support OPTIONS call (404s) so we'll just fetch the whole file
-        const { meta } = await this.remoteSpace!.readFile(name);
-        remoteHash = meta.lastModified;
+        remoteHash = (await this.remoteSpace!.readFile(name)).meta.lastModified;
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
@@ -220,10 +362,8 @@ export class SyncService {
       name,
       "will pick the version from secondary and be done with it.",
     );
-    const fileMeta = await primary.getFileMeta(name);
-
     // Read file from secondary
-    const { data } = await secondary.readFile(
+    const { data, meta } = await secondary.readFile(
       name,
     );
     // Write file to primary
@@ -231,13 +371,14 @@ export class SyncService {
       name,
       data,
       false,
-      fileMeta.lastModified,
+      meta.lastModified,
     );
     // Update snapshot
     snapshot.set(name, [
       newMeta.lastModified,
-      fileMeta.lastModified,
+      meta.lastModified,
     ]);
+
     return 1;
   }
 }

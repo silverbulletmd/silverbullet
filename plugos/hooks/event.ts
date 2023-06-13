@@ -10,9 +10,9 @@ export type EventHookT = {
 
 export class EventHook implements Hook<EventHookT> {
   private system?: System<EventHookT>;
-  public localListeners: Map<string, ((data: any) => any)[]> = new Map();
+  public localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
 
-  addLocalListener(eventName: string, callback: (data: any) => any) {
+  addLocalListener(eventName: string, callback: (...args: any[]) => any) {
     if (!this.localListeners.has(eventName)) {
       this.localListeners.set(eventName, []);
     }
@@ -41,13 +41,13 @@ export class EventHook implements Hook<EventHookT> {
     return [...eventNames];
   }
 
-  async dispatchEvent(eventName: string, data?: any): Promise<any[]> {
+  async dispatchEvent(eventName: string, ...args: any[]): Promise<any[]> {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
     const responses: any[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
-      const manifest = await plug.manifest;
+      const manifest = plug.manifest;
       for (
         const [name, functionDef] of Object.entries(
           manifest!.functions,
@@ -56,7 +56,7 @@ export class EventHook implements Hook<EventHookT> {
         if (functionDef.events && functionDef.events.includes(eventName)) {
           // Only dispatch functions that can run in this environment
           if (await plug.canInvoke(name)) {
-            const result = await plug.invoke(name, [data]);
+            const result = await plug.invoke(name, args);
             if (result !== undefined) {
               responses.push(result);
             }
@@ -67,7 +67,7 @@ export class EventHook implements Hook<EventHookT> {
     const localListeners = this.localListeners.get(eventName);
     if (localListeners) {
       for (const localListener of localListeners) {
-        const result = await Promise.resolve(localListener(data));
+        const result = await Promise.resolve(localListener(...args));
         if (result) {
           responses.push(result);
         }

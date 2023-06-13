@@ -1,4 +1,3 @@
-import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.7.0/mod.ts";
 import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
 
 import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
@@ -6,7 +5,7 @@ import { bundleFolder } from "./plugos/asset_bundle/builder.ts";
 
 import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
 import { patchDenoLibJS } from "./plugos/compile.ts";
-import { esbuild } from "./plugos/deps.ts";
+import { denoPlugins, esbuild } from "./plugos/deps.ts";
 
 export async function bundleAll(
   watch: boolean,
@@ -43,7 +42,7 @@ export async function copyAssets(dist: string) {
   await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
-  await copy("web/reset.html", `${dist}/reset.html`, {
+  await copy("web/logout.html", `${dist}/logout.html`, {
     overwrite: true,
   });
   await copy("web/images/favicon.png", `${dist}/favicon.png`, {

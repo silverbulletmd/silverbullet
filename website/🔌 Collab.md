@@ -4,7 +4,7 @@ repo: https://github.com/silverbulletmd/silverbullet
 share-support: true
 ---
 
-The Collab plug implements real-time “Google Doc” style collaboration with other SilverBullet users using the [Yjs](https://yjs.dev) library. It supports:
+The Collab plug implements real-time “Google Doc” style collaboration with other SilverBullet users using the [Hocuspocus](https://hocuspocus.dev/) library. It supports:
 
 * Real-time editing
 * Showing other participant’s cursors and selections
@@ -27,14 +27,15 @@ To use it:
 5. If the collaborator wants to keep a persistent copy of the page collaborated page, they can simply _rename_ the page to something not prefixed with `collab:`. Everything will keep working for as long as the `collab:` will appear in the `$share` attribute of [[Frontmatter]]
 
 ## How it works
-The Collab plug uses Yjs for real-time collaboration via a WebSocket. A random ID is assigned to every shared page, and a copy of this page (as well as its history) will be stored on the collaboration server. Therefore, be cautious about what you share, especially when using a public collab server like `collab.silverbullet.md`. For “production use” we recommend deploying your own collab server.
+The Collab plug uses Hocuspocus for real-time collaboration via a WebSocket. A random ID is assigned to every shared page, and a copy of this page (as well as its history) will be stored on the collaboration server. Therefore, be cautious about what you share, especially when using a public collab server like `collab.silverbullet.md`. For “production use” we recommend deploying your own collab server.
 
 ## Deploying your own collab server
 $deploy
-A detailed description of how to deploy your own collab server [can be found here](https://github.com/yjs/y-websocket). The short version is:
+
+Collaboration uses the excellent Hocuspocus library. You can easily deploy your own collaboration server as follows (requires node.js and npm):
 
 ```shell
-HOST=0.0.0.0 PORT=1337 YPERSISTENCE=./store npx y-websocket
+npx @hocuspocus/cli@2.0.6 --sqlite documents.db --port 1337
 ```
 
-This will run the `y-websocket` server on port 1337, and store page data persistently in `./store`. You can connect to this server via `ws://ip:1337`. To use SSL, put a TLS server in front of it, in which case you can use `wss://` instead.
+This will run the hocuspocus server on port 1337, and store page data persistently in a SQLite database `documents.db`. You can connect to this server via `ws://ip:1337`. To use SSL, put a TLS terminator in front of it, in which case you can use `wss://` instead.

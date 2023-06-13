@@ -326,21 +326,20 @@ functions:
     path: ./debug.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
-  resetClientCommand:
-    path: ./debug.ts:resetClientCommand
-    command:
-      name: "Debug: Reset Client"
-
 
   versionCommand:
     path: ./help.ts:versionCommand
     command:
       name: "Help: Version"
-
   gettingStartedCommand:
     path: ./help.ts:gettingStartedCommand
     command:
       name: "Help: Getting Started"
+
+  accountLogoutCommand:
+    path: ./account.ts:accountLogoutCommand
+    command:
+      name: "Account: Logout"
 
   # Link unfurl infrastructure
   unfurlLink:

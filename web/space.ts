@@ -51,7 +51,7 @@ export class Space extends EventEmitter<SpaceEvents> {
     super();
     this.kvStore.get("imageHeightCache").then((cache) => {
       if (cache) {
-        console.log("Loaded image height cache from KV store", cache);
+        // console.log("Loaded image height cache from KV store", cache);
         this.imageHeightCache = cache;
       }
     });
@@ -200,13 +200,9 @@ export class Space extends EventEmitter<SpaceEvents> {
   writeAttachment(
     name: string,
     data: Uint8Array,
-    selfUpdate?: boolean | undefined,
+    selfUpdate?: boolean,
   ): Promise<AttachmentMeta> {
-    return this.spacePrimitives.writeFile(
-      name,
-      data as Uint8Array,
-      selfUpdate,
-    );
+    return this.spacePrimitives.writeFile(name, data, selfUpdate);
   }
 
   deleteAttachment(name: string): Promise<void> {

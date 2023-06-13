@@ -1,5 +1,4 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
-import type { Manifest } from "../../common/manifest.ts";
 import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
 import { builtinPlugNames } from "../builtin_plugs.ts";
@@ -21,7 +20,7 @@ export async function updatePlugsCommand() {
         );
       }
     } catch (e: any) {
-      if (e.message.includes("Could not read file")) {
+      if (e.message.includes("Not found")) {
         console.warn("No PLUGS page found, not loading anything");
         return;
       }

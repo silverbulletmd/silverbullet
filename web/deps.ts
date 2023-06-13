@@ -21,7 +21,7 @@ export {
   yCollab,
   yUndoManagerKeymap,
 } from "https://esm.sh/y-codemirror.next@0.3.2?external=yjs,@codemirror/state,@codemirror/commands,@codemirror/history,@codemirror/view";
-export { WebsocketProvider } from "https://esm.sh/y-websocket@1.4.5?external=yjs";
+export { HocuspocusProvider } from "https://esm.sh/@hocuspocus/provider@2.1.0?external=yjs,ws&target=es2022";
 
 // Vim mode
 export {

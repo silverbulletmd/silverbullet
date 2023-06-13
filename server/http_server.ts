@@ -7,13 +7,15 @@ import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
+import { CollabServer } from "./collab.ts";
+import { Authenticator } from "./auth.ts";
 
 export type ServerOptions = {
   hostname: string;
   port: number;
   pagesPath: string;
   clientAssetBundle: AssetBundle;
-  user?: string;
+  authenticator: Authenticator;
   pass?: string;
   certFile?: string;
   keyFile?: string;
@@ -24,11 +26,12 @@ export class HttpServer {
   app: Application;
   private hostname: string;
   private port: number;
-  user?: string;
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
+  collab: CollabServer;
+  authenticator: Authenticator;
 
   constructor(
     spacePrimitives: SpacePrimitives,
@@ -37,7 +40,7 @@ export class HttpServer {
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = new Application();
-    this.user = options.user;
+    this.authenticator = options.authenticator;
     this.clientAssetBundle = options.clientAssetBundle;
 
     let fileFilterFn: (s: string) => boolean = () => true;
@@ -62,6 +65,8 @@ export class HttpServer {
         }
       },
     );
+    this.collab = new CollabServer(this.spacePrimitives);
+    this.collab.start();
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -123,7 +128,8 @@ export class HttpServer {
     this.app.use(({ request, response }, next) => {
       if (
         !request.url.pathname.startsWith("/.fs") &&
-        request.url.pathname !== "/.auth"
+        request.url.pathname !== "/.auth" &&
+        !request.url.pathname.startsWith("/.ws")
       ) {
         response.headers.set("Content-type", "text/html");
         response.body = this.renderIndexHtml();
@@ -134,9 +140,11 @@ export class HttpServer {
 
     // Pages API
     const fsRouter = this.buildFsRouter(this.spacePrimitives);
-    this.addPasswordAuth(this.app);
+    await this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
+
+    this.collab.route(this.app);
 
     this.abortController = new AbortController();
     const listenOptions: any = {
@@ -168,25 +176,40 @@ export class HttpServer {
     this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
   }
 
-  private addPasswordAuth(app: Application) {
+  private async addPasswordAuth(app: Application) {
     const excludedPaths = [
       "/manifest.json",
       "/favicon.png",
       "/logo.png",
       "/.auth",
     ];
-    if (this.user) {
-      const b64User = btoa(this.user);
+    if ((await this.authenticator.getAllUsers()).length > 0) {
       app.use(async ({ request, response, cookies }, next) => {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
-          if (!authCookie || authCookie !== b64User) {
+          if (!authCookie) {
             response.status = 401;
             response.body = "Unauthorized, please authenticate";
             return;
           }
+          const [username, hashedPassword] = authCookie.split(":");
+          if (
+            !await this.authenticator.authenticateHashed(
+              username,
+              hashedPassword,
+            )
+          ) {
+            response.status = 401;
+            response.body = "Invalid username/password, please reauthenticate";
+            return;
+          }
         }
+
         if (request.url.pathname === "/.auth") {
+          if (request.url.search === "?logout") {
+            await cookies.delete("auth");
+            // Implicit fallthrough to login page
+          }
           if (request.method === "GET") {
             response.headers.set("Content-type", "text/html");
             response.body = this.clientAssetBundle.readTextFileSync(
@@ -195,11 +218,15 @@ export class HttpServer {
             return;
           } else if (request.method === "POST") {
             const values = await request.body({ type: "form" }).value;
-            const username = values.get("username"),
-              password = values.get("password"),
+            const username = values.get("username")!,
+              password = values.get("password")!,
               refer = values.get("refer");
-            if (this.user === `${username}:${password}`) {
-              await cookies.set("auth", b64User, {
+            const hashedPassword = await this.authenticator.authenticate(
+              username,
+              password,
+            );
+            if (hashedPassword) {
+              await cookies.set("auth", `${username}:${hashedPassword}`, {
                 expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
                 sameSite: "strict",
               });
@@ -273,6 +300,19 @@ export class HttpServer {
             });
             return;
           }
+          case "presence": {
+            // RPC to check (for collab purposes) which client has what page open
+            response.headers.set("Content-Type", "application/json");
+            console.log("Got presence update", body);
+            response.body = JSON.stringify(
+              this.collab.updatePresence(
+                body.clientId,
+                body.currentPage,
+                body.previousPage,
+              ),
+            );
+            return;
+          }
           default:
             response.headers.set("Content-Type", "text/plain");
             response.status = 400;
@@ -290,6 +330,11 @@ export class HttpServer {
       .get("\/(.+)", async ({ params, response, request }) => {
         const name = params[0];
         console.log("Loading file", name);
+        if (name.startsWith(".")) {
+          // Don't expose hidden files
+          response.status = 404;
+          return;
+        }
         try {
           const attachmentData = await spacePrimitives.readFile(
             name,
@@ -322,6 +367,11 @@ export class HttpServer {
       .put("\/(.+)", async ({ request, response, params }) => {
         const name = params[0];
         console.log("Saving file", name);
+        if (name.startsWith(".")) {
+          // Don't expose hidden files
+          response.status = 403;
+          return;
+        }
 
         let body: Uint8Array;
         if (

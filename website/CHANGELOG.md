@@ -3,8 +3,12 @@ release.
 
 ## Next
 
+* **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This only works when a connection with the server can be established.
+  * This **breaks** existing [[🔌 Collab]] links, since we switched real-time collaboration libraries. We’re still looking at the best way to keep supporting this feature.
+* [[Authentication|Multi-user authentication]]: you can now allow multiple user accounts authenticate, which makes the real-time collaboration support actually useful. This feature is still experimental and will likely evolve over time.
 * Added `spaceIgnore` setting to not sync specific folders or file patterns to the client, see [[SETTINGS]] for documentation
-
+* Much improved image loading behavior on page (previously scroll bars would jump up and down like a mad person)
+* Various bug fixes and quality of life improvements
 
 ---
 
@@ -23,7 +27,7 @@ A detailed description of what happened [can be found in this PR](https://github
 * From a UI perspective little changes, except for a few things related to sync:
   * While SB is in an out-of-sync state, the title bar will appear yellow. This will also happen when it cannot reach the server. SB is still fully functional in this state. Once the connection is restored, all changes while offline are synced back to the server.
   * Upon initial load, a full sync will take place, which — depending on the size of your space — may take some time. Or even blow up completely, if you have a big amount of data there.
-* To reset your browser state (flush out your entire space, caches and data stores) visit the `/.client/reset.html` page, e.g. at http://localhost:3000/.client/reset.html and push the button. Note that any unsynced changes will be wiped.
+* To reset your browser state (flush out your entire space, caches and data stores) visit the `/.client/logout.html` page, e.g. at http://localhost:3000/.client/logout.html and push the button. Note that any unsynced changes will be wiped.
 
 Besides these architectural changes, a few other breaking changes were made to seize the moment:
 * **In plugs**:

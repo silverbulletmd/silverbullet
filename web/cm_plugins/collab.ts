@@ -1,4 +1,6 @@
-import { Extension, WebsocketProvider, Y, yCollab } from "../deps.ts";
+import { safeRun } from "../../common/util.ts";
+import { Extension, HocuspocusProvider, Y, yCollab } from "../deps.ts";
+import { SyncService } from "../sync_service.ts";
 
 const userColors = [
   { color: "#30bced", light: "#30bced33" },
@@ -12,27 +14,45 @@ const userColors = [
 ];
 
 export class CollabState {
-  ydoc: Y.Doc;
-  collabProvider: WebsocketProvider;
-  ytext: Y.Text;
-  yundoManager: Y.UndoManager;
+  public ytext: Y.Text;
+  collabProvider: HocuspocusProvider;
+  private yundoManager: Y.UndoManager;
+  interval?: number;
 
-  constructor(serverUrl: string, token: string, username: string) {
-    this.ydoc = new Y.Doc();
-    this.collabProvider = new WebsocketProvider(
-      serverUrl,
-      token,
-      this.ydoc,
-    );
+  constructor(
+    serverUrl: string,
+    readonly path: string,
+    readonly token: string,
+    username: string,
+    private syncService: SyncService,
+    public isLocalCollab: boolean,
+  ) {
+    this.collabProvider = new HocuspocusProvider({
+      url: serverUrl,
+      name: token,
+
+      // Receive broadcasted messages from the server (right now only "page has been persisted" notifications)
+      onStateless: (
+        { payload },
+      ) => {
+        const message = JSON.parse(payload);
+        switch (message.type) {
+          case "persisted": {
+            // Received remote persist notification, updating snapshot
+            syncService.updateRemoteLastModified(
+              message.path,
+              message.lastModified,
+            ).catch(console.error);
+          }
+        }
+      },
+    });
 
     this.collabProvider.on("status", (e: any) => {
       console.log("Collab status change", e);
     });
-    this.collabProvider.on("sync", (e: any) => {
-      console.log("Sync status", e);
-    });
 
-    this.ytext = this.ydoc.getText("codemirror");
+    this.ytext = this.collabProvider.document.getText("codemirror");
     this.yundoManager = new Y.UndoManager(this.ytext);
 
     const randomColor =
@@ -43,10 +63,32 @@ export class CollabState {
       color: randomColor.color,
       colorLight: randomColor.light,
     });
+    if (isLocalCollab) {
+      syncService.excludeFromSync(path).catch(console.error);
+
+      this.interval = setInterval(() => {
+        // Ping the store to make sure the file remains in exclusion
+        syncService.excludeFromSync(path).catch(console.error);
+      }, 1000);
+    }
   }
 
   stop() {
+    console.log("[COLLAB] Destroying collab provider");
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     this.collabProvider.destroy();
+    // For whatever reason, destroy() doesn't properly clean up everything so we need to help a bit
+    this.collabProvider.configuration.websocketProvider.webSocket = null;
+    this.collabProvider.configuration.websocketProvider.destroy();
+
+    // When stopping collaboration, we're going back to sync mode. Make sure we got the latest and greatest remote timestamp to avoid
+    // conflicts
+    safeRun(async () => {
+      await this.syncService.unExcludeFromSync(this.path);
+      await this.syncService.fetchAndPersistRemoteLastModified(this.path);
+    });
   }
 
   collabExtension(): Extension {
