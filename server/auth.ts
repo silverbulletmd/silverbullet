@@ -11,8 +11,8 @@ async function createUser(
   username: string,
   password: string,
   groups: string[],
+  salt = generateSalt(16),
 ): Promise<User> {
-  const salt = generateSalt(16);
   return {
     username,
     passwordHash: await hashSHA256(`${salt}${password}`),
@@ -31,10 +31,11 @@ export class Authenticator {
     username: string,
     password: string,
     groups: string[],
+    salt?: string,
   ): Promise<void> {
     await this.store.set(
       `${userPrefix}${username}`,
-      await createUser(username, password, groups),
+      await createUser(username, password, groups, salt),
     );
   }
 
@@ -63,6 +64,36 @@ export class Authenticator {
 
   async getAllUsers(): Promise<User[]> {
     return (await this.store.queryPrefix(userPrefix)).map((item) => item.value);
+  }
+
+  getUser(username: string): Promise<User | undefined> {
+    return this.store.get(`${userPrefix}${username}`);
+  }
+
+  async setPassword(username: string, password: string): Promise<void> {
+    const user = await this.getUser(username);
+    if (!user) {
+      throw new Error(`User does not exist`);
+    }
+    user.passwordHash = await hashSHA256(`${user.salt}${password}`);
+    await this.store.set(`${userPrefix}${username}`, user);
+  }
+
+  async deleteUser(username: string): Promise<void> {
+    const user = await this.getUser(username);
+    if (!user) {
+      throw new Error(`User does not exist`);
+    }
+    await this.store.del(`${userPrefix}${username}`);
+  }
+
+  async setGroups(username: string, groups: string[]): Promise<void> {
+    const user = await this.getUser(username);
+    if (!user) {
+      throw new Error(`User does not exist`);
+    }
+    user.groups = groups;
+    await this.store.set(`${userPrefix}${username}`, user);
   }
 }
 

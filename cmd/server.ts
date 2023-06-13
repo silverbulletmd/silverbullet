@@ -70,7 +70,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   if (flagUser) {
     // If explicitly added via env/parameter, add on the fly
     const [username, password] = flagUser.split(":");
-    await authenticator.register(username, password, ["admin"]);
+    await authenticator.register(username, password, ["admin"], "");
   }
 
   if (options.auth) {

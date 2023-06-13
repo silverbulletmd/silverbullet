@@ -8,6 +8,9 @@ import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { userAdd } from "./cmd/user_add.ts";
+import { userPasswd } from "./cmd/user_passwd.ts";
+import { userDelete } from "./cmd/user_delete.ts";
+import { userChgrp } from "./cmd/user_chgrp.ts";
 
 await new Command()
   .name("silverbullet")
@@ -64,12 +67,40 @@ await new Command()
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
   .command("user:add", "Add a new user to an authentication file")
-  .arguments("[.auth.json:string]")
+  .arguments("[username:string]")
+  .option(
+    "--auth <auth.json:string>",
+    "User authentication file to use",
+  )
   .option("-G, --group <name:string>", "Add user to group", {
     collect: true,
     default: [] as string[],
   })
   .action(userAdd)
+  .command("user:delete", "Delete an existing user")
+  .arguments("[username:string]")
+  .option(
+    "--auth <auth.json:string>",
+    "User authentication file to use",
+  )
+  .command("user:chgrp", "Update user groups")
+  .arguments("[username:string]")
+  .option(
+    "--auth <auth.json:string>",
+    "User authentication file to use",
+  )
+  .option("-G, --group <name:string>", "Groups to put user into", {
+    collect: true,
+    default: [] as string[],
+  })
+  .action(userChgrp)
+  .command("user:passwd", "Set the password for an existing user")
+  .arguments("[username:string]")
+  .option(
+    "--auth <auth.json:string>",
+    "User authentication file to use",
+  )
+  .action(userPasswd)
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)

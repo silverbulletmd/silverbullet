@@ -1,8 +1,7 @@
-import getpass from "https://deno.land/x/getpass@0.3.1/mod.ts";
 import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
 import { Authenticator } from "../server/auth.ts";
 
-export async function userAdd(
+export async function userChgrp(
   options: any,
   username?: string,
 ) {
@@ -14,12 +13,8 @@ export async function userAdd(
   if (!username) {
     return;
   }
-  const pw = getpass("Password: ");
-  if (!pw) {
-    return;
-  }
 
-  console.log("Adding user to groups", options.group);
+  console.log("Setting groups for user:", options.group);
 
   const store = new JSONKVStore();
   try {
@@ -30,6 +25,6 @@ export async function userAdd(
     }
   }
   const auth = new Authenticator(store);
-  await auth.register(username!, pw!, options.group);
+  await auth.setGroups(username!, options.group);
   await store.save(authFile);
 }
