@@ -47,6 +47,10 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
+  copyPage:
+    path: "./page.ts:copyPage"
+    command:
+      name: "Page: Copy"
 
   # Attachments
   attachmentQueryProvider:
