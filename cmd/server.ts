@@ -93,8 +93,6 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authStore.loadString(envAuth);
   }
 
-  // console.log("ALl options", options);
-
   const httpServer = new HttpServer(spacePrimitives!, {
     hostname,
     port: port,
