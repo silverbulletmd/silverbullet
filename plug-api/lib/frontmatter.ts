@@ -14,6 +14,7 @@ import {
 export async function extractFrontmatter(
   tree: ParseTree,
   removeKeys: string[] = [],
+  removeFrontmatterSection = false,
 ): Promise<any> {
   let data: any = {};
   addParentPointers(tree);
@@ -55,7 +56,7 @@ export async function extractFrontmatter(
           }
         }
         // If nothing is left, let's just delete this whole block
-        if (Object.keys(newData).length === 0) {
+        if (Object.keys(newData).length === 0 || removeFrontmatterSection) {
           return null;
         }
       } catch (e: any) {

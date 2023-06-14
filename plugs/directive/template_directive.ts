@@ -45,15 +45,15 @@ export async function templateDirectiveRenderer(
   } else {
     templateText = await space.readPage(template);
   }
-  let newBody = templateText;
+  const tree = await markdown.parseMarkdown(templateText);
+  await extractFrontmatter(tree, [], true); // Remove entire frontmatter section, if any
+  let newBody = renderToText(tree);
+
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    const tree = await markdown.parseMarkdown(templateText);
-    await extractFrontmatter(tree, ["$disableDirectives"]);
-    templateText = renderToText(tree);
     registerHandlebarsHelpers();
     const templateFn = Handlebars.compile(
-      replaceTemplateVars(templateText, pageName),
+      replaceTemplateVars(newBody, pageName),
       { noEscape: true },
     );
     if (typeof parsedArgs !== "string") {
