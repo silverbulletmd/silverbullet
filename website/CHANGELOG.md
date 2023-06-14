@@ -3,6 +3,11 @@ release.
 
 ---
 
+## Next
+* Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+
+---
+
 ## 0.3.2
 
 * **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This only works when a connection with the server can be established.
