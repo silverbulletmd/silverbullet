@@ -8,6 +8,7 @@ import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
+import process from "https://deno.land/std@0.177.1/node/process.ts";
 
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;
@@ -26,6 +27,7 @@ export function TopBar({
   actionButtons,
   darkMode,
   vimMode,
+  progressPerc,
   completer,
   lhs,
   rhs,
@@ -37,6 +39,7 @@ export function TopBar({
   notifications: Notification[];
   darkMode: boolean;
   vimMode: boolean;
+  progressPerc?: number;
   onRename: (newName?: string) => Promise<void>;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
@@ -119,20 +122,34 @@ export function TopBar({
               </div>
             )}
             <div className="sb-actions">
-              {actionButtons.map((actionButton) => {
-                const button =
-                    <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          actionButton.callback();
-                          e.stopPropagation();
-                        }}
-                        title={actionButton.description}
+              {progressPerc !== undefined &&
+                (
+                  <div className="progress-wrapper" title={`${progressPerc}%`}>
+                    <div
+                      className="progress-bar"
+                      style={`background: radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#282828 ${progressPerc}%, #adadad 0);`}
                     >
-                      <actionButton.icon size={18} />
-                    </button>
+                      {progressPerc}%
+                    </div>
+                  </div>
+                )}
+              {actionButtons.map((actionButton) => {
+                const button = (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      actionButton.callback();
+                      e.stopPropagation();
+                    }}
+                    title={actionButton.description}
+                  >
+                    <actionButton.icon size={18} />
+                  </button>
+                );
 
-                return actionButton.href !== undefined ? (<a href={actionButton.href}>{button}</a>) : button;
+                return actionButton.href !== undefined
+                  ? <a href={actionButton.href}>{button}</a>
+                  : button;
               })}
             </div>
           </div>

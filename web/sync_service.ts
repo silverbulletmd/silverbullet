@@ -104,8 +104,8 @@ export class SyncService {
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
-    // Emit a sync event at most every 10s
-    if (status && this.lastReportedSyncStatus < Date.now() - 10000) {
+    // Emit a sync event at most every 2s
+    if (status && this.lastReportedSyncStatus < Date.now() - 2000) {
       this.eventHook.dispatchEvent("sync:progress", status);
       this.lastReportedSyncStatus = Date.now();
       await this.saveSnapshot(status.snapshot);

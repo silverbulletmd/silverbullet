@@ -202,7 +202,7 @@ export class Editor {
     const runtimeConfig = window.silverBulletConfig;
 
     // Instantiate a PlugOS system
-    const system = new System<SilverBulletHooks>();
+    const system = new System<SilverBulletHooks>("client");
     this.system = system;
 
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
@@ -499,7 +499,8 @@ export class Editor {
         this.dispatchAppEvent("editor:pageLoaded", this.currentPage);
         if (operations) {
           // Likely initial sync so let's show visually that we're synced now
-          this.flashNotification(`Synced ${operations} files`, "info");
+          // this.flashNotification(`Synced ${operations} files`, "info");
+          this.showProgress(100);
         }
       }
       // Reset for next sync cycle
@@ -517,12 +518,8 @@ export class Editor {
       );
     });
     this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
-      this.flashNotification(
-        `Sync: ${
-          Math.round(status.filesProcessed / status.totalFiles * 10000) /
-          100
-        }% — processed ${status.filesProcessed} out of ${status.totalFiles}`,
-        "info",
+      this.showProgress(
+        Math.round(status.filesProcessed / status.totalFiles * 100),
       );
     });
 
@@ -613,6 +610,26 @@ export class Editor {
         });
       },
       type === "info" ? 4000 : 5000,
+    );
+  }
+
+  progressTimeout?: number;
+
+  showProgress(progressPerc: number) {
+    this.viewDispatch({
+      type: "set-progress",
+      progressPerc,
+    });
+    if (this.progressTimeout) {
+      clearTimeout(this.progressTimeout);
+    }
+    this.progressTimeout = setTimeout(
+      () => {
+        this.viewDispatch({
+          type: "set-progress",
+        });
+      },
+      10000,
     );
   }
 
@@ -1417,6 +1434,7 @@ export class Editor {
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
+          progressPerc={viewState.progressPerc}
           completer={editor.miniEditorComplete.bind(editor)}
           onRename={async (newName) => {
             if (!newName) {

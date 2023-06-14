@@ -176,6 +176,11 @@ export default function reducer(
           [action.key]: action.value,
         },
       };
+    case "set-progress":
+      return {
+        ...state,
+        progressPerc: action.progressPerc,
+      };
   }
   return state;
 }

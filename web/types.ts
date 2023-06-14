@@ -52,6 +52,7 @@ export type AppViewState = {
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
   synced: boolean;
+  progressPerc?: number;
   panels: { [key: string]: PanelConfig };
   allPages: PageMeta[];
   commands: Map<string, AppCommand>;
@@ -162,4 +163,5 @@ export type Action =
     callback: (value: boolean) => void;
   }
   | { type: "hide-confirm" }
-  | { type: "set-ui-option"; key: string; value: any };
+  | { type: "set-ui-option"; key: string; value: any }
+  | { type: "set-progress"; progressPerc?: number };
