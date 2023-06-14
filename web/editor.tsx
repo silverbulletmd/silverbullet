@@ -371,10 +371,10 @@ export class Editor {
       }
     });
 
-    globalThis.addEventListener("beforeunload", (e) => {
-      console.log("Pinging with with undefined page name");
-      this.collabManager.updatePresence(undefined, this.currentPage);
-    });
+    // globalThis.addEventListener("beforeunload", (e) => {
+    //   console.log("Pinging with with undefined page name");
+    //   this.collabManager.updatePresence(undefined, this.currentPage);
+    // });
 
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
       console.log("Plug updated, reloading:", fileName);
