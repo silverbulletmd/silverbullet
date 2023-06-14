@@ -128,3 +128,21 @@ export function setUiOption(key: string, value: any): Promise<void> {
 export function vimEx(exCommand: string): Promise<any> {
   return syscall("editor.vimEx", exCommand);
 }
+
+// Folding
+
+export function fold() {
+  return syscall("editor.fold");
+}
+
+export function unfold() {
+  return syscall("editor.unfold");
+}
+
+export function foldAll() {
+  return syscall("editor.foldAll");
+}
+
+export function unfoldAll() {
+  return syscall("editor.unfoldAll");
+}

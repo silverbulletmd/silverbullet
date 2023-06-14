@@ -51,6 +51,7 @@ export {
   drawSelection,
   dropCursor,
   EditorView,
+  gutter,
   highlightSpecialChars,
   keymap,
   placeholder,
@@ -74,11 +75,14 @@ export {
 } from "@codemirror/state";
 export type { ChangeSpec, Extension, StateCommand } from "@codemirror/state";
 export {
+  codeFolding,
   defaultHighlightStyle,
   defineLanguageFacet,
+  foldAll,
+  foldCode,
   foldedRanges,
+  foldGutter,
   foldInside,
-  foldNodeProp,
   HighlightStyle,
   indentNodeProp,
   indentOnInput,
@@ -90,6 +94,8 @@ export {
   StreamLanguage,
   syntaxHighlighting,
   syntaxTree,
+  unfoldAll,
+  unfoldCode,
 } from "@codemirror/language";
 
 export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/yaml?external=@codemirror/language";

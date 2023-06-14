@@ -21,6 +21,18 @@
     max-width: 100%;
   }
 
+  // Gutter styling
+  .cm-gutters {
+    background-color: transparent;
+    border-right: none;
+
+  }
+
+  .cm-foldPlaceholder {
+    background-color: transparent;
+    border: 0;
+  }
+
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {

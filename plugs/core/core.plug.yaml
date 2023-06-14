@@ -369,6 +369,30 @@ functions:
     path: ./embed.ts:embedWidget
     codeWidget: embed
 
+  # Folding commands
+  foldCommand:
+    path: ./editor.ts:foldCommand
+    command:
+      name: "Fold: Fold"
+      mac: "Cmd-Alt-["
+      key: "Ctrl-Shift-["
+  unfoldCommand:
+    path: ./editor.ts:unfoldCommand
+    command:
+      name: "Fold: Unfold"
+      mac: "Cmd-Alt-]"
+      key: "Ctrl-Shift-]"
+  foldAllCommand:
+    path: ./editor.ts:foldAllCommand
+    command:
+      name: "Fold: Fold All"
+      key: "Ctrl-Alt-["
+  unfoldAllCommand:
+    path: ./editor.ts:unfoldAllCommand
+    command:
+      name: "Fold: Unfold All"
+      key: "Ctrl-Alt-]"
+
   # Random stuff
   statsCommand:
     path: ./stats.ts:statsCommand

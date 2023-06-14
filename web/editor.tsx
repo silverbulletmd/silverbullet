@@ -84,6 +84,7 @@ import { Panel } from "./components/panel.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import {
   BookIcon,
+  codeFolding,
   HomeIcon,
   preactRender,
   TerminalIcon,
@@ -879,6 +880,9 @@ export class Editor {
         history(),
         drawSelection(),
         dropCursor(),
+        codeFolding({
+          placeholderText: "…",
+        }),
         indentOnInput(),
         ...cleanModePlugins(this),
         EditorView.lineWrapping,
@@ -914,6 +918,7 @@ export class Editor {
             run: (): boolean => {
               this.viewDispatch({ type: "start-navigate" });
               this.space.updatePageList();
+
               return true;
             },
           },

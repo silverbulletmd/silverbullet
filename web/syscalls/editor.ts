@@ -1,5 +1,14 @@
 import { Editor } from "../editor.tsx";
-import { EditorView, Transaction, Vim, vimGetCm } from "../deps.ts";
+import {
+  EditorView,
+  foldAll,
+  foldCode,
+  Transaction,
+  unfoldAll,
+  unfoldCode,
+  Vim,
+  vimGetCm,
+} from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 
@@ -171,6 +180,19 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     "editor.vimEx": (_ctx, exCommand: string) => {
       const cm = vimGetCm(editor.editorView!)!;
       return Vim.handleEx(cm, exCommand);
+    },
+    // Folding
+    "editor.fold": () => {
+      foldCode(editor.editorView!);
+    },
+    "editor.unfold": () => {
+      unfoldCode(editor.editorView!);
+    },
+    "editor.foldAll": () => {
+      foldAll(editor.editorView!);
+    },
+    "editor.unfoldAll": () => {
+      unfoldAll(editor.editorView!);
     },
   };
 
