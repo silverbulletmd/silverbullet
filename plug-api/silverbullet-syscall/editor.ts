@@ -139,6 +139,10 @@ export function unfold() {
   return syscall("editor.unfold");
 }
 
+export function toggleFold() {
+  return syscall("editor.toggleFold");
+}
+
 export function foldAll() {
   return syscall("editor.foldAll");
 }

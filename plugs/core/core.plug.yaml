@@ -382,6 +382,12 @@ functions:
       name: "Fold: Unfold"
       mac: "Cmd-Alt-]"
       key: "Ctrl-Shift-]"
+  toggleFoldCommand:
+    path: ./editor.ts:toggleFoldCommand
+    command:
+      name: "Fold: Toggle Fold"
+      mac: "Cmd-Alt-f"
+      key: "Ctrl-Shift-f"
   foldAllCommand:
     path: ./editor.ts:foldAllCommand
     command:

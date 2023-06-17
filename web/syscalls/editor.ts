@@ -3,6 +3,7 @@ import {
   EditorView,
   foldAll,
   foldCode,
+  toggleFold,
   Transaction,
   unfoldAll,
   unfoldCode,
@@ -187,6 +188,9 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
     },
     "editor.unfold": () => {
       unfoldCode(editor.editorView!);
+    },
+    "editor.toggleFold": () => {
+      toggleFold(editor.editorView!);
     },
     "editor.foldAll": () => {
       foldAll(editor.editorView!);

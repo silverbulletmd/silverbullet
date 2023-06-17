@@ -94,6 +94,7 @@ export {
   StreamLanguage,
   syntaxHighlighting,
   syntaxTree,
+  toggleFold,
   unfoldAll,
   unfoldCode,
 } from "@codemirror/language";
