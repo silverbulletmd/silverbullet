@@ -1,0 +1,29 @@
+name: federation
+requiredPermissions:
+  - fetch
+functions:
+  listFiles:
+    path: ./federation.ts:listFiles
+    pageNamespace:
+      pattern: "!.+"
+      operation: listFiles
+  readFile:
+    path: ./federation.ts:readFile
+    pageNamespace:
+      pattern: "!.+"
+      operation: readFile
+  writeFile:
+    path: ./federation.ts:writeFile
+    pageNamespace:
+      pattern: "!.+"
+      operation: writeFile
+  deleteFile:
+    path: ./federation.ts:deleteFile
+    pageNamespace:
+      pattern: "!.+"
+      operation: deleteFile
+  getFileMeta:
+    path: ./federation.ts:getFileMeta
+    pageNamespace:
+      pattern: "!.+"
+      operation: getFileMeta

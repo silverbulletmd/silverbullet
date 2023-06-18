@@ -159,6 +159,7 @@ export async function dailyNoteCommand() {
   });
   const date = niceDate(new Date());
   const pageName = `${dailyNotePrefix}${date}`;
+  let carretPos = 0;
 
   try {
     await space.getPageMeta(pageName);
@@ -167,15 +168,21 @@ export async function dailyNoteCommand() {
     let dailyNoteTemplateText = "";
     try {
       dailyNoteTemplateText = await space.readPage(dailyNoteTemplate);
+      carretPos = dailyNoteTemplateText.indexOf("|^|");
+      if (carretPos === -1) {
+        carretPos = 0;
+      }
+      dailyNoteTemplateText = dailyNoteTemplateText.replace("|^|", "");
     } catch {
       console.warn(`No daily note template found at ${dailyNoteTemplate}`);
     }
+
     await space.writePage(
       pageName,
       replaceTemplateVars(dailyNoteTemplateText, pageName),
     );
   }
-  await editor.navigate(pageName);
+  await editor.navigate(pageName, carretPos);
 }
 
 function getWeekStartDate(monday = false) {

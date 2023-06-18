@@ -4,11 +4,6 @@ import {
   NamespaceOperation,
   PageNamespaceHook,
 } from "../hooks/page_namespace.ts";
-import {
-  base64DecodeDataUrl,
-  base64EncodedDataUrl,
-} from "../../plugos/asset_bundle/base64.ts";
-import { mime } from "../deps.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -40,6 +35,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     for (
       const { operation, pattern, plug, name, env } of this.hook.spaceFunctions
     ) {
+      // console.log("Going to match agains pattern", pattern, path);
       if (
         operation === type && path.match(pattern) &&
         (!this.env || (env && env === this.env))
@@ -73,16 +69,13 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const result: { data: string; meta: FileMeta } | false = await this
+    const result: { data: Uint8Array; meta: FileMeta } | false = await this
       .performOperation(
         "readFile",
         name,
       );
     if (result) {
-      return {
-        data: base64DecodeDataUrl(result.data),
-        meta: result.meta,
-      };
+      return result;
     }
     return this.wrapped.readFile(name);
   }
@@ -104,10 +97,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     const result = this.performOperation(
       "writeFile",
       name,
-      base64EncodedDataUrl(
-        mime.getType(name) || "application/octet-stream",
-        data,
-      ),
+      data,
       selfUpdate,
     );
     if (result) {

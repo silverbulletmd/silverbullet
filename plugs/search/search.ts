@@ -91,7 +91,7 @@ export async function searchCommand() {
 
 export async function readFileSearch(
   name: string,
-): Promise<{ data: string; meta: FileMeta }> {
+): Promise<{ data: Uint8Array; meta: FileMeta }> {
   const phrase = name.substring(
     searchPrefix.length,
     name.length - ".md".length,
@@ -105,11 +105,7 @@ export async function readFileSearch(
     `;
 
   return {
-    // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
-    data: base64EncodedDataUrl(
-      "text/markdown",
-      new TextEncoder().encode(text),
-    ),
+    data: new TextEncoder().encode(text),
     meta: {
       name,
       contentType: "text/markdown",

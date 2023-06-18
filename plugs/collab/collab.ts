@@ -14,7 +14,6 @@ import { collab, editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 import { nanoid } from "https://esm.sh/nanoid@4.0.0";
 import { FileMeta } from "../../common/types.ts";
-import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 const defaultServer = "wss://collab.silverbullet.md";
 
@@ -118,7 +117,7 @@ export function shareNoop() {
 
 export function readFileCollab(
   name: string,
-): { data: string; meta: FileMeta } {
+): { data: Uint8Array; meta: FileMeta } {
   if (!name.endsWith(".md")) {
     throw new Error("Not found");
   }
@@ -127,10 +126,7 @@ export function readFileCollab(
 
   return {
     // encoding === "arraybuffer" is not an option, so either it's "utf8" or "dataurl"
-    data: base64EncodedDataUrl(
-      "text/markdown",
-      new TextEncoder().encode(text),
-    ),
+    data: new TextEncoder().encode(text),
     meta: {
       name,
       contentType: "text/markdown",

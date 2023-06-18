@@ -9,6 +9,7 @@ import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { CollabServer } from "./collab.ts";
 import { Authenticator } from "./auth.ts";
+import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -183,6 +184,50 @@ export class HttpServer {
       "/logo.png",
       "/.auth",
     ];
+
+    app.use(async ({ request, response, cookies }, next) => {
+      if (request.url.pathname === "/.auth") {
+        if (request.url.search === "?logout") {
+          await cookies.delete("auth");
+          // Implicit fallthrough to login page
+        }
+        if (request.method === "GET") {
+          response.headers.set("Content-type", "text/html");
+          response.body = this.clientAssetBundle.readTextFileSync(
+            ".client/auth.html",
+          );
+          return;
+        } else if (request.method === "POST") {
+          const values = await request.body({ type: "form" }).value;
+          const username = values.get("username")!,
+            password = values.get("password")!,
+            refer = values.get("refer");
+          const hashedPassword = await this.authenticator.authenticate(
+            username,
+            password,
+          );
+          if (hashedPassword) {
+            await cookies.set("auth", `${username}:${hashedPassword}`, {
+              expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
+              sameSite: "strict",
+            });
+            response.redirect(refer || "/");
+            // console.log("All headers", request.headers);
+          } else {
+            response.redirect("/.auth?error=1");
+          }
+          return;
+        } else {
+          response.status = 401;
+          response.body = "Unauthorized";
+          return;
+        }
+      } else {
+        // Unauthenticated access to excluded paths
+        await next();
+      }
+    });
+
     if ((await this.authenticator.getAllUsers()).length > 0) {
       app.use(async ({ request, response, cookies }, next) => {
         if (!excludedPaths.includes(request.url.pathname)) {
@@ -204,55 +249,19 @@ export class HttpServer {
             return;
           }
         }
-
-        if (request.url.pathname === "/.auth") {
-          if (request.url.search === "?logout") {
-            await cookies.delete("auth");
-            // Implicit fallthrough to login page
-          }
-          if (request.method === "GET") {
-            response.headers.set("Content-type", "text/html");
-            response.body = this.clientAssetBundle.readTextFileSync(
-              ".client/auth.html",
-            );
-            return;
-          } else if (request.method === "POST") {
-            const values = await request.body({ type: "form" }).value;
-            const username = values.get("username")!,
-              password = values.get("password")!,
-              refer = values.get("refer");
-            const hashedPassword = await this.authenticator.authenticate(
-              username,
-              password,
-            );
-            if (hashedPassword) {
-              await cookies.set("auth", `${username}:${hashedPassword}`, {
-                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
-                sameSite: "strict",
-              });
-              response.redirect(refer || "/");
-              // console.log("All headers", request.headers);
-            } else {
-              response.redirect("/.auth?error=1");
-            }
-            return;
-          } else {
-            response.status = 401;
-            response.body = "Unauthorized";
-            return;
-          }
-        } else {
-          // Unauthenticated access to excluded paths
-          await next();
-        }
       });
     }
   }
 
   private buildFsRouter(spacePrimitives: SpacePrimitives): Router {
     const fsRouter = new Router();
+    const corsMiddleware = oakCors({
+      allowedHeaders: "*",
+      exposedHeaders: "*",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    });
     // File list
-    fsRouter.get("/", async ({ response }) => {
+    fsRouter.get("/", corsMiddleware, async ({ response }) => {
       response.headers.set("Content-type", "application/json");
       response.headers.set("X-Space-Path", this.options.pagesPath);
       const files = await spacePrimitives.fetchFileList();
@@ -260,7 +269,7 @@ export class HttpServer {
     });
 
     // RPC
-    fsRouter.post("/", async ({ request, response }) => {
+    fsRouter.post("/", corsMiddleware, async ({ request, response }) => {
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
@@ -300,19 +309,6 @@ export class HttpServer {
             });
             return;
           }
-          case "presence": {
-            // RPC to check (for collab purposes) which client has what page open
-            response.headers.set("Content-Type", "application/json");
-            console.log("Got presence update", body);
-            response.body = JSON.stringify(
-              this.collab.updatePresence(
-                body.clientId,
-                body.currentPage,
-                body.previousPage,
-              ),
-            );
-            return;
-          }
           default:
             response.headers.set("Content-Type", "text/plain");
             response.status = 400;
@@ -327,7 +323,7 @@ export class HttpServer {
     });
 
     fsRouter
-      .get("\/(.+)", async ({ params, response, request }) => {
+      .get("\/(.+)", corsMiddleware, async ({ params, response, request }) => {
         const name = params[0];
         console.log("Loading file", name);
         if (name.startsWith(".")) {
@@ -364,7 +360,7 @@ export class HttpServer {
           response.body = "";
         }
       })
-      .put("\/(.+)", async ({ request, response, params }) => {
+      .put("\/(.+)", corsMiddleware, async ({ request, response, params }) => {
         const name = params[0];
         console.log("Saving file", name);
         if (name.startsWith(".")) {
@@ -400,8 +396,16 @@ export class HttpServer {
           console.error("Pipeline failed", err);
         }
       })
-      .options("\/(.+)", async ({ response, params }) => {
+      .options("\/(.+)", async ({ request, response, params }) => {
         const name = params[0];
+        // Manually set CORS headers
+        response.headers.set("access-control-allow-headers", "*");
+        response.headers.set(
+          "access-control-allow-methods",
+          "GET,POST,PUT,DELETE,OPTIONS",
+        );
+        response.headers.set("access-control-allow-origin", "*");
+        response.headers.set("access-control-expose-headers", "*");
         try {
           const meta = await spacePrimitives.getFileMeta(name);
           response.status = 200;
@@ -409,13 +413,25 @@ export class HttpServer {
           response.headers.set("X-Last-Modified", "" + meta.lastModified);
           response.headers.set("X-Content-Length", "" + meta.size);
           response.headers.set("X-Permission", meta.perm);
+
+          const clientId = request.headers.get("X-Client-Id");
+          if (name.endsWith(".md") && clientId) {
+            const pageName = name.substring(0, name.length - ".md".length);
+            console.log(`Got presence update from ${clientId}: ${pageName}`);
+            const { collabId } = this.collab.updatePresence(clientId, pageName);
+            if (collabId) {
+              response.headers.set("X-Collab-Id", collabId);
+            }
+          }
         } catch {
-          response.status = 404;
+          // Have to do this because of CORS
+          response.status = 200;
+          response.headers.set("X-Status", "404");
           response.body = "Not found";
           // console.error("Options failed", err);
         }
       })
-      .delete("\/(.+)", async ({ response, params }) => {
+      .delete("\/(.+)", corsMiddleware, async ({ response, params }) => {
         const name = params[0];
         console.log("Deleting file", name);
         try {

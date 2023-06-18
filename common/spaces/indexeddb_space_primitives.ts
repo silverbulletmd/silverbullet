@@ -5,6 +5,7 @@ import { mime } from "../deps.ts";
 
 export type FileContent = {
   name: string;
+  meta: FileMeta;
   data: Uint8Array;
 };
 
@@ -35,10 +36,6 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const fileMeta = await this.filesMetaTable.get(name);
-    if (!fileMeta) {
-      throw new Error("Not found");
-    }
     const fileContent = await this.filesContentTable.get(name);
     if (!fileContent) {
       throw new Error("Not found");
@@ -46,7 +43,7 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
 
     return {
       data: fileContent.data,
-      meta: fileMeta,
+      meta: fileContent.meta,
     };
   }
 
@@ -56,16 +53,16 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     _selfUpdate?: boolean,
     lastModified?: number,
   ): Promise<FileMeta> {
-    const fileMeta: FileMeta = {
+    const meta: FileMeta = {
       name,
       lastModified: lastModified || Date.now(),
       contentType: mime.getType(name) || "application/octet-stream",
       size: data.byteLength,
       perm: "rw",
     };
-    await this.filesContentTable.put({ name, data });
-    await this.filesMetaTable.put(fileMeta);
-    return fileMeta;
+    await this.filesContentTable.put({ name, data, meta });
+    await this.filesMetaTable.put(meta);
+    return meta;
   }
 
   async deleteFile(name: string): Promise<void> {

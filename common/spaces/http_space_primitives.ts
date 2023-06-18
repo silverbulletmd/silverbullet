@@ -22,6 +22,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const result = await fetch(url, { ...options });
+    if (result.headers.get("X-Status")) {
+      (result as any).status = +result.headers.get("X-Status")!;
+    }
     if (
       result.status === 401
     ) {

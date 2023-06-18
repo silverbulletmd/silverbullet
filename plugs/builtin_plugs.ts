@@ -8,4 +8,5 @@ export const builtinPlugNames = [
   "share",
   "tasks",
   "search",
+  "federation",
 ];

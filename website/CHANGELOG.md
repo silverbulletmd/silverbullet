@@ -4,7 +4,7 @@ release.
 ---
 
 ## Next
-* Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+* Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
 
 ---
 
