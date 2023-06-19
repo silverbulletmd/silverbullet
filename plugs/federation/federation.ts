@@ -1,5 +1,4 @@
 import "$sb/lib/fetch.ts";
-import { mediaTypeToLoader } from "https://deno.land/x/esbuild_deno_loader@0.8.1/src/shared.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { renderToText } from "../../plug-api/lib/tree.ts";
 import { parseMarkdown } from "../../plug-api/silverbullet-syscall/markdown.ts";
@@ -8,14 +7,11 @@ import {
   translateLinksWithoutPrefix,
   translateLinksWithPrefix,
 } from "./translate.ts";
+import { readSetting } from "$sb/lib/settings_page.ts";
 
 function resolveFederated(pageName: string): string {
   // URL without the prefix "!""
-  const originalUrl = pageName.substring(federatedPrefix.length);
-  let url = originalUrl;
-  if (!url.includes("/")) {
-    url += "/index.md";
-  }
+  let url = pageName.substring(federatedPrefix.length);
   const pieces = url.split("/");
   pieces.splice(1, 0, ".fs");
   url = pieces.join("/");
@@ -45,13 +41,32 @@ function responseToFileMeta(r: Response, name: string): FileMeta {
   };
 }
 
+let federationUrls: string[] = [];
+let lastFederationUrlFetch = 0;
+async function readFederationUrls() {
+  // Update at most every 5 seconds
+  if (Date.now() > lastFederationUrlFetch + 5000) {
+    federationUrls = await readSetting("federate", []);
+    lastFederationUrlFetch = Date.now();
+  }
+  return federationUrls;
+}
+
 export async function listFiles(): Promise<FileMeta[]> {
-  const r = await nativeFetch(`http://localhost:3001/.fs/`);
-  const fileMetas: FileMeta[] = await r.json();
-  return fileMetas.map((meta) => ({
-    ...meta,
-    name: `!localhost:3001/${meta.name}`,
+  let fileMetas: FileMeta[] = [];
+  // Fetch them all in parallel
+  await Promise.all((await readFederationUrls()).map(async (url) => {
+    // console.log("Fetching from federated URL", url);
+    const r = await nativeFetch(
+      resolveFederated(url.startsWith("!") ? url : `!${url}`),
+    );
+    fileMetas = fileMetas.concat((await r.json()).map((meta: FileMeta) => ({
+      ...meta,
+      name: `!${url}/${meta.name}`,
+    })));
   }));
+  // console.log("All of em: ", fileMetas);
+  return fileMetas;
 }
 
 export async function readFile(

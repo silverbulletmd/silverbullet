@@ -8,7 +8,8 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
-import { registerHandlebarsHelpers } from "./util.ts";
+import { handlebarHelpers } from "./util.ts";
+import { folderName, resolve } from "../../plug-api/lib/path.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -43,7 +44,12 @@ export async function templateDirectiveRenderer(
       templateText = `ERROR: ${e.message}`;
     }
   } else {
-    templateText = await space.readPage(template);
+    const absoluteTemplatePath = resolve(
+      folderName(pageName),
+      template,
+    );
+    console.log("Resolved template path", absoluteTemplatePath);
+    templateText = await space.readPage(absoluteTemplatePath);
   }
   const tree = await markdown.parseMarkdown(templateText);
   await extractFrontmatter(tree, [], true); // Remove entire frontmatter section, if any
@@ -51,15 +57,14 @@ export async function templateDirectiveRenderer(
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    registerHandlebarsHelpers();
     const templateFn = Handlebars.compile(
       replaceTemplateVars(newBody, pageName),
-      { noEscape: true },
+      { noEscape: true, helpers: handlebarHelpers(pageName) },
     );
     if (typeof parsedArgs !== "string") {
       (parsedArgs as any).page = pageName;
     }
-    newBody = templateFn(parsedArgs);
+    newBody = templateFn(parsedArgs, { helpers: handlebarHelpers(pageName) });
 
     // Recursively render directives
     newBody = await updateDirectives(pageName, newBody);

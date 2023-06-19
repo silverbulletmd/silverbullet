@@ -52,6 +52,13 @@ functions:
     command:
       name: "Page: Copy"
 
+  syncSpaceCommand:
+    path: "./sync.ts:syncSpaceCommand"
+    command:
+      name: "Sync: Now"
+      key: "Alt-Shift-s"
+      mac: "Cmd-Shift-s"
+
   # Attachments
   attachmentQueryProvider:
     path: ./attachment.ts:attachmentQueryProvider

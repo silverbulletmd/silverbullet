@@ -5,6 +5,7 @@ release.
 
 ## Next
 * Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+* Work in progress on federation: linking to other spaces via the `[[!domain/page]]` syntax as well as a `federation` in [[SETTINGS]]
 
 ---
 

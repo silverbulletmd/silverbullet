@@ -29,7 +29,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
 
   let [pageRef, anchorRef] = match[1].split("@");
   if (!pageRef) {
-    pageRef = await editor.getCurrentPage();
+    pageRef = completeEvent.pageName;
   }
   const allAnchors = await index.queryPrefix(
     `a:${pageRef}:${anchorRef}`,

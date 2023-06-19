@@ -20,7 +20,7 @@ const expressionRegex = /(.+?)(\s+render\s+\[\[([^\]]+)\]\])?$/;
 // This is rather scary and fragile stuff, but it works.
 export async function evalDirectiveRenderer(
   _directive: string,
-  _pageName: string,
+  pageName: string,
   expression: string | ParseTree,
 ): Promise<string> {
   if (typeof expression !== "string") {
@@ -48,7 +48,7 @@ export async function evalDirectiveRenderer(
       })()`,
     );
     if (template) {
-      return await renderTemplate(template, result);
+      return await renderTemplate(pageName, template, result);
     }
     if (typeof result === "string") {
       return result;

@@ -7,6 +7,7 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
+import { folderName, resolve } from "../../plug-api/lib/path.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -39,6 +40,8 @@ async function actionClickOrActionEnter(
     case "WikiLink": {
       let pageLink = mdTree.children![1]!.children![0].text!;
       let pos;
+      const currentPage = await editor.getCurrentPage();
+      const currentFolder = folderName(currentPage);
       if (pageLink.includes("@")) {
         [pageLink, pos] = pageLink.split("@");
         if (pos.match(/^\d+$/)) {
@@ -46,9 +49,14 @@ async function actionClickOrActionEnter(
         }
       }
       if (!pageLink) {
-        pageLink = await editor.getCurrentPage();
+        pageLink = currentPage;
       }
-      await editor.navigate(pageLink, pos, false, inNewWindow);
+      await editor.navigate(
+        resolve(currentFolder, pageLink),
+        pos,
+        false,
+        inNewWindow,
+      );
       break;
     }
     case "PageRef": {

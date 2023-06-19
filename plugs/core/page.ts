@@ -22,7 +22,8 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { invokeFunction } from "../../plug-api/silverbullet-syscall/system.ts";
+import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { folderName, relativePath } from "$sb/lib/path.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -106,7 +107,7 @@ export async function copyPage() {
     await space.getPageMeta(newName);
     // So when we get to this point, we error out
     throw new Error(
-        `Page ${newName} already exists, cannot rename to existing page.`,
+      `Page ${newName} already exists, cannot rename to existing page.`,
     );
   } catch (e: any) {
     if (e.message === "Not found") {
@@ -270,13 +271,22 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const allPages = await space.listPages();
+  const folder = folderName(completeEvent.pageName);
   return {
     from: completeEvent.pos - match[1].length,
-    options: allPages.map((pageMeta) => ({
-      label: pageMeta.name,
-      boost: pageMeta.lastModified,
-      type: "page",
-    })),
+    options: allPages.map((pageMeta) => {
+      const relative = relativePath(folder, pageMeta.name);
+
+      return {
+        // label: pageMeta.name,
+        // label: pageMeta.name,
+        label: relative,
+        boost: relative.startsWith("../")
+          ? pageMeta.lastModified / 10
+          : pageMeta.lastModified,
+        type: "page",
+      };
+    }),
   };
 }
 

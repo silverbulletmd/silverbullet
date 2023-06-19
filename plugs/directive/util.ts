@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
+import { folderName, relativePath } from "../../plug-api/lib/path.ts";
 
 const maxWidth = 70;
 
@@ -79,47 +80,30 @@ export function jsonToMDTable(
 }
 
 export async function renderTemplate(
+  pageName: string,
   renderTemplate: string,
   data: any[],
 ): Promise<string> {
-  registerHandlebarsHelpers();
-
-  // Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
-  //   if (typeof prefix === "string") {
-  //     let yaml = (await YAML.stringify(v))
-  //       .split("\n")
-  //       .join("\n" + prefix)
-  //       .trim();
-  //     if (Array.isArray(v)) {
-  //       return "\n" + prefix + yaml;
-  //     } else {
-  //       return yaml;
-  //     }
-  //   } else {
-  //     return YAML.stringify(v).trim();
-  //   }
-  // });
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   const template = Handlebars.compile(templateText, { noEscape: true });
-  return template(data);
+  return template(data, { helpers: handlebarHelpers(pageName) });
 }
 
-export function registerHandlebarsHelpers() {
-  Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
-  Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
-  Handlebars.registerHelper("escapeRegexp", (ts: any) => {
-    return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-  });
-  Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
-    v
-      .split("\n")
-      .map((l) => prefix + l)
-      .join("\n"));
-
-  Handlebars.registerHelper(
-    "substring",
-    (s: string, from: number, to: number, elipsis = "") =>
+export function handlebarHelpers(pageName: string) {
+  return {
+    pageLink: (name: string) => relativePath(folderName(pageName), name),
+    json: (v: any) => JSON.stringify(v),
+    niceDate: (ts: any) => niceDate(new Date(ts)),
+    escapeRegexp: (ts: any) => {
+      return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    },
+    prefixLines: (v: string, prefix: string) =>
+      v
+        .split("\n")
+        .map((l) => prefix + l)
+        .join("\n"),
+    substring: (s: string, from: number, to: number, elipsis = "") =>
       s.length > to - from ? s.substring(from, to) + elipsis : s,
-  );
+  };
 }
