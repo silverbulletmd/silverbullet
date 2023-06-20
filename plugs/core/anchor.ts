@@ -1,7 +1,8 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import { index } from "$sb/silverbullet-syscall/mod.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
+import { folderName, resolve } from "../../plug-api/lib/path.ts";
 
 // Key space
 // a:pageName:anchorName => pos
@@ -30,6 +31,9 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
   let [pageRef, anchorRef] = match[1].split("@");
   if (!pageRef) {
     pageRef = completeEvent.pageName;
+  } else {
+    // Page link is relative, let's make it absolute
+    pageRef = resolve(folderName(completeEvent.pageName), pageRef);
   }
   const allAnchors = await index.queryPrefix(
     `a:${pageRef}:${anchorRef}`,
