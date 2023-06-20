@@ -59,6 +59,7 @@ export async function brokenLinksCommand() {
         // Don't look inside directive bodies
         return true;
       }
+
       //   if (tree.type === "DirectiveStart" && tree.children![0].text) {
       //     // #use or #include
       //     tree.children![0].text = makePageLinksRelative(

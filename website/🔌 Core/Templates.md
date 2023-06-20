@@ -64,7 +64,7 @@ with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePre
 
 The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context.
 
-### Template placeholders
+### Template helpers
 $vars
 Currently supported (hardcoded in the code):
 
@@ -73,4 +73,11 @@ Currently supported (hardcoded in the code):
 - `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
 - `{{lastWeek}}`: Current date - 7 days
 - `{{nextWeek}}`: Current date + 7 days
-- There is also a global `@page` variable, which contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[../Frontmatter]] attributes). You can use these like so: `{{@page.name}}`
+- `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/`
+- `{{json @page}}` translate any (object) value to JSON, mostly useful for debugging
+- `{{relativePath @page.name}}` translate a path to a relative one (to the current page), useful when injecting page names, e.g. `{{relativePath name}}`.
+- `{{translateAbsoluteLinks "text"}}` translates all absolute page links in the argument string to relative ones.
+- `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
+- `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
+- `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).
+- The `@page` variable contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[../Frontmatter]] attributes). You can address it like so: `{{@page.name}}`

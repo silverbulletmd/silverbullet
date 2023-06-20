@@ -897,7 +897,7 @@ export class Editor {
             ),
           ],
         }),
-        inlineImagesPlugin(this.space),
+        inlineImagesPlugin(this),
         highlightSpecialChars(),
         history(),
         drawSelection(),

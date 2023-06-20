@@ -8,6 +8,8 @@ import {
 import { decoratorStateField } from "./util.ts";
 
 import type { Space } from "../space.ts";
+import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import type { Editor } from "../editor.tsx";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -39,13 +41,7 @@ class InlineImageWidget extends WidgetType {
         this.space.setCachedImageHeight(this.url, img.height);
       }
     };
-    if (this.url.startsWith("http")) {
-      img.src = this.url;
-    } else {
-      // This is an attachment image, rewrite the URL a little
-      img.src = `/.fs/${decodeURIComponent(this.url)}`;
-    }
-
+    img.src = this.url;
     img.alt = this.title;
     img.title = this.title;
     img.style.display = "block";
@@ -58,7 +54,7 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-export function inlineImagesPlugin(space: Space) {
+export function inlineImagesPlugin(editor: Editor) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
@@ -76,11 +72,15 @@ export function inlineImagesPlugin(space: Space) {
           return;
         }
 
-        const url = imageRexexResult.groups.url;
+        let url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
+        if (!url.startsWith("https://") && !url.startsWith("http://")) {
+          const folder = folderName(editor.currentPage!);
+          url = `/.fs/${resolve(folder, url)}`;
+        }
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title, space),
+            widget: new InlineImageWidget(url, title, editor.space),
             block: true,
           }).range(node.to),
         );

@@ -36,12 +36,12 @@ async function actionClickOrActionEnter(
       return;
     }
   }
+  const currentPage = await editor.getCurrentPage();
+  const currentFolder = folderName(currentPage);
   switch (mdTree.type) {
     case "WikiLink": {
       let pageLink = mdTree.children![1]!.children![0].text!;
       let pos;
-      const currentPage = await editor.getCurrentPage();
-      const currentFolder = folderName(currentPage);
       if (pageLink.includes("@")) {
         [pageLink, pos] = pageLink.split("@");
         if (pos.match(/^\d+$/)) {
@@ -88,7 +88,7 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        url = decodeURIComponent(url);
+        url = resolve(currentFolder, decodeURI(url));
         return editor.openUrl(`/.fs/${url}`);
       } else {
         await editor.openUrl(url);
