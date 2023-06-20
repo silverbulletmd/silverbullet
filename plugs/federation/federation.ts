@@ -84,16 +84,16 @@ export async function readFile(
     return errorResult(name, `**Error**: Could not load`);
   }
 
-  if (name.endsWith(".md")) {
-    let text = new TextDecoder().decode(data);
-    text = renderToText(
-      translateLinksWithPrefix(
-        await parseMarkdown(text),
-        baseFederationUrl(url) + "/",
-      ),
-    );
-    data = new TextEncoder().encode(text);
-  }
+  // if (name.endsWith(".md")) {
+  //   let text = new TextDecoder().decode(data);
+  //   text = renderToText(
+  //     translateLinksWithPrefix(
+  //       await parseMarkdown(text),
+  //       baseFederationUrl(url) + "/",
+  //     ),
+  //   );
+  //   data = new TextEncoder().encode(text);
+  // }
   return {
     data: new Uint8Array(data),
     meta: fileMeta,
@@ -126,14 +126,14 @@ export async function writeFile(
 ): Promise<FileMeta> {
   const url = resolveFederated(name);
   console.log("Writing federation file", url);
-  if (name.endsWith(".md")) {
-    let text = new TextDecoder().decode(data);
-    text = renderToText(translateLinksWithoutPrefix(
-      await parseMarkdown(text),
-      baseFederationUrl(url) + "/",
-    ));
-    data = new TextEncoder().encode(text);
-  }
+  // if (name.endsWith(".md")) {
+  //   let text = new TextDecoder().decode(data);
+  //   text = renderToText(translateLinksWithoutPrefix(
+  //     await parseMarkdown(text),
+  //     baseFederationUrl(url) + "/",
+  //   ));
+  //   data = new TextEncoder().encode(text);
+  // }
 
   const r = await nativeFetch(url, {
     method: "PUT",

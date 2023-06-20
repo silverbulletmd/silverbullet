@@ -8,15 +8,16 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
-import { handlebarHelpers } from "./util.ts";
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
-import { translatePageLinks } from "./translate.ts";
+import { buildHandebarOptions, handlebarHelpers } from "./util.ts";
+import { folderName, resolve } from "$sb/lib/path.ts";
+import { translatePageLinks } from "$sb/lib/translate.ts";
+import { PageMeta } from "../../web/types.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
 export async function templateDirectiveRenderer(
   directive: string,
-  pageName: string,
+  pageMeta: PageMeta,
   arg: string | ParseTree,
 ): Promise<string> {
   if (typeof arg !== "string") {
@@ -31,9 +32,14 @@ export async function templateDirectiveRenderer(
   let parsedArgs = {};
   if (args) {
     try {
-      parsedArgs = JSON.parse(args);
+      parsedArgs = JSON.parse(replaceTemplateVars(args, pageMeta));
+      console.log("Parsed arg", parsedArgs);
     } catch {
-      throw new Error(`Failed to parse template instantiation args: ${arg}`);
+      throw new Error(
+        `Failed to parse template instantiation arg: ${
+          replaceTemplateVars(args, pageMeta)
+        }`,
+      );
     }
   }
   let templateText = "";
@@ -46,29 +52,26 @@ export async function templateDirectiveRenderer(
     }
   } else {
     template = resolve(
-      folderName(pageName),
+      folderName(pageMeta.name),
       template,
     );
     templateText = await space.readPage(template);
   }
   const tree = await markdown.parseMarkdown(templateText);
   await extractFrontmatter(tree, [], true); // Remove entire frontmatter section, if any
-  translatePageLinks(template, pageName, tree);
+  translatePageLinks(template, pageMeta.name, tree);
   let newBody = renderToText(tree);
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
     const templateFn = Handlebars.compile(
-      replaceTemplateVars(newBody, pageName),
-      { noEscape: true, helpers: handlebarHelpers(pageName) },
+      newBody,
+      { noEscape: true },
     );
-    if (typeof parsedArgs !== "string") {
-      (parsedArgs as any).page = pageName;
-    }
-    newBody = templateFn(parsedArgs, { helpers: handlebarHelpers(pageName) });
+    newBody = templateFn(parsedArgs, buildHandebarOptions(pageMeta));
 
     // Recursively render directives
-    newBody = await updateDirectives(pageName, newBody);
+    newBody = await updateDirectives(pageMeta, newBody);
   }
   return newBody.trim();
 }

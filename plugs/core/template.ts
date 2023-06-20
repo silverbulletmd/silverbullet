@@ -3,6 +3,10 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
+import { PageMeta } from "../../web/types.ts";
+import { buildHandebarOptions } from "../directive/util.ts";
+
+import Handlebars from "handlebars";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -36,10 +40,16 @@ export async function instantiateTemplateCommand() {
     "$disableDirectives",
   ]);
 
+  const tempPageMeta: PageMeta = {
+    name: "",
+    lastModified: 0,
+    perm: "rw",
+  };
+
   if (additionalPageMeta.$name) {
     additionalPageMeta.$name = replaceTemplateVars(
       additionalPageMeta.$name,
-      "",
+      tempPageMeta,
     );
   }
 
@@ -50,6 +60,7 @@ export async function instantiateTemplateCommand() {
   if (!pageName) {
     return;
   }
+  tempPageMeta.name = pageName;
 
   try {
     // Fails if doesn't exist
@@ -67,7 +78,7 @@ export async function instantiateTemplateCommand() {
     // The preferred scenario, let's keep going
   }
 
-  const pageText = replaceTemplateVars(renderToText(parseTree), pageName);
+  const pageText = replaceTemplateVars(renderToText(parseTree), tempPageMeta);
   await space.writePage(pageName, pageText);
   await editor.navigate(pageName);
 }
@@ -79,6 +90,7 @@ export async function insertSnippet() {
   });
   const cursorPos = await editor.getCursor();
   const page = await editor.getCurrentPage();
+  const pageMeta = await space.getPageMeta(page);
   const allSnippets = allPages
     .filter((pageMeta) => pageMeta.name.startsWith(snippetPrefix))
     .map((pageMeta) => ({
@@ -97,10 +109,10 @@ export async function insertSnippet() {
   }
 
   const text = await space.readPage(`${snippetPrefix}${selectedSnippet.name}`);
-  let templateText = replaceTemplateVars(text, page);
+  let templateText = replaceTemplateVars(text, pageMeta);
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, page);
+  templateText = replaceTemplateVars(templateText, pageMeta);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);
@@ -108,37 +120,9 @@ export async function insertSnippet() {
 }
 
 // TODO: This should probably be replaced with handlebards somehow?
-export function replaceTemplateVars(s: string, pageName: string): string {
-  return s.replaceAll(/\{\{([^\}]+)\}\}/g, (match, v) => {
-    switch (v) {
-      case "today":
-        return niceDate(new Date());
-      case "tomorrow": {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return niceDate(tomorrow);
-      }
-
-      case "yesterday": {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return niceDate(yesterday);
-      }
-      case "lastWeek": {
-        const lastWeek = new Date();
-        lastWeek.setDate(lastWeek.getDate() - 7);
-        return niceDate(lastWeek);
-      }
-      case "nextWeek": {
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        return niceDate(nextWeek);
-      }
-      case "page":
-        return pageName;
-    }
-    return match;
-  });
+export function replaceTemplateVars(s: string, pageMeta: PageMeta): string {
+  const template = Handlebars.compile(s, { noEscape: true });
+  return template({}, buildHandebarOptions(pageMeta));
 }
 
 export async function quickNoteCommand() {
@@ -179,7 +163,11 @@ export async function dailyNoteCommand() {
 
     await space.writePage(
       pageName,
-      replaceTemplateVars(dailyNoteTemplateText, pageName),
+      replaceTemplateVars(dailyNoteTemplateText, {
+        name: pageName,
+        lastModified: 0,
+        perm: "rw",
+      }),
     );
   }
   await editor.navigate(pageName, carretPos);
@@ -217,7 +205,11 @@ export async function weeklyNoteCommand() {
       // Doesn't exist, let's create
       await space.writePage(
         pageName,
-        replaceTemplateVars(weeklyNoteTemplateText, pageName),
+        replaceTemplateVars(weeklyNoteTemplateText, {
+          name: pageName,
+          lastModified: 0,
+          perm: "rw",
+        }),
       );
     }
     await editor.navigate(pageName);
@@ -229,10 +221,11 @@ export async function weeklyNoteCommand() {
 export async function insertTemplateText(cmdDef: any) {
   const cursorPos = await editor.getCursor();
   const page = await editor.getCurrentPage();
+  const pageMeta = await space.getPageMeta(page);
   let templateText: string = cmdDef.value;
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, page);
+  templateText = replaceTemplateVars(templateText, pageMeta);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);

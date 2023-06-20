@@ -187,6 +187,15 @@ functions:
       description: Turn line into h4 header
       match: "^#*\\s*"
       replace: "#### "
+  insertCodeBlock:
+    redirect: insertTemplateText
+    slashCommand:
+      name: code
+      description: Insert code block
+      value: |
+        ```
+        |^|
+        ```
 
   newPage:
     path: ./page.ts:newPageCommand
@@ -440,3 +449,8 @@ functions:
       name: "Editor: Vim: Load VIMRC"
     events:
       - editor:modeswitch
+
+  brokenLinksCommand:
+    path: ./broken_links.ts:brokenLinksCommand
+    command:
+      name: "Broken Links: Show"

@@ -1,1 +1,1 @@
-* [[{{name}}]] {{#if author}}by **{{author}}** ([repo]({{repo}})){{/if}} 
+* [[{{relativePath name}}]] {{#if author}}by **{{author}}** ([repo]({{repo}})){{/if}}

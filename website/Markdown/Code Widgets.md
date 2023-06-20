@@ -1,11 +1,11 @@
-Code widgets are a SilverBullet specific “extension” to [[Markdown]]. Technically, it’s not an extension — it just gives new meaning to markdown’s native fenced code blocks — code blocks that start with a triple backtick, specifying a programming language.
+Code widgets are a SilverBullet specific “extension” to [[../Markdown]]. Technically, it’s not an extension — it just gives new meaning to markdown’s native fenced code blocks — code blocks that start with a triple backtick, specifying a programming language.
 
-Currently, SilverBullet provides two code widgets as part of its built-in [[🔌 Plugs]]:
+Currently, SilverBullet provides two code widgets as part of its built-in [[../🔌 Plugs]]:
 
 * `embed`
 * `markdown`
 
-In addition, plugs like [[🔌 KaTeX]] and [[🔌 Mermaid]] add additional ones.
+In addition, plugs like [[../🔌 KaTeX]] and [[../🔌 Mermaid]] add additional ones.
 
 ## Embed
 This allows you to embed internet content into your page inside of an iframe. This is useful to, for instance, embed youtube videos. In fact, there is specific support for those.
@@ -27,7 +27,7 @@ url: https://www.youtube.com/watch?v=VemS-cqAD5k
 
 Note, there is specific support for youtube videos — it automatically will set width, height and replaces the URL with an embed URL.
 
-The body of an `embed` block is written in [[YAML]] and supports the following attributes:
+The body of an `embed` block is written in [[../YAML]] and supports the following attributes:
 
 * `url` (mandatory): the URL of the content to embed
 * `height` (optional): the height of the embedded page in pixels

@@ -17,13 +17,28 @@ Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.j
 ## Core plugs
 These plugs are distributed with SilverBullet and are automatically enabled:
 <!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
-* [[🔌 Core]]
+* [[🔌 Collab]] 
+* [[🔌 Core]] 
+* [[🔌 Directive]] 
+* [[🔌 Emoji]] 
+* [[🔌 Markdown]] 
+* [[🔌 Share]] 
+* [[🔌 Tasks]]
 <!-- /query -->
 
 ## Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution:
 <!-- #query page where type = "plug" and uri != null order by name render [[template/plug]] -->
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/silverbulletmd/silverbullet-backlinks))
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-git))
+* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
+* [[🔌 Graph View]] by **Bertjan Broeksema** ([repo](https://github.com/bbroeksema/silverbullet-graphview))
 * [[🔌 KaTeX]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-katex))
+* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
+* [[🔌 Mermaid]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mermaid))
+* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
+* [[🔌 Twitter]] by **SilverBullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
 <!-- /query -->
 
 ## How to develop your own plug
@@ -78,4 +93,3 @@ Once you’re happy with your plug, you can distribute it in various ways:
   `- github:yourgithubuser/yourrepo/yourplugname.plug.js` to their `PLUGS` file
 - Add a release in your github repo and instruct users to add the release as `- ghr:yourgithubuser/yourrepo` or if they need a specific release `- ghr:yourgithubuser/yourrepo/release-name`
 - You can put it on any other web server, and tell people to load it via https, e.g., `- https://mydomain.com/mypugname.plug.js`.
-

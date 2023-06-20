@@ -1,6 +1,5 @@
 import { ParseTree, replaceNodesMatching } from "$sb/lib/tree.ts";
 import { folderName, relativePath, resolve } from "../../plug-api/lib/path.ts";
-import { federatedPrefix } from "../federation/translate.ts";
 
 export function translatePageLinks(
   originPath: string,
@@ -13,7 +12,7 @@ export function translatePageLinks(
     if (tree.type === "WikiLinkPage") {
       // Add the prefix in the link text
       const pageName = tree.children![0].text!;
-      if (!pageName.startsWith(federatedPrefix) && !pageName.startsWith("{{")) {
+      if (!pageName.startsWith("!") && !pageName.startsWith("{{")) {
         // console.log("Resolved path:", resolve(originFolder, pageName));
         // console.log("For folder", targetFolder);
         tree.children![0].text = relativePath(

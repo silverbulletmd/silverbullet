@@ -19,7 +19,7 @@ For instance:
     $name: "📕 "
     ---
 
-    # {{page}}
+    # {{@page.name}}
     As recorded on {{today}}.
 
     ## Introduction
@@ -65,7 +65,7 @@ with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePre
 The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context.
 
 ### Template placeholders
-
+$vars
 Currently supported (hardcoded in the code):
 
 - `{{today}}`: Today’s date in the usual YYYY-MM-DD format
@@ -73,4 +73,4 @@ Currently supported (hardcoded in the code):
 - `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
 - `{{lastWeek}}`: Current date - 7 days
 - `{{nextWeek}}`: Current date + 7 days
-- `{{page}}`: The name of the current page
+- There is also a global `@page` variable, which contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[../Frontmatter]] attributes). You can use these like so: `{{@page.name}}`

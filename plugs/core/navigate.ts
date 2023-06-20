@@ -51,28 +51,27 @@ async function actionClickOrActionEnter(
       if (!pageLink) {
         pageLink = currentPage;
       }
-      await editor.navigate(
-        resolve(currentFolder, pageLink),
-        pos,
-        false,
-        inNewWindow,
-      );
+      const resolvedPage = pageLink.startsWith("!")
+        ? pageLink
+        : resolve(currentFolder, pageLink);
+      await editor.navigate(resolvedPage, pos, false, inNewWindow);
       break;
     }
     case "PageRef": {
       const bracketedPageRef = mdTree.children![0].text!;
       const currentPage = await editor.getCurrentPage();
       const currentFolder = folderName(currentPage);
-      await editor.navigate(
-        resolve(
-          currentFolder,
-          // Slicing off the initial [[ and final ]]
-          bracketedPageRef.substring(2, bracketedPageRef.length - 2),
-        ),
-        0,
-        false,
-        inNewWindow,
+
+      // Slicing off the initial [[ and final ]]
+      const pageName = bracketedPageRef.substring(
+        2,
+        bracketedPageRef.length - 2,
       );
+      const resolvedPage = pageName.startsWith("!") ? pageName : resolve(
+        currentFolder,
+        pageName,
+      );
+      await editor.navigate(resolvedPage, 0, false, inNewWindow);
       break;
     }
     case "NakedURL":

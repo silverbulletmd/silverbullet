@@ -24,6 +24,7 @@ import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 import { folderName, relativePath, resolve } from "$sb/lib/path.ts";
+import { translatePageLinks } from "../../plug-api/lib/translate.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -167,8 +168,14 @@ export async function renamePage(cmdDef: any) {
   console.log("All pages containing backlinks", pagesToUpdate);
 
   const text = await editor.getText();
+
+  // Update all page references in page itself
+  const mdTree = await markdown.parseMarkdown(text);
+  translatePageLinks(oldName, newName, mdTree);
+  const newText = renderToText(mdTree);
+
   console.log("Writing new page to space");
-  const newPageMeta = await space.writePage(newName, text);
+  const newPageMeta = await space.writePage(newName, newText);
   console.log("Navigating to new page");
   await editor.navigate(newName, cursor, true);
 
@@ -270,11 +277,10 @@ export async function reindexCommand() {
 
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@:]*)$/.exec(completeEvent.linePrefix);
+  const match = /\[\[([^\]@:\{}]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }
-  console.log("GOing to complete");
   const allPages = await space.listPages();
   const folder = folderName(completeEvent.pageName);
   return {

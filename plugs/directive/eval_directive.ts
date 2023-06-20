@@ -3,6 +3,8 @@
 import { YAML } from "$sb/plugos-syscall/mod.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
+import { PageMeta } from "../../web/types.ts";
+import { replaceTemplateVars } from "../core/template.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions
 function translateJs(js: string): string {
@@ -20,7 +22,7 @@ const expressionRegex = /(.+?)(\s+render\s+\[\[([^\]]+)\]\])?$/;
 // This is rather scary and fragile stuff, but it works.
 export async function evalDirectiveRenderer(
   _directive: string,
-  pageName: string,
+  pageMeta: PageMeta,
   expression: string | ParseTree,
 ): Promise<string> {
   if (typeof expression !== "string") {
@@ -44,11 +46,11 @@ export async function evalDirectiveRenderer(
         function invokeFunction(name, ...args) {
           return syscall("system.invokeFunction", "server", name, ...args);
         }
-        return ${translateJs(expression)};
+        return ${replaceTemplateVars(translateJs(expression), pageMeta)};
       })()`,
     );
     if (template) {
-      return await renderTemplate(pageName, template, result);
+      return await renderTemplate(pageMeta, template, result);
     }
     if (typeof result === "string") {
       return result;

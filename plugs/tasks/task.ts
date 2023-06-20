@@ -23,8 +23,8 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
-import { translatePageLinks } from "../directive/translate.ts";
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { translatePageLinks } from "$sb/lib/translate.ts";
+import { folderName, resolve } from "$sb/lib/path.ts";
 
 export type Task = {
   name: string;

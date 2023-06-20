@@ -1124,6 +1124,7 @@ export class Editor {
           console.error(
             "Got completion results from multiple sources, cannot deal with that",
           );
+          console.error("Previously had", actualResult, "now also got", result);
           return null;
         }
         actualResult = result;

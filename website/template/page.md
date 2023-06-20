@@ -1,1 +1,1 @@
-* [[{{name}}]]
+* [[{{relativePath name}}]]

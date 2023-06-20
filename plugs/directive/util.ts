@@ -3,7 +3,8 @@ import Handlebars from "handlebars";
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { folderName, relativePath } from "../../plug-api/lib/path.ts";
-import { makePageLinksRelative } from "./translate.ts";
+import { makePageLinksRelative } from "$sb/lib/translate.ts";
+import { PageMeta } from "../../web/types.ts";
 
 const maxWidth = 70;
 
@@ -81,14 +82,21 @@ export function jsonToMDTable(
 }
 
 export async function renderTemplate(
-  pageName: string,
+  pageMeta: PageMeta,
   renderTemplate: string,
   data: any[],
 ): Promise<string> {
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   const template = Handlebars.compile(templateText, { noEscape: true });
-  return template(data, { helpers: handlebarHelpers(pageName) });
+  return template(data, buildHandebarOptions(pageMeta));
+}
+
+export function buildHandebarOptions(pageMeta: PageMeta) {
+  return {
+    helpers: handlebarHelpers(pageMeta.name),
+    data: { page: pageMeta },
+  };
 }
 
 export function handlebarHelpers(pageName: string) {
@@ -106,5 +114,27 @@ export function handlebarHelpers(pageName: string) {
       v.split("\n").map((l) => prefix + l).join("\n"),
     substring: (s: string, from: number, to: number, elipsis = "") =>
       s.length > to - from ? s.substring(from, to) + elipsis : s,
+
+    today: () => niceDate(new Date()),
+    tomorrow: () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return niceDate(tomorrow);
+    },
+    yesterday: () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return niceDate(yesterday);
+    },
+    lastWeek: () => {
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      return niceDate(lastWeek);
+    },
+    nextWeek: () => {
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      return niceDate(nextWeek);
+    },
   };
 }

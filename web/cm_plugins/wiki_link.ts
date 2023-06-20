@@ -34,7 +34,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
         }
-        const resolvedPage = resolve(
+        const resolvedPage = cleanPage.startsWith("!") ? cleanPage : resolve(
           folderName(editor.currentPage!),
           cleanPage,
         );

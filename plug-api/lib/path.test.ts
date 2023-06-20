@@ -14,7 +14,7 @@ Deno.test("Path functions", () => {
   assertEquals(relativePath("this/is/a", "this/is/b/path"), "../b/path");
   assertEquals(relativePath("this/folder", "file"), "../../file");
 
-  assertEquals(relativePath("test", "test"), "");
+  assertEquals(relativePath("test1/test2", "test1/test2"), "../test2");
 
   assertEquals(relativePath("test", "test2"), "../test2");
 

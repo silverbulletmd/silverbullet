@@ -1,4 +1,4 @@
-The [[🔌 Core]] plug provides various useful edit commands, such as:
+The [[../🔌 Core]] plug provides various useful edit commands, such as:
 
 * {[Text: Bold]} {[Text: Italic]} {[Text: Marker]} to respectively make text bold, italic or mark it.
 * {[Text: Listify Selection]} to turn each line in the selection into a (bullet) list
