@@ -8,7 +8,7 @@ export function relativePath(sourceFolder: string, targetPath: string) {
   }
   const sourceParts = sourceFolder.split("/");
   const targetParts = targetPath.split("/");
-  while (sourceParts[0] === targetParts[0]) {
+  while (sourceParts[0] === targetParts[0] && sourceParts.length > 0) {
     sourceParts.shift();
     targetParts.shift();
   }

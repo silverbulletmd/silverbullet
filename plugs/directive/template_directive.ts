@@ -10,6 +10,7 @@ import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
 import { handlebarHelpers } from "./util.ts";
 import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { translatePageLinks } from "./translate.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -25,7 +26,7 @@ export async function templateDirectiveRenderer(
   if (!match) {
     throw new Error(`Invalid template directive: ${arg}`);
   }
-  const template = match[1];
+  let template = match[1];
   const args = match[2];
   let parsedArgs = {};
   if (args) {
@@ -44,15 +45,15 @@ export async function templateDirectiveRenderer(
       templateText = `ERROR: ${e.message}`;
     }
   } else {
-    const absoluteTemplatePath = resolve(
+    template = resolve(
       folderName(pageName),
       template,
     );
-    console.log("Resolved template path", absoluteTemplatePath);
-    templateText = await space.readPage(absoluteTemplatePath);
+    templateText = await space.readPage(template);
   }
   const tree = await markdown.parseMarkdown(templateText);
   await extractFrontmatter(tree, [], true); // Remove entire frontmatter section, if any
+  translatePageLinks(template, pageName, tree);
   let newBody = renderToText(tree);
 
   // if it's a template injection (not a literal "include")

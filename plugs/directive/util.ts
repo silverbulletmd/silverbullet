@@ -3,6 +3,7 @@ import Handlebars from "handlebars";
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { folderName, relativePath } from "../../plug-api/lib/path.ts";
+import { makePageLinksRelative } from "./translate.ts";
 
 const maxWidth = 70;
 
@@ -92,17 +93,17 @@ export async function renderTemplate(
 
 export function handlebarHelpers(pageName: string) {
   return {
-    pageLink: (name: string) => relativePath(folderName(pageName), name),
+    relativePath: (name: string) => relativePath(folderName(pageName), name),
+    translateAbsoluteLinks: (text: string) => {
+      return makePageLinksRelative(text, "", folderName(pageName));
+    },
     json: (v: any) => JSON.stringify(v),
     niceDate: (ts: any) => niceDate(new Date(ts)),
     escapeRegexp: (ts: any) => {
       return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
     },
     prefixLines: (v: string, prefix: string) =>
-      v
-        .split("\n")
-        .map((l) => prefix + l)
-        .join("\n"),
+      v.split("\n").map((l) => prefix + l).join("\n"),
     substring: (s: string, from: number, to: number, elipsis = "") =>
       s.length > to - from ? s.substring(from, to) + elipsis : s,
   };

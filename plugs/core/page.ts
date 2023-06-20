@@ -20,10 +20,10 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { folderName, relativePath } from "$sb/lib/path.ts";
+import { folderName, relativePath, resolve } from "$sb/lib/path.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -33,6 +33,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
+  removeQueries(tree);
   const pageMeta = await extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
@@ -45,13 +46,13 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     await index.set(name, "meta:", pageMeta);
   }
 
-  // throw new Error("Boom");
-
+  const folder = folderName(name);
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
     if (toPage.includes("@")) {
       toPage = toPage.split("@")[0];
     }
+    toPage = resolve(folder, toPage);
     backLinks.push({
       key: `pl:${toPage}:${n.from}`,
       value: name,
@@ -199,18 +200,21 @@ export async function renamePage(cmdDef: any) {
     }
     const mdTree = await markdown.parseMarkdown(text);
     addParentPointers(mdTree);
+    // The links in the page are going to be relative pointers to the old name
+    const relativeOldName = relativePath(folderName(pageToUpdate), oldName);
+    const relativeNewName = relativePath(folderName(pageToUpdate), newName);
     replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
         const pageName = n.children![0].text!;
-        if (pageName === oldName) {
-          n.children![0].text = newName;
+        if (pageName === relativeOldName) {
+          n.children![0].text = relativeNewName;
           updatedReferences++;
           return n;
         }
         // page name with @pos position
-        if (pageName.startsWith(`${oldName}@`)) {
+        if (pageName.startsWith(`${relativeOldName}@`)) {
           const [, pos] = pageName.split("@");
-          n.children![0].text = `${newName}@${pos}`;
+          n.children![0].text = `${relativeNewName}@${pos}`;
           updatedReferences++;
           return n;
         }
@@ -270,13 +274,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
+  console.log("GOing to complete");
   const allPages = await space.listPages();
   const folder = folderName(completeEvent.pageName);
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
       const relative = relativePath(folder, pageMeta.name);
-
       return {
         // label: pageMeta.name,
         // label: pageMeta.name,

@@ -61,9 +61,14 @@ async function actionClickOrActionEnter(
     }
     case "PageRef": {
       const bracketedPageRef = mdTree.children![0].text!;
+      const currentPage = await editor.getCurrentPage();
+      const currentFolder = folderName(currentPage);
       await editor.navigate(
-        // Slicing off the initial [[ and final ]]
-        bracketedPageRef.substring(2, bracketedPageRef.length - 2),
+        resolve(
+          currentFolder,
+          // Slicing off the initial [[ and final ]]
+          bracketedPageRef.substring(2, bracketedPageRef.length - 2),
+        ),
         0,
         false,
         inNewWindow,
