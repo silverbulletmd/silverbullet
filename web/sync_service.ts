@@ -371,7 +371,7 @@ export class SyncService {
       name,
       data,
       false,
-      meta.lastModified,
+      meta,
     );
     // Update snapshot
     snapshot.set(name, [

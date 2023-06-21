@@ -92,13 +92,14 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
       name,
       data,
       selfUpdate,
+      meta,
     );
     if (result) {
       return result;
@@ -108,7 +109,7 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       name,
       data,
       selfUpdate,
-      lastModified,
+      meta,
     );
   }
 

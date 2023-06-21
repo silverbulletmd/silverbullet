@@ -35,9 +35,9 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean | undefined,
-    lastModified?: number | undefined,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
-    return this.primary.writeFile(name, data, selfUpdate, lastModified);
+    return this.primary.writeFile(name, data, selfUpdate, meta);
   }
   deleteFile(name: string): Promise<void> {
     return this.primary.deleteFile(name);

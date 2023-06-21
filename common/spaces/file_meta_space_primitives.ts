@@ -70,13 +70,13 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(
       name,
       data,
       selfUpdate,
-      lastModified,
+      meta,
     );
   }
 

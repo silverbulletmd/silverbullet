@@ -80,13 +80,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
     };
-    if (lastModified) {
-      headers["X-Last-Modified"] = "" + lastModified;
+    if (meta) {
+      headers["X-Last-Modified"] = "" + meta.lastModified;
+      headers["X-Perm"] = "" + meta.perm;
     }
 
     const res = await this.authenticatedFetch(

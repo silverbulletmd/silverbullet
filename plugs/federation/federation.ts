@@ -22,11 +22,9 @@ async function responseToFileMeta(
 ): Promise<FileMeta> {
   let perm = r.headers.get("X-Permission") as any || "ro";
   const federationConfigs = await readFederationConfigs();
-  const federationConfig = federationConfigs.find((config) => {
-    console.log("Checking", config, name);
-    return name.startsWith(config.uri);
-  });
-  console.log("Found federation config", federationConfig);
+  const federationConfig = federationConfigs.find((config) =>
+    name.startsWith(config.uri)
+  );
   if (federationConfig?.perm) {
     perm = federationConfig.perm;
   }
@@ -81,7 +79,7 @@ export async function listFiles(): Promise<FileMeta[]> {
         })),
     );
   }));
-  console.log("All of em: ", fileMetas);
+  // console.log("All of em: ", fileMetas);
   return fileMetas;
 }
 
@@ -154,7 +152,7 @@ export async function deleteFile(
 
 export async function getFileMeta(name: string): Promise<FileMeta> {
   const url = resolveFederated(name);
-  console.log("Fetching for OPTIONS", url);
+  console.log("Fetching federation file meta", url);
   const r = await nativeFetch(url, { method: "OPTIONS" });
   const fileMeta = await responseToFileMeta(r, name);
   if (!r.ok) {

@@ -51,14 +51,14 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
-    lastModified?: number,
+    suggestedMeta?: FileMeta,
   ): Promise<FileMeta> {
     const meta: FileMeta = {
       name,
-      lastModified: lastModified || Date.now(),
+      lastModified: suggestedMeta?.lastModified || Date.now(),
       contentType: mime.getType(name) || "application/octet-stream",
       size: data.byteLength,
-      perm: "rw",
+      perm: suggestedMeta?.perm || "rw",
     };
     await this.filesContentTable.put({ name, data, meta });
     await this.filesMetaTable.put(meta);
