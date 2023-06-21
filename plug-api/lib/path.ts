@@ -2,7 +2,7 @@ export function folderName(path: string) {
   return path.split("/").slice(0, -1).join("/");
 }
 
-export function relativePath(sourceFolder: string, targetPath: string) {
+function relativePath(sourceFolder: string, targetPath: string) {
   if (sourceFolder === "") {
     return targetPath;
   }
@@ -20,7 +20,25 @@ export function relativePath(sourceFolder: string, targetPath: string) {
   );
 }
 
-export function resolve(...paths: string[]) {
+export function toRelativePath(
+  currentPath: string,
+  absolutePath: string,
+): string {
+  return relativePath(folderName(currentPath), absolutePath);
+}
+
+export function toAbsolutePath(
+  currentPath: string,
+  relativePath: string,
+): string {
+  if (relativePath.startsWith("!")) {
+    // Nothing to do for federation links
+    return relativePath;
+  }
+  return resolve(folderName(currentPath), relativePath);
+}
+
+function resolve(...paths: string[]) {
   const parts = paths.reduce((acc, path) => {
     return acc.concat(path.split("/"));
   }, [] as string[]);

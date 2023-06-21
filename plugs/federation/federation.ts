@@ -1,17 +1,10 @@
 import "$sb/lib/fetch.ts";
 import type { FileMeta } from "../../common/types.ts";
-import { renderToText } from "../../plug-api/lib/tree.ts";
-import { parseMarkdown } from "../../plug-api/silverbullet-syscall/markdown.ts";
-import {
-  federatedPrefix,
-  translateLinksWithoutPrefix,
-  translateLinksWithPrefix,
-} from "./translate.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
 
 function resolveFederated(pageName: string): string {
   // URL without the prefix "!""
-  let url = pageName.substring(federatedPrefix.length);
+  let url = pageName.substring(1);
   const pieces = url.split("/");
   pieces.splice(1, 0, ".fs");
   url = pieces.join("/");
@@ -23,49 +16,72 @@ function resolveFederated(pageName: string): string {
   return url;
 }
 
-// Extracts base URL from full URL, e.g. 'http://silverbullet.md/bla/die/dah' -> 'http://silverbullet.md'
-function baseFederationUrl(url: string): string {
-  const pieces = url.split("/");
-  return federatedPrefix + pieces.slice(2, 3).join("/");
-}
-
-function responseToFileMeta(r: Response, name: string): FileMeta {
+async function responseToFileMeta(
+  r: Response,
+  name: string,
+): Promise<FileMeta> {
+  let perm = r.headers.get("X-Permission") as any || "ro";
+  const federationConfigs = await readFederationConfigs();
+  const federationConfig = federationConfigs.find((config) => {
+    console.log("Checking", config, name);
+    return name.startsWith(config.uri);
+  });
+  console.log("Found federation config", federationConfig);
+  if (federationConfig?.perm) {
+    perm = federationConfig.perm;
+  }
   return {
     name: name,
     size: r.headers.get("Content-length")
       ? +r.headers.get("Content-length")!
       : 0,
     contentType: r.headers.get("Content-type")!,
-    perm: r.headers.get("X-Permission") as any || "ro",
+    perm: perm,
     lastModified: +(r.headers.get("X-Last-Modified") || "0"),
   };
 }
 
-let federationUrls: string[] = [];
+type FederationConfig = {
+  uri: string;
+  perm?: "ro" | "rw";
+};
+let federationConfigs: FederationConfig[] = [];
 let lastFederationUrlFetch = 0;
-async function readFederationUrls() {
+
+async function readFederationConfigs() {
   // Update at most every 5 seconds
   if (Date.now() > lastFederationUrlFetch + 5000) {
-    federationUrls = await readSetting("federate", []);
+    federationConfigs = await readSetting("federate", []);
+    // Normalize URIs
+    for (const config of federationConfigs) {
+      if (!config.uri.startsWith("!")) {
+        config.uri = `!${config.uri}`;
+      }
+    }
     lastFederationUrlFetch = Date.now();
   }
-  return federationUrls;
+  return federationConfigs;
 }
 
 export async function listFiles(): Promise<FileMeta[]> {
   let fileMetas: FileMeta[] = [];
   // Fetch them all in parallel
-  await Promise.all((await readFederationUrls()).map(async (url) => {
-    // console.log("Fetching from federated URL", url);
-    const r = await nativeFetch(
-      resolveFederated(url.startsWith("!") ? url : `!${url}`),
+  await Promise.all((await readFederationConfigs()).map(async (config) => {
+    // console.log("Fetching from federated", config);
+    const uriParts = config.uri.split("/");
+    const rootUri = uriParts[0];
+    const prefix = uriParts.slice(1).join("/");
+    const r = await nativeFetch(resolveFederated(rootUri));
+    fileMetas = fileMetas.concat(
+      (await r.json()).filter((meta: FileMeta) => meta.name.startsWith(prefix))
+        .map((meta: FileMeta) => ({
+          ...meta,
+          perm: config.perm || meta.perm,
+          name: `${rootUri}/${meta.name}`,
+        })),
     );
-    fileMetas = fileMetas.concat((await r.json()).map((meta: FileMeta) => ({
-      ...meta,
-      name: `!${url}/${meta.name}`,
-    })));
   }));
-  // console.log("All of em: ", fileMetas);
+  console.log("All of em: ", fileMetas);
   return fileMetas;
 }
 
@@ -74,34 +90,20 @@ export async function readFile(
 ): Promise<{ data: Uint8Array; meta: FileMeta } | undefined> {
   const url = resolveFederated(name);
   const r = await nativeFetch(url);
-  const fileMeta = responseToFileMeta(r, name);
+  const fileMeta = await responseToFileMeta(r, name);
   console.log("Fetching", url);
   if (r.status === 404) {
     throw Error("Not found");
   }
-  let data = await r.arrayBuffer();
+  const data = await r.arrayBuffer();
   if (!r.ok) {
     return errorResult(name, `**Error**: Could not load`);
   }
 
-  // if (name.endsWith(".md")) {
-  //   let text = new TextDecoder().decode(data);
-  //   text = renderToText(
-  //     translateLinksWithPrefix(
-  //       await parseMarkdown(text),
-  //       baseFederationUrl(url) + "/",
-  //     ),
-  //   );
-  //   data = new TextEncoder().encode(text);
-  // }
   return {
     data: new Uint8Array(data),
     meta: fileMeta,
   };
-  // } catch (e: any) {
-  //   console.error("ERROR thrown", e.message);
-  //   return errorResult(name, `**Error**: ${e.message}`);
-  // }
 }
 
 function errorResult(
@@ -126,20 +128,12 @@ export async function writeFile(
 ): Promise<FileMeta> {
   const url = resolveFederated(name);
   console.log("Writing federation file", url);
-  // if (name.endsWith(".md")) {
-  //   let text = new TextDecoder().decode(data);
-  //   text = renderToText(translateLinksWithoutPrefix(
-  //     await parseMarkdown(text),
-  //     baseFederationUrl(url) + "/",
-  //   ));
-  //   data = new TextEncoder().encode(text);
-  // }
 
   const r = await nativeFetch(url, {
     method: "PUT",
     body: data,
   });
-  const fileMeta = responseToFileMeta(r, name);
+  const fileMeta = await responseToFileMeta(r, name);
   if (!r.ok) {
     throw new Error("Could not write file");
   }
@@ -147,18 +141,22 @@ export async function writeFile(
   return fileMeta;
 }
 
-export function deleteFile(
+export async function deleteFile(
   name: string,
 ): Promise<void> {
   console.log("Deleting federation file", name);
-  return;
+  const url = resolveFederated(name);
+  const r = await nativeFetch(url, { method: "DELETE" });
+  if (!r.ok) {
+    throw Error("Failed to delete file");
+  }
 }
 
 export async function getFileMeta(name: string): Promise<FileMeta> {
   const url = resolveFederated(name);
   console.log("Fetching for OPTIONS", url);
   const r = await nativeFetch(url, { method: "OPTIONS" });
-  const fileMeta = responseToFileMeta(r, name);
+  const fileMeta = await responseToFileMeta(r, name);
   if (!r.ok) {
     throw new Error("Not found");
   }

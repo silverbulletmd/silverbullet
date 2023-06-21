@@ -138,7 +138,6 @@ import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primiti
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { CollabManager } from "./collab_manager.ts";
-import { folderName, relativePath } from "../plug-api/lib/path.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

@@ -1,5 +1,9 @@
 import { ParseTree, replaceNodesMatching } from "$sb/lib/tree.ts";
-import { folderName, relativePath, resolve } from "../../plug-api/lib/path.ts";
+import {
+  folderName,
+  toAbsolutePath,
+  toRelativePath,
+} from "../../plug-api/lib/path.ts";
 
 export function translatePageLinks(
   originPath: string,
@@ -7,7 +11,7 @@ export function translatePageLinks(
   tree: ParseTree,
 ) {
   const originFolder = folderName(originPath);
-  const targetFolder = folderName(targetPath);
+  // const targetFolder = folderName(targetPath);
   replaceNodesMatching(tree, (tree) => {
     if (tree.type === "WikiLinkPage") {
       // Add the prefix in the link text
@@ -15,9 +19,9 @@ export function translatePageLinks(
       if (!pageName.startsWith("!") && !pageName.startsWith("{{")) {
         // console.log("Resolved path:", resolve(originFolder, pageName));
         // console.log("For folder", targetFolder);
-        tree.children![0].text = relativePath(
-          targetFolder,
-          resolve(originFolder, pageName),
+        tree.children![0].text = toRelativePath(
+          targetPath,
+          toAbsolutePath(originPath, pageName),
         );
       }
     }
@@ -26,16 +30,16 @@ export function translatePageLinks(
       // Add the prefix in the link text
       tree.children![0].text = makePageLinksRelative(
         tree.children![0].text!,
-        originFolder,
-        targetFolder,
+        originPath,
+        targetPath,
       );
     }
     if (tree.type === "DirectiveStart" && tree.children![0].text) {
       // #use or #include
       tree.children![0].text = makePageLinksRelative(
         tree.children![0].text!,
-        originFolder,
-        targetFolder,
+        originPath,
+        targetPath,
       );
     }
 
@@ -46,15 +50,15 @@ export function translatePageLinks(
 
 export function makePageLinksRelative(
   text: string,
-  originFolder: string,
-  targetFolder: string,
+  originPath: string,
+  targetPath: string,
 ): string {
   return text.replaceAll(
     /\[\[((?!(!|https?:))[^\]]*)\]\]/g,
     (_fullMatch, pageName) => {
       // console.log("match", match, pageref);
       return `[[${
-        relativePath(targetFolder, resolve(originFolder, pageName))
+        toRelativePath(targetPath, toAbsolutePath(originPath, pageName))
       }]]`;
     },
   );

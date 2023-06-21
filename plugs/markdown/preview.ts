@@ -1,15 +1,14 @@
-import { editor, space, system } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, system } from "$sb/silverbullet-syscall/mod.ts";
 import { asset, store } from "$sb/plugos-syscall/mod.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await store.get("enableMarkdownPreview"))) {
     return;
   }
   const pageName = await editor.getCurrentPage();
-  const folder = folderName(pageName);
   const text = await editor.getText();
   const mdTree = await parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
@@ -20,7 +19,7 @@ export async function updateMarkdownPreview() {
     annotationPositions: true,
     translateUrls: (url) => {
       if (!url.includes("://")) {
-        return `/.fs/${resolve(folder, url)}`;
+        return `/.fs/${toAbsolutePath(pageName, url)}`;
       }
       return url;
     },

@@ -11,7 +11,7 @@ import {
   taskListItems,
 } from "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.45";
 import { safeRun } from "../../common/util.ts";
-import { folderName, relativePath, resolve } from "../../plug-api/lib/path.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 const turndownService = new TurndownService({
   hr: "---",
   codeBlockStyle: "fenced",
@@ -181,9 +181,8 @@ export function attachmentExtension(editor: Editor) {
     if (!finalFileName) {
       return;
     }
-    const folder = folderName(editor.currentPage!);
     await editor.space.writeAttachment(
-      resolve(folder, finalFileName),
+      toAbsolutePath(editor.currentPage!, finalFileName),
       new Uint8Array(data),
     );
     let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;

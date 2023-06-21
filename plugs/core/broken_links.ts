@@ -1,4 +1,4 @@
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { folderName, toAbsolutePath } from "../../plug-api/lib/path.ts";
 import { traverseTree } from "../../plug-api/lib/tree.ts";
 import {
   editor,
@@ -15,7 +15,6 @@ export async function brokenLinksCommand() {
   for (const pageMeta of allPages) {
     const text = await space.readPage(pageMeta.name);
     const tree = await markdown.parseMarkdown(text);
-    const originFolder = folderName(pageMeta.name);
     traverseTree(tree, (tree) => {
       if (tree.type === "WikiLinkPage") {
         // Add the prefix in the link text
@@ -26,9 +25,7 @@ export async function brokenLinksCommand() {
         if (
           pageName && !pageName.startsWith("{{")
         ) {
-          const absolutePath = pageName.startsWith("!")
-            ? pageName
-            : resolve(originFolder, pageName);
+          const absolutePath = toAbsolutePath(pageMeta.name, pageName);
           if (!allPagesMap.has(absolutePath)) {
             brokenLinks.push({
               page: pageMeta.name,
@@ -43,9 +40,7 @@ export async function brokenLinksCommand() {
         if (pageName.startsWith("💭 ")) {
           return true;
         }
-        const absolutePath = pageName.startsWith("!")
-          ? pageName
-          : resolve(originFolder, pageName);
+        const absolutePath = toAbsolutePath(pageMeta.name, pageName);
         if (!allPagesMap.has(absolutePath)) {
           brokenLinks.push({
             page: pageMeta.name,
@@ -60,14 +55,6 @@ export async function brokenLinksCommand() {
         return true;
       }
 
-      //   if (tree.type === "DirectiveStart" && tree.children![0].text) {
-      //     // #use or #include
-      //     tree.children![0].text = makePageLinksRelative(
-      //       tree.children![0].text!,
-      //       originFolder,
-      //       targetFolder,
-      //     );
-      //   }
       return false;
     });
   }

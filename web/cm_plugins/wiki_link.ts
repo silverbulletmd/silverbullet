@@ -1,6 +1,6 @@
 import { pageLinkRegex } from "../../common/markdown_parser/parser.ts";
 import { ClickEvent } from "../../plug-api/app_event.ts";
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { folderName, toAbsolutePath } from "../../plug-api/lib/path.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import {
@@ -34,8 +34,8 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
         }
-        const resolvedPage = cleanPage.startsWith("!") ? cleanPage : resolve(
-          folderName(editor.currentPage!),
+        const resolvedPage = toAbsolutePath(
+          editor.currentPage!,
           cleanPage,
         );
         // console.log("Resolved page", resolvedPage);

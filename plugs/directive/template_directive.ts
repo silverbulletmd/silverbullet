@@ -8,10 +8,10 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
-import { buildHandebarOptions, handlebarHelpers } from "./util.ts";
-import { folderName, resolve } from "$sb/lib/path.ts";
+import { buildHandebarOptions } from "./util.ts";
 import { translatePageLinks } from "$sb/lib/translate.ts";
 import { PageMeta } from "../../web/types.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -33,7 +33,6 @@ export async function templateDirectiveRenderer(
   if (args) {
     try {
       parsedArgs = JSON.parse(replaceTemplateVars(args, pageMeta));
-      console.log("Parsed arg", parsedArgs);
     } catch {
       throw new Error(
         `Failed to parse template instantiation arg: ${
@@ -51,10 +50,7 @@ export async function templateDirectiveRenderer(
       templateText = `ERROR: ${e.message}`;
     }
   } else {
-    template = resolve(
-      folderName(pageMeta.name),
-      template,
-    );
+    template = toAbsolutePath(pageMeta.name, template);
     templateText = await space.readPage(template);
   }
   const tree = await markdown.parseMarkdown(templateText);

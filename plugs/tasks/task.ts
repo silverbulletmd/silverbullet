@@ -24,7 +24,7 @@ import {
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { translatePageLinks } from "$sb/lib/translate.ts";
-import { folderName, resolve } from "$sb/lib/path.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 export type Task = {
   name: string;
@@ -124,8 +124,7 @@ async function toggleTaskMarker(
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
       const [page, pos] = ref.split("@");
-      console.log("GOing to resolve", page, "in", pageName, "for", page);
-      const resolvedPage = resolve(folderName(pageName), page);
+      const resolvedPage = toAbsolutePath(pageName, page);
       let text = await space.readPage(resolvedPage);
 
       const referenceMdTree = await markdown.parseMarkdown(text);

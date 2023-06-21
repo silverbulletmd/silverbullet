@@ -23,7 +23,7 @@ import {
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { folderName, relativePath, resolve } from "$sb/lib/path.ts";
+import { folderName, toAbsolutePath, toRelativePath } from "$sb/lib/path.ts";
 import { translatePageLinks } from "../../plug-api/lib/translate.ts";
 
 // Key space:
@@ -47,13 +47,12 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     await index.set(name, "meta:", pageMeta);
   }
 
-  const folder = folderName(name);
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
     if (toPage.includes("@")) {
       toPage = toPage.split("@")[0];
     }
-    toPage = resolve(folder, toPage);
+    toPage = toAbsolutePath(name, toPage);
     backLinks.push({
       key: `pl:${toPage}:${n.from}`,
       value: name,
@@ -208,8 +207,8 @@ export async function renamePage(cmdDef: any) {
     const mdTree = await markdown.parseMarkdown(text);
     addParentPointers(mdTree);
     // The links in the page are going to be relative pointers to the old name
-    const relativeOldName = relativePath(folderName(pageToUpdate), oldName);
-    const relativeNewName = relativePath(folderName(pageToUpdate), newName);
+    const relativeOldName = toRelativePath(pageToUpdate, oldName);
+    const relativeNewName = toRelativePath(pageToUpdate, newName);
     replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
         const pageName = n.children![0].text!;
@@ -282,11 +281,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const allPages = await space.listPages();
-  const folder = folderName(completeEvent.pageName);
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
-      const relative = relativePath(folder, pageMeta.name);
+      const relative = toRelativePath(completeEvent.pageName, pageMeta.name);
       return {
         // label: pageMeta.name,
         // label: pageMeta.name,

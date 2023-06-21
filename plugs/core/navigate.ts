@@ -7,7 +7,7 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
-import { folderName, resolve } from "../../plug-api/lib/path.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -37,7 +37,6 @@ async function actionClickOrActionEnter(
     }
   }
   const currentPage = await editor.getCurrentPage();
-  const currentFolder = folderName(currentPage);
   switch (mdTree.type) {
     case "WikiLink": {
       let pageLink = mdTree.children![1]!.children![0].text!;
@@ -51,27 +50,25 @@ async function actionClickOrActionEnter(
       if (!pageLink) {
         pageLink = currentPage;
       }
-      const resolvedPage = pageLink.startsWith("!")
-        ? pageLink
-        : resolve(currentFolder, pageLink);
+      const resolvedPage = toAbsolutePath(currentPage, pageLink);
       await editor.navigate(resolvedPage, pos, false, inNewWindow);
       break;
     }
     case "PageRef": {
       const bracketedPageRef = mdTree.children![0].text!;
       const currentPage = await editor.getCurrentPage();
-      const currentFolder = folderName(currentPage);
 
       // Slicing off the initial [[ and final ]]
       const pageName = bracketedPageRef.substring(
         2,
         bracketedPageRef.length - 2,
       );
-      const resolvedPage = pageName.startsWith("!") ? pageName : resolve(
-        currentFolder,
-        pageName,
+      await editor.navigate(
+        toAbsolutePath(currentPage, pageName),
+        0,
+        false,
+        inNewWindow,
       );
-      await editor.navigate(resolvedPage, 0, false, inNewWindow);
       break;
     }
     case "NakedURL":
@@ -88,7 +85,7 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        url = resolve(currentFolder, decodeURI(url));
+        url = toAbsolutePath(currentPage, decodeURI(url));
         return editor.openUrl(`/.fs/${url}`);
       } else {
         await editor.openUrl(url);

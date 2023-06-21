@@ -5,8 +5,8 @@ import { renderTemplate } from "./util.ts";
 import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
-import { folderName, resolve } from "$sb/lib/path.ts";
 import { PageMeta } from "../../web/types.ts";
+import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,
@@ -35,8 +35,8 @@ export async function queryDirectiveRenderer(
   } else if (results.length === 1) {
     // console.log("Parsed query", parsedQuery);
     if (parsedQuery.render) {
-      const absoluteRenderPath = resolve(
-        folderName(pageMeta.name),
+      const absoluteRenderPath = toAbsolutePath(
+        pageMeta.name,
         parsedQuery.render,
       );
       const rendered = await renderTemplate(
