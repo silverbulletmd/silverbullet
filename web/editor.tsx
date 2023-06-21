@@ -989,6 +989,10 @@ export class Editor {
             }
             touchCount = 0;
           },
+          touchstart: (event: TouchEvent, view: EditorView) => {
+            // prevent a mouse event from firing on mobile
+            event.preventDefault();
+          },
           mousedown: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               const pos = view.posAtCoords(event);
