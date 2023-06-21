@@ -968,6 +968,9 @@ export class Editor {
             touchCount++;
           },
           touchend: (event: TouchEvent, view: EditorView) => {
+            // prevent the browser from firing a mouse event
+            event.preventDefault();
+
             if (touchCount === 0) {
               safeRun(async () => {
                 const touch = event.changedTouches.item(0)!;
