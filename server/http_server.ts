@@ -223,7 +223,6 @@ export class HttpServer {
           return;
         }
       } else {
-        // Unauthenticated access to excluded paths
         await next();
       }
     });
@@ -249,6 +248,7 @@ export class HttpServer {
             return;
           }
         }
+        await next();
       });
     }
   }

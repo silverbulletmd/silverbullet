@@ -1,4 +1,4 @@
-FROM lukechannings/deno:v1.33.2
+FROM lukechannings/deno:v1.34.3
 # The volume that will keep the space data
 # Create a volume first:
 #   docker volume create myspace
@@ -12,8 +12,6 @@ ARG TARGETARCH
 # Adding tini manually, as it's not included anymore in the new baseimage
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
-# Copy the bundled version of silverbullet into the container
-ADD ./dist/silverbullet.js /silverbullet.js
 
 ENV SILVERBULLET_UID_GID 1000
 ENV SILVERBULLET_USERNAME silverbullet
@@ -25,6 +23,8 @@ RUN mkdir -p /space \
     && chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /space \
     && chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /deno-dir \
     && chmod +x /tini \
+    && apt update \
+    && apt install -y git \
     && echo "**** cleanup ****" \
     && apt-get -y autoremove \
     && apt-get clean  \
@@ -41,6 +41,9 @@ USER ${SILVERBULLET_USERNAME}
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
 EXPOSE 3000
+
+# Copy the bundled version of silverbullet into the container
+ADD ./dist/silverbullet.js /silverbullet.js
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
