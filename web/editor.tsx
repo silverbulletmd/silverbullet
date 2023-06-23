@@ -968,12 +968,17 @@ export class Editor {
             touchCount++;
           },
           touchend: (event: TouchEvent, view: EditorView) => {
-            // prevent the browser from firing a mouse event
-            event.preventDefault();
-
             if (touchCount === 0) {
               safeRun(async () => {
                 const touch = event.changedTouches.item(0)!;
+                if (!event.altKey && event.target instanceof Element) {
+                  // prevent the browser from opening the link twice
+                  const parentA = event.target.closest("a");
+                  if (parentA) {
+                    event.preventDefault();
+                  }
+                }
+
                 const clickEvent: ClickEvent = {
                   page: pageName,
                   ctrlKey: event.ctrlKey,
@@ -989,10 +994,7 @@ export class Editor {
             }
             touchCount = 0;
           },
-          touchstart: (event: TouchEvent, view: EditorView) => {
-            // prevent a mouse event from firing on mobile
-            event.preventDefault();
-          },
+
           mousedown: (event: MouseEvent, view: EditorView) => {
             safeRun(async () => {
               const pos = view.posAtCoords(event);
