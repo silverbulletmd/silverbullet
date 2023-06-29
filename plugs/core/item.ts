@@ -3,7 +3,6 @@ import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { index } from "$sb/silverbullet-syscall/mod.ts";
 import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
-import { translatePageLinks } from "$sb/lib/translate.ts";
 
 export type Item = {
   name: string;
@@ -41,7 +40,6 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       textNodes.push(child);
     }
 
-    translatePageLinks(name, "", n);
     const itemText = textNodes.map(renderToText).join("").trim();
     const item: Item = {
       name: itemText,

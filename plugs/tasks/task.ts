@@ -23,8 +23,6 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
-import { translatePageLinks } from "$sb/lib/translate.ts";
-import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 export type Task = {
   name: string;
@@ -69,8 +67,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       }
     });
 
-    // Translate all page links to be absolute
-    translatePageLinks(name, "", n);
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
     const taskIndex = n.parent!.children!.indexOf(n);
@@ -100,7 +96,7 @@ export async function previewTaskToggle(eventString: string) {
 }
 
 async function toggleTaskMarker(
-  pageName: string,
+  _pageName: string,
   node: ParseTree,
   moveToPos: number,
 ) {
@@ -124,8 +120,7 @@ async function toggleTaskMarker(
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
       const [page, pos] = ref.split("@");
-      const resolvedPage = toAbsolutePath(pageName, page);
-      let text = await space.readPage(resolvedPage);
+      let text = await space.readPage(page);
 
       const referenceMdTree = await markdown.parseMarkdown(text);
       // Adding +1 to immediately hit the task marker
@@ -140,7 +135,7 @@ async function toggleTaskMarker(
       }
       taskMarkerNode.children![0].text = changeTo;
       text = renderToText(referenceMdTree);
-      await space.writePage(resolvedPage, text);
+      await space.writePage(page, text);
     }
   }
 }

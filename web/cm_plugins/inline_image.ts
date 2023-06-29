@@ -9,7 +9,6 @@ import { decoratorStateField } from "./util.ts";
 
 import type { Space } from "../space.ts";
 import type { Editor } from "../editor.tsx";
-import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -75,7 +74,7 @@ export function inlineImagesPlugin(editor: Editor) {
         let url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
         if (url.indexOf("://") === -1) {
-          url = `/.fs/${toAbsolutePath(editor.currentPage!, url)}`;
+          url = `/.fs/${url}`;
         }
         widgets.push(
           Decoration.widget({

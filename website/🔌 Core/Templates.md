@@ -80,4 +80,4 @@ Currently supported (hardcoded in the code):
 - `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
 - `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
 - `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).
-- The `@page` variable contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[../Frontmatter]] attributes). You can address it like so: `{{@page.name}}`
+- The `@page` variable contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[Frontmatter]] attributes). You can address it like so: `{{@page.name}}`

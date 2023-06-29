@@ -1,1 +1,1 @@
-* [{{#if done}}x{{else}} {{/if}}] [[{{relativePath page}}@{{pos}}]] {{translateAbsoluteLinks name}}
+* [{{#if done}}x{{else}} {{/if}}] [[{{page}}@{{pos}}]] {{name}}

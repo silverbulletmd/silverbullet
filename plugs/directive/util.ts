@@ -2,9 +2,7 @@ import Handlebars from "handlebars";
 
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
-import { makePageLinksRelative } from "$sb/lib/translate.ts";
 import { PageMeta } from "../../web/types.ts";
-import { toRelativePath } from "../../plug-api/lib/path.ts";
 
 const maxWidth = 70;
 
@@ -101,10 +99,6 @@ export function buildHandebarOptions(pageMeta: PageMeta) {
 
 export function handlebarHelpers(pageName: string) {
   return {
-    relativePath: (name: string) => toRelativePath(pageName, name),
-    translateAbsoluteLinks: (text: string) => {
-      return makePageLinksRelative(text, "", pageName);
-    },
     json: (v: any) => JSON.stringify(v),
     niceDate: (ts: any) => niceDate(new Date(ts)),
     escapeRegexp: (ts: any) => {

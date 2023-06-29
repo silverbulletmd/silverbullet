@@ -454,8 +454,3 @@ functions:
     path: ./broken_links.ts:brokenLinksCommand
     command:
       name: "Broken Links: Show"
-
-  migrateToRelativeLinksCommand:
-    path: ./migration.ts:migrateToRelativeLinksCommand
-    command:
-      name: "Migrate space to relative links"

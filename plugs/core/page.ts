@@ -23,8 +23,6 @@ import {
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { folderName, toAbsolutePath, toRelativePath } from "$sb/lib/path.ts";
-import { translatePageLinks } from "../../plug-api/lib/translate.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -52,7 +50,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     if (toPage.includes("@")) {
       toPage = toPage.split("@")[0];
     }
-    toPage = toAbsolutePath(name, toPage);
     backLinks.push({
       key: `pl:${toPage}:${n.from}`,
       value: name,
@@ -168,13 +165,8 @@ export async function renamePage(cmdDef: any) {
 
   const text = await editor.getText();
 
-  // Update all page references in page itself
-  const mdTree = await markdown.parseMarkdown(text);
-  translatePageLinks(oldName, newName, mdTree);
-  const newText = renderToText(mdTree);
-
   console.log("Writing new page to space");
-  const newPageMeta = await space.writePage(newName, newText);
+  const newPageMeta = await space.writePage(newName, text);
   console.log("Navigating to new page");
   await editor.navigate(newName, cursor, true);
 
@@ -207,20 +199,18 @@ export async function renamePage(cmdDef: any) {
     const mdTree = await markdown.parseMarkdown(text);
     addParentPointers(mdTree);
     // The links in the page are going to be relative pointers to the old name
-    const relativeOldName = toRelativePath(pageToUpdate, oldName);
-    const relativeNewName = toRelativePath(pageToUpdate, newName);
     replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
         const pageName = n.children![0].text!;
-        if (pageName === relativeOldName) {
-          n.children![0].text = relativeNewName;
+        if (pageName === oldName) {
+          n.children![0].text = newName;
           updatedReferences++;
           return n;
         }
         // page name with @pos position
-        if (pageName.startsWith(`${relativeOldName}@`)) {
+        if (pageName.startsWith(`${oldName}@`)) {
           const [, pos] = pageName.split("@");
-          n.children![0].text = `${relativeNewName}@${pos}`;
+          n.children![0].text = `${newName}@${pos}`;
           updatedReferences++;
           return n;
         }
@@ -284,14 +274,9 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
-      const relative = toRelativePath(completeEvent.pageName, pageMeta.name);
       return {
-        // label: pageMeta.name,
-        // label: pageMeta.name,
-        label: relative,
-        boost: relative.startsWith("../")
-          ? pageMeta.lastModified / 10
-          : pageMeta.lastModified,
+        label: pageMeta.name,
+        boost: pageMeta.lastModified,
         type: "page",
       };
     }),

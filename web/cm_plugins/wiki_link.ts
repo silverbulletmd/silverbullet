@@ -1,6 +1,5 @@
 import { pageLinkRegex } from "../../common/markdown_parser/parser.ts";
 import { ClickEvent } from "../../plug-api/app_event.ts";
-import { folderName, toAbsolutePath } from "../../plug-api/lib/path.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Editor } from "../editor.tsx";
 import {
@@ -34,13 +33,9 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
         }
-        const resolvedPage = toAbsolutePath(
-          editor.currentPage!,
-          cleanPage,
-        );
         // console.log("Resolved page", resolvedPage);
         for (const pageMeta of allPages) {
-          if (pageMeta.name === resolvedPage) {
+          if (pageMeta.name === cleanPage) {
             pageExists = true;
             break;
           }
@@ -83,9 +78,9 @@ export function cleanWikiLinkPlugin(editor: Editor) {
               {
                 text: linkText,
                 title: pageExists
-                  ? `Navigate to ${resolvedPage}`
-                  : `Create ${resolvedPage}`,
-                href: `/${resolvedPage}`,
+                  ? `Navigate to ${cleanPage}`
+                  : `Create ${cleanPage}`,
+                href: `/${cleanPage}`,
                 cssClass: pageExists
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",

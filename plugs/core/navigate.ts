@@ -7,7 +7,6 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
-import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -50,25 +49,18 @@ async function actionClickOrActionEnter(
       if (!pageLink) {
         pageLink = currentPage;
       }
-      const resolvedPage = toAbsolutePath(currentPage, pageLink);
-      await editor.navigate(resolvedPage, pos, false, inNewWindow);
+      await editor.navigate(pageLink, pos, false, inNewWindow);
       break;
     }
     case "PageRef": {
       const bracketedPageRef = mdTree.children![0].text!;
-      const currentPage = await editor.getCurrentPage();
 
       // Slicing off the initial [[ and final ]]
       const pageName = bracketedPageRef.substring(
         2,
         bracketedPageRef.length - 2,
       );
-      await editor.navigate(
-        toAbsolutePath(currentPage, pageName),
-        0,
-        false,
-        inNewWindow,
-      );
+      await editor.navigate(pageName, 0, false, inNewWindow);
       break;
     }
     case "NakedURL":
@@ -80,13 +72,12 @@ async function actionClickOrActionEnter(
       if (!urlNode) {
         return;
       }
-      let url = urlNode.children![0].text!;
+      const url = urlNode.children![0].text!;
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        url = toAbsolutePath(currentPage, decodeURI(url));
-        return editor.openUrl(`/.fs/${url}`);
+        return editor.openUrl(`/.fs/${decodeURI(url)}`);
       } else {
         await editor.openUrl(url);
       }

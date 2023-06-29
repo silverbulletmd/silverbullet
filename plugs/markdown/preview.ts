@@ -2,7 +2,6 @@ import { editor, system } from "$sb/silverbullet-syscall/mod.ts";
 import { asset, store } from "$sb/plugos-syscall/mod.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { toAbsolutePath } from "../../plug-api/lib/path.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await store.get("enableMarkdownPreview"))) {
@@ -19,7 +18,7 @@ export async function updateMarkdownPreview() {
     annotationPositions: true,
     translateUrls: (url) => {
       if (!url.includes("://")) {
-        return `/.fs/${toAbsolutePath(pageName, url)}`;
+        return `/.fs/${url}`;
       }
       return url;
     },

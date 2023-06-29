@@ -1,4 +1,3 @@
-import { folderName, toAbsolutePath } from "../../plug-api/lib/path.ts";
 import { traverseTree } from "../../plug-api/lib/tree.ts";
 import {
   editor,
@@ -25,8 +24,7 @@ export async function brokenLinksCommand() {
         if (
           pageName && !pageName.startsWith("{{")
         ) {
-          const absolutePath = toAbsolutePath(pageMeta.name, pageName);
-          if (!allPagesMap.has(absolutePath)) {
+          if (!allPagesMap.has(pageName)) {
             brokenLinks.push({
               page: pageMeta.name,
               link: pageName,
@@ -40,8 +38,7 @@ export async function brokenLinksCommand() {
         if (pageName.startsWith("💭 ")) {
           return true;
         }
-        const absolutePath = toAbsolutePath(pageMeta.name, pageName);
-        if (!allPagesMap.has(absolutePath)) {
+        if (!allPagesMap.has(pageName)) {
           brokenLinks.push({
             page: pageMeta.name,
             link: pageName,
