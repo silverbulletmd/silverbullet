@@ -4,7 +4,7 @@ import { race, timeout } from "../common/async_util.ts";
 import { Application } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { collabPingInterval } from "../plugs/collab/constants.ts";
-import { Hocuspocus } from "./deps.ts";
+import { Hocuspocus } from "npm:@hocuspocus/server@2.1.0";
 
 type CollabPage = {
   clients: Map<string, number>; // clientId -> lastPing

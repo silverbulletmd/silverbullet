@@ -10,6 +10,7 @@ import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primiti
 import { CollabServer } from "./collab.ts";
 import { Authenticator } from "./auth.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { ICollabServer } from "./collab/collab.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -31,7 +32,7 @@ export class HttpServer {
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
-  collab: CollabServer;
+  collab: ICollabServer;
   authenticator: Authenticator;
 
   constructor(
