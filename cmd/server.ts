@@ -93,6 +93,8 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authStore.loadString(envAuth);
   }
 
+  const envCollab = !Deno.env.get("SB_NO_COLLAB");
+
   const httpServer = new HttpServer(spacePrimitives!, {
     hostname,
     port: port,
@@ -102,6 +104,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     keyFile: options.key,
     certFile: options.cert,
     maxFileSizeMB: +maxFileSizeMB,
+    collab: envCollab,
   });
   return httpServer.start();
 }
