@@ -11,7 +11,7 @@ export interface ICollabServer {
     clientId: string,
     currentPage?: string,
     previousPage?: string,
-  ): { collabId?: string };
+  ): PresenceUpdateResponse;
 
   cleanup(timeout: number): void;
 
