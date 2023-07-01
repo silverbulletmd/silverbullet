@@ -7,7 +7,7 @@ import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { CollabServer } from "./collab.ts";
+import { HocuspocusCollabServer } from "./collab/hocuspocus.ts";
 import { Authenticator } from "./auth.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { ICollabServer } from "./collab/collab.ts";
@@ -67,7 +67,7 @@ export class HttpServer {
         }
       },
     );
-    this.collab = new CollabServer(this.spacePrimitives);
+    this.collab = new HocuspocusCollabServer(this.spacePrimitives);
     this.collab.start();
   }
 

@@ -1,8 +1,8 @@
-import { assert, assertEquals } from "../test_deps.ts";
-import { CollabServer } from "./collab.ts";
+import { assert, assertEquals } from "../../test_deps.ts";
+import { HocuspocusCollabServer } from "./hocuspocus.ts";
 
 Deno.test("Collab server", async () => {
-  const collabServer = new CollabServer(null as any);
+  const collabServer = new HocuspocusCollabServer(null as any);
   console.log("Client 1 joins page 1");
   assertEquals(collabServer.updatePresence("client1", "page1"), {});
   assertEquals(collabServer.pages.size, 1);
