@@ -403,7 +403,7 @@ functions:
     command:
       name: "Fold: Toggle Fold"
       mac: "Cmd-Alt-f"
-      key: "Ctrl-Shift-f"
+      key: "Ctrl-Alt-f"
   foldAllCommand:
     path: ./editor.ts:foldAllCommand
     command:
