@@ -916,7 +916,11 @@ export class Editor {
           { selector: "Blockquote", class: "sb-line-blockquote" },
           { selector: "Task", class: "sb-line-task" },
           { selector: "CodeBlock", class: "sb-line-code" },
-          { selector: "FencedCode", class: "sb-line-fenced-code" },
+          {
+            selector: "FencedCode",
+            class: "sb-line-fenced-code",
+            disableSpellCheck: true,
+          },
           { selector: "Comment", class: "sb-line-comment" },
           { selector: "BulletList", class: "sb-line-ul" },
           { selector: "OrderedList", class: "sb-line-ol" },
