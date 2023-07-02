@@ -76,7 +76,6 @@ Currently supported (hardcoded in the code):
 - `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/`
 - `{{json @page}}` translate any (object) value to JSON, mostly useful for debugging
 - `{{relativePath @page.name}}` translate a path to a relative one (to the current page), useful when injecting page names, e.g. `{{relativePath name}}`.
-- `{{translateAbsoluteLinks "text"}}` translates all absolute page links in the argument string to relative ones.
 - `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
 - `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
 - `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).

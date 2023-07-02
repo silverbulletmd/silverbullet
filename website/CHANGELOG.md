@@ -10,7 +10,8 @@ release.
 * Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
 * {[Broken Links: Show]} command (not complete yet, but already useful)
 * The `Daily Note` template now supports setting a caret position with `|^|`.
-* Explicit {[Sync: Now]} command for those who are impatient
+* Explicit {[Sync: Now]} command, for those who are impatient
+* Tons of smaller bug fixes
 
 ---
 
