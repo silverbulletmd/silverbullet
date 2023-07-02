@@ -4,15 +4,12 @@ release.
 ---
 
 ## Next
-There are some serious breaking changes in this one. Rather than spacing them out, we’re going to take the rip the band aid approach:
 
-* **Page and attachment links are now relative**. This means that if you used a folder structure in your space before, these links are now _mostly going to be broken_. Luckily  there’s a {[Migrate space to relative links]} command you can run to do this conversion for you. You only need to run it once, but you can run it as often as you like (if that makes you happy).
-  * What does that mean “relative link”? If you have a page `my/page` and link to page `my/page2` from it, that page link should now be `[[page2]]` whereas before it would be `[[my/page2]]`, so you drop the prefixes for pages at the same level. If you have a page `my-other/page` linking to `my/page2` that link would now be `[[../my/page2]]`. And linking to the page `index` from `my/page` should now become `[[../index]]`.
-  * This also applies to attachments: `![](bla.jpg)` on page `my/page` will reference `my/bla.jpg`. In addition, when you copy and paste, or drag and drop files (e.g. images) now, they default to be placed in the folder of the current page.
-* Template in various places allowed you to use `{{variables}}` and various handlebars functions. There also used to be a magic `{{page}}` variable that you could use in various places, but not everywhere. This has now been unified. And the magical `{{page}}` now has been replaced with the global `@page` which does not just expose the page’s name, but any page meta data. More information here: [[🔌 Core/Templates@vars]]. You will now get completion for built-in handlebars helpers after typing `{{`.
-
-Other nice features:
+* **Breaking change (for some templates):** Template in various places allowed you to use `{{variables}}` and various handlebars functions. There also used to be a magic `{{page}}` variable that you could use in various places, but not everywhere. This has now been unified. And the magical `{{page}}` now has been replaced with the global `@page` which does not just expose the page’s name, but any page meta data. More information here: [[🔌 Core/Templates@vars]]. You will now get completion for built-in handlebars helpers after typing `{{`.
 * Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+* {[Broken Links: Show]} command (not complete yet, but already useful)
+* The `Daily Note` template now supports setting a caret position with `|^|`.
+* Explicit {[Sync: Now]} command for those who are impatient
 
 ---
 

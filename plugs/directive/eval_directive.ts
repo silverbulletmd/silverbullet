@@ -28,7 +28,7 @@ export async function evalDirectiveRenderer(
   if (typeof expression !== "string") {
     throw new Error("Expected a string");
   }
-  console.log("Got JS expression", expression);
+  // console.log("Got JS expression", expression);
   const match = expressionRegex.exec(expression);
   if (!match) {
     throw new Error(`Invalid eval directive: ${expression}`);
