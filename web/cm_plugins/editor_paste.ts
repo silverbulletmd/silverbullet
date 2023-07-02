@@ -1,4 +1,4 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "../deps.ts";
+import { EditorView, syntaxTree, ViewPlugin, ViewUpdate } from "../deps.ts";
 import { maximumAttachmentSize } from "../../common/types.ts";
 import { Editor } from "../editor.tsx";
 
@@ -11,6 +11,12 @@ import {
   taskListItems,
 } from "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.45";
 import { safeRun } from "../../common/util.ts";
+import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
+import {
+  addParentPointers,
+  findParentMatching,
+  nodeAtPos,
+} from "../../plug-api/lib/tree.ts";
 const turndownService = new TurndownService({
   hr: "---",
   codeBlockStyle: "fenced",
@@ -106,8 +112,31 @@ export function attachmentExtension(editor: Editor) {
     paste: (event: ClipboardEvent) => {
       const payload = [...event.clipboardData!.items];
       const richText = event.clipboardData?.getData("text/html");
+
       // Only do rich text paste if shift is NOT down
       if (richText && !shiftDown) {
+        // Are we in a fencede code block?
+        const editorText = editor.editorView!.state.sliceDoc();
+        const tree = lezerToParseTree(
+          editorText,
+          syntaxTree(editor.editorView!.state).topNode,
+        );
+        addParentPointers(tree);
+        const currentNode = nodeAtPos(
+          tree,
+          editor.editorView!.state.selection.main.from,
+        );
+        if (currentNode) {
+          const fencedParentNode = findParentMatching(
+            currentNode,
+            (t) => t.type === "FencedCode",
+          );
+          if (fencedParentNode || currentNode.type === "FencedCode") {
+            console.log("Inside of fenced code block, not pasting rich text");
+            return false;
+          }
+        }
+
         const markdown = striptHtmlComments(turndownService.turndown(richText))
           .trim();
         const view = editor.editorView!;
