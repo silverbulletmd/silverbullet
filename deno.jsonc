@@ -14,7 +14,14 @@
     "bundle": "deno run -A build_bundle.ts",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"
-    "generate": "lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js"
+    "generate": "lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js",
+
+    // Compile
+    "compile": "deno task bundle && deno compile -A -o silverbullet dist/silverbullet.js",
+    "server:dist:linux-x86_64": "deno task bundle && deno compile -A --target x86_64-unknown-linux-gnu dist/silverbullet.js -o silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet",
+    "server:dist:darwin-x86_64": "deno task bundle && deno compile -A --target x86_64-apple-darwin dist/silverbullet.js -o silverbullet && zip silverbullet-server-darwin-x86_64.zip silverbullet",
+    "server:dist:darwin-aarch64": "deno task bundle && deno task bundle && deno compile -A --target aarch64-apple-darwin dist/silverbullet.js -o silverbullet && zip silverbullet-server-darwin-aarch64.zip silverbullet",
+    "server:dist:windows-x86_64": "deno compile -A --target x86_64-pc-windows-msvc dist/silverbullet.js -o silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe"
   },
 
   "compilerOptions": {
