@@ -62,7 +62,7 @@ export {
 } from "@codemirror/view";
 export type { DecorationSet, KeyBinding } from "@codemirror/view";
 
-export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.1.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@codemirror/lang-html";
+export { markdown } from "https://esm.sh/@codemirror/lang-markdown@6.1.1?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@codemirror/lang-html&target=es2022";
 
 export {
   EditorSelection,
@@ -99,20 +99,20 @@ export {
   unfoldCode,
 } from "@codemirror/language";
 
-export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/yaml?external=@codemirror/language";
+export { yaml as yamlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/yaml?external=@codemirror/language&target=es2022";
 export {
   pgSQL as postgresqlLanguage,
   standardSQL as sqlLanguage,
-} from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/sql?external=@codemirror/language";
-export { rust as rustLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/rust?external=@codemirror/language";
-export { css as cssLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/css?external=@codemirror/language";
-export { python as pythonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/python?external=@codemirror/language";
-export { protobuf as protobufLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/protobuf?external=@codemirror/language";
-export { shell as shellLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/shell?external=@codemirror/language";
-export { swift as swiftLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/swift?external=@codemirror/language";
-export { toml as tomlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/toml?external=@codemirror/language";
-export { xml as xmlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/xml?external=@codemirror/language";
-export { json as jsonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/javascript?external=@codemirror/language";
+} from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/sql?external=@codemirror/language&target=es2022";
+export { rust as rustLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/rust?external=@codemirror/language&target=es2022";
+export { css as cssLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/css?external=@codemirror/language&target=es2022";
+export { python as pythonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/python?external=@codemirror/language&target=es2022";
+export { protobuf as protobufLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/protobuf?external=@codemirror/language&target=es2022";
+export { shell as shellLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/shell?external=@codemirror/language&target=es2022";
+export { swift as swiftLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/swift?external=@codemirror/language&target=es2022";
+export { toml as tomlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/toml?external=@codemirror/language&target=es2022";
+export { xml as xmlLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/xml?external=@codemirror/language&target=es2022";
+export { json as jsonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/javascript?external=@codemirror/language&target=es2022";
 export {
   c as cLanguage,
   cpp as cppLanguage,
@@ -123,12 +123,12 @@ export {
   objectiveC as objectiveCLanguage,
   objectiveCpp as objectiveCppLanguage,
   scala as scalaLanguage,
-} from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/clike?external=@codemirror/language";
+} from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/clike?external=@codemirror/language&target=es2022";
 
 export {
   javascriptLanguage,
   typescriptLanguage,
-} from "https://esm.sh/@codemirror/lang-javascript@6.1.8?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands";
+} from "https://esm.sh/@codemirror/lang-javascript@6.1.8?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands&target=es2022";
 
 export { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
