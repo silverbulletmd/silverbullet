@@ -107,7 +107,6 @@ export function FilterList({
             }}
             onChange={(text) => {
               setText(text);
-              // updateFilter(text);
             }}
             onKeyUp={(view, e) => {
               // This event is triggered after the key has been processed by CM already

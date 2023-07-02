@@ -99,10 +99,13 @@ export function MiniEditor(
 
   useEffect(() => {
     if (editorViewRef.current) {
-      editorViewRef.current.setState(buildEditorState());
-      editorViewRef.current.dispatch({
-        selection: { anchor: text.length },
-      });
+      const currentEditorText = editorViewRef.current.state.sliceDoc();
+      if (currentEditorText !== text) {
+        editorViewRef.current.setState(buildEditorState());
+        editorViewRef.current.dispatch({
+          selection: { anchor: text.length },
+        });
+      }
     }
   }, [text, vimMode]);
 
