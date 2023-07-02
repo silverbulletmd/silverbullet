@@ -1,4 +1,4 @@
-You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store your data (space) in an S3 bucket.
+You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store your data (space) in an S3 bucket. The collaboration feature must be disabled to deploy with Deno Deploy.
 
 This guide assumes you know how to set up the S3 bucket part and get appropriate IAM keys and secrets to access it.
 
@@ -21,11 +21,22 @@ In your local environment set `DENO_DEPLOY_TOKEN` to your account’s  [deploy t
 
 Install [deployctl](https://deno.com/deploy/docs/deployctl).
 
-Then run:
+Then, download the clone the silverbullet repo:
 
 ```shell
-
-deployctl deploy --prod --include= -p your-project https://silverbullet.md/silverbullet.js
+git clone 'https://github.com/silverbulletmd/silverbullet'
 ```
 
-And that’s it!
+Build the bundle, and disable the collaboration feature.
+
+```shell
+cd silverbullet
+SB_NO_COLLAB="1" deno task bundle
+```
+
+Then deploy:
+
+```shell
+cd dist
+deployctl deploy --prod -p your-project silverbullet.js
+```
