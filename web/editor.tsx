@@ -1270,17 +1270,21 @@ export class Editor {
   }
 
   async loadCustomStyles() {
-    try {
-      const { text: stylesText } = await this.space.readPage("STYLES");
-      const cssBlockRegex = /```css([^`]+)```/;
-      const match = cssBlockRegex.exec(stylesText);
-      if (!match) {
-        return;
+    if (this.settings?.customStyles) {
+      try {
+        const { text: stylesText } = await this.space.readPage(
+          this.settings?.customStyles,
+        );
+        const cssBlockRegex = /```css([^`]+)```/;
+        const match = cssBlockRegex.exec(stylesText);
+        if (!match) {
+          return;
+        }
+        const css = match[1];
+        document.getElementById("custom-styles")!.innerHTML = css;
+      } catch (e: any) {
+        console.error("Failed to load custom styles", e);
       }
-      const css = match[1];
-      document.getElementById("custom-styles")!.innerHTML = css;
-    } catch {
-      // Nuthin'
     }
   }
 

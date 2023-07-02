@@ -6,6 +6,7 @@ release.
 ## Next
 
 * **Breaking change (for some templates):** Template in various places allowed you to use `{{variables}}` and various handlebars functions. There also used to be a magic `{{page}}` variable that you could use in various places, but not everywhere. This has now been unified. And the magical `{{page}}` now has been replaced with the global `@page` which does not just expose the page’s name, but any page meta data. More information here: [[🔌 Core/Templates@vars]]. You will now get completion for built-in handlebars helpers after typing `{{`.
+* **Breaking change** (for [[STYLES]] users). The [[STYLES]] page is now no longer “magic” and hardcoded. It can (and must) now be specified in [[SETTINGS]] (see example on that page) for styles to be loaded from it.
 * Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
 * {[Broken Links: Show]} command (not complete yet, but already useful)
 * The `Daily Note` template now supports setting a caret position with `|^|`.

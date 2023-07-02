@@ -35,6 +35,7 @@ export type BuiltinSettings = {
   indexPage: string;
   // Format: compatible with docker ignore
   spaceIgnore?: string;
+  customStyles?: string;
 };
 
 export type PanelConfig = {
