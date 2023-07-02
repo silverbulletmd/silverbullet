@@ -1,4 +1,10 @@
+import {
+  OnResolveArgs,
+  PluginBuild,
+} from "https://deno.land/x/esbuild@v0.17.18/mod.js";
 import { denoPlugins, esbuild } from "./plugos/deps.ts";
+
+const ENABLE_COLLAB = !Deno.env.get("SB_NO_COLLAB");
 
 await Deno.mkdir("dist", { recursive: true });
 await esbuild.build({
@@ -22,6 +28,24 @@ await esbuild.build({
             path: args.path,
             external: true,
           };
+        });
+      },
+    },
+    {
+      name: "collab-feature-flag",
+      setup(build: PluginBuild) {
+        build.onResolve({ filter: /^\.\/collab\// }, (args: OnResolveArgs) => {
+          const absPath = `${args.resolveDir}/${args.path}`;
+          if (ENABLE_COLLAB) {
+            // default is hocuspocus collab server
+            return {
+              path: absPath,
+            };
+          } else {
+            return {
+              path: absPath.replace(/collab\/[^.]+\.ts/, "collab/noop.ts"),
+            };
+          }
         });
       },
     },

@@ -10,7 +10,8 @@ import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primiti
 import { Authenticator } from "./auth.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { ICollabServer } from "./collab/collab.ts";
-import { NoOpCollabServer } from "./collab/noop.ts";
+// default to use hocuspocus collab server, es build *may* swap out this import
+import { createCollabServer } from "./collab/hocuspocus.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -22,7 +23,6 @@ export type ServerOptions = {
   certFile?: string;
   keyFile?: string;
   maxFileSizeMB?: number;
-  collab?: boolean;
 };
 
 export class HttpServer {
@@ -69,21 +69,7 @@ export class HttpServer {
       },
     );
 
-    // set the collab server to do nothing, until `initCollabServer` is called
-    this.collab = new NoOpCollabServer();
-  }
-
-  /** Load and start the collab server
-   *
-   * NOTE: this may dynamically load the collab server module, which *could* download dependencies.
-   */
-  async initCollabServer(): Promise<void> {
-    if (this.options.collab !== false) {
-      const { HocuspocusCollabServer } = await import("./collab/hocuspocus.ts");
-      this.collab = new HocuspocusCollabServer(this.spacePrimitives);
-    }
-
-    this.collab.start();
+    this.collab = createCollabServer(this.spacePrimitives);
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -99,7 +85,6 @@ export class HttpServer {
   }
 
   async start() {
-    await this.initCollabServer();
     await this.reloadSettings();
     // Serve static files (javascript, css, html)
     this.app.use(async ({ request, response }, next) => {

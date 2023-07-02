@@ -5,7 +5,14 @@ import { Application } from "./../deps.ts";
 import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { collabPingInterval } from "../../plugs/collab/constants.ts";
 import { Hocuspocus } from "npm:@hocuspocus/server@2.1.0";
-import { PresenceUpdateResponse } from "./collab.ts";
+import { ICollabServer, PresenceUpdateResponse } from "./collab.ts";
+
+// function needed for esbuild feature switch to function
+export function createCollabServer(
+  spacePrimitives: SpacePrimitives,
+): ICollabServer {
+  return new HocuspocusCollabServer(spacePrimitives);
+}
 
 type CollabPage = {
   clients: Map<string, number>; // clientId -> lastPing

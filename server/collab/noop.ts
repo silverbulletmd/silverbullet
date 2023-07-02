@@ -1,5 +1,12 @@
+import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { Application } from "../deps.ts";
-import { PresenceUpdateResponse } from "./collab.ts";
+import { ICollabServer, PresenceUpdateResponse } from "./collab.ts";
+
+export function createCollabServer(
+  _spacePrimitives: SpacePrimitives,
+): ICollabServer {
+  return new NoOpCollabServer();
+}
 
 export class NoOpCollabServer {
   start(): void {
