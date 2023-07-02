@@ -1,8 +1,8 @@
 import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
-import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
+import type { FileMeta } from "../common/types.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -65,6 +65,7 @@ self.addEventListener("activate", (event: any) => {
 
 let db: Dexie | undefined;
 let fileContentTable: Dexie.Table<FileContent, string> | undefined;
+let fileMetatable: Dexie.Table<FileMeta, string> | undefined;
 
 self.addEventListener("fetch", (event: any) => {
   const url = new URL(event.request.url);
@@ -99,17 +100,24 @@ self.addEventListener("fetch", (event: any) => {
               requestUrl.pathname.slice("/.fs/".length),
             );
             return fileContentTable.get(path).then(
-              (data) => {
+              async (data) => {
                 if (data) {
                   // console.log("Serving from space", path);
-                  return new Response(data.data, {
-                    headers: {
-                      "Content-type": data.meta.contentType,
-                      "Content-Length": "" + data.meta.size,
-                      "X-Permission": data.meta.perm,
-                      "X-Last-Modified": "" + data.meta.lastModified,
+                  if (!data.meta) {
+                    // Legacy database not fully synced yet
+                    data.meta = (await fileMetatable!.get(path))!;
+                  }
+                  return new Response(
+                    data.data,
+                    {
+                      headers: {
+                        "Content-type": data.meta.contentType,
+                        "Content-Length": "" + data.meta.size,
+                        "X-Permission": data.meta.perm,
+                        "X-Last-Modified": "" + data.meta.lastModified,
+                      },
                     },
-                  });
+                  );
                 } else {
                   console.error(
                     "Did not find file in locally synced space",
@@ -161,5 +169,6 @@ self.addEventListener("message", (event: any) => {
     });
 
     fileContentTable = db.table<FileContent, string>("fileContent");
+    fileMetatable = db.table<FileMeta, string>("fileMeta");
   }
 });
