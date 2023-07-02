@@ -12,7 +12,7 @@ type MarkdownRenderOptions = {
   annotationPositions?: true;
   attachmentUrlPrefix?: string;
   // When defined, use to inline images as data: urls
-  inlineAttachments?: (url: string) => string;
+  translateUrls?: (url: string) => string;
 };
 
 function cleanTags(values: (Tag | null)[]): Tag[] {
@@ -385,13 +385,17 @@ export function renderMarkdownToHtml(
 ) {
   preprocess(t, options);
   const htmlTree = posPreservingRender(t, options);
-  if (htmlTree && options.inlineAttachments) {
+  if (htmlTree && options.translateUrls) {
     traverseTag(htmlTree, (t) => {
       if (typeof t === "string") {
         return;
       }
       if (t.name === "img") {
-        t.attrs!.src = options.inlineAttachments!(t.attrs!.src!);
+        t.attrs!.src = options.translateUrls!(t.attrs!.src!);
+      }
+
+      if (t.name === "a") {
+        t.attrs!.href = options.translateUrls!(t.attrs!.href!);
       }
     });
   }

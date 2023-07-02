@@ -20,13 +20,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     const newMeta = await this.wrapped.writeFile(
       name,
       data,
       selfUpdate,
-      lastModified,
+      meta,
     );
     // This can happen async
     if (name.endsWith(".md")) {
@@ -47,7 +47,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           console.error("Error dispatching page:saved event", e);
         });
     }
-    if (name.endsWith(".plug.js")) {
+    if (name.startsWith("_plug/") && name.endsWith(".plug.js")) {
       await this.eventHook.dispatchEvent("plug:changed", name);
     }
     return newMeta;

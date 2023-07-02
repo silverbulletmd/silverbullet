@@ -43,21 +43,40 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     return this.wrapped.readFile(name);
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    return this.wrapped.getFileMeta(name);
+  async getFileMeta(name: string): Promise<FileMeta> {
+    const meta = await this.wrapped.getFileMeta(name);
+    if (name.endsWith(".md")) {
+      const pageName = name.slice(0, -3);
+      const additionalMeta = await this.indexSyscalls["index.get"](
+        {} as any,
+        pageName,
+        "meta:",
+      );
+      if (additionalMeta) {
+        for (const [k, v] of Object.entries(additionalMeta)) {
+          if (
+            ["name", "lastModified", "size", "perm", "contentType"].includes(k)
+          ) {
+            continue;
+          }
+          meta[k] = v;
+        }
+      }
+    }
+    return meta;
   }
 
   writeFile(
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(
       name,
       data,
       selfUpdate,
-      lastModified,
+      meta,
     );
   }
 

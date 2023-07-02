@@ -52,6 +52,13 @@ functions:
     command:
       name: "Page: Copy"
 
+  syncSpaceCommand:
+    path: "./sync.ts:syncSpaceCommand"
+    command:
+      name: "Sync: Now"
+      key: "Alt-Shift-s"
+      mac: "Cmd-Shift-s"
+
   # Attachments
   attachmentQueryProvider:
     path: ./attachment.ts:attachmentQueryProvider
@@ -180,6 +187,15 @@ functions:
       description: Turn line into h4 header
       match: "^#*\\s*"
       replace: "#### "
+  insertCodeBlock:
+    redirect: insertTemplateText
+    slashCommand:
+      name: code
+      description: Insert code block
+      value: |
+        ```
+        |^|
+        ```
 
   newPage:
     path: ./page.ts:newPageCommand
@@ -433,3 +449,8 @@ functions:
       name: "Editor: Vim: Load VIMRC"
     events:
       - editor:modeswitch
+
+  brokenLinksCommand:
+    path: ./broken_links.ts:brokenLinksCommand
+    command:
+      name: "Broken Links: Show"

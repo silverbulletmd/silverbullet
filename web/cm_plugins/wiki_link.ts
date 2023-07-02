@@ -33,6 +33,7 @@ export function cleanWikiLinkPlugin(editor: Editor) {
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
         }
+        // console.log("Resolved page", resolvedPage);
         for (const pageMeta of allPages) {
           if (pageMeta.name === cleanPage) {
             pageExists = true;
@@ -76,8 +77,10 @@ export function cleanWikiLinkPlugin(editor: Editor) {
             widget: new LinkWidget(
               {
                 text: linkText,
-                title: pageExists ? `Navigate to ${page}` : `Create ${page}`,
-                href: `/${page}`,
+                title: pageExists
+                  ? `Navigate to ${cleanPage}`
+                  : `Create ${cleanPage}`,
+                href: `/${cleanPage}`,
                 cssClass: pageExists
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",

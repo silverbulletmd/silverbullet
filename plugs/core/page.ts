@@ -20,9 +20,9 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { invokeFunction } from "../../plug-api/silverbullet-syscall/system.ts";
+import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -32,6 +32,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: string }[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
+  removeQueries(tree);
   const pageMeta = await extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
@@ -43,8 +44,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
     await index.set(name, "meta:", pageMeta);
   }
-
-  // throw new Error("Boom");
 
   collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
     let toPage = n.children![0].text!;
@@ -106,7 +105,7 @@ export async function copyPage() {
     await space.getPageMeta(newName);
     // So when we get to this point, we error out
     throw new Error(
-        `Page ${newName} already exists, cannot rename to existing page.`,
+      `Page ${newName} already exists, cannot rename to existing page.`,
     );
   } catch (e: any) {
     if (e.message === "Not found") {
@@ -165,6 +164,7 @@ export async function renamePage(cmdDef: any) {
   console.log("All pages containing backlinks", pagesToUpdate);
 
   const text = await editor.getText();
+
   console.log("Writing new page to space");
   const newPageMeta = await space.writePage(newName, text);
   console.log("Navigating to new page");
@@ -198,6 +198,7 @@ export async function renamePage(cmdDef: any) {
     }
     const mdTree = await markdown.parseMarkdown(text);
     addParentPointers(mdTree);
+    // The links in the page are going to be relative pointers to the old name
     replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
       if (n.type === "WikiLinkPage") {
         const pageName = n.children![0].text!;
@@ -265,18 +266,20 @@ export async function reindexCommand() {
 
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@:]*)$/.exec(completeEvent.linePrefix);
+  const match = /\[\[([^\]@:\{}]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }
   const allPages = await space.listPages();
   return {
     from: completeEvent.pos - match[1].length,
-    options: allPages.map((pageMeta) => ({
-      label: pageMeta.name,
-      boost: pageMeta.lastModified,
-      type: "page",
-    })),
+    options: allPages.map((pageMeta) => {
+      return {
+        label: pageMeta.name,
+        boost: pageMeta.lastModified,
+        type: "page",
+      };
+    }),
   };
 }
 

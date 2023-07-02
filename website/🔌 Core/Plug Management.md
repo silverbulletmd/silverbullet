@@ -9,4 +9,3 @@ The [[🔌 Core]] plug has support for the following URI prefixes for plugs:
 * `https:` loading plugs via HTTPS, e.g. `[https://](https://raw.githubusercontent.com/silverbulletmd/silverbullet-github/main/github.plug.json)`
 * `github:org/repo/file.plug.json` internally rewritten to a `https` url as above.
 * `ghr:org/repo/version` to fetch a plug from a Github release
-* 

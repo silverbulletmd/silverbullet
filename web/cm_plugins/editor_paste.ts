@@ -180,12 +180,13 @@ export function attachmentExtension(editor: Editor) {
     if (!finalFileName) {
       return;
     }
-    await editor.space.writeAttachment(finalFileName, new Uint8Array(data));
-    let attachmentMarkdown = `[${finalFileName}](${
-      encodeURIComponent(finalFileName)
-    })`;
+    await editor.space.writeAttachment(
+      finalFileName,
+      new Uint8Array(data),
+    );
+    let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
     if (mimeType.startsWith("image/")) {
-      attachmentMarkdown = `![](${encodeURIComponent(finalFileName)})`;
+      attachmentMarkdown = `![](${encodeURI(finalFileName)})`;
     }
     editor.editorView!.dispatch({
       changes: [

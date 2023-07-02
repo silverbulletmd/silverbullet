@@ -1,13 +1,12 @@
 import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
-import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 
 export const cloudPrefix = "💭 ";
 
 export async function readFileCloud(
   name: string,
-): Promise<{ data: string; meta: FileMeta } | undefined> {
+): Promise<{ data: Uint8Array; meta: FileMeta } | undefined> {
   const originalUrl = name.substring(
     cloudPrefix.length,
     name.length - ".md".length,
@@ -38,10 +37,7 @@ export async function readFileCloud(
     `${cloudPrefix}${originalUrl.split("/")[0]}/`,
   );
   return {
-    data: base64EncodedDataUrl(
-      "text/markdown",
-      new TextEncoder().encode(text),
-    ),
+    data: new TextEncoder().encode(text),
     meta: {
       name,
       contentType: "text/markdown",

@@ -23,7 +23,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     const result = await fetch(url, { ...options });
     if (
-      result.status === 401
+      this.getRealStatus(result) === 401
     ) {
       // Invalid credentials, reloading the browser should trigger authentication
       console.log("Going to redirect after", url);
@@ -33,13 +33,20 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return result;
   }
 
+  getRealStatus(r: Response) {
+    if (r.headers.get("X-Status")) {
+      return +r.headers.get("X-Status")!;
+    }
+    return r.status;
+  }
+
   async fetchFileList(): Promise<FileMeta[]> {
     const resp = await this.authenticatedFetch(this.url, {
       method: "GET",
     });
 
     if (
-      resp.status === 200 &&
+      this.getRealStatus(resp) === 200 &&
       this.expectedSpacePath &&
       resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
@@ -60,7 +67,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "GET",
       },
     );
-    if (res.status === 404) {
+    if (this.getRealStatus(res) === 404) {
       throw new Error(`Not found`);
     }
     return {
@@ -73,13 +80,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     const headers: Record<string, string> = {
       "Content-Type": "application/octet-stream",
     };
-    if (lastModified) {
-      headers["X-Last-Modified"] = "" + lastModified;
+    if (meta) {
+      headers["X-Last-Modified"] = "" + meta.lastModified;
+      headers["X-Perm"] = "" + meta.perm;
     }
 
     const res = await this.authenticatedFetch(
@@ -101,7 +109,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "DELETE",
       },
     );
-    if (req.status !== 200) {
+    if (this.getRealStatus(req) !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);
     }
   }
@@ -113,7 +121,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "OPTIONS",
       },
     );
-    if (res.status === 404) {
+    if (this.getRealStatus(res) === 404) {
       throw new Error(`Not found`);
     }
     return this.responseToMeta(name, res);

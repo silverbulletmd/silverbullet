@@ -35,6 +35,7 @@ async function actionClickOrActionEnter(
       return;
     }
   }
+  const currentPage = await editor.getCurrentPage();
   switch (mdTree.type) {
     case "WikiLink": {
       let pageLink = mdTree.children![1]!.children![0].text!;
@@ -46,20 +47,20 @@ async function actionClickOrActionEnter(
         }
       }
       if (!pageLink) {
-        pageLink = await editor.getCurrentPage();
+        pageLink = currentPage;
       }
       await editor.navigate(pageLink, pos, false, inNewWindow);
       break;
     }
     case "PageRef": {
       const bracketedPageRef = mdTree.children![0].text!;
-      await editor.navigate(
-        // Slicing off the initial [[ and final ]]
-        bracketedPageRef.substring(2, bracketedPageRef.length - 2),
-        0,
-        false,
-        inNewWindow,
+
+      // Slicing off the initial [[ and final ]]
+      const pageName = bracketedPageRef.substring(
+        2,
+        bracketedPageRef.length - 2,
       );
+      await editor.navigate(pageName, 0, false, inNewWindow);
       break;
     }
     case "NakedURL":
@@ -71,13 +72,12 @@ async function actionClickOrActionEnter(
       if (!urlNode) {
         return;
       }
-      let url = urlNode.children![0].text!;
+      const url = urlNode.children![0].text!;
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        url = decodeURIComponent(url);
-        return editor.openUrl(`/.fs/${url}`);
+        return editor.openUrl(`/.fs/${decodeURI(url)}`);
       } else {
         await editor.openUrl(url);
       }

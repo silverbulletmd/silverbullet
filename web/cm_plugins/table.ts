@@ -37,7 +37,7 @@ class TableViewWidget extends WidgetType {
       // Annotate every element with its position so we can use it to put
       // the cursor there when the user clicks on the table.
       annotationPositions: true,
-      inlineAttachments: (url) => {
+      translateUrls: (url) => {
         if (!url.includes("://")) {
           return `/.fs/${url}`;
         }

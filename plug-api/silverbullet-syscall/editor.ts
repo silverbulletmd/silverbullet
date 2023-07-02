@@ -129,6 +129,10 @@ export function vimEx(exCommand: string): Promise<any> {
   return syscall("editor.vimEx", exCommand);
 }
 
+export function syncSpace(): Promise<number> {
+  return syscall("editor.syncSpace");
+}
+
 // Folding
 
 export function fold() {

@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 
 import { space } from "$sb/silverbullet-syscall/mod.ts";
 import { niceDate } from "$sb/lib/dates.ts";
+import { PageMeta } from "../../web/types.ts";
 
 const maxWidth = 70;
 
@@ -79,47 +80,55 @@ export function jsonToMDTable(
 }
 
 export async function renderTemplate(
+  pageMeta: PageMeta,
   renderTemplate: string,
   data: any[],
 ): Promise<string> {
-  registerHandlebarsHelpers();
-
-  // Handlebars.registerHelper("yaml", (v: any, prefix: string) => {
-  //   if (typeof prefix === "string") {
-  //     let yaml = (await YAML.stringify(v))
-  //       .split("\n")
-  //       .join("\n" + prefix)
-  //       .trim();
-  //     if (Array.isArray(v)) {
-  //       return "\n" + prefix + yaml;
-  //     } else {
-  //       return yaml;
-  //     }
-  //   } else {
-  //     return YAML.stringify(v).trim();
-  //   }
-  // });
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   const template = Handlebars.compile(templateText, { noEscape: true });
-  return template(data);
+  return template(data, buildHandebarOptions(pageMeta));
 }
 
-export function registerHandlebarsHelpers() {
-  Handlebars.registerHelper("json", (v: any) => JSON.stringify(v));
-  Handlebars.registerHelper("niceDate", (ts: any) => niceDate(new Date(ts)));
-  Handlebars.registerHelper("escapeRegexp", (ts: any) => {
-    return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-  });
-  Handlebars.registerHelper("prefixLines", (v: string, prefix: string) =>
-    v
-      .split("\n")
-      .map((l) => prefix + l)
-      .join("\n"));
+export function buildHandebarOptions(pageMeta: PageMeta) {
+  return {
+    helpers: handlebarHelpers(pageMeta.name),
+    data: { page: pageMeta },
+  };
+}
 
-  Handlebars.registerHelper(
-    "substring",
-    (s: string, from: number, to: number, elipsis = "") =>
+export function handlebarHelpers(pageName: string) {
+  return {
+    json: (v: any) => JSON.stringify(v),
+    niceDate: (ts: any) => niceDate(new Date(ts)),
+    escapeRegexp: (ts: any) => {
+      return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    },
+    prefixLines: (v: string, prefix: string) =>
+      v.split("\n").map((l) => prefix + l).join("\n"),
+    substring: (s: string, from: number, to: number, elipsis = "") =>
       s.length > to - from ? s.substring(from, to) + elipsis : s,
-  );
+
+    today: () => niceDate(new Date()),
+    tomorrow: () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return niceDate(tomorrow);
+    },
+    yesterday: () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return niceDate(yesterday);
+    },
+    lastWeek: () => {
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      return niceDate(lastWeek);
+    },
+    nextWeek: () => {
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      return niceDate(nextWeek);
+    },
+  };
 }

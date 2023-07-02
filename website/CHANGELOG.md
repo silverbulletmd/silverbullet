@@ -4,7 +4,12 @@ release.
 ---
 
 ## Next
-* Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+
+* **Breaking change (for some templates):** Template in various places allowed you to use `{{variables}}` and various handlebars functions. There also used to be a magic `{{page}}` variable that you could use in various places, but not everywhere. This has now been unified. And the magical `{{page}}` now has been replaced with the global `@page` which does not just expose the page’s name, but any page meta data. More information here: [[🔌 Core/Templates@vars]]. You will now get completion for built-in handlebars helpers after typing `{{`.
+* Folding is here (at least with commands, not much UI): {[Fold: Fold]}, {[Fold: Unfold]}, {[Fold: Toggle Fold]}, {[Fold: Fold All]} and {[Fold: Unfold All]}.
+* {[Broken Links: Show]} command (not complete yet, but already useful)
+* The `Daily Note` template now supports setting a caret position with `|^|`.
+* Explicit {[Sync: Now]} command for those who are impatient
 
 ---
 
@@ -63,7 +68,7 @@ Besides these architectural changes, a few other breaking changes were made to s
 ## 0.2.12
 
 * Added support to override CSS styles on a per-space basis. This replaces the previous `fontFamily` setting. See [[STYLES]] for hints on how to use this new experimental feature.
-* [[Sync]]: Support to exclude prefixes (via [[SETTINGS]])
+* Sync: Support to exclude prefixes (via [[SETTINGS]])
 * Reverted behavior of using up/down arrow keys to move between the page title and page content (and rename based on it). This resulted in undesirable behavior too often. You can now rename a page by clicking/tapping on the title, changing the name and hitting Enter or clicking anywhere outside the page title to apply the rename.
 * Documentation updates (on https://silverbullet.md):
   * [[Special Pages]]
@@ -95,16 +100,16 @@ Besides these architectural changes, a few other breaking changes were made to s
 
 ---
 ## 0.2.9
-* Fixed copy & paste, drag & drop of attachments in the [[Desktop]] app
-* Continuous [[Sync]]
+* Fixed copy & paste, drag & drop of attachments in the Desktop app
+* Continuous Sync
 * Support for embedding [[Markdown/Code Widgets]].
 * ~~Ability to set the editor font via the `fontFamily` setting~~ in [[SETTINGS]] (restart the app/reload the page to make it go into effect). **Update**: now done via [[STYLES]]
 
 ---
 ## 0.2.8
-* [[Sync]] should now be usable and is documented
-* Windows and Mac [[Desktop]] apps now have proper icons (only Linux left)
-* [[Mobile]] app for iOS in TestFlight
+* Sync should now be usable and is documented
+* Windows and Mac Desktop apps now have proper icons (only Linux left)
+* Mobile app for iOS in TestFlight
 * New onboarding index page when you create a new space, pulling content from [[Getting Started]].
 * Various bug fixes
 
@@ -229,7 +234,7 @@ Besides these architectural changes, a few other breaking changes were made to s
   * New directive `#eval` see [[🔌 Directive@eval]]
 * New PlugOS feature: redirecting function calls. Instead of specifying a `path` for a function, you can now specify `redirect` pointing to another function name, either in the same plug using the `plugName.functionName` syntax.
 * `Cmd-click` or `Ctrl-click` now opens page references in a new window. You can `Alt-click` to put your cursor at the target without navigation.
-* New {[Open Weekly Note]} command (weeks start on Sunday by default, to allow for planning, but you can change this to Monday by setting the `weeklyNoteMonday` to `true` in [[Settings]]). Like for {[Open Daily Note]} you can create a template in `template/page/Weekly Note`.
+* New {[Open Weekly Note]} command (weeks start on Sunday by default, to allow for planning, but you can change this to Monday by setting the `weeklyNoteMonday` to `true` in [[SETTINGS]]). Like for {[Open Daily Note]} you can create a template in `template/page/Weekly Note`.
 * The `Create page` option when navigating pages now always appears as the _second_ option. Let me know how you like it.
 * New `Preview` using a custom markdown renderer offering a lot of extra flexibility (and a much smaller file size). New thing it does:
   * Render front matter in a table

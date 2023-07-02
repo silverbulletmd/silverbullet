@@ -21,6 +21,10 @@ functions:
     path: ./complete.ts:queryComplete
     events:
       - editor:complete
+  handlebarHelperComplete:
+    path: ./complete.ts:handlebarHelperComplete
+    events:
+      - editor:complete
 
   # Templates
   insertQuery:

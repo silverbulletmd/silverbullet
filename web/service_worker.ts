@@ -82,10 +82,13 @@ self.addEventListener("fetch", (event: any) => {
         }
 
         const requestUrl = new URL(event.request.url);
+
         const pathname = requestUrl.pathname;
         // console.log("In service worker, pathname is", pathname);
+        // Are we fetching a URL from the same origin as the app? If not, we don't handle it here
+        const fetchingLocal = location.host === requestUrl.host;
         // If this is a /.fs request, this can either be a plug worker load or an attachment load
-        if (pathname.startsWith("/.fs")) {
+        if (fetchingLocal && pathname.startsWith("/.fs")) {
           if (fileContentTable && !event.request.headers.has("x-sync-mode")) {
             // console.log(
             //   "Attempting to serve file from locally synced space:",
@@ -101,8 +104,10 @@ self.addEventListener("fetch", (event: any) => {
                   // console.log("Serving from space", path);
                   return new Response(data.data, {
                     headers: {
-                      "Content-type": mime.getType(path) ||
-                        "application/octet-stream",
+                      "Content-type": data.meta.contentType,
+                      "Content-Length": "" + data.meta.size,
+                      "X-Permission": data.meta.perm,
+                      "X-Last-Modified": "" + data.meta.lastModified,
                     },
                   });
                 } else {
@@ -120,7 +125,7 @@ self.addEventListener("fetch", (event: any) => {
             // Just fetch the file directly
             return fetch(event.request);
           }
-        } else if (pathname !== "/.auth") {
+        } else if (fetchingLocal && pathname !== "/.auth") {
           // Must be a page URL, let's serve index.html which will handle it
           return caches.match(precacheFiles["/"]).then((response) => {
             // This shouldnt't happen, index.html not in the cache for some reason

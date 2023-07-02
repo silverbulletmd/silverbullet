@@ -8,7 +8,6 @@ import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
-import process from "https://deno.land/std@0.177.1/node/process.ts";
 
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;

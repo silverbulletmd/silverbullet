@@ -5,17 +5,18 @@ import { renderTemplate } from "./util.ts";
 import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
+import { PageMeta } from "../../web/types.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,
-  pageName: string,
+  pageMeta: PageMeta,
   query: string | ParseTree,
 ): Promise<string> {
   if (typeof query === "string") {
     throw new Error("Argument must be a ParseTree");
   }
   const parsedQuery = parseQuery(
-    JSON.parse(replaceTemplateVars(JSON.stringify(query), pageName)),
+    JSON.parse(replaceTemplateVars(JSON.stringify(query), pageMeta)),
   );
 
   const eventName = `query:${parsedQuery.table}`;
@@ -24,7 +25,7 @@ export async function queryDirectiveRenderer(
   // Let's dispatch an event and see what happens
   const results = await events.dispatchEvent(
     eventName,
-    { query: parsedQuery, pageName: pageName },
+    { query: parsedQuery, pageName: pageMeta.name },
     30 * 1000,
   );
   if (results.length === 0) {
@@ -34,6 +35,7 @@ export async function queryDirectiveRenderer(
     // console.log("Parsed query", parsedQuery);
     if (parsedQuery.render) {
       const rendered = await renderTemplate(
+        pageMeta,
         parsedQuery.render,
         results[0],
       );

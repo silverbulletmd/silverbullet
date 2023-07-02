@@ -8,13 +8,14 @@ import { replaceTemplateVars } from "../core/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
-import { registerHandlebarsHelpers } from "./util.ts";
+import { buildHandebarOptions } from "./util.ts";
+import { PageMeta } from "../../web/types.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
 export async function templateDirectiveRenderer(
   directive: string,
-  pageName: string,
+  pageMeta: PageMeta,
   arg: string | ParseTree,
 ): Promise<string> {
   if (typeof arg !== "string") {
@@ -29,9 +30,13 @@ export async function templateDirectiveRenderer(
   let parsedArgs = {};
   if (args) {
     try {
-      parsedArgs = JSON.parse(args);
+      parsedArgs = JSON.parse(replaceTemplateVars(args, pageMeta));
     } catch {
-      throw new Error(`Failed to parse template instantiation args: ${arg}`);
+      throw new Error(
+        `Failed to parse template instantiation arg: ${
+          replaceTemplateVars(args, pageMeta)
+        }`,
+      );
     }
   }
   let templateText = "";
@@ -51,18 +56,14 @@ export async function templateDirectiveRenderer(
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    registerHandlebarsHelpers();
     const templateFn = Handlebars.compile(
-      replaceTemplateVars(newBody, pageName),
+      newBody,
       { noEscape: true },
     );
-    if (typeof parsedArgs !== "string") {
-      (parsedArgs as any).page = pageName;
-    }
-    newBody = templateFn(parsedArgs);
+    newBody = templateFn(parsedArgs, buildHandebarOptions(pageMeta));
 
     // Recursively render directives
-    newBody = await updateDirectives(pageName, newBody);
+    newBody = await updateDirectives(pageMeta, newBody);
   }
   return newBody.trim();
 }

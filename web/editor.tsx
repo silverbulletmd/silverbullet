@@ -242,15 +242,8 @@ export class Editor {
       true,
     );
 
-    const plugSpacePrimitives = new PlugSpacePrimitives(
-      // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-      new FallbackSpacePrimitives(
-        new IndexedDBSpacePrimitives(
-          `${dbPrefix}_space`,
-          globalThis.indexedDB,
-        ),
-        this.remoteSpacePrimitives,
-      ),
+    const plugSpaceRemotePrimitives = new PlugSpacePrimitives(
+      this.remoteSpacePrimitives,
       namespaceHook,
     );
 
@@ -258,7 +251,14 @@ export class Editor {
     const localSpacePrimitives = new FilteredSpacePrimitives(
       new FileMetaSpacePrimitives(
         new EventedSpacePrimitives(
-          plugSpacePrimitives,
+          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+          new FallbackSpacePrimitives(
+            new IndexedDBSpacePrimitives(
+              `${dbPrefix}_space`,
+              globalThis.indexedDB,
+            ),
+            plugSpaceRemotePrimitives,
+          ),
           this.eventHook,
         ),
         indexSyscalls,
@@ -279,12 +279,16 @@ export class Editor {
 
     this.syncService = new SyncService(
       localSpacePrimitives,
-      this.remoteSpacePrimitives,
+      plugSpaceRemotePrimitives,
       this.kvStore,
       this.eventHook,
       (path) => {
         // TODO: At some point we should remove the data.db exception here
-        return path !== "data.db" && !plugSpacePrimitives.isLikelyHandled(path);
+        return path !== "data.db" &&
+            // Exclude all plug space primitives paths
+            !plugSpaceRemotePrimitives.isLikelyHandled(path) ||
+          // Except federated ones
+          path.startsWith("!");
       },
     );
 
@@ -892,7 +896,7 @@ export class Editor {
             ),
           ],
         }),
-        inlineImagesPlugin(this.space),
+        inlineImagesPlugin(this),
         highlightSpecialChars(),
         history(),
         drawSelection(),
@@ -1117,6 +1121,7 @@ export class Editor {
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
     const results = await this.dispatchAppEvent(eventName, {
+      pageName: this.currentPage!,
       linePrefix,
       pos: selection.from,
     } as CompleteEvent);
@@ -1127,6 +1132,7 @@ export class Editor {
           console.error(
             "Got completion results from multiple sources, cannot deal with that",
           );
+          console.error("Previously had", actualResult, "now also got", result);
           return null;
         }
         actualResult = result;

@@ -57,7 +57,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     if (this.assetBundle.has(name)) {
       console.warn("Attempted to write to read-only asset file", name);
@@ -67,7 +67,7 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
       name,
       data,
       selfUpdate,
-      lastModified,
+      meta,
     );
   }
 
