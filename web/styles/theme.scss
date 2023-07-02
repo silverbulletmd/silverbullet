@@ -449,6 +449,7 @@
 
   .sb-directive-start-outside {
     color: transparent !important;
+    pointer-events: none;
 
     .sb-directive-placeholder {
       color: var(--directive-font-color) !important;
