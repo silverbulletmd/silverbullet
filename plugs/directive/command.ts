@@ -1,4 +1,4 @@
-import { editor, markdown, sync } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, space, sync } from "$sb/silverbullet-syscall/mod.ts";
 import {
   removeParentPointers,
   renderToText,
@@ -6,11 +6,12 @@ import {
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { PageMeta } from "../../web/types.ts";
 
 export async function updateDirectivesOnPageCommand(arg: any) {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
   const explicitCall = typeof arg !== "string";
-  const pageName = await editor.getCurrentPage();
+  const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
   const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
@@ -55,7 +56,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     }
     const fullMatch = text.substring(tree.from!, tree.to!);
     try {
-      const promise = renderDirectives(pageName, tree);
+      const promise = renderDirectives(pageMeta, tree);
       replacements.push({
         textPromise: promise,
         fullMatch,
@@ -117,7 +118,7 @@ export async function updateDirectivesOnPageCommand(arg: any) {
 
 // Pure server driven implementation of directive updating
 export async function updateDirectives(
-  pageName: string,
+  pageMeta: PageMeta,
   text: string,
 ) {
   const tree = await markdown.parseMarkdown(text);
@@ -134,7 +135,7 @@ export async function updateDirectives(
     const fullMatch = text.substring(tree.from!, tree.to!);
     try {
       const promise = renderDirectives(
-        pageName,
+        pageMeta,
         tree,
       );
       replacements.push({

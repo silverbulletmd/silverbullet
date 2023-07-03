@@ -14,7 +14,7 @@ type CollabPage = {
 };
 
 export class CollabServer {
-  // clients: Map<string, { openPage: string; lastPing: number }> = new Map();
+  clients: Map<string, { openPage: string; lastUpdate: number }> = new Map(); // clientId -> openPage
   pages: Map<string, CollabPage> = new Map();
   yCollabServer?: Hocuspocus;
 
@@ -29,13 +29,18 @@ export class CollabServer {
 
   updatePresence(
     clientId: string,
-    currentPage?: string,
-    previousPage?: string,
+    currentPage: string,
   ): { collabId?: string } {
-    if (previousPage && currentPage !== previousPage) {
+    let client = this.clients.get(clientId);
+    if (!client) {
+      client = { openPage: "", lastUpdate: 0 };
+      this.clients.set(clientId, client);
+    }
+    client.lastUpdate = Date.now();
+    if (currentPage !== client.openPage) {
       // Client switched pages
       // Update last page record
-      const lastCollabPage = this.pages.get(previousPage);
+      const lastCollabPage = this.pages.get(client.openPage);
       if (lastCollabPage) {
         lastCollabPage.clients.delete(clientId);
         if (lastCollabPage.clients.size === 1) {
@@ -43,7 +48,7 @@ export class CollabServer {
         }
 
         if (lastCollabPage.clients.size === 0) {
-          this.pages.delete(previousPage);
+          this.pages.delete(client.openPage);
         } else {
           // Elect a new master client
           if (lastCollabPage.masterClientId === clientId) {
@@ -53,45 +58,43 @@ export class CollabServer {
           }
         }
       }
+      // Ok, let's update our records now
+      client.openPage = currentPage;
     }
 
-    if (currentPage) {
-      // Update new page
-      let nextCollabPage = this.pages.get(currentPage);
-      if (!nextCollabPage) {
-        // Newly opened page (no other clients on this page right now)
-        nextCollabPage = {
-          clients: new Map(),
-          masterClientId: clientId,
-        };
-        this.pages.set(currentPage, nextCollabPage);
-      }
-      // Register last ping from us
-      nextCollabPage.clients.set(clientId, Date.now());
+    // Update new page
+    let nextCollabPage = this.pages.get(currentPage);
+    if (!nextCollabPage) {
+      // Newly opened page (no other clients on this page right now)
+      nextCollabPage = {
+        clients: new Map(),
+        masterClientId: clientId,
+      };
+      this.pages.set(currentPage, nextCollabPage);
+    }
+    // Register last ping from us
+    nextCollabPage.clients.set(clientId, Date.now());
 
-      if (nextCollabPage.clients.size > 1 && !nextCollabPage.collabId) {
-        // Create a new collabId
-        nextCollabPage.collabId = nanoid();
-      }
-      // console.log("State", this.pages);
-      if (nextCollabPage.collabId) {
-        // We will now expose this collabId, except when we're just starting this session
-        // in which case we'll wait for the original client to publish the document
-        const existingyCollabSession = this.yCollabServer?.documents.get(
-          buildCollabId(nextCollabPage.collabId, `${currentPage}.md`),
-        );
-        if (existingyCollabSession) {
-          // console.log("Found an existing collab session already, let's join!");
-          return { collabId: nextCollabPage.collabId };
-        } else if (clientId === nextCollabPage.masterClientId) {
-          // console.log("We're the master, so we should connect");
-          return { collabId: nextCollabPage.collabId };
-        } else {
-          // We're not the first client, so we need to wait for the first client to connect
-          // console.log("We're not the master, so we should wait");
-          return {};
-        }
+    if (nextCollabPage.clients.size > 1 && !nextCollabPage.collabId) {
+      // Create a new collabId
+      nextCollabPage.collabId = nanoid();
+    }
+    // console.log("State", this.pages);
+    if (nextCollabPage.collabId) {
+      // We will now expose this collabId, except when we're just starting this session
+      // in which case we'll wait for the original client to publish the document
+      const existingyCollabSession = this.yCollabServer?.documents.get(
+        buildCollabId(nextCollabPage.collabId, `${currentPage}.md`),
+      );
+      if (existingyCollabSession) {
+        // console.log("Found an existing collab session already, let's join!");
+        return { collabId: nextCollabPage.collabId };
+      } else if (clientId === nextCollabPage.masterClientId) {
+        // console.log("We're the master, so we should connect");
+        return { collabId: nextCollabPage.collabId };
       } else {
+        // We're not the first client, so we need to wait for the first client to connect
+        // console.log("We're not the master, so we should wait");
         return {};
       }
     } else {
@@ -119,6 +122,13 @@ export class CollabServer {
       if (page.clients.size === 0) {
         // And if we have no clients left, well...
         this.pages.delete(pageName);
+      }
+    }
+
+    for (const [clientId, { lastUpdate }] of this.clients) {
+      if (Date.now() - lastUpdate > timeout) {
+        // Eject client
+        this.clients.delete(clientId);
       }
     }
   }

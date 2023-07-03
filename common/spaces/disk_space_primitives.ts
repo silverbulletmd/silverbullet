@@ -71,7 +71,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
-    lastModified?: number,
+    meta?: FileMeta,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(name);
     try {
@@ -87,9 +87,9 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       // Actually write the file
       await Deno.write(file.rid, data);
 
-      if (lastModified) {
-        console.log("Seting mtime to", new Date(lastModified));
-        await Deno.futime(file.rid, new Date(), new Date(lastModified));
+      if (meta?.lastModified) {
+        // console.log("Seting mtime to", new Date(meta.lastModified));
+        await Deno.futime(file.rid, new Date(), new Date(meta.lastModified));
       }
       file.close();
 

@@ -88,8 +88,8 @@ export class SyncService {
 
   async hasInitialSyncCompleted(): Promise<boolean> {
     // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
-    return !!(!(await this.kvStore.get(syncStartTimeKey)) &&
-      (await this.kvStore.get(syncLastActivityKey)));
+    return !(await this.kvStore.has(syncStartTimeKey)) &&
+      (await this.kvStore.has(syncLastActivityKey));
   }
 
   async registerSyncStart(): Promise<void> {
@@ -371,7 +371,7 @@ export class SyncService {
       name,
       data,
       false,
-      meta.lastModified,
+      meta,
     );
     // Update snapshot
     snapshot.set(name, [

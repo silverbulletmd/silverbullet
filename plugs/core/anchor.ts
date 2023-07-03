@@ -1,5 +1,5 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import { index } from "$sb/silverbullet-syscall/mod.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 
@@ -29,7 +29,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
 
   let [pageRef, anchorRef] = match[1].split("@");
   if (!pageRef) {
-    pageRef = await editor.getCurrentPage();
+    pageRef = completeEvent.pageName;
   }
   const allAnchors = await index.queryPrefix(
     `a:${pageRef}:${anchorRef}`,

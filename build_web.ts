@@ -82,36 +82,36 @@ async function buildCopyBundleAssets() {
     "dist/plug_asset_bundle.json",
   );
 
-  await Promise.all([
-    esbuild.build({
-      entryPoints: [
-        {
-          in: "web/boot.ts",
-          out: ".client/client",
-        },
-        {
-          in: "web/service_worker.ts",
-          out: "service_worker",
-        },
-      ],
-      outdir: "dist_client_bundle",
-      absWorkingDir: Deno.cwd(),
-      bundle: true,
-      treeShaking: true,
-      sourcemap: "linked",
-      minify: true,
-      jsxFactory: "h",
-      jsx: "automatic",
-      jsxFragment: "Fragment",
-      jsxImportSource: "https://esm.sh/preact@10.11.1",
-      plugins: [
-        ...denoPlugins({
-          importMapURL: new URL("./import_map.json", import.meta.url)
-            .toString(),
-        }),
-      ],
-    }),
-  ]);
+  console.log("Now ESBuilding the client and service workers...");
+
+  await esbuild.build({
+    entryPoints: [
+      {
+        in: "web/boot.ts",
+        out: ".client/client",
+      },
+      {
+        in: "web/service_worker.ts",
+        out: "service_worker",
+      },
+    ],
+    outdir: "dist_client_bundle",
+    absWorkingDir: Deno.cwd(),
+    bundle: true,
+    treeShaking: true,
+    sourcemap: "linked",
+    minify: true,
+    jsxFactory: "h",
+    jsx: "automatic",
+    jsxFragment: "Fragment",
+    jsxImportSource: "https://esm.sh/preact@10.11.1",
+    plugins: [
+      ...denoPlugins({
+        importMapURL: new URL("./import_map.json", import.meta.url)
+          .toString(),
+      }),
+    ],
+  });
 
   // Patch the service_worker {{CACHE_NAME}}
   let swCode = await Deno.readTextFile("dist_client_bundle/service_worker.js");

@@ -135,7 +135,7 @@ export class SpaceSync {
         name,
         data,
         false,
-        meta.lastModified,
+        meta,
       );
       snapshot.set(name, [
         primaryHash,
@@ -157,7 +157,7 @@ export class SpaceSync {
         name,
         data,
         false,
-        meta.lastModified,
+        meta,
       );
       snapshot.set(name, [
         writtenMeta.lastModified,
@@ -219,7 +219,7 @@ export class SpaceSync {
         name,
         data,
         false,
-        meta.lastModified,
+        meta,
       );
       snapshot.set(name, [
         primaryHash,
@@ -243,7 +243,7 @@ export class SpaceSync {
         name,
         data,
         false,
-        meta.lastModified,
+        meta,
       );
       snapshot.set(name, [
         writtenMeta.lastModified,

@@ -56,13 +56,13 @@ docker volume create myspace
 Then, run the container, e.g., as follows:
 
 ```shell
-docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet
+docker run -p 3000:3000 -v myspace:/space -d zefhemel/silverbullet
 ```
 
-If you'd like to pass in additional command line arguments (e.g. `--user` to add authentication), you can just append those to the command, e.g.:
+To configure various things such as authentication, use [[@env|environment variables]], e.g. to enable single-user auth:
 
 ```shell
-docker run -p 3000:3000 -v myspace:/space -d --name silverbullet zefhemel/silverbullet --user me:letmein
+docker run -p 3000:3000 -v myspace:/space -d -e SB_USER=me:letmein zefhemel/silverbullet
 ```
 
 To build your own version of the docker image, run `./scripts/build_docker.sh`.
@@ -106,6 +106,7 @@ $ sudo caddy reverse-proxy --to :3000 --from yourserver.yourtsdomain.ts.net:443
 If you access SilverBullet via plain HTTP (outside of localhost) everything _should_ still mostly work, except offline mode.
 
 ## Environment variables
+$env
 You can configure SB with environment variables instead of flags as well. The following environment variables are supported:
 
 * `SB_USER`: Sets single-user credentials (like `--user`), e.g. `SB_USER=pete:1234`

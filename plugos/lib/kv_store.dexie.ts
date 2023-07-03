@@ -5,9 +5,9 @@ export class DexieKVStore implements KVStore {
   db: Dexie;
   items: Table<KV, string>;
   constructor(
-    private dbName: string,
-    private tableName: string,
-    private indexedDB?: any,
+    dbName: string,
+    tableName: string,
+    indexedDB?: any,
   ) {
     this.db = new Dexie(dbName, {
       indexedDB,

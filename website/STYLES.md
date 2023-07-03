@@ -1,4 +1,4 @@
-If you create a [[STYLES]] page in your project, SilverBullet will look for a CSS code block inside that page and load it upon boot (an example can be found below).
+In [[SETTINGS]] you can define a `customStyles` setting that links to a page like this. SilverBullet will load the specified page, find a CSS code block inside that page and load it upon boot (an example can be found below).
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. What CSS styles you can override is not very well documented, you’ll have to reverse-engineer things a bit for now, unfortunately.
 

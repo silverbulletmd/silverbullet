@@ -27,7 +27,7 @@ export function mdExtensionSyntaxConfig({
           if (!firstCharCodes.includes(next)) {
             return -1;
           }
-          let match = regex.exec(cx.slice(pos, cx.end));
+          const match = regex.exec(cx.slice(pos, cx.end));
           if (!match) {
             return -1;
           }

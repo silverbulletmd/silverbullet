@@ -15,7 +15,7 @@ export class CollabManager {
       "editor:pageLoaded",
       (pageName, previousPage) => {
         console.log("Page loaded", pageName, previousPage);
-        this.updatePresence(pageName, previousPage).catch(console.error);
+        this.updatePresence(pageName).catch(console.error);
       },
     );
   }
@@ -26,25 +26,20 @@ export class CollabManager {
     }, collabPingInterval);
   }
 
-  async updatePresence(currentPage?: string, previousPage?: string) {
+  async updatePresence(currentPage: string) {
     try {
+      // This is signaled through an OPTIONS call on the file we have open
       const resp = await this.editor.remoteSpacePrimitives.authenticatedFetch(
-        this.editor.remoteSpacePrimitives.url,
+        `${this.editor.remoteSpacePrimitives.url}/${currentPage}.md`,
         {
-          method: "POST",
+          method: "OPTIONS",
           headers: {
-            "Content-Type": "application/json",
+            "X-Client-Id": this.clientId,
           },
-          body: JSON.stringify({
-            operation: "presence",
-            clientId: this.clientId,
-            previousPage,
-            currentPage,
-          }),
-          keepalive: true, // important for beforeunload event
         },
       );
-      const { collabId } = await resp.json();
+      const collabId = resp.headers.get("X-Collab-Id");
+      // Not reading body at all, is that a problem?
 
       if (this.editor.collabState && !this.editor.collabState.isLocalCollab) {
         // We're in a remote collab mode, don't do anything

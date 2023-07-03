@@ -85,17 +85,21 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 }
 
 export function taskToggle(event: ClickEvent) {
-  return taskToggleAtPos(event.pos);
+  return taskToggleAtPos(event.page, event.pos);
 }
 
-export function previewTaskToggle(eventString: string) {
+export async function previewTaskToggle(eventString: string) {
   const [eventName, pos] = JSON.parse(eventString);
   if (eventName === "task") {
-    return taskToggleAtPos(+pos);
+    return taskToggleAtPos(await editor.getCurrentPage(), +pos);
   }
 }
 
-async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
+async function toggleTaskMarker(
+  _pageName: string,
+  node: ParseTree,
+  moveToPos: number,
+) {
   let changeTo = "[x]";
   if (node.children![0].text === "[x]" || node.children![0].text === "[X]") {
     changeTo = "[ ]";
@@ -136,14 +140,14 @@ async function toggleTaskMarker(node: ParseTree, moveToPos: number) {
   }
 }
 
-export async function taskToggleAtPos(pos: number) {
+export async function taskToggleAtPos(pageName: string, pos: number) {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   addParentPointers(mdTree);
 
   const node = nodeAtPos(mdTree, pos);
   if (node && node.type === "TaskMarker") {
-    await toggleTaskMarker(node, pos);
+    await toggleTaskMarker(pageName, node, pos);
   }
 }
 
@@ -156,7 +160,7 @@ export async function taskToggleCommand() {
   const node = nodeAtPos(tree, pos);
   // We kwow node.type === Task (due to the task context)
   const taskMarker = findNodeOfType(node!, "TaskMarker");
-  await toggleTaskMarker(taskMarker!, pos);
+  await toggleTaskMarker(await editor.getCurrentPage(), taskMarker!, pos);
 }
 
 export async function postponeCommand() {
@@ -181,7 +185,7 @@ export async function postponeCommand() {
     return;
   }
   // Parse "naive" due date
-  let [yyyy, mm, dd] = date.split("-").map(Number)
+  let [yyyy, mm, dd] = date.split("-").map(Number);
   // Create new naive Date object.
   // `monthIndex` parameter is zero-based, so subtract 1 from parsed month.
   const d = new Date(yyyy, mm - 1, dd);
@@ -214,6 +218,7 @@ export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<Task[]> {
   const allTasks: Task[] = [];
+
   for (const { key, page, value } of await index.queryPrefix("task:")) {
     const pos = key.split(":")[1];
     allTasks.push({

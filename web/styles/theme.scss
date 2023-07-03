@@ -223,7 +223,7 @@
     border: 1px solid #0120416b;
     border-radius: 6px;
     padding: 0 3px;
-    margin: 0 -3px;
+    margin: 0 1px 0 0;
     font-size: 0.9em;
   }
 
@@ -450,6 +450,7 @@
   .sb-directive-start-outside {
     color: transparent !important;
     height: 22px;
+    pointer-events: none;
 
     .sb-directive-placeholder {
       color: var(--directive-font-color) !important;
