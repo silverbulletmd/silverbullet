@@ -39,7 +39,7 @@ Or checkout these two videos:
 - **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the
   keys.
 - **Extend it your way**. SB is highly extensible with
-  [plugs](https://silverbullet.md/🔌_Plugs), and you can customize it to your
+  [plugs](https://silverbullet.md/🔌%20Plugs), and you can customize it to your
   liking and your workflows.
 
 ## Installing SilverBullet
