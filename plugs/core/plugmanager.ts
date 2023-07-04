@@ -13,6 +13,13 @@ export async function updatePlugsCommand() {
     let plugList: string[] = [];
     try {
       const plugListRead: any[] = await readYamlPage("PLUGS");
+      if (!Array.isArray(plugListRead)) {
+        await editor.flashNotification(
+          "PLUGS YAML does not contain a plug list, not loading anything",
+          "error",
+        );
+        return;
+      }
       plugList = plugListRead.filter((plug) => typeof plug === "string");
       if (plugList.length !== plugListRead.length) {
         throw new Error(
