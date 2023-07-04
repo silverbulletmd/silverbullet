@@ -2,11 +2,11 @@ name: federation
 requiredPermissions:
   - fetch
 functions:
-  listFiles:
-    path: ./federation.ts:listFiles
-    pageNamespace:
-      pattern: "!.+"
-      operation: listFiles
+  #listFiles:
+  #  path: ./federation.ts:listFiles
+  #  pageNamespace:
+  #    pattern: "!.+"
+  #    operation: listFiles
   readFile:
     path: ./federation.ts:readFile
     pageNamespace:
