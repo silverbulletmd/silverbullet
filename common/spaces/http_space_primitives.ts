@@ -21,13 +21,13 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.headers = { ...options.headers, ...{ "X-Sync-Mode": "true" } };
     }
 
-    const result = await fetch(url, { ...options });
-    if (
-      this.getRealStatus(result) === 401
-    ) {
-      // Invalid credentials, reloading the browser should trigger authentication
-      console.log("Going to redirect after", url);
-      location.href = "/.auth?refer=" + location.pathname;
+    const result = await fetch(url, {
+      ...options,
+    });
+    if (result.redirected) {
+      // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
+      console.log("Got a redirect via the API so will redirect to URL", url);
+      location.href = result.url;
       throw new Error("Invalid credentials");
     }
     return result;

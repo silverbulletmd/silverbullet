@@ -218,8 +218,7 @@ export class HttpServer {
           }
           return;
         } else {
-          response.status = 401;
-          response.body = "Unauthorized";
+          response.redirect("/.auth");
           return;
         }
       } else {
@@ -232,8 +231,7 @@ export class HttpServer {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
           if (!authCookie) {
-            response.status = 401;
-            response.body = "Unauthorized, please authenticate";
+            response.redirect("/.auth");
             return;
           }
           const [username, hashedPassword] = authCookie.split(":");
@@ -243,8 +241,7 @@ export class HttpServer {
               hashedPassword,
             )
           ) {
-            response.status = 401;
-            response.body = "Invalid username/password, please reauthenticate";
+            response.redirect("/.auth");
             return;
           }
         }
