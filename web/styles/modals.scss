@@ -16,15 +16,21 @@
   overflow: hidden;
   margin: 10px;
 
+  .cm-content {
+    padding: 0;
+
+    .cm-line {
+      padding: 2px 0 0 3px;
+    }
+  }
+
   .sb-header {
     padding: 13px 10px 10px 10px;
     display: flex;
 
     label {
-      color: var(--highlight-color);
       margin: 3px;
     }
-
   }
 
   .sb-prompt {
@@ -35,8 +41,10 @@
     }
 
     .sb-mini-editor {
-      border: 1px solid #333;
       margin: 10px 0;
+      width: 100%;
+      border: 0;
+      outline: none;
     }
   }
 
@@ -60,10 +68,6 @@
     padding: 8px;
     cursor: pointer;
     line-height: 20px;
-  }
-
-  .sb-selected-option {
-    background-color: var(--highlight-color);
   }
 
   .sb-option .sb-hint,
