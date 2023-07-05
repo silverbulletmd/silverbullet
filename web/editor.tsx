@@ -1202,7 +1202,6 @@ export class Editor {
     let doc;
     try {
       doc = await this.space.readPage(pageName);
-      console.log("Doc", doc.meta);
       if (doc.meta.contentType.startsWith("text/html")) {
         throw new Error("Got HTML page, not markdown");
       }

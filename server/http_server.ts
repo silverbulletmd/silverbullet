@@ -1,16 +1,13 @@
 import { Application, Context, Next, oakCors, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { base64Decode } from "../plugos/asset_bundle/base64.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { Authenticator } from "./auth.ts";
-import { Response } from "https://deno.land/x/oak@v12.4.0/response.ts";
 import { FileMeta } from "../common/types.ts";
-import { nextDiagnostic } from "https://esm.sh/@codemirror/lint@6.2.1?external=@codemirror/state,@lezer/common&target=es2022";
 
 export type ServerOptions = {
   hostname: string;
@@ -270,7 +267,7 @@ export class HttpServer {
     });
 
     // RPC
-    fsRouter.post("/", corsMiddleware, async ({ request, response }) => {
+    fsRouter.post("/.rpc", corsMiddleware, async ({ request, response }) => {
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
@@ -292,6 +289,7 @@ export class HttpServer {
               });
               return;
             }
+            console.log("Running shell command:", body.cmd, body.args);
             const p = new Deno.Command(body.cmd, {
               args: body.args,
               cwd: this.options.pagesPath,
@@ -308,6 +306,9 @@ export class HttpServer {
               stderr,
               code: output.code,
             });
+            if (output.code !== 0) {
+              console.error("Error running shell command", stdout, stderr);
+            }
             return;
           }
           default:

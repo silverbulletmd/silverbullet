@@ -21,7 +21,6 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    console.log("toDOM");
     const iframe = document.createElement("iframe");
     iframe.srcdoc = panelHtml;
     // iframe.style.height = "0";

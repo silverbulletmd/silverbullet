@@ -117,15 +117,10 @@ async function handleLocalFileRequest(
   request: Request,
   pathname: string,
 ): Promise<Response> {
-  console.log("This is an attachment load", pathname);
   if (!fileContentTable) {
     // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
     return fetch(request);
   }
-  console.log(
-    "Attempting to serve file from locally synced space:",
-    pathname,
-  );
   const path = decodeURIComponent(pathname.slice(1));
   const data = await fileContentTable.get(path);
   if (data) {

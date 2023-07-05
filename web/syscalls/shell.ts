@@ -14,7 +14,7 @@ export function shellSyscalls(
         throw new Error("Not supported in fully local mode");
       }
       const resp = httpSpacePrimitives.authenticatedFetch(
-        httpSpacePrimitives.url,
+        `${httpSpacePrimitives.url}/.rpc`,
         {
           method: "POST",
           body: JSON.stringify({
