@@ -7,7 +7,6 @@ export async function updateMarkdownPreview() {
   if (!(await store.get("enableMarkdownPreview"))) {
     return;
   }
-  const pageName = await editor.getCurrentPage();
   const text = await editor.getText();
   const mdTree = await parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
@@ -18,7 +17,7 @@ export async function updateMarkdownPreview() {
     annotationPositions: true,
     translateUrls: (url) => {
       if (!url.includes("://")) {
-        return `/.fs/${url}`;
+        return decodeURI(url);
       }
       return url;
     },

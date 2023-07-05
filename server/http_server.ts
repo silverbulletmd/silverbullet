@@ -1,4 +1,4 @@
-import { Application, Router } from "./deps.ts";
+import { Application, Context, Next, oakCors, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { base64Decode } from "../plugos/asset_bundle/base64.ts";
@@ -8,7 +8,9 @@ import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { Authenticator } from "./auth.ts";
-import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { Response } from "https://deno.land/x/oak@v12.4.0/response.ts";
+import { FileMeta } from "../common/types.ts";
+import { nextDiagnostic } from "https://esm.sh/@codemirror/lint@6.2.1?external=@codemirror/state,@lezer/common&target=es2022";
 
 export type ServerOptions = {
   hostname: string;
@@ -74,72 +76,26 @@ export class HttpServer {
         this.options.pagesPath.replaceAll("\\", "\\\\"),
       ).replaceAll(
         "{{SYNC_ENDPOINT}}",
-        "/.fs",
+        "",
       );
   }
 
   async start() {
     await this.reloadSettings();
+
     // Serve static files (javascript, css, html)
-    this.app.use(async ({ request, response }, next) => {
-      if (request.url.pathname === "/") {
-        // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
-        response.headers.set("Content-type", "text/html");
-        response.body = this.renderIndexHtml();
-        return;
-      }
-      try {
-        const assetName = request.url.pathname.slice(1);
-        if (
-          this.clientAssetBundle.has(assetName) &&
-          request.headers.get("If-Modified-Since") ===
-            utcDateString(this.clientAssetBundle.getMtime(assetName))
-        ) {
-          response.status = 304;
-          return;
-        }
-        response.status = 200;
-        response.headers.set(
-          "Content-type",
-          this.clientAssetBundle.getMimeType(assetName),
-        );
-        const data = this.clientAssetBundle.readFileSync(
-          assetName,
-        );
-        response.headers.set("Cache-Control", "no-cache");
-        response.headers.set("Content-length", "" + data.length);
-        response.headers.set(
-          "Last-Modified",
-          utcDateString(this.clientAssetBundle.getMtime(assetName)),
-        );
+    this.app.use(this.serveStatic.bind(this));
 
-        if (request.method === "GET") {
-          response.body = data;
-        }
-      } catch {
-        await next();
-      }
-    });
-
-    // Fallback, serve index.html
-    this.app.use(({ request, response }, next) => {
-      if (
-        !request.url.pathname.startsWith("/.fs") &&
-        request.url.pathname !== "/.auth" &&
-        !request.url.pathname.startsWith("/.ws")
-      ) {
-        response.headers.set("Content-type", "text/html");
-        response.body = this.renderIndexHtml();
-      } else {
-        return next();
-      }
-    });
-
-    // Pages API
-    const fsRouter = this.buildFsRouter(this.spacePrimitives);
     await this.addPasswordAuth(this.app);
+    const fsRouter = this.addFsRoutes(this.spacePrimitives);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
+
+    // Fallback, serve the UI index.html
+    this.app.use(({ request, response }, next) => {
+      response.headers.set("Content-type", "text/html");
+      response.body = this.renderIndexHtml();
+    });
 
     this.abortController = new AbortController();
     const listenOptions: any = {
@@ -166,6 +122,53 @@ export class HttpServer {
     );
   }
 
+  serveStatic(
+    { request, response }: Context<Record<string, any>, Record<string, any>>,
+    next: Next,
+  ) {
+    if (
+      request.url.pathname === "/" &&
+      request.headers.get("Accept") !== "application/json" // not requesting the listing
+    ) {
+      // Serve the UI (index.html)
+      // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
+      response.headers.set("Content-type", "text/html");
+      response.body = this.renderIndexHtml();
+      return;
+    }
+    try {
+      const assetName = request.url.pathname.slice(1);
+      if (
+        this.clientAssetBundle.has(assetName) &&
+        request.headers.get("If-Modified-Since") ===
+          utcDateString(this.clientAssetBundle.getMtime(assetName))
+      ) {
+        response.status = 304;
+        return;
+      }
+      response.status = 200;
+      response.headers.set(
+        "Content-type",
+        this.clientAssetBundle.getMimeType(assetName),
+      );
+      const data = this.clientAssetBundle.readFileSync(
+        assetName,
+      );
+      response.headers.set("Cache-Control", "no-cache");
+      response.headers.set("Content-length", "" + data.length);
+      response.headers.set(
+        "Last-Modified",
+        utcDateString(this.clientAssetBundle.getMtime(assetName)),
+      );
+
+      if (request.method === "GET") {
+        response.body = data;
+      }
+    } catch {
+      return next();
+    }
+  }
+
   async reloadSettings() {
     // TODO: Throttle this?
     this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
@@ -179,6 +182,7 @@ export class HttpServer {
       "/.auth",
     ];
 
+    // Middleware handling the /.auth page and flow
     app.use(async ({ request, response, cookies }, next) => {
       if (request.url.pathname === "/.auth") {
         if (request.url.search === "?logout") {
@@ -221,6 +225,7 @@ export class HttpServer {
     });
 
     if ((await this.authenticator.getAllUsers()).length > 0) {
+      // Users defined, so enabling auth
       app.use(async ({ request, response, cookies }, next) => {
         if (!excludedPaths.includes(request.url.pathname)) {
           const authCookie = await cookies.get("auth");
@@ -244,7 +249,7 @@ export class HttpServer {
     }
   }
 
-  private buildFsRouter(spacePrimitives: SpacePrimitives): Router {
+  private addFsRoutes(spacePrimitives: SpacePrimitives): Router {
     const fsRouter = new Router();
     const corsMiddleware = oakCors({
       allowedHeaders: "*",
@@ -252,11 +257,16 @@ export class HttpServer {
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     });
     // File list
-    fsRouter.get("/", corsMiddleware, async ({ response }) => {
-      response.headers.set("Content-type", "application/json");
-      response.headers.set("X-Space-Path", this.options.pagesPath);
-      const files = await spacePrimitives.fetchFileList();
-      response.body = JSON.stringify(files);
+    fsRouter.get("/", corsMiddleware, async ({ request, response }, next) => {
+      if (request.headers.get("Accept") === "application/json") {
+        // Only handle direct requests for a JSON representation of the file list (otherwise serve index.html later)
+        response.headers.set("Content-type", "application/json");
+        response.headers.set("X-Space-Path", this.options.pagesPath);
+        const files = await spacePrimitives.fetchFileList();
+        response.body = JSON.stringify(files);
+      } else {
+        return next();
+      }
     });
 
     // RPC
@@ -313,81 +323,75 @@ export class HttpServer {
       }
     });
 
+    const filePathRegex = "\/(.+\\.\\w+)";
+
     fsRouter
-      .get("\/(.+)", corsMiddleware, async ({ params, response, request }) => {
-        const name = params[0];
-        console.log("Loading file", name);
-        if (name.startsWith(".")) {
-          // Don't expose hidden files
-          response.status = 404;
-          return;
-        }
-        try {
-          const attachmentData = await spacePrimitives.readFile(
-            name,
-          );
-          const lastModifiedHeader = new Date(attachmentData.meta.lastModified)
-            .toUTCString();
-          if (request.headers.get("If-Modified-Since") === lastModifiedHeader) {
-            response.status = 304;
+      .get(
+        filePathRegex,
+        corsMiddleware,
+        async ({ params, response, request }) => {
+          const name = params[0];
+          console.log("Requested file", name);
+          if (name.startsWith(".")) {
+            // Don't expose hidden files
+            response.status = 404;
+            response.body = "Not exposed";
             return;
           }
-          response.status = 200;
-          response.headers.set(
-            "X-Last-Modified",
-            "" + attachmentData.meta.lastModified,
-          );
-          response.headers.set("Cache-Control", "no-cache");
-          response.headers.set("X-Permission", attachmentData.meta.perm);
-          response.headers.set(
-            "Last-Modified",
-            lastModifiedHeader,
-          );
-          response.headers.set("Content-Type", attachmentData.meta.contentType);
-          response.body = attachmentData.data;
-        } catch {
-          // console.error("Error in main router", e);
-          response.status = 404;
-          response.body = "";
-        }
-      })
-      .put("\/(.+)", corsMiddleware, async ({ request, response, params }) => {
-        const name = params[0];
-        console.log("Saving file", name);
-        if (name.startsWith(".")) {
-          // Don't expose hidden files
-          response.status = 403;
-          return;
-        }
+          try {
+            const fileData = await spacePrimitives.readFile(
+              name,
+            );
+            const lastModifiedHeader = new Date(fileData.meta.lastModified)
+              .toUTCString();
+            if (
+              request.headers.get("If-Modified-Since") === lastModifiedHeader
+            ) {
+              response.status = 304;
+              return;
+            }
+            response.status = 200;
+            this.fileMetaToHeaders(response.headers, fileData.meta);
+            response.headers.set("Last-Modified", lastModifiedHeader);
 
-        let body: Uint8Array;
-        if (
-          request.headers.get("X-Content-Base64")
-        ) {
-          const content = await request.body({ type: "text" }).value;
-          body = base64Decode(content);
-        } else {
-          body = await request.body({ type: "bytes" }).value;
-        }
+            response.body = fileData.data;
+          } catch (e: any) {
+            console.error("Error GETting of file", name, e);
+            response.status = 404;
+            response.body = "Not found";
+          }
+        },
+      )
+      .put(
+        filePathRegex,
+        corsMiddleware,
+        async ({ request, response, params }) => {
+          const name = params[0];
+          console.log("Saving file", name);
+          if (name.startsWith(".")) {
+            // Don't expose hidden files
+            response.status = 403;
+            return;
+          }
 
-        try {
-          const meta = await spacePrimitives.writeFile(
-            name,
-            body,
-          );
-          response.status = 200;
-          response.headers.set("Content-Type", meta.contentType);
-          response.headers.set("X-Last-Modified", "" + meta.lastModified);
-          response.headers.set("X-Content-Length", "" + meta.size);
-          response.headers.set("X-Permission", meta.perm);
-          response.body = "OK";
-        } catch (err) {
-          response.status = 500;
-          response.body = "Write failed";
-          console.error("Pipeline failed", err);
-        }
-      })
-      .options("\/(.+)", async ({ request, response, params }) => {
+          const body = await request.body({ type: "bytes" }).value;
+
+          try {
+            const meta = await spacePrimitives.writeFile(
+              name,
+              body,
+            );
+            response.status = 200;
+            this.fileMetaToHeaders(response.headers, meta);
+            response.body = "OK";
+          } catch (err) {
+            console.error("Write failed", err);
+            response.status = 500;
+            response.body = "Write failed";
+          }
+        },
+      )
+      .options(filePathRegex, async ({ response, params }) => {
         const name = params[0];
         // Manually set CORS headers
         response.headers.set("access-control-allow-headers", "*");
@@ -400,10 +404,7 @@ export class HttpServer {
         try {
           const meta = await spacePrimitives.getFileMeta(name);
           response.status = 200;
-          response.headers.set("Content-Type", meta.contentType);
-          response.headers.set("X-Last-Modified", "" + meta.lastModified);
-          response.headers.set("X-Content-Length", "" + meta.size);
-          response.headers.set("X-Permission", meta.perm);
+          this.fileMetaToHeaders(response.headers, meta);
         } catch {
           // Have to do this because of CORS
           response.status = 200;
@@ -412,7 +413,7 @@ export class HttpServer {
           // console.error("Options failed", err);
         }
       })
-      .delete("\/(.+)", corsMiddleware, async ({ response, params }) => {
+      .delete(filePathRegex, corsMiddleware, async ({ response, params }) => {
         const name = params[0];
         console.log("Deleting file", name);
         try {
@@ -425,7 +426,18 @@ export class HttpServer {
           response.body = e.message;
         }
       });
-    return new Router().use("/.fs", fsRouter.routes());
+    return fsRouter;
+  }
+
+  private fileMetaToHeaders(headers: Headers, fileMeta: FileMeta) {
+    headers.set("Content-Type", fileMeta.contentType);
+    headers.set(
+      "X-Last-Modified",
+      "" + fileMeta.lastModified,
+    );
+    headers.set("Cache-Control", "no-cache");
+    headers.set("X-Permission", fileMeta.perm);
+    headers.set("X-Content-Length", "" + fileMeta.size);
   }
 
   stop() {

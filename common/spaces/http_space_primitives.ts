@@ -46,6 +46,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   async fetchFileList(): Promise<FileMeta[]> {
     const resp = await this.authenticatedFetch(this.url, {
       method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
     });
 
     if (
@@ -53,6 +56,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       this.expectedSpacePath &&
       resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
+      console.log("Expected space path", this.expectedSpacePath);
+      console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
       alert("Space folder path different on server, reloading the page");
       location.reload();

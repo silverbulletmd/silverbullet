@@ -134,6 +134,7 @@ import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
+import { run } from "../plug-api/plugos-syscall/shell.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -372,7 +373,7 @@ export class Editor {
       system.unload(fileName);
       await system.load(
         // await this.space.readFile(fileName, "utf8"),
-        new URL(`/.fs/${fileName}`, location.href),
+        new URL(`/${fileName}`, location.href),
         createSandbox,
       );
       this.plugsUpdated = true;
@@ -1053,7 +1054,7 @@ export class Editor {
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       try {
         await this.system.load(
-          new URL(`/.fs/${plugName}`, location.href),
+          new URL(plugName, location.href),
           createSandbox,
         );
       } catch (e: any) {
@@ -1201,6 +1202,10 @@ export class Editor {
     let doc;
     try {
       doc = await this.space.readPage(pageName);
+      console.log("Doc", doc.meta);
+      if (doc.meta.contentType.startsWith("text/html")) {
+        throw new Error("Got HTML page, not markdown");
+      }
     } catch (e: any) {
       // Not found, new page
       console.log("Creating new page", pageName);

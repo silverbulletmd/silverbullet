@@ -3,6 +3,7 @@ import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
 import type { FileMeta } from "../common/types.ts";
+import { compareSpecs } from "https://deno.land/std@0.185.0/http/_negotiation/common.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -75,6 +76,15 @@ self.addEventListener("fetch", (event: any) => {
 
   event.respondWith(
     (async () => {
+      const request = event.request;
+
+      // console.log("Getting request", request, [...request.headers.entries()]);
+
+      // Any request with the X-Sync-Mode header originates from the sync engine: pass it on to the server
+      if (request.headers.has("x-sync-mode")) {
+        return fetch(request);
+      }
+
       // Try the static (client) file cache first
       const cachedResponse = await caches.match(cacheKey);
       // Return the cached response if found
@@ -82,66 +92,69 @@ self.addEventListener("fetch", (event: any) => {
         return cachedResponse;
       }
 
-      const requestUrl = new URL(event.request.url);
-
+      const requestUrl = new URL(request.url);
       const pathname = requestUrl.pathname;
-      // console.log("In service worker, pathname is", pathname);
-      // Are we fetching a URL from the same origin as the app? If not, we don't handle it here
-      const fetchingLocal = location.host === requestUrl.host;
 
-      if (!fetchingLocal) {
-        return fetch(event.request);
+      // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
+      if (location.host !== requestUrl.host) {
+        return fetch(request);
       }
 
-      // If this is a /.fs request, this can either be a plug worker load or an attachment load
-      if (pathname.startsWith("/.fs")) {
-        if (!fileContentTable || event.request.headers.has("x-sync-mode")) {
-          // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
-          return fetch(event.request);
-        }
-        // console.log(
-        //   "Attempting to serve file from locally synced space:",
-        //   pathname,
-        // );
-        const path = decodeURIComponent(
-          requestUrl.pathname.slice("/.fs/".length),
-        );
-        const data = await fileContentTable.get(path);
-        if (data) {
-          // console.log("Serving from space", path);
-          if (!data.meta) {
-            // Legacy database not fully synced yet
-            data.meta = (await fileMetatable!.get(path))!;
-          }
-          return new Response(
-            data.data,
-            {
-              headers: {
-                "Content-type": data.meta.contentType,
-                "Content-Length": "" + data.meta.size,
-                "X-Permission": data.meta.perm,
-                "X-Last-Modified": "" + data.meta.lastModified,
-              },
-            },
-          );
-        } else {
-          console.error(
-            "Did not find file in locally synced space",
-            path,
-          );
-          return new Response("Not found", {
-            status: 404,
-          });
-        }
+      // If this is a /*.* request, this can either be a plug worker load or an attachment load
+      if (/\/.+\.\w+$/.test(pathname)) {
+        return handleLocalFileRequest(request, pathname);
       } else if (pathname === "/.auth") {
-        return fetch(event.request);
+        return fetch(request);
       } else {
         // Must be a page URL, let's serve index.html which will handle it
-        return (await caches.match(precacheFiles["/"])) || fetch(event.request);
+        return (await caches.match(precacheFiles["/"])) || fetch(request);
       }
     })(),
   );
 });
+
+async function handleLocalFileRequest(
+  request: Request,
+  pathname: string,
+): Promise<Response> {
+  console.log("This is an attachment load", pathname);
+  if (!fileContentTable) {
+    // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
+    return fetch(request);
+  }
+  console.log(
+    "Attempting to serve file from locally synced space:",
+    pathname,
+  );
+  const path = decodeURIComponent(pathname.slice(1));
+  const data = await fileContentTable.get(path);
+  if (data) {
+    console.log("Serving from space", path);
+    if (!data.meta) {
+      // Legacy database not fully synced yet
+      data.meta = (await fileMetatable!.get(path))!;
+    }
+    return new Response(
+      data.data,
+      {
+        headers: {
+          "Content-type": data.meta.contentType,
+          "Content-Length": "" + data.meta.size,
+          "X-Permission": data.meta.perm,
+          "X-Last-Modified": "" + data.meta.lastModified,
+        },
+      },
+    );
+  } else {
+    console.error(
+      "Did not find file in locally synced space",
+      path,
+    );
+    return new Response("Not found", {
+      status: 404,
+    });
+  }
+}
 
 self.addEventListener("message", (event: any) => {
   if (event.data.type === "flushCache") {

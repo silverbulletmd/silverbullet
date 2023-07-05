@@ -77,7 +77,7 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        return editor.openUrl(`/.fs/${decodeURI(url)}`);
+        return editor.openUrl(decodeURI(url));
       } else {
         await editor.openUrl(url);
       }
