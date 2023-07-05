@@ -26,7 +26,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     });
     if (result.redirected) {
       // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
-      console.log("Got a redirect via the API so will redirect to URL", url);
+      console.log(
+        "Got a redirect via the API so will redirect to URL",
+        result.url,
+      );
       location.href = result.url;
       throw new Error("Invalid credentials");
     }

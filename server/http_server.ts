@@ -7,7 +7,6 @@ import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { CollabServer } from "./collab.ts";
 import { Authenticator } from "./auth.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 
@@ -31,7 +30,6 @@ export class HttpServer {
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
-  collab: CollabServer;
   authenticator: Authenticator;
 
   constructor(
@@ -66,8 +64,6 @@ export class HttpServer {
         }
       },
     );
-    this.collab = new CollabServer(this.spacePrimitives);
-    this.collab.start();
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -144,8 +140,6 @@ export class HttpServer {
     await this.addPasswordAuth(this.app);
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
-
-    this.collab.route(this.app);
 
     this.abortController = new AbortController();
     const listenOptions: any = {
@@ -410,16 +404,6 @@ export class HttpServer {
           response.headers.set("X-Last-Modified", "" + meta.lastModified);
           response.headers.set("X-Content-Length", "" + meta.size);
           response.headers.set("X-Permission", meta.perm);
-
-          const clientId = request.headers.get("X-Client-Id");
-          if (name.endsWith(".md") && clientId) {
-            const pageName = name.substring(0, name.length - ".md".length);
-            console.log(`Got presence update from ${clientId}: ${pageName}`);
-            const { collabId } = this.collab.updatePresence(clientId, pageName);
-            if (collabId) {
-              response.headers.set("X-Collab-Id", collabId);
-            }
-          }
         } catch {
           // Have to do this because of CORS
           response.status = 200;
