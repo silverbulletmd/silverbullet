@@ -3,7 +3,6 @@ import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
 import type { FileMeta } from "../common/types.ts";
-import { compareSpecs } from "https://deno.land/std@0.185.0/http/_negotiation/common.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -26,20 +25,19 @@ self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
+      .then(async (cache) => {
         console.log(
           "[Service worker]",
           "Now pre-caching client files",
         );
-        return cache.addAll(Object.values(precacheFiles)).then(() => {
-          console.log(
-            "[Service worker]",
-            Object.keys(precacheFiles).length,
-            "client files cached",
-          );
-          // @ts-ignore: No need to wait
-          self.skipWaiting();
-        });
+        await cache.addAll(Object.values(precacheFiles));
+        console.log(
+          "[Service worker]",
+          Object.keys(precacheFiles).length,
+          "client files cached",
+        );
+        // @ts-ignore: No need to wait
+        self.skipWaiting();
       }),
   );
 });

@@ -89,7 +89,7 @@ export class HttpServer {
     this.app.use(fsRouter.allowedMethods());
 
     // Fallback, serve the UI index.html
-    this.app.use(({ request, response }, next) => {
+    this.app.use(({ response }) => {
       response.headers.set("Content-type", "text/html");
       response.body = this.renderIndexHtml();
     });
