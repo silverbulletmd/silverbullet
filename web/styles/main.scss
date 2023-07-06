@@ -1,6 +1,7 @@
 @use "editor";
 @use "modals";
 @use "theme";
+@use "colors";
 
 @font-face {
   font-family: "iA-Mono";
@@ -80,7 +81,7 @@ body {
         font-size: 15px;
         z-index: 100;
 
-        >div {
+        > div {
           padding: 3px;
           margin-bottom: 3px;
           border-radius: 5px;
@@ -132,7 +133,6 @@ body {
       height: 20px;
       border-radius: 50%;
       font-size: 6px;
-
     }
 
     // .progress-bar::before {
