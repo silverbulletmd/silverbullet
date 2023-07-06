@@ -26,30 +26,31 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     });
     if (result.redirected) {
       // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
-      console.log("Got a redirect via the API so will redirect to URL", url);
+      console.log(
+        "Got a redirect via the API so will redirect to URL",
+        result.url,
+      );
       location.href = result.url;
       throw new Error("Invalid credentials");
     }
     return result;
   }
 
-  getRealStatus(r: Response) {
-    if (r.headers.get("X-Status")) {
-      return +r.headers.get("X-Status")!;
-    }
-    return r.status;
-  }
-
   async fetchFileList(): Promise<FileMeta[]> {
-    const resp = await this.authenticatedFetch(this.url, {
+    const resp = await this.authenticatedFetch(`${this.url}/index.json`, {
       method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
     });
 
     if (
-      this.getRealStatus(resp) === 200 &&
+      resp.status === 200 &&
       this.expectedSpacePath &&
       resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
+      console.log("Expected space path", this.expectedSpacePath);
+      console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
       alert("Space folder path different on server, reloading the page");
       location.reload();
@@ -67,7 +68,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "GET",
       },
     );
-    if (this.getRealStatus(res) === 404) {
+    if (res.status === 404) {
       throw new Error(`Not found`);
     }
     return {
@@ -109,7 +110,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "DELETE",
       },
     );
-    if (this.getRealStatus(req) !== 200) {
+    if (req.status !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);
     }
   }
@@ -118,10 +119,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,
       {
-        method: "OPTIONS",
+        method: "HEAD",
       },
     );
-    if (this.getRealStatus(res) === 404) {
+    if (res.status === 404) {
       throw new Error(`Not found`);
     }
     return this.responseToMeta(name, res);
@@ -130,7 +131,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   private responseToMeta(name: string, res: Response): FileMeta {
     return {
       name,
-      size: +res.headers.get("X-Content-Length")!,
+      size: +res.headers.get("Content-Length")!,
       contentType: res.headers.get("Content-type")!,
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",

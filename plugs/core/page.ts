@@ -23,6 +23,7 @@ import {
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { isValidPageName } from "$sb/lib/page.ts";
 
 // Key space:
 //   pl:toPage:pos => pageName
@@ -134,6 +135,13 @@ export async function renamePage(cmdDef: any) {
     await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return;
+  }
+
+  if (!isValidPageName(newName)) {
+    return editor.flashNotification(
+      "Invalid page name: page names cannot end with a file extension",
+      "error",
+    );
   }
 
   console.log("New name", newName);

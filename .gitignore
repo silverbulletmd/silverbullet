@@ -13,3 +13,5 @@ node_modules
 *.db
 test_space
 silverbullet
+# Local Netlify folder
+.netlify

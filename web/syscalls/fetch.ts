@@ -21,7 +21,7 @@ export function sandboxFetchSyscalls(
         return performLocalFetch(url, options);
       }
       const resp = httpSpacePrimitives.authenticatedFetch(
-        httpSpacePrimitives.url,
+        `${httpSpacePrimitives.url}/.rpc`,
         {
           method: "POST",
           body: JSON.stringify({

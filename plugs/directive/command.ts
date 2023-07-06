@@ -20,27 +20,6 @@ export async function updateDirectivesOnPageCommand(arg: any) {
     return;
   }
 
-  // if (!(await sync.hasInitialSyncCompleted())) {
-  //   console.info("Initial sync hasn't completed yet, not updating directives.");
-  //   return;
-  // }
-
-  // If this page is shared ($share) via collab: disable directives as well
-  // due to security concerns
-  if (metaData.$share) {
-    for (const uri of metaData.$share) {
-      if (uri.startsWith("collab:")) {
-        if (explicitCall) {
-          await editor.flashNotification(
-            "Directives are disabled for 'collab' pages (safety reasons).",
-            "error",
-          );
-        }
-        return;
-      }
-    }
-  }
-
   // Collect all directives and their body replacements
   const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
     [];

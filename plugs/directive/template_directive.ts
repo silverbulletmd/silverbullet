@@ -1,6 +1,5 @@
 import { queryRegex } from "$sb/lib/query.ts";
 import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { replaceAsync } from "$sb/lib/util.ts";
 import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import Handlebars from "handlebars";
 
@@ -68,32 +67,28 @@ export async function templateDirectiveRenderer(
   return newBody.trim();
 }
 
-export function cleanTemplateInstantiations(text: string): Promise<string> {
-  return replaceAsync(
-    text,
-    directiveRegex,
-    (
-      _fullMatch,
-      startInst,
-      type,
-      _args,
-      body,
-      endInst,
-    ): Promise<string> => {
-      if (type === "use") {
-        body = body.replaceAll(
-          queryRegex,
-          (
-            _fullMatch: string,
-            _startQuery: string,
-            _query: string,
-            body: string,
-          ) => {
-            return body.trim();
-          },
-        );
-      }
-      return Promise.resolve(`${startInst}${body}${endInst}`);
-    },
-  );
+export function cleanTemplateInstantiations(text: string) {
+  return text.replaceAll(directiveRegex, (
+    _fullMatch,
+    startInst,
+    type,
+    _args,
+    body,
+    endInst,
+  ): string => {
+    if (type === "use") {
+      body = body.replaceAll(
+        queryRegex,
+        (
+          _fullMatch: string,
+          _startQuery: string,
+          _query: string,
+          body: string,
+        ) => {
+          return body.trim();
+        },
+      );
+    }
+    return `${startInst}${body}${endInst}`;
+  });
 }

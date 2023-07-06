@@ -4,7 +4,7 @@ import { walk } from "https://deno.land/std@0.165.0/fs/mod.ts";
 import { resolve } from "https://deno.land/std@0.165.0/path/mod.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
-const rootDir = resolve("website_build/_fs");
+const rootDir = resolve("website_build");
 
 const lastModifiedTimestamp = +Deno.env.get("LAST_MODIFIED_TIMESTAMP")! ||
   Date.now();
@@ -14,7 +14,7 @@ for await (
   const file of walk(rootDir, {
     includeDirs: false,
     // Exclude hidden files
-    skip: [/^.*\/\..+$/],
+    skip: [/^.*\/(\..+|_redirects|_headers|_client\/.*)$/],
   })
 ) {
   const fullPath = file.path;

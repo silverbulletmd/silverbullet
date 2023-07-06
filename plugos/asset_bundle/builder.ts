@@ -38,6 +38,7 @@ export async function bundleFolder(
   bundlePath: string,
 ) {
   const bundle = new AssetBundle();
+
   await Deno.mkdir(path.dirname(bundlePath), { recursive: true });
   for await (
     const { path: filePath } of walk(rootPath, { includeDirs: false })

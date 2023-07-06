@@ -35,13 +35,11 @@
     window.silverBulletConfig = {
       // These {{VARIABLES}} are replaced by http_server.ts
       spaceFolderPath: "{{SPACE_PATH}}",
-      syncEndpoint: "{{SYNC_ENDPOINT}}",
     };
     // But in case these variables aren't replaced by the server, fall back fully static mode (no sync)
     if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
       window.silverBulletConfig = {
         spaceFolderPath: "",
-        syncEndpoint: "/.fs"
       };
     }
   </script>

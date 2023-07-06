@@ -68,7 +68,6 @@ import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { System } from "../plugos/system.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
-import { CollabState } from "./cm_plugins/collab.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
@@ -91,14 +90,12 @@ import {
   useEffect,
   useReducer,
   vim,
-  yUndoManagerKeymap,
 } from "./deps.ts";
 import { AppCommand, CommandHook } from "./hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
 import { PathPageNavigator } from "./navigator.ts";
 import reducer from "./reducer.ts";
 import customMarkdownStyle from "./style.ts";
-import { collabSyscalls } from "./syscalls/collab.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
@@ -137,7 +134,8 @@ import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { CollabManager } from "./collab_manager.ts";
+import { run } from "../plug-api/plugos-syscall/shell.ts";
+import { isValidPageName } from "$sb/lib/page.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -155,7 +153,6 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
-      syncEndpoint: string;
     };
     editor: Editor;
   }
@@ -190,11 +187,9 @@ export class Editor {
   fullSyncCompleted = false;
 
   // Runtime state (that doesn't make sense in viewState)
-  collabState?: CollabState;
   syncService: SyncService;
   settings?: BuiltinSettings;
   kvStore: DexieKVStore;
-  collabManager: CollabManager;
 
   constructor(
     parent: Element,
@@ -216,8 +211,6 @@ export class Editor {
     this.eventHook = new EventHook();
     system.addHook(this.eventHook);
 
-    this.collabManager = new CollabManager(this);
-
     // Cron hook
     const cronHook = new CronHook(system);
     system.addHook(cronHook);
@@ -237,7 +230,7 @@ export class Editor {
 
     // Setup space
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
-      runtimeConfig.syncEndpoint,
+      location.origin,
       runtimeConfig.spaceFolderPath,
       true,
     );
@@ -328,7 +321,6 @@ export class Editor {
       systemSyscalls(this, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
-      collabSyscalls(this),
       yamlSyscalls(),
       storeCalls,
       indexSyscalls,
@@ -376,17 +368,12 @@ export class Editor {
       }
     });
 
-    // globalThis.addEventListener("beforeunload", (e) => {
-    //   console.log("Pinging with with undefined page name");
-    //   this.collabManager.updatePresence(undefined, this.currentPage);
-    // });
-
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
       console.log("Plug updated, reloading:", fileName);
       system.unload(fileName);
       await system.load(
         // await this.space.readFile(fileName, "utf8"),
-        new URL(`/.fs/${fileName}`, location.href),
+        new URL(`/${fileName}`, location.href),
         createSandbox,
       );
       this.plugsUpdated = true;
@@ -402,7 +389,7 @@ export class Editor {
 
     this.space.on({
       pageChanged: (meta) => {
-        // Only reload when watching the current page (to avoid reloading when switching pages and in collab mode)
+        // Only reload when watching the current page (to avoid reloading when switching pages)
         if (this.space.watchInterval && this.currentPage === meta.name) {
           console.log("Page changed elsewhere, reloading");
           this.flashNotification("Page changed elsewhere, reloading");
@@ -485,7 +472,6 @@ export class Editor {
 
     // Kick off background sync
     this.syncService.start();
-    this.collabManager.start();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -738,7 +724,7 @@ export class Editor {
     let touchCount = 0;
 
     return EditorState.create({
-      doc: this.collabState ? this.collabState.ytext.toString() : text,
+      doc: text,
       extensions: [
         // Not using CM theming right now, but some extensions depend on the "dark" thing
         EditorView.theme({}, { dark: this.viewState.uiOptions.darkMode }),
@@ -934,7 +920,6 @@ export class Editor {
           ...searchKeymap,
           ...historyKeymap,
           ...completionKeymap,
-          ...(this.collabState ? yUndoManagerKeymap : []),
           indentWithTab,
           ...commandKeyBindings,
           {
@@ -1057,7 +1042,6 @@ export class Editor {
         pasteLinkExtension,
         attachmentExtension(this),
         closeBrackets(),
-        ...[this.collabState ? this.collabState.collabExtension() : []],
       ],
     });
   }
@@ -1070,7 +1054,7 @@ export class Editor {
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       try {
         await this.system.load(
-          new URL(`/.fs/${plugName}`, location.href),
+          new URL(plugName, location.origin),
           createSandbox,
         );
       } catch (e: any) {
@@ -1181,6 +1165,13 @@ export class Editor {
       name = this.settings!.indexPage;
     }
 
+    if (!isValidPageName(name)) {
+      return this.flashNotification(
+        "Invalid page name: page names cannot end with a file extension",
+        "error",
+      );
+    }
+
     if (newWindow) {
       const win = window.open(`${location.origin}/${name}`, "_blank");
       if (win) {
@@ -1206,10 +1197,6 @@ export class Editor {
       this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
-        // And stop the collab session
-        if (this.collabState) {
-          this.stopCollab();
-        }
       }
     }
 
@@ -1222,6 +1209,9 @@ export class Editor {
     let doc;
     try {
       doc = await this.space.readPage(pageName);
+      if (doc.meta.contentType.startsWith("text/html")) {
+        throw new Error("Got HTML page, not markdown");
+      }
     } catch (e: any) {
       // Not found, new page
       console.log("Creating new page", pageName);
@@ -1577,51 +1567,5 @@ export class Editor {
       return syntaxTree(state).resolveInner(selection.from).type.name;
     }
     return;
-  }
-
-  startCollab(
-    serverUrl: string,
-    token: string,
-    username: string,
-    isLocalCollab = false,
-  ) {
-    if (this.collabState) {
-      // Clean up old collab state
-      this.collabState.stop();
-    }
-    const initialText = this.editorView!.state.sliceDoc();
-    this.collabState = new CollabState(
-      serverUrl,
-      `${this.currentPage!}.md`,
-      token,
-      username,
-      this.syncService,
-      isLocalCollab,
-    );
-
-    this.collabState.collabProvider.on("synced", () => {
-      if (this.collabState!.ytext.toString() === "") {
-        console.log(
-          "[Collab]",
-          "Synced value is empty (new collab session), inserting local copy",
-        );
-        this.collabState!.ytext.insert(0, initialText);
-      }
-    });
-
-    this.rebuildEditorState();
-
-    // Don't watch for local changes in this mode
-    this.space.unwatch();
-  }
-
-  stopCollab() {
-    if (this.collabState) {
-      this.collabState.stop();
-      this.collabState = undefined;
-      this.rebuildEditorState();
-    }
-    // Start file watching again
-    this.space.watch();
   }
 }

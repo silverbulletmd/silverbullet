@@ -39,7 +39,7 @@ class TableViewWidget extends WidgetType {
       annotationPositions: true,
       translateUrls: (url) => {
         if (!url.includes("://")) {
-          return `/.fs/${url}`;
+          return `/${url}`;
         }
         return url;
       },

@@ -24,42 +24,40 @@ const precacheFiles = Object.fromEntries([
 self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log(
-          "[Service worker]",
-          "Now pre-caching client files",
-        );
-        return cache.addAll(Object.values(precacheFiles)).then(() => {
-          console.log(
-            "[Service worker]",
-            Object.keys(precacheFiles).length,
-            "client files cached",
-          );
-          // @ts-ignore: No need to wait
-          self.skipWaiting();
-        });
-      }),
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      console.log(
+        "[Service worker]",
+        "Now pre-caching client files",
+      );
+      await cache.addAll(Object.values(precacheFiles));
+      console.log(
+        "[Service worker]",
+        Object.keys(precacheFiles).length,
+        "client files cached",
+      );
+      // @ts-ignore: No need to wait
+      self.skipWaiting();
+    })(),
   );
 });
 
 self.addEventListener("activate", (event: any) => {
   console.log("[Service worker]", "Activating new service worker!!!");
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
             console.log("[Service worker]", "Removing old cache", cacheName);
             return caches.delete(cacheName);
           }
         }),
-      ).then(() => {
-        // Let's activate ourselves for all existing clients
-        // @ts-ignore: No need to wait, clients is a serviceworker thing
-        return clients.claim();
-      });
-    }),
+      );
+      // @ts-ignore: No need to wait
+      return clients.claim();
+    })(),
   );
 });
 
@@ -75,6 +73,15 @@ self.addEventListener("fetch", (event: any) => {
 
   event.respondWith(
     (async () => {
+      const request = event.request;
+
+      // console.log("Getting request", request, [...request.headers.entries()]);
+
+      // Any request with the X-Sync-Mode header originates from the sync engine: pass it on to the server
+      if (request.headers.has("x-sync-mode")) {
+        return fetch(request);
+      }
+
       // Try the static (client) file cache first
       const cachedResponse = await caches.match(cacheKey);
       // Return the cached response if found
@@ -82,66 +89,64 @@ self.addEventListener("fetch", (event: any) => {
         return cachedResponse;
       }
 
-      const requestUrl = new URL(event.request.url);
-
+      const requestUrl = new URL(request.url);
       const pathname = requestUrl.pathname;
-      // console.log("In service worker, pathname is", pathname);
-      // Are we fetching a URL from the same origin as the app? If not, we don't handle it here
-      const fetchingLocal = location.host === requestUrl.host;
 
-      if (!fetchingLocal) {
-        return fetch(event.request);
+      // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
+      if (location.host !== requestUrl.host) {
+        return fetch(request);
       }
 
-      // If this is a /.fs request, this can either be a plug worker load or an attachment load
-      if (pathname.startsWith("/.fs")) {
-        if (!fileContentTable || event.request.headers.has("x-sync-mode")) {
-          // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
-          return fetch(event.request);
-        }
-        // console.log(
-        //   "Attempting to serve file from locally synced space:",
-        //   pathname,
-        // );
-        const path = decodeURIComponent(
-          requestUrl.pathname.slice("/.fs/".length),
-        );
-        const data = await fileContentTable.get(path);
-        if (data) {
-          // console.log("Serving from space", path);
-          if (!data.meta) {
-            // Legacy database not fully synced yet
-            data.meta = (await fileMetatable!.get(path))!;
-          }
-          return new Response(
-            data.data,
-            {
-              headers: {
-                "Content-type": data.meta.contentType,
-                "Content-Length": "" + data.meta.size,
-                "X-Permission": data.meta.perm,
-                "X-Last-Modified": "" + data.meta.lastModified,
-              },
-            },
-          );
-        } else {
-          console.error(
-            "Did not find file in locally synced space",
-            path,
-          );
-          return new Response("Not found", {
-            status: 404,
-          });
-        }
+      // If this is a /*.* request, this can either be a plug worker load or an attachment load
+      if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
+        return handleLocalFileRequest(request, pathname);
       } else if (pathname === "/.auth") {
-        return fetch(event.request);
+        return fetch(request);
       } else {
         // Must be a page URL, let's serve index.html which will handle it
-        return (await caches.match(precacheFiles["/"])) || fetch(event.request);
+        return (await caches.match(precacheFiles["/"])) || fetch(request);
       }
     })(),
   );
 });
+
+async function handleLocalFileRequest(
+  request: Request,
+  pathname: string,
+): Promise<Response> {
+  if (!fileContentTable) {
+    // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
+    return fetch(request);
+  }
+  const path = decodeURIComponent(pathname.slice(1));
+  const data = await fileContentTable.get(path);
+  if (data) {
+    // console.log("Serving from space", path);
+    if (!data.meta) {
+      // Legacy database not fully synced yet
+      data.meta = (await fileMetatable!.get(path))!;
+    }
+    return new Response(
+      data.data,
+      {
+        headers: {
+          "Content-type": data.meta.contentType,
+          "Content-Length": "" + data.meta.size,
+          "X-Permission": data.meta.perm,
+          "X-Last-Modified": "" + data.meta.lastModified,
+        },
+      },
+    );
+  } else {
+    console.error(
+      "Did not find file in locally synced space",
+      path,
+    );
+    return new Response("Not found", {
+      status: 404,
+    });
+  }
+}
 
 self.addEventListener("message", (event: any) => {
   if (event.data.type === "flushCache") {

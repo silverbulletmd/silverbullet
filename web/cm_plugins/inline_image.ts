@@ -74,7 +74,7 @@ export function inlineImagesPlugin(editor: Editor) {
         let url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
         if (url.indexOf("://") === -1) {
-          url = `/.fs/${url}`;
+          url = decodeURI(url);
         }
         widgets.push(
           Decoration.widget({
