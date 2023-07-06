@@ -3,6 +3,12 @@ release.
 
 ---
 
+## Next
+* **Removal of all real-time collaboration features**: this was causing too many edge cases, and complicated the code too much. To simplify the product as well as the code, we completely removed all real-time collaboration features for now. We may introduce this at some point in the future when the demand and focus is there.
+* **Change of APIs**: This is mostly internal, but will likely have effects on the first load after the upgrade: you may see errors, or your page may not properly load. Don’t freak out, just reload once or twice and all should resync and be fine. There’s a beginning of documenting the server [[API]] now.
+
+---
+
 ## 0.3.4
 
 * **Breaking change (for some templates):** Template in various places allowed you to use `{{variables}}` and various handlebars functions. There also used to be a magic `{{page}}` variable that you could use in various places, but not everywhere. This has now been unified. And the magical `{{page}}` now has been replaced with the global `@page` which does not just expose the page’s name, but any page meta data. More information here: [[🔌 Core/Templates@vars]]. You will now get completion for built-in handlebars helpers after typing `{{`.
@@ -18,8 +24,7 @@ release.
 
 ## 0.3.2
 
-* **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This only works when a connection with the server can be established.
-  * This **breaks** existing [[🔌 Collab]] links, since we switched real-time collaboration libraries. We’re still looking at the best way to keep supporting this feature.
+* REMOVED:  **Real-time collaboration support** between clients: Open the same page in multiple windows (browser tabs, mobile devices) and within a few seconds you should get kicked into real-time collaboration mode, showing other participants cursors, selections and edits in real time (Google doc style). This only works when a connection with the server can be established.
 * [[Authentication|Multi-user authentication]]: you can now allow multiple user accounts authenticate, which makes the real-time collaboration support actually useful. This feature is still experimental and will likely evolve over time.
 * Added `spaceIgnore` setting to not sync specific folders or file patterns to the client, see [[SETTINGS]] for documentation
 * Much improved image loading behavior on page (previously scroll bars would jump up and down like a mad person)
@@ -209,7 +214,7 @@ Besides these architectural changes, a few other breaking changes were made to s
 * New `Plugs: Add` command to quickly add a new plug (will create a `PLUGS` page if you don't have one yet).
 * **Paste without formatting**: holding `Shift` while pasting will disable "rich text paste."
 * **New core plug:** [[🔌 Share]] for sharing your pages with the outside work (such as collab, see below).
-* **New plug:** [[🔌 Collab]] for real-time collaboration on your pages.
+* **New plug:** 🔌 Collab for real-time collaboration on your pages.
 
 ---
 

@@ -247,13 +247,15 @@ export class HttpServer {
     const corsMiddleware = oakCors({
       allowedHeaders: "*",
       exposedHeaders: "*",
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
     });
+
+    fsRouter.use(corsMiddleware);
 
     // File list
     fsRouter.get(
       "/index.json",
-      corsMiddleware,
+      // corsMiddleware,
       async ({ request, response }) => {
         if (request.headers.get("Accept") === "application/json") {
           // Only handle direct requests for a JSON representation of the file list
@@ -270,7 +272,7 @@ export class HttpServer {
     );
 
     // RPC
-    fsRouter.post("/.rpc", corsMiddleware, async ({ request, response }) => {
+    fsRouter.post("/.rpc", async ({ request, response }) => {
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
@@ -327,12 +329,12 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "\/(.+\\.\\w+)";
+    const filePathRegex = "\/(.+\\.[a-zA-Z]+)";
 
     fsRouter
       .get(
         filePathRegex,
-        corsMiddleware,
+        // corsMiddleware,
         async ({ params, response, request }) => {
           const name = params[0];
           console.log("Requested file", name);
@@ -359,8 +361,8 @@ export class HttpServer {
             response.headers.set("Last-Modified", lastModifiedHeader);
 
             response.body = fileData.data;
-          } catch (e: any) {
-            console.error("Error GETting of file", name, e);
+          } catch {
+            // console.error("Error GETting of file", name, e);
             response.status = 404;
             response.body = "Not found";
           }
@@ -368,7 +370,7 @@ export class HttpServer {
       )
       .put(
         filePathRegex,
-        corsMiddleware,
+        // corsMiddleware,
         async ({ request, response, params }) => {
           const name = params[0];
           console.log("Saving file", name);
@@ -395,41 +397,25 @@ export class HttpServer {
           }
         },
       )
-      .options(filePathRegex, async ({ response, params }) => {
-        const name = params[0];
-        // Manually set CORS headers
-        response.headers.set("access-control-allow-headers", "*");
-        response.headers.set(
-          "access-control-allow-methods",
-          "GET,POST,PUT,DELETE,OPTIONS",
-        );
-        response.headers.set("access-control-allow-origin", "*");
-        response.headers.set("access-control-expose-headers", "*");
-        try {
-          const meta = await spacePrimitives.getFileMeta(name);
-          response.status = 200;
-          this.fileMetaToHeaders(response.headers, meta);
-        } catch {
-          // Have to do this because of CORS
-          response.status = 200;
-          response.headers.set("X-Status", "404");
-          response.body = "Not found";
-          // console.error("Options failed", err);
-        }
-      })
-      .delete(filePathRegex, corsMiddleware, async ({ response, params }) => {
+      .delete(filePathRegex, async ({ response, params }) => {
         const name = params[0];
         console.log("Deleting file", name);
+        if (name.startsWith(".")) {
+          // Don't expose hidden files
+          response.status = 403;
+          return;
+        }
         try {
           await spacePrimitives.deleteFile(name);
           response.status = 200;
           response.body = "OK";
         } catch (e: any) {
           console.error("Error deleting attachment", e);
-          response.status = 200;
+          response.status = 500;
           response.body = e.message;
         }
-      });
+      })
+      .options(filePathRegex, corsMiddleware);
     return fsRouter;
   }
 
@@ -441,7 +427,6 @@ export class HttpServer {
     );
     headers.set("Cache-Control", "no-cache");
     headers.set("X-Permission", fileMeta.perm);
-    headers.set("X-Content-Length", "" + fileMeta.size);
   }
 
   stop() {

@@ -36,13 +36,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return result;
   }
 
-  getRealStatus(r: Response) {
-    if (r.headers.get("X-Status")) {
-      return +r.headers.get("X-Status")!;
-    }
-    return r.status;
-  }
-
   async fetchFileList(): Promise<FileMeta[]> {
     const resp = await this.authenticatedFetch(`${this.url}/index.json`, {
       method: "GET",
@@ -52,7 +45,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     });
 
     if (
-      this.getRealStatus(resp) === 200 &&
+      resp.status === 200 &&
       this.expectedSpacePath &&
       resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
@@ -75,7 +68,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "GET",
       },
     );
-    if (this.getRealStatus(res) === 404) {
+    if (res.status === 404) {
       throw new Error(`Not found`);
     }
     return {
@@ -117,7 +110,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "DELETE",
       },
     );
-    if (this.getRealStatus(req) !== 200) {
+    if (req.status !== 200) {
       throw Error(`Failed to delete file: ${req.statusText}`);
     }
   }
@@ -126,10 +119,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,
       {
-        method: "OPTIONS",
+        method: "HEAD",
       },
     );
-    if (this.getRealStatus(res) === 404) {
+    if (res.status === 404) {
       throw new Error(`Not found`);
     }
     return this.responseToMeta(name, res);
@@ -138,7 +131,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   private responseToMeta(name: string, res: Response): FileMeta {
     return {
       name,
-      size: +res.headers.get("X-Content-Length")!,
+      size: +res.headers.get("Content-Length")!,
       contentType: res.headers.get("Content-type")!,
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",

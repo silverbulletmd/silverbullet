@@ -98,7 +98,7 @@ self.addEventListener("fetch", (event: any) => {
       }
 
       // If this is a /*.* request, this can either be a plug worker load or an attachment load
-      if (/\/.+\.\w+$/.test(pathname)) {
+      if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
         return handleLocalFileRequest(request, pathname);
       } else if (pathname === "/.auth") {
         return fetch(request);
@@ -121,7 +121,7 @@ async function handleLocalFileRequest(
   const path = decodeURIComponent(pathname.slice(1));
   const data = await fileContentTable.get(path);
   if (data) {
-    console.log("Serving from space", path);
+    // console.log("Serving from space", path);
     if (!data.meta) {
       // Legacy database not fully synced yet
       data.meta = (await fileMetatable!.get(path))!;

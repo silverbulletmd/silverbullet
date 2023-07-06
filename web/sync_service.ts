@@ -156,16 +156,6 @@ export class SyncService {
     await this.registerSyncStop();
   }
 
-  // Reach out out to remote space, fetch the latest lastModified time and update the local snapshot
-  // This is used when exiting collab mode
-  async fetchAndPersistRemoteLastModified(path: string) {
-    const meta = await this.remoteSpace.getFileMeta(path);
-    await this.updateRemoteLastModified(
-      path,
-      meta.lastModified,
-    );
-  }
-
   start() {
     this.syncSpace().catch(
       console.error,

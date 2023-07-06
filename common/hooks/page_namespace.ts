@@ -69,7 +69,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
     if (!manifest.functions) {
       return [];
     }
-    for (let [funcName, funcDef] of Object.entries(manifest.functions)) {
+    for (const [funcName, funcDef] of Object.entries(manifest.functions)) {
       if (funcDef.pageNamespace) {
         if (!funcDef.pageNamespace.pattern) {
           errors.push(`Function ${funcName} has a namespace but no pattern`);

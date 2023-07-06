@@ -5,9 +5,6 @@ import { readSetting } from "$sb/lib/settings_page.ts";
 function resolveFederated(pageName: string): string {
   // URL without the prefix "!""
   let url = pageName.substring(1);
-  const pieces = url.split("/");
-  pieces.splice(1, 0, ".fs");
-  url = pieces.join("/");
   if (!url.startsWith("127.0.0.1") && !url.startsWith("localhost")) {
     url = `https://${url}`;
   } else {
@@ -153,7 +150,7 @@ export async function deleteFile(
 export async function getFileMeta(name: string): Promise<FileMeta> {
   const url = resolveFederated(name);
   console.log("Fetching federation file meta", url);
-  const r = await nativeFetch(url, { method: "OPTIONS" });
+  const r = await nativeFetch(url, { method: "HEAD" });
   const fileMeta = await responseToFileMeta(r, name);
   if (!r.ok) {
     throw new Error("Not found");
