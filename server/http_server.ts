@@ -71,9 +71,6 @@ export class HttpServer {
       .replaceAll(
         "{{SPACE_PATH}}",
         this.options.pagesPath.replaceAll("\\", "\\\\"),
-      ).replaceAll(
-        "{{SYNC_ENDPOINT}}",
-        "",
       );
   }
 

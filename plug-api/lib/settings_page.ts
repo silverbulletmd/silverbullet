@@ -1,8 +1,7 @@
-import { readYamlPage } from "./yaml_page.ts";
-import { notifyUser } from "./util.ts";
+import { readYamlPage } from "$sb/lib/yaml_page.ts";
 import { YAML } from "$sb/plugos-syscall/mod.ts";
 
-import { space } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values
@@ -65,7 +64,7 @@ export async function writeSettings<T extends object>(settings: T) {
   try {
     readSettings = (await readYamlPage(SETTINGS_PAGE, ["yaml"])) || {};
   } catch {
-    await notifyUser("Creating a new SETTINGS page...", "info");
+    await editor.flashNotification("Creating a new SETTINGS page...", "info");
   }
   const writeSettings: any = { ...readSettings, ...settings };
   // const doc = new YAML.Document();

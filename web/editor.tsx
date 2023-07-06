@@ -135,6 +135,7 @@ import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primiti
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { run } from "../plug-api/plugos-syscall/shell.ts";
+import { isValidPageName } from "$sb/lib/page.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -152,7 +153,6 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
-      syncEndpoint: string;
     };
     editor: Editor;
   }
@@ -230,7 +230,7 @@ export class Editor {
 
     // Setup space
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
-      runtimeConfig.syncEndpoint,
+      location.origin,
       runtimeConfig.spaceFolderPath,
       true,
     );
@@ -1054,7 +1054,7 @@ export class Editor {
     await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
       try {
         await this.system.load(
-          new URL(plugName, location.href),
+          new URL(plugName, location.origin),
           createSandbox,
         );
       } catch (e: any) {
@@ -1163,6 +1163,13 @@ export class Editor {
   ) {
     if (!name) {
       name = this.settings!.indexPage;
+    }
+
+    if (!isValidPageName(name)) {
+      return this.flashNotification(
+        "Invalid page name: page names cannot end with a file extension",
+        "error",
+      );
     }
 
     if (newWindow) {
