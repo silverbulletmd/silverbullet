@@ -17,6 +17,8 @@ const syncStartTimeKey = "syncStartTime";
 // Keeps the last time an activity was registered, used to detect if a sync is still alive and whether a new one should be started already
 const syncLastActivityKey = "syncLastActivity";
 
+const syncInitialFullSyncCompletedKey = "syncInitialFullSyncCompleted";
+
 // maximum time between two activities before we consider a sync crashed
 const syncMaxIdleTimeout = 1000 * 20; // 20s
 
@@ -76,10 +78,9 @@ export class SyncService {
     return true;
   }
 
-  async hasInitialSyncCompleted(): Promise<boolean> {
+  hasInitialSyncCompleted(): Promise<boolean> {
     // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
-    return !(await this.kvStore.has(syncStartTimeKey)) &&
-      (await this.kvStore.has(syncLastActivityKey));
+    return this.kvStore.has(syncInitialFullSyncCompletedKey);
   }
 
   async registerSyncStart(): Promise<void> {
@@ -106,6 +107,7 @@ export class SyncService {
   async registerSyncStop(): Promise<void> {
     await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
+    await this.kvStore.set(syncInitialFullSyncCompletedKey, true);
   }
 
   async getSnapshot(): Promise<Map<string, SyncStatusItem>> {
@@ -121,39 +123,6 @@ export class SyncService {
     while (await this.isSyncing()) {
       await sleep(100);
     }
-  }
-
-  // When in collab mode, we delegate the sync to the CDRT engine, to avoid conflicts, we try to keep the lastModified time in sync with the remote
-  async updateRemoteLastModified(path: string, lastModified: number) {
-    await this.noOngoingSync();
-    await this.registerSyncStart();
-    const snapshot = await this.getSnapshot();
-    const entry = snapshot.get(path);
-    if (entry) {
-      snapshot.set(path, [entry[0], lastModified]);
-    } else {
-      // In the unlikely scenario that a space first openen on a collab page before every being synced
-      try {
-        console.log(
-          "Received lastModified time for file not in snapshot",
-          path,
-          lastModified,
-        );
-        snapshot.set(path, [
-          (await this.localSpacePrimitives.getFileMeta(path)).lastModified,
-          lastModified,
-        ]);
-      } catch (e) {
-        console.warn(
-          "Received lastModified time for non-existing file not in snapshot",
-          path,
-          lastModified,
-          e,
-        );
-      }
-    }
-    await this.saveSnapshot(snapshot);
-    await this.registerSyncStop();
   }
 
   start() {
