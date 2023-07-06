@@ -44,7 +44,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const resp = await this.authenticatedFetch(this.url, {
+    const resp = await this.authenticatedFetch(`${this.url}/index.json`, {
       method: "GET",
       headers: {
         Accept: "application/json",

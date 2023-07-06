@@ -124,8 +124,7 @@ export class HttpServer {
     next: Next,
   ) {
     if (
-      request.url.pathname === "/" &&
-      request.headers.get("Accept") !== "application/json" // not requesting the listing
+      request.url.pathname === "/"
     ) {
       // Serve the UI (index.html)
       // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
@@ -253,18 +252,25 @@ export class HttpServer {
       exposedHeaders: "*",
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     });
+
     // File list
-    fsRouter.get("/", corsMiddleware, async ({ request, response }, next) => {
-      if (request.headers.get("Accept") === "application/json") {
-        // Only handle direct requests for a JSON representation of the file list (otherwise serve index.html later)
-        response.headers.set("Content-type", "application/json");
-        response.headers.set("X-Space-Path", this.options.pagesPath);
-        const files = await spacePrimitives.fetchFileList();
-        response.body = JSON.stringify(files);
-      } else {
-        return next();
-      }
-    });
+    fsRouter.get(
+      "/index.json",
+      corsMiddleware,
+      async ({ request, response }) => {
+        if (request.headers.get("Accept") === "application/json") {
+          // Only handle direct requests for a JSON representation of the file list
+          response.headers.set("Content-type", "application/json");
+          response.headers.set("X-Space-Path", this.options.pagesPath);
+          const files = await spacePrimitives.fetchFileList();
+          response.body = JSON.stringify(files);
+        } else {
+          // Otherwise, redirect to the UI
+          // The reason to do this is to handle authentication systems like Authelia nicely
+          response.redirect("/");
+        }
+      },
+    );
 
     // RPC
     fsRouter.post("/.rpc", corsMiddleware, async ({ request, response }) => {

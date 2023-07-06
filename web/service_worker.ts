@@ -24,41 +24,40 @@ const precacheFiles = Object.fromEntries([
 self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(async (cache) => {
-        console.log(
-          "[Service worker]",
-          "Now pre-caching client files",
-        );
-        await cache.addAll(Object.values(precacheFiles));
-        console.log(
-          "[Service worker]",
-          Object.keys(precacheFiles).length,
-          "client files cached",
-        );
-        // @ts-ignore: No need to wait
-        self.skipWaiting();
-      }),
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      console.log(
+        "[Service worker]",
+        "Now pre-caching client files",
+      );
+      await cache.addAll(Object.values(precacheFiles));
+      console.log(
+        "[Service worker]",
+        Object.keys(precacheFiles).length,
+        "client files cached",
+      );
+      // @ts-ignore: No need to wait
+      self.skipWaiting();
+    })(),
   );
 });
 
 self.addEventListener("activate", (event: any) => {
   console.log("[Service worker]", "Activating new service worker!!!");
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
             console.log("[Service worker]", "Removing old cache", cacheName);
             return caches.delete(cacheName);
           }
         }),
-      ).then(() => {
-        // Let's activate ourselves for all existing clients
-        // @ts-ignore: No need to wait, clients is a serviceworker thing
-        return clients.claim();
-      });
-    }),
+      );
+      // @ts-ignore: No need to wait
+      return clients.claim();
+    })(),
   );
 });
 
