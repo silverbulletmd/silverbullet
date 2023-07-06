@@ -311,6 +311,22 @@
     font-size: 91%;
   }
 
+  .sb-directive-start {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-style: solid;
+    border-width: 1px 1px 0 1px;
+    padding: 3px;
+  }
+
+  .sb-directive-end {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-style: solid;
+    border-width: 0 1px 1px 1px;
+    padding: 3px;
+  }
+
   .sb-directive-start .sb-comment,
   .sb-directive-end .sb-comment {
     position: relative;
