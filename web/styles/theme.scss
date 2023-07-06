@@ -1,7 +1,12 @@
 #sb-root {
-  --highlight-color: #464cfc;
-  --directive-border-color: #0000000f;
-  --directive-font-color: #5b5b5b;
+  --ui-accent-color: #464cfc;
+  --highlight-color: rgba(255, 255, 0, 0.5);
+  --link-color: #0330cb;
+  --link-missing-color: #9e4705;
+  --meta-color: #650007;
+  --meta-subtle-color: #959595;
+  --subtle-color: #676767;
+  --subtle-background-color: rgba(72, 72, 72, 0.1);
 
   --top-background-color: #e1e1e1;
   --top-border-color: #cacaca;
@@ -16,10 +21,10 @@
   --modal-background-color: #fff;
   // --modal-border-color: #000;
   --modal-border-color: rgb(108, 108, 108);
-  --modal-header-label-color: var(--highlight-color);
+  --modal-header-label-color: var(--ui-accent-color);
   --modal-help-background-color: #eee;
   --modal-help-color: #555;
-  --modal-selected-option-background-color: var(--highlight-color);
+  --modal-selected-option-background-color: var(--ui-accent-color);
   --modal-selected-option-color: #eee;
   --modal-hint-background-color: #212476;
   --modal-hint-color: #eee;
@@ -41,6 +46,54 @@
   --editor-panels-bottom-border-color: #cacaca;
   --editor-completion-detail-color: #555;
   --editor-completion-detail-selected-color: #d2d2d2;
+  --editor-list-bullet-color: rgb(150, 150, 150);
+  --editor-heading-color: #333;
+  --editor-heading-meta-color: var(--meta-subtle-color);
+  --editor-hashtag-background-color: #002b6aad;
+  --editor-hashtag-color: #e2e9ff;
+  --editor-hashtag-border-color: #0120416b;
+  --editor-ruler-color: rgb(76, 75, 75);
+  --editor-naked-url-color: var(--link-color);
+  --editor-link-color: var(--link-color);
+  --editor-link-url-color: var(--link-color);
+  --editor-link-meta-color: var(--meta-subtle-color);
+  --editor-wiki-link-page-background-color: rgba(77, 141, 255, 0.07);
+  --editor-wiki-link-page-color: var(--link-color);
+  --editor-wiki-link-page-missing-color: var(--link-missing-color);
+  --editor-wiki-link-color: #8f96c2;
+  --editor-named-anchor-color: var(--meta-subtle-color);
+  --editor-command-button-background-color: #e3dfdf;
+  --editor-command-button-meta-color: var(--meta-subtle-color);
+  --editor-command-button-border-color: gray;
+  --editor-line-meta-color: var(--meta-subtle-color);
+  --editor-meta-color: var(--meta-color);
+  --editor-table-head-background-color: #333;
+  --editor-table-head-color: #eee;
+  --editor-table-even-background-color: #f3f3f3;
+  --editor-blockquote-background-color: var(--subtle-background-color);
+  --editor-blockquote-color: var(--subtle-color);
+  --editor-blockquote-border-color: rgb(74, 74, 74);
+  --editor-code-background-color: var(--subtle-background-color);
+  --editor-struct-color: darkred;
+  --editor-highlight-background-color: var(--highlight-color);
+  --editor-code-comment-color: var(--meta-subtle-color);
+  --editor-code-variable-color: #024866;
+  --editor-code-typename-color: #038138;
+  --editor-code-string-color: #440377;
+  --editor-code-number-color: #440377;
+  --editor-code-info-color: var(--subtle-color);
+  --editor-code-atom-color: darkred;
+  --editor-admonition-note-border-color: rgb(0, 184, 212);
+  --editor-admonition-note-background-color: rgba(0, 184, 212, 0.1);
+  --editor-admonition-warning-border-color: rgb(255, 145, 0);
+  --editor-admonition-warning-background-color: rgba(255, 145, 0, 0.1);
+  --editor-frontmatter-background-color: rgba(255, 246, 189, 0.5);
+  --editor-frontmatter-color: var(--subtle-color);
+  --editor-frontmatter-marker-color: #89000080;
+  --editor-directive-border-color: #0000000f;
+  --editor-directive-font-color: #5b5b5b;
+  --editor-directive-info-color: var(--subtle-color);
+  --editor-task-marker-color: var(--subtle-color);
 
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
@@ -168,51 +221,20 @@
   .cm-panels-bottom {
     background-color: var(--editor-panels-bottom-background-color);
     border-top: var(--editor-panels-bottom-border-color) 1px solid;
-
-    .cm-vim-panel {
-      padding: 0 20px;
-      max-width: var(--editor-width);
-      margin: auto;
-    }
   }
 
   .cm-editor .cm-tooltip-autocomplete {
     .cm-completionDetail {
-      font-style: normal;
-      display: block;
-      font-size: 80%;
-      margin-left: 5px;
-      color: #555;
+      color: var(--editor-completion-detail-color);
     }
 
     li[aria-selected] .cm-completionDetail {
-      color: #d2d2d2;
-    }
-
-    .cm-completionLabel {
-      display: block;
-      margin-left: 5px;
-    }
-
-    .cm-completionIcon {
-      display: none;
+      color: var(--editor-completion-detail-selected-color);
     }
   }
 
-  .sb-header-inside.sb-line-h1 {
-    text-indent: -2ch;
-  }
-
-  .sb-header-inside.sb-line-h2 {
-    text-indent: -3ch;
-  }
-
-  .sb-header-inside.sb-line-h3 {
-    text-indent: -4ch;
-  }
-
-  .sb-header-inside.sb-line-h4 {
-    text-indent: -5ch;
+  .cm-list-bullet::after {
+    color: var(--editor-list-bullet-color);
   }
 
   .sb-line-h1,
@@ -220,242 +242,167 @@
   .sb-line-h3,
   .sb-line-h4 {
     // background-color: rgba(0, 30, 77, 0.5);
-    color: #333;
-    font-weight: bold;
-    padding: 2px 2px !important;
+    color: var(--editor-heading-color);
   }
 
   .sb-line-h1 .sb-meta,
   .sb-line-h2 .sb-meta,
   .sb-line-h3 .sb-meta,
   .sb-line-h4 .sb-meta {
-    color: #a1a1a0;
-  }
-
-  .sb-line-h1 {
-    font-size: 1.5em;
-  }
-
-  .sb-line-h2 {
-    font-size: 1.2em;
-  }
-
-  .sb-line-h3 {
-    font-size: 1.1em;
-  }
-
-  .sb-line-h4 {
-    font-size: 1em;
+    color: var(--editor-heading-meta-color);
   }
 
   .sb-hashtag {
-    color: #e2e9ff;
-    background-color: #002b6aad;
-    border: 1px solid #0120416b;
-    border-radius: 6px;
-    padding: 0 3px;
-    margin: 0 1px 0 0;
-    font-size: 0.9em;
-  }
-
-  .sb-strikethrough {
-    text-decoration: line-through;
-
-    &.sb-meta {
-      text-decoration: none;
-    }
+    color: var(--editor-hashtag-color);
+    background-color: var(--editor-hashtag-background-color);
+    border: 1px solid var(--editor-hashtag-border-color);
   }
 
   .sb-line-hr {
-    border-top: rgb(76, 75, 75) solid 1px;
-    margin-top: 1em;
-    margin-bottom: -1em;
-  }
-
-  .sb-hr {
-    font-weight: bold;
+    border-top: var(--editor-ruler-color) solid 1px;
   }
 
   .sb-naked-url {
-    color: #0330cb;
-    cursor: pointer;
+    color: var(--editor-naked-url-color);
   }
 
   .sb-named-anchor {
-    color: #959595;
+    color: var(--editor-named-anchor-color);
   }
 
   .sb-command-button {
     font-family: var(--editor-font);
-    font-size: 1em;
-    cursor: pointer;
+    background-color: var(--editor-command-button-background-color);
+    border: 1px solid var(--editor-command-button-border-color);
   }
 
-  .sb-command-link.sb-meta {
-    color: #959595;
-  }
-
-  .sb-command-link-name {
-    background-color: #e3dfdf;
-    cursor: pointer;
-    border-top: 1px solid silver;
-    border-left: 1px solid silver;
-    border-bottom: 1px solid gray;
-    border-right: 1px solid gray;
-    border-radius: 4px;
-    padding: 0 4px;
+  .sb-command-link {
+    &.sb-meta {
+      color: var(--editor-command-button-meta-color);
+    }
+    &.sb-command-link-name {
+      background-color: var(--editor-command-button-background-color);
+      border: 1px solid var(--editor-command-button-border-color);
+    }
   }
 
   /* Color list item this way */
   .sb-line-li .sb-meta {
-    color: rgb(150, 150, 150);
+    color: var(--editor-line-meta-color);
   }
 
   /* Then undo other meta */
   .sb-line-li .sb-meta ~ .sb-meta {
-    color: #650007;
+    color: var(--editor-meta-color);
   }
 
-  .sb-line-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
+  .sb-table-widget {
+    thead tr {
+      background-color: var(--editor-table-head-background-color);
+      color: var(--editor-table-head-color);
+    }
 
-  .sb-line-code .sb-code {
-    background-color: transparent;
-  }
-
-  .sb-line-tbl-header {
-    font-weight: bold;
-  }
-
-  .sb-line-tbl-header .meta {
-    font-weight: normal;
-  }
-
-  .sb-struct {
-    color: darkred;
-  }
-
-  .sb-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  .sb-highlight {
-    background-color: rgba(255, 255, 0, 0.5);
-  }
-
-  .sb-line-fenced-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  /* Mostly for JS when that comes back */
-  .sb-line-fenced-code .sb-code {
-    background-color: transparent;
-  }
-
-  .sb-line-fenced-code .sb-comment {
-    color: #989797;
-    background-color: transparent;
-    border-radius: 0;
-    font-style: inherit;
-    font-size: inherit;
-    line-height: inherit;
-  }
-
-  .sb-keyword {
-    font-weight: bold;
-  }
-
-  .sb-variableName {
-    color: #024866;
-  }
-
-  .sb-typeName {
-    color: #038138;
-  }
-
-  .sb-string,
-  .sb-string2,
-  .sb-number {
-    color: #440377;
-  }
-
-  .sb-string {
-    color: #440377;
-  }
-
-  .sb-meta {
-    color: #650007;
+    tbody tr:nth-of-type(even) {
+      background-color: var(--editor-table-even-background-color);
+    }
   }
 
   .sb-line-blockquote {
-    background-color: rgba(220, 220, 220, 0.5);
-    color: #676767;
-    text-indent: -2ch;
-    padding-left: 2ch;
+    background-color: var(--editor-blockquote-background-color);
+    color: var(--editor-blockquote-color);
+    border-left: 1px solid var(--editor-blockquote-border-color);
   }
 
-  .sb-admonition {
-    border-left-width: 4px !important;
-    border-left-style: solid;
+  .sb-line-code {
+    background-color: var(--editor-code-background-color);
   }
 
-  .sb-admonition-icon {
-    display: inline-flex;
-    vertical-align: middle;
-    padding-left: 16px;
-    padding-right: 8px;
+  .sb-struct {
+    color: var(--editor-struct-color);
+  }
+
+  .sb-code {
+    background-color: var(--editor-code-background-color);
+  }
+
+  .sb-highlight {
+    background-color: var(--editor-highlight-background-color);
+  }
+
+  .sb-line-fenced-code {
+    background-color: var(--editor-code-background-color);
+  }
+
+  .sb-line-fenced-code .sb-comment {
+    color: var(--editor-code-comment-color);
+  }
+
+  .sb-variableName {
+    color: var(--editor-code-variable-color);
+  }
+
+  .sb-typeName {
+    color: var(--editor-code-typename-color);
+  }
+
+  .sb-string,
+  .sb-string2 {
+    color: var(--editor-code-string-color);
+  }
+
+  .sb-number {
+    color: var(--editor-code-number-color);
+  }
+
+  .sb-meta {
+    color: var(--editor-meta-color);
   }
 
   .sb-admonition.sb-admonition-note {
-    border-left-color: rgb(0, 184, 212);
+    border-left-color: var(--editor-admonition-note-border-color);
   }
 
   .sb-admonition.sb-admonition-warning {
-    border-left-color: rgb(255, 145, 0);
+    border-left-color: var(--editor-admonition-warning-border-color);
   }
 
   .sb-admonition-title.sb-admonition-note {
-    background-color: rgba(0, 184, 212, 0.1);
+    background-color: var(--editor-admonition-note-background-color);
   }
 
   .sb-admonition-title.sb-admonition-warning {
-    background-color: rgba(255, 145, 0, 0.1);
+    background-color: var(--editor-admonition-warning-background-color);
   }
 
   .sb-admonition-note .sb-admonition-icon {
-    color: rgb(0, 184, 212);
+    color: var(--editor-admonition-note-border-color);
   }
 
-  sb-admonition-warning .sb-admonition-icon {
-    color: rgb(255, 145, 0);
+  .sb-admonition-warning .sb-admonition-icon {
+    color: var(--editor-admonition-warning-border-color);
   }
 
   // Frontmatter
 
   .sb-frontmatter {
-    background-color: rgba(255, 246, 189, 0.5);
-    color: #676767;
+    background-color: var(--editor-frontmatter-background-color);
+    color: var(--editor-frontmatter-color);
   }
 
   .sb-frontmatter-marker {
-    color: #890000;
-    float: right;
-    font-size: 80%;
-    padding-right: 7px;
-    opacity: 0.25;
+    color: var(--editor-frontmatter-marker-color);
   }
 
   // Directives
 
   .sb-directive-body {
-    border-left: 1px solid var(--directive-border-color);
-    border-right: 1px solid var(--directive-border-color);
+    border-left: 1px solid var(--editor-directive-border-color);
+    border-right: 1px solid var(--editor-directive-border-color);
   }
 
   .cm-line.sb-directive-start,
   .cm-line.sb-directive-end {
-    color: var(--directive-font-color);
+    color: var(--editor-directive-font-color);
 
     background-color: rgb(233, 233, 233, 50%);
     padding: 3px;
@@ -465,7 +412,7 @@
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     border-style: solid;
-    border-color: var(--directive-border-color);
+    border-color: var(--editor-directive-border-color);
     border-width: 1px 1px 0 1px;
   }
 
@@ -473,40 +420,14 @@
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
     border-style: solid;
-    border-color: var(--directive-border-color);
+    border-color: var(--editor-directive-border-color);
     border-width: 0 1px 1px 1px;
   }
 
-  .sb-directive-start-outside {
-    color: transparent !important;
-    pointer-events: none;
-
-    .sb-directive-placeholder {
-      color: var(--directive-font-color) !important;
-      opacity: 0.25;
-      padding-right: 7px;
-      float: right;
-      font-size: 80%;
-    }
-
-    * {
-      color: transparent !important;
-    }
-  }
-
+  .sb-directive-start-outside,
   .sb-directive-end-outside {
-    color: transparent !important;
-
-    .sb-directive-placeholder {
-      color: var(--directive-font-color) !important;
-      opacity: 0.25;
-      padding-right: 7px;
-      font-size: 80%;
-      float: right;
-    }
-
-    * {
-      color: transparent !important;
+    & > span.sb-directive-placeholder {
+      color: var(--editor-directive-info-color);
     }
   }
 
@@ -519,70 +440,48 @@
   }
 
   .sb-line-code-outside .sb-code-info {
-    display: block;
-    float: right;
-    color: #000;
-    opacity: 0.25;
-    font-size: 90%;
-    padding-right: 7px;
-  }
-
-  .sb-link:not(.sb-url) {
-    cursor: pointer;
+    color: var(--editor-code-info-color);
   }
 
   .sb-link:not(.sb-meta, .sb-url) {
-    color: #0330cb;
-    text-decoration: underline;
+    color: var(--editor-link-color);
   }
 
   .sb-link.sb-url {
-    color: #7e7d7d;
+    color: var(--editor-link-meta-color);
   }
 
   .sb-url:not(.sb-link) {
-    color: #0330cb;
-    text-decoration: underline;
-    cursor: pointer;
+    color: var(--editor-link-url-color);
   }
 
   .sb-atom {
-    color: darkred;
+    color: var(--editor-code-atom-color);
   }
 
   .sb-wiki-link-page {
-    color: #0330cb;
-    background-color: rgba(77, 141, 255, 0.07);
-    border-radius: 5px;
-    padding: 0 5px;
-    // white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
+    color: var(--editor-wiki-link-page-color);
+    background-color: var(--editor-wiki-link-page-background-color);
   }
 
   a.sb-wiki-link-page-missing,
   .sb-wiki-link-page-missing > .sb-wiki-link-page {
-    color: #9e4705;
-    background-color: rgba(77, 141, 255, 0.07);
-    border-radius: 5px;
-    padding: 0 5px;
-    // white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
+    color: var(--editor-wiki-link-page-missing-color);
+    background-color: var(--editor-wiki-link-page-background-color);
   }
 
   .sb-wiki-link {
-    cursor: pointer;
-    color: #8f96c2;
+    color: var(--editor-wiki-link-page-color); // #8f96c2;
   }
 
   .sb-task-marker {
-    color: #676767;
-    font-size: 91%;
+    color: var(--editor-task-marker-color);
   }
 
   .sb-line-comment {
-    background-color: rgba(255, 255, 0, 0.5);
+    background-color: var(
+      --editor-code-comment-color
+    ); // rgba(255, 255, 0, 0.5);
   }
 }
 
