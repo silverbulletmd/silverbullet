@@ -31,13 +31,13 @@ curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/
 echo "But remove some plugs"
 rm -rf website_build/_plug/{plugmd}.plug.js
 
-echo "Generating file listing"
-deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 # Generate random modified date, and replace in _headers too
 export LAST_MODIFIED_TIMESTAMP=$RANDOM
 
 cat website/_headers | sed "s/12345/$LAST_MODIFIED_TIMESTAMP/g" > website_build/_headers
+echo "Generating file listing"
+deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
 echo > website_build/empty.md
 
