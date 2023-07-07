@@ -118,6 +118,11 @@ async function handleLocalFileRequest(
     // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
     return fetch(request);
   }
+
+  if (!db?.isOpen()) {
+    console.log("Detected that the DB was closed, reopening");
+    await db!.open();
+  }
   const path = decodeURIComponent(pathname.slice(1));
   const data = await fileContentTable.get(path);
   if (data) {
