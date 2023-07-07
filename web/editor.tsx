@@ -1167,7 +1167,7 @@ export class Editor {
 
     if (!isValidPageName(name)) {
       return this.flashNotification(
-        "Invalid page name: page names cannot end with a file extension",
+        "Invalid page name: page names cannot end with a file extension nor start with a '.'",
         "error",
       );
     }
