@@ -259,3 +259,14 @@
 div:not(.cm-focused).cm-fat-cursor {
   outline: none !important;
 }
+
+@media only screen and (max-width: 600px) {
+  #sb-main .cm-editor {
+    .sb-table-widget {
+      overflow: auto;
+      th, td {
+        white-space: nowrap;
+      }
+    }
+  }
+}

@@ -682,3 +682,11 @@ html[data-theme="dark"] {
   }
 
 }
+
+@media only screen and (max-width: 600px) {
+  #sb-editor {
+    .sb-directive-start-outside, .sb-directive-end-outside {
+      height: 22px;
+    }
+  }
+}
