@@ -17,6 +17,8 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "../../plug-api/lib/tree.ts";
+import { folderName, resolve } from "../../common/path.ts";
+
 const turndownService = new TurndownService({
   hr: "---",
   codeBlockStyle: "fenced",
@@ -201,6 +203,8 @@ export function attachmentExtension(editor: Editor) {
       );
       return;
     }
+
+    suggestedName = resolve(folderName(editor.currentPage!), suggestedName);
 
     const finalFileName = await editor.prompt(
       "File name for pasted attachment",

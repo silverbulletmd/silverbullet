@@ -3,9 +3,12 @@ release.
 
 ---
 
-## Next
+## 0.3.5
 * **Removal of all real-time collaboration features**: this was causing too many edge cases, and complicated the code too much. To simplify the product as well as the code, we completely removed all real-time collaboration features for now. We may introduce this at some point in the future when the demand and focus is there.
 * **Change of APIs**: This is mostly internal, but will likely have effects on the first load after the upgrade: you may see errors or a message around “the path has changed”, or your page may not properly load. Don’t freak out, just reload once or twice and all should resync and be fine. There’s a beginning of documenting the server [[API]] now.
+* Better [[Authelia]] support
+* When drag & dropping (or copy & pasting) a file onto a page now, the location will default to the same folder the page is in.
+* Various bug fixes
 
 ---
 

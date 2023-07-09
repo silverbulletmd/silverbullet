@@ -23,7 +23,7 @@ Whenever the directives are updated, the body of the directive will be replaced 
 
 ## Use
 $use
-The `#use` directive can be used to use a referenced page as a handbars template. Optionally, a JSON object can be passed as argument to the template:
+The `#use` directive can be used to use a referenced page as a handlebars template. Optionally, a JSON object can be passed as argument to the template:
 
     <!-- #use [[template/plug]] {"name": "🔌 Directive", "repo": "https://google.com", "author": "Pete"} -->
     
@@ -37,7 +37,7 @@ which renders as follows:
 
 Note that a string is also a valid JSON value:
 
-So, a template can take, for instance a tag name as an argument:
+So, for instance, a template can take a tag name as an argument:
 
     <!-- #use [[template/tagged-tasks]] "test" -->
     * [ ] [[🔌 Directive@1537]] This is a test task  #test

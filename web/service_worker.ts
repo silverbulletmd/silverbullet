@@ -97,11 +97,11 @@ self.addEventListener("fetch", (event: any) => {
         return fetch(request);
       }
 
-      // If this is a /*.* request, this can either be a plug worker load or an attachment load
-      if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
-        return handleLocalFileRequest(request, pathname);
-      } else if (pathname === "/.auth") {
+      if (pathname === "/.auth" || pathname === "/index.json") {
         return fetch(request);
+      } else if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
+        // If this is a /*.* request, this can either be a plug worker load or an attachment load
+        return handleLocalFileRequest(request, pathname);
       } else {
         // Must be a page URL, let's serve index.html which will handle it
         return (await caches.match(precacheFiles["/"])) || fetch(request);
@@ -117,6 +117,11 @@ async function handleLocalFileRequest(
   if (!fileContentTable) {
     // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
     return fetch(request);
+  }
+
+  if (!db?.isOpen()) {
+    console.log("Detected that the DB was closed, reopening");
+    await db!.open();
   }
   const path = decodeURIComponent(pathname.slice(1));
   const data = await fileContentTable.get(path);

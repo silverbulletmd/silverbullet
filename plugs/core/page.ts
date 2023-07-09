@@ -139,7 +139,7 @@ export async function renamePage(cmdDef: any) {
 
   if (!isValidPageName(newName)) {
     return editor.flashNotification(
-      "Invalid page name: page names cannot end with a file extension",
+      "Invalid page name: page names cannot end with a file extension nor start with a '.'",
       "error",
     );
   }

@@ -52,7 +52,7 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "../common/deps.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
+import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import {
   loadMarkdownExtensions,
   MDExt,
@@ -371,11 +371,14 @@ export class Editor {
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
       console.log("Plug updated, reloading:", fileName);
       system.unload(fileName);
-      await system.load(
-        // await this.space.readFile(fileName, "utf8"),
+      const plug = await system.load(
         new URL(`/${fileName}`, location.href),
         createSandbox,
       );
+      if ((plug.manifest! as Manifest).syntax) {
+        // If there are syntax extensions, rebuild the markdown parser immediately
+        this.updateMarkdownParser();
+      }
       this.plugsUpdated = true;
     });
   }
@@ -1065,10 +1068,7 @@ export class Editor {
     await this.dispatchAppEvent("plugs:loaded");
   }
 
-  rebuildEditorState() {
-    const editorView = this.editorView;
-    console.log("Rebuilding editor state");
-
+  updateMarkdownParser() {
     // Load all syntax extensions
     this.mdExtensions = loadMarkdownExtensions(this.system);
     // And reload the syscalls to use the new syntax extensions
@@ -1076,6 +1076,13 @@ export class Editor {
       [],
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
     );
+  }
+
+  rebuildEditorState() {
+    const editorView = this.editorView;
+    console.log("Rebuilding editor state");
+
+    this.updateMarkdownParser();
 
     if (editorView && this.currentPage) {
       // And update the editor if a page is loaded
@@ -1167,7 +1174,7 @@ export class Editor {
 
     if (!isValidPageName(name)) {
       return this.flashNotification(
-        "Invalid page name: page names cannot end with a file extension",
+        "Invalid page name: page names cannot end with a file extension nor start with a '.'",
         "error",
       );
     }

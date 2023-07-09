@@ -394,8 +394,8 @@ export function renderMarkdownToHtml(
         t.attrs!.src = options.translateUrls!(t.attrs!.src!);
       }
 
-      if (t.name === "a") {
-        t.attrs!.href = options.translateUrls!(t.attrs!.href!);
+      if (t.name === "a" && t.attrs!.href) {
+        t.attrs!.href = options.translateUrls!(t.attrs!.href);
       }
     });
   }
