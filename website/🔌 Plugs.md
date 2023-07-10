@@ -17,7 +17,6 @@ Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.j
 ## Core plugs
 These plugs are distributed with SilverBullet and are automatically enabled:
 <!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
-* [[🔌 Collab]] 
 * [[🔌 Core]] 
 * [[🔌 Directive]] 
 * [[🔌 Emoji]] 
