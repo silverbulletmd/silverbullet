@@ -31,7 +31,7 @@ Here’s the kicker:
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally.
+On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally. (Note that a few other features including _directive_ updating are also disabled.)
 
 Don’t just sit there, try it!
 
