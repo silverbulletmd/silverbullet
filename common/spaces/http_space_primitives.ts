@@ -21,9 +21,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.headers = { ...options.headers, ...{ "X-Sync-Mode": "true" } };
     }
 
-    const result = await fetch(url, {
-      ...options,
-    });
+    const result = await fetch(url, options);
     if (result.redirected) {
       // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
       console.log(
@@ -118,8 +116,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   async getFileMeta(name: string): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,
+      // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
+      // so we'll use GET instead and not use the body. A bit wasteful, but it works.
       {
-        method: "HEAD",
+        method: "GET",
       },
     );
     if (res.status === 404) {
