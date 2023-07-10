@@ -195,6 +195,7 @@
   .cm-task-checked {
     text-decoration: line-through !important;
   }
+
   .cm-tooltip-autocomplete {
     .cm-completionDetail {
       font-style: normal;
@@ -229,7 +230,7 @@
     text-indent: -5ch;
   }
 
-  .sb-checkbox > input[type="checkbox"] {
+  .sb-checkbox>input[type="checkbox"] {
     width: 3ch;
   }
 
@@ -295,7 +296,7 @@
   }
 
   a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing > .sb-wiki-link-page {
+  .sb-wiki-link-page-missing>.sb-wiki-link-page {
     border-radius: 5px;
     padding: 0 5px;
     // white-space: nowrap;
@@ -344,7 +345,7 @@
       font-size: 80%;
     }
 
-    & > span,
+    &>span,
     &.sb-directive-start,
     &.sb-directive-end {
       color: transparent;
@@ -356,6 +357,7 @@
     .sb-meta {
       color: transparent;
     }
+
     color: transparent;
   }
 
@@ -445,7 +447,7 @@
     }
   }
 
-  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
+  .sb-line-blockquote.sb-line-ul.sb-line-li>.sb-quote.sb-meta:first-child {
     margin-left: -1ch;
   }
 
@@ -475,4 +477,25 @@
 
 div:not(.cm-focused).cm-fat-cursor {
   outline: none !important;
+}
+
+@media only screen and (max-width: 600px) {
+  #sb-main .cm-editor {
+    .sb-table-widget {
+      overflow: auto;
+
+      th,
+      td {
+        white-space: nowrap;
+      }
+    }
+  }
+
+  #sb-editor {
+
+    .sb-directive-start-outside,
+    .sb-directive-end-outside {
+      height: 22px;
+    }
+  }
 }
