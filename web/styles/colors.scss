@@ -1,0 +1,387 @@
+#sb-root {
+  font-family: var(--ui-font);
+  background-color: var(--root-background-color);
+  color: var(--root-color);
+}
+
+.cm-cursor {
+  border-left: 1.2px solid var(--editor-caret-color) !important;
+}
+
+#sb-top {
+  color: var(--top-color);
+  background-color: var(--top-background-color);
+  border-bottom: var(--top-border-color) 1px solid;
+}
+
+#sb-top.sb-sync-error {
+  color: var(--top-sync-error-color);
+  background-color: var(--top-sync-error-background-color);
+}
+
+.sb-saved {
+  color: var(--top-saved-color);
+}
+
+.sb-unsaved {
+  color: var(--top-unsaved-color);
+}
+
+.sb-loading {
+  color: var(--top-loading-color);
+}
+
+.sb-panel {
+  border-left: 1px solid var(--panel-border-color);
+  background-color: var(--panel-background-color);
+}
+
+.sb-bhs {
+  border-top: var(--bhs-border-color) 1px solid;
+  background-color: var(--bhs-background-color);
+}
+
+.sb-modal {
+  border: 1px solid var(--modal-border-color);
+  background-color: var(--modal-background-color);
+}
+
+.sb-notifications {
+  font-family: var(--editor-font);
+}
+
+.sb-notifications > div {
+  border: var(--notifications-border-color) 1px solid;
+}
+
+.sb-notification-info {
+  background-color: var(--notification-info-background-color);
+}
+
+.sb-notification-error {
+  background-color: var(--notification-error-background-color);
+}
+
+.sb-actions button {
+  border: 0;
+  margin: 3px;
+  padding: 5px;
+  background-color: var(--action-button-background-color);
+  color: var(--action-button-color);
+  cursor: pointer;
+}
+
+.sb-actions button:hover {
+  color: var(--action-button-hover-color);
+}
+
+/* Modal boxes */
+.sb-modal-box {
+  color: var(--modal-color);
+  background-color: var(--modal-background-color);
+  border: var(--modal-border-color) 1px solid;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+
+  .cm-scroller {
+    font-family: var(--ui-font);
+  }
+
+  .sb-header {
+    border-bottom: 1px var(--modal-border-color) solid;
+
+    label {
+      color: var(--modal-header-label-color);
+    }
+
+    .sb-mini-editor {
+      font-family: var(--ui-font);
+    }
+  }
+
+  .sb-help-text {
+    background-color: var(--modal-help-background-color);
+    border-bottom: 1px var(--modal-border-color) solid;
+    color: var(--modal-help-color);
+  }
+
+  .sb-selected-option {
+    background-color: var(--modal-selected-option-background-color);
+    color: var(--modal-selected-option-color);
+  }
+
+  .sb-result-list .sb-hint {
+    color: var(--modal-hint-color);
+    background-color: var(--modal-hint-background-color);
+  }
+}
+
+/* Editor */
+
+#sb-editor {
+  .cm-content {
+    font-family: var(--editor-font);
+  }
+
+  .cm-selectionBackground {
+    background-color: var(--editor-selection-background-color);
+  }
+
+  .cm-panels-bottom {
+    color: var(--editor-panels-bottom-color);
+    background-color: var(--editor-panels-bottom-background-color);
+    border-top: var(--editor-panels-bottom-border-color) 1px solid;
+  }
+
+  .cm-editor .cm-tooltip-autocomplete {
+    .cm-completionDetail {
+      color: var(--editor-completion-detail-color);
+    }
+
+    li[aria-selected] .cm-completionDetail {
+      color: var(--editor-completion-detail-selected-color);
+    }
+  }
+
+  .cm-list-bullet::after {
+    color: var(--editor-list-bullet-color);
+  }
+
+  .sb-line-h1,
+  .sb-line-h2,
+  .sb-line-h3,
+  .sb-line-h4 {
+    // background-color: rgba(0, 30, 77, 0.5);
+    color: var(--editor-heading-color);
+  }
+
+  .sb-line-h1 .sb-meta,
+  .sb-line-h2 .sb-meta,
+  .sb-line-h3 .sb-meta,
+  .sb-line-h4 .sb-meta {
+    color: var(--editor-heading-meta-color);
+  }
+
+  .sb-hashtag {
+    color: var(--editor-hashtag-color);
+    background-color: var(--editor-hashtag-background-color);
+    border: 1px solid var(--editor-hashtag-border-color);
+  }
+
+  .sb-line-hr {
+    border-top: var(--editor-ruler-color) solid 1px;
+  }
+
+  .sb-naked-url {
+    color: var(--editor-naked-url-color);
+  }
+
+  .sb-named-anchor {
+    color: var(--editor-named-anchor-color);
+  }
+
+  .sb-command-button {
+    font-family: var(--editor-font);
+    color: var(--editor-command-button-color);
+    background-color: var(--editor-command-button-background-color);
+    border: 1px solid var(--editor-command-button-border-color);
+  }
+  .sb-command-button:hover {
+    background-color: var(--editor-command-button-hover-background-color);
+  }
+
+  .sb-command-link {
+    &.sb-meta {
+      color: var(--editor-command-button-meta-color);
+    }
+    &.sb-command-link-name {
+      background-color: var(--editor-command-button-color);
+      background-color: var(--editor-command-button-background-color);
+      border: 1px solid var(--editor-command-button-border-color);
+    }
+    &.sb-command-link-name:hover {
+      background-color: var(--editor-command-button-hover-background-color);
+    }
+  }
+
+  /* Color list item this way */
+  .sb-line-li .sb-meta {
+    color: var(--editor-line-meta-color);
+  }
+
+  /* Then undo other meta */
+  .sb-line-li .sb-meta ~ .sb-meta {
+    color: var(--editor-meta-color);
+  }
+
+  .sb-table-widget {
+    thead tr {
+      background-color: var(--editor-table-head-background-color);
+      color: var(--editor-table-head-color);
+    }
+
+    tbody tr:nth-of-type(even) {
+      background-color: var(--editor-table-even-background-color);
+    }
+  }
+
+  .sb-line-blockquote {
+    background-color: var(--editor-blockquote-background-color);
+    color: var(--editor-blockquote-color);
+    border-left: 1px solid var(--editor-blockquote-border-color);
+  }
+
+  .sb-line-code {
+    background-color: var(--editor-code-background-color);
+  }
+
+  .sb-struct {
+    color: var(--editor-struct-color);
+  }
+
+  .sb-code {
+    background-color: var(--editor-code-background-color);
+  }
+
+  .sb-highlight {
+    background-color: var(--editor-highlight-background-color);
+  }
+
+  .sb-line-fenced-code {
+    background-color: var(--editor-code-background-color);
+  }
+
+  .sb-line-fenced-code .sb-comment {
+    color: var(--editor-code-comment-color);
+  }
+
+  .sb-variableName {
+    color: var(--editor-code-variable-color);
+  }
+
+  .sb-typeName {
+    color: var(--editor-code-typename-color);
+  }
+
+  .sb-string,
+  .sb-string2 {
+    color: var(--editor-code-string-color);
+  }
+
+  .sb-number {
+    color: var(--editor-code-number-color);
+  }
+
+  .sb-meta {
+    color: var(--editor-meta-color);
+  }
+
+  .sb-admonition.sb-admonition-note {
+    border-left-color: var(--editor-admonition-note-border-color);
+  }
+
+  .sb-admonition.sb-admonition-warning {
+    border-left-color: var(--editor-admonition-warning-border-color);
+  }
+
+  .sb-admonition-title.sb-admonition-note {
+    background-color: var(--editor-admonition-note-background-color);
+  }
+
+  .sb-admonition-title.sb-admonition-warning {
+    background-color: var(--editor-admonition-warning-background-color);
+  }
+
+  .sb-admonition-note .sb-admonition-icon {
+    color: var(--editor-admonition-note-border-color);
+  }
+
+  .sb-admonition-warning .sb-admonition-icon {
+    color: var(--editor-admonition-warning-border-color);
+  }
+
+  // Frontmatter
+
+  .sb-frontmatter {
+    background-color: var(--editor-frontmatter-background-color);
+    color: var(--editor-frontmatter-color);
+  }
+
+  .sb-frontmatter-marker {
+    color: var(--editor-frontmatter-marker-color);
+  }
+
+  // Directives
+
+  .sb-directive-body {
+    border-left: 1px solid var(--editor-directive-border-color);
+    border-right: 1px solid var(--editor-directive-border-color);
+  }
+
+  .cm-line.sb-directive-start,
+  .cm-line.sb-directive-end {
+    color: var(--editor-directive-color);
+    border-color: var(--editor-directive-border-color);
+    background-color: var(--editor-directive-background-color);
+  }
+
+  .sb-directive-start-outside,
+  .sb-directive-end-outside {
+    & > span.sb-directive-placeholder {
+      color: var(--editor-directive-info-color);
+    }
+  }
+
+  .sb-emphasis {
+    font-style: italic;
+  }
+
+  .sb-strong {
+    font-weight: 900;
+  }
+
+  .sb-line-code-outside .sb-code-info {
+    color: var(--editor-code-info-color);
+  }
+
+  a,
+  .sb-link:not(.sb-meta, .sb-url) {
+    color: var(--editor-link-color);
+  }
+
+  .sb-link.sb-url {
+    color: var(--editor-link-meta-color);
+  }
+
+  .sb-url:not(.sb-link) {
+    color: var(--editor-link-url-color);
+  }
+
+  .sb-atom {
+    color: var(--editor-code-atom-color);
+  }
+
+  .sb-wiki-link-page {
+    color: var(--editor-wiki-link-page-color);
+    background-color: var(--editor-wiki-link-page-background-color);
+  }
+
+  a.sb-wiki-link-page-missing,
+  .sb-wiki-link-page-missing > .sb-wiki-link-page {
+    color: var(--editor-wiki-link-page-missing-color);
+    background-color: var(--editor-wiki-link-page-background-color);
+  }
+
+  .sb-wiki-link {
+    color: var(--editor-wiki-link-page-color); // #8f96c2;
+  }
+
+  .sb-task-marker {
+    color: var(--editor-task-marker-color);
+  }
+
+  .sb-line-comment {
+    background-color: var(
+      --editor-code-comment-color
+    ); // rgba(255, 255, 0, 0.5);
+  }
+}

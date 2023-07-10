@@ -16,24 +16,52 @@
 
   .cm-line {
     padding: 0;
+
+    &.sb-line-h1,
+    &.sb-line-h2,
+    &.sb-line-h3,
+    &.sb-line-h4 {
+      font-weight: bold;
+      padding: 2px;
+    }
+  }
+
+  .sb-line-h1 {
+    font-size: 1.5em;
+  }
+
+  .sb-line-h2 {
+    font-size: 1.2em;
+  }
+
+  .sb-line-h3 {
+    font-size: 1.1em;
+  }
+
+  .sb-line-h4 {
+    font-size: 1em;
   }
 
   .sb-inline-img {
     max-width: 100%;
   }
 
+  .cm-panels-bottom .cm-vim-panel {
+    padding: 0 20px;
+    max-width: var(--editor-width);
+    margin: auto;
+  }
+
   // Gutter styling
   .cm-gutters {
     background-color: transparent;
     border-right: none;
-
   }
 
   .cm-foldPlaceholder {
     background-color: transparent;
     border: 0;
   }
-
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
@@ -157,20 +185,146 @@
     visibility: hidden;
   }
 
-  .cm-task-checked {
-    text-decoration: line-through !important;
-  }
-
-  .sb-checkbox>input[type=checkbox] {
-    width: 3ch;
-  }
-
   .cm-list-bullet::after {
     visibility: visible;
     position: absolute;
-    color: rgb(150, 150, 150);
     content: "\2022";
     /* U+2022 BULLET */
+  }
+
+  .cm-task-checked {
+    text-decoration: line-through !important;
+  }
+  .cm-tooltip-autocomplete {
+    .cm-completionDetail {
+      font-style: normal;
+      display: block;
+      font-size: 80%;
+      margin-left: 5px;
+    }
+
+    .cm-completionLabel {
+      display: block;
+      margin-left: 5px;
+    }
+
+    .cm-completionIcon {
+      display: none;
+    }
+  }
+
+  .sb-header-inside.sb-line-h1 {
+    text-indent: -2ch;
+  }
+
+  .sb-header-inside.sb-line-h2 {
+    text-indent: -3ch;
+  }
+
+  .sb-header-inside.sb-line-h3 {
+    text-indent: -4ch;
+  }
+
+  .sb-header-inside.sb-line-h4 {
+    text-indent: -5ch;
+  }
+
+  .sb-checkbox > input[type="checkbox"] {
+    width: 3ch;
+  }
+
+  .sb-hashtag {
+    border-radius: 6px;
+    padding: 0 3px;
+    margin: 0 1px 0 0;
+    font-size: 0.9em;
+  }
+
+  .sb-strikethrough {
+    text-decoration: line-through;
+
+    &.sb-meta {
+      text-decoration: none;
+    }
+  }
+
+  .sb-line-hr {
+    margin-top: 1em;
+    margin-bottom: -1em;
+  }
+
+  .sb-hr {
+    font-weight: bold;
+  }
+
+  .sb-naked-url {
+    cursor: pointer;
+  }
+
+  .sb-command-button {
+    cursor: pointer;
+    font-size: 1em;
+    border-radius: 4px;
+  }
+
+  .sb-command-link-name {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+
+  .sb-link:not(.sb-url) {
+    cursor: pointer;
+  }
+
+  .sb-link:not(.sb-meta, .sb-url) {
+    text-decoration: underline;
+  }
+
+  .sb-url:not(.sb-link) {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .sb-wiki-link-page {
+    border-radius: 5px;
+    padding: 0 5px;
+    // white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  a.sb-wiki-link-page-missing,
+  .sb-wiki-link-page-missing > .sb-wiki-link-page {
+    border-radius: 5px;
+    padding: 0 5px;
+    // white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .sb-wiki-link {
+    cursor: pointer;
+  }
+
+  .sb-task-marker {
+    font-size: 91%;
+  }
+
+  .sb-directive-start {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-style: solid;
+    border-width: 1px 1px 0 1px;
+    padding: 3px;
+  }
+
+  .sb-directive-end {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-style: solid;
+    border-width: 0 1px 1px 1px;
+    padding: 3px;
   }
 
   .sb-directive-start .sb-comment,
@@ -179,13 +333,34 @@
     left: -12px;
   }
 
+  .sb-directive-start-outside,
+  .sb-directive-end-outside {
+    color: transparent;
+    pointer-events: none;
+
+    .sb-directive-placeholder {
+      padding-right: 7px;
+      float: right;
+      font-size: 80%;
+    }
+
+    & > span,
+    &.sb-directive-start,
+    &.sb-directive-end {
+      color: transparent;
+    }
+  }
+
   .sb-line-frontmatter-outside,
   .sb-line-code-outside {
     .sb-meta {
       color: transparent;
     }
-
     color: transparent;
+  }
+
+  .sb-line-blockquote {
+    text-indent: -2ch;
   }
 
   .sb-blockquote-outside {
@@ -195,6 +370,14 @@
 
   .sb-line-table-outside {
     display: none;
+  }
+
+  .sb-line-tbl-header {
+    font-weight: bold;
+  }
+
+  .sb-line-tbl-header .meta {
+    font-weight: normal;
   }
 
   .sb-table-widget {
@@ -208,8 +391,6 @@
     }
 
     thead tr {
-      background-color: #333;
-      color: #eee;
       font-weight: bold;
     }
 
@@ -217,19 +398,43 @@
     td {
       padding: 8px;
     }
-
-    tbody tr:nth-of-type(even) {
-      background-color: #f3f3f3;
-    }
   }
 
+  // dont apply background color twice for (fenced) code blocks
+  .sb-line-code .sb-code {
+    background-color: transparent;
+  }
+
+  .sb-line-code-outside .sb-code-info {
+    display: block;
+    float: right;
+    font-size: 90%;
+    padding-right: 7px;
+  }
+
+  .sb-line-fenced-code .sb-code {
+    background-color: transparent;
+  }
+
+  .sb-line-fenced-code .sb-comment {
+    border-radius: 0;
+    font-style: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .sb-keyword {
+    font-weight: bold;
+  }
+
+  // this seems to not be used anymore
   .sb-fenced-code-hide {
-    background-color: transparent !important;
+    background-color: transparent;
     line-height: 0;
   }
 
   .sb-fenced-code-iframe {
-    background-color: transparent !important;
+    background-color: transparent;
 
     iframe {
       border: 0;
@@ -240,20 +445,32 @@
     }
   }
 
-  .sb-line-blockquote {
-    border-left: 1px solid rgb(74, 74, 74);
-  }
-
-  .sb-line-blockquote.sb-line-ul.sb-line-li>.sb-quote.sb-meta:first-child {
+  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
     margin-left: -1ch;
   }
 
+  .sb-admonition {
+    border-left-width: 4px !important;
+    border-left-style: solid;
+  }
+
+  .sb-admonition-icon {
+    display: inline-flex;
+    vertical-align: middle;
+    padding-left: 16px;
+    padding-right: 8px;
+  }
+
+  .sb-frontmatter-marker {
+    float: right;
+    font-size: 80%;
+    padding-right: 7px;
+  }
 
   .cm-scroller {
     // Give some breathing space at the bottom of the screen
     padding-bottom: 20em;
   }
-
 }
 
 div:not(.cm-focused).cm-fat-cursor {

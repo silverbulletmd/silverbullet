@@ -1,684 +1,221 @@
-#sb-root {
-  --highlight-color: #464cfc;
-  --directive-border-color: #0000000f;
-  --directive-font-color: #5b5b5b;
+html {
+  --ui-accent-color: #464cfc;
+  --highlight-color: rgba(255, 255, 0, 0.5);
+  --link-color: #0330cb;
+  --link-missing-color: #9e4705;
+  --meta-color: #650007;
+  --meta-subtle-color: #959595;
+  --subtle-color: #676767;
+  --subtle-background-color: rgba(72, 72, 72, 0.1);
 
-  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --root-background-color: inherit;
+  --root-color: inherit;
+
+  --top-color: inherit;
+  --top-background-color: #e1e1e1;
+  --top-border-color: #cacaca;
+  --top-sync-error-color: var(--top-color);
+  --top-sync-error-background-color: #fdf8cb;
+  --top-saved-color: #111;
+  --top-unsaved-color: #5e5e5e;
+  --top-loading-color: #7a7a7a;
+
+  --panel-background-color: #fff;
+  --panel-border-color: #fff;
+
+  --bhs-background-color: #fff;
+  --bhs-border-color: rgb(193, 193, 193);
+
+  --modal-color: inherit;
+  --modal-background-color: #fff;
+  --modal-border-color: rgb(108, 108, 108);
+  --modal-header-label-color: var(--ui-accent-color);
+  --modal-help-background-color: #eee;
+  --modal-help-color: #555;
+  --modal-selected-option-background-color: var(--ui-accent-color);
+  --modal-selected-option-color: #eee;
+  --modal-hint-background-color: #212476;
+  --modal-hint-color: #eee;
+
+  --notifications-background-color: inherit;
+  --notifications-border-color: rgb(41, 41, 41);
+  --notification-info-background-color: rgb(187, 221, 247);
+  --notification-error-background-color: rgb(255, 84, 84);
+
+  --action-button-background-color: transparent;
+  --action-button-color: #292929;
+  --action-button-hover-color: #0772be;
+
+  --editor-caret-color: black;
+  --editor-selection-background-color: #d7e1f6;
+  --editor-panels-bottom-color: inherit;
+  --editor-panels-bottom-background-color: #e1e1e1;
+  --editor-panels-bottom-border-color: #cacaca;
+  --editor-completion-detail-color: #555;
+  --editor-completion-detail-selected-color: #d2d2d2;
+  --editor-list-bullet-color: rgb(150, 150, 150);
+  --editor-heading-color: #333;
+  --editor-heading-meta-color: var(--meta-subtle-color);
+  --editor-hashtag-background-color: #002b6aad;
+  --editor-hashtag-color: #e2e9ff;
+  --editor-hashtag-border-color: #0120416b;
+  --editor-ruler-color: rgb(76, 75, 75);
+  --editor-naked-url-color: var(--link-color);
+  --editor-link-color: var(--link-color);
+  --editor-link-url-color: var(--link-color);
+  --editor-link-meta-color: var(--meta-subtle-color);
+  --editor-wiki-link-page-background-color: rgba(77, 141, 255, 0.07);
+  --editor-wiki-link-page-color: var(--link-color);
+  --editor-wiki-link-page-missing-color: var(--link-missing-color);
+  --editor-wiki-link-color: #8f96c2;
+  --editor-named-anchor-color: var(--meta-subtle-color);
+  --editor-command-button-color: inherit;
+  --editor-command-button-background-color: #e3dfdf;
+  --editor-command-button-hover-background-color: inherit;
+  --editor-command-button-meta-color: var(--meta-subtle-color);
+  --editor-command-button-border-color: gray;
+  --editor-line-meta-color: var(--meta-subtle-color);
+  --editor-meta-color: var(--meta-color);
+  --editor-table-head-background-color: #333;
+  --editor-table-head-color: #eee;
+  --editor-table-even-background-color: #f3f3f3;
+  --editor-blockquote-background-color: var(--subtle-background-color);
+  --editor-blockquote-color: var(--subtle-color);
+  --editor-blockquote-border-color: rgb(74, 74, 74);
+  --editor-code-background-color: var(--subtle-background-color);
+  --editor-struct-color: darkred;
+  --editor-highlight-background-color: var(--highlight-color);
+  --editor-code-comment-color: var(--meta-subtle-color);
+  --editor-code-variable-color: #024866;
+  --editor-code-typename-color: #038138;
+  --editor-code-string-color: #440377;
+  --editor-code-number-color: #440377;
+  --editor-code-info-color: var(--subtle-color);
+  --editor-code-atom-color: darkred;
+  --editor-admonition-note-border-color: rgb(0, 184, 212);
+  --editor-admonition-note-background-color: rgba(0, 184, 212, 0.1);
+  --editor-admonition-warning-border-color: rgb(255, 145, 0);
+  --editor-admonition-warning-background-color: rgba(255, 145, 0, 0.1);
+  --editor-frontmatter-background-color: rgba(255, 246, 189, 0.5);
+  --editor-frontmatter-color: var(--subtle-color);
+  --editor-frontmatter-marker-color: #89000080;
+  --editor-directive-background-color: rgb(233, 233, 233, 50%);
+  --editor-directive-border-color: #0000000f;
+  --editor-directive-color: #5b5b5b;
+  --editor-directive-info-color: var(--subtle-color);
+  --editor-task-marker-color: var(--subtle-color);
+
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --editor-font: "iA-Mono", "Menlo";
   --editor-width: 800px;
-  font-family: var(--ui-font);
-}
-
-#sb-top {
-  background-color: #e1e1e1;
-  border-bottom: #cacaca 1px solid;
-}
-
-#sb-top.sb-sync-error {
-  background-color: #fdf8cb;
-}
-
-
-.sb-panel {
-  border-left: 1px solid #eee;
-  background-color: #fff;
-}
-
-.sb-bhs {
-  border-top: rgb(193, 193, 193) 1px solid;
-  background-color: #fff;
-}
-
-.sb-modal {
-  border: 1px solid #000;
-  background-color: #fff;
-}
-
-.sb-notifications {
-  font-family: var(--editor-font);
-}
-
-.sb-notifications>div {
-  border: rgb(41, 41, 41) 1px solid;
-}
-
-.sb-notification-info {
-  background-color: rgb(187, 221, 247);
-}
-
-.sb-notification-error {
-  background-color: rgb(255, 84, 84);
-}
-
-.sb-saved {
-  color: #111;
-}
-
-.sb-unsaved {
-  color: #5e5e5e;
-}
-
-.sb-loading {
-  color: #7a7a7a;
-}
-
-.sb-actions button {
-  border: 0;
-  margin: 3px;
-  padding: 5px;
-  background-color: transparent;
-  color: #292929;
-  cursor: pointer;
-}
-
-.sb-actions button:hover {
-  color: #0772be;
-}
-
-/* Filter boxes */
-.sb-modal-box {
-  background-color: #fff;
-  border: rgb(103, 103, 103) 1px solid;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
-
-  .cm-scroller {
-    font-family: var(--ui-font);
-  }
-
-  .cm-content {
-    padding: 0;
-
-    .cm-line {
-      padding: 2px 0 0 3px;
-    }
-  }
-}
-
-.sb-modal-box .sb-header {
-  border-bottom: 1px rgb(108, 108, 108) solid;
-}
-
-.sb-modal-box .sb-header .sb-mini-editor {
-  font-family: var(--ui-font);
-  width: 100%;
-  border: 0;
-  outline: none;
-}
-
-.sb-modal-box .sb-help-text {
-  background-color: #eee;
-  border-bottom: 1px rgb(108, 108, 108) solid;
-  color: #555;
-}
-
-.sb-modal-box .sb-selected-option {
-  color: #eee;
-}
-
-.sb-modal-box .sb-option .sb-hint,
-.sb-modal-box .sb-selected-option .sb-hint {
-  color: #eee;
-  background-color: #212476;
-}
-
-/* Editor */
-
-#sb-editor {
-
-  .cm-content {
-    font-family: var(--editor-font);
-  }
-
-  .cm-selectionBackground {
-    background-color: #d7e1f6 !important;
-  }
-
-
-  .cm-panels-bottom {
-    background-color: #e1e1e1;
-    border-top: #cacaca 1px solid;
-
-    .cm-vim-panel {
-      padding: 0 20px;
-      max-width: var(--editor-width);
-      margin: auto;
-    }
-  }
-
-  .cm-editor .cm-tooltip-autocomplete {
-    .cm-completionDetail {
-      font-style: normal;
-      display: block;
-      font-size: 80%;
-      margin-left: 5px;
-      color: #555;
-    }
-
-    li[aria-selected] .cm-completionDetail {
-      color: #d2d2d2;
-    }
-
-    .cm-completionLabel {
-      display: block;
-      margin-left: 5px;
-    }
-
-    .cm-completionIcon {
-      display: none;
-    }
-  }
-
-  .sb-header-inside.sb-line-h1 {
-    text-indent: -2ch;
-  }
-
-  .sb-header-inside.sb-line-h2 {
-    text-indent: -3ch;
-  }
-
-  .sb-header-inside.sb-line-h3 {
-    text-indent: -4ch;
-  }
-
-  .sb-header-inside.sb-line-h4 {
-    text-indent: -5ch;
-  }
-
-  .sb-line-h1,
-  .sb-line-h2,
-  .sb-line-h3,
-  .sb-line-h4 {
-    // background-color: rgba(0, 30, 77, 0.5);
-    color: #333;
-    font-weight: bold;
-    padding: 2px 2px !important;
-  }
-
-  .sb-line-h1 .sb-meta,
-  .sb-line-h2 .sb-meta,
-  .sb-line-h3 .sb-meta,
-  .sb-line-h4 .sb-meta {
-    color: #a1a1a0;
-  }
-
-  .sb-line-h1 {
-    font-size: 1.5em;
-  }
-
-  .sb-line-h2 {
-    font-size: 1.2em;
-  }
-
-  .sb-line-h3 {
-    font-size: 1.1em;
-  }
-
-  .sb-line-h4 {
-    font-size: 1em;
-  }
-
-  .sb-hashtag {
-    color: #e2e9ff;
-    background-color: #002b6aad;
-    border: 1px solid #0120416b;
-    border-radius: 6px;
-    padding: 0 3px;
-    margin: 0 1px 0 0;
-    font-size: 0.9em;
-  }
-
-  .sb-strikethrough {
-    text-decoration: line-through;
-
-    &.sb-meta {
-      text-decoration: none;
-    }
-  }
-
-  .sb-line-hr {
-    border-top: rgb(76, 75, 75) solid 1px;
-    margin-top: 1em;
-    margin-bottom: -1em;
-  }
-
-  .sb-hr {
-    font-weight: bold;
-  }
-
-  .sb-naked-url {
-    color: #0330cb;
-    cursor: pointer;
-  }
-
-  .sb-named-anchor {
-    color: #959595;
-  }
-
-  .sb-command-button {
-    font-family: var(--editor-font);
-    font-size: 1em;
-  }
-
-  .sb-command-link.sb-meta {
-    color: #959595;
-  }
-
-  .sb-command-link-name {
-    background-color: #e3dfdf;
-    cursor: pointer;
-    border-top: 1px solid silver;
-    border-left: 1px solid silver;
-    border-bottom: 1px solid gray;
-    border-right: 1px solid gray;
-    border-radius: 4px;
-    padding: 0 4px;
-  }
-
-  /* Color list item this way */
-  .sb-line-li .sb-meta {
-    color: rgb(150, 150, 150);
-  }
-
-  /* Then undo other meta */
-  .sb-line-li .sb-meta~.sb-meta {
-    color: #650007;
-  }
-
-  .sb-line-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  .sb-line-code .sb-code {
-    background-color: transparent;
-  }
-
-  .sb-line-tbl-header {
-    font-weight: bold;
-  }
-
-  .sb-line-tbl-header .meta {
-    font-weight: normal;
-  }
-
-  .sb-struct {
-    color: darkred;
-  }
-
-  .sb-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  .sb-highlight {
-    background-color: rgba(255, 255, 0, 0.5);
-  }
-
-  .sb-line-fenced-code {
-    background-color: rgba(72, 72, 72, 0.1);
-  }
-
-  /* Mostly for JS when that comes back */
-  .sb-line-fenced-code .sb-code {
-    background-color: transparent;
-  }
-
-  .sb-line-fenced-code .sb-comment {
-    color: #989797;
-    background-color: transparent;
-    border-radius: 0;
-    font-style: inherit;
-    font-size: inherit;
-    line-height: inherit;
-  }
-
-  .sb-keyword {
-    font-weight: bold;
-  }
-
-  .sb-variableName {
-    color: #024866;
-  }
-
-  .sb-typeName {
-    color: #038138;
-  }
-
-  .sb-string,
-  .sb-string2,
-  .sb-number {
-    color: #440377;
-  }
-
-  .sb-string {
-    color: #440377;
-  }
-
-  .sb-meta {
-    color: #650007;
-  }
-
-  .sb-line-blockquote {
-    background-color: rgba(220, 220, 220, 0.5);
-    color: #676767;
-    text-indent: -2ch;
-    padding-left: 2ch;
-  }
-
-  .sb-admonition {
-    border-left-width: 4px !important;
-    border-left-style: solid;
-  }
-
-  .sb-admonition-icon {
-    display: inline-flex;
-    vertical-align: middle;
-    padding-left: 16px;
-    padding-right: 8px;
-  }
-
-  .sb-admonition.sb-admonition-note {
-    border-left-color: rgb(0, 184, 212);
-  }
-
-  .sb-admonition.sb-admonition-warning {
-    border-left-color: rgb(255, 145, 0);
-  }
-
-  .sb-admonition-title.sb-admonition-note {
-    background-color: rgba(0, 184, 212, 0.1);
-  }
-
-  .sb-admonition-title.sb-admonition-warning {
-    background-color: rgba(255, 145, 0, 0.1);
-  }
-
-  .sb-admonition-note .sb-admonition-icon {
-    color: rgb(0, 184, 212);
-  }
-
-  sb-admonition-warning .sb-admonition-icon {
-    color: rgb(255, 145, 0);
-  }
-
-  // Frontmatter
-
-  .sb-frontmatter {
-    background-color: rgba(255, 246, 189, 0.5);
-    color: #676767;
-  }
-
-  .sb-frontmatter-marker {
-    color: #890000;
-    float: right;
-    font-size: 80%;
-    padding-right: 7px;
-    opacity: 0.25;
-  }
-
-
-  // Directives
-
-
-  .sb-directive-body {
-    border-left: 1px solid var(--directive-border-color);
-    border-right: 1px solid var(--directive-border-color);
-  }
-
-  .cm-line.sb-directive-start,
-  .cm-line.sb-directive-end {
-    color: var(--directive-font-color);
-
-    background-color: rgb(233, 233, 233, 50%);
-    padding: 3px;
-  }
-
-  .sb-directive-start {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    border-style: solid;
-    border-color: var(--directive-border-color);
-    border-width: 1px 1px 0 1px;
-  }
-
-  .sb-directive-end {
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    border-style: solid;
-    border-color: var(--directive-border-color);
-    border-width: 0 1px 1px 1px;
-  }
-
-  .sb-directive-start-outside {
-    color: transparent !important;
-    pointer-events: none;
-
-    .sb-directive-placeholder {
-      color: var(--directive-font-color) !important;
-      opacity: 0.25;
-      padding-right: 7px;
-      float: right;
-      font-size: 80%;
-    }
-
-    * {
-      color: transparent !important;
-    }
-  }
-
-  .sb-directive-end-outside {
-    color: transparent !important;
-
-    .sb-directive-placeholder {
-      color: var(--directive-font-color) !important;
-      opacity: 0.25;
-      padding-right: 7px;
-      font-size: 80%;
-      float: right;
-    }
-
-    * {
-      color: transparent !important;
-    }
-  }
-
-  .sb-emphasis {
-    font-style: italic;
-  }
-
-  .sb-strong {
-    font-weight: 900;
-  }
-
-  .sb-line-code-outside .sb-code-info {
-    display: block;
-    float: right;
-    color: #000;
-    opacity: .25;
-    font-size: 90%;
-    padding-right: 7px;
-  }
-
-  .sb-link:not(.sb-url) {
-    cursor: pointer;
-  }
-
-  .sb-link:not(.sb-meta, .sb-url) {
-    color: #0330cb;
-    text-decoration: underline;
-  }
-
-  .sb-link.sb-url {
-    color: #7e7d7d;
-  }
-
-  .sb-url:not(.sb-link) {
-    color: #0330cb;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-
-  .sb-atom {
-    color: darkred;
-  }
-
-  .sb-wiki-link-page {
-    color: #0330cb;
-    background-color: rgba(77, 141, 255, 0.07);
-    border-radius: 5px;
-    padding: 0 5px;
-    // white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing>.sb-wiki-link-page {
-    color: #9e4705;
-    background-color: rgba(77, 141, 255, 0.07);
-    border-radius: 5px;
-    padding: 0 5px;
-    // white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .sb-wiki-link {
-    cursor: pointer;
-    color: #8f96c2;
-  }
-
-  .sb-task-marker {
-    color: #676767;
-    font-size: 91%;
-  }
-
-  .sb-line-comment {
-    background-color: rgba(255, 255, 0, 0.5);
-  }
 }
 
 html[data-theme="dark"] {
-  #sb-root {
-    background-color: #111;
-    --directive-font-color: #adadad;
-    color: #fff;
-  }
+  --ui-accent-color: #464cfc;
+  --highlight-color: rgba(255, 255, 0, 0.5);
+  --link-color: #7e99fc;
+  --link-missing-color: #9e4705;
+  --meta-color: #d6222e;
+  --meta-subtle-color: #959595;
+  --subtle-color: #959595;
+  --subtle-background-color: rgba(105, 105, 105, 0.1);
 
-  #sb-top {
-    background-color: rgb(38, 38, 38);
-    border-bottom: rgb(62, 62, 62) 1px solid;
-    color: #fff;
-  }
+  --root-background-color: #111;
+  --root-color: #fff;
 
-  #sb-top.sb-sync-error {
-    background-color: #622626;
-  }
+  --top-color: #fff;
+  --top-background-color: #262626;
+  --top-border-color: rgb(62, 62, 62);
+  --top-sync-error-color: var(--top-color);
+  --top-sync-error-background-color: #622626;
+  --top-saved-color: #fff;
+  --top-unsaved-color: #c7c7c7;
+  --top-loading-color: #c7c7c7;
 
+  --panel-background-color: #fff;
+  --panel-border-color: #fff;
 
-  .sb-directive-start {
-    background-color: rgb(38, 38, 38) !important;
-  }
+  --bhs-background-color: #fff;
+  --bhs-border-color: rgb(193, 193, 193);
 
-  .sb-actions button {
-    color: #adadad;
-  }
+  --modal-color: #ccc;
+  --modal-background-color: #262626;
+  --modal-border-color: #6c6c6c;
+  --modal-header-label-color: var(--ui-accent-color);
+  --modal-help-background-color: #333;
+  --modal-help-color: #ccc;
+  --modal-selected-option-background-color: var(--ui-accent-color);
+  --modal-selected-option-color: #eee;
+  --modal-hint-background-color: #212476;
+  --modal-hint-color: #eee;
 
-  .sb-actions button:hover {
-    color: #37a1ed;
-  }
+  --notifications-background-color: #333;
+  --notifications-border-color: rgb(197, 197, 197);
+  --notification-info-background-color: #1b76bb;
+  --notification-error-background-color: #a32121;
 
-  // Page states
-  .sb-saved {
-    color: rgb(225, 225, 225);
-  }
+  --action-button-background-color: transparent;
+  --action-button-color: #adadad;
+  --action-button-hover-color: #37a1ed;
 
-  .sb-unsaved {
-    color: #c7c7c7;
-  }
-
-  .sb-loading {
-    color: #c7c7c7;
-  }
-
-  .sb-meta {}
-
-  .sb-modal-box,
-  /* duplicating the class name to increase specificity */
-  .sb-help-text.sb-help-text {
-    color: #ccc;
-    background-color: rgb(38, 38, 38);
-  }
-
-  .sb-help-text {
-    border-bottom: 1px solid #6c6c6c;
-  }
-
-  #sb-editor {
-
-    .cm-selectionBackground {
-      background-color: #d7e1f630 !important;
-    }
-
-    .cm-panels-bottom {
-      border-top: rgb(62, 62, 62) 1px solid;
-      background: rgb(38, 38, 38);
-      color: white !important;
-
-      .cm-vim-panel {
-        max-width: var(--editor-width);
-        margin: auto;
-      }
-    }
-
-    .sb-line-h1,
-    .sb-line-h2,
-    .sb-line-h3,
-    .sb-line-h4 {
-      color: #d1d1d1;
-    }
-
-    .sb-frontmatter {
-      background-color: rgb(41, 40, 35, 0.5);
-
-      .sb-frontmatter-marker {
-        color: #fff;
-      }
-    }
-
-    .sb-line-li .sb-meta~.sb-meta,
-    .sb-line-fenced-code .sb-meta {
-      color: #d17278;
-    }
-
-    .sb-wiki-link-page {
-      color: #7e99fc;
-      background-color: #a3bce712;
-    }
-
-    .sb-code,
-    .sb-line-fenced-code,
-    .sb-task-marker {
-      background-color: #333;
-    }
-
-    .sb-notifications>div {
-      border: rgb(197, 197, 197) 1px solid;
-      background-color: #333;
-    }
-
-    .sb-naked-url {
-      color: #94b0f4;
-    }
-
-    .sb-command-link {
-      background-color: #595959;
-    }
-
-    .sb-table-widget {
-
-      tbody tr:nth-of-type(even) {
-        background-color: #686868;
-      }
-    }
-  }
-
+  --editor-caret-color: #fff;
+  --editor-selection-background-color: #d7e1f630;
+  --editor-panels-bottom-color: #fff;
+  --editor-panels-bottom-background-color: #262626;
+  --editor-panels-bottom-border-color: rgb(62, 62, 62);
+  --editor-completion-detail-color: #555;
+  --editor-completion-detail-selected-color: #d2d2d2;
+  --editor-list-bullet-color: rgb(150, 150, 150);
+  --editor-heading-color: #d1d1d1;
+  --editor-heading-meta-color: var(--meta-subtle-color);
+  --editor-hashtag-background-color: #004bbb;
+  --editor-hashtag-color: #e2e9ff;
+  --editor-hashtag-border-color: #007bff6b;
+  --editor-ruler-color: rgb(76, 75, 75);
+  --editor-naked-url-color: var(--link-color);
+  --editor-link-color: var(--link-color);
+  --editor-link-url-color: var(--link-color);
+  --editor-link-meta-color: var(--meta-subtle-color);
+  --editor-wiki-link-page-background-color: #a3bce712;
+  --editor-wiki-link-page-color: var(--link-color);
+  --editor-wiki-link-page-missing-color: var(--link-missing-color);
+  --editor-wiki-link-color: #8f96c2;
+  --editor-named-anchor-color: var(--meta-subtle-color);
+  --editor-command-button-color: #fff;
+  --editor-command-button-background-color: #555;
+  --editor-command-button-hover-background-color: #777;
+  --editor-command-button-meta-color: var(--meta-subtle-color);
+  --editor-command-button-border-color: #666;
+  --editor-line-meta-color: var(--meta-subtle-color);
+  --editor-meta-color: var(--meta-color);
+  --editor-table-head-background-color: rgba(72, 72, 72, 0.4);
+  --editor-table-head-color: #eee;
+  --editor-table-even-background-color: rgba(72, 72, 72, 0.3);
+  --editor-blockquote-background-color: var(--subtle-background-color);
+  --editor-blockquote-color: var(--subtle-color);
+  --editor-blockquote-border-color: rgb(74, 74, 74);
+  --editor-code-background-color: var(--subtle-background-color);
+  --editor-struct-color: #d6222e;
+  --editor-highlight-background-color: var(--highlight-color);
+  --editor-code-comment-color: var(--meta-subtle-color);
+  --editor-code-variable-color: #41a3ce;
+  --editor-code-typename-color: #038138;
+  --editor-code-string-color: #986db9;
+  --editor-code-number-color: #986db9;
+  --editor-code-info-color: var(--subtle-color);
+  --editor-code-atom-color: #d6222e;
+  --editor-admonition-note-border-color: rgb(0, 184, 212);
+  --editor-admonition-note-background-color: rgba(0, 184, 212, 0.2);
+  --editor-admonition-warning-border-color: rgb(255, 145, 0);
+  --editor-admonition-warning-background-color: rgba(255, 145, 0, 0.2);
+  --editor-frontmatter-background-color: rgb(41, 40, 35, 0.5);
+  --editor-frontmatter-color: var(--subtle-color);
+  --editor-frontmatter-marker-color: #fff;
+  --editor-directive-background-color: rgba(72, 72, 72, 0.2);
+  --editor-directive-border-color: #0000000f;
+  --editor-directive-color: #5b5b5b;
+  --editor-directive-info-color: var(--subtle-color);
+  --editor-task-marker-color: var(--subtle-color);
 }
