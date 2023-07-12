@@ -221,7 +221,17 @@ export async function weeklyNoteCommand() {
 export async function insertTemplateText(cmdDef: any) {
   const cursorPos = await editor.getCursor();
   const page = await editor.getCurrentPage();
-  const pageMeta = await space.getPageMeta(page);
+  let pageMeta: PageMeta | undefined;
+  try {
+    pageMeta = await space.getPageMeta(page);
+  } catch {
+    // Likely page not yet created
+    pageMeta = {
+      name: page,
+      lastModified: -1,
+      perm: "rw",
+    };
+  }
   let templateText: string = cmdDef.value;
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
