@@ -166,8 +166,10 @@ export class Editor {
   editorView?: EditorView;
   viewState: AppViewState = initialViewState;
   viewDispatch: (action: Action) => void = () => {};
+
   space: Space;
   remoteSpacePrimitives: HttpSpacePrimitives;
+  plugSpaceRemotePrimitives: PlugSpacePrimitives;
 
   pageNavigator?: PathPageNavigator;
   eventHook: EventHook;
@@ -235,7 +237,7 @@ export class Editor {
       true,
     );
 
-    const plugSpaceRemotePrimitives = new PlugSpacePrimitives(
+    this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       this.remoteSpacePrimitives,
       namespaceHook,
     );
@@ -250,7 +252,7 @@ export class Editor {
               `${dbPrefix}_space`,
               globalThis.indexedDB,
             ),
-            plugSpaceRemotePrimitives,
+            this.plugSpaceRemotePrimitives,
           ),
           this.eventHook,
         ),
@@ -272,14 +274,14 @@ export class Editor {
 
     this.syncService = new SyncService(
       localSpacePrimitives,
-      plugSpaceRemotePrimitives,
+      this.plugSpaceRemotePrimitives,
       this.kvStore,
       this.eventHook,
       (path) => {
         // TODO: At some point we should remove the data.db exception here
         return path !== "data.db" &&
             // Exclude all plug space primitives paths
-            !plugSpaceRemotePrimitives.isLikelyHandled(path) ||
+            !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
           // Except federated ones
           path.startsWith("!");
       },
