@@ -448,7 +448,7 @@ export class Editor {
         }
         this.editorView.dispatch({
           selection: { anchor: pos },
-          scrollIntoView: true,
+          effects: EditorView.scrollIntoView(pos, { y: "start" }),
         });
       } else if (!stateRestored) {
         // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
