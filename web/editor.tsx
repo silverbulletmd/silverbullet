@@ -136,6 +136,7 @@ import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { run } from "../plug-api/plugos-syscall/shell.ts";
 import { isValidPageName } from "$sb/lib/page.ts";
+import { markdownLanguage } from "https://esm.sh/v128/@codemirror/lang-markdown@6.1.1/X-ZS9AY29kZW1pcnJvci9sYW5nLWh0bWwsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3Ivc3RhdGUsQGNvZGVtaXJyb3IvdmlldyxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQsQGxlemVyL21hcmtkb3du/dist/index.js";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -728,6 +729,8 @@ export class Editor {
     const editor = this;
     let touchCount = 0;
 
+    const markdownLanguage = buildMarkdown(this.mdExtensions);
+
     return EditorState.create({
       doc: text,
       extensions: [
@@ -742,7 +745,7 @@ export class Editor {
         ],
         // The uber markdown mode
         markdown({
-          base: buildMarkdown(this.mdExtensions),
+          base: markdownLanguage,
           codeLanguages: [
             LanguageDescription.of({
               name: "yaml",
@@ -877,6 +880,9 @@ export class Editor {
             }),
           ],
           addKeymap: true,
+        }),
+        markdownLanguage.data.of({
+          closeBrackets: { brackets: ["(", "{", "[", "`"] },
         }),
         syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
         autocompletion({
