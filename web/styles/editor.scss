@@ -386,6 +386,7 @@
     display: block;
     font-weight: normal;
     margin-bottom: -3rem;
+    overflow: auto;
 
     table {
       width: 100%;
@@ -399,6 +400,7 @@
     th,
     td {
       padding: 8px;
+      white-space: nowrap;
     }
   }
 
@@ -479,18 +481,8 @@ div:not(.cm-focused).cm-fat-cursor {
   outline: none !important;
 }
 
+
 @media only screen and (max-width: 600px) {
-  #sb-main .cm-editor {
-    .sb-table-widget {
-      overflow: auto;
-
-      th,
-      td {
-        white-space: nowrap;
-      }
-    }
-  }
-
   #sb-editor {
 
     .sb-directive-start-outside,
