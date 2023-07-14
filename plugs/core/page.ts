@@ -15,25 +15,32 @@ import { events } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
-  collectNodesMatching,
+  findNodeOfType,
   ParseTree,
   renderToText,
   replaceNodesMatching,
+  traverseTree,
 } from "$sb/lib/tree.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 import { isValidPageName } from "$sb/lib/page.ts";
 
 // Key space:
-//   pl:toPage:pos => pageName
-//   meta => metaJson
+//   l:toPage:pos => {name: pageName, inDirective: true}
+//   meta: => metaJson
 
+const backlinkPrefix = `l:`;
+
+type BacklinkEntry = {
+  name: string;
+  alias?: string;
+  inDirective?: boolean;
+};
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
-  const backLinks: { key: string; value: string }[] = [];
+  const backLinks: { key: string; value: BacklinkEntry }[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
-  removeQueries(tree);
   const pageMeta = await extractFrontmatter(tree);
   if (Object.keys(pageMeta).length > 0) {
     // console.log("Extracted page meta data", pageMeta);
@@ -46,15 +53,38 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     await index.set(name, "meta:", pageMeta);
   }
 
-  collectNodesMatching(tree, (n) => n.type === "WikiLinkPage").forEach((n) => {
-    let toPage = n.children![0].text!;
-    if (toPage.includes("@")) {
-      toPage = toPage.split("@")[0];
+  let directiveDepth = 0;
+  traverseTree(tree, (n): boolean => {
+    if (n.type === "DirectiveStart") {
+      directiveDepth++;
+      return true;
     }
-    backLinks.push({
-      key: `pl:${toPage}:${n.from}`,
-      value: name,
-    });
+    if (n.type === "DirectiveStop") {
+      directiveDepth--;
+      return true;
+    }
+
+    if (n.type === "WikiLink") {
+      const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
+      const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
+      let toPage = wikiLinkPage.children![0].text!;
+      if (toPage.includes("@")) {
+        toPage = toPage.split("@")[0];
+      }
+      const blEntry: BacklinkEntry = { name };
+      if (directiveDepth > 0) {
+        blEntry.inDirective = true;
+      }
+      if (wikiLinkAlias) {
+        blEntry.alias = wikiLinkAlias.children![0].text!;
+      }
+      backLinks.push({
+        key: `${backlinkPrefix}${toPage}:${wikiLinkPage.from}`,
+        value: blEntry,
+      });
+      return true;
+    }
+    return false;
   });
   // console.log("Found", backLinks.length, "wiki link(s)");
   await index.batchSet(name, backLinks);
@@ -72,10 +102,15 @@ export async function linkQueryProvider({
 }: QueryProviderEvent): Promise<any[]> {
   const links: any[] = [];
   for (
-    const { value: name, key } of await index.queryPrefix(`pl:${pageName}:`)
+    const { value: blEntry, key } of await index.queryPrefix(
+      `${backlinkPrefix}${pageName}:`,
+    )
   ) {
-    const [, , pos] = key.split(":"); // Key: pl:page:pos
-    links.push({ name, pos });
+    const [, , pos] = key.split(":"); // Key: l:page:pos
+    if (!blEntry.inDirective) {
+      blEntry.inDirective = false;
+    }
+    links.push({ ...blEntry, pos });
   }
   return applyQuery(query, links);
 }
@@ -254,12 +289,14 @@ type BackLink = {
 };
 
 async function getBackLinks(pageName: string): Promise<BackLink[]> {
-  const allBackLinks = await index.queryPrefix(`pl:${pageName}:`);
+  const allBackLinks = await index.queryPrefix(
+    `${backlinkPrefix}${pageName}:`,
+  );
   const pagesToUpdate: BackLink[] = [];
-  for (const { key, value } of allBackLinks) {
+  for (const { key, value: { name } } of allBackLinks) {
     const keyParts = key.split(":");
     pagesToUpdate.push({
-      page: value,
+      page: name,
       pos: +keyParts[keyParts.length - 1],
     });
   }
