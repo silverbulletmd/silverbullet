@@ -56,14 +56,8 @@
 <body>
   <header>
     <h1>Login to <img src="/.client/logo.png" style="height: 1ch;" /> SilverBullet</h1>
-    <script>
-      function saveUsername() {
-        localStorage.setItem("username", document.getElementsByName("username")[0].value);
-        return true;
-      }
-    </script>
   </header>
-  <form action="/.auth" method="POST" onsubmit="saveUsername()">
+  <form action="/.auth" method="POST">
     <input type="hidden" name="refer" value="" />
     <div class="error-message"></div>
     <div>

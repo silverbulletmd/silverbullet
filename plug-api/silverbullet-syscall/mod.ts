@@ -6,3 +6,4 @@ export * as system from "./system.ts";
 // Legacy redirect, use "store" in $sb/plugos-syscall/mod.ts instead
 export * as clientStore from "./store.ts";
 export * as sync from "./sync.ts";
+export * as debug from "./debug.ts";

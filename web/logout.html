@@ -62,9 +62,6 @@
 
     <script>
         function resetAll() {
-            // Reset local storage username
-            localStorage.removeItem("username");
-
             if (indexedDB.databases) {
                 // get a list of all existing IndexedDB databases
                 indexedDB.databases().then((databases) => {

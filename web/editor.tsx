@@ -134,9 +134,8 @@ import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { run } from "../plug-api/plugos-syscall/shell.ts";
 import { isValidPageName } from "$sb/lib/page.ts";
-import { markdownLanguage } from "https://esm.sh/v128/@codemirror/lang-markdown@6.1.1/X-ZS9AY29kZW1pcnJvci9sYW5nLWh0bWwsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3Ivc3RhdGUsQGNvZGVtaXJyb3IvdmlldyxAbGV6ZXIvY29tbW9uLEBsZXplci9oaWdobGlnaHQsQGxlemVyL21hcmtkb3du/dist/index.js";
+import { debugSyscalls } from "./syscalls/debug.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -327,6 +326,7 @@ export class Editor {
       yamlSyscalls(),
       storeCalls,
       indexSyscalls,
+      debugSyscalls(),
       syncSyscalls(this.syncService),
       // LEGACY
       clientStoreSyscalls(storeCalls),
@@ -1164,10 +1164,6 @@ export class Editor {
 
   focus() {
     this.editorView!.focus();
-  }
-
-  getUsername(): string {
-    return localStorage.getItem("username") || "you";
   }
 
   async navigate(

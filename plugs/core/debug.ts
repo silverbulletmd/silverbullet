@@ -1,4 +1,4 @@
-import { editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
+import { debug, editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function parsePageCommand() {
   console.log(
@@ -9,4 +9,8 @@ export async function parsePageCommand() {
       2,
     ),
   );
+}
+
+export async function resetClientCommand() {
+  await debug.resetClient();
 }

@@ -10,7 +10,7 @@ export function systemSyscalls(
   return {
     "system.invokeFunction": (
       ctx,
-      env: string,
+      _env: string,
       name: string,
       ...args: any[]
     ) => {
