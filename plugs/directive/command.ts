@@ -1,4 +1,4 @@
-import { editor, markdown, space, sync } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import {
   removeParentPointers,
   renderToText,

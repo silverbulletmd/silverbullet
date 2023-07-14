@@ -29,7 +29,7 @@ export function spaceSyscalls(editor: Editor): SysCallMapping {
         await editor.navigate("");
       }
       // Remove page from open pages in editor
-      editor.openPages.delete(name);
+      editor.openPages.openPages.delete(name);
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },
