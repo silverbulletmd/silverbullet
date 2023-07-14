@@ -1,4 +1,4 @@
-import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
+import { PlugNamespaceHook } from "../common/hooks/plug_namespace.ts";
 import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
@@ -35,7 +35,7 @@ export class ClientSystem {
   system: System<SilverBulletHooks> = new System("client");
   commandHook: CommandHook;
   slashCommandHook: SlashCommandHook;
-  namespaceHook: PageNamespaceHook;
+  namespaceHook: PlugNamespaceHook;
   indexSyscalls: SysCallMapping;
   codeWidgetHook: CodeWidgetHook;
   plugsUpdated = false;
@@ -47,15 +47,11 @@ export class ClientSystem {
     private dbPrefix: string,
     private eventHook: EventHook,
   ) {
-    // Attach the page namespace hook
-    const namespaceHook = new PageNamespaceHook();
-    this.system.addHook(namespaceHook);
-
     this.system.addHook(this.eventHook);
 
-    // Attach the page namespace hook
-    this.namespaceHook = new PageNamespaceHook();
-    this.system.addHook(namespaceHook);
+    // Plug page namespace hook
+    this.namespaceHook = new PlugNamespaceHook();
+    this.system.addHook(this.namespaceHook);
 
     // Cron hook
     const cronHook = new CronHook(this.system);

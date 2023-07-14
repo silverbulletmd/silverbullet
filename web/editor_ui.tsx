@@ -10,6 +10,7 @@ import {
   BookIcon,
   HomeIcon,
   preactRender,
+  runScopeHandlers,
   TerminalIcon,
   useEffect,
   useReducer,
@@ -23,6 +24,36 @@ export class MainUI {
   viewDispatch: (action: Action) => void = () => {};
 
   constructor(private editor: Editor) {
+    // Make keyboard shortcuts work even when the editor is in read only mode or not focused
+    globalThis.addEventListener("keydown", (ev) => {
+      if (!editor.editorView?.hasFocus) {
+        if ((ev.target as any).closest(".cm-editor")) {
+          // In some cm element, let's back out
+          return;
+        }
+        if (runScopeHandlers(editor.editorView!, ev, "editor")) {
+          ev.preventDefault();
+        }
+      }
+    });
+
+    globalThis.addEventListener("touchstart", (ev) => {
+      // Launch the page picker on a two-finger tap
+      if (ev.touches.length === 2) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        this.viewDispatch({ type: "start-navigate" });
+      }
+      // Launch the command palette using a three-finger tap
+      if (ev.touches.length === 3) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        this.viewDispatch({
+          type: "show-palette",
+          context: editor.getContext(),
+        });
+      }
+    });
   }
 
   ViewComponent() {

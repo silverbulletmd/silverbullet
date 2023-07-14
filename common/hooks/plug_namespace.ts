@@ -9,28 +9,28 @@ export type NamespaceOperation =
   | "getFileMeta"
   | "deleteFile";
 
-export type PageNamespaceDef = {
+export type PlugNamespaceDef = {
   pattern: string;
   operation: NamespaceOperation;
 };
 
-export type PageNamespaceHookT = {
-  pageNamespace?: PageNamespaceDef;
+export type PlugNamespaceHookT = {
+  pageNamespace?: PlugNamespaceDef;
 };
 
 type SpaceFunction = {
   operation: NamespaceOperation;
   pattern: RegExp;
-  plug: Plug<PageNamespaceHookT>;
+  plug: Plug<PlugNamespaceHookT>;
   name: string;
   env?: string;
 };
 
-export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
+export class PlugNamespaceHook implements Hook<PlugNamespaceHookT> {
   spaceFunctions: SpaceFunction[] = [];
   constructor() {}
 
-  apply(system: System<PageNamespaceHookT>): void {
+  apply(system: System<PlugNamespaceHookT>): void {
     system.on({
       plugLoaded: () => {
         this.updateCache(system);
@@ -41,7 +41,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
     });
   }
 
-  updateCache(system: System<PageNamespaceHookT>) {
+  updateCache(system: System<PlugNamespaceHookT>) {
     this.spaceFunctions = [];
     for (const plug of system.loadedPlugs.values()) {
       if (plug.manifest?.functions) {
@@ -64,7 +64,7 @@ export class PageNamespaceHook implements Hook<PageNamespaceHookT> {
     }
   }
 
-  validateManifest(manifest: Manifest<PageNamespaceHookT>): string[] {
+  validateManifest(manifest: Manifest<PlugNamespaceHookT>): string[] {
     const errors: string[] = [];
     if (!manifest.functions) {
       return [];

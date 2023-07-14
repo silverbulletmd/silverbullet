@@ -3,7 +3,7 @@ import { CronHookT } from "../plugos/hooks/cron.ts";
 import { EventHookT } from "../plugos/hooks/event.ts";
 import { CommandHookT } from "../web/hooks/command.ts";
 import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
-import { PageNamespaceHookT } from "./hooks/page_namespace.ts";
+import { PlugNamespaceHookT } from "./hooks/plug_namespace.ts";
 import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 
 export type SilverBulletHooks =
@@ -12,7 +12,7 @@ export type SilverBulletHooks =
   & CronHookT
   & EventHookT
   & CodeWidgetT
-  & PageNamespaceHookT;
+  & PlugNamespaceHookT;
 
 export type SyntaxExtensions = {
   syntax?: { [key: string]: NodeDef };

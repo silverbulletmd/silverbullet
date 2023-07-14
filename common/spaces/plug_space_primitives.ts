@@ -2,13 +2,13 @@ import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { FileMeta } from "../../common/types.ts";
 import {
   NamespaceOperation,
-  PageNamespaceHook,
-} from "../hooks/page_namespace.ts";
+  PlugNamespaceHook,
+} from "../hooks/plug_namespace.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
-    private hook: PageNamespaceHook,
+    private hook: PlugNamespaceHook,
     private env?: string,
   ) {}
 

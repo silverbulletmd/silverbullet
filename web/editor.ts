@@ -2,7 +2,6 @@
 import {
   CompletionContext,
   CompletionResult,
-  EditorSelection,
   EditorView,
   gitIgnoreCompiler,
   runScopeHandlers,
@@ -10,32 +9,12 @@ import {
 } from "../common/deps.ts";
 import { Space } from "./space.ts";
 import { FilterOption, PageMeta } from "./types.ts";
-import { isMacLike, parseYamlSettings, safeRun } from "../common/util.ts";
+import { parseYamlSettings } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { Confirm, Prompt } from "./components/basic_modals.tsx";
-import { CommandPalette } from "./components/command_palette.tsx";
-import { FilterList } from "./components/filter.tsx";
-import { PageNavigator } from "./components/page_navigator.tsx";
-import { Panel } from "./components/panel.tsx";
-import { TopBar } from "./components/top_bar.tsx";
-import {
-  BookIcon,
-  HomeIcon,
-  preactRender,
-  TerminalIcon,
-  useEffect,
-  useReducer,
-} from "./deps.ts";
 import { AppCommand } from "./hooks/command.ts";
 import { PathPageNavigator } from "./navigator.ts";
-import reducer from "./reducer.ts";
 
-import {
-  Action,
-  AppViewState,
-  BuiltinSettings,
-  initialViewState,
-} from "./types.ts";
+import { AppViewState, BuiltinSettings } from "./types.ts";
 
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
 import { throttle } from "../common/async_util.ts";
@@ -194,37 +173,6 @@ export class Editor {
     });
 
     this.openPages = new OpenPages(this.editorView);
-
-    // Make keyboard shortcuts work even when the editor is in read only mode or not focused
-    globalThis.addEventListener("keydown", (ev) => {
-      if (!this.editorView?.hasFocus) {
-        if ((ev.target as any).closest(".cm-editor")) {
-          // In some cm element, let's back out
-          return;
-        }
-        if (runScopeHandlers(this.editorView!, ev, "editor")) {
-          ev.preventDefault();
-        }
-      }
-    });
-
-    globalThis.addEventListener("touchstart", (ev) => {
-      // Launch the page picker on a two-finger tap
-      if (ev.touches.length === 2) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        this.ui.viewDispatch({ type: "start-navigate" });
-      }
-      // Launch the command palette using a three-finger tap
-      if (ev.touches.length === 3) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        this.ui.viewDispatch({
-          type: "show-palette",
-          context: this.getContext(),
-        });
-      }
-    });
   }
 
   get currentPage(): string | undefined {
