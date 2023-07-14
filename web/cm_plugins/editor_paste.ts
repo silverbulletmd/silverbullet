@@ -1,6 +1,6 @@
 import { EditorView, syntaxTree, ViewPlugin, ViewUpdate } from "../deps.ts";
 import { maximumAttachmentSize } from "../../common/types.ts";
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 
 // We use turndown to convert HTML to Markdown
 import TurndownService from "https://cdn.skypack.dev/turndown@7.1.1";
@@ -80,7 +80,7 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
   },
 );
 
-export function attachmentExtension(editor: Editor) {
+export function attachmentExtension(editor: Client) {
   let shiftDown = false;
   return EditorView.domEventHandlers({
     dragover: (event) => {

@@ -6,7 +6,7 @@ import {
   syntaxTree,
   WidgetType,
 } from "../deps.ts";
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 type AdmonitionType = "note" | "warning";
@@ -97,7 +97,7 @@ function extractAdmonitionFields(rawText: string): AdmonitionFields | null {
   return null;
 }
 
-export function admonitionPlugin(editor: Editor) {
+export function admonitionPlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 

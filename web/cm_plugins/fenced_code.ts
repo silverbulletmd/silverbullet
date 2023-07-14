@@ -1,7 +1,7 @@
 import { WidgetContent } from "../../plug-api/app_event.ts";
 import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
-import type { Editor } from "../editor.ts";
+import type { Client } from "../client.ts";
 import { CodeWidgetCallback } from "../hooks/code_widget.ts";
 import {
   decoratorStateField,
@@ -13,7 +13,7 @@ class IFrameWidget extends WidgetType {
   constructor(
     readonly from: number,
     readonly to: number,
-    readonly editor: Editor,
+    readonly editor: Client,
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
   ) {
@@ -94,7 +94,7 @@ class IFrameWidget extends WidgetType {
   }
 }
 
-export function fencedCodePlugin(editor: Editor) {
+export function fencedCodePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({

@@ -49,7 +49,7 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "../common/deps.ts";
-import { Editor } from "./editor.ts";
+import { Client } from "./client.ts";
 import { vim } from "./deps.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
@@ -63,7 +63,7 @@ import {
 } from "./cm_plugins/editor_paste.ts";
 
 export function createEditorState(
-  editor: Editor,
+  editor: Client,
   pageName: string,
   text: string,
   readOnly: boolean,

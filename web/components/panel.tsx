@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "../deps.ts";
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import { PanelConfig } from "../types.ts";
 
 export const panelHtml = `<!DOCTYPE html>
@@ -98,7 +98,7 @@ export function Panel({
   editor,
 }: {
   config: PanelConfig;
-  editor: Editor;
+  editor: Client;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {

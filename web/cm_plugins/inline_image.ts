@@ -8,7 +8,7 @@ import {
 import { decoratorStateField } from "./util.ts";
 
 import type { Space } from "../space.ts";
-import type { Editor } from "../editor.ts";
+import type { Client } from "../client.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -53,7 +53,7 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-export function inlineImagesPlugin(editor: Editor) {
+export function inlineImagesPlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;

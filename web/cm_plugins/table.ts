@@ -8,12 +8,12 @@ import {
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
-import type { Editor } from "../editor.ts";
+import type { Client } from "../client.ts";
 
 class TableViewWidget extends WidgetType {
   constructor(
     readonly pos: number,
-    readonly editor: Editor,
+    readonly editor: Client,
     readonly t: ParseTree,
   ) {
     super();
@@ -48,7 +48,7 @@ class TableViewWidget extends WidgetType {
   }
 }
 
-export function tablePlugin(editor: Editor) {
+export function tablePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({

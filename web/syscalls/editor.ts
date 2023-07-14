@@ -1,4 +1,4 @@
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import {
   EditorView,
   foldAll,
@@ -13,7 +13,7 @@ import {
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 
-export function editorSyscalls(editor: Editor): SysCallMapping {
+export function editorSyscalls(editor: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
       return editor.currentPage!;

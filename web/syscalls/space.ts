@@ -1,8 +1,8 @@
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { AttachmentMeta, PageMeta } from "../types.ts";
 
-export function spaceSyscalls(editor: Editor): SysCallMapping {
+export function spaceSyscalls(editor: Client): SysCallMapping {
   return {
     "space.listPages": (): Promise<PageMeta[]> => {
       return editor.space.fetchPageList();

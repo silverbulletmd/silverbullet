@@ -1,7 +1,7 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import type { Editor } from "../editor.ts";
+import type { Client } from "../client.ts";
 
-export function syncSyscalls(editor: Editor): SysCallMapping {
+export function syncSyscalls(editor: Client): SysCallMapping {
   return {
     "sync.isSyncing": (): Promise<boolean> => {
       return editor.syncService.isSyncing();

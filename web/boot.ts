@@ -1,16 +1,14 @@
 import { safeRun } from "../common/util.ts";
-import { Editor } from "./editor.ts";
+import { Client } from "./client.ts";
 
 safeRun(async () => {
-  console.log("Booting");
+  console.log("Booting SilverBullet...");
 
-  const editor = new Editor(
+  const client = new Client(
     document.getElementById("sb-root")!,
   );
-
-  window.editor = editor;
-
-  await editor.init();
+  await client.init();
+  window.client = client;
 });
 
 if (navigator.serviceWorker) {

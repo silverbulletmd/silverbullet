@@ -4,7 +4,6 @@ import {
   CompletionResult,
   EditorView,
   gitIgnoreCompiler,
-  runScopeHandlers,
   syntaxTree,
 } from "../common/deps.ts";
 import { Space } from "./space.ts";
@@ -44,12 +43,12 @@ declare global {
     silverBulletConfig: {
       spaceFolderPath: string;
     };
-    editor: Editor;
+    client: Client;
   }
 }
 
 // TODO: Oh my god, need to refactor this
-export class Editor {
+export class Client {
   editorView?: EditorView;
   pageNavigator?: PathPageNavigator;
 
@@ -293,7 +292,7 @@ export class Editor {
 
       this.ui.viewDispatch({ type: "sync-change", synced: true });
     });
-    this.eventHook.addLocalListener("sync:error", (name) => {
+    this.eventHook.addLocalListener("sync:error", (_name) => {
       this.ui.viewDispatch({ type: "sync-change", synced: false });
     });
     this.eventHook.addLocalListener("sync:conflict", (name) => {
@@ -316,7 +315,7 @@ export class Editor {
 
     try {
       settingsText = (await this.space.readPage("SETTINGS")).text;
-    } catch (e: any) {
+    } catch {
       console.log("No SETTINGS page, falling back to default");
       settingsText = "```yaml\nindexPage: index\n```\n";
     }

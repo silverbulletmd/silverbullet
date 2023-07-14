@@ -15,7 +15,7 @@ import {
   useEffect,
   useReducer,
 } from "./deps.ts";
-import type { Editor } from "./editor.ts";
+import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
 
@@ -23,7 +23,7 @@ export class MainUI {
   viewState: AppViewState = initialViewState;
   viewDispatch: (action: Action) => void = () => {};
 
-  constructor(private editor: Editor) {
+  constructor(private editor: Client) {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!editor.editorView?.hasFocus) {

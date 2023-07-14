@@ -1,7 +1,7 @@
 import { pageLinkRegex } from "../../common/markdown_parser/parser.ts";
 import { ClickEvent } from "../../plug-api/app_event.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
@@ -12,7 +12,7 @@ import {
 /**
  * Plugin to hide path prefix when the cursor is not inside.
  */
-export function cleanWikiLinkPlugin(editor: Editor) {
+export function cleanWikiLinkPlugin(editor: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
     // let parentRange: [number, number];

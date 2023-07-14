@@ -2,7 +2,7 @@ import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
 import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
 import { safeRun } from "../../common/util.ts";
-import { Editor } from "../editor.ts";
+import { Client } from "../client.ts";
 import { syntaxTree } from "../deps.ts";
 
 export type SlashCommandDef = {
@@ -24,9 +24,9 @@ const slashCommandRegexp = /([^\w:]|^)\/[\w\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands = new Map<string, AppSlashCommand>();
-  private editor: Editor;
+  private editor: Client;
 
-  constructor(editor: Editor) {
+  constructor(editor: Client) {
     this.editor = editor;
   }
 
