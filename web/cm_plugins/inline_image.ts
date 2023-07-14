@@ -8,7 +8,7 @@ import {
 import { decoratorStateField } from "./util.ts";
 
 import type { Space } from "../space.ts";
-import type { Editor } from "../editor.tsx";
+import type { Editor } from "../editor.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(

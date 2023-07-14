@@ -6,7 +6,7 @@ import {
   syntaxTree,
   WidgetType,
 } from "../deps.ts";
-import { Editor } from "../editor.tsx";
+import { Editor } from "../editor.ts";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 type AdmonitionType = "note" | "warning";

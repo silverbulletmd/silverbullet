@@ -10,7 +10,7 @@ import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { SysCallMapping, System } from "../plugos/system.ts";
-import type { Editor } from "./editor.tsx";
+import type { Editor } from "./editor.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { CommandHook } from "./hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
@@ -74,7 +74,7 @@ export class ClientSystem {
     this.commandHook = new CommandHook();
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
-        this.editor.viewDispatch({
+        this.editor.ui.viewDispatch({
           type: "update-commands",
           commands: commandMap,
         });

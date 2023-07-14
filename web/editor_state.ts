@@ -49,7 +49,7 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "../common/deps.ts";
-import { Editor } from "./editor.tsx";
+import { Editor } from "./editor.ts";
 import { vim } from "./deps.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
@@ -107,11 +107,15 @@ export function createEditorState(
     doc: text,
     extensions: [
       // Not using CM theming right now, but some extensions depend on the "dark" thing
-      EditorView.theme({}, { dark: editor.viewState.uiOptions.darkMode }),
+      EditorView.theme({}, {
+        dark: editor.ui.viewState.uiOptions.darkMode,
+      }),
       // Enable vim mode, or not
-      [...editor.viewState.uiOptions.vimMode ? [vim({ status: true })] : []],
       [
-        ...readOnly || editor.viewState.uiOptions.forcedROMode
+        ...editor.ui.viewState.uiOptions.vimMode ? [vim({ status: true })] : [],
+      ],
+      [
+        ...readOnly || editor.ui.viewState.uiOptions.forcedROMode
           ? [readonlyMode()]
           : [],
       ],
@@ -309,7 +313,7 @@ export function createEditorState(
           key: "Ctrl-k",
           mac: "Cmd-k",
           run: (): boolean => {
-            editor.viewDispatch({ type: "start-navigate" });
+            editor.ui.viewDispatch({ type: "start-navigate" });
             editor.space.updatePageList();
 
             return true;
@@ -319,7 +323,7 @@ export function createEditorState(
           key: "Ctrl-/",
           mac: "Cmd-/",
           run: (): boolean => {
-            editor.viewDispatch({
+            editor.ui.viewDispatch({
               type: "show-palette",
               context: editor.getContext(),
             });
@@ -330,7 +334,7 @@ export function createEditorState(
           key: "Ctrl-.",
           mac: "Cmd-.",
           run: (): boolean => {
-            editor.viewDispatch({
+            editor.ui.viewDispatch({
               type: "show-palette",
               context: editor.getContext(),
             });
@@ -415,7 +419,7 @@ export function createEditorState(
         class {
           update(update: ViewUpdate): void {
             if (update.docChanged) {
-              editor.viewDispatch({ type: "page-changed" });
+              editor.ui.viewDispatch({ type: "page-changed" });
               editor.debouncedUpdateEvent();
               editor.save().catch((e) => console.error("Error saving", e));
             }

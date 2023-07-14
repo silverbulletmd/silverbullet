@@ -1,4 +1,4 @@
-import { Editor } from "../editor.tsx";
+import { Editor } from "../editor.ts";
 import {
   EditorView,
   foldAll,
@@ -81,14 +81,14 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       html: string,
       script: string,
     ) => {
-      editor.viewDispatch({
+      editor.ui.viewDispatch({
         type: "show-panel",
         id: id as any,
         config: { html, script, mode },
       });
     },
     "editor.hidePanel": (_ctx, id: string) => {
-      editor.viewDispatch({
+      editor.ui.viewDispatch({
         type: "hide-panel",
         id: id as any,
       });
@@ -169,10 +169,10 @@ export function editorSyscalls(editor: Editor): SysCallMapping {
       return editor.confirm(message);
     },
     "editor.getUiOption": (_ctx, key: string): any => {
-      return (editor.viewState.uiOptions as any)[key];
+      return (editor.ui.viewState.uiOptions as any)[key];
     },
     "editor.setUiOption": (_ctx, key: string, value: any) => {
-      editor.viewDispatch({
+      editor.ui.viewDispatch({
         type: "set-ui-option",
         key,
         value,

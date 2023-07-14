@@ -1,4 +1,4 @@
-import { Editor } from "../editor.tsx";
+import { Editor } from "../editor.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { AttachmentMeta, PageMeta } from "../types.ts";
 

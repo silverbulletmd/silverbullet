@@ -54,6 +54,7 @@ import { isValidPageName } from "$sb/lib/page.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
+import { MainUI } from "./editor_ui.tsx";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -71,8 +72,6 @@ declare global {
 // TODO: Oh my god, need to refactor this
 export class Editor {
   editorView?: EditorView;
-  viewState: AppViewState = initialViewState;
-  viewDispatch: (action: Action) => void = () => {};
   pageNavigator?: PathPageNavigator;
 
   space: Space;
@@ -99,6 +98,8 @@ export class Editor {
 
   // Event bus used to communicate between components
   eventHook: EventHook;
+
+  ui: MainUI;
   openPages: OpenPages;
 
   constructor(
@@ -184,7 +185,8 @@ export class Editor {
       },
     );
 
-    this.render(parent);
+    this.ui = new MainUI(this);
+    this.ui.render(parent);
 
     this.editorView = new EditorView({
       state: createEditorState(this, "", "", false),
@@ -211,19 +213,22 @@ export class Editor {
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        this.viewDispatch({ type: "start-navigate" });
+        this.ui.viewDispatch({ type: "start-navigate" });
       }
       // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
-        this.viewDispatch({ type: "show-palette", context: this.getContext() });
+        this.ui.viewDispatch({
+          type: "show-palette",
+          context: this.getContext(),
+        });
       }
     });
   }
 
   get currentPage(): string | undefined {
-    return this.viewState.currentPage;
+    return this.ui.viewState.currentPage;
   }
 
   async init() {
@@ -239,7 +244,7 @@ export class Editor {
         }
       },
       pageListUpdated: (pages) => {
-        this.viewDispatch({
+        this.ui.viewDispatch({
           type: "pages-listed",
           pages: pages,
         });
@@ -338,10 +343,10 @@ export class Editor {
       // Reset for next sync cycle
       this.system.plugsUpdated = false;
 
-      this.viewDispatch({ type: "sync-change", synced: true });
+      this.ui.viewDispatch({ type: "sync-change", synced: true });
     });
     this.eventHook.addLocalListener("sync:error", (name) => {
-      this.viewDispatch({ type: "sync-change", synced: false });
+      this.ui.viewDispatch({ type: "sync-change", synced: false });
     });
     this.eventHook.addLocalListener("sync:conflict", (name) => {
       this.flashNotification(
@@ -384,8 +389,8 @@ export class Editor {
         () => {
           if (this.currentPage) {
             if (
-              !this.viewState.unsavedChanges ||
-              this.viewState.uiOptions.forcedROMode
+              !this.ui.viewState.unsavedChanges ||
+              this.ui.viewState.uiOptions.forcedROMode
             ) {
               // No unsaved changes, or read-only mode, not gonna save
               return resolve();
@@ -398,7 +403,7 @@ export class Editor {
                 true,
               )
               .then(async (meta) => {
-                this.viewDispatch({ type: "page-saved" });
+                this.ui.viewDispatch({ type: "page-saved" });
                 await this.dispatchAppEvent(
                   "editor:pageSaved",
                   this.currentPage,
@@ -425,7 +430,7 @@ export class Editor {
 
   flashNotification(message: string, type: "info" | "error" = "info") {
     const id = Math.floor(Math.random() * 1000000);
-    this.viewDispatch({
+    this.ui.viewDispatch({
       type: "show-notification",
       notification: {
         id,
@@ -436,7 +441,7 @@ export class Editor {
     });
     setTimeout(
       () => {
-        this.viewDispatch({
+        this.ui.viewDispatch({
           type: "dismiss-notification",
           id: id,
         });
@@ -448,7 +453,7 @@ export class Editor {
   progressTimeout?: number;
 
   showProgress(progressPerc: number) {
-    this.viewDispatch({
+    this.ui.viewDispatch({
       type: "set-progress",
       progressPerc,
     });
@@ -457,7 +462,7 @@ export class Editor {
     }
     this.progressTimeout = setTimeout(
       () => {
-        this.viewDispatch({
+        this.ui.viewDispatch({
           type: "set-progress",
         });
       },
@@ -472,14 +477,14 @@ export class Editor {
     placeHolder = "",
   ): Promise<FilterOption | undefined> {
     return new Promise((resolve) => {
-      this.viewDispatch({
+      this.ui.viewDispatch({
         type: "show-filterbox",
         label,
         options,
         placeHolder,
         helpText,
         onSelect: (option: any) => {
-          this.viewDispatch({ type: "hide-filterbox" });
+          this.ui.viewDispatch({ type: "hide-filterbox" });
           this.focus();
           resolve(option);
         },
@@ -492,12 +497,12 @@ export class Editor {
     defaultValue = "",
   ): Promise<string | undefined> {
     return new Promise((resolve) => {
-      this.viewDispatch({
+      this.ui.viewDispatch({
         type: "show-prompt",
         message,
         defaultValue,
         callback: (value: string | undefined) => {
-          this.viewDispatch({ type: "hide-prompt" });
+          this.ui.viewDispatch({ type: "hide-prompt" });
           this.focus();
           resolve(value);
         },
@@ -509,11 +514,11 @@ export class Editor {
     message: string,
   ): Promise<boolean> {
     return new Promise((resolve) => {
-      this.viewDispatch({
+      this.ui.viewDispatch({
         type: "show-confirm",
         message,
         callback: (value: boolean) => {
-          this.viewDispatch({ type: "hide-confirm" });
+          this.ui.viewDispatch({ type: "hide-confirm" });
           this.focus();
           resolve(value);
         },
@@ -547,7 +552,7 @@ export class Editor {
           this,
           this.currentPage,
           editorView.state.sliceDoc(),
-          this.viewState.currentPageMeta?.perm === "ro",
+          this.ui.viewState.currentPageMeta?.perm === "ro",
         ),
       );
       if (editorView.contentDOM) {
@@ -658,7 +663,7 @@ export class Editor {
       }
     }
 
-    this.viewDispatch({
+    this.ui.viewDispatch({
       type: "page-loading",
       name: pageName,
     });
@@ -692,7 +697,7 @@ export class Editor {
     const stateRestored = this.openPages.restoreState(pageName);
     this.space.watchPage(pageName);
 
-    this.viewDispatch({
+    this.ui.viewDispatch({
       type: "page-loaded",
       meta: doc.meta,
     });
@@ -737,220 +742,8 @@ export class Editor {
     }
   }
 
-  ViewComponent() {
-    const [viewState, dispatch] = useReducer(reducer, initialViewState);
-    this.viewState = viewState;
-    this.viewDispatch = dispatch;
-
-    // deno-lint-ignore no-this-alias
-    const editor = this;
-
-    useEffect(() => {
-      if (viewState.currentPage) {
-        document.title = viewState.currentPage;
-      }
-    }, [viewState.currentPage]);
-
-    useEffect(() => {
-      if (editor.editorView) {
-        editor.tweakEditorDOM(
-          editor.editorView.contentDOM,
-        );
-      }
-    }, [viewState.uiOptions.forcedROMode]);
-
-    useEffect(() => {
-      this.rebuildEditorState();
-      this.dispatchAppEvent("editor:modeswitch");
-    }, [viewState.uiOptions.vimMode]);
-
-    useEffect(() => {
-      document.documentElement.dataset.theme = viewState.uiOptions.darkMode
-        ? "dark"
-        : "light";
-    }, [viewState.uiOptions.darkMode]);
-
-    useEffect(() => {
-      // Need to dispatch a resize event so that the top_bar can pick it up
-      globalThis.dispatchEvent(new Event("resize"));
-    }, [viewState.panels]);
-
-    return (
-      <>
-        {viewState.showPageNavigator && (
-          <PageNavigator
-            allPages={viewState.allPages}
-            currentPage={this.currentPage}
-            completer={this.miniEditorComplete.bind(this)}
-            vimMode={viewState.uiOptions.vimMode}
-            darkMode={viewState.uiOptions.darkMode}
-            onNavigate={(page) => {
-              dispatch({ type: "stop-navigate" });
-              setTimeout(() => {
-                editor.focus();
-              });
-              if (page) {
-                safeRun(async () => {
-                  await editor.navigate(page);
-                });
-              }
-            }}
-          />
-        )}
-        {viewState.showCommandPalette && (
-          <CommandPalette
-            onTrigger={(cmd) => {
-              dispatch({ type: "hide-palette" });
-              setTimeout(() => {
-                editor.focus();
-              });
-              if (cmd) {
-                dispatch({ type: "command-run", command: cmd.command.name });
-                cmd
-                  .run()
-                  .catch((e: any) => {
-                    console.error("Error running command", e.message);
-                  })
-                  .then(() => {
-                    // Always be focusing the editor after running a command
-                    editor.focus();
-                  });
-              }
-            }}
-            commands={this.getCommandsByContext(viewState)}
-            vimMode={viewState.uiOptions.vimMode}
-            darkMode={viewState.uiOptions.darkMode}
-            completer={this.miniEditorComplete.bind(this)}
-            recentCommands={viewState.recentCommands}
-          />
-        )}
-        {viewState.showFilterBox && (
-          <FilterList
-            label={viewState.filterBoxLabel}
-            placeholder={viewState.filterBoxPlaceHolder}
-            options={viewState.filterBoxOptions}
-            vimMode={viewState.uiOptions.vimMode}
-            darkMode={viewState.uiOptions.darkMode}
-            allowNew={false}
-            completer={this.miniEditorComplete.bind(this)}
-            helpText={viewState.filterBoxHelpText}
-            onSelect={viewState.filterBoxOnSelect}
-          />
-        )}
-        {viewState.showPrompt && (
-          <Prompt
-            message={viewState.promptMessage!}
-            defaultValue={viewState.promptDefaultValue}
-            vimMode={viewState.uiOptions.vimMode}
-            darkMode={viewState.uiOptions.darkMode}
-            completer={this.miniEditorComplete.bind(this)}
-            callback={(value) => {
-              dispatch({ type: "hide-prompt" });
-              viewState.promptCallback!(value);
-            }}
-          />
-        )}
-        {viewState.showConfirm && (
-          <Confirm
-            message={viewState.confirmMessage!}
-            callback={(value) => {
-              dispatch({ type: "hide-confirm" });
-              viewState.confirmCallback!(value);
-            }}
-          />
-        )}
-        <TopBar
-          pageName={viewState.currentPage}
-          notifications={viewState.notifications}
-          synced={viewState.synced}
-          unsavedChanges={viewState.unsavedChanges}
-          isLoading={viewState.isLoading}
-          vimMode={viewState.uiOptions.vimMode}
-          darkMode={viewState.uiOptions.darkMode}
-          progressPerc={viewState.progressPerc}
-          completer={editor.miniEditorComplete.bind(editor)}
-          onRename={async (newName) => {
-            if (!newName) {
-              // Always move cursor to the start of the page
-              editor.editorView?.dispatch({
-                selection: { anchor: 0 },
-              });
-              editor.focus();
-              return;
-            }
-            console.log("Now renaming page to...", newName);
-            await editor.system.system.loadedPlugs.get("core")!.invoke(
-              "renamePage",
-              [{ page: newName }],
-            );
-            editor.focus();
-          }}
-          actionButtons={[
-            {
-              icon: HomeIcon,
-              description: `Go home (Alt-h)`,
-              callback: () => {
-                editor.navigate("");
-              },
-              href: "",
-            },
-            {
-              icon: BookIcon,
-              description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
-              callback: () => {
-                dispatch({ type: "start-navigate" });
-                this.space.updatePageList();
-              },
-            },
-            {
-              icon: TerminalIcon,
-              description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
-              callback: () => {
-                dispatch({ type: "show-palette", context: this.getContext() });
-              },
-            },
-          ]}
-          rhs={!!viewState.panels.rhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.rhs.mode }}
-            />
-          )}
-          lhs={!!viewState.panels.lhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.lhs.mode }}
-            />
-          )}
-        />
-        <div id="sb-main">
-          {!!viewState.panels.lhs.mode && (
-            <Panel config={viewState.panels.lhs} editor={editor} />
-          )}
-          <div id="sb-editor" />
-          {!!viewState.panels.rhs.mode && (
-            <Panel config={viewState.panels.rhs} editor={editor} />
-          )}
-        </div>
-        {!!viewState.panels.modal.mode && (
-          <div
-            className="sb-modal"
-            style={{ inset: `${viewState.panels.modal.mode}px` }}
-          >
-            <Panel config={viewState.panels.modal} editor={editor} />
-          </div>
-        )}
-        {!!viewState.panels.bhs.mode && (
-          <div className="sb-bhs">
-            <Panel config={viewState.panels.bhs} editor={editor} />
-          </div>
-        )}
-      </>
-    );
-  }
-
   async runCommandByName(name: string, ...args: any[]) {
-    const cmd = this.viewState.commands.get(name);
+    const cmd = this.ui.viewState.commands.get(name);
     if (cmd) {
       await cmd.run();
     } else {
@@ -958,12 +751,7 @@ export class Editor {
     }
   }
 
-  render(container: Element) {
-    const ViewComponent = this.ViewComponent.bind(this);
-    preactRender(<ViewComponent />, container);
-  }
-
-  private getCommandsByContext(
+  getCommandsByContext(
     state: AppViewState,
   ): Map<string, AppCommand> {
     const commands = new Map(state.commands);

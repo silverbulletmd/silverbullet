@@ -53,11 +53,14 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   }
 
   apply(system: System<CommandHookT>): void {
-    this.buildAllCommands(system);
     system.on({
       plugLoaded: () => {
         this.buildAllCommands(system);
       },
+    });
+    // On next tick
+    setTimeout(() => {
+      this.buildAllCommands(system);
     });
   }
 

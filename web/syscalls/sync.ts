@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import type { Editor } from "../editor.tsx";
+import type { Editor } from "../editor.ts";
 
 export function syncSyscalls(editor: Editor): SysCallMapping {
   return {

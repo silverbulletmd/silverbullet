@@ -1,5 +1,5 @@
 import { safeRun } from "../common/util.ts";
-import { Editor } from "./editor.tsx";
+import { Editor } from "./editor.ts";
 
 safeRun(async () => {
   console.log("Booting");

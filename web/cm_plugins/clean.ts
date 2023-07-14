@@ -1,6 +1,6 @@
 import type { ClickEvent } from "../../plug-api/app_event.ts";
 import type { Extension } from "../deps.ts";
-import type { Editor } from "../editor.tsx";
+import type { Editor } from "../editor.ts";
 import { blockquotePlugin } from "./block_quote.ts";
 import { admonitionPlugin } from "./admonition.ts";
 import { directivePlugin } from "./directive.ts";

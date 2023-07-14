@@ -1,7 +1,7 @@
 import { WidgetContent } from "../../plug-api/app_event.ts";
 import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
-import type { Editor } from "../editor.tsx";
+import type { Editor } from "../editor.ts";
 import { CodeWidgetCallback } from "../hooks/code_widget.ts";
 import {
   decoratorStateField,
