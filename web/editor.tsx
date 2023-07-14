@@ -52,21 +52,11 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "../common/deps.ts";
-import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
-import {
-  loadMarkdownExtensions,
-  MDExt,
-} from "../common/markdown_parser/markdown_ext.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { Space } from "./space.ts";
-import { markdownSyscalls } from "./syscalls/markdown.ts";
 import { FilterOption, PageMeta } from "./types.ts";
 import { isMacLike, parseYamlSettings, safeRun } from "../common/util.ts";
-import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import assetSyscalls from "../plugos/syscalls/asset.ts";
-import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { System } from "../plugos/system.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import {
   attachmentExtension,
@@ -91,14 +81,10 @@ import {
   useReducer,
   vim,
 } from "./deps.ts";
-import { AppCommand, CommandHook } from "./hooks/command.ts";
-import { SlashCommandHook } from "./hooks/slash_command.ts";
+import { AppCommand } from "./hooks/command.ts";
 import { PathPageNavigator } from "./navigator.ts";
 import reducer from "./reducer.ts";
 import customMarkdownStyle from "./style.ts";
-import { editorSyscalls } from "./syscalls/editor.ts";
-import { spaceSyscalls } from "./syscalls/space.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
 import {
   Action,
   AppViewState,
@@ -111,33 +97,21 @@ import type {
   ClickEvent,
   CompleteEvent,
 } from "../plug-api/app_event.ts";
-import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { throttle } from "../common/async_util.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
-import { PageNamespaceHook } from "../common/hooks/page_namespace.ts";
-import { CronHook } from "../plugos/hooks/cron.ts";
-import { pageIndexSyscalls } from "./syscalls/index.ts";
-import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { shellSyscalls } from "./syscalls/shell.ts";
 import { SyncService } from "./sync_service.ts";
-import { yamlSyscalls } from "./syscalls/yaml.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
-import { syncSyscalls } from "./syscalls/sync.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { isValidPageName } from "$sb/lib/page.ts";
-import { debugSyscalls } from "./syscalls/debug.ts";
-
-const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
+import { ClientSystem } from "./client_system.ts";
 
 class PageState {
   constructor(
@@ -145,8 +119,9 @@ class PageState {
     readonly selection: EditorSelection,
   ) {}
 }
+const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
-const saveInterval = 1000;
+const autoSaveInterval = 1000;
 
 declare global {
   interface Window {
@@ -160,32 +135,27 @@ declare global {
 
 // TODO: Oh my god, need to refactor this
 export class Editor {
-  readonly commandHook: CommandHook;
-  readonly slashCommandHook: SlashCommandHook;
   openPages = new Map<string, PageState>();
   editorView?: EditorView;
   viewState: AppViewState = initialViewState;
   viewDispatch: (action: Action) => void = () => {};
+  pageNavigator?: PathPageNavigator;
 
   space: Space;
+
   remoteSpacePrimitives: HttpSpacePrimitives;
   plugSpaceRemotePrimitives: PlugSpacePrimitives;
 
-  pageNavigator?: PathPageNavigator;
-  eventHook: EventHook;
-  codeWidgetHook: CodeWidgetHook;
+  saveTimeout?: number;
 
-  saveTimeout: any;
   debouncedUpdateEvent = throttle(() => {
     this.eventHook
       .dispatchEvent("editor:updated")
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
-  system: System<SilverBulletHooks>;
-  mdExtensions: MDExt[] = [];
+  system: ClientSystem;
 
   // Track if plugs have been updated since sync cycle
-  private plugsUpdated = false;
   fullSyncCompleted = false;
 
   // Runtime state (that doesn't make sense in viewState)
@@ -193,34 +163,16 @@ export class Editor {
   settings?: BuiltinSettings;
   kvStore: DexieKVStore;
 
+  // Event bus used to communicate between components
+  eventHook: EventHook;
+
   constructor(
     parent: Element,
   ) {
     const runtimeConfig = window.silverBulletConfig;
 
-    // Instantiate a PlugOS system
-    const system = new System<SilverBulletHooks>("client");
-    this.system = system;
-
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    const dbPrefix = "" + simpleHash(runtimeConfig.spaceFolderPath);
-
-    // Attach the page namespace hook
-    const namespaceHook = new PageNamespaceHook();
-    system.addHook(namespaceHook);
-
-    // Event hook
-    this.eventHook = new EventHook();
-    system.addHook(this.eventHook);
-
-    // Cron hook
-    const cronHook = new CronHook(system);
-    system.addHook(cronHook);
-
-    const indexSyscalls = pageIndexSyscalls(
-      `${dbPrefix}_page_index`,
-      globalThis.indexedDB,
-    );
+    const dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
 
     this.kvStore = new DexieKVStore(
       `${dbPrefix}_store`,
@@ -228,7 +180,16 @@ export class Editor {
       globalThis.indexedDB,
     );
 
-    const storeCalls = storeSyscalls(this.kvStore);
+    // Event hook
+    this.eventHook = new EventHook();
+
+    // Instantiate a PlugOS system
+    this.system = new ClientSystem(
+      this,
+      this.kvStore,
+      dbPrefix,
+      this.eventHook,
+    );
 
     // Setup space
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
@@ -239,10 +200,11 @@ export class Editor {
 
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       this.remoteSpacePrimitives,
-      namespaceHook,
+      this.system.namespaceHook,
     );
 
     let fileFilterFn: (s: string) => boolean = () => true;
+
     const localSpacePrimitives = new FilteredSpacePrimitives(
       new FileMetaSpacePrimitives(
         new EventedSpacePrimitives(
@@ -256,7 +218,7 @@ export class Editor {
           ),
           this.eventHook,
         ),
-        indexSyscalls,
+        this.system.indexSyscalls,
       ),
       (meta) => fileFilterFn(meta.name),
       async () => {
@@ -287,61 +249,12 @@ export class Editor {
       },
     );
 
-    // Code widget hook
-    this.codeWidgetHook = new CodeWidgetHook();
-    this.system.addHook(this.codeWidgetHook);
-
-    // Command hook
-    this.commandHook = new CommandHook();
-    this.commandHook.on({
-      commandsUpdated: (commandMap) => {
-        this.viewDispatch({
-          type: "update-commands",
-          commands: commandMap,
-        });
-      },
-    });
-    this.system.addHook(this.commandHook);
-
-    // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this);
-    this.system.addHook(this.slashCommandHook);
-
     this.render(parent);
 
     this.editorView = new EditorView({
       state: this.createEditorState("", "", false),
       parent: document.getElementById("sb-editor")!,
     });
-
-    // Syscalls available to all plugs
-    this.system.registerSyscalls(
-      [],
-      eventSyscalls(this.eventHook),
-      editorSyscalls(this),
-      spaceSyscalls(this),
-      systemSyscalls(this, this.system),
-      markdownSyscalls(buildMarkdown(this.mdExtensions)),
-      assetSyscalls(this.system),
-      yamlSyscalls(),
-      storeCalls,
-      indexSyscalls,
-      debugSyscalls(),
-      syncSyscalls(this.syncService),
-      // LEGACY
-      clientStoreSyscalls(storeCalls),
-    );
-
-    // Syscalls that require some additional permissions
-    this.system.registerSyscalls(
-      ["fetch"],
-      sandboxFetchSyscalls(this.remoteSpacePrimitives),
-    );
-
-    this.system.registerSyscalls(
-      ["shell"],
-      shellSyscalls(this.remoteSpacePrimitives),
-    );
 
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
@@ -369,20 +282,6 @@ export class Editor {
         ev.preventDefault();
         this.viewDispatch({ type: "show-palette", context: this.getContext() });
       }
-    });
-
-    this.eventHook.addLocalListener("plug:changed", async (fileName) => {
-      console.log("Plug updated, reloading:", fileName);
-      system.unload(fileName);
-      const plug = await system.load(
-        new URL(`/${fileName}`, location.href),
-        createSandbox,
-      );
-      if ((plug.manifest! as Manifest).syntax) {
-        // If there are syntax extensions, rebuild the markdown parser immediately
-        this.updateMarkdownParser();
-      }
-      this.plugsUpdated = true;
     });
   }
 
@@ -431,8 +330,8 @@ export class Editor {
           console.log("Navigating to anchor", pos);
 
           // We're going to look up the anchor through a direct page store query...
+          // TODO: This should be extracted
           const posLookup = await this.system.localSyscall(
-            "core",
             "index.get",
             [
               pageName,
@@ -489,7 +388,7 @@ export class Editor {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
         this.fullSyncCompleted = true;
       }
-      if (this.plugsUpdated) {
+      if (this.system.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
         this.dispatchAppEvent("editor:pageLoaded", this.currentPage);
@@ -500,7 +399,7 @@ export class Editor {
         }
       }
       // Reset for next sync cycle
-      this.plugsUpdated = false;
+      this.system.plugsUpdated = false;
 
       this.viewDispatch({ type: "sync-change", synced: true });
     });
@@ -582,7 +481,7 @@ export class Editor {
             resolve();
           }
         },
-        immediate ? 0 : saveInterval,
+        immediate ? 0 : autoSaveInterval,
       );
     });
   }
@@ -695,7 +594,7 @@ export class Editor {
     readOnly: boolean,
   ): EditorState {
     const commandKeyBindings: KeyBinding[] = [];
-    for (const def of this.commandHook.editorCommands.values()) {
+    for (const def of this.system.commandHook.editorCommands.values()) {
       if (def.command.key) {
         commandKeyBindings.push({
           key: def.command.key,
@@ -729,7 +628,7 @@ export class Editor {
     const editor = this;
     let touchCount = 0;
 
-    const markdownLanguage = buildMarkdown(this.mdExtensions);
+    const markdownLanguage = buildMarkdown(this.system.mdExtensions);
 
     return EditorState.create({
       doc: text,
@@ -884,12 +783,12 @@ export class Editor {
         markdownLanguage.data.of({
           closeBrackets: { brackets: ["(", "{", "[", "`"] },
         }),
-        syntaxHighlighting(customMarkdownStyle(this.mdExtensions)),
+        syntaxHighlighting(customMarkdownStyle(this.system.mdExtensions)),
         autocompletion({
           override: [
             this.editorComplete.bind(this),
-            this.slashCommandHook.slashCommandCompleter.bind(
-              this.slashCommandHook,
+            this.system.slashCommandHook.slashCommandCompleter.bind(
+              this.system.slashCommandHook,
             ),
           ],
         }),
@@ -1059,38 +958,16 @@ export class Editor {
 
   async reloadPlugs() {
     console.log("Loading plugs");
-    await this.space.updatePageList();
-    await this.system.unloadAll();
-    console.log("(Re)loading plugs");
-    await Promise.all((await this.space.listPlugs()).map(async (plugName) => {
-      try {
-        await this.system.load(
-          new URL(plugName, location.origin),
-          createSandbox,
-        );
-      } catch (e: any) {
-        console.error("Could not load plug", plugName, "error:", e.message);
-      }
-    }));
+    await this.system.reloadPlugsFromSpace(this.space);
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
-  }
-
-  updateMarkdownParser() {
-    // Load all syntax extensions
-    this.mdExtensions = loadMarkdownExtensions(this.system);
-    // And reload the syscalls to use the new syntax extensions
-    this.system.registerSyscalls(
-      [],
-      markdownSyscalls(buildMarkdown(this.mdExtensions)),
-    );
   }
 
   rebuildEditorState() {
     const editorView = this.editorView;
     console.log("Rebuilding editor state");
 
-    this.updateMarkdownParser();
+    this.system.updateMarkdownParser();
 
     if (editorView && this.currentPage) {
       // And update the editor if a page is loaded
@@ -1470,7 +1347,7 @@ export class Editor {
               return;
             }
             console.log("Now renaming page to...", newName);
-            await editor.system.loadedPlugs.get("core")!.invoke(
+            await editor.system.system.loadedPlugs.get("core")!.invoke(
               "renamePage",
               [{ page: newName }],
             );

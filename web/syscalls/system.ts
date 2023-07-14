@@ -35,7 +35,7 @@ export function systemSyscalls(
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
       const allCommands: { [key: string]: CommandDef } = {};
-      for (let [cmd, def] of editor.commandHook.editorCommands) {
+      for (const [cmd, def] of editor.system.commandHook.editorCommands) {
         allCommands[cmd] = def.command;
       }
       return allCommands;

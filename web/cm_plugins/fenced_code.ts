@@ -103,7 +103,8 @@ export function fencedCodePlugin(editor: Editor) {
           if (isCursorInRange(state, [from, to])) return;
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^```(\w+)?/)!;
-          const codeWidgetCallback = editor.codeWidgetHook.codeWidgetCallbacks
+          const codeWidgetCallback = editor.system.codeWidgetHook
+            .codeWidgetCallbacks
             .get(lang);
           if (codeWidgetCallback) {
             // We got a custom renderer!

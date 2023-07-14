@@ -1,13 +1,13 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import { SyncService } from "../sync_service.ts";
+import type { Editor } from "../editor.tsx";
 
-export function syncSyscalls(syncService: SyncService): SysCallMapping {
+export function syncSyscalls(editor: Editor): SysCallMapping {
   return {
     "sync.isSyncing": (): Promise<boolean> => {
-      return syncService.isSyncing();
+      return editor.syncService.isSyncing();
     },
     "sync.hasInitialSyncCompleted": (): Promise<boolean> => {
-      return syncService.hasInitialSyncCompleted();
+      return editor.syncService.hasInitialSyncCompleted();
     },
   };
 }

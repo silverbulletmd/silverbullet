@@ -8,9 +8,8 @@ import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PageMeta } from "../../web/types.ts";
 
-export async function updateDirectivesOnPageCommand(arg: any) {
+export async function updateDirectivesOnPageCommand() {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
-  const explicitCall = typeof arg !== "string";
   const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
