@@ -49,7 +49,9 @@ export class SimpleSearchEngine {
     const updateIndexMap = new Map<string, string[]>();
     const updateReverseIndexMap = new Map<string, string[]>();
 
-    const words = this.tokenize(document.text);
+    const pageContent = this.tokenize(document.text);
+    const pageName = this.tokenize(document.id);
+    const words = [...pageContent, ...pageName];
     const filteredWords = this.removeStopWords(words);
     const stemmedWords = filteredWords.map((word) => this.stem(word));
 
