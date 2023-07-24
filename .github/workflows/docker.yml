@@ -67,7 +67,7 @@ jobs:
             # When pushing a tag, release a tagged release :x.x.x
             type=semver,pattern={{raw}},enable=true
             # When pushing a tag (type=semver) push to :latest too
-            type=semver,value=latest
+            type=semver,pattern=latest,enable=true
             # When pushing to main branch, release as :edge
             type=edge,branch=main
 
