@@ -11,6 +11,7 @@ type MarkdownRenderOptions = {
   smartHardBreak?: true;
   annotationPositions?: true;
   attachmentUrlPrefix?: string;
+  preserveAttributes?: true;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string) => string;
 };
@@ -345,6 +346,17 @@ function render(
       const body = findNodeOfType(t, "DirectiveBody")!;
       return posPreservingRender(body.children![0], options);
     }
+    case "Attribute":
+      if (options.preserveAttributes) {
+        return {
+          name: "span",
+          attrs: {
+            class: "attribute",
+          },
+          body: renderToText(t),
+        };
+      }
+      return null;
     // Text
     case undefined:
       return t.text!;

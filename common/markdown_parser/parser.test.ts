@@ -89,3 +89,16 @@ Deno.test("Test directive parser", () => {
   tree = parse(lang, orderByExample);
   console.log("Tree", JSON.stringify(tree, null, 2));
 });
+
+const inlineAttributeSample = `
+Hello there [a link](http://zef.plus) and [age:: 100]
+`;
+
+Deno.test("Test inline attribute syntax", () => {
+  const lang = buildMarkdown([]);
+  const tree = parse(lang, inlineAttributeSample);
+  const nameNode = findNodeOfType(tree, "AttributeName");
+  assertEquals(nameNode?.children![0].text, "age");
+  const valueNode = findNodeOfType(tree, "AttributeValue");
+  assertEquals(valueNode?.children![0].text, "100");
+});

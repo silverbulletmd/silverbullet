@@ -25,6 +25,7 @@ import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 import { isValidPageName } from "$sb/lib/page.ts";
+import { extractAttributes } from "$sb/lib/attribute.ts";
 
 // Key space:
 //   l:toPage:pos => {name: pageName, inDirective: true}
@@ -42,14 +43,21 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   // [[Style Links]]
   // console.log("Now indexing links for", name);
   const pageMeta = await extractFrontmatter(tree);
-  if (Object.keys(pageMeta).length > 0) {
-    // console.log("Extracted page meta data", pageMeta);
+  const toplevelAttributes = extractAttributes(tree, false);
+  if (
+    Object.keys(pageMeta).length > 0 ||
+    Object.keys(toplevelAttributes).length > 0
+  ) {
+    for (const [k, v] of Object.entries(toplevelAttributes)) {
+      pageMeta[k] = v;
+    }
     // Don't index meta data starting with $
     for (const key in pageMeta) {
       if (key.startsWith("$")) {
         delete pageMeta[key];
       }
     }
+    console.log("Extracted page meta data", pageMeta);
     await index.set(name, "meta:", pageMeta);
   }
 

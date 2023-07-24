@@ -50,7 +50,7 @@
   font-family: var(--editor-font);
 }
 
-.sb-notifications > div {
+.sb-notifications>div {
   border: var(--notifications-border-color) 1px solid;
 }
 
@@ -185,6 +185,7 @@
     background-color: var(--editor-command-button-background-color);
     border: 1px solid var(--editor-command-button-border-color);
   }
+
   .sb-command-button:hover {
     background-color: var(--editor-command-button-hover-background-color);
   }
@@ -193,11 +194,13 @@
     &.sb-meta {
       color: var(--editor-command-button-meta-color);
     }
+
     &.sb-command-link-name {
       background-color: var(--editor-command-button-color);
       background-color: var(--editor-command-button-background-color);
       border: 1px solid var(--editor-command-button-border-color);
     }
+
     &.sb-command-link-name:hover {
       background-color: var(--editor-command-button-hover-background-color);
     }
@@ -209,7 +212,7 @@
   }
 
   /* Then undo other meta */
-  .sb-line-li .sb-meta ~ .sb-meta {
+  .sb-line-li .sb-meta~.sb-meta {
     color: var(--editor-meta-color);
   }
 
@@ -326,7 +329,7 @@
 
   .sb-directive-start-outside,
   .sb-directive-end-outside {
-    & > span.sb-directive-placeholder {
+    &>span.sb-directive-placeholder {
       color: var(--editor-directive-info-color);
     }
   }
@@ -366,7 +369,7 @@
   }
 
   a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing > .sb-wiki-link-page {
+  .sb-wiki-link-page-missing>.sb-wiki-link-page {
     color: var(--editor-wiki-link-page-missing-color);
     background-color: var(--editor-wiki-link-page-background-color);
   }
@@ -380,8 +383,6 @@
   }
 
   .sb-line-comment {
-    background-color: var(
-      --editor-code-comment-color
-    ); // rgba(255, 255, 0, 0.5);
+    background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
   }
 }

@@ -23,6 +23,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
+import { extractAttributes } from "$sb/lib/attribute.ts";
 
 export type Task = {
   name: string;
@@ -33,7 +34,7 @@ export type Task = {
   // Not saved in DB, just added when pulled out (from key)
   pos?: number;
   page?: string;
-};
+} & Record<string, any>;
 
 function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");
@@ -66,6 +67,12 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
         // return null;
       }
     });
+
+    // Extract attributes and remove from tree
+    const extractedAttributes = extractAttributes(n, true);
+    for (const [key, value] of Object.entries(extractedAttributes)) {
+      task[key] = value;
+    }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 

@@ -3,6 +3,7 @@ import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { index } from "$sb/silverbullet-syscall/mod.ts";
 import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { extractAttributes } from "$sb/lib/attribute.ts";
 
 export type Item = {
   name: string;
@@ -11,7 +12,7 @@ export type Item = {
   // Not stored in DB
   page?: string;
   pos?: number;
-};
+} & Record<string, any>;
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items: { key: string; value: Item }[] = [];
@@ -30,6 +31,10 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       return;
     }
 
+    const item: Item = {
+      name: "", // to be replaced
+    };
+
     const textNodes: ParseTree[] = [];
     let nested: string | undefined;
     for (const child of n.children!.slice(1)) {
@@ -37,13 +42,15 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
         nested = renderToText(child);
         break;
       }
+      // Extract attributes and remove from tree
+      const extractedAttributes = extractAttributes(child, true);
+      for (const [key, value] of Object.entries(extractedAttributes)) {
+        item[key] = value;
+      }
       textNodes.push(child);
     }
 
-    const itemText = textNodes.map(renderToText).join("").trim();
-    const item: Item = {
-      name: itemText,
-    };
+    item.name = textNodes.map(renderToText).join("").trim();
     if (nested) {
       item.nested = nested;
     }

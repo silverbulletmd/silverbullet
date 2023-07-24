@@ -142,6 +142,55 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
+export const attributeRegex = /^\[([^:]+)(::\s*)([^\]]+)\]/;
+
+export const Attribute: MarkdownConfig = {
+  defineNodes: [
+    { name: "Attribute", style: { "Attribute/...": ct.AttributeTag } },
+    { name: "AttributeName", style: ct.AttributeNameTag },
+    { name: "AttributeValue", style: ct.AttributeValueTag },
+    { name: "AttributeMark", style: t.processingInstruction },
+    { name: "AttributeColon", style: t.processingInstruction },
+  ],
+  parseInline: [
+    {
+      name: "Attribute",
+      parse(cx, next, pos) {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 91 /* '[' */ ||
+          // and match the whole thing
+          !(match = attributeRegex.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        const [fullMatch, attributeName, attributeColon, attributeValue] =
+          match;
+        const endPos = pos + fullMatch.length;
+
+        return cx.addElement(
+          cx.elt("Attribute", pos, endPos, [
+            cx.elt("AttributeMark", pos, pos + 1), // [
+            cx.elt("AttributeName", pos + 1, pos + 1 + attributeName.length),
+            cx.elt(
+              "AttributeColon",
+              pos + 1 + attributeName.length,
+              pos + 1 + attributeName.length + attributeColon.length,
+            ),
+            cx.elt(
+              "AttributeValue",
+              pos + 1 + attributeName.length + attributeColon.length,
+              endPos - 1,
+            ),
+            cx.elt("AttributeMark", endPos - 1, endPos), // [
+          ]),
+        );
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
 class CommentParser implements LeafBlockParser {
   nextLine() {
     return false;
@@ -343,6 +392,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
     extensions: [
       WikiLink,
       CommandLink,
+      Attribute,
       FrontMatter,
       Directive,
       TaskList,

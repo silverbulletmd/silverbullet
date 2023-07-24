@@ -43,6 +43,7 @@ class TableViewWidget extends WidgetType {
         }
         return url;
       },
+      preserveAttributes: true,
     });
     return dom;
   }
