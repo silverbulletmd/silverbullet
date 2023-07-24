@@ -26,6 +26,11 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
+  centerCursor:
+    path: "./editor.ts:centerCursorCommand"
+    command:
+      name: "Editor: Center Cursor"
+      key: "Ctrl-Alt-l"
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
     events:

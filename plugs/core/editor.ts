@@ -37,3 +37,8 @@ export async function foldAllCommand() {
 export async function unfoldAllCommand() {
   await editor.unfoldAll();
 }
+
+export async function centerCursorCommand() {
+  const pos = await editor.getCursor();
+  await editor.moveCursor(pos, true);
+}
