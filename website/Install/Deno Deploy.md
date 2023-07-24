@@ -1,3 +1,5 @@
+**Note:** This is a highly experimental setup, take this into account.
+
 You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store your data (space) in an S3 bucket.
 
 This guide assumes you know how to set up the S3 bucket part and get appropriate IAM keys and secrets to access it.
