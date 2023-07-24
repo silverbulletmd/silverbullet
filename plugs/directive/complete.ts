@@ -1,7 +1,7 @@
 import { events } from "$sb/plugos-syscall/mod.ts";
 import { CompleteEvent } from "$sb/app_event.ts";
-import { buildHandebarOptions, handlebarHelpers } from "./util.ts";
-import { PageMeta } from "../../web/types.ts";
+import { buildHandebarOptions } from "./util.ts";
+import type { PageMeta } from "../../web/types.ts";
 
 export async function queryComplete(completeEvent: CompleteEvent) {
   const match = /#query ([\w\-_]+)*$/.exec(completeEvent.linePrefix);

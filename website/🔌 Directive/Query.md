@@ -51,14 +51,7 @@ The best part about data sources: there is auto-completion. 🎉
 
 Start writing `<!— #query` or simply use `/query` slash command, it will show you all available data sources. 🤯
 
-Additionally there are some special variables you can use in your queries that are interpereted through simple string replacement: 
-
-- `{{today}}`: Today’s date in the usual YYYY-MM-DD format
-- `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
-- `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
-- `{{lastWeek}}`: Current date - 7 days
-- `{{nextWeek}}`: Current date + 7 days
-- `{{page}}`: The name of the current page
+Additionally there are [[🔌 Core/Templates@vars|special variables]] you can use in your queries. 
 
 For example, if you wanted a query for all the tasks from a previous day's daily note, you could use the following query: 
 `<!-- #query task where page = "📅 {{yesterday}}" -->`
@@ -95,8 +88,8 @@ Example:
 <!-- #query data where age > 20 and country = "Italy" -->
 |name|age|city |country|page              |pos |
 |----|--|-----|-----|------------------|----|
-|John|50|Milan|Italy|🔌 Directive/Query|3279|
-|Jane|53|Rome |Italy|🔌 Directive/Query|3280|
+|John|50|Milan|Italy|🔌 Directive/Query|3293|
+|Jane|53|Rome |Italy|🔌 Directive/Query|3294|
 <!-- /query -->
 
 #### 4.2 Plugs’ data sources
@@ -163,11 +156,11 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Let's try to limit it in the next step.
 
 <!-- #query page limit 3 -->
-|name          |lastModified |contentType  |size |perm|tags|
-|--------------|-------------|-------------|-----|--|----|
-|Authentication|1686682290943|text/markdown|1730 |rw|    |
-|BROKEN LINKS  |1688066558009|text/markdown|196  |rw|    |
-|CHANGELOG     |1687348511871|text/markdown|27899|rw|tags|
+|name          |lastModified |contentType  |size|perm|
+|--------------|-------------|-------------|----|--|
+|API           |1688987324351|text/markdown|1405|rw|
+|Authelia      |1688482500313|text/markdown|866 |rw|
+|Authentication|1686682290943|text/markdown|1730|rw|
 <!-- /query -->
 
 
@@ -178,13 +171,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name      |lastModified |contentType  |size|perm|type|uri                                                       |repo                                                  |author              |share-support|
-|--|--|--|--|--|--|--|--|--|--|
-|🔌 KaTeX  |1687099068396|text/markdown|1342|rw|plug|github:silverbulletmd/silverbullet-katex/katex.plug.js    |https://github.com/silverbulletmd/silverbullet-katex  |Zef Hemel           |    |
-|🔌 Core   |1687094809367|text/markdown|402 |rw|plug|                                                          |https://github.com/silverbulletmd/silverbullet        |                    |    |
-|🔌 Collab |1686682290959|text/markdown|2969|rw|plug|                                                          |https://github.com/silverbulletmd/silverbullet        |                    |true|
-|🔌 Twitter|1685105433212|text/markdown|1266|rw|plug|github:silverbulletmd/silverbullet-twitter/twitter.plug.js|https://github.com/silverbulletmd/silverbullet-twitter|SilverBullet Authors|    |
-|🔌 Mermaid|1685105423879|text/markdown|1096|rw|plug|github:silverbulletmd/silverbullet-mermaid/mermaid.plug.js|https://github.com/silverbulletmd/silverbullet-mermaid|Zef Hemel           |    |
+|name        |lastModified |contentType  |size|perm|type|repo                                                  |uri                                                       |author              |
+|--|--|--|--|--|--|--|--|--|
+|🔌 Directive|1688987324365|text/markdown|2607|rw|plug|https://github.com/silverbulletmd/silverbullet        |                                                          |                    |
+|🔌 KaTeX    |1687099068396|text/markdown|1342|rw|plug|https://github.com/silverbulletmd/silverbullet-katex  |github:silverbulletmd/silverbullet-katex/katex.plug.js    |Zef Hemel           |
+|🔌 Core     |1687094809367|text/markdown|402 |rw|plug|https://github.com/silverbulletmd/silverbullet        |                                                          |                    |
+|🔌 Twitter  |1685105433212|text/markdown|1266|rw|plug|https://github.com/silverbulletmd/silverbullet-twitter|github:silverbulletmd/silverbullet-twitter/twitter.plug.js|SilverBullet Authors|
+|🔌 Mermaid  |1685105423879|text/markdown|1096|rw|plug|https://github.com/silverbulletmd/silverbullet-mermaid|github:silverbulletmd/silverbullet-mermaid/mermaid.plug.js|Zef Hemel           |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -196,13 +189,13 @@ and `repo` columns and then sort by last modified time.
 from a visual perspective.
 
 <!-- #query page select name, author, repo where type = "plug" order by lastModified desc limit 5 -->
-|name      |author              |repo                                                  |
+|name        |author              |repo                                                  |
 |--|--|--|
-|🔌 KaTeX  |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-katex  |
-|🔌 Core   |                    |https://github.com/silverbulletmd/silverbullet        |
-|🔌 Collab |                    |https://github.com/silverbulletmd/silverbullet        |
-|🔌 Twitter|SilverBullet Authors|https://github.com/silverbulletmd/silverbullet-twitter|
-|🔌 Mermaid|Zef Hemel           |https://github.com/silverbulletmd/silverbullet-mermaid|
+|🔌 Directive|                    |https://github.com/silverbulletmd/silverbullet        |
+|🔌 KaTeX    |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-katex  |
+|🔌 Core     |                    |https://github.com/silverbulletmd/silverbullet        |
+|🔌 Twitter  |SilverBullet Authors|https://github.com/silverbulletmd/silverbullet-twitter|
+|🔌 Mermaid  |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-mermaid|
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -212,9 +205,9 @@ from a visual perspective.
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+* [[🔌 Directive]] 
 * [[🔌 KaTeX]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-katex))
 * [[🔌 Core]] 
-* [[🔌 Collab]] 
 * [[🔌 Twitter]] by **SilverBullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
 * [[🔌 Mermaid]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mermaid))
 <!-- /query -->

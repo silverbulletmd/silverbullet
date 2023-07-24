@@ -73,7 +73,8 @@ Currently supported (hardcoded in the code):
 - `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
 - `{{lastWeek}}`: Current date - 7 days
 - `{{nextWeek}}`: Current date + 7 days
-- `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/`
+- `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/
+`* `{{replaceRegexp string regexp replacement}}`: replace a regular expression in a string, example use: `{{replaceRegexp name "#[^#\d\s\[\]]+\w+" ""}}` to remove hashtags from a task name
 - `{{json @page}}` translate any (object) value to JSON, mostly useful for debugging
 - `{{relativePath @page.name}}` translate a path to a relative one (to the current page), useful when injecting page names, e.g. `{{relativePath name}}`.
 - `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `

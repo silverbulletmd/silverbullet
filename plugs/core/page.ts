@@ -32,7 +32,7 @@ import { isValidPageName } from "$sb/lib/page.ts";
 
 const backlinkPrefix = `l:`;
 
-type BacklinkEntry = {
+export type BacklinkEntry = {
   name: string;
   alias?: string;
   inDirective?: boolean;

@@ -23,10 +23,10 @@ When the cursor is positioned inside of a due date, the {[Task: Postpone]} comma
 
 This metadata is extracted and available via the `task` query source to [[🔌 Directive/Query]]:
 
-<!-- #query task where page = "{{page}}"" -->
-|name                 |done |page    |pos|tags  |deadline  |
-|---------------------|-----|--------|---|------|----------|
-|This is a task       |false|🔌 Tasks|215|      |          |
-|This is a tagged task|false|🔌 Tasks|289|my-tag|          |
-|This is due          |false|🔌 Tasks|575|      |2022-11-26|
+<!-- #query task where page = "{{@page.name}}" -->
+|name                         |done |page    |pos|tags  |deadline  |
+|-----------------------------|-----|--------|---|------|----------|
+|This is a task               |false|🔌 Tasks|213|      |          |
+|This is a tagged task #my-tag|false|🔌 Tasks|287|my-tag|          |
+|This is due                  |false|🔌 Tasks|573|      |2022-11-26|
 <!-- /query -->
