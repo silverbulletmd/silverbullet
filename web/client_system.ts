@@ -126,12 +126,12 @@ export class ClientSystem {
     // Syscalls that require some additional permissions
     this.system.registerSyscalls(
       ["fetch"],
-      sandboxFetchSyscalls(this.editor.remoteSpacePrimitives),
+      sandboxFetchSyscalls(this.editor),
     );
 
     this.system.registerSyscalls(
       ["shell"],
-      shellSyscalls(this.editor.remoteSpacePrimitives),
+      shellSyscalls(this.editor),
     );
   }
 

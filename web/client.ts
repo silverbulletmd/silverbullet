@@ -562,6 +562,19 @@ export class Client {
   }
 
   focus() {
+    const viewState = this.ui.viewState;
+    if (
+      [
+        viewState.showCommandPalette,
+        viewState.showPageNavigator,
+        viewState.showFilterBox,
+        viewState.showConfirm,
+        viewState.showPrompt,
+      ].some(Boolean)
+    ) {
+      // Some other modal UI element is visible, don't focus editor now
+      return;
+    }
     this.editorView!.focus();
   }
 

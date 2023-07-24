@@ -1,16 +1,18 @@
 {
   "tasks": {
     "clean": "rm -rf dist dist_client_bundle dist_plug_bundle website_build",
+    "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
     "install": "deno install -f -A --importmap import_map.json silverbullet.ts",
     "check": "find . -name '*.ts*' | xargs deno check",
     "test": "deno test -A --unstable",
     "build": "deno run -A build_plugs.ts && deno run -A --unstable build_web.ts",
     "plugs": "deno run -A build_plugs.ts",
-    "watch-web": "deno run -A --check build_web.ts --watch",
     "server": "deno run -A --check silverbullet.ts",
+
+    "watch-web": "deno run -A --check build_web.ts --watch",
     "watch-server": "deno run -A --check --watch silverbullet.ts",
-    // The only reason to run a shell script is that deno task doesn't support globs yet (e.g. *.plug.yaml)
     "watch-plugs": "deno run -A --check build_plugs.ts -w",
+
     "bundle": "deno run -A build_bundle.ts",
     // Regenerates some bundle files (checked into the repo)
     // Install lezer-generator with "npm install -g @lezer/generator"
