@@ -64,16 +64,12 @@ jobs:
             ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
             ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
           tags: |
-            # <https://github.com/docker/metadata-action#typeref>
-            # minimal (short sha), enable f desired
-            # type=sha,enable=true,priority=100,prefix=commit-,suffix=,format=short
-            # set latest tag for default branch
-            type=raw,value=latest,enable={{is_default_branch}}
-            # 
-            # tag w/ full tag part of git tag: <https://github.com/docker/metadata-action#typesemver>
-            # only present for `on.push.tags` !
+            # When pushing a tag, release a tagged release :x.x.x
             type=semver,pattern={{raw}},enable=true
-            # type=edge,branch=develop # usually this would be the develop branch
+            # When pushing a tag (type=semver) push to :latest too
+            type=semver,value=latest
+            # When pushing to main branch, release as :edge
+            type=edge,branch=main
 
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
