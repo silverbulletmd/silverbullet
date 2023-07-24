@@ -88,7 +88,13 @@ export function FilterList({
   const returnEl = (
     <div className="sb-modal-wrapper">
       <div className="sb-modal-box">
-        <div className="sb-header">
+        <div
+          className="sb-header"
+          onClick={(e) => {
+            // Allow tapping/clicking the header without closing it
+            e.stopPropagation();
+          }}
+        >
           <label>{label}</label>
           <MiniEditor
             text={text}
