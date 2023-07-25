@@ -205,6 +205,15 @@ export class Client {
       this.settings.indexPage,
     );
 
+    // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
+    try {
+      await this.remoteSpacePrimitives.getFileMeta("SETTINGS");
+    } catch {
+      console.info(
+        "Could not reach remote server, either we're offline or not authenticated",
+      );
+    }
+
     await this.reloadPlugs();
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
@@ -478,7 +487,6 @@ export class Client {
   }
 
   async reloadPlugs() {
-    console.log("Loading plugs");
     await this.system.reloadPlugsFromSpace(this.space);
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
