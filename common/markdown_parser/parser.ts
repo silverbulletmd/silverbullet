@@ -142,7 +142,7 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-export const attributeRegex = /^\[([^:]+)(::\s*)([^\]]+)\]/;
+export const attributeRegex = /^\[(\w+)(::\s*)([^\]]+)\]/;
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [
@@ -164,7 +164,7 @@ export const Attribute: MarkdownConfig = {
         ) {
           return -1;
         }
-        const [fullMatch, attributeName, attributeColon, attributeValue] =
+        const [fullMatch, attributeName, attributeColon, _attributeValue] =
           match;
         const endPos = pos + fullMatch.length;
 
