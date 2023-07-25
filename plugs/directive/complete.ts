@@ -4,7 +4,7 @@ import { buildHandebarOptions } from "./util.ts";
 import type { PageMeta } from "../../web/types.ts";
 
 export async function queryComplete(completeEvent: CompleteEvent) {
-  const match = /#query ([\w\-_]+)*$/.exec(completeEvent.linePrefix);
+  const match = /#query ([\w\-_]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }

@@ -9,11 +9,7 @@ import { FilterOption } from "../types.ts";
 import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
-import { fuzzySearchAndSort } from "./fuzzy_search.ts";
-
-type FilterResult = FilterOption & {
-  result?: any;
-};
+import { fuzzySearchAndSort } from "./fuse_search.ts";
 
 export function FilterList({
   placeholder,

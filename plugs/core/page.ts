@@ -57,7 +57,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         delete pageMeta[key];
       }
     }
-    console.log("Extracted page meta data", pageMeta);
+    // console.log("Extracted page meta data", pageMeta);
     await index.set(name, "meta:", pageMeta);
   }
 
