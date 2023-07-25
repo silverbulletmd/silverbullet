@@ -134,7 +134,7 @@ You will need three things:
 * A debit/credit card 💳.
 * A domain name (you can buy it on [Njalla](https://njal.la/) 😉, your real name will not be shown if someone uses whois tools).
 
-We assume you've already [signed up to Cloudflare](https://www.cloudflare.com/), if not you can go and do it now, it's free but you'll need to add a real debit/credit card to have access to the tunnels and zero access. If you don't want to do that, you can use **alternatives** like [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy) or [Nginx](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) for reverse proxy and [Authelia](https://www.authelia.com/) or you can use the [BasicAuth build-in](https://silverbullet.md/Authentication) for authentication.
+We assume you've already [signed up to Cloudflare](https://www.cloudflare.com/), if not you can go and do it now, it's free but you'll need to add a real debit/credit card to have access to the tunnels and zero access. If you don't want to do that, you can use **alternatives** like [Caddy](https://caddyserver.com/docs/quick-starts/reverse-proxy) or [Nginx](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) for reverse proxy and [Authelia](https://www.authelia.com/) or you can use the [basic authentication built-in](https://silverbullet.md/Authentication) for authentication.
 
 ## Add your Site/Domain Name to Cloudflare
 

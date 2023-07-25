@@ -10,6 +10,7 @@ You have two options to install and run SilverBullet as a server:
 In either case, check the notes [[@tls|on using TLS]].
 
 ## Installation via Deno
+$deno
 This consists of two steps (unless Deno is already installed — in which case we’re down to one):
 
 1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
@@ -46,8 +47,15 @@ silverbullet upgrade
 And restart SilverBullet. You should be good to go.
 
 ## Installing SilverBullet with Docker
+$docker
+There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silverbullet). The image comes in two flavors:
 
-There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silverbullet). To use it, first create a volume to keep your space (markdown) files:
+* 64-bit Intel
+* 64-bit ARM (e.g. for Raspberry Pis and Macs)
+
+There is no 32-bit version of Deno, and therefore we cannot offer a 32-bit version of SilverBullet either.
+
+To use the docker container, first create a volume to keep your space (markdown) files:
 
 ```shell
 docker volume create myspace

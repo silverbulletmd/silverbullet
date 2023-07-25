@@ -2,7 +2,7 @@ SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/s
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Install]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
+Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Install]], [[Manual]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://hachyderm.io/@silverbullet), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
 
 Now that we got that out of the way let’s have a look at some of SilverBullet’s features.
 
@@ -75,13 +75,7 @@ rating: 5
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to the [[Install]] and enjoy!
 
 ## Where to go from here
-Click on the links below to explore various aspects of SilverBullet more in-depth:
-
-* [[CHANGELOG]]: What’s new?
-* [[🔌 Plugs]]: extensions available for, and as part of SilverBullet
-* [[SETTINGS]]: What settings exist and how to change them
-* [[Special Pages]]: a few page names in Silver Bullet have special meaning
-* [[🔨 Development]]: how to start hacking on SilverBullet itself
+Have a lock at our work-in-progress [[Manual]].
 
 ## Support
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).

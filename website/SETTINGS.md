@@ -28,8 +28,4 @@ spaceIgnore: |
    dist
    largefolder
    *.mp4
-
-# Federation
-#federate:
-#- someserver
 ```

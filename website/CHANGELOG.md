@@ -6,11 +6,13 @@ release.
 ## Next
 * [Mobile view improvements](https://github.com/silverbulletmd/silverbullet/pull/452) for tables and directives (vertical spacing) by [vuau](https://github.com/vuau)
 * Internal work on [color theming](https://github.com/silverbulletmd/silverbullet/pull/455) by [TheLD6978](https://github.com/TheLD6978)
-* **Bug fix**: Renaming of pages now works again on iOS
+* Re-implemented fuzzy search in the page picker, command palette etc. with [Fuse.js](https://www.fusejs.io/) — let’s see if people like this better.
 * Backlinks (as queried via the `link` data source) now contains richer data, namely `inDirective` (if the link appears in the context of a directive) and `alias` (if the backlink has an alias name). This also fixes not updating page references inside directives. This introduced a backwards incompatible data. To update your indexes, please run {[Space: Reindex]} on your clients (once).
+* Initial work on [[Attributes]] (inline [[Metadata]]) such as this [importance:: high]
 * Added {[Debug: Reset Client]} command that flushes the local databases and caches (and service worker) for debugging purposes.
 * Added {[Editor: Center Cursor]} command.
 * New template helper `replaceRegexp`, see [[🔌 Core/Templates@vars]]
+* **Bug fix**: Renaming of pages now works again on iOS
 * Big internal code refactor
 
 ---

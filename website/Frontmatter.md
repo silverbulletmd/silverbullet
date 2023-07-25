@@ -1,5 +1,7 @@
 Frontmatter is a common format to attach additional metadata (data about data) to markdown documents.
 
+In SilverBullet there are multiple ways to attach [[Metadata]] to a page, frontmatter is one of them.
+
 You create it by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document.
 
 Here is an example:
