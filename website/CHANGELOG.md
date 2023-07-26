@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.3.6
 * [Mobile view improvements](https://github.com/silverbulletmd/silverbullet/pull/452) for tables and directives (vertical spacing) by [vuau](https://github.com/vuau)
 * Internal work on [color theming](https://github.com/silverbulletmd/silverbullet/pull/455) by [TheLD6978](https://github.com/TheLD6978)
 * Re-implemented fuzzy search in the page picker, command palette etc. with [Fuse.js](https://www.fusejs.io/) — let’s see if people like this better.
