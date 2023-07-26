@@ -14,12 +14,14 @@ import {
 import {
   addParentPointers,
   collectNodesMatching,
+  collectNodesMatchingAsync,
   collectNodesOfType,
   findNodeOfType,
   nodeAtPos,
   ParseTree,
   renderToText,
   replaceNodesMatching,
+  traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
@@ -44,7 +46,10 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const tasks: { key: string; value: Task }[] = [];
   removeQueries(tree);
   addParentPointers(tree);
-  collectNodesOfType(tree, "Task").forEach((n) => {
+  await traverseTreeAsync(tree, async (n) => {
+    if (n.type !== "Task") {
+      return false;
+    }
     const complete = n.children![0].children![0].text! !== "[ ]";
     const task: Task = {
       name: "",
@@ -69,7 +74,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     });
 
     // Extract attributes and remove from tree
-    const extractedAttributes = extractAttributes(n, true);
+    const extractedAttributes = await extractAttributes(n, true);
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
     }
@@ -85,6 +90,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       key: `task:${n.from}`,
       value: task,
     });
+    return true;
   });
 
   // console.log("Found", tasks.length, "task(s)");

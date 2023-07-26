@@ -142,7 +142,7 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-export const attributeRegex = /^\[(\w+)(::\s*)([^\]]+)\]/;
+export const attributeStartRegex = /^\[(\w+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [
@@ -157,19 +157,46 @@ export const Attribute: MarkdownConfig = {
       name: "Attribute",
       parse(cx, next, pos) {
         let match: RegExpMatchArray | null;
+        const textFromPos = cx.slice(pos, cx.end);
         if (
           next != 91 /* '[' */ ||
           // and match the whole thing
-          !(match = attributeRegex.exec(cx.slice(pos, cx.end)))
+          !(match = attributeStartRegex.exec(textFromPos))
         ) {
           return -1;
         }
-        const [fullMatch, attributeName, attributeColon, _attributeValue] =
-          match;
-        const endPos = pos + fullMatch.length;
+        const [fullMatch, attributeName, attributeColon] = match;
+        const attributeValueStart = pos + fullMatch.length;
+        let bracketNestingDepth = 1;
+        let valueLength = fullMatch.length;
+        loopLabel:
+        for (; valueLength < textFromPos.length; valueLength++) {
+          switch (textFromPos[valueLength]) {
+            case "[":
+              bracketNestingDepth++;
+              break;
+            case "]":
+              bracketNestingDepth--;
+              if (bracketNestingDepth === 0) {
+                // Done!
+                break loopLabel;
+              }
+              break;
+          }
+        }
+        if (bracketNestingDepth !== 0) {
+          console.log("Failed to parse attribute", fullMatch, textFromPos);
+          return -1;
+        }
+
+        if (textFromPos[valueLength + 1] === "(") {
+          console.log("Link", fullMatch, textFromPos);
+          // This turns out to be a link, back out!
+          return -1;
+        }
 
         return cx.addElement(
-          cx.elt("Attribute", pos, endPos, [
+          cx.elt("Attribute", pos, pos + valueLength + 1, [
             cx.elt("AttributeMark", pos, pos + 1), // [
             cx.elt("AttributeName", pos + 1, pos + 1 + attributeName.length),
             cx.elt(
@@ -180,9 +207,9 @@ export const Attribute: MarkdownConfig = {
             cx.elt(
               "AttributeValue",
               pos + 1 + attributeName.length + attributeColon.length,
-              endPos - 1,
+              pos + valueLength,
             ),
-            cx.elt("AttributeMark", endPos - 1, endPos), // [
+            cx.elt("AttributeMark", pos + valueLength, pos + valueLength + 1), // [
           ]),
         );
       },

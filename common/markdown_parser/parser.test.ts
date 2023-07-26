@@ -91,14 +91,32 @@ Deno.test("Test directive parser", () => {
 });
 
 const inlineAttributeSample = `
-Hello there [a link](http://zef.plus) and [age:: 100]
+Hello there [a link](http://zef.plus)
+[age: 100]
+[age:: 200]
+
+Here's a more [ambiguous: case](http://zef.plus)
+
+And one with nested brackets: [array: [1, 2, 3]]
 `;
 
 Deno.test("Test inline attribute syntax", () => {
   const lang = buildMarkdown([]);
   const tree = parse(lang, inlineAttributeSample);
-  const nameNode = findNodeOfType(tree, "AttributeName");
+  console.log("Attribute parsed", JSON.stringify(tree, null, 2));
+  const attributes = collectNodesOfType(tree, "Attribute");
+  let nameNode = findNodeOfType(attributes[0], "AttributeName");
   assertEquals(nameNode?.children![0].text, "age");
-  const valueNode = findNodeOfType(tree, "AttributeValue");
+  let valueNode = findNodeOfType(attributes[0], "AttributeValue");
   assertEquals(valueNode?.children![0].text, "100");
+
+  nameNode = findNodeOfType(attributes[1], "AttributeName");
+  assertEquals(nameNode?.children![0].text, "age");
+  valueNode = findNodeOfType(attributes[1], "AttributeValue");
+  assertEquals(valueNode?.children![0].text, "200");
+
+  nameNode = findNodeOfType(attributes[2], "AttributeName");
+  assertEquals(nameNode?.children![0].text, "array");
+  valueNode = findNodeOfType(attributes[2], "AttributeValue");
+  assertEquals(valueNode?.children![0].text, "[1, 2, 3]");
 });

@@ -22,13 +22,13 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
   const coll = collectNodesOfType(tree, "ListItem");
 
-  coll.forEach((n) => {
+  for (const n of coll) {
     if (!n.children) {
-      return;
+      continue;
     }
     if (collectNodesOfType(n, "Task").length > 0) {
       // This is a task item, skip it
-      return;
+      continue;
     }
 
     const item: Item = {
@@ -43,7 +43,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
         break;
       }
       // Extract attributes and remove from tree
-      const extractedAttributes = extractAttributes(child, true);
+      const extractedAttributes = await extractAttributes(child, true);
       for (const [key, value] of Object.entries(extractedAttributes)) {
         item[key] = value;
       }
@@ -66,7 +66,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       key: `it:${n.from}`,
       value: item,
     });
-  });
+  }
   // console.log("Found", items.length, "item(s)");
   await index.batchSet(name, items);
 }

@@ -5,38 +5,57 @@ Attributes can contribute additional [[Metadata]] to various entities:
 * Tasks
 
 ## Syntax
-The syntax for attributes in inspired by [Obsidian’s Dataview](https://blacksmithgu.github.io/obsidian-dataview/annotation/add-metadata/) plugin, as well as [LogSeq](https://logseq.com/)‘s:
+The syntax is as follows:
 
 ```
-[attributeName:: value]
+[attributeName: value]
 ```
 
-Attribute names need to be alphanumeric. Values are interpreted as text by default, unless they take the shape of a number, in which case they’re parsed as a number.
+For Obsidian/LogSeq compatibility, you can also double the colon like this: `[attributeName:: value]`
+ 
+Attribute names need to be alphanumeric. Values are interpreted as [[YAML]] values. So here are some examples of valid attribute definitions:
+
+* string: [attribute1: sup]
+* number: [attribute2: 10]
+* array: [attribute3: [sup, yo]]
 
 Multiple attributes can be attached to a single entity, e.g. like so:
 
-* Some item [attribute1:: sup][attribute2:: 22]
-
-And queried like so:
-
-<!-- #query item where page = "Attributes" and name =~ /Some item/ -->
-|name     |attribute1|attribute2|page      |pos|
-|---------|---|--|----------|---|
-|Some item|sup|22|Attributes|569|
-<!-- /query -->
-
+* Some item [attribute1: sup][attribute2: 22]
 
 ## Scope
-Depending on where these attributes appear, they attach to different things. For instance here:
+Depending on where these attributes appear, they attach to different things. For instance, this attaches an attribute to a page:
 
 [pageAttribute:: hello]
 
-The attribute attaches to a page, whereas
+Example query:
+
+<!-- #query page where name = "Attributes" -->
+|name      |lastModified |contentType  |size|perm|pageAttribute|
+|----------|-------------|-------------|----|--|-----|
+|Attributes|1690384301337|text/markdown|1591|rw|hello|
+<!-- /query -->
+
+This attaches an attribute to an item:
 
 * Item [itemAttribute:: hello]
 
-it attaches to an item, and finally:
+Example query:
+
+<!-- #query item where page = "Attributes" and itemAttribute = "hello" -->
+|name|itemAttribute|page      |pos |
+|----|-----|----------|----|
+|Item|hello|Attributes|1079|
+<!-- /query -->
+
+This attaches an attribute to a task:
 
 * [ ] Task [taskAttribute:: hello]
 
-Here it attaches to a task.
+Example query:
+
+<!-- #query task where page = "Attributes" and taskAttribute = "hello" -->
+|name|done |taskAttribute|page      |pos |
+|----|-----|-----|----------|----|
+|Task|false|hello|Attributes|1352|
+<!-- /query -->

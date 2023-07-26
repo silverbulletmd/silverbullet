@@ -43,7 +43,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   // [[Style Links]]
   // console.log("Now indexing links for", name);
   const pageMeta = await extractFrontmatter(tree);
-  const toplevelAttributes = extractAttributes(tree, false);
+  const toplevelAttributes = await extractAttributes(tree, false);
   if (
     Object.keys(pageMeta).length > 0 ||
     Object.keys(toplevelAttributes).length > 0

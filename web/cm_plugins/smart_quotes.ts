@@ -6,6 +6,7 @@ const straightQuoteContexts = [
   "InlineCode",
   "FrontMatterCode",
   "DirectiveStart",
+  "Attribute",
 ];
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)

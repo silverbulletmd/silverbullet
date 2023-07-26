@@ -129,7 +129,7 @@ export async function replaceNodesMatchingAsync(
           tree.children.splice(pos, 1);
         }
       } else {
-        replaceNodesMatchingAsync(child, substituteFn);
+        await replaceNodesMatchingAsync(child, substituteFn);
       }
     }
   }
