@@ -14,3 +14,7 @@ export async function parsePageCommand() {
 export async function resetClientCommand() {
   await debug.resetClient();
 }
+
+export async function reloadUICommand() {
+  await editor.reloadUI();
+}

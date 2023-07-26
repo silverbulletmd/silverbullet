@@ -42,6 +42,9 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     "editor.reloadPage": async () => {
       await editor.reloadPage();
     },
+    "editor.reloadUI": () => {
+      location.reload();
+    },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       if (!existingWindow) {
         const win = window.open(url, "_blank");

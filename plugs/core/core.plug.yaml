@@ -352,6 +352,11 @@ functions:
     command:
       name: "Debug: Parse Document"
 
+  reloadUICommand:
+    path: ./debug.ts:reloadUICommand
+    command:
+      name: "Debug: Reload UI"
+
   resetClientCommand:
     path: ./debug.ts:resetClientCommand
     command:
