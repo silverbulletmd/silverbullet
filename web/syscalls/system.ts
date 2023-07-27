@@ -41,7 +41,7 @@ export function systemSyscalls(
       return allCommands;
     },
     "system.reloadPlugs": () => {
-      return editor.reloadPlugs();
+      return editor.loadPlugs();
     },
     "system.getEnv": () => {
       return system.env;

@@ -160,12 +160,15 @@ export class Client {
     }
 
     this.initNavigator();
-
-    await this.reloadPlugs();
+    await this.loadPlugs();
+    this.initSync();
 
     this.loadCustomStyles().catch(console.error);
 
-    // Kick off background sync
+    await this.dispatchAppEvent("editor:init");
+  }
+
+  private initSync() {
     this.syncService.start();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
@@ -207,8 +210,6 @@ export class Client {
         Math.round(status.filesProcessed / status.totalFiles * 100),
       );
     });
-
-    await this.dispatchAppEvent("editor:init");
   }
 
   private initNavigator() {
@@ -351,6 +352,10 @@ export class Client {
 
   get currentPage(): string | undefined {
     return this.ui.viewState.currentPage;
+  }
+
+  dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
+    return this.eventHook.dispatchEvent(name, ...args);
   }
 
   save(immediate = false): Promise<void> {
@@ -499,11 +504,7 @@ export class Client {
     });
   }
 
-  dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
-    return this.eventHook.dispatchEvent(name, ...args);
-  }
-
-  async reloadPlugs() {
+  async loadPlugs() {
     await this.system.reloadPlugsFromSpace(this.space);
     this.rebuildEditorState();
     await this.dispatchAppEvent("plugs:loaded");
@@ -515,7 +516,7 @@ export class Client {
 
     this.system.updateMarkdownParser();
 
-    if (editorView && this.currentPage) {
+    if (this.currentPage) {
       // And update the editor if a page is loaded
       this.openPages.saveState(this.currentPage);
 
@@ -731,7 +732,7 @@ export class Client {
     }
   }
 
-  async runCommandByName(name: string, ...args: any[]) {
+  async runCommandByName(name: string) {
     const cmd = this.ui.viewState.commands.get(name);
     if (cmd) {
       await cmd.run();
