@@ -134,7 +134,7 @@ export class Client {
 
     this.focus();
 
-    // This constructor will always be followed by an invocatition of init()
+    // This constructor will always be followed by an (async) invocatition of init()
   }
 
   /**
@@ -145,16 +145,21 @@ export class Client {
     // Load settings
     this.settings = await this.loadSettings();
 
-    this.initNavigator();
-
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
-      await this.remoteSpacePrimitives.getFileMeta("SETTINGS");
-    } catch {
+      await this.remoteSpacePrimitives.ping();
+    } catch (e: any) {
+      if (e.message === "Not authenticated") {
+        console.warn("Not authenticated, redirecting to auth page");
+        return;
+      }
       console.warn(
-        "Could not reach remote server, either we're offline or not authenticated",
+        "Could not reach remote server, we're offline or the server is down",
+        e,
       );
     }
+
+    this.initNavigator();
 
     await this.reloadPlugs();
 

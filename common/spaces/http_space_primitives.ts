@@ -33,7 +33,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           result.url,
         );
         location.href = result.url;
-        throw new Error("Invalid credentials");
+        throw new Error("Not authenticated");
       }
       return result;
     } catch (e: any) {
@@ -154,5 +154,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
     };
+  }
+
+  // Used to check if the server is reachable and the user is authenticated
+  // If not: throws an error or invokes a redirect
+  async ping() {
+    await this.authenticatedFetch(`${this.url}/SETTINGS.md`, { method: "GET" });
   }
 }
