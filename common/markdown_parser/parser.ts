@@ -166,7 +166,6 @@ export const Attribute: MarkdownConfig = {
           return -1;
         }
         const [fullMatch, attributeName, attributeColon] = match;
-        const attributeValueStart = pos + fullMatch.length;
         let bracketNestingDepth = 1;
         let valueLength = fullMatch.length;
         loopLabel:

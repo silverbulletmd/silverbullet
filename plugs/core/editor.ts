@@ -42,3 +42,12 @@ export async function centerCursorCommand() {
   const pos = await editor.getCursor();
   await editor.moveCursor(pos, true);
 }
+
+export async function moveToPosCommand() {
+  const posString = await editor.prompt("Move to position:");
+  if (!posString) {
+    return;
+  }
+  const pos = +posString;
+  await editor.moveCursor(pos);
+}

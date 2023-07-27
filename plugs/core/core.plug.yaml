@@ -31,6 +31,10 @@ functions:
     command:
       name: "Editor: Center Cursor"
       key: "Ctrl-Alt-l"
+  moveToPos:
+    path: "./editor.ts:moveToPosCommand"
+    command:
+      name: "Editor: Move Cursor to Position"
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
     events:

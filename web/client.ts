@@ -428,8 +428,7 @@ export class Client {
     );
   }
 
-  progressTimeout?: number;
-
+  private progressTimeout?: number;
   showProgress(progressPerc: number) {
     this.ui.viewDispatch({
       type: "set-progress",
@@ -714,7 +713,7 @@ export class Client {
   }
 
   async loadCustomStyles() {
-    if (this.settings?.customStyles) {
+    if (this.settings.customStyles) {
       try {
         const { text: stylesText } = await this.space.readPage(
           this.settings?.customStyles,

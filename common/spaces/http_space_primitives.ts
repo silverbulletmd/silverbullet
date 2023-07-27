@@ -32,15 +32,19 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           "Got a redirect via the API so will redirect to URL",
           result.url,
         );
+        alert("You are not authenticated, redirecting to login page...");
         location.href = result.url;
         throw new Error("Not authenticated");
       }
       return result;
     } catch (e: any) {
-      // Firefox: NetworkError when attempting to fetch resource (with SW and without)
-      // Safari: FetchEvent.respondWith received an error: TypeError: Load failed (service worker)
-      // Safari: Load failed (no service worker)
-      // Chrome: Failed to fetch (with service worker and without)
+      // Errors when there is no internet connection:
+      //
+      // * Firefox: NetworkError when attempting to fetch resource (with SW and without)
+      // * Safari (service worker enabled): FetchEvent.respondWith received an error: TypeError: Load failed
+      // * Safari (no service worker): Load failed
+      // * Chrome: Failed to fetch
+      //
       // Common substrings: "fetch" "load failed"
       const errorMessage = e.message.toLowerCase();
       if (

@@ -13,14 +13,7 @@ import {
 
 import { events } from "$sb/plugos-syscall/mod.ts";
 
-import {
-  addParentPointers,
-  findNodeOfType,
-  ParseTree,
-  renderToText,
-  replaceNodesMatching,
-  traverseTree,
-} from "$sb/lib/tree.ts";
+import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
@@ -37,6 +30,7 @@ export type BacklinkEntry = {
   name: string;
   alias?: string;
   inDirective?: boolean;
+  asTemplate?: boolean;
 };
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const backLinks: { key: string; value: BacklinkEntry }[] = [];
@@ -65,6 +59,29 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   traverseTree(tree, (n): boolean => {
     if (n.type === "DirectiveStart") {
       directiveDepth++;
+      const pageRef = findNodeOfType(n, "PageRef")!;
+      if (pageRef) {
+        const pageRefName = pageRef.children![0].text!.slice(2, -2);
+        backLinks.push({
+          key: `${backlinkPrefix}${pageRefName}:${pageRef.from! + 2}`,
+          value: { name, asTemplate: true },
+        });
+      }
+      const directiveText = n.children![0].text;
+      // #use or #import
+      if (directiveText) {
+        const match = /\[\[(.+)\]\]/.exec(directiveText);
+        if (match) {
+          const pageRefName = match[1];
+          backLinks.push({
+            key: `${backlinkPrefix}${pageRefName}:${
+              n.from! + match.index! + 2
+            }`,
+            value: { name, asTemplate: true },
+          });
+        }
+      }
+
       return true;
     }
     if (n.type === "DirectiveStop") {
@@ -94,7 +111,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
     return false;
   });
-  // console.log("Found", backLinks.length, "wiki link(s)");
+  // console.log("Found", backLinks.length, "page link(s)");
   await index.batchSet(name, backLinks);
 }
 
@@ -117,6 +134,9 @@ export async function linkQueryProvider({
     const [, , pos] = key.split(":"); // Key: l:page:pos
     if (!blEntry.inDirective) {
       blEntry.inDirective = false;
+    }
+    if (!blEntry.asTemplate) {
+      blEntry.asTemplate = false;
     }
     links.push({ ...blEntry, pos });
   }
@@ -247,29 +267,14 @@ export async function renamePage(cmdDef: any) {
       // Page likely does not exist, but at least we can skip it
       continue;
     }
-    const mdTree = await markdown.parseMarkdown(text);
-    addParentPointers(mdTree);
-    // The links in the page are going to be relative pointers to the old name
-    replaceNodesMatching(mdTree, (n): ParseTree | undefined | null => {
-      if (n.type === "WikiLinkPage") {
-        const pageName = n.children![0].text!;
-        if (pageName === oldName) {
-          n.children![0].text = newName;
-          updatedReferences++;
-          return n;
-        }
-        // page name with @pos position
-        if (pageName.startsWith(`${oldName}@`)) {
-          const [, pos] = pageName.split("@");
-          n.children![0].text = `${newName}@${pos}`;
-          updatedReferences++;
-          return n;
-        }
-      }
-      return;
+
+    const newText = text.replaceAll(`[[${oldName}]]`, () => {
+      updatedReferences++;
+      return `[[${newName}]]`;
+    }).replaceAll(`[[${oldName}@`, () => {
+      updatedReferences++;
+      return `[[${newName}@`;
     });
-    // let newText = text.replaceAll(`[[${oldName}]]`, `[[${newName}]]`);
-    const newText = renderToText(mdTree);
     if (text !== newText) {
       console.log("Changes made, saving...");
       await space.writePage(pageToUpdate, newText);

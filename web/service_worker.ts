@@ -43,7 +43,7 @@ self.addEventListener("install", (event: any) => {
 });
 
 self.addEventListener("activate", (event: any) => {
-  console.log("[Service worker]", "Activating new service worker!!!");
+  console.log("[Service worker]", "Activating new service worker!");
   event.waitUntil(
     (async () => {
       const cacheNames = await caches.keys();
