@@ -90,7 +90,7 @@ export function cleanWikiLinkPlugin(editor: Client) {
                 callback: (e) => {
                   if (e.altKey) {
                     // Move cursor into the link
-                    return editor.editorView!.dispatch({
+                    return editor.editorView.dispatch({
                       selection: { anchor: from + 2 },
                     });
                   }

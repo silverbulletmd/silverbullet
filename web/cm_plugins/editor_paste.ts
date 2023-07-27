@@ -118,15 +118,15 @@ export function attachmentExtension(editor: Client) {
       // Only do rich text paste if shift is NOT down
       if (richText && !shiftDown) {
         // Are we in a fencede code block?
-        const editorText = editor.editorView!.state.sliceDoc();
+        const editorText = editor.editorView.state.sliceDoc();
         const tree = lezerToParseTree(
           editorText,
-          syntaxTree(editor.editorView!.state).topNode,
+          syntaxTree(editor.editorView.state).topNode,
         );
         addParentPointers(tree);
         const currentNode = nodeAtPos(
           tree,
-          editor.editorView!.state.selection.main.from,
+          editor.editorView.state.selection.main.from,
         );
         if (currentNode) {
           const fencedParentNode = findParentMatching(
@@ -141,7 +141,7 @@ export function attachmentExtension(editor: Client) {
 
         const markdown = striptHtmlComments(turndownService.turndown(richText))
           .trim();
-        const view = editor.editorView!;
+        const view = editor.editorView;
         const selection = view.state.selection.main;
         view.dispatch({
           changes: [
@@ -221,11 +221,11 @@ export function attachmentExtension(editor: Client) {
     if (mimeType.startsWith("image/")) {
       attachmentMarkdown = `![](${encodeURI(finalFileName)})`;
     }
-    editor.editorView!.dispatch({
+    editor.editorView.dispatch({
       changes: [
         {
           insert: attachmentMarkdown,
-          from: editor.editorView!.state.selection.main.from,
+          from: editor.editorView.state.selection.main.from,
         },
       ],
     });

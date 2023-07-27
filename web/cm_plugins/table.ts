@@ -26,7 +26,7 @@ class TableViewWidget extends WidgetType {
       // Pulling data-pos to put the cursor in the right place, falling back
       // to the start of the table.
       const dataAttributes = (e.target as any).dataset;
-      this.editor.editorView!.dispatch({
+      this.editor.editorView.dispatch({
         selection: {
           anchor: dataAttributes.pos ? +dataAttributes.pos : this.pos,
         },

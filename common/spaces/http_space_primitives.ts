@@ -21,17 +21,35 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.headers = { ...options.headers, ...{ "X-Sync-Mode": "true" } };
     }
 
-    const result = await fetch(url, options);
-    if (result.redirected) {
-      // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
-      console.log(
-        "Got a redirect via the API so will redirect to URL",
-        result.url,
-      );
-      location.href = result.url;
-      throw new Error("Invalid credentials");
+    try {
+      const result = await fetch(url, options);
+      if (result.status === 503) {
+        throw new Error("Offline");
+      }
+      if (result.redirected) {
+        // Got a redirect, we'll assume this is due to invalid credentials and redirecting to an auth page
+        console.log(
+          "Got a redirect via the API so will redirect to URL",
+          result.url,
+        );
+        location.href = result.url;
+        throw new Error("Invalid credentials");
+      }
+      return result;
+    } catch (e: any) {
+      // Firefox: NetworkError when attempting to fetch resource (with SW and without)
+      // Safari: FetchEvent.respondWith received an error: TypeError: Load failed (service worker)
+      // Safari: Load failed (no service worker)
+      // Chrome: Failed to fetch (with service worker and without)
+      // Common substrings: "fetch" "load failed"
+      const errorMessage = e.message.toLowerCase();
+      if (
+        errorMessage.includes("fetch") || errorMessage.includes("load failed")
+      ) {
+        throw new Error("Offline");
+      }
+      throw e;
     }
-    return result;
   }
 
   async fetchFileList(): Promise<FileMeta[]> {

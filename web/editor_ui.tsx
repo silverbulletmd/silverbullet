@@ -26,12 +26,12 @@ export class MainUI {
   constructor(private editor: Client) {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
-      if (!editor.editorView?.hasFocus) {
+      if (!editor.editorView.hasFocus) {
         if ((ev.target as any).closest(".cm-editor")) {
           // In some cm element, let's back out
           return;
         }
-        if (runScopeHandlers(editor.editorView!, ev, "editor")) {
+        if (runScopeHandlers(editor.editorView, ev, "editor")) {
           ev.preventDefault();
         }
       }
@@ -70,11 +70,9 @@ export class MainUI {
     }, [viewState.currentPage]);
 
     useEffect(() => {
-      if (editor.editorView) {
-        editor.tweakEditorDOM(
-          editor.editorView.contentDOM,
-        );
-      }
+      editor.tweakEditorDOM(
+        editor.editorView.contentDOM,
+      );
     }, [viewState.uiOptions.forcedROMode]);
 
     useEffect(() => {
@@ -190,7 +188,7 @@ export class MainUI {
           onRename={async (newName) => {
             if (!newName) {
               // Always move cursor to the start of the page
-              editor.editorView?.dispatch({
+              editor.editorView.dispatch({
                 selection: { anchor: 0 },
               });
               editor.focus();

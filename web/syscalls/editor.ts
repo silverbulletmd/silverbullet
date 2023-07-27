@@ -19,13 +19,13 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       return editor.currentPage!;
     },
     "editor.getText": () => {
-      return editor.editorView?.state.sliceDoc();
+      return editor.editorView.state.sliceDoc();
     },
     "editor.getCursor": (): number => {
-      return editor.editorView!.state.selection.main.from;
+      return editor.editorView.state.selection.main.from;
     },
     "editor.getSelection": (): { from: number; to: number } => {
-      return editor.editorView!.state.selection.main;
+      return editor.editorView.state.selection.main;
     },
     "editor.save": () => {
       return editor.save(true);
@@ -97,7 +97,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.insertAtPos": (_ctx, text: string, pos: number) => {
-      editor.editorView!.dispatch({
+      editor.editorView.dispatch({
         changes: {
           insert: text,
           from: pos,
@@ -105,7 +105,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.replaceRange": (_ctx, from: number, to: number, text: string) => {
-      editor.editorView!.dispatch({
+      editor.editorView.dispatch({
         changes: {
           insert: text,
           from: from,
@@ -114,13 +114,13 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.moveCursor": (_ctx, pos: number, center = false) => {
-      editor.editorView!.dispatch({
+      editor.editorView.dispatch({
         selection: {
           anchor: pos,
         },
       });
       if (center) {
-        editor.editorView!.dispatch({
+        editor.editorView.dispatch({
           effects: [
             EditorView.scrollIntoView(
               pos,
@@ -133,8 +133,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       }
     },
     "editor.setSelection": (_ctx, from: number, to: number) => {
-      const editorView = editor.editorView!;
-      editorView.dispatch({
+      editor.editorView.dispatch({
         selection: {
           anchor: from,
           head: to,
@@ -143,7 +142,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     },
 
     "editor.insertAtCursor": (_ctx, text: string) => {
-      const editorView = editor.editorView!;
+      const editorView = editor.editorView;
       const from = editorView.state.selection.main.from;
       editorView.dispatch({
         changes: {
@@ -156,7 +155,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.dispatch": (_ctx, change: Transaction) => {
-      editor.editorView!.dispatch(change);
+      editor.editorView.dispatch(change);
     },
     "editor.prompt": (
       _ctx,
@@ -182,7 +181,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
-      const cm = vimGetCm(editor.editorView!)!;
+      const cm = vimGetCm(editor.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
     // Sync
@@ -191,19 +190,19 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     },
     // Folding
     "editor.fold": () => {
-      foldCode(editor.editorView!);
+      foldCode(editor.editorView);
     },
     "editor.unfold": () => {
-      unfoldCode(editor.editorView!);
+      unfoldCode(editor.editorView);
     },
     "editor.toggleFold": () => {
-      toggleFold(editor.editorView!);
+      toggleFold(editor.editorView);
     },
     "editor.foldAll": () => {
-      foldAll(editor.editorView!);
+      foldAll(editor.editorView);
     },
     "editor.unfoldAll": () => {
-      unfoldAll(editor.editorView!);
+      unfoldAll(editor.editorView);
     },
   };
 

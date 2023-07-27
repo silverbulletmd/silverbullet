@@ -17,14 +17,19 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
   fetchFileList(): Promise<FileMeta[]> {
     return this.primary.fetchFileList();
   }
+
   async readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     try {
       return await this.primary.readFile(name);
     } catch (e) {
+      console.info(
+        `Could not read file ${name} from primary, trying fallback`,
+        e,
+      );
       try {
-        return this.fallback.readFile(name);
-      } catch (fallbackError) {
-        console.error("Error during reaFile fallback", fallbackError);
+        return await this.fallback.readFile(name);
+      } catch (fallbackError: any) {
+        console.error("Error during readFile fallback", fallbackError);
         // Fallback failed, so let's throw the original error
         throw e;
       }
@@ -34,8 +39,12 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.getFileMeta(name);
     } catch (e) {
+      console.info(
+        `Could not fetch file ${name} metadata from primary, trying fallback`,
+        e,
+      );
       try {
-        return this.fallback.getFileMeta(name);
+        return await this.fallback.getFileMeta(name);
       } catch (fallbackError) {
         console.error("Error during getFileMeta fallback", fallbackError);
         // Fallback failed, so let's throw the original error

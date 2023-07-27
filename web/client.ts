@@ -49,29 +49,31 @@ declare global {
 
 // TODO: Oh my god, need to refactor this
 export class Client {
-  editorView?: EditorView;
-  pageNavigator?: PathPageNavigator;
+  system: ClientSystem;
 
-  space: Space;
+  editorView: EditorView;
 
-  remoteSpacePrimitives: HttpSpacePrimitives;
-  plugSpaceRemotePrimitives: PlugSpacePrimitives;
+  private pageNavigator!: PathPageNavigator;
+
+  private dbPrefix: string;
+
+  plugSpaceRemotePrimitives!: PlugSpacePrimitives;
+  localSpacePrimitives!: FilteredSpacePrimitives;
+  remoteSpacePrimitives!: HttpSpacePrimitives;
+  space!: Space;
 
   saveTimeout?: number;
-
   debouncedUpdateEvent = throttle(() => {
     this.eventHook
       .dispatchEvent("editor:updated")
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
-  system: ClientSystem;
 
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
-  // Runtime state (that doesn't make sense in viewState)
   syncService: SyncService;
-  settings?: BuiltinSettings;
+  settings!: BuiltinSettings;
   kvStore: DexieKVStore;
 
   // Event bus used to communicate between components
@@ -83,13 +85,11 @@ export class Client {
   constructor(
     parent: Element,
   ) {
-    const runtimeConfig = window.silverBulletConfig;
-
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    const dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
+    this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
 
     this.kvStore = new DexieKVStore(
-      `${dbPrefix}_store`,
+      `${this.dbPrefix}_store`,
       "data",
       globalThis.indexedDB,
     );
@@ -101,55 +101,14 @@ export class Client {
     this.system = new ClientSystem(
       this,
       this.kvStore,
-      dbPrefix,
+      this.dbPrefix,
       this.eventHook,
     );
 
-    // Setup space
-    this.remoteSpacePrimitives = new HttpSpacePrimitives(
-      location.origin,
-      runtimeConfig.spaceFolderPath,
-      true,
-    );
-
-    this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
-      this.remoteSpacePrimitives,
-      this.system.namespaceHook,
-    );
-
-    let fileFilterFn: (s: string) => boolean = () => true;
-
-    const localSpacePrimitives = new FilteredSpacePrimitives(
-      new FileMetaSpacePrimitives(
-        new EventedSpacePrimitives(
-          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-          new FallbackSpacePrimitives(
-            new IndexedDBSpacePrimitives(
-              `${dbPrefix}_space`,
-              globalThis.indexedDB,
-            ),
-            this.plugSpaceRemotePrimitives,
-          ),
-          this.eventHook,
-        ),
-        this.system.indexSyscalls,
-      ),
-      (meta) => fileFilterFn(meta.name),
-      async () => {
-        await this.loadSettings();
-        if (typeof this.settings?.spaceIgnore === "string") {
-          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
-        } else {
-          fileFilterFn = () => true;
-        }
-      },
-    );
-
-    this.space = new Space(localSpacePrimitives, this.kvStore);
-    this.space.watch();
+    this.initSpace();
 
     this.syncService = new SyncService(
-      localSpacePrimitives,
+      this.localSpacePrimitives,
       this.plugSpaceRemotePrimitives,
       this.kvStore,
       this.eventHook,
@@ -172,104 +131,32 @@ export class Client {
     });
 
     this.openPages = new OpenPages(this.editorView);
-  }
 
-  get currentPage(): string | undefined {
-    return this.ui.viewState.currentPage;
-  }
-
-  async init() {
     this.focus();
 
-    this.space.on({
-      pageChanged: (meta) => {
-        // Only reload when watching the current page (to avoid reloading when switching pages)
-        if (this.space.watchInterval && this.currentPage === meta.name) {
-          console.log("Page changed elsewhere, reloading");
-          this.flashNotification("Page changed elsewhere, reloading");
-          this.reloadPage();
-        }
-      },
-      pageListUpdated: (pages) => {
-        this.ui.viewDispatch({
-          type: "pages-listed",
-          pages: pages,
-        });
-      },
-    });
+    // This constructor will always be followed by an invocatition of init()
+  }
 
+  /**
+   * Initialize the client
+   * This is a separated from the constructor to allow for async initialization
+   */
+  async init() {
     // Load settings
     this.settings = await this.loadSettings();
 
-    this.pageNavigator = new PathPageNavigator(
-      this.settings.indexPage,
-    );
+    this.initNavigator();
 
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
       await this.remoteSpacePrimitives.getFileMeta("SETTINGS");
     } catch {
-      console.info(
+      console.warn(
         "Could not reach remote server, either we're offline or not authenticated",
       );
     }
 
     await this.reloadPlugs();
-
-    this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
-      console.log("Now navigating to", pageName);
-      if (!this.editorView) {
-        return;
-      }
-
-      const stateRestored = await this.loadPage(pageName);
-      if (pos) {
-        if (typeof pos === "string") {
-          console.log("Navigating to anchor", pos);
-
-          // We're going to look up the anchor through a direct page store query...
-          // TODO: This should be extracted
-          const posLookup = await this.system.localSyscall(
-            "index.get",
-            [
-              pageName,
-              `a:${pageName}:${pos}`,
-            ],
-          );
-
-          if (!posLookup) {
-            return this.flashNotification(
-              `Could not find anchor @${pos}`,
-              "error",
-            );
-          } else {
-            pos = +posLookup;
-          }
-        }
-        this.editorView.dispatch({
-          selection: { anchor: pos },
-          effects: EditorView.scrollIntoView(pos, { y: "start" }),
-        });
-      } else if (!stateRestored) {
-        // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
-        const pageText = this.editorView.state.sliceDoc();
-
-        // Default the cursor to be at position 0
-        let initialCursorPos = 0;
-        const match = frontMatterRegex.exec(pageText);
-        if (match) {
-          // Frontmatter found, put cursor after it
-          initialCursorPos = match[0].length;
-        }
-        // By default scroll to the top
-        this.editorView.scrollDOM.scrollTop = 0;
-        this.editorView.dispatch({
-          selection: { anchor: initialCursorPos },
-          // And then scroll down if required
-          scrollIntoView: true,
-        });
-      }
-    });
 
     this.loadCustomStyles().catch(console.error);
 
@@ -319,13 +206,134 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
   }
 
+  private initNavigator() {
+    this.pageNavigator = new PathPageNavigator(
+      this.settings.indexPage,
+    );
+
+    this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
+      console.log("Now navigating to", pageName);
+
+      const stateRestored = await this.loadPage(pageName);
+      if (pos) {
+        if (typeof pos === "string") {
+          console.log("Navigating to anchor", pos);
+
+          // We're going to look up the anchor through a direct page store query...
+          // TODO: This should be extracted
+          const posLookup = await this.system.localSyscall(
+            "index.get",
+            [
+              pageName,
+              `a:${pageName}:${pos}`,
+            ],
+          );
+
+          if (!posLookup) {
+            return this.flashNotification(
+              `Could not find anchor @${pos}`,
+              "error",
+            );
+          } else {
+            pos = +posLookup;
+          }
+        }
+        this.editorView.dispatch({
+          selection: { anchor: pos },
+          effects: EditorView.scrollIntoView(pos, { y: "start" }),
+        });
+      } else if (!stateRestored) {
+        // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
+        const pageText = this.editorView.state.sliceDoc();
+
+        // Default the cursor to be at position 0
+        let initialCursorPos = 0;
+        const match = frontMatterRegex.exec(pageText);
+        if (match) {
+          // Frontmatter found, put cursor after it
+          initialCursorPos = match[0].length;
+        }
+        // By default scroll to the top
+        this.editorView.scrollDOM.scrollTop = 0;
+        this.editorView.dispatch({
+          selection: { anchor: initialCursorPos },
+          // And then scroll down if required
+          scrollIntoView: true,
+        });
+      }
+    });
+  }
+
+  initSpace() {
+    this.remoteSpacePrimitives = new HttpSpacePrimitives(
+      location.origin,
+      window.silverBulletConfig.spaceFolderPath,
+      true,
+    );
+
+    this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
+      this.remoteSpacePrimitives,
+      this.system.namespaceHook,
+    );
+
+    let fileFilterFn: (s: string) => boolean = () => true;
+
+    this.localSpacePrimitives = new FilteredSpacePrimitives(
+      new FileMetaSpacePrimitives(
+        new EventedSpacePrimitives(
+          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+          new FallbackSpacePrimitives(
+            new IndexedDBSpacePrimitives(
+              `${this.dbPrefix}_space`,
+              globalThis.indexedDB,
+            ),
+            this.plugSpaceRemotePrimitives,
+          ),
+          this.eventHook,
+        ),
+        this.system.indexSyscalls,
+      ),
+      (meta) => fileFilterFn(meta.name),
+      async () => {
+        // Run when a list of files has been retrieved
+        await this.loadSettings();
+        if (typeof this.settings?.spaceIgnore === "string") {
+          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+        } else {
+          fileFilterFn = () => true;
+        }
+      },
+    );
+
+    this.space = new Space(this.localSpacePrimitives, this.kvStore);
+
+    this.space.on({
+      pageChanged: (meta) => {
+        // Only reload when watching the current page (to avoid reloading when switching pages)
+        if (this.space.watchInterval && this.currentPage === meta.name) {
+          console.log("Page changed elsewhere, reloading");
+          this.flashNotification("Page changed elsewhere, reloading");
+          this.reloadPage();
+        }
+      },
+      pageListUpdated: (pages) => {
+        this.ui.viewDispatch({
+          type: "pages-listed",
+          pages: pages,
+        });
+      },
+    });
+
+    this.space.watch();
+  }
+
   async loadSettings(): Promise<BuiltinSettings> {
     let settingsText: string | undefined;
 
     try {
       settingsText = (await this.space.readPage("SETTINGS")).text;
-    } catch {
-      console.log("No SETTINGS page, falling back to default");
+    } catch (e) {
+      console.info("No SETTINGS page, falling back to default", e);
       settingsText = "```yaml\nindexPage: index\n```\n";
     }
     const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
@@ -334,6 +342,10 @@ export class Client {
       settings.indexPage = "index";
     }
     return settings;
+  }
+
+  get currentPage(): string | undefined {
+    return this.ui.viewState.currentPage;
   }
 
   save(immediate = false): Promise<void> {
@@ -355,7 +367,7 @@ export class Client {
             this.space
               .writePage(
                 this.currentPage,
-                this.editorView!.state.sliceDoc(0),
+                this.editorView.state.sliceDoc(0),
                 true,
               )
               .then(async (meta) => {
@@ -583,7 +595,7 @@ export class Client {
       // Some other modal UI element is visible, don't focus editor now
       return;
     }
-    this.editorView!.focus();
+    this.editorView.focus();
   }
 
   async navigate(
@@ -616,10 +628,6 @@ export class Client {
   async loadPage(pageName: string): Promise<boolean> {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
-    if (!editorView) {
-      return false;
-    }
-
     const previousPage = this.currentPage;
 
     // Persist current page state and nicely close page
@@ -644,12 +652,20 @@ export class Client {
         throw new Error("Got HTML page, not markdown");
       }
     } catch (e: any) {
-      // Not found, new page
-      console.log("Creating new page", pageName);
-      doc = {
-        text: "",
-        meta: { name: pageName, lastModified: 0, perm: "rw" } as PageMeta,
-      };
+      if (e.message.includes("Not found")) {
+        // Not found, new page
+        console.log("Page doesn't exist, creating new page:", pageName);
+        doc = {
+          text: "",
+          meta: { name: pageName, lastModified: 0, perm: "rw" } as PageMeta,
+        };
+      } else {
+        console.error("Could not load page", pageName, e);
+        doc = {
+          text: `**ERROR**: ${e.message}`,
+          meta: { name: pageName, lastModified: 0, perm: "ro" } as PageMeta,
+        };
+      }
     }
 
     const editorState = createEditorState(
@@ -737,7 +753,7 @@ export class Client {
   }
 
   getContext(): string | undefined {
-    const state = this.editorView!.state;
+    const state = this.editorView.state;
     const selection = state.selection.main;
     if (selection.empty) {
       return syntaxTree(state).resolveInner(selection.from).type.name;

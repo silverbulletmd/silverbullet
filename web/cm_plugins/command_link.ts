@@ -49,7 +49,7 @@ export function cleanCommandLinkPlugin(editor: Client) {
               (e) => {
                 if (e.altKey) {
                   // Move cursor into the link
-                  return editor.editorView!.dispatch({
+                  return editor.editorView.dispatch({
                     selection: { anchor: from + 2 },
                   });
                 }

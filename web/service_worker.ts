@@ -106,7 +106,12 @@ self.addEventListener("fetch", (event: any) => {
         // Must be a page URL, let's serve index.html which will handle it
         return (await caches.match(precacheFiles["/"])) || fetch(request);
       }
-    })(),
+    })().catch((e) => {
+      console.warn("[Service worker]", "Fetch failed:", e);
+      return new Response("Offline", {
+        status: 503, // Service Unavailable
+      });
+    }),
   );
 });
 

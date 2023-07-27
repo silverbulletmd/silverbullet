@@ -41,7 +41,7 @@ class IFrameWidget extends WidgetType {
           iframe.style.height = data.height + "px";
           break;
         case "setBody":
-          this.editor.editorView!.dispatch({
+          this.editor.editorView.dispatch({
             changes: {
               from: this.from,
               to: this.to,
@@ -50,7 +50,7 @@ class IFrameWidget extends WidgetType {
           });
           break;
         case "blur":
-          this.editor.editorView!.dispatch({
+          this.editor.editorView.dispatch({
             selection: { anchor: this.from },
           });
           this.editor.focus();

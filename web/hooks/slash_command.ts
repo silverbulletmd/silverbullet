@@ -75,7 +75,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         boost: def.slashCommand.boost,
         apply: () => {
           // Delete slash command part
-          this.editor.editorView?.dispatch({
+          this.editor.editorView.dispatch({
             changes: {
               from: prefix!.from + prefixText.indexOf("/"),
               to: ctx.pos,

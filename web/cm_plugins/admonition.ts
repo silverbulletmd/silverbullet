@@ -170,7 +170,7 @@ export function admonitionPlugin(editor: Client) {
                 widget: new AdmonitionIconWidget(
                   iconRange.from + 1,
                   admonitionType,
-                  editor.editorView!,
+                  editor.editorView,
                 ),
                 inclusive: true,
               }).range(iconRange.from, iconRange.to),
