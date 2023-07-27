@@ -17,11 +17,10 @@ export class OpenPages {
     const editorView = this.editorView;
     if (pageState) {
       // Restore state
-      editorView.scrollDOM.scrollTop = pageState!.scrollTop;
       try {
         editorView.dispatch({
           selection: pageState.selection,
-          scrollIntoView: true,
+          // scrollIntoView: true,
         });
       } catch {
         // This is fine, just go to the top
@@ -30,6 +29,10 @@ export class OpenPages {
           scrollIntoView: true,
         });
       }
+      setTimeout(() => {
+        // Next tick, to allow the editor to process the render
+        editorView.scrollDOM.scrollTop = pageState.scrollTop;
+      });
     } else {
       editorView.scrollDOM.scrollTop = 0;
       editorView.dispatch({
@@ -45,8 +48,8 @@ export class OpenPages {
     this.openPages.set(
       currentPage,
       new PageState(
-        this.editorView!.scrollDOM.scrollTop,
-        this.editorView!.state.selection,
+        this.editorView.scrollDOM.scrollTop,
+        this.editorView.state.selection,
       ),
     );
   }
