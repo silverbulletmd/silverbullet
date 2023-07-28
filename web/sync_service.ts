@@ -177,14 +177,6 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
-    // Reminder: main reason to do this is not accidentally sync files retrieved via fallthrough (remote) and treat them as locally deleted
-    if (!await this.hasInitialSyncCompleted()) {
-      console.info(
-        "Initial sync hasn't happened yet, skipping sync for individual file",
-        name,
-      );
-      return;
-    }
     if (await this.isSyncing()) {
       console.log("Already syncing, aborting individual file sync for", name);
       return;
@@ -199,8 +191,16 @@ export class SyncService {
       let localHash: number | undefined;
       let remoteHash: number | undefined;
       try {
-        localHash =
-          (await this.localSpacePrimitives.getFileMeta(name)).lastModified;
+        const localMeta = await this.localSpacePrimitives.getFileMeta(name);
+        if (localMeta.neverSync) {
+          console.info(
+            "File marked as neverSync, skipping sync in this cycle",
+            name,
+          );
+          await this.registerSyncStop();
+          return;
+        }
+        localHash = localMeta.lastModified;
       } catch {
         // Not present
       }

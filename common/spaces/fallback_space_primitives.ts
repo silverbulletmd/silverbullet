@@ -27,7 +27,11 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
         e.message,
       );
       try {
-        return await this.fallback.readFile(name);
+        const result = await this.fallback.readFile(name);
+        return {
+          data: result.data,
+          meta: { ...result.meta, neverSync: true },
+        };
       } catch (fallbackError: any) {
         console.error("Error during readFile fallback", fallbackError.message);
         // Fallback failed, so let's throw the original error
@@ -44,7 +48,8 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
         e.message,
       );
       try {
-        return await this.fallback.getFileMeta(name);
+        const meta = await this.fallback.getFileMeta(name);
+        return { ...meta, neverSync: true };
       } catch (fallbackError) {
         console.error(
           "Error during getFileMeta fallback",

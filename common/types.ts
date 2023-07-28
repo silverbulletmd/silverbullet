@@ -6,4 +6,5 @@ export type FileMeta = {
   contentType: string;
   size: number;
   perm: "ro" | "rw";
+  neverSync?: boolean;
 } & Record<string, any>;

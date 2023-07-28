@@ -306,13 +306,11 @@ export class Client {
       (meta) => fileFilterFn(meta.name),
       // Run when a list of files has been retrieved
       async () => {
-        if (await this.syncService?.hasInitialSyncCompleted()) {
-          await this.loadSettings();
-          if (typeof this.settings?.spaceIgnore === "string") {
-            fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
-          } else {
-            fileFilterFn = () => true;
-          }
+        await this.loadSettings();
+        if (typeof this.settings?.spaceIgnore === "string") {
+          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+        } else {
+          fileFilterFn = () => true;
         }
       },
     );
