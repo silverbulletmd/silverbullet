@@ -23,7 +23,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
       return await this.primary.readFile(name);
     } catch (e) {
       console.info(
-        `Could not read file ${name} from primary, trying fallback`,
+        `Could not read file ${name} from primary, trying fallback, primary read error:`,
         e.message,
       );
       try {
@@ -40,7 +40,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
       return await this.primary.getFileMeta(name);
     } catch (e) {
       console.info(
-        `Could not fetch file ${name} metadata from primary, trying fallback`,
+        `Could not fetch file ${name} metadata from primary, trying fallback, primary read error`,
         e.message,
       );
       try {

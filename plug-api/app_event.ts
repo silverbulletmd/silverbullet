@@ -7,7 +7,7 @@ export type AppEvent =
   | "minieditor:complete"
   | "page:load"
   | "editor:init"
-  | "editor:pageLoaded"
+  | "editor:pageLoaded" // args: pageName, previousPage, isSynced
   | "editor:pageReloaded"
   | "editor:pageSaved"
   | "editor:modeswitch"

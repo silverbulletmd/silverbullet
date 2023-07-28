@@ -52,9 +52,14 @@ export class SyncService {
       },
     );
 
-    eventHook.addLocalListener("editor:pageLoaded", async (name) => {
-      await this.syncFile(`${name}.md`);
-    });
+    eventHook.addLocalListener(
+      "editor:pageLoaded",
+      async (name, _prevPage, isSynced) => {
+        if (!isSynced) {
+          await this.syncFile(`${name}.md`);
+        }
+      },
+    );
 
     eventHook.addLocalListener("editor:pageSaved", async (name) => {
       const path = `${name}.md`;
@@ -158,19 +163,30 @@ export class SyncService {
         snapshot,
         (path) => this.isSyncCandidate(path),
       );
+      await this.saveSnapshot(snapshot);
+      await this.registerSyncStop();
       this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
+      await this.saveSnapshot(snapshot);
+      await this.registerSyncStop();
       this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e.message);
     }
-    await this.saveSnapshot(snapshot);
-    await this.registerSyncStop();
     return operations;
   }
 
+  // Syncs a single file
   async syncFile(name: string) {
+    // Reminder: main reason to do this is not accidentally sync files retrieved via fallthrough (remote) and treat them as locally deleted
+    if (!await this.hasInitialSyncCompleted()) {
+      console.info(
+        "Initial sync hasn't happened yet, skipping sync for individual file",
+        name,
+      );
+      return;
+    }
     if (await this.isSyncing()) {
-      // console.log("Already syncing");
+      console.log("Already syncing, aborting individual file sync for", name);
       return;
     }
     if (!this.isSyncCandidate(name)) {
@@ -199,7 +215,7 @@ export class SyncService {
         }
       }
 
-      await this.spaceSync!.syncFile(snapshot, name, localHash, remoteHash);
+      await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
       this.eventHook.dispatchEvent("sync:success");
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);

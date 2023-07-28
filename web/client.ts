@@ -184,7 +184,12 @@ export class Client {
       if (this.system.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
-        this.dispatchAppEvent("editor:pageLoaded", this.currentPage);
+        this.dispatchAppEvent(
+          "editor:pageLoaded",
+          this.currentPage,
+          undefined,
+          true,
+        );
         if (operations) {
           // Likely initial sync so let's show visually that we're synced now
           // this.flashNotification(`Synced ${operations} files`, "info");
@@ -299,13 +304,15 @@ export class Client {
         this.system.indexSyscalls,
       ),
       (meta) => fileFilterFn(meta.name),
+      // Run when a list of files has been retrieved
       async () => {
-        // Run when a list of files has been retrieved
-        await this.loadSettings();
-        if (typeof this.settings?.spaceIgnore === "string") {
-          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
-        } else {
-          fileFilterFn = () => true;
+        if (await this.syncService?.hasInitialSyncCompleted()) {
+          await this.loadSettings();
+          if (typeof this.settings?.spaceIgnore === "string") {
+            fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+          } else {
+            fileFilterFn = () => true;
+          }
         }
       },
     );
