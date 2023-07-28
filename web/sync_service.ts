@@ -161,7 +161,7 @@ export class SyncService {
       this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);
-      console.error("Sync error", e);
+      console.error("Sync error", e.message);
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop();

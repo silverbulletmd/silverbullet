@@ -24,12 +24,12 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     } catch (e) {
       console.info(
         `Could not read file ${name} from primary, trying fallback`,
-        e,
+        e.message,
       );
       try {
         return await this.fallback.readFile(name);
       } catch (fallbackError: any) {
-        console.error("Error during readFile fallback", fallbackError);
+        console.error("Error during readFile fallback", fallbackError.message);
         // Fallback failed, so let's throw the original error
         throw e;
       }
@@ -41,12 +41,15 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     } catch (e) {
       console.info(
         `Could not fetch file ${name} metadata from primary, trying fallback`,
-        e,
+        e.message,
       );
       try {
         return await this.fallback.getFileMeta(name);
       } catch (fallbackError) {
-        console.error("Error during getFileMeta fallback", fallbackError);
+        console.error(
+          "Error during getFileMeta fallback",
+          fallbackError.message,
+        );
         // Fallback failed, so let's throw the original error
         throw e;
       }
