@@ -14,8 +14,6 @@ import {
 import {
   addParentPointers,
   collectNodesMatching,
-  collectNodesMatchingAsync,
-  collectNodesOfType,
   findNodeOfType,
   nodeAtPos,
   ParseTree,
@@ -109,9 +107,8 @@ export async function previewTaskToggle(eventString: string) {
 }
 
 async function toggleTaskMarker(
-  _pageName: string,
+  pageName: string,
   node: ParseTree,
-  moveToPos: number,
 ) {
   let changeTo = "[x]";
   if (node.children![0].text === "[x]" || node.children![0].text === "[X]") {
@@ -132,23 +129,35 @@ async function toggleTaskMarker(
   for (const wikiLink of parentWikiLinks) {
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
-      const [page, pos] = ref.split("@");
-      let text = await space.readPage(page);
+      const [page, posS] = ref.split("@");
+      const pos = +posS;
+      if (page === pageName) {
+        // In current page, just update the task marker with dispatch
+        await editor.dispatch({
+          changes: {
+            from: pos,
+            to: pos + changeTo.length,
+            insert: changeTo,
+          },
+        });
+      } else {
+        let text = await space.readPage(page);
 
-      const referenceMdTree = await markdown.parseMarkdown(text);
-      // Adding +1 to immediately hit the task marker
-      const taskMarkerNode = nodeAtPos(referenceMdTree, +pos + 1);
+        const referenceMdTree = await markdown.parseMarkdown(text);
+        // Adding +1 to immediately hit the task marker
+        const taskMarkerNode = nodeAtPos(referenceMdTree, pos + 1);
 
-      if (!taskMarkerNode || taskMarkerNode.type !== "TaskMarker") {
-        console.error(
-          "Reference not a task marker, out of date?",
-          taskMarkerNode,
-        );
-        return;
+        if (!taskMarkerNode || taskMarkerNode.type !== "TaskMarker") {
+          console.error(
+            "Reference not a task marker, out of date?",
+            taskMarkerNode,
+          );
+          return;
+        }
+        taskMarkerNode.children![0].text = changeTo;
+        text = renderToText(referenceMdTree);
+        await space.writePage(page, text);
       }
-      taskMarkerNode.children![0].text = changeTo;
-      text = renderToText(referenceMdTree);
-      await space.writePage(page, text);
     }
   }
 }
@@ -160,7 +169,7 @@ export async function taskToggleAtPos(pageName: string, pos: number) {
 
   const node = nodeAtPos(mdTree, pos);
   if (node && node.type === "TaskMarker") {
-    await toggleTaskMarker(pageName, node, pos);
+    await toggleTaskMarker(pageName, node);
   }
 }
 
@@ -173,7 +182,7 @@ export async function taskToggleCommand() {
   const node = nodeAtPos(tree, pos);
   // We kwow node.type === Task (due to the task context)
   const taskMarker = findNodeOfType(node!, "TaskMarker");
-  await toggleTaskMarker(await editor.getCurrentPage(), taskMarker!, pos);
+  await toggleTaskMarker(await editor.getCurrentPage(), taskMarker!);
 }
 
 export async function postponeCommand() {

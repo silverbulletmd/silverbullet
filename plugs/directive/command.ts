@@ -19,6 +19,8 @@ export async function updateDirectivesOnPageCommand() {
     return;
   }
 
+  await editor.save();
+
   // Collect all directives and their body replacements
   const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
     [];
