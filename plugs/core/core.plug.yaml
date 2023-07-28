@@ -76,20 +76,13 @@ functions:
 
   # Backlinks
   indexLinks:
-    path: "./page.ts:indexLinks"
+    path: "./page_links.ts:indexLinks"
     events:
       - page:index
   linkQueryProvider:
-    path: ./page.ts:linkQueryProvider
+    path: ./page_links.ts:linkQueryProvider
     events:
       - query:link
-  renamePage:
-    path: "./page.ts:renamePage"
-    command:
-      name: "Page: Rename"
-      mac: Cmd-Alt-r
-      key: Ctrl-Alt-r
-      page: ""
 
   pageComplete:
     path: "./page.ts:pageComplete"
@@ -322,9 +315,20 @@ functions:
 
   # Refactoring Commands
   extractToPageCommand:
-    path: ./refactor.ts:extractToPage
+    path: ./refactor.ts:extractToPageCommand
     command:
       name: "Extract text to new page"
+  renamePageCommand:
+    path: "./refactor.ts:renamePageCommand"
+    command:
+      name: "Page: Rename"
+      mac: Cmd-Alt-r
+      key: Ctrl-Alt-r
+      page: ""
+  renamePrefixCommand:
+    path: "./refactor.ts:renamePrefixCommand"
+    command:
+      name: "Refactor: Batch Rename Page Prefix"
 
   # Plug manager
   updatePlugsCommand:

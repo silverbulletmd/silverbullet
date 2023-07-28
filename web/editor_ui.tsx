@@ -196,7 +196,7 @@ export class MainUI {
             }
             console.log("Now renaming page to...", newName);
             await editor.system.system.loadedPlugs.get("core")!.invoke(
-              "renamePage",
+              "renamePageCommand",
               [{ page: newName }],
             );
             editor.focus();

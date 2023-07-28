@@ -1,4 +1,12 @@
-export function isValidPageName(name: string): boolean {
+export function validatePageName(name: string) {
   // Page can not be empty and not end with a file extension (e.g. "bla.md")
-  return name !== "" && !name.startsWith(".") && !/\.[a-zA-Z]+$/.test(name);
+  if (name === "") {
+    throw new Error("Page name can not be empty");
+  }
+  if (name.startsWith(".")) {
+    throw new Error("Page name cannot start with a '.'");
+  }
+  if (/\.[a-zA-Z]+$/.test(name)) {
+    throw new Error("Page name can not end with a file extension");
+  }
 }

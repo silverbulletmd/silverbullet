@@ -28,7 +28,7 @@ import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { isValidPageName } from "$sb/lib/page.ts";
+import { validatePageName } from "$sb/lib/page.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
@@ -613,11 +613,10 @@ export class Client {
       name = this.settings!.indexPage;
     }
 
-    if (!isValidPageName(name)) {
-      return this.flashNotification(
-        "Invalid page name: page names cannot end with a file extension nor start with a '.'",
-        "error",
-      );
+    try {
+      validatePageName(name);
+    } catch (e: any) {
+      return this.flashNotification(e.message, "error");
     }
 
     if (newWindow) {
