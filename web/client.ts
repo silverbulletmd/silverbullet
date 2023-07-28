@@ -274,7 +274,6 @@ export class Client {
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       window.silverBulletConfig.spaceFolderPath,
-      true,
     );
 
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(

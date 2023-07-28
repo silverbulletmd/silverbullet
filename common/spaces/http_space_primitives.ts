@@ -6,7 +6,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
     readonly expectedSpacePath?: string,
-    readonly syncMode = false,
   ) {
   }
 
@@ -17,9 +16,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (!options.headers) {
       options.headers = {};
     }
-    if (this.syncMode) {
-      options.headers = { ...options.headers, ...{ "X-Sync-Mode": "true" } };
-    }
+    options.headers = {
+      ...options.headers,
+      "X-Sync-Mode": "true",
+    };
 
     try {
       const result = await fetch(url, options);
@@ -163,6 +163,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   // Used to check if the server is reachable and the user is authenticated
   // If not: throws an error or invokes a redirect
   async ping() {
-    await this.authenticatedFetch(`${this.url}/SETTINGS.md`, { method: "GET" });
+    await this.authenticatedFetch(`${this.url}/index.json`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
   }
 }
