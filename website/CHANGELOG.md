@@ -3,6 +3,16 @@ release.
 
 ---
 
+## 0.3.7
+* **Important bug fix:** under specific circumstances an initial sync (of a new device) could result in the initial page (when opening SB) being deleted. Not good. Please upgrade to this version ASAP. And continue making backups of your space.
+* New {[Refactor: Batch Rename Page Prefix]} command to rename a page prefix to something else, can be used to achieve the effect of renaming a folder (e.g. from `topics/` to `my topics/`) while updating all links properly.
+* Update to [[Attributes]] syntax
+* Fix: Renaming a template page now also updates references to it (e.g. in `render` clauses)
+* Scroll position is now retained when switching between pages
+* Various other fixes
+
+---
+
 ## 0.3.6
 * [Mobile view improvements](https://github.com/silverbulletmd/silverbullet/pull/452) for tables and directives (vertical spacing) by [vuau](https://github.com/vuau)
 * Internal work on [color theming](https://github.com/silverbulletmd/silverbullet/pull/455) by [TheLD6978](https://github.com/TheLD6978)
