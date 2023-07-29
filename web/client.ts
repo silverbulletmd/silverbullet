@@ -130,7 +130,7 @@ export class Client {
       parent: document.getElementById("sb-editor")!,
     });
 
-    this.openPages = new OpenPages(this.editorView);
+    this.openPages = new OpenPages(this);
 
     this.focus();
 
