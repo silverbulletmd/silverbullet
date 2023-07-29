@@ -1,5 +1,5 @@
 import { Client } from "./client.ts";
-import { EditorSelection, EditorView } from "./deps.ts";
+import { EditorSelection } from "./deps.ts";
 
 class PageState {
   constructor(
