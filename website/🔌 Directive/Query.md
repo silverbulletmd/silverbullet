@@ -5,7 +5,7 @@ The `#query` is the most widely used directive. It can be used to query various 
 1. _start with_: `<!-- #query [QUERY GOES HERE] -->`
 2. _end with_: `<!-- /query -->`
 3. _write your query_: replace `[QUERY GOES HERE]` with any query you want using the options below.
-4. _available query options_: Usage of options is similar to SQL except for thespecial `render` option. The `render` option is used to display the data in a format that you created in a separate template.
+4. _available query options_: Usage of options is similar to SQL except for the special `render` option. The `render` option is used to display the data in a format that you created in a separate template.
    * `where`
    * `order by`
    * `limit`
