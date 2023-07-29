@@ -147,6 +147,16 @@ async function handleLocalFileRequest(
         },
       },
     );
+  } else if (path.startsWith("!")) {
+    // Federated URL handling
+    let url = path.slice(1);
+    if (url.startsWith("localhost")) {
+      url = `http://${url}`;
+    } else {
+      url = `https://${url}`;
+    }
+    console.info("Proxying federated URL", path, "to", url);
+    return fetch(url, { method: "GET", headers: request.headers });
   } else {
     console.error(
       "Did not find file in locally synced space",

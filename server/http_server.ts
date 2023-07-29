@@ -344,6 +344,17 @@ export class HttpServer {
             response.body = "Not exposed";
             return;
           }
+          // Handle federated links through a simple redirect, only used for attachments loads with service workers disabled
+          if (name.startsWith("!")) {
+            let url = name.slice(1);
+            if (url.startsWith("localhost")) {
+              url = `http://${url}`;
+            } else {
+              url = `https://${url}`;
+            }
+            response.redirect(url);
+            return;
+          }
           try {
             const fileData = await spacePrimitives.readFile(
               name,
