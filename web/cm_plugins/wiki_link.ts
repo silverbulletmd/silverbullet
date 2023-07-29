@@ -8,6 +8,7 @@ import {
   isCursorInRange,
   LinkWidget,
 } from "./util.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
@@ -33,6 +34,7 @@ export function cleanWikiLinkPlugin(editor: Client) {
         if (page.includes("@")) {
           cleanPage = page.split("@")[0];
         }
+        cleanPage = resolvePath(editor.currentPage!, cleanPage);
         // console.log("Resolved page", resolvedPage);
         for (const pageMeta of allPages) {
           if (pageMeta.name === cleanPage) {

@@ -7,14 +7,14 @@ import {
 } from "../deps.ts";
 import { decoratorStateField } from "./util.ts";
 
-import type { Space } from "../space.ts";
 import type { Client } from "../client.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
-    readonly space: Space,
+    readonly client: Client,
   ) {
     super();
     // console.log("Creating widget", url);
@@ -25,22 +25,25 @@ class InlineImageWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const cachedHeight = this.space.getCachedImageHeight(this.url);
+    const cachedHeight = this.client.space.getCachedImageHeight(this.url);
     // console.log("Estimated height requested", this.url, cachedHeight);
     return cachedHeight;
   }
 
   toDOM() {
     const img = document.createElement("img");
+    let url = this.url;
+    url = resolvePath(this.client.currentPage!, url, true);
+    console.log("Resolving image to", url);
     // console.log("Creating DOM", this.url);
-    const cachedImageHeight = this.space.getCachedImageHeight(this.url);
+    const cachedImageHeight = this.client.space.getCachedImageHeight(url);
     img.onload = () => {
       // console.log("Loaded", this.url, "with height", img.height);
       if (img.height !== cachedImageHeight) {
-        this.space.setCachedImageHeight(this.url, img.height);
+        this.client.space.setCachedImageHeight(url, img.height);
       }
     };
-    img.src = this.url;
+    img.src = url;
     img.alt = this.title;
     img.title = this.title;
     img.style.display = "block";
@@ -53,7 +56,7 @@ class InlineImageWidget extends WidgetType {
   }
 }
 
-export function inlineImagesPlugin(editor: Client) {
+export function inlineImagesPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
@@ -78,7 +81,7 @@ export function inlineImagesPlugin(editor: Client) {
         }
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title, editor.space),
+            widget: new InlineImageWidget(url, title, client),
             block: true,
           }).range(node.to),
         );

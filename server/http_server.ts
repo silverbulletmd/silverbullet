@@ -352,7 +352,17 @@ export class HttpServer {
             } else {
               url = `https://${url}`;
             }
-            response.redirect(url);
+            try {
+              const req = await fetch(url);
+              response.status = req.status;
+              response.headers = req.headers;
+              response.body = req.body;
+            } catch (e: any) {
+              console.error("Error fetching federated link", e);
+              response.status = 500;
+              response.body = e.message;
+            }
+            // response.redirect(url);
             return;
           }
           try {

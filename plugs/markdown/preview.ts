@@ -2,11 +2,13 @@ import { editor, system } from "$sb/silverbullet-syscall/mod.ts";
 import { asset, store } from "$sb/plugos-syscall/mod.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await store.get("enableMarkdownPreview"))) {
     return;
   }
+  const currentPage = await editor.getCurrentPage();
   const text = await editor.getText();
   const mdTree = await parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
@@ -17,7 +19,7 @@ export async function updateMarkdownPreview() {
     annotationPositions: true,
     translateUrls: (url) => {
       if (!url.includes("://")) {
-        return decodeURI(url);
+        url = resolvePath(currentPage, decodeURI(url), true);
       }
       return url;
     },

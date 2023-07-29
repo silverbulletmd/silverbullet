@@ -17,28 +17,28 @@ async function responseToFileMeta(
   r: Response,
   name: string,
 ): Promise<FileMeta> {
-  let perm = r.headers.get("X-Permission") as any || "ro";
-  const federationConfigs = await readFederationConfigs();
-  const federationConfig = federationConfigs.find((config) =>
-    name.startsWith(config.uri)
-  );
-  if (federationConfig?.perm) {
-    perm = federationConfig.perm;
-  }
+  // const perm = r.headers.get("X-Permission") as any || "ro";
+  // const federationConfigs = await readFederationConfigs();
+  // const federationConfig = federationConfigs.find((config) =>
+  //   name.startsWith(config.uri)
+  // );
+  // if (federationConfig?.perm) {
+  //   perm = federationConfig.perm;
+  // }
   return {
     name: name,
     size: r.headers.get("Content-length")
       ? +r.headers.get("Content-length")!
       : 0,
     contentType: r.headers.get("Content-type")!,
-    perm: perm,
+    perm: "ro",
     lastModified: +(r.headers.get("X-Last-Modified") || "0"),
   };
 }
 
 type FederationConfig = {
   uri: string;
-  perm?: "ro" | "rw";
+  // perm?: "ro" | "rw";
 };
 let federationConfigs: FederationConfig[] = [];
 let lastFederationUrlFetch = 0;
@@ -71,7 +71,7 @@ export async function listFiles(): Promise<FileMeta[]> {
       (await r.json()).filter((meta: FileMeta) => meta.name.startsWith(prefix))
         .map((meta: FileMeta) => ({
           ...meta,
-          perm: config.perm || meta.perm,
+          perm: "ro", //config.perm || meta.perm,
           name: `${rootUri}/${meta.name}`,
         })),
     );
@@ -121,30 +121,33 @@ export async function writeFile(
   name: string,
   data: Uint8Array,
 ): Promise<FileMeta> {
-  const url = resolveFederated(name);
-  console.log("Writing federation file", url);
+  throw new Error("Writing federation file, not yet supported");
+  // const url = resolveFederated(name);
+  // console.log("Writing federation file", url);
 
-  const r = await nativeFetch(url, {
-    method: "PUT",
-    body: data,
-  });
-  const fileMeta = await responseToFileMeta(r, name);
-  if (!r.ok) {
-    throw new Error("Could not write file");
-  }
+  // const r = await nativeFetch(url, {
+  //   method: "PUT",
+  //   body: data,
+  // });
+  // const fileMeta = await responseToFileMeta(r, name);
+  // if (!r.ok) {
+  //   throw new Error("Could not write file");
+  // }
 
-  return fileMeta;
+  // return fileMeta;
 }
 
 export async function deleteFile(
   name: string,
 ): Promise<void> {
-  console.log("Deleting federation file", name);
-  const url = resolveFederated(name);
-  const r = await nativeFetch(url, { method: "DELETE" });
-  if (!r.ok) {
-    throw Error("Failed to delete file");
-  }
+  throw new Error("Writing federation file, not yet supported");
+
+  // console.log("Deleting federation file", name);
+  // const url = resolveFederated(name);
+  // const r = await nativeFetch(url, { method: "DELETE" });
+  // if (!r.ok) {
+  //   throw Error("Failed to delete file");
+  // }
 }
 
 export async function getFileMeta(name: string): Promise<FileMeta> {

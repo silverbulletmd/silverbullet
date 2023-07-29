@@ -22,10 +22,10 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.readFile(name);
     } catch (e) {
-      console.info(
-        `Could not read file ${name} from primary, trying fallback, primary read error:`,
-        e.message,
-      );
+      // console.info(
+      //   `Could not read file ${name} from primary, trying fallback, primary read error:`,
+      //   e.message,
+      // );
       try {
         const result = await this.fallback.readFile(name);
         return {
@@ -43,10 +43,10 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.getFileMeta(name);
     } catch (e) {
-      console.info(
-        `Could not fetch file ${name} metadata from primary, trying fallback, primary read error`,
-        e.message,
-      );
+      // console.info(
+      //   `Could not fetch file ${name} metadata from primary, trying fallback, primary read error`,
+      //   e.message,
+      // );
       try {
         const meta = await this.fallback.getFileMeta(name);
         return { ...meta, neverSync: true };

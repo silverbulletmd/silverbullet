@@ -159,8 +159,8 @@ export class Client {
       );
     }
 
-    this.initNavigator();
     await this.loadPlugs();
+    this.initNavigator();
     this.initSync();
 
     this.loadCustomStyles().catch(console.error);

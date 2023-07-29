@@ -7,6 +7,7 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -46,6 +47,7 @@ async function actionClickOrActionEnter(
           pos = +pos;
         }
       }
+      pageLink = resolvePath(currentPage, pageLink);
       if (!pageLink) {
         pageLink = currentPage;
       }
@@ -77,7 +79,7 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        return editor.openUrl(decodeURI(url));
+        return editor.openUrl(resolvePath(currentPage, decodeURI(url)));
       } else {
         await editor.openUrl(url);
       }
