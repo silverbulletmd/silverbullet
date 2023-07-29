@@ -9,6 +9,7 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 class TableViewWidget extends WidgetType {
   constructor(
@@ -39,7 +40,7 @@ class TableViewWidget extends WidgetType {
       annotationPositions: true,
       translateUrls: (url) => {
         if (!url.includes("://")) {
-          return `/${url}`;
+          url = resolvePath(this.editor.currentPage!, decodeURI(url), true);
         }
         return url;
       },
