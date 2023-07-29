@@ -1,3 +1,4 @@
+import { Client } from "./client.ts";
 import { EditorSelection, EditorView } from "./deps.ts";
 
 class PageState {
@@ -10,11 +11,11 @@ class PageState {
 export class OpenPages {
   openPages = new Map<string, PageState>();
 
-  constructor(private editorView: EditorView) {}
+  constructor(private client: Client) {}
 
   restoreState(pageName: string): boolean {
     const pageState = this.openPages.get(pageName);
-    const editorView = this.editorView;
+    const editorView = this.client.editorView;
     if (pageState) {
       // Restore state
       try {
@@ -40,7 +41,7 @@ export class OpenPages {
         scrollIntoView: true,
       });
     }
-    editorView.focus();
+    this.client.focus();
     return !!pageState;
   }
 
@@ -48,8 +49,8 @@ export class OpenPages {
     this.openPages.set(
       currentPage,
       new PageState(
-        this.editorView.scrollDOM.scrollTop,
-        this.editorView.state.selection,
+        this.client.editorView.scrollDOM.scrollTop,
+        this.client.editorView.state.selection,
       ),
     );
   }
