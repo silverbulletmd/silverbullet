@@ -24,6 +24,7 @@ import {
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
+import { rewritePageRefs } from "$sb/lib/resolve.ts";
 
 export type Task = {
   name: string;
@@ -53,6 +54,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       name: "",
       done: complete,
     };
+
+    rewritePageRefs(n, name);
 
     replaceNodesMatching(n, (tree) => {
       if (tree.type === "DeadlineDate") {
@@ -91,7 +94,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     return true;
   });
 
-  // console.log("Found", tasks.length, "task(s)");
+  // console.log("Found", tasks, "task(s)");
   await index.batchSet(name, tasks);
 }
 

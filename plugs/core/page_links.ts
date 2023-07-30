@@ -4,6 +4,7 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { applyQuery } from "$sb/lib/query.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 // Key space:
 //   l:toPage:pos => {name: pageName, inDirective: true, asTemplate: true}
@@ -46,7 +47,10 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       directiveDepth++;
       const pageRef = findNodeOfType(n, "PageRef")!;
       if (pageRef) {
-        const pageRefName = pageRef.children![0].text!.slice(2, -2);
+        const pageRefName = resolvePath(
+          name,
+          pageRef.children![0].text!.slice(2, -2),
+        );
         backLinks.push({
           key: `${backlinkPrefix}${pageRefName}:${pageRef.from! + 2}`,
           value: { name, asTemplate: true },
@@ -57,7 +61,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (directiveText) {
         const match = /\[\[(.+)\]\]/.exec(directiveText);
         if (match) {
-          const pageRefName = match[1];
+          const pageRefName = resolvePath(name, match[1]);
           backLinks.push({
             key: `${backlinkPrefix}${pageRefName}:${
               n.from! + match.index! + 2
@@ -77,7 +81,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     if (n.type === "WikiLink") {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
-      let toPage = wikiLinkPage.children![0].text!;
+      let toPage = resolvePath(name, wikiLinkPage.children![0].text!);
       if (toPage.includes("@")) {
         toPage = toPage.split("@")[0];
       }
@@ -96,7 +100,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
     return false;
   });
-  // console.log("Found", backLinks.length, "page link(s)");
+  // console.log("Found", backLinks, "page link(s)");
   await index.batchSet(name, backLinks);
 }
 

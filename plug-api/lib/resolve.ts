@@ -30,14 +30,14 @@ export function isFederationPath(path: string) {
   return path.startsWith("!");
 }
 
-export function rewritePageRefs(tree: ParseTree, templatePath: string) {
+export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
   traverseTree(tree, (n): boolean => {
     if (n.type === "DirectiveStart") {
       const pageRef = findNodeOfType(n, "PageRef")!;
       if (pageRef) {
         const pageRefName = pageRef.children![0].text!.slice(2, -2);
         pageRef.children![0].text = `[[${
-          resolvePath(templatePath, pageRefName)
+          resolvePath(containerPageName, pageRefName)
         }]]`;
       }
       const directiveText = n.children![0].text;
@@ -48,7 +48,7 @@ export function rewritePageRefs(tree: ParseTree, templatePath: string) {
           const pageRefName = match[1];
           n.children![0].text = directiveText.replace(
             match[0],
-            `[[${resolvePath(templatePath, pageRefName)}]]`,
+            `[[${resolvePath(containerPageName, pageRefName)}]]`,
           );
         }
       }
@@ -56,7 +56,10 @@ export function rewritePageRefs(tree: ParseTree, templatePath: string) {
       return true;
     }
     if (n.type === "WikiLinkPage") {
-      n.children![0].text = resolvePath(templatePath, n.children![0].text!);
+      n.children![0].text = resolvePath(
+        containerPageName,
+        n.children![0].text!,
+      );
       return true;
     }
 
