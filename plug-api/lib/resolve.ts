@@ -3,7 +3,7 @@ export function resolvePath(
   pathToResolve: string,
   fullUrl = false,
 ): string {
-  if (currentPage.startsWith("!") && !pathToResolve.startsWith("!")) {
+  if (isFederationPath(currentPage) && !isFederationPath(pathToResolve)) {
     let domainPart = currentPage.split("/")[0];
     if (fullUrl) {
       domainPart = domainPart.substring(1);
@@ -17,4 +17,8 @@ export function resolvePath(
   } else {
     return pathToResolve;
   }
+}
+
+export function isFederationPath(path: string) {
+  return path.startsWith("!");
 }

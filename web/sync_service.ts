@@ -192,9 +192,9 @@ export class SyncService {
       let remoteHash: number | undefined;
       try {
         const localMeta = await this.localSpacePrimitives.getFileMeta(name);
-        if (localMeta.neverSync) {
+        if (localMeta.noSync) {
           console.info(
-            "File marked as neverSync, skipping sync in this cycle",
+            "File marked as no sync, skipping sync in this cycle",
             name,
           );
           await this.registerSyncStop();
