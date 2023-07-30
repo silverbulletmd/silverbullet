@@ -14,7 +14,6 @@ import { events } from "$sb/plugos-syscall/mod.ts";
 
 import { applyQuery } from "$sb/lib/query.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { backlinkPrefix } from "./page_links.ts";
 
 // Key space:
 //   meta: => metaJson

@@ -4,6 +4,7 @@ import { index } from "$sb/silverbullet-syscall/mod.ts";
 import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
+import { rewritePageRefs } from "$sb/lib/resolve.ts";
 
 export type Item = {
   name: string;
@@ -38,6 +39,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     const textNodes: ParseTree[] = [];
     let nested: string | undefined;
     for (const child of n.children!.slice(1)) {
+      rewritePageRefs(child, name);
       if (child.type === "OrderedList" || child.type === "BulletList") {
         nested = renderToText(child);
         break;
@@ -67,7 +69,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       value: item,
     });
   }
-  // console.log("Found", items.length, "item(s)");
+  // console.log("Found", items, "item(s)");
   await index.batchSet(name, items);
 }
 
