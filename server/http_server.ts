@@ -355,7 +355,13 @@ export class HttpServer {
             try {
               const req = await fetch(url);
               response.status = req.status;
-              response.headers = req.headers;
+              // Override X-Permssion header to always be "ro"
+              const newHeaders = new Headers();
+              for (const [key, value] of req.headers.entries()) {
+                newHeaders.set(key, value);
+              }
+              newHeaders.set("X-Permission", "ro");
+              response.headers = newHeaders;
               response.body = req.body;
             } catch (e: any) {
               console.error("Error fetching federated link", e);
