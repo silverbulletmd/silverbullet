@@ -11,7 +11,8 @@ export type AppEvent =
   | "editor:pageReloaded"
   | "editor:pageSaved"
   | "editor:modeswitch"
-  | "plugs:loaded";
+  | "plugs:loaded"
+  | "editor:pageModified";
 
 export type QueryProviderEvent = {
   query: ParsedQuery;
@@ -54,4 +55,19 @@ export type WidgetContent = {
   url?: string;
   height?: number;
   width?: number;
+};
+
+export type Range = {
+  from: number;
+  to: number;
+};
+
+export type PageChange = {
+  inserted: string;
+  changedRange: Range;
+  newRange: Range;
+};
+
+export type PageModifiedEvent = {
+  changes: PageChange[];
 };

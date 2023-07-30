@@ -56,7 +56,7 @@ import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
 import { safeRun } from "../common/util.ts";
-import { ClickEvent } from "$sb/app_event.ts";
+import { ClickEvent, PageChange } from "$sb/app_event.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
@@ -419,6 +419,15 @@ export function createEditorState(
         class {
           update(update: ViewUpdate): void {
             if (update.docChanged) {
+              const changes: PageChange[] = [];
+              update.changes.iterChanges((fromA, toA, fromB, toB, inserted) =>
+                changes.push({
+                  inserted: inserted.toString(),
+                  changedRange: { from: fromA, to: toA },
+                  newRange: { from: fromB, to: toB },
+                })
+              );
+              editor.dispatchAppEvent("editor:pageModified", { changes });
               editor.ui.viewDispatch({ type: "page-changed" });
               editor.debouncedUpdateEvent();
               editor.save().catch((e) => console.error("Error saving", e));
