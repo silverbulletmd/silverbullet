@@ -67,6 +67,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (
       resp.status === 200 &&
       this.expectedSpacePath &&
+      resp.headers.get("X-Space-Path") &&
       resp.headers.get("X-Space-Path") !== this.expectedSpacePath
     ) {
       console.log("Expected space path", this.expectedSpacePath);

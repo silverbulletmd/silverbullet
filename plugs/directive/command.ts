@@ -19,6 +19,7 @@ export async function updateDirectivesOnPageCommand() {
 
   if (isFederationPath(currentPage)) {
     console.info("Current page is a federation page, not updating directives.");
+    return;
   }
 
   if (metaData.$disableDirectives) {

@@ -1,8 +1,7 @@
 import { renderToText } from "./tree.ts";
-import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
 import { assert, assertEquals } from "../../test_deps.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { removeQueries } from "./query.ts";
+import { parseMarkdown } from "$sb/lib/test_utils.ts";
 
 const queryRemovalTest = `
 # Heading
@@ -14,8 +13,7 @@ End
 `;
 
 Deno.test("White out queries", () => {
-  const lang = wikiMarkdownLang([]);
-  const mdTree = parse(lang, queryRemovalTest);
+  const mdTree = parseMarkdown(queryRemovalTest);
   removeQueries(mdTree);
   const text = renderToText(mdTree);
   // Same length? We should be good
