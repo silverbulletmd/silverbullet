@@ -1,4 +1,4 @@
-import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, space, sync } from "$sb/silverbullet-syscall/mod.ts";
 import {
   removeParentPointers,
   renderToText,
@@ -7,15 +7,29 @@ import {
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PageMeta } from "../../web/types.ts";
+import { isFederationPath } from "$sb/lib/resolve.ts";
 
 export async function updateDirectivesOnPageCommand() {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
-  const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
+  const currentPage = await editor.getCurrentPage();
+  const pageMeta = await space.getPageMeta(currentPage);
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
   const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
+
+  if (isFederationPath(currentPage)) {
+    console.info("Current page is a federation page, not updating directives.");
+  }
+
   if (metaData.$disableDirectives) {
-    // Not updating, directives disabled
+    console.info("Directives disabled in page meta, not updating them.");
+    return;
+  }
+
+  if (!(await sync.hasInitialSyncCompleted())) {
+    console.info(
+      "Initial sync hasn't completed yet, not updating directives.",
+    );
     return;
   }
 
@@ -96,7 +110,6 @@ export async function updateDirectivesOnPageCommand() {
   }
 }
 
-// Pure server driven implementation of directive updating
 export async function updateDirectives(
   pageMeta: PageMeta,
   text: string,

@@ -22,15 +22,19 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.readFile(name);
     } catch (e) {
-      // console.info(
-      //   `Could not read file ${name} from primary, trying fallback, primary read error:`,
-      //   e.message,
-      // );
+      if (e.message === "Not found") {
+        console.info("Reading file content from fallback for", name);
+      } else {
+        console.warn(
+          `Could not read file ${name} from primary, trying fallback, primary read error`,
+          e.message,
+        );
+      }
       try {
         const result = await this.fallback.readFile(name);
         return {
           data: result.data,
-          meta: { ...result.meta, neverSync: true },
+          meta: { ...result.meta, noSync: true },
         };
       } catch (fallbackError: any) {
         console.error("Error during readFile fallback", fallbackError.message);
@@ -42,14 +46,18 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
       return await this.primary.getFileMeta(name);
-    } catch (e) {
-      // console.info(
-      //   `Could not fetch file ${name} metadata from primary, trying fallback, primary read error`,
-      //   e.message,
-      // );
+    } catch (e: any) {
+      if (e.message === "Not found") {
+        console.info("Fetching file meta from fallback for", name);
+      } else {
+        console.warn(
+          `Could not fetch file ${name} metadata from primary, trying fallback, primary read error`,
+          e.message,
+        );
+      }
       try {
         const meta = await this.fallback.getFileMeta(name);
-        return { ...meta, neverSync: true };
+        return { ...meta, noSync: true };
       } catch (fallbackError) {
         console.error(
           "Error during getFileMeta fallback",

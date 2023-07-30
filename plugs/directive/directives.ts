@@ -35,14 +35,6 @@ export async function directiveDispatcher(
   const directiveStartText = renderToText(directiveStart).trim();
   const directiveEndText = renderToText(directiveEnd).trim();
 
-  if (!(await sync.hasInitialSyncCompleted())) {
-    console.info(
-      "Initial sync hasn't completed yet, not updating directives.",
-    );
-    // Render the query directive as-is
-    return renderToText(directiveTree);
-  }
-
   if (directiveStart.children!.length === 1) {
     // Everything not #query
     const match = directiveStartRegex.exec(directiveStart.children![0].text!);
