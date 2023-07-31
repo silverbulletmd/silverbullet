@@ -31,6 +31,7 @@ async function responseToFileMeta(
 
 const fileListingPrefixCacheKey = `federationListCache:`;
 const listingCacheTimeout = 1000 * 30;
+const listingFetchTimeout = 2000;
 
 type FileListingCacheEntry = {
   items: FileMeta[];
@@ -52,29 +53,29 @@ export async function listFiles(): Promise<FileMeta[]> {
         fileMetas = fileMetas.concat(cachedListing.items);
         return;
       }
-      console.log("Fetching from federated", config);
+      console.log("Fetching listing from federated", config);
       const uriParts = config.uri.split("/");
       const rootUri = uriParts[0];
       const prefix = uriParts.slice(1).join("/");
       const indexUrl = `${federatedPathToUrl(rootUri)}/index.json`;
       try {
+        const fetchController = new AbortController();
+        const timeout = setTimeout(
+          () => fetchController.abort(),
+          listingFetchTimeout,
+        );
+
         const r = await nativeFetch(indexUrl, {
           method: "GET",
           headers: {
             Accept: "application/json",
           },
+          signal: fetchController.signal,
         });
+        clearTimeout(timeout);
+
         if (r.status !== 200) {
-          console.error(
-            `Failed to fetch ${indexUrl}. Skipping.`,
-            r.status,
-            r.statusText,
-          );
-          if (cachedListing) {
-            console.info("Using cached listing");
-            fileMetas = fileMetas.concat(cachedListing.items);
-          }
-          return;
+          throw new Error(`Got status ${r.status}`);
         }
         const jsonResult = await r.json();
         const items: FileMeta[] = jsonResult.filter((meta: FileMeta) =>
@@ -91,6 +92,10 @@ export async function listFiles(): Promise<FileMeta[]> {
         fileMetas = fileMetas.concat(items);
       } catch (e: any) {
         console.error("Failed to process", indexUrl, e);
+        if (cachedListing) {
+          console.info("Using cached listing");
+          fileMetas = fileMetas.concat(cachedListing.items);
+        }
       }
     }));
 
