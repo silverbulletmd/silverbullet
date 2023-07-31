@@ -62,7 +62,7 @@ export async function ensureSettingsAndIndex(
         new TextEncoder().encode(
           `Hello! And welcome to your brand new SilverBullet space!
 
-<!-- #use [[💭 silverbullet.md/Getting Started]] -->
+<!-- #use [[!silverbullet.md/Getting Started]] -->
 Loading some onboarding content for you (but doing so does require a working internet connection)...
 <!-- /use -->`,
         ),
