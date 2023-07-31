@@ -1,5 +1,6 @@
 import type { ParseTree } from "$sb/lib/tree.ts";
 import { ParsedQuery } from "$sb/lib/query.ts";
+import { TextChange } from "$sb/lib/change.ts";
 
 export type AppEvent =
   | "page:click"
@@ -57,17 +58,8 @@ export type WidgetContent = {
   width?: number;
 };
 
-export type Range = {
-  from: number;
-  to: number;
-};
-
-export type PageChange = {
-  inserted: string;
-  changedRange: Range;
-  newRange: Range;
-};
-
+/** PageModifiedEvent payload for "editor:pageModified". Fired when the document text changes
+ */
 export type PageModifiedEvent = {
-  changes: PageChange[];
+  changes: TextChange[];
 };

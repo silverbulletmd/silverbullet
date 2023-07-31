@@ -56,11 +56,12 @@ import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
 import { safeRun } from "../common/util.ts";
-import { ClickEvent, PageChange } from "$sb/app_event.ts";
+import { ClickEvent } from "$sb/app_event.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
+import { TextChange } from "$sb/lib/change.ts";
 
 export function createEditorState(
   editor: Client,
@@ -419,11 +420,11 @@ export function createEditorState(
         class {
           update(update: ViewUpdate): void {
             if (update.docChanged) {
-              const changes: PageChange[] = [];
+              const changes: TextChange[] = [];
               update.changes.iterChanges((fromA, toA, fromB, toB, inserted) =>
                 changes.push({
                   inserted: inserted.toString(),
-                  changedRange: { from: fromA, to: toA },
+                  oldRange: { from: fromA, to: toA },
                   newRange: { from: fromB, to: toB },
                 })
               );
