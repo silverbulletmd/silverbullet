@@ -14,7 +14,9 @@ for await (
   const file of walk(rootDir, {
     includeDirs: false,
     // Exclude hidden files
-    skip: [/^.*\/(\..+|_redirects|_headers|_client\/.*)$/],
+    skip: [
+      /^.*\/(\..+|_redirects|_headers|service_worker\.js.*|index\.json|_client\/.*)$/,
+    ],
   })
 ) {
   const fullPath = file.path;
