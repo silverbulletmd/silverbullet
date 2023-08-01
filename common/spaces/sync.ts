@@ -42,12 +42,13 @@ export class SpaceSync {
     isSyncCandidate = this.options.isSyncCandidate,
   ): Promise<number> {
     let operations = 0;
-    console.log("[sync]", "Fetching snapshot from primary");
+    console.log("[sync]", "Performing a full sync cycle...");
+
+    // Not try-catching this because this one's local and shouldn't fail (famous last words)
     const primaryAllPages = this.syncCandidates(
       await this.primary.fetchFileList(),
     );
 
-    console.log("[sync]", "Fetching snapshot from secondary");
     try {
       const secondaryAllPages = this.syncCandidates(
         await this.secondary.fetchFileList(),
