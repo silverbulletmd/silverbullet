@@ -5,6 +5,7 @@ import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { indexAttributes } from "./attributes.ts";
 
 export type Item = {
   name: string;
@@ -22,6 +23,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
   // console.log("Indexing items", name);
 
   const coll = collectNodesOfType(tree, "ListItem");
+
+  const allAttributes: Record<string, any> = {};
 
   for (const n of coll) {
     if (!n.children) {
@@ -46,8 +49,10 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       }
       // Extract attributes and remove from tree
       const extractedAttributes = await extractAttributes(child, true);
+
       for (const [key, value] of Object.entries(extractedAttributes)) {
         item[key] = value;
+        allAttributes[key] = value;
       }
       textNodes.push(child);
     }
@@ -71,6 +76,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
   }
   // console.log("Found", items, "item(s)");
   await index.batchSet(name, items);
+  await indexAttributes(name, allAttributes, "item");
 }
 
 export async function queryProvider({

@@ -551,10 +551,21 @@ export class Client {
     const line = editorState.doc.lineAt(selection.from);
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
+    const parentNodes: string[] = [];
+    const currentNode = syntaxTree(editorState).resolveInner(selection.from);
+    if (currentNode) {
+      let node = currentNode;
+      while (node.parent) {
+        parentNodes.push(node.parent.name);
+        node = node.parent;
+      }
+    }
+
     const results = await this.dispatchAppEvent(eventName, {
       pageName: this.currentPage!,
       linePrefix,
       pos: selection.from,
+      parentNodes,
     } as CompleteEvent);
     let actualResult = null;
     for (const result of results) {

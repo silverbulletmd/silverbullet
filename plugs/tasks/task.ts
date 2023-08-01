@@ -25,6 +25,7 @@ import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { indexAttributes } from "../core/attributes.ts";
 
 export type Task = {
   name: string;
@@ -45,6 +46,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const tasks: { key: string; value: Task }[] = [];
   removeQueries(tree);
   addParentPointers(tree);
+  const allAttributes: Record<string, any> = {};
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
       return false;
@@ -78,6 +80,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     const extractedAttributes = await extractAttributes(n, true);
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
+      allAttributes[key] = value;
     }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
@@ -96,6 +99,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
   // console.log("Found", tasks, "task(s)");
   await index.batchSet(name, tasks);
+  await indexAttributes(name, allAttributes, "task");
 }
 
 export function taskToggle(event: ClickEvent) {

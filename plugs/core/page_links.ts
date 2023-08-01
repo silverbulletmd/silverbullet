@@ -5,6 +5,7 @@ import { extractAttributes } from "$sb/lib/attribute.ts";
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
+import { indexAttributes } from "./attributes.ts";
 
 // Key space:
 //   l:toPage:pos => {name: pageName, inDirective: true, asTemplate: true}
@@ -40,6 +41,8 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     // console.log("Extracted page meta data", pageMeta);
     await index.set(name, "meta:", pageMeta);
   }
+
+  await indexAttributes(name, pageMeta, "page");
 
   let directiveDepth = 0;
   traverseTree(tree, (n): boolean => {
