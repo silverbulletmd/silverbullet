@@ -100,8 +100,10 @@ export function FilterList({
             darkMode={darkMode}
             completer={completer}
             placeholderText={placeholder}
-            onEnter={() => {
-              onSelect(matchingOptions[selectedOption]);
+            onEnter={(_newText, shiftDown) => {
+              onSelect(
+                shiftDown ? { name: text } : matchingOptions[selectedOption],
+              );
               return true;
             }}
             onEscape={() => {

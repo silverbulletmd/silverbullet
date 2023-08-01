@@ -22,7 +22,7 @@ import {
 } from "../deps.ts";
 
 type MiniEditorEvents = {
-  onEnter: (newText: string) => void;
+  onEnter: (newText: string, shiftDown?: boolean) => void;
   onEscape?: (newText: string) => void;
   onBlur?: (newText: string) => void | Promise<void>;
   onChange?: (newText: string) => void;
@@ -174,7 +174,14 @@ export function MiniEditor(
           {
             key: "Enter",
             run: (view) => {
-              onEnter(view);
+              onEnter(view, false);
+              return true;
+            },
+          },
+          {
+            key: "Shift-Enter",
+            run: (view) => {
+              onEnter(view, true);
               return true;
             },
           },
@@ -204,7 +211,7 @@ export function MiniEditor(
               // Enter should be handled by the keymap, except when in Vim normal mode
               // because then it's disabled
               if (vimMode && vimModeRef.current === "normal") {
-                onEnter(view);
+                onEnter(view, event.shiftKey);
                 return true;
               }
               return false;
@@ -233,12 +240,12 @@ export function MiniEditor(
     });
 
     // Avoid double triggering these events (may happen due to onkeypress vs onkeyup delay)
-    function onEnter(view: EditorView) {
+    function onEnter(view: EditorView, shiftDown: boolean) {
       if (onEntered) {
         return;
       }
       onEntered = true;
-      callbacksRef.current!.onEnter(view.state.sliceDoc());
+      callbacksRef.current!.onEnter(view.state.sliceDoc(), shiftDown);
       // Event may occur again in 500ms
       setTimeout(() => {
         onEntered = false;
