@@ -89,6 +89,11 @@ functions:
     events:
       - editor:complete
 
+  attributeComplete:
+    path: "./attributes.ts:attributeComplete"
+    events:
+    - editor:complete
+
   # Commands
   commandComplete:
     path: "./command.ts:commandComplete"
@@ -317,7 +322,7 @@ functions:
   extractToPageCommand:
     path: ./refactor.ts:extractToPageCommand
     command:
-      name: "Extract text to new page"
+      name: "Page: Extract"
   renamePageCommand:
     path: "./refactor.ts:renamePageCommand"
     command:
@@ -328,7 +333,7 @@ functions:
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:
-      name: "Refactor: Batch Rename Page Prefix"
+      name: "Page: Batch Rename Prefix"
 
   # Plug manager
   updatePlugsCommand:

@@ -46,6 +46,7 @@ export type CompleteEvent = {
   pageName: string;
   linePrefix: string;
   pos: number;
+  parentNodes: string[];
 };
 
 export type WidgetContent = {
