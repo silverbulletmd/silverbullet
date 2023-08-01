@@ -3,6 +3,13 @@ release.
 
 ---
 
+## Next
+* [[Metadata]] both in [[Frontmatter]] and [[Attributes]] names are now indexed (scoped to whether they apply to pages, items or tasks) and code completed, e.g in front matter, attribute syntax and queries.
+* When pressing `Shift-Enter` rather than regular `Enter` in the page navigator, the input is now used literally to create a new page with that name. For example, typing in “my page” and hitting `Shift-Enter` will always create a page with that name (rather than defaulting to the best match, which is what `Enter` would navigate to).
+* Fixes an issue where the focus would be taken away from a model if the page needed to be reloaded in the background.
+
+---
+
 ## 0.3.7
 * **Important bug fix:** under specific circumstances an initial sync (of a new device) could result in the initial page (when opening SB) being deleted. Not good. Please upgrade to this version ASAP. And continue making backups of your space.
 * New {[Refactor: Batch Rename Page Prefix]} command to rename a page prefix to something else, can be used to achieve the effect of renaming a folder (e.g. from `topics/` to `my topics/`) while updating all links properly.
