@@ -253,7 +253,7 @@ export async function queryProvider({
     allTasks.push({
       ...value,
       page: page,
-      pos: pos,
+      pos: +pos,
     });
   }
   return applyQuery(query, allTasks);
