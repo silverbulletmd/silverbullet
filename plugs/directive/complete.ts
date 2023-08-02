@@ -66,51 +66,70 @@ export async function queryComplete(completeEvent: CompleteEvent) {
       const allAttributes = await index.queryPrefix(
         `attr:${type}:`,
       );
-      const customAttributesCompletions = allAttributes.map((attr) => {
-        const [_prefix, _context, name] = attr.key.split(":");
-        return {
-          label: name,
-          detail: attr.value.type,
-          type: "attribute",
-        };
-      });
-      const builtinAttributesCompletions = builtinAttributes[type]
-        ? Object.entries(
-          builtinAttributes[type],
-        ).map(([name, type]) => ({
-          label: name,
-          detail: type,
-          type: "attribute",
-        }))
-        : [];
+
       return {
         from: completeEvent.pos - attributePrefix.length,
-        options: [
-          ...customAttributesCompletions,
-          ...builtinAttributesCompletions,
-        ],
+        options: compileAttributeCompletions(allAttributes, type),
       };
     }
   }
   return null;
 }
 
-export function handlebarHelperComplete(completeEvent: CompleteEvent) {
+function compileAttributeCompletions(
+  allAttributes: { key: string; value: any }[],
+  type?: string,
+) {
+  let allCompletions: any[] = allAttributes.map((attr) => {
+    const [_prefix, context, name] = attr.key.split(":");
+    return {
+      label: name,
+      detail: `${attr.value.type} (${context})`,
+      type: "attribute",
+    };
+  });
+  const allContexts = type ? [type] : Object.keys(builtinAttributes);
+
+  for (const context of allContexts) {
+    allCompletions = allCompletions.concat(
+      builtinAttributes[context]
+        ? Object.entries(
+          builtinAttributes[context],
+        ).map(([name, type]) => ({
+          label: name,
+          detail: `${type} (${context}: builtin)`,
+          type: "attribute",
+        }))
+        : [],
+    );
+  }
+  return allCompletions;
+}
+
+export async function templateVariableComplete(completeEvent: CompleteEvent) {
   const match = /\{\{([\w@]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }
 
   const handlebarOptions = buildHandebarOptions({ name: "" } as PageMeta);
-  const allCompletions = Object.keys(handlebarOptions.helpers).concat(
-    Object.keys(handlebarOptions.data).map((key) => `@${key}`),
+  let allCompletions: any[] = Object.keys(handlebarOptions.helpers).map(
+    (name) => ({ label: name, detail: "helper" }),
+  );
+  allCompletions = allCompletions.concat(
+    Object.keys(handlebarOptions.data).map((key) => ({
+      label: `@${key}`,
+      detail: "global variable",
+    })),
+  );
+
+  const allAttributes = await index.queryPrefix(`attr:`);
+  allCompletions = allCompletions.concat(
+    compileAttributeCompletions(allAttributes),
   );
 
   return {
     from: completeEvent.pos - match[1].length,
-    options: allCompletions
-      .map((name) => ({
-        label: name,
-      })),
+    options: allCompletions,
   };
 }
