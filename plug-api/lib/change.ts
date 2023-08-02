@@ -34,3 +34,10 @@ export type TextChange = {
 export function rangeLength(range: Range): number {
   return range.to - range.from;
 }
+
+export function rangesOverlap(a: Range, b: Range): boolean {
+  // `b.from >= a.to` => "b" starts after "a"
+  // `a.from >= b.to` => "b" ends before "a"
+  // if neither is true these two ranges must overlap
+  return !(b.from >= a.to || a.from >= b.to);
+}
