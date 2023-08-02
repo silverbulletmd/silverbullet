@@ -13,7 +13,7 @@ In either case, check the notes [[@tls|on using TLS]].
 $deno
 This consists of two steps (unless Deno is already installed — in which case we’re down to one):
 
-1. [Install Deno](https://deno.land/manual/getting_started/installation) (if you’re using a Raspberry Pi, follow [[Raspberry Pi Installation]]-specific instructions)
+1. [Install Deno](https://deno.land/manual/getting_started/installation)
 2. Installing SilverBullet itself (steps below)
 
 ### Install SilverBullet
@@ -21,6 +21,12 @@ With Deno installed, run:
 
 ```shell
 deno install -f --name silverbullet -A https://get.silverbullet.md
+```
+
+This will give you (and when you use `silverbullet upgrade`) the latest stable release. If you prefer to live on the bleeding edge, you can install using the following command instead:
+
+```shell
+deno install -f --name silverbullet -A https://silverbullet.md/silverbullet.js
 ```
 
 This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
@@ -66,6 +72,8 @@ Then, run the container, e.g., as follows:
 ```shell
 docker run -p 3000:3000 -v myspace:/space -d zefhemel/silverbullet
 ```
+
+The `zefhemel/silverbullet` image will give you the latest released version. This is equivalent to `zefhemel/silverbullet:latest`. If you prefer, you can also pin to a specific release, e.g. `zefhemel/silverbullet:0.3.7`. If you prefer to live on the bleeding edge, you can use the `zefhemel/silverbullet:edge` image, which is updated on every commit to the `main` brain.
 
 To configure various things such as authentication, use [[@env|environment variables]], e.g. to enable single-user auth:
 
