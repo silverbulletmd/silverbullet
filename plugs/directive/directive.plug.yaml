@@ -22,7 +22,7 @@ functions:
     events:
       - editor:complete
   handlebarHelperComplete:
-    path: ./complete.ts:handlebarHelperComplete
+    path: ./complete.ts:templateVariableComplete
     events:
       - editor:complete
 
