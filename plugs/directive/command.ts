@@ -77,6 +77,14 @@ export async function updateDirectivesOnPageCommand() {
   }
 }
 
+export async function updateDirectivesInSpaceCommand() {
+  await editor.flashNotification(
+    "Updating directives in entire space, this can take a while...",
+  );
+  await updateDirectivesInSpace();
+  await editor.flashNotification("Done!");
+}
+
 async function findReplacements(
   tree: ParseTree,
   text: string,

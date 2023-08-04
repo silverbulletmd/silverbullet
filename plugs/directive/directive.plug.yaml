@@ -11,6 +11,10 @@ functions:
       - editor:pageLoaded
   updateDirectivesInSpace:
     path: ./command.ts:updateDirectivesInSpace
+  updateDirectivesInSpaceCommand:
+    path: ./command.ts:updateDirectivesInSpaceCommand
+    command:
+      name: "Directives: Update Entire Space"
   indexData:
     path: ./data.ts:indexData
     events:
