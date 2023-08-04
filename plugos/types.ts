@@ -17,10 +17,8 @@ export type FunctionDef<HookT> = {
   // Reuse an
   // Format: plugName.functionName
   redirect?: string;
-  env?: RuntimeEnvironment;
+  env?: string;
 } & HookT;
-
-export type RuntimeEnvironment = "client" | "server";
 
 export interface Hook<HookT> {
   validateManifest(manifest: Manifest<HookT>): string[];

@@ -8,7 +8,7 @@ import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { storeSyscalls } from "../plugos/syscalls/store.dexie_browser.ts";
+import { storeSyscalls } from "../plugos/syscalls/store.ts";
 import { SysCallMapping, System } from "../plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";

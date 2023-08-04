@@ -1,9 +1,8 @@
 import { SysCallMapping } from "../system.ts";
-import { DexieKVStore } from "../lib/kv_store.dexie.ts";
-import { KV } from "../lib/kv_store.ts";
+import { KV, KVStore } from "../lib/kv_store.ts";
 
 export function storeSyscalls(
-  db: DexieKVStore,
+  db: KVStore,
 ): SysCallMapping {
   return {
     "store.delete": (_ctx, key: string) => {

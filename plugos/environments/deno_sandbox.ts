@@ -6,8 +6,8 @@ export function createSandbox<HookT>(plug: Plug<HookT>): Sandbox<HookT> {
   return new Sandbox(plug, {
     deno: {
       permissions: {
-        // Disallow network access
-        net: false,
+        // Allow network access
+        net: true,
         // This is required for console logging to work, apparently?
         env: true,
         // No talking to native code

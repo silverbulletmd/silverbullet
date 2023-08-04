@@ -17,7 +17,7 @@ Provides various integrations with Github:
 Open your `PLUGS` note in SilverBullet and add this plug to the list:
 
 ```
-- github:silverbulletmd/silverbullet-github/github.plug.json
+- github:silverbulletmd/silverbullet-github/github.plug.js
 ```
 
 Then run the `Plugs: Update` command and off you go!

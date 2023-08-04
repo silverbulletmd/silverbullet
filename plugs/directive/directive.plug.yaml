@@ -9,6 +9,8 @@ functions:
       key: "Alt-q"
     events:
       - editor:pageLoaded
+  updateDirectivesInSpace:
+    path: ./command.ts:updateDirectivesInSpace
   indexData:
     path: ./data.ts:indexData
     events:

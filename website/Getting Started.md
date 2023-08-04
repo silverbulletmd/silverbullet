@@ -23,18 +23,18 @@ You will notice this whole page section is wrapped in a strange type of block. T
 Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by last modified date, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
 <!-- #query page select name order by lastModified desc limit 10 -->
-|name                     |
-|-------------------------|
-|CHANGELOG                |
-|🔨 Development           |
-|Server                   |
-|Raspberry Pi Installation|
-|STYLES                   |
-|Getting Started          |
-|Sandbox                  |
-|SETTINGS                 |
-|SilverBullet             |
-|🔌 Core/Templates        |
+|name              |
+|------------------|
+|🔌 Directive/Query|
+|Attributes        |
+|Getting Started   |
+|🔌 Core/Tags      |
+|🔌 Github         |
+|🔌 Mattermost     |
+|🔌 Git            |
+|🔌 Ghost          |
+|🔌 Share          |
+|Install           |
 <!-- /query -->
 
 That said, the directive used wrapping this page section is `#use` which uses the content of another page as a template and inlines it. Directives recalculate their bodies in two scenarios:

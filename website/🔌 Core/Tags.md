@@ -18,7 +18,7 @@ and be queried:
 <!-- #query item where tags = "core-tag" -->
 |name                           |tags    |page        |pos|
 |-------------------------------|--------|------------|---|
-|This is a tagged item #core-tag|core-tag|🔌 Core/Tags|486|
+|This is a tagged item #core-tag|core-tag|🔌 Core/Tags|493|
 <!-- /query -->
 
 and **tags**:
@@ -28,5 +28,5 @@ and **tags**:
 And they can be queried this way:
 
 <!-- #query task where tags = "core-tag" render [[template/task]] -->
-* [ ] [[🔌 Core/Tags@783]] This is a tagged task #core-tag
+* [ ] [[🔌 Core/Tags@804]] This is a tagged task #core-tag
 <!-- /query -->

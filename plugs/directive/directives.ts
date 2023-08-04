@@ -1,5 +1,4 @@
 import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { sync } from "../../plug-api/silverbullet-syscall/mod.ts";
 import { PageMeta } from "../../web/types.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";

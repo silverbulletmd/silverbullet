@@ -11,6 +11,7 @@ import { userAdd } from "./cmd/user_add.ts";
 import { userPasswd } from "./cmd/user_passwd.ts";
 import { userDelete } from "./cmd/user_delete.ts";
 import { userChgrp } from "./cmd/user_chgrp.ts";
+import { plugRunCommand } from "./cmd/plug_run.ts";
 
 await new Command()
   .name("silverbullet")
@@ -66,6 +67,13 @@ await new Command()
   .option("--importmap <path:string>", "Path to import map file to use")
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
+  // plug:run
+  .command("plug:run", "Run a PlugOS function from the CLI")
+  .arguments("<spacePath> <function> [...args:string]")
+  .option("--noIndex [type:boolean]", "Do not run a full space index first", {
+    default: false,
+  })
+  .action(plugRunCommand)
   .command("user:add", "Add a new user to an authentication file")
   .arguments("[username:string]")
   .option(

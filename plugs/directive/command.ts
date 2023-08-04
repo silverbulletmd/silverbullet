@@ -1,5 +1,6 @@
 import { editor, markdown, space, sync } from "$sb/silverbullet-syscall/mod.ts";
 import {
+  ParseTree,
   removeParentPointers,
   renderToText,
   traverseTree,
@@ -36,42 +37,7 @@ export async function updateDirectivesOnPageCommand() {
 
   await editor.save();
 
-  // Collect all directives and their body replacements
-  const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
-    [];
-
-  // Convenience array to wait for all promises to resolve
-  const allPromises: Promise<string>[] = [];
-
-  removeParentPointers(tree);
-
-  traverseTree(tree, (tree) => {
-    if (tree.type !== "Directive") {
-      return false;
-    }
-    const fullMatch = text.substring(tree.from!, tree.to!);
-    try {
-      const promise = renderDirectives(pageMeta, tree);
-      replacements.push({
-        textPromise: promise,
-        fullMatch,
-      });
-      allPromises.push(promise);
-    } catch (e: any) {
-      replacements.push({
-        fullMatch,
-        textPromise: Promise.resolve(
-          `${renderToText(tree.children![0])}\n**ERROR:** ${e.message}\n${
-            renderToText(tree.children![tree.children!.length - 1])
-          }`,
-        ),
-      });
-    }
-    return true;
-  });
-
-  // Wait for all to have processed
-  await Promise.all(allPromises);
+  const replacements = await findReplacements(tree, text, pageMeta);
 
   // Iterate again and replace the bodies. Iterating again (not using previous positions)
   // because text may have changed in the mean time (directive processing may take some time)
@@ -111,16 +77,19 @@ export async function updateDirectivesOnPageCommand() {
   }
 }
 
-export async function updateDirectives(
-  pageMeta: PageMeta,
+async function findReplacements(
+  tree: ParseTree,
   text: string,
+  pageMeta: PageMeta,
 ) {
-  const tree = await markdown.parseMarkdown(text);
   // Collect all directives and their body replacements
   const replacements: { fullMatch: string; textPromise: Promise<string> }[] =
     [];
 
+  // Convenience array to wait for all promises to resolve
   const allPromises: Promise<string>[] = [];
+
+  removeParentPointers(tree);
 
   traverseTree(tree, (tree) => {
     if (tree.type !== "Directive") {
@@ -128,10 +97,7 @@ export async function updateDirectives(
     }
     const fullMatch = text.substring(tree.from!, tree.to!);
     try {
-      const promise = renderDirectives(
-        pageMeta,
-        tree,
-      );
+      const promise = renderDirectives(pageMeta, tree);
       replacements.push({
         textPromise: promise,
         fullMatch,
@@ -153,9 +119,51 @@ export async function updateDirectives(
   // Wait for all to have processed
   await Promise.all(allPromises);
 
+  return replacements;
+}
+
+export async function updateDirectivesInSpace() {
+  const allPages = await space.listPages();
+  let counter = 0;
+  for (const page of allPages) {
+    counter++;
+    console.log(
+      `Updating directives in page [${counter}/${allPages.length}]`,
+      page.name,
+    );
+    try {
+      await updateDirectivesForPage(page.name);
+    } catch (e: any) {
+      console.error("Error while updating directives on page", page.name, e);
+    }
+  }
+}
+
+async function updateDirectivesForPage(
+  pageName: string,
+) {
+  const pageMeta = await space.getPageMeta(pageName);
+  const currentText = await space.readPage(pageName);
+  const newText = await updateDirectives(pageMeta, currentText);
+  if (newText !== currentText) {
+    console.info("Content of page changed, saving.");
+    await space.writePage(pageName, newText);
+  }
+}
+
+export async function updateDirectives(
+  pageMeta: PageMeta,
+  text: string,
+) {
+  const tree = await markdown.parseMarkdown(text);
+  const replacements = await findReplacements(tree, text, pageMeta);
+
   // Iterate again and replace the bodies.
   for (const replacement of replacements) {
-    text = text.replace(replacement.fullMatch, await replacement.textPromise);
+    text = text.replace(
+      replacement.fullMatch,
+      await replacement.textPromise,
+    );
   }
   return text;
 }

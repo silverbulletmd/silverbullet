@@ -52,6 +52,8 @@ functions:
     path: "./page.ts:reindexCommand"
     command:
       name: "Space: Reindex"
+  reindexSpace:
+    path: "./page.ts:reindexSpace"
   deletePage:
     path: "./page.ts:deletePage"
     command:
