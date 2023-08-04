@@ -1,4 +1,4 @@
-import { Hook, RuntimeEnvironment } from "./types.ts";
+import { Hook } from "./types.ts";
 import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
@@ -32,7 +32,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
 
-  constructor(readonly env?: RuntimeEnvironment) {
+  constructor(readonly env?: string) {
     super();
   }
 

@@ -33,7 +33,7 @@ Example query:
 <!-- #query page where name = "Attributes" -->
 |name      |lastModified |contentType  |size|perm|pageAttribute|
 |----------|-------------|-------------|----|--|-----|
-|Attributes|1690384301337|text/markdown|1591|rw|hello|
+|Attributes|1691165890257|text/markdown|1609|rw|hello|
 <!-- /query -->
 
 This attaches an attribute to an item:
@@ -57,5 +57,5 @@ Example query:
 <!-- #query task where page = "Attributes" and taskAttribute = "hello" -->
 |name|done |taskAttribute|page      |pos |
 |----|-----|-----|----------|----|
-|Task|false|hello|Attributes|1352|
+|Task|false|hello|Attributes|1355|
 <!-- /query -->

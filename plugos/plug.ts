@@ -1,10 +1,10 @@
-import { Manifest, RuntimeEnvironment } from "./types.ts";
+import { Manifest } from "./types.ts";
 import { Sandbox } from "./sandbox.ts";
 import { System } from "./system.ts";
 import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export class Plug<HookT> {
-  readonly runtimeEnv?: RuntimeEnvironment;
+  readonly runtimeEnv?: string;
 
   public grantedPermissions: string[] = [];
   public sandbox: Sandbox<HookT>;

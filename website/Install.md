@@ -20,13 +20,13 @@ This consists of two steps (unless Deno is already installed — in which case w
 With Deno installed, run:
 
 ```shell
-deno install -f --name silverbullet -A https://get.silverbullet.md
+deno install -f --name silverbullet --unstable -A https://get.silverbullet.md
 ```
 
 This will give you (and when you use `silverbullet upgrade`) the latest stable release. If you prefer to live on the bleeding edge, you can install using the following command instead:
 
 ```shell
-deno install -f --name silverbullet -A https://silverbullet.md/silverbullet.js
+deno install -f --name silverbullet --unstable -A https://silverbullet.md/silverbullet.js
 ```
 
 This will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
