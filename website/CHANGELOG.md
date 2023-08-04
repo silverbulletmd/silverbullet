@@ -3,10 +3,11 @@ release.
 
 ---
 
-## 0.3.8
+## 0.3.9
 * [[Metadata]] both in [[Frontmatter]] and [[Attributes]] names are now indexed (scoped to whether they apply to pages, items or tasks) and code completed, e.g in front matter, attribute syntax and queries.
 * When pressing `Shift-Enter` rather than regular `Enter` in the page navigator, the input is now used literally to create a new page with that name. For example, typing in “my page” and hitting `Shift-Enter` will always create a page with that name (rather than defaulting to the best match, which is what `Enter` would navigate to).
 * Fixes an issue where the focus would be taken away from a modal if the page needed to be reloaded in the background.
+* Command to update directives across the entire space (not just the current page): {[d]}
 * Ability to run plug functions from the CLI with `silverbullet plug:run`. For instance, to update all directives in an entire space, run:
   ```bash
   silverbullet plug:run /space-path directive.updateDirectivesInSpace
