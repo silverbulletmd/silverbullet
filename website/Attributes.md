@@ -42,10 +42,10 @@ This attaches an attribute to an item:
 
 Example query:
 
-<!-- #query item where page = "Attributes" and itemAttribute = "hello" -->
-|name|itemAttribute|page      |pos |
-|----|-----|----------|----|
-|Item|hello|Attributes|1106|
+<!-- #query item where page = "Attributes" and itemAttribute = "hello" select name, itemAttribute -->
+|name|itemAttribute|
+|----|-----|
+|Item|hello|
 <!-- /query -->
 
 This attaches an attribute to a task:
@@ -54,8 +54,8 @@ This attaches an attribute to a task:
 
 Example query:
 
-<!-- #query task where page = "Attributes" and taskAttribute = "hello" -->
-|name|done |taskAttribute|page      |pos |
-|----|-----|-----|----------|----|
-|Task|false|hello|Attributes|1382|
+<!-- #query task where page = "Attributes" and taskAttribute = "hello" select name, taskAttribute -->
+|name|taskAttribute|
+|----|-----|
+|Task|hello|
 <!-- /query -->
