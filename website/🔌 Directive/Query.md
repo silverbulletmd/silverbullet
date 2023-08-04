@@ -156,11 +156,11 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Let's try to limit it in the next step.
 
 <!-- #query page limit 3 -->
-|name                                     |lastModified |contentType  |size |perm|
-|--|--|--|--|--|
-|Authentication                           |1686682290943|text/markdown|1730 |rw|
-|Guide/Deployment/Cloudflare and Portainer|1690298800145|text/markdown|12899|rw|
-|Markdown                                 |1676121406520|text/markdown|1178 |rw|
+|name      |lastModified |contentType  |size|perm|pageAttribute|
+|----------|-------------|-------------|----|--|-----|
+|API       |1688987324351|text/markdown|1405|rw|     |
+|Attributes|1691176701257|text/markdown|1466|rw|hello|
+|Authelia  |1688482500313|text/markdown|866 |rw|     |
 <!-- /query -->
 
 
