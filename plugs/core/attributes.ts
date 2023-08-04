@@ -38,7 +38,7 @@ export async function indexAttributes(
 }
 
 export async function attributeComplete(completeEvent: CompleteEvent) {
-  const inlineAttributeMatch = /([^\[]|^)\[(\w+)$/.exec(
+  const inlineAttributeMatch = /([^\[\{}]|^)\[(\w+)$/.exec(
     completeEvent.linePrefix,
   );
   if (inlineAttributeMatch) {
