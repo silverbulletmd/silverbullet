@@ -11,7 +11,7 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { createSandbox } from "../plugos/environments/deno_sandbox.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
+import { DenoKVStore } from "../plugos/lib/kv_store.deno_kv.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
@@ -44,7 +44,10 @@ export async function runPlug(
   const cronHook = new CronHook(system);
   system.addHook(cronHook);
 
-  const pageIndexCalls = pageIndexSyscalls("run.db");
+  const kvStore = new DenoKVStore();
+  await kvStore.init("run.db");
+
+  const pageIndexCalls = pageIndexSyscalls(kvStore);
 
   // TODO: Add endpoint
 
@@ -61,7 +64,6 @@ export async function runPlug(
     ),
     pageIndexCalls,
   );
-  const kvStore = new JSONKVStore();
   const space = new Space(spacePrimitives, kvStore);
 
   // Add syscalls
@@ -118,7 +120,7 @@ export async function runPlug(
   const result = await plug.invoke(funcName, args);
 
   await system.unloadAll();
-  await pageIndexCalls["index.close"]({} as any);
+  await kvStore.delete();
   return result;
 }
 

@@ -30,10 +30,10 @@ Depending on where these attributes appear, they attach to different things. For
 
 Example query:
 
-<!-- #query page where name = "Attributes" -->
-|name      |lastModified |contentType  |size|perm|pageAttribute|
-|----------|-------------|-------------|----|--|-----|
-|Attributes|1691165890257|text/markdown|1609|rw|hello|
+<!-- #query page where name = "Attributes" select name, pageAttribute -->
+|name      |pageAttribute|
+|----------|-----|
+|Attributes|hello|
 <!-- /query -->
 
 This attaches an attribute to an item:
@@ -45,7 +45,7 @@ Example query:
 <!-- #query item where page = "Attributes" and itemAttribute = "hello" -->
 |name|itemAttribute|page      |pos |
 |----|-----|----------|----|
-|Item|hello|Attributes|1079|
+|Item|hello|Attributes|1106|
 <!-- /query -->
 
 This attaches an attribute to a task:
@@ -57,5 +57,5 @@ Example query:
 <!-- #query task where page = "Attributes" and taskAttribute = "hello" -->
 |name|done |taskAttribute|page      |pos |
 |----|-----|-----|----------|----|
-|Task|false|hello|Attributes|1355|
+|Task|false|hello|Attributes|1382|
 <!-- /query -->

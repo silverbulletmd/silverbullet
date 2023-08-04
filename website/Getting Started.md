@@ -20,21 +20,21 @@ Hadn’t we mentioned [[Markdown]] yet? Yeah, that’s the markup language you�
 
 You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[🔌 Directive]] (in this case `#use`). There are various types of directives, and while we’re not keeping score, likely the coolest ones are [[🔌 Directive/Query|queries]] — so you should definitely look into those.
 
-Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by last modified date, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
+Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by name, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
-<!-- #query page select name order by lastModified desc limit 10 -->
-|name              |
-|------------------|
-|🔌 Directive/Query|
-|Attributes        |
-|Getting Started   |
-|🔌 Core/Tags      |
-|🔌 Github         |
-|🔌 Mattermost     |
-|🔌 Git            |
-|🔌 Ghost          |
-|🔌 Share          |
-|Install           |
+<!-- #query page select name order by name limit 10 -->
+|name           |
+|---------------|
+|API            |
+|Attributes     |
+|Authelia       |
+|Authentication |
+|CHANGELOG      |
+|Cloud Links    |
+|Deployments    |
+|Federation     |
+|Frontmatter    |
+|Getting Started|
 <!-- /query -->
 
 That said, the directive used wrapping this page section is `#use` which uses the content of another page as a template and inlines it. Directives recalculate their bodies in two scenarios:
