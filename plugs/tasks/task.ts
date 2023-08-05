@@ -9,6 +9,7 @@ import {
   index,
   markdown,
   space,
+  sync,
 } from "$sb/silverbullet-syscall/mod.ts";
 
 import {
@@ -164,6 +165,7 @@ async function toggleTaskMarker(
         taskMarkerNode.children![0].text = changeTo;
         text = renderToText(referenceMdTree);
         await space.writePage(page, text);
+        sync.scheduleFileSync(`${page}.md`);
       }
     }
   }

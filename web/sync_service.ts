@@ -54,16 +54,16 @@ export class SyncService {
 
     eventHook.addLocalListener(
       "editor:pageLoaded",
-      async (name, _prevPage, isSynced) => {
+      (name, _prevPage, isSynced) => {
         if (!isSynced) {
-          await this.syncFile(`${name}.md`);
+          this.scheduleFileSync(`${name}.md`).catch(console.error);
         }
       },
     );
 
-    eventHook.addLocalListener("editor:pageSaved", async (name) => {
+    eventHook.addLocalListener("editor:pageSaved", (name) => {
       const path = `${name}.md`;
-      await this.syncFile(path);
+      this.scheduleFileSync(path).catch(console.error);
     });
   }
 
@@ -126,8 +126,21 @@ export class SyncService {
   async noOngoingSync(): Promise<void> {
     // Not completely safe, could have race condition on setting the syncStartTimeKey
     while (await this.isSyncing()) {
-      await sleep(100);
+      await sleep(250);
     }
+  }
+
+  filesScheduledForSync = new Set<string>();
+  async scheduleFileSync(path: string): Promise<void> {
+    if (this.filesScheduledForSync.has(path)) {
+      // Already scheduled, no need to duplicate
+      console.info(`File ${path} already scheduled for sync`);
+      return;
+    }
+    this.filesScheduledForSync.add(path);
+    await this.noOngoingSync();
+    await this.syncFile(path);
+    this.filesScheduledForSync.delete(path);
   }
 
   start() {
@@ -177,11 +190,11 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
-    if (await this.isSyncing()) {
-      console.log("Already syncing, aborting individual file sync for", name);
+    if (!this.isSyncCandidate(name)) {
       return;
     }
-    if (!this.isSyncCandidate(name)) {
+    if (await this.isSyncing()) {
+      console.log("Already syncing, aborting individual file sync for", name);
       return;
     }
     await this.registerSyncStart();
