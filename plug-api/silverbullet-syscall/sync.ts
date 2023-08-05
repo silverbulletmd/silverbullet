@@ -7,3 +7,7 @@ export function isSyncing(): Promise<boolean> {
 export function hasInitialSyncCompleted(): Promise<boolean> {
   return syscall("sync.hasInitialSyncCompleted");
 }
+
+export function scheduleFileSync(path: string): Promise<void> {
+  return syscall("sync.scheduleFileSync", path);
+}
