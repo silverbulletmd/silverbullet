@@ -21,7 +21,7 @@ import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { SyncService } from "./sync_service.ts";
+import { pageSyncInterval, SyncService } from "./sync_service.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
@@ -166,6 +166,10 @@ export class Client {
     this.loadCustomStyles().catch(console.error);
 
     await this.dispatchAppEvent("editor:init");
+
+    setInterval(() => {
+      this.syncService.syncFile(`${this.currentPage!}.md`);
+    }, pageSyncInterval);
   }
 
   private initSync() {
@@ -214,6 +218,14 @@ export class Client {
       this.showProgress(
         Math.round(status.filesProcessed / status.totalFiles * 100),
       );
+    });
+    this.syncService.spaceSync.on({
+      fileSynced: (meta, direction) => {
+        if (meta.name.endsWith(".md") && direction === "secondary->primary") {
+          // We likely polled the currently open page which trigggered a local update, let's update the editor accordingly
+          this.space.getPageMeta(meta.name.slice(0, -3));
+        }
+      },
     });
   }
 

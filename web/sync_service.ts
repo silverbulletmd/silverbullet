@@ -14,6 +14,9 @@ const syncSnapshotKey = "syncSnapshot";
 // Keeps the start time of an ongoing sync, is reset once the sync is done
 const syncStartTimeKey = "syncStartTime";
 
+// Keeps the start time of the last full sync cycle
+const syncLastFullCycleKey = "syncLastFullCycle";
+
 // Keeps the last time an activity was registered, used to detect if a sync is still alive and whether a new one should be started already
 const syncLastActivityKey = "syncLastActivity";
 
@@ -23,7 +26,10 @@ const syncInitialFullSyncCompletedKey = "syncInitialFullSyncCompleted";
 const syncMaxIdleTimeout = 1000 * 20; // 20s
 
 // How often to sync the whole space
-const syncInterval = 10 * 1000; // Every 10s
+const spaceSyncInterval = 10 * 1000; // Every 10s, but because of the check this may happen mid-cycle so after ~15s
+
+// Used from Client
+export const pageSyncInterval = 5000;
 
 /**
  * The SyncService primarily wraps the SpaceSync engine but also coordinates sync between
@@ -88,15 +94,24 @@ export class SyncService {
     return this.kvStore.has(syncInitialFullSyncCompletedKey);
   }
 
-  async registerSyncStart(): Promise<void> {
+  async registerSyncStart(fullSync: boolean): Promise<void> {
     // Assumption: this is called after an isSyncing() check
-    await this.kvStore.batchSet([{
-      key: syncStartTimeKey,
-      value: Date.now(),
-    }, {
-      key: syncLastActivityKey,
-      value: Date.now(),
-    }]);
+    await this.kvStore.batchSet([
+      {
+        key: syncStartTimeKey,
+        value: Date.now(),
+      },
+      {
+        key: syncLastActivityKey,
+        value: Date.now(),
+      },
+      ...fullSync // If this is a full sync cycle
+        ? [{
+          key: syncLastFullCycleKey,
+          value: Date.now(),
+        }]
+        : [],
+    ]);
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
@@ -150,16 +165,18 @@ export class SyncService {
 
     setInterval(async () => {
       try {
-        const lastActivity = (await this.kvStore.get(syncLastActivityKey)) || 0;
-        if (lastActivity && Date.now() - lastActivity > syncInterval) {
-          // It's been a while since the last activity, let's sync the whole space
-          // The reason to do this check is that there may be multiple tabs open each with their sync cycle
-          await this.syncSpace();
+        if (!await this.isSyncing()) {
+          const lastFullCycle =
+            (await this.kvStore.get(syncLastFullCycleKey)) || 0;
+          if (lastFullCycle && Date.now() - lastFullCycle > spaceSyncInterval) {
+            // It's been a while since the last full cycle, let's sync the whole space
+            await this.syncSpace();
+          }
         }
       } catch (e: any) {
         console.error(e);
       }
-    }, syncInterval / 2); // check every half the sync cycle because actually running the sync takes some time therefore we don't want to wait for the full cycle
+    }, spaceSyncInterval / 2); // check every half the sync cycle because actually running the sync takes some time therefore we don't want to wait for the full cycle
   }
 
   async syncSpace(): Promise<number> {
@@ -167,7 +184,7 @@ export class SyncService {
       console.log("Already syncing");
       return 0;
     }
-    await this.registerSyncStart();
+    await this.registerSyncStart(true);
     let operations = 0;
     const snapshot = await this.getSnapshot();
     // console.log("Excluded from sync", excludedFromSync);
@@ -197,7 +214,7 @@ export class SyncService {
       console.log("Already syncing, aborting individual file sync for", name);
       return;
     }
-    await this.registerSyncStart();
+    await this.registerSyncStart(false);
     console.log("Syncing file", name);
     const snapshot = await this.getSnapshot();
     try {

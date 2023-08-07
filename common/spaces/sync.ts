@@ -3,6 +3,7 @@ import buildMarkdown from "../markdown_parser/parser.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
+import { EventEmitter } from "../../plugos/event.ts";
 
 type SyncHash = number;
 
@@ -28,13 +29,19 @@ export type SyncOptions = {
   onSyncProgress?: (syncStatus: SyncStatus) => void;
 };
 
+type SyncDirection = "primary->secondary" | "secondary->primary";
+export type SyncEvents = {
+  fileSynced: (meta: FileMeta, direction: SyncDirection) => void;
+};
+
 // Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
-export class SpaceSync {
+export class SpaceSync extends EventEmitter<SyncEvents> {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
     readonly options: SyncOptions,
   ) {
+    super();
   }
 
   async syncFiles(
@@ -143,6 +150,7 @@ export class SpaceSync {
         writtenMeta.lastModified,
       ]);
       operations++;
+      await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       secondaryHash !== undefined && primaryHash === undefined &&
       !snapshot.has(name)
@@ -165,6 +173,7 @@ export class SpaceSync {
         secondaryHash,
       ]);
       operations++;
+      await this.emit("fileSynced", writtenMeta, "secondary->primary");
     } else if (
       primaryHash !== undefined && snapshot.has(name) &&
       secondaryHash === undefined
@@ -227,6 +236,7 @@ export class SpaceSync {
         writtenMeta.lastModified,
       ]);
       operations++;
+      await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       primaryHash !== undefined && secondaryHash !== undefined &&
       snapshot.get(name) &&
@@ -251,6 +261,7 @@ export class SpaceSync {
         secondaryHash,
       ]);
       operations++;
+      await this.emit("fileSynced", writtenMeta, "secondary->primary");
     } else if (
       ( // File changed on both ends, but we don't have any info in the snapshot (resync scenario?): have to run through conflict handling
         primaryHash !== undefined && secondaryHash !== undefined &&
