@@ -67,7 +67,7 @@ export function MiniEditor(
 
   useEffect(() => {
     if (editorDiv.current) {
-      console.log("Creating editor view");
+      // console.log("Creating editor view");
       const editorView = new EditorView({
         state: buildEditorState(),
         parent: editorDiv.current!,
