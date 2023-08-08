@@ -96,6 +96,22 @@ functions:
     events:
     - editor:complete
 
+  customAttributeCompleter:
+    path: ./attributes.ts:customAttributeCompleter
+    events:
+    - attribute:complete:page
+    - attribute:complete:task
+    - attribute:complete:item
+    - attribute:complete:*
+
+  builtinAttributeCompleter:
+    path: ./attributes.ts:builtinAttributeCompleter
+    events:
+    - attribute:complete:page
+    - attribute:complete:task
+    - attribute:complete:item
+    - attribute:complete:*
+
   # Commands
   commandComplete:
     path: "./command.ts:commandComplete"
