@@ -334,12 +334,11 @@ export class HttpServer {
     fsRouter
       .get(
         filePathRegex,
-        // corsMiddleware,
         async ({ params, response, request }) => {
           const name = params[0];
           console.log("Requested file", name);
           if (!request.headers.has("X-Sync-Mode") && name.endsWith(".md")) {
-            // It can happen that during a sync, authentication expires
+            // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
             console.log("Request was without X-Sync-Mode, redirecting to page");
             response.redirect(`/${name.slice(0, -3)}`);
             return;
@@ -401,7 +400,7 @@ export class HttpServer {
 
             response.body = fileData.data;
           } catch (e: any) {
-            console.error("Error GETting of file", name, e);
+            console.error("Error GETting file", name, e);
             response.status = 404;
             response.body = "Not found";
           }
@@ -409,7 +408,6 @@ export class HttpServer {
       )
       .put(
         filePathRegex,
-        // corsMiddleware,
         async ({ request, response, params }) => {
           const name = params[0];
           console.log("Saving file", name);

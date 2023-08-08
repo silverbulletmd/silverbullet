@@ -2,36 +2,10 @@ import { events } from "$sb/plugos-syscall/mod.ts";
 import { CompleteEvent } from "$sb/app_event.ts";
 import { buildHandebarOptions } from "./util.ts";
 import type { PageMeta } from "../../web/types.ts";
-import { index } from "$sb/silverbullet-syscall/mod.ts";
-
-const builtinAttributes: Record<string, Record<string, string>> = {
-  page: {
-    name: "string",
-    lastModified: "number",
-    perm: "rw|ro",
-    contentType: "string",
-    size: "number",
-    tags: "array",
-  },
-  task: {
-    name: "string",
-    done: "boolean",
-    page: "string",
-    deadline: "string",
-    pos: "number",
-    tags: "array",
-  },
-  item: {
-    name: "string",
-    page: "string",
-    pos: "number",
-    tags: "array",
-  },
-  tag: {
-    name: "string",
-    freq: "number",
-  },
-};
+import {
+  AttributeCompleteEvent,
+  AttributeCompletion,
+} from "../core/attributes.ts";
 
 export async function queryComplete(completeEvent: CompleteEvent) {
   const querySourceMatch = /#query\s+([\w\-_]*)$/.exec(
@@ -61,49 +35,20 @@ export async function queryComplete(completeEvent: CompleteEvent) {
     if (querySourceMatch && whereMatch) {
       const type = querySourceMatch[1];
       const attributePrefix = whereMatch[3];
-      // console.log("Type", type);
-      // console.log("Where", attributePrefix);
-      const allAttributes = await index.queryPrefix(
-        `attr:${type}:`,
-      );
-
+      const completions = (await events.dispatchEvent(
+        `attribute:complete:${type}`,
+        {
+          source: type,
+          prefix: attributePrefix,
+        } as AttributeCompleteEvent,
+      )).flat() as AttributeCompletion[];
       return {
         from: completeEvent.pos - attributePrefix.length,
-        options: compileAttributeCompletions(allAttributes, type),
+        options: attributeCompletionsToCMCompletion(completions),
       };
     }
   }
   return null;
-}
-
-function compileAttributeCompletions(
-  allAttributes: { key: string; value: any }[],
-  type?: string,
-) {
-  let allCompletions: any[] = allAttributes.map((attr) => {
-    const [_prefix, context, name] = attr.key.split(":");
-    return {
-      label: name,
-      detail: `${attr.value.type} (${context})`,
-      type: "attribute",
-    };
-  });
-  const allContexts = type ? [type] : Object.keys(builtinAttributes);
-
-  for (const context of allContexts) {
-    allCompletions = allCompletions.concat(
-      builtinAttributes[context]
-        ? Object.entries(
-          builtinAttributes[context],
-        ).map(([name, type]) => ({
-          label: name,
-          detail: `${type} (${context}: builtin)`,
-          type: "attribute",
-        }))
-        : [],
-    );
-  }
-  return allCompletions;
 }
 
 export async function templateVariableComplete(completeEvent: CompleteEvent) {
@@ -123,13 +68,32 @@ export async function templateVariableComplete(completeEvent: CompleteEvent) {
     })),
   );
 
-  const allAttributes = await index.queryPrefix(`attr:`);
+  const completions = (await events.dispatchEvent(
+    `attribute:complete:*`,
+    {
+      source: "*",
+      prefix: match[1],
+    } as AttributeCompleteEvent,
+  )).flat() as AttributeCompletion[];
+
   allCompletions = allCompletions.concat(
-    compileAttributeCompletions(allAttributes),
+    attributeCompletionsToCMCompletion(completions),
   );
 
   return {
     from: completeEvent.pos - match[1].length,
     options: allCompletions,
   };
+}
+
+export function attributeCompletionsToCMCompletion(
+  completions: AttributeCompletion[],
+) {
+  return completions.map(
+    (completion) => ({
+      label: completion.name,
+      detail: `${completion.type} (${completion.source})`,
+      type: "attribute",
+    }),
+  );
 }
