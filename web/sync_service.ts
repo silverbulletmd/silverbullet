@@ -84,6 +84,7 @@ export class SyncService {
       // It's been too long since the last activity, let's consider this one crashed and
       // reset the sync start state
       await this.kvStore.del(syncStartTimeKey);
+      console.info("Sync crashed, resetting");
       return false;
     }
     return true;
@@ -138,10 +139,14 @@ export class SyncService {
   }
 
   // Await a moment when the sync is no longer running
-  async noOngoingSync(): Promise<void> {
+  async noOngoingSync(timeout: number): Promise<void> {
     // Not completely safe, could have race condition on setting the syncStartTimeKey
+    const startTime = Date.now();
     while (await this.isSyncing()) {
       await sleep(250);
+      if (Date.now() - startTime > timeout) {
+        throw new Error("Timeout waiting for sync to finish");
+      }
     }
   }
 
@@ -153,7 +158,7 @@ export class SyncService {
       return;
     }
     this.filesScheduledForSync.add(path);
-    await this.noOngoingSync();
+    await this.noOngoingSync(5000);
     await this.syncFile(path);
     this.filesScheduledForSync.delete(path);
   }
@@ -181,7 +186,7 @@ export class SyncService {
 
   async syncSpace(): Promise<number> {
     if (await this.isSyncing()) {
-      console.log("Already syncing");
+      console.log("Aborting space sync: already syncing");
       return 0;
     }
     await this.registerSyncStart(true);
