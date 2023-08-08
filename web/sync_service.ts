@@ -23,13 +23,13 @@ const syncLastActivityKey = "syncLastActivity";
 const syncInitialFullSyncCompletedKey = "syncInitialFullSyncCompleted";
 
 // maximum time between two activities before we consider a sync crashed
-const syncMaxIdleTimeout = 1000 * 20; // 20s
+const syncMaxIdleTimeout = 1000 * 27;
 
 // How often to sync the whole space
-const spaceSyncInterval = 10 * 1000; // Every 10s, but because of the check this may happen mid-cycle so after ~15s
+const spaceSyncInterval = 17 * 1000; // Every 17s or so
 
 // Used from Client
-export const pageSyncInterval = 5000;
+export const pageSyncInterval = 6000;
 
 /**
  * The SyncService primarily wraps the SpaceSync engine but also coordinates sync between
@@ -143,7 +143,7 @@ export class SyncService {
     // Not completely safe, could have race condition on setting the syncStartTimeKey
     const startTime = Date.now();
     while (await this.isSyncing()) {
-      await sleep(250);
+      await sleep(321);
       if (Date.now() - startTime > timeout) {
         throw new Error("Timeout waiting for sync to finish");
       }
@@ -158,15 +158,13 @@ export class SyncService {
       return;
     }
     this.filesScheduledForSync.add(path);
-    await this.noOngoingSync(5000);
+    await this.noOngoingSync(7000);
     await this.syncFile(path);
     this.filesScheduledForSync.delete(path);
   }
 
   start() {
-    this.syncSpace().catch(
-      console.error,
-    );
+    this.syncSpace().catch(console.error);
 
     setInterval(async () => {
       try {
