@@ -257,7 +257,7 @@ export class HttpServer {
       "/index.json",
       // corsMiddleware,
       async ({ request, response }) => {
-        if (request.headers.get("Accept") === "application/json") {
+        if (request.headers.has("X-Sync-Mode")) {
           // Only handle direct requests for a JSON representation of the file list
           response.headers.set("Content-type", "application/json");
           response.headers.set("X-Space-Path", this.options.pagesPath);
@@ -338,6 +338,12 @@ export class HttpServer {
         async ({ params, response, request }) => {
           const name = params[0];
           console.log("Requested file", name);
+          if (!request.headers.has("X-Sync-Mode") && name.endsWith(".md")) {
+            // It can happen that during a sync, authentication expires
+            console.log("Request was without X-Sync-Mode, redirecting to page");
+            response.redirect(`/${name.slice(0, -3)}`);
+            return;
+          }
           if (name.startsWith(".")) {
             // Don't expose hidden files
             response.status = 404;
@@ -372,9 +378,15 @@ export class HttpServer {
             return;
           }
           try {
-            const fileData = await spacePrimitives.readFile(
-              name,
-            );
+            if (request.headers.has("X-Get-Meta")) {
+              // Getting meta via GET request
+              const fileData = await spacePrimitives.getFileMeta(name);
+              response.status = 200;
+              this.fileMetaToHeaders(response.headers, fileData);
+              response.body = "";
+              return;
+            }
+            const fileData = await spacePrimitives.readFile(name);
             const lastModifiedHeader = new Date(fileData.meta.lastModified)
               .toUTCString();
             if (
@@ -388,8 +400,8 @@ export class HttpServer {
             response.headers.set("Last-Modified", lastModifiedHeader);
 
             response.body = fileData.data;
-          } catch {
-            // console.error("Error GETting of file", name, e);
+          } catch (e: any) {
+            console.error("Error GETting of file", name, e);
             response.status = 404;
             response.body = "Not found";
           }
@@ -454,6 +466,7 @@ export class HttpServer {
     );
     headers.set("Cache-Control", "no-cache");
     headers.set("X-Permission", fileMeta.perm);
+    headers.set("X-Content-Length", "" + fileMeta.size);
   }
 
   stop() {

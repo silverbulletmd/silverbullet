@@ -140,9 +140,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodeURI(name)}`,
       // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
-      // so we'll use GET instead and not use the body. A bit wasteful, but it works.
+      // so we'll use GET instead with a magic header which the server may or may not use to omit the body.
       {
         method: "GET",
+        headers: {
+          "X-Get-Meta": "true",
+        },
       },
     );
     if (res.status === 404) {
@@ -154,7 +157,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   private responseToMeta(name: string, res: Response): FileMeta {
     return {
       name,
-      size: +res.headers.get("Content-Length")!,
+      // The server may set a custom X-Content-Length header in case a GET request was sent with X-Get-Meta, in which case the body may be omitted
+      size: res.headers.has("X-Content-Length")
+        ? +res.headers.get("X-Content-Length")!
+        : +res.headers.get("Content-Length")!,
       contentType: res.headers.get("Content-type")!,
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
