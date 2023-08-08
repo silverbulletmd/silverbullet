@@ -235,8 +235,7 @@ export class SyncService {
         // Not present
       }
       try {
-        // This is wasteful, but Netlify (silverbullet.md) doesn't support OPTIONS call (404s) so we'll just fetch the whole file
-        remoteHash = (await this.remoteSpace!.readFile(name)).meta.lastModified;
+        remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
