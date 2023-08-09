@@ -3,6 +3,14 @@ release.
 
 ---
 
+## Next
+* Sync improvements:
+  * Now syncing the currently open page every 5s with the server
+  * Now more instantly syncing indirectly updated pages, e.g. when checking off tasks in a query
+* New `/page-template` slash command to apply (insert) a page [[🔌 Core/Templates|template]] at the current location
+
+---
+
 ## 0.3.9
 * [[Metadata]] both in [[Frontmatter]] and [[Attributes]] names are now indexed (scoped to whether they apply to pages, items or tasks) and code completed, e.g in front matter, attribute syntax and queries.
 * When pressing `Shift-Enter` rather than regular `Enter` in the page navigator, the input is now used literally to create a new page with that name. For example, typing in “my page” and hitting `Shift-Enter` will always create a page with that name (rather than defaulting to the best match, which is what `Enter` would navigate to).
