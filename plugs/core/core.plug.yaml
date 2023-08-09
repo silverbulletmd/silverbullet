@@ -272,6 +272,11 @@ functions:
     slashCommand:
       name: snippet
       description: Insert a snippet
+  applyPageTemplateCommand:
+    path: ./template.ts:applyPageTemplateCommand
+    slashCommand:
+      name: page-template
+      description: Apply a page template
   insertTodayCommand:
     path: "./template.ts:insertTemplateText"
     slashCommand:

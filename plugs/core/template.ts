@@ -119,6 +119,44 @@ export async function insertSnippet() {
   }
 }
 
+export async function applyPageTemplateCommand() {
+  const allPages = await space.listPages();
+  const { pageTemplatePrefix } = await readSettings({
+    pageTemplatePrefix: "template/page/",
+  });
+  const cursorPos = await editor.getCursor();
+  const page = await editor.getCurrentPage();
+  const pageMeta = await space.getPageMeta(page);
+  const allSnippets = allPages
+    .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
+    .map((pageMeta) => ({
+      ...pageMeta,
+      name: pageMeta.name.slice(pageTemplatePrefix.length),
+    }));
+
+  const selectedPage = await editor.filterBox(
+    "Page template",
+    allSnippets,
+    `Select the page template to apply (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`,
+  );
+
+  if (!selectedPage) {
+    return;
+  }
+
+  const text = await space.readPage(
+    `${pageTemplatePrefix}${selectedPage.name}`,
+  );
+  let templateText = replaceTemplateVars(text, pageMeta);
+  const carretPos = templateText.indexOf("|^|");
+  templateText = templateText.replace("|^|", "");
+  templateText = replaceTemplateVars(templateText, pageMeta);
+  await editor.insertAtCursor(templateText);
+  if (carretPos !== -1) {
+    await editor.moveCursor(cursorPos + carretPos);
+  }
+}
+
 // TODO: This should probably be replaced with handlebards somehow?
 export function replaceTemplateVars(s: string, pageMeta: PageMeta): string {
   const template = Handlebars.compile(s, { noEscape: true });
