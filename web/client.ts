@@ -168,7 +168,9 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
 
     setInterval(() => {
-      this.syncService.syncFile(`${this.currentPage!}.md`);
+      this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
+        console.error("Interval sync error", e);
+      });
     }, pageSyncInterval);
   }
 

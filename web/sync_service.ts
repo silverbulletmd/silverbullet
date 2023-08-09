@@ -249,6 +249,7 @@ export class SyncService {
 
       await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
       this.eventHook.dispatchEvent("sync:success");
+      console.log("File successfully synced", name);
     } catch (e: any) {
       this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e);
