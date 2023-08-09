@@ -143,6 +143,7 @@ export class SyncService {
     // Not completely safe, could have race condition on setting the syncStartTimeKey
     const startTime = Date.now();
     while (await this.isSyncing()) {
+      console.log("Waiting for ongoing sync to finish...");
       await sleep(321);
       if (Date.now() - startTime > timeout) {
         throw new Error("Timeout waiting for sync to finish");
@@ -210,15 +211,17 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
+    console.log("About to sync file", name);
     if (!this.isSyncCandidate(name)) {
+      console.log("Info not a sync candidate", name);
       return;
     }
     if (await this.isSyncing()) {
       console.log("Already syncing, aborting individual file sync for", name);
       return;
     }
-    await this.registerSyncStart(false);
     console.log("Syncing file", name);
+    await this.registerSyncStart(false);
     const snapshot = await this.getSnapshot();
     try {
       let localHash: number | undefined;
@@ -256,6 +259,7 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop();
+    console.log("And done with file sync for", name);
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
