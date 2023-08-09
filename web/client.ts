@@ -168,9 +168,15 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
 
     setInterval(() => {
-      this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
+      console.log("Syncing page", this.currentPage, "in background");
+      try {
+        this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
+          console.error("Interval sync error", e);
+        });
+      } catch (e: any) {
         console.error("Interval sync error", e);
-      });
+      }
+      console.log("End of kick-off of background sync of", this.currentPage);
     }, pageSyncInterval);
   }
 
