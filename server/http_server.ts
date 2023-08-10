@@ -400,7 +400,7 @@ export class HttpServer {
 
             response.body = fileData.data;
           } catch (e: any) {
-            console.error("Error GETting file", name, e);
+            console.error("Error GETting file", name, e.message);
             response.status = 404;
             response.body = "Not found";
           }
