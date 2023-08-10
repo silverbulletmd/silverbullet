@@ -30,6 +30,9 @@ import {
   loadMarkdownExtensions,
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
+import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
+import { MQHook } from "../plugos/hooks/mq.ts";
+import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 
 export class ClientSystem {
   system: System<SilverBulletHooks> = new System("client");
@@ -44,6 +47,7 @@ export class ClientSystem {
   constructor(
     private editor: Client,
     private kvStore: DexieKVStore,
+    private mq: DexieMQ,
     private dbPrefix: string,
     private eventHook: EventHook,
   ) {
@@ -65,6 +69,9 @@ export class ClientSystem {
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
     this.system.addHook(this.codeWidgetHook);
+
+    // MQ hook
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Command hook
     this.commandHook = new CommandHook();
@@ -115,6 +122,7 @@ export class ClientSystem {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
+      mqSyscalls(this.mq),
       storeCalls,
       this.indexSyscalls,
       debugSyscalls(),

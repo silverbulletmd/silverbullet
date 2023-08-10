@@ -33,6 +33,7 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
+import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -75,6 +76,7 @@ export class Client {
   syncService: SyncService;
   settings!: BuiltinSettings;
   kvStore: DexieKVStore;
+  mq: DexieMQ;
 
   // Event bus used to communicate between components
   eventHook: EventHook;
@@ -94,6 +96,13 @@ export class Client {
       globalThis.indexedDB,
     );
 
+    this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);
+
+    setInterval(() => {
+      // Timeout after 5s
+      this.mq.requeueTimeouts(5000, 3).catch(console.error);
+    }, 20000); // Look to requeue every 20s
+
     // Event hook
     this.eventHook = new EventHook();
 
@@ -101,6 +110,7 @@ export class Client {
     this.system = new ClientSystem(
       this,
       this.kvStore,
+      this.mq,
       this.dbPrefix,
       this.eventHook,
     );

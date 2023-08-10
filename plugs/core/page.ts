@@ -10,10 +10,11 @@ import {
   space,
 } from "$sb/silverbullet-syscall/mod.ts";
 
-import { events } from "$sb/plugos-syscall/mod.ts";
+import { events, mq } from "$sb/plugos-syscall/mod.ts";
 
 import { applyQuery } from "$sb/lib/query.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import type { Message } from "$sb/mq.ts";
 
 // Key space:
 //   meta: => metaJson
@@ -82,9 +83,17 @@ export async function newPageCommand() {
 }
 
 export async function reindexCommand() {
-  await editor.flashNotification("Reindexing...");
-  await reindexSpace();
-  await editor.flashNotification("Reindexing done");
+  await editor.flashNotification("Scheduling full reindex...");
+  console.log("Clearing page index...");
+  await index.clearPageIndex();
+  // Executed this way to not have to embed the search plug code here
+  await invokeFunction("client", "search.clearIndex");
+  const pages = await space.listPages();
+
+  await mq.batchSend("indexQueue", pages.map((page) => page.name));
+
+  // console.log("Indexing queued!");
+  // await editor.flashNotification("Reindexing done");
 }
 
 // Completion
@@ -126,6 +135,20 @@ export async function reindexSpace() {
     });
   }
   console.log("Indexing completed!");
+}
+
+export async function processIndexQueue(messages: Message[]) {
+  // console.log("Processing batch of", messages.length, "pages to index");
+  for (const message of messages) {
+    const name: string = message.body;
+    console.log(`Indexing page ${name}`);
+    const text = await space.readPage(name);
+    const parsed = await markdown.parseMarkdown(text);
+    await events.dispatchEvent("page:index", {
+      name,
+      tree: parsed,
+    });
+  }
 }
 
 export async function clearPageIndex(page: string) {

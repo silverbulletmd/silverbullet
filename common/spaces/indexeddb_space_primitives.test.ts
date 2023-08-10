@@ -1,4 +1,4 @@
-import { indexedDB } from "https://deno.land/x/indexeddb@v1.1.0/ponyfill_memory.ts";
+import { indexedDB } from "https://deno.land/x/indexeddb@1.3.5/ponyfill_memory.ts";
 import { IndexedDBSpacePrimitives } from "./indexeddb_space_primitives.ts";
 import { assertEquals } from "../../test_deps.ts";
 
