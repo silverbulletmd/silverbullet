@@ -9,6 +9,8 @@ import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
+import { mq } from "$sb/plugos-syscall/mod.ts";
+import { Message } from "$sb/mq.ts";
 
 export async function updateDirectivesOnPageCommand() {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
@@ -81,8 +83,19 @@ export async function updateDirectivesInSpaceCommand() {
   await editor.flashNotification(
     "Updating directives in entire space, this can take a while...",
   );
-  await updateDirectivesInSpace();
-  await editor.flashNotification("Done!");
+  // await updateDirectivesInSpace();
+  const pages = await space.listPages();
+
+  await mq.batchSend("directiveUpdateQueue", pages.map((page) => page.name));
+}
+
+export async function processUpdateQueue(messages: Message[]) {
+  for (const message of messages) {
+    const pageName: string = message.body;
+    console.log("Updating directives in page", pageName);
+    await updateDirectivesForPage(pageName);
+    await mq.ack("directiveUpdateQueue", message.id);
+  }
 }
 
 async function findReplacements(
@@ -152,7 +165,20 @@ async function updateDirectivesForPage(
 ) {
   const pageMeta = await space.getPageMeta(pageName);
   const currentText = await space.readPage(pageName);
-  const newText = await updateDirectives(pageMeta, currentText);
+  const tree = await markdown.parseMarkdown(currentText);
+  const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
+
+  if (isFederationPath(pageName)) {
+    console.info("Current page is a federation page, not updating directives.");
+    return;
+  }
+
+  if (metaData.$disableDirectives) {
+    console.info("Directives disabled in page meta, not updating them.");
+    return;
+  }
+
+  const newText = await updateDirectives(pageMeta, tree, currentText);
   if (newText !== currentText) {
     console.info("Content of page changed, saving.");
     await space.writePage(pageName, newText);
@@ -161,9 +187,9 @@ async function updateDirectivesForPage(
 
 export async function updateDirectives(
   pageMeta: PageMeta,
+  tree: ParseTree,
   text: string,
 ) {
-  const tree = await markdown.parseMarkdown(text);
   const replacements = await findReplacements(tree, text, pageMeta);
 
   // Iterate again and replace the bodies.

@@ -99,8 +99,8 @@ export class Client {
     this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);
 
     setInterval(() => {
-      // Timeout after 5s
-      this.mq.requeueTimeouts(5000, 3).catch(console.error);
+      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
+      this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
     }, 20000); // Look to requeue every 20s
 
     // Event hook

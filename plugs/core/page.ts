@@ -91,9 +91,6 @@ export async function reindexCommand() {
   const pages = await space.listPages();
 
   await mq.batchSend("indexQueue", pages.map((page) => page.name));
-
-  // console.log("Indexing queued!");
-  // await editor.flashNotification("Reindexing done");
 }
 
 // Completion

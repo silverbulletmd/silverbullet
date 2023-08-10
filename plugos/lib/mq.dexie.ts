@@ -160,7 +160,11 @@ export class DexieMQ {
     await this.processing.bulkDelete(ids.map((id) => [queue, id]));
   }
 
-  async requeueTimeouts(timeout: number, maxRetries?: number) {
+  async requeueTimeouts(
+    timeout: number,
+    maxRetries?: number,
+    disableDLQ?: boolean,
+  ) {
     const now = Date.now();
     const messages = await this.processing.where("ts").below(now - timeout)
       .toArray();
@@ -175,18 +179,26 @@ export class DexieMQ {
         for (const m of messages) {
           const retries = (m.retries || 0) + 1;
           if (maxRetries && retries > maxRetries) {
-            console.warn(
-              "[mq]",
-              "Message exceeded max retries, moving to DLQ",
-              m,
-            );
-            dlqMessages.push({
-              queue: m.queue,
-              id: m.id,
-              body: m.body,
-              ts: Date.now(),
-              retries,
-            });
+            if (disableDLQ) {
+              console.warn(
+                "[mq]",
+                "Message exceeded max retries, flushing message",
+                m,
+              );
+            } else {
+              console.warn(
+                "[mq]",
+                "Message exceeded max retries, moving to DLQ",
+                m,
+              );
+              dlqMessages.push({
+                queue: m.queue,
+                id: m.id,
+                body: m.body,
+                ts: Date.now(),
+                retries,
+              });
+            }
           } else {
             console.info("[mq]", "Message ack timed out, requeueing", m);
             requeuedMessages.push({
