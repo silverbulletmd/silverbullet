@@ -52,6 +52,12 @@ functions:
     path: "./page.ts:reindexCommand"
     command:
       name: "Space: Reindex"
+  processIndexQueue:
+    path: ./page.ts:processIndexQueue
+    mqSubscriptions:
+    - queue: indexQueue
+      batchSize: 10
+      autoAck: true
   reindexSpace:
     path: "./page.ts:reindexSpace"
   deletePage:
