@@ -84,7 +84,7 @@ export class SyncService {
       // It's been too long since the last activity, let's consider this one crashed and
       // reset the sync start state
       await this.kvStore.del(syncStartTimeKey);
-      console.info("Sync crashed, resetting");
+      console.info("Sync without activity for too long, resetting");
       return false;
     }
     return true;
@@ -125,10 +125,12 @@ export class SyncService {
     await this.kvStore.set(syncLastActivityKey, Date.now());
   }
 
-  async registerSyncStop(): Promise<void> {
+  async registerSyncStop(isFullSync: boolean): Promise<void> {
     await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
-    await this.kvStore.set(syncInitialFullSyncCompletedKey, true);
+    if (isFullSync) {
+      await this.kvStore.set(syncInitialFullSyncCompletedKey, true);
+    }
   }
 
   async getSnapshot(): Promise<Map<string, SyncStatusItem>> {
@@ -198,11 +200,11 @@ export class SyncService {
         (path) => this.isSyncCandidate(path),
       );
       await this.saveSnapshot(snapshot);
-      await this.registerSyncStop();
+      await this.registerSyncStop(true);
       this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       await this.saveSnapshot(snapshot);
-      await this.registerSyncStop();
+      await this.registerSyncStop(false);
       this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e.message);
     }
@@ -211,9 +213,9 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
-    console.log("About to sync file", name);
+    // console.log("Checking if we can sync file", name);
     if (!this.isSyncCandidate(name)) {
-      console.log("Info not a sync candidate", name);
+      console.info("Requested sync, but not a sync candidate", name);
       return;
     }
     if (await this.isSyncing()) {
@@ -233,7 +235,8 @@ export class SyncService {
             "File marked as no sync, skipping sync in this cycle",
             name,
           );
-          await this.registerSyncStop();
+          await this.registerSyncStop(false);
+          // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
           return;
         }
         localHash = localMeta.lastModified;
@@ -251,15 +254,17 @@ export class SyncService {
       }
 
       await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
-      this.eventHook.dispatchEvent("sync:success");
-      console.log("File successfully synced", name);
+      this.eventHook.dispatchEvent("sync:success").catch(console.error);
+      // console.log("File successfully synced", name);
     } catch (e: any) {
-      this.eventHook.dispatchEvent("sync:error", e.message);
+      this.eventHook.dispatchEvent("sync:error", e.message).catch(
+        console.error,
+      );
       console.error("Sync error", e);
     }
     await this.saveSnapshot(snapshot);
-    await this.registerSyncStop();
-    console.log("And done with file sync for", name);
+    await this.registerSyncStop(false);
+    // console.log("And done with file sync for", name);
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
