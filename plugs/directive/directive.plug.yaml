@@ -15,6 +15,11 @@ functions:
     path: ./command.ts:updateDirectivesInSpaceCommand
     command:
       name: "Directives: Update Entire Space"
+  processUpdateQueue:
+    path: ./command.ts:processUpdateQueue
+    mqSubscriptions:
+    - queue: directiveUpdateQueue
+      batchSize: 3
   indexData:
     path: ./data.ts:indexData
     events:

@@ -77,7 +77,8 @@ export async function templateDirectiveRenderer(
     newBody = templateFn(parsedArgs, buildHandebarOptions(pageMeta));
 
     // Recursively render directives
-    newBody = await updateDirectives(pageMeta, newBody);
+    const tree = await markdown.parseMarkdown(newBody);
+    newBody = await updateDirectives(pageMeta, tree, newBody);
   }
   return newBody.trim();
 }
