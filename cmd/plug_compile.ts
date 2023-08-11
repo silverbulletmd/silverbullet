@@ -26,4 +26,5 @@ export async function plugCompileCommand(
     },
   );
   esbuild.stop();
+  Deno.exit(0);
 }

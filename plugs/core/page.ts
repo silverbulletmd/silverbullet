@@ -14,7 +14,8 @@ import { events, mq } from "$sb/plugos-syscall/mod.ts";
 
 import { applyQuery } from "$sb/lib/query.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import type { Message } from "$sb/mq.ts";
+import type { Message } from "$sb/types.ts";
+import { sleep } from "../../common/async_util.ts";
 
 // Key space:
 //   meta: => metaJson
@@ -83,14 +84,9 @@ export async function newPageCommand() {
 }
 
 export async function reindexCommand() {
-  await editor.flashNotification("Scheduling full reindex...");
-  console.log("Clearing page index...");
-  await index.clearPageIndex();
-  // Executed this way to not have to embed the search plug code here
-  await invokeFunction("client", "search.clearIndex");
-  const pages = await space.listPages();
-
-  await mq.batchSend("indexQueue", pages.map((page) => page.name));
+  await editor.flashNotification("Performing full page reindex...");
+  await reindexSpace();
+  await editor.flashNotification("Done with page index!");
 }
 
 // Completion
@@ -117,20 +113,18 @@ export async function reindexSpace() {
   await index.clearPageIndex();
   // Executed this way to not have to embed the search plug code here
   await invokeFunction("client", "search.clearIndex");
-  console.log("Listing all pages");
   const pages = await space.listPages();
-  let counter = 0;
-  for (const { name } of pages) {
-    counter++;
 
-    console.log(`Indexing page ${counter}/${pages.length}: ${name}`);
-    const text = await space.readPage(name);
-    const parsed = await markdown.parseMarkdown(text);
-    await events.dispatchEvent("page:index", {
-      name,
-      tree: parsed,
-    });
+  // Queue all page names to be indexed
+  await mq.batchSend("indexQueue", pages.map((page) => page.name));
+
+  // Now let's wait for the processing to finish
+  let queueStats = await mq.getQueueStats("indexQueue");
+  while (queueStats.queued > 0 || queueStats.processing > 0) {
+    sleep(1000);
+    queueStats = await mq.getQueueStats("indexQueue");
   }
+  // And notify the user
   console.log("Indexing completed!");
 }
 

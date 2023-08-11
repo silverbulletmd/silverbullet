@@ -15,9 +15,11 @@ export type KV = {
 export function pageIndexSyscalls(
   dbName: string,
   indexedDB?: any,
+  IDBKeyRange?: any,
 ): SysCallMapping {
   const db = new Dexie(dbName, {
     indexedDB,
+    IDBKeyRange,
   });
   db.version(1).stores({
     "index": "[page+key], page, key",

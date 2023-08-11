@@ -58,6 +58,7 @@ export class EndpointHook implements Hook<EndpointHookT> {
           if (!functionDef.http) {
             continue;
           }
+          console.log("Got config", functionDef);
           const endpoints = Array.isArray(functionDef.http)
             ? functionDef.http
             : [functionDef.http];

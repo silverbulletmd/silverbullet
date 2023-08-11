@@ -69,10 +69,15 @@ await new Command()
   .action(plugCompileCommand)
   // plug:run
   .command("plug:run", "Run a PlugOS function from the CLI")
-  .arguments("<spacePath> <function> [...args:string]")
+  .arguments("<spacePath> [function] [...args:string]")
   .option("--noIndex [type:boolean]", "Do not run a full space index first", {
     default: false,
   })
+  .option(
+    "--hostname, -L <hostname:string>",
+    "Hostname or address to listen on",
+  )
+  .option("-p, --port <port:number>", "Port to listen on")
   .action(plugRunCommand)
   .command("user:add", "Add a new user to an authentication file")
   .arguments("[username:string]")

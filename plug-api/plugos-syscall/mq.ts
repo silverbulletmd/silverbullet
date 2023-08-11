@@ -1,4 +1,5 @@
 import { syscall } from "$sb/plugos-syscall/syscall.ts";
+import { QueueStats } from "$sb/types.ts";
 
 export function send(queue: string, body: any) {
   return syscall("mq.send", queue, body);
@@ -14,4 +15,8 @@ export function ack(queue: string, id: string) {
 
 export function batchAck(queue: string, ids: string[]) {
   return syscall("mq.batchAck", queue, ids);
+}
+
+export function getQueueStats(queue: string): Promise<QueueStats> {
+  return syscall("mq.getQueueStats", queue);
 }

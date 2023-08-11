@@ -1,4 +1,3 @@
-import { c } from "https://esm.sh/@codemirror/legacy-modes@6.3.1/mode/clike?external=@codemirror/language";
 import { stemmer } from "https://esm.sh/porter-stemmer@0.9.1";
 
 export type Document = {

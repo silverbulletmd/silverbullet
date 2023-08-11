@@ -8,9 +8,11 @@ export class DexieKVStore implements KVStore {
     dbName: string,
     tableName: string,
     indexedDB?: any,
+    IDBKeyRange?: any,
   ) {
     this.db = new Dexie(dbName, {
       indexedDB,
+      IDBKeyRange,
     });
     this.db.version(1).stores({
       [tableName]: "key",
