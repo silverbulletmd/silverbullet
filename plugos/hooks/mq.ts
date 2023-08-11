@@ -2,7 +2,7 @@ import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
 import { DexieMQ } from "../lib/mq.dexie.ts";
 import { fullQueueName } from "../lib/mq_util.ts";
-import { Message } from "$sb/mq.ts";
+import { Message } from "$sb/types.ts";
 
 type MQSubscription = {
   queue: string;

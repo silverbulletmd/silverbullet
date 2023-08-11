@@ -126,6 +126,7 @@ $env
 You can configure SB with environment variables instead of flags as well. The following environment variables are supported:
 
 * `SB_USER`: Sets single-user credentials (like `--user`), e.g. `SB_USER=pete:1234`
+* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
 * `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
 * `SB_AUTH`: Loads an [[Authentication]] database from a (JSON encoded) string, e.g. `SB_AUTH=$(cat /path/to/.auth.json)`

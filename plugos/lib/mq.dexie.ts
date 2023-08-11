@@ -1,5 +1,5 @@
 import Dexie, { Table } from "dexie";
-import { Message } from "$sb/mq.ts";
+import { Message, QueueStats } from "$sb/types.ts";
 
 export type ProcessingMessage = Message & {
   ts: number;
@@ -8,12 +8,6 @@ export type ProcessingMessage = Message & {
 export type SubscribeOptions = {
   batchSize?: number;
   pollInterval?: number;
-};
-
-export type QueueStats = {
-  queued: number;
-  processing: number;
-  dlq: number;
 };
 
 export class DexieMQ {

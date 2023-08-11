@@ -18,7 +18,8 @@ export async function serveCommand(
   options: any,
   folder?: string,
 ) {
-  const hostname = options.hostname || "127.0.0.1";
+  const hostname = options.hostname || Deno.env.get("SB_HOSTNAME") ||
+    "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
   const maxFileSizeMB = options.maxFileSizeMB || 20;

@@ -18,5 +18,8 @@ export function mqSyscalls(
     "mq.batchAck": (ctx, queue: string, ids: string[]) => {
       return mq.batchAck(fullQueueName(ctx.plug.name!, queue), ids);
     },
+    "mq.getQueueStats": (ctx, queue: string) => {
+      return mq.getQueueStats(fullQueueName(ctx.plug.name!, queue));
+    },
   };
 }

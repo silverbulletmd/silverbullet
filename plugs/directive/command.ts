@@ -10,7 +10,10 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 import { mq } from "$sb/plugos-syscall/mod.ts";
-import { Message } from "$sb/mq.ts";
+import { Message } from "$sb/types.ts";
+import { sleep } from "../../common/async_util.ts";
+
+const directiveUpdateQueueName = "directiveUpdateQueue";
 
 export async function updateDirectivesOnPageCommand() {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
@@ -83,10 +86,10 @@ export async function updateDirectivesInSpaceCommand() {
   await editor.flashNotification(
     "Updating directives in entire space, this can take a while...",
   );
-  // await updateDirectivesInSpace();
-  const pages = await space.listPages();
+  await updateDirectivesInSpace();
 
-  await mq.batchSend("directiveUpdateQueue", pages.map((page) => page.name));
+  // And notify the user
+  await editor.flashNotification("Updating of all directives completed!");
 }
 
 export async function processUpdateQueue(messages: Message[]) {
@@ -94,7 +97,7 @@ export async function processUpdateQueue(messages: Message[]) {
     const pageName: string = message.body;
     console.log("Updating directives in page", pageName);
     await updateDirectivesForPage(pageName);
-    await mq.ack("directiveUpdateQueue", message.id);
+    await mq.ack(directiveUpdateQueueName, message.id);
   }
 }
 
@@ -144,20 +147,17 @@ async function findReplacements(
 }
 
 export async function updateDirectivesInSpace() {
-  const allPages = await space.listPages();
-  let counter = 0;
-  for (const page of allPages) {
-    counter++;
-    console.log(
-      `Updating directives in page [${counter}/${allPages.length}]`,
-      page.name,
-    );
-    try {
-      await updateDirectivesForPage(page.name);
-    } catch (e: any) {
-      console.error("Error while updating directives on page", page.name, e);
-    }
+  const pages = await space.listPages();
+  await mq.batchSend(directiveUpdateQueueName, pages.map((page) => page.name));
+
+  // Now let's wait for the processing to finish
+  let queueStats = await mq.getQueueStats(directiveUpdateQueueName);
+  while (queueStats.queued > 0 || queueStats.processing > 0) {
+    sleep(1000);
+    queueStats = await mq.getQueueStats(directiveUpdateQueueName);
   }
+
+  console.log("Done updating directives in space!");
 }
 
 async function updateDirectivesForPage(
@@ -180,7 +180,7 @@ async function updateDirectivesForPage(
 
   const newText = await updateDirectives(pageMeta, tree, currentText);
   if (newText !== currentText) {
-    console.info("Content of page changed, saving.");
+    console.info("Content of page changed, saving", pageName);
     await space.writePage(pageName, newText);
   }
 }

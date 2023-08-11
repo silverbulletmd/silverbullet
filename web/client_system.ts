@@ -64,6 +64,7 @@ export class ClientSystem {
     this.indexSyscalls = pageIndexSyscalls(
       `${dbPrefix}_page_index`,
       globalThis.indexedDB,
+      globalThis.IDBKeyRange,
     );
 
     // Code widget hook

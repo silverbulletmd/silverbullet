@@ -94,6 +94,7 @@ export class Client {
       `${this.dbPrefix}_store`,
       "data",
       globalThis.indexedDB,
+      globalThis.IDBKeyRange,
     );
 
     this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);

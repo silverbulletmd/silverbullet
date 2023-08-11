@@ -8,11 +8,15 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 export async function plugRunCommand(
   {
     noIndex,
+    hostname,
+    port,
   }: {
     noIndex: boolean;
+    hostname?: string;
+    port?: number;
   },
   spacePath: string,
-  functionName: string,
+  functionName: string | undefined,
   ...args: string[]
 ) {
   spacePath = path.resolve(spacePath);
@@ -25,8 +29,11 @@ export async function plugRunCommand(
       args,
       new AssetBundle(assets),
       !noIndex,
+      port,
+      hostname,
     );
     console.log("Output", result);
+    Deno.exit(0);
   } catch (e: any) {
     console.error(e.message);
     Deno.exit(1);

@@ -6,6 +6,7 @@ import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
 import { PlugNamespaceHookT } from "./hooks/plug_namespace.ts";
 import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 import { MQHookT } from "../plugos/hooks/mq.ts";
+import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 
 export type SilverBulletHooks =
   & CommandHookT
@@ -14,6 +15,7 @@ export type SilverBulletHooks =
   & MQHookT
   & EventHookT
   & CodeWidgetT
+  & EndpointHookT
   & PlugNamespaceHookT;
 
 export type SyntaxExtensions = {

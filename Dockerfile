@@ -42,9 +42,12 @@ USER ${SILVERBULLET_USERNAME}
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
 EXPOSE 3000
 
+ENV SB_HOSTNAME 0.0.0.0
+ENV SB_FOLDER /space
+
 # Copy the bundled version of silverbullet into the container
 ADD ./dist/silverbullet.js /silverbullet.js
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
-ENTRYPOINT ["/tini", "--", "deno", "run", "-A", "/silverbullet.js", "-L0.0.0.0", "/space"]
+ENTRYPOINT ["/tini", "--", "deno", "run", "-A", "--unstable", "/silverbullet.js"]

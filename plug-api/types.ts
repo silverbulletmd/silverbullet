@@ -4,3 +4,9 @@ export type Message = {
   body: any;
   retries?: number;
 };
+
+export type QueueStats = {
+  queued: number;
+  processing: number;
+  dlq: number;
+};
