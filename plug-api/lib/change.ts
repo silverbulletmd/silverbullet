@@ -1,6 +1,6 @@
 // API for working with changes to document text
 
-/** Denotes a region in the document, based on indicices
+/** Denotes a region in the document, based on character indicices
  */
 export type Range = {
   /** The starting index of the span, 0-based, inclusive
