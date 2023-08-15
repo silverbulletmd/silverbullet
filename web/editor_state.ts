@@ -61,6 +61,7 @@ import {
   attachmentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
+import { htmlLanguage } from "https://esm.sh/v130/@codemirror/lang-html@6.4.3/X-ZS9AY29kZW1pcnJvci9hdXRvY29tcGxldGUsQGNvZGVtaXJyb3IvbGFuZy1jc3MsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3Ivc3RhdGUsQGxlemVyL2h0bWwsQGxlemVyL2xy/dist/index.js";
 
 export function createEditorState(
   editor: Client,
@@ -158,6 +159,10 @@ export function createEditorState(
           LanguageDescription.of({
             name: "css",
             support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
+          }),
+          LanguageDescription.of({
+            name: "html",
+            support: new LanguageSupport(htmlLanguage),
           }),
           LanguageDescription.of({
             name: "python",

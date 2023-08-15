@@ -106,6 +106,7 @@ export {
 } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/sql?external=@codemirror/language&target=es2022";
 export { rust as rustLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/rust?external=@codemirror/language&target=es2022";
 export { css as cssLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/css?external=@codemirror/language&target=es2022";
+export { html as htmlLanguage } from "@codemirror/lang-html";
 export { python as pythonLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/python?external=@codemirror/language&target=es2022";
 export { protobuf as protobufLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/protobuf?external=@codemirror/language&target=es2022";
 export { shell as shellLanguage } from "https://esm.sh/@codemirror/legacy-modes@6.3.2/mode/shell?external=@codemirror/language&target=es2022";
