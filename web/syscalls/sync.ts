@@ -12,5 +12,8 @@ export function syncSyscalls(editor: Client): SysCallMapping {
     "sync.scheduleFileSync": (_ctx, path: string): Promise<void> => {
       return editor.syncService.scheduleFileSync(path);
     },
+    "sync.scheduleSpaceSync": () => {
+      return editor.syncService.scheduleSpaceSync();
+    },
   };
 }

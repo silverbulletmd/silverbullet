@@ -166,6 +166,11 @@ export class SyncService {
     this.filesScheduledForSync.delete(path);
   }
 
+  async scheduleSpaceSync(): Promise<void> {
+    await this.noOngoingSync(5000);
+    await this.syncSpace();
+  }
+
   start() {
     this.syncSpace().catch(console.error);
 
