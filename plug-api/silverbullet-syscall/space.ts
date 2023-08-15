@@ -42,7 +42,7 @@ export function getAttachmentMeta(name: string): Promise<AttachmentMeta> {
  */
 export function readAttachment(
   name: string,
-): Promise<{ data: Uint8Array; meta: AttachmentMeta }> {
+): Promise<Uint8Array> {
   return syscall("space.readAttachment", name);
 }
 
