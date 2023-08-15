@@ -36,7 +36,6 @@ export function pageIndexSyscalls(kv: KVStore): SysCallMapping {
       }
     },
     "index.delete": (_ctx, page: string, key: string) => {
-      console.log("delete", page, key);
       return kv.batchDelete([
         `index${sep}${page}${sep}${key}`,
         `indexByKey${sep}${key}${sep}${page}`,
@@ -68,7 +67,6 @@ export function pageIndexSyscalls(kv: KVStore): SysCallMapping {
           `index${sep}${page}${sep}${prefix}`,
         )
       ) {
-        console.log("GOt back this key to delete", result.key);
         const [_ns, page, key] = result.key.split(sep);
         await apiObj["index.delete"](_ctx, page, key);
       }

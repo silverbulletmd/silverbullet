@@ -32,7 +32,9 @@ export async function plugRunCommand(
       port,
       hostname,
     );
-    console.log("Output", result);
+    if (result) {
+      console.log("Output", result);
+    }
     Deno.exit(0);
   } catch (e: any) {
     console.error(e.message);
