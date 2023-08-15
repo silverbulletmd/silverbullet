@@ -8,6 +8,10 @@ release.
   * Now syncing the currently open page every 5s with the server
   * Now more instantly syncing indirectly updated pages, e.g. when checking off tasks in a query
 * New `/page-template` slash command to apply (insert) a page [[🔌 Core/Templates|template]] at the current location
+* [[Markdown/Syntax Highlighting]] for HTML
+* [[Frontmatter]] attributes starting with `$` are now indexed again
+* Various heavy-weight commands (such as {[Space: Reindex]} and {[Directives: Update Entire Space]}) now use an internal message queue, allowing to continue the processing even when interrupted or crashing.
+* Various internal refactorings
 
 ---
 
