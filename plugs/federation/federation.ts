@@ -182,8 +182,13 @@ export async function deleteFile(
 
 export async function getFileMeta(name: string): Promise<FileMeta> {
   const url = federatedPathToUrl(name);
-  console.log("Fetching federation file meta", url);
-  const r = await nativeFetch(url, { method: "HEAD" });
+  console.info("Fetching federation file meta", url);
+  const r = await nativeFetch(url, {
+    method: "GET",
+    headers: {
+      "X-Get-Meta": "true",
+    },
+  });
   if (r.status === 503) {
     throw new Error("Offline");
   }
