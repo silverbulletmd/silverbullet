@@ -165,7 +165,9 @@ export async function compileManifests(
     const watcher = Deno.watchFs(manifestFiles.map((p) => path.dirname(p)));
     for await (const event of watcher) {
       if (event.paths.length > 0) {
-        if (event.paths[0].endsWith(".json")) {
+        if (
+          event.paths[0].endsWith(".json") || event.paths[0].startsWith(dist)
+        ) {
           continue;
         }
       }

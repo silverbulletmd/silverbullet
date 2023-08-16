@@ -178,7 +178,7 @@ export class MainUI {
         <TopBar
           pageName={viewState.currentPage}
           notifications={viewState.notifications}
-          synced={viewState.synced}
+          syncFailures={viewState.syncFailures}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}

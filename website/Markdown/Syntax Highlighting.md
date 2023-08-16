@@ -45,6 +45,10 @@ fn myFun() {
 </MyTag>
 ```
 
+```html
+<b>Regular HTML</b>
+```
+
 ```kotlin
 class MyClass {
 

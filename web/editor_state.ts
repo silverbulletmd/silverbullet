@@ -18,6 +18,7 @@ import {
   highlightSpecialChars,
   history,
   historyKeymap,
+  htmlLanguage,
   indentOnInput,
   indentWithTab,
   javaLanguage,
@@ -159,6 +160,10 @@ export function createEditorState(
           LanguageDescription.of({
             name: "css",
             support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
+          }),
+          LanguageDescription.of({
+            name: "html",
+            support: new LanguageSupport(htmlLanguage),
           }),
           LanguageDescription.of({
             name: "python",

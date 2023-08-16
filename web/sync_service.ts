@@ -166,6 +166,11 @@ export class SyncService {
     this.filesScheduledForSync.delete(path);
   }
 
+  async scheduleSpaceSync(): Promise<void> {
+    await this.noOngoingSync(5000);
+    await this.syncSpace();
+  }
+
   start() {
     this.syncSpace().catch(console.error);
 
@@ -245,6 +250,19 @@ export class SyncService {
       }
       try {
         remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
+        // HEAD
+        //
+        if (!remoteHash) {
+          console.info(
+            "Not syncing file, because remote didn't send X-Last-Modified header",
+          );
+          // This happens when the remote isn't a real SilverBullet server, specifically: it's not sending
+          // a X-Last-Modified header. In this case we'll just assume that the file is up to date.
+          await this.registerSyncStop(false);
+          // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
+          return;
+        }
+        //main
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
@@ -264,7 +282,10 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop(false);
+    // HEAD
     // console.log("And done with file sync for", name);
+    //
+    //main
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {

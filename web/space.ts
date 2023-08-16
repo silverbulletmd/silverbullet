@@ -17,9 +17,8 @@ export type SpaceEvents = {
 const pageWatchInterval = 5000;
 
 export class Space extends EventEmitter<SpaceEvents> {
-  pageMetaCache = new Map<string, PageMeta>();
-
   imageHeightCache: Record<string, number> = {};
+  pageMetaCache = new Map<string, PageMeta>();
 
   debouncedCacheFlush = throttle(() => {
     this.kvStore.set("imageHeightCache", this.imageHeightCache).catch(
@@ -168,16 +167,21 @@ export class Space extends EventEmitter<SpaceEvents> {
     }
   }
 
+  // We're listing all pages that don't start with a _
+  isListedPageName(name: string): boolean {
+    return name.endsWith(".md") && !name.startsWith("_");
+  }
+
   async fetchPageList(): Promise<PageMeta[]> {
     return (await this.spacePrimitives.fetchFileList())
-      .filter((fileMeta) => fileMeta.name.endsWith(".md"))
+      .filter((fileMeta) => this.isListedPageName(fileMeta.name))
       .map(fileMetaToPageMeta);
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
     return (await this.spacePrimitives.fetchFileList()).filter(
       (fileMeta) =>
-        !fileMeta.name.endsWith(".md") &&
+        !this.isListedPageName(fileMeta.name) &&
         !fileMeta.name.endsWith(".plug.js"),
     );
   }

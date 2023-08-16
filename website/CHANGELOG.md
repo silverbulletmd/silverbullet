@@ -7,7 +7,13 @@ release.
 * Sync improvements:
   * Now syncing the currently open page every 5s with the server
   * Now more instantly syncing indirectly updated pages, e.g. when checking off tasks in a query
+  * Less aggressive "you're offline" signaling (now only showing yellow bar after 2 failed sync attempts)
 * New `/page-template` slash command to apply (insert) a page [[🔌 Core/Templates|template]] at the current location
+* When the PWA starts, it will now send you back to the last opened page instead of the index page (you may have to reinstall the PWA for this change to take effect).
+* [[Markdown/Syntax Highlighting]] for HTML
+* [[Frontmatter]] attributes starting with `$` are now indexed again
+* Various heavy-weight commands (such as {[Space: Reindex]} and {[Directives: Update Entire Space]}) now use an internal message queue, allowing to continue the processing even when interrupted or crashing.
+* Various internal refactorings
 
 ---
 

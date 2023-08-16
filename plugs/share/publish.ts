@@ -31,6 +31,9 @@ export async function publishCommand() {
 }
 
 async function publish(pageName: string, uris: string[]) {
+  if (!Array.isArray(uris)) {
+    uris = [uris];
+  }
   for (const uri of uris) {
     const publisher = uri.split(":")[0];
     const results = await events.dispatchEvent(

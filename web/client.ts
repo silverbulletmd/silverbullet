@@ -222,10 +222,10 @@ export class Client {
       // Reset for next sync cycle
       this.system.plugsUpdated = false;
 
-      this.ui.viewDispatch({ type: "sync-change", synced: true });
+      this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
     this.eventHook.addLocalListener("sync:error", (_name) => {
-      this.ui.viewDispatch({ type: "sync-change", synced: false });
+      this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
     });
     this.eventHook.addLocalListener("sync:conflict", (name) => {
       this.flashNotification(
@@ -303,7 +303,18 @@ export class Client {
           scrollIntoView: true,
         });
       }
+      await this.kvStore.set("lastOpenedPage", pageName);
     });
+
+    if (location.hash === "#boot") {
+      (async () => {
+        // Cold start PWA load
+        const lastPage = await this.kvStore.get("lastOpenedPage");
+        if (lastPage) {
+          await this.navigate(lastPage);
+        }
+      })().catch(console.error);
+    }
   }
 
   initSpace() {

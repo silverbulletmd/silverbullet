@@ -9,7 +9,7 @@
     }
   ],
   "capture_links": "new-client",
-  "start_url": "/",
+  "start_url": "/#boot",
   "display": "standalone",
   "scope": "/",
   "theme_color": "#e1e1e1",

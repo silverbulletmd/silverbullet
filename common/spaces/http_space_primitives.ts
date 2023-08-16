@@ -163,7 +163,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         : +res.headers.get("Content-Length")!,
       contentType: res.headers.get("Content-type")!,
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
-      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "rw",
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "ro",
     };
   }
 

@@ -1,4 +1,4 @@
-FROM lukechannings/deno:v1.36.0
+FROM lukechannings/deno:v1.36.1
 # The volume that will keep the space data
 # Create a volume first:
 #   docker volume create myspace

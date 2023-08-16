@@ -19,7 +19,7 @@ export type ActionButton = {
 export function TopBar({
   pageName,
   unsavedChanges,
-  synced,
+  syncFailures,
   isLoading,
   notifications,
   onRename,
@@ -33,7 +33,7 @@ export function TopBar({
 }: {
   pageName?: string;
   unsavedChanges: boolean;
-  synced: boolean;
+  syncFailures: number;
   isLoading: boolean;
   notifications: Notification[];
   darkMode: boolean;
@@ -78,7 +78,7 @@ export function TopBar({
   }, []);
 
   return (
-    <div id="sb-top" className={synced ? undefined : "sb-sync-error"}>
+    <div id="sb-top" className={syncFailures > 1 ? "sb-sync-error" : undefined}>
       {lhs}
       <div className="main">
         <div className="inner">

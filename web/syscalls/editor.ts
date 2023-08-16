@@ -184,10 +184,6 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       const cm = vimGetCm(editor.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
-    // Sync
-    "editor.syncSpace": () => {
-      return editor.syncService.syncSpace();
-    },
     // Folding
     "editor.fold": () => {
       foldCode(editor.editorView);
