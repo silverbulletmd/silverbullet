@@ -37,7 +37,7 @@ export default function reducer(
     case "sync-change":
       return {
         ...state,
-        synced: action.synced,
+        syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
     case "start-navigate":
       return {

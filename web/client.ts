@@ -34,6 +34,7 @@ import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
+import { async } from "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2020,mode=imports/optimized/regenerator-runtime.js";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -222,10 +223,10 @@ export class Client {
       // Reset for next sync cycle
       this.system.plugsUpdated = false;
 
-      this.ui.viewDispatch({ type: "sync-change", synced: true });
+      this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
     this.eventHook.addLocalListener("sync:error", (_name) => {
-      this.ui.viewDispatch({ type: "sync-change", synced: false });
+      this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
     });
     this.eventHook.addLocalListener("sync:conflict", (name) => {
       this.flashNotification(
@@ -303,7 +304,18 @@ export class Client {
           scrollIntoView: true,
         });
       }
+      await this.kvStore.set("lastOpenedPage", pageName);
     });
+
+    if (location.hash === "#boot") {
+      (async () => {
+        // Cold start PWA load
+        const lastPage = await this.kvStore.get("lastOpenedPage");
+        if (lastPage) {
+          await this.navigate(lastPage);
+        }
+      })().catch(console.error);
+    }
   }
 
   initSpace() {

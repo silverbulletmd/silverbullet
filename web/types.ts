@@ -52,7 +52,7 @@ export type AppViewState = {
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
-  synced: boolean;
+  syncFailures: number; // Reset everytime a sync succeeds
   progressPerc?: number;
   panels: { [key: string]: PanelConfig };
   allPages: PageMeta[];
@@ -91,7 +91,7 @@ export const initialViewState: AppViewState = {
   showPageNavigator: false,
   showCommandPalette: false,
   unsavedChanges: false,
-  synced: true,
+  syncFailures: 0,
   uiOptions: {
     vimMode: false,
     darkMode: false,
@@ -124,7 +124,7 @@ export type Action =
   | { type: "pages-listed"; pages: PageMeta[] }
   | { type: "page-changed" }
   | { type: "page-saved" }
-  | { type: "sync-change"; synced: boolean }
+  | { type: "sync-change"; syncSuccess: boolean }
   | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | {
