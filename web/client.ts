@@ -34,7 +34,6 @@ import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
-import { async } from "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2020,mode=imports/optimized/regenerator-runtime.js";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;

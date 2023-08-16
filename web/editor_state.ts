@@ -18,6 +18,7 @@ import {
   highlightSpecialChars,
   history,
   historyKeymap,
+  htmlLanguage,
   indentOnInput,
   indentWithTab,
   javaLanguage,
@@ -61,7 +62,7 @@ import {
   attachmentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
-import { htmlLanguage } from "https://esm.sh/v130/@codemirror/lang-html@6.4.3/X-ZS9AY29kZW1pcnJvci9hdXRvY29tcGxldGUsQGNvZGVtaXJyb3IvbGFuZy1jc3MsQGNvZGVtaXJyb3IvbGFuZ3VhZ2UsQGNvZGVtaXJyb3Ivc3RhdGUsQGxlemVyL2h0bWwsQGxlemVyL2xy/dist/index.js";
+import { TextChange } from "$sb/lib/change.ts";
 
 export function createEditorState(
   editor: Client,
@@ -424,6 +425,15 @@ export function createEditorState(
         class {
           update(update: ViewUpdate): void {
             if (update.docChanged) {
+              const changes: TextChange[] = [];
+              update.changes.iterChanges((fromA, toA, fromB, toB, inserted) =>
+                changes.push({
+                  inserted: inserted.toString(),
+                  oldRange: { from: fromA, to: toA },
+                  newRange: { from: fromB, to: toB },
+                })
+              );
+              editor.dispatchAppEvent("editor:pageModified", { changes });
               editor.ui.viewDispatch({ type: "page-changed" });
               editor.debouncedUpdateEvent();
               editor.save().catch((e) => console.error("Error saving", e));

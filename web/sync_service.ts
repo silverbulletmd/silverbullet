@@ -250,6 +250,8 @@ export class SyncService {
       }
       try {
         remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
+        // HEAD
+        //
         if (!remoteHash) {
           console.info(
             "Not syncing file, because remote didn't send X-Last-Modified header",
@@ -260,6 +262,7 @@ export class SyncService {
           // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
           return;
         }
+        //main
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
@@ -279,6 +282,10 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop(false);
+    // HEAD
+    // console.log("And done with file sync for", name);
+    //
+    //main
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {

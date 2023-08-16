@@ -1,5 +1,6 @@
 import type { ParseTree } from "$sb/lib/tree.ts";
 import { ParsedQuery } from "$sb/lib/query.ts";
+import { TextChange } from "$sb/lib/change.ts";
 
 export type AppEvent =
   | "page:click"
@@ -11,7 +12,8 @@ export type AppEvent =
   | "editor:pageReloaded"
   | "editor:pageSaved"
   | "editor:modeswitch"
-  | "plugs:loaded";
+  | "plugs:loaded"
+  | "editor:pageModified";
 
 export type QueryProviderEvent = {
   query: ParsedQuery;
@@ -55,4 +57,10 @@ export type WidgetContent = {
   url?: string;
   height?: number;
   width?: number;
+};
+
+/** PageModifiedEvent payload for "editor:pageModified". Fired when the document text changes
+ */
+export type PageModifiedEvent = {
+  changes: TextChange[];
 };
