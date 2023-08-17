@@ -32,9 +32,9 @@ export interface Manifest<HookT> {
 export type FunctionDef<HookT> = {
   /** A function path, in the form `${relativeFilename}:${functionName}`, that attached to the given hooks.
    * 
-   * During compilation (see @{link ../build_plugs.ts}) the function is read from the file and inlined into the plug bundle.
+   * During compilation (see {@link ../build_plugs.ts}) the function is read from the file and inlined into the plug bundle.
    * 
-   * This field and @{link FunctionDef.redirect} are mutually exclusive/
+   * This field and {@link FunctionDef.redirect} are mutually exclusive/
    */
   path?: string;
 
