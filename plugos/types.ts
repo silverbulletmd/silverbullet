@@ -1,6 +1,10 @@
 import { System } from "./system.ts";
 import { AssetJson } from "./asset_bundle/bundle.ts";
 
+/** @typedef {import("../plug-api/plugos-syscall/shell.ts")} shell */
+/** @typedef {import("../plug-api/plugos-syscall/asset.ts")} asset */
+/** @typedef {import("../manifest.ts")} manifest */
+
 /** The generic top level of a plug manifest file.
  * Defines plug metadata and functions.
  */
@@ -12,17 +16,17 @@ export interface Manifest<HookT> {
    * 
    * Possible values:
    * - `fetch`: enables `fetch` function.
-   * - `shell`: enables {@link ../plug-api/plugos-syscall/shell.ts#run}.
+   * - `shell`: enables {@link shell.run}.
    */
   requiredPermissions?: string[];
 
   /** A list of files or glob patterns that should be bundled with the plug.
    * 
-   * These files will be accessible through the {@link ../plug-api/plugos-syscall/asset.ts#readAsset} function.
+   * These files will be accessible through the {@link asset.readAsset} function.
    */
   assets?: string[] | AssetJson;
 
-  /** A map of function names to definitions. Declared functions are public, and may be associated with {@link ../manifest.ts#SilverBulletHooks} */
+  /** A map of function names to definitions. Declared functions are public, and may be associated with {@link manifest.SilverBulletHooks} */
   functions: {
     [key: string]: FunctionDef<HookT>;
   };
@@ -32,7 +36,7 @@ export interface Manifest<HookT> {
 export type FunctionDef<HookT> = {
   /** A function path, in the form `${relativeFilename}:${functionName}`, that attached to the given hooks.
    * 
-   * During compilation (see {@link ../build_plugs.ts}) the function is read from the file and inlined into the plug bundle.
+   * During compilation (see `../build_plugs.ts`) the function is read from the file and inlined into the plug bundle.
    * 
    * This field and {@link FunctionDef.redirect} are mutually exclusive/
    */

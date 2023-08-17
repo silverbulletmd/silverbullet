@@ -8,6 +8,8 @@ import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 import { MQHookT } from "../plugos/hooks/mq.ts";
 import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 
+/** @typedef {import("../plug-api/lib/tree.ts")} tree */
+
 /** Silverbullet hooks give plugs access to silverbullet core systems.
   */
 export type SilverBulletHooks =
@@ -24,7 +26,7 @@ export type SilverBulletHooks =
  * 
  */
 export type SyntaxExtensions = {
-  /** Key-value pair of node **name** (see {@link ../plug-api/lib/tree.ts#ParseTree#type})), to parsing and highlighting instructions.
+  /** Key-value pair of node **name** (see {@link tree.ParseTree.type}), to parsing and highlighting instructions.
    */
   syntax?: { [key: string]: NodeDef };
 };
@@ -52,7 +54,7 @@ export type NodeDef = {
   className?: string;
 };
 
-/** A plug manifest configures {@link SilverBulletHooks | hooks}, declares {@link SyntaxExtension | syntax} extension, and describes plug @{link plugos.Manifest | metadata}.
+/** A plug manifest configures {@link SilverBulletHooks hooks}, declares {@link SyntaxExtension syntax} extension, and describes plug {@link plugos.Manifest metadata}.
  *
  * Typically the manifest file is in a plug's root directory, named `${plugName}.plug.yaml`.
  */
