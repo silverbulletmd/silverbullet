@@ -2,10 +2,10 @@ This page contains settings for configuring SilverBullet and its Plugs. Changing
 
 ```yaml
 # Initial page to load when launching SB
-indexPage: SilverBullet
+indexPage: "[[SilverBullet]]"
 
 # Load custom CSS styles from the following page
-customStyles: STYLES
+customStyles: "[[STYLES]]"
 
 # Template related settings
 pageTemplatePrefix: "template/page/"
@@ -14,10 +14,10 @@ snippetPrefix: "snippet/"
 quickNotePrefix: "📥 "
 
 dailyNotePrefix: "📅 "
-dailyNoteTemplate: "template/page/Daily Note"
+dailyNoteTemplate: "[[template/page/Daily Note]]"
 
 weeklyNotePrefix: "🗓️ "
-weeklyNoteTemplate: "template/page/Weekly Note"
+weeklyNoteTemplate: "[[template/page/Weekly Note]]"
 weeklyNoteMonday: false
 
 # Markdown

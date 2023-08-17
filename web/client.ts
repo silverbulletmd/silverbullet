@@ -34,6 +34,7 @@ import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
+import { cleanPageRef } from "$sb/lib/resolve.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -250,7 +251,7 @@ export class Client {
 
   private initNavigator() {
     this.pageNavigator = new PathPageNavigator(
-      this.settings.indexPage,
+      cleanPageRef(this.settings.indexPage),
     );
 
     this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
@@ -386,12 +387,12 @@ export class Client {
       settingsText = (await this.space.readPage("SETTINGS")).text;
     } catch (e) {
       console.info("No SETTINGS page, falling back to default", e);
-      settingsText = "```yaml\nindexPage: index\n```\n";
+      settingsText = '```yaml\nindexPage: "[[index]]"\n```\n';
     }
     const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
 
     if (!settings.indexPage) {
-      settings.indexPage = "index";
+      settings.indexPage = "[[index]]";
     }
     return settings;
   }
@@ -667,7 +668,7 @@ export class Client {
     newWindow = false,
   ) {
     if (!name) {
-      name = this.settings!.indexPage;
+      name = cleanPageRef(this.settings.indexPage);
     }
 
     try {
@@ -772,7 +773,7 @@ export class Client {
     if (this.settings.customStyles) {
       try {
         const { text: stylesText } = await this.space.readPage(
-          this.settings?.customStyles,
+          cleanPageRef(this.settings.customStyles),
         );
         const cssBlockRegex = /```css([^`]+)```/;
         const match = cssBlockRegex.exec(stylesText);

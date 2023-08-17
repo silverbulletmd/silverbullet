@@ -1,4 +1,5 @@
 import {
+  cleanPageRef,
   federatedPathToUrl,
   resolvePath,
   rewritePageRefs,
@@ -38,6 +39,9 @@ Deno.test("Test URL resolver", () => {
     federatedPathToUrl("!silverbullet.md/index"),
     "https://silverbullet.md/index",
   );
+
+  assertEquals(cleanPageRef("hello"), "hello");
+  assertEquals(cleanPageRef("[[hello]]"), "hello");
 });
 
 Deno.test("Test rewritePageRefs", () => {

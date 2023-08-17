@@ -7,6 +7,7 @@ import { PageMeta } from "../../web/types.ts";
 import { buildHandebarOptions } from "../directive/util.ts";
 
 import Handlebars from "handlebars";
+import { cleanPageRef } from "$sb/lib/resolve.ts";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -176,7 +177,7 @@ export async function quickNoteCommand() {
 
 export async function dailyNoteCommand() {
   const { dailyNoteTemplate, dailyNotePrefix } = await readSettings({
-    dailyNoteTemplate: "template/page/Daily Note",
+    dailyNoteTemplate: "[[template/page/Daily Note]]",
     dailyNotePrefix: "📅 ",
   });
   const date = niceDate(new Date());
@@ -189,7 +190,9 @@ export async function dailyNoteCommand() {
     // Doesn't exist, let's create
     let dailyNoteTemplateText = "";
     try {
-      dailyNoteTemplateText = await space.readPage(dailyNoteTemplate);
+      dailyNoteTemplateText = await space.readPage(
+        cleanPageRef(dailyNoteTemplate),
+      );
       carretPos = dailyNoteTemplateText.indexOf("|^|");
       if (carretPos === -1) {
         carretPos = 0;
@@ -224,13 +227,15 @@ function getWeekStartDate(monday = false) {
 export async function weeklyNoteCommand() {
   const { weeklyNoteTemplate, weeklyNotePrefix, weeklyNoteMonday } =
     await readSettings({
-      weeklyNoteTemplate: "template/page/Weekly Note",
+      weeklyNoteTemplate: "[[template/page/Weekly Note]]",
       weeklyNotePrefix: "🗓️ ",
       weeklyNoteMonday: false,
     });
   let weeklyNoteTemplateText = "";
   try {
-    weeklyNoteTemplateText = await space.readPage(weeklyNoteTemplate);
+    weeklyNoteTemplateText = await space.readPage(
+      cleanPageRef(weeklyNoteTemplate),
+    );
   } catch {
     console.warn(`No weekly note template found at ${weeklyNoteTemplate}`);
   }

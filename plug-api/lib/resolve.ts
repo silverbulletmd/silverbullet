@@ -66,3 +66,11 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
     return false;
   });
 }
+
+export function cleanPageRef(pageRef: string) {
+  if (pageRef.startsWith("[[") && pageRef.endsWith("]]")) {
+    return pageRef.slice(2, -2);
+  } else {
+    return pageRef;
+  }
+}
