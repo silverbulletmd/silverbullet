@@ -22,7 +22,7 @@ export type SilverBulletHooks =
  * 
  */
 export type SyntaxExtensions = {
-  /** Key-value pair of node **name** (see {@link ../plug-api/lib/tree.ts#ParseTree#type])), to parsing and highlighting instructions.
+  /** Key-value pair of node **name** (see {@link ../plug-api/lib/tree.ts#ParseTree#type})), to parsing and highlighting instructions.
    */
   syntax?: { [key: string]: NodeDef };
 };
