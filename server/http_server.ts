@@ -177,9 +177,10 @@ export class HttpServer {
 
     // Middleware handling the /.auth page and flow
     app.use(async ({ request, response, cookies }, next) => {
+      const host = request.url.host; // e.g. localhost:3000
       if (request.url.pathname === "/.auth") {
         if (request.url.search === "?logout") {
-          await cookies.delete("auth");
+          await cookies.delete(authCookieName(host));
           // Implicit fallthrough to login page
         }
         if (request.method === "GET") {
@@ -198,10 +199,14 @@ export class HttpServer {
             password,
           );
           if (hashedPassword) {
-            await cookies.set("auth", `${username}:${hashedPassword}`, {
-              expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
-              sameSite: "strict",
-            });
+            await cookies.set(
+              authCookieName(host),
+              `${username}:${hashedPassword}`,
+              {
+                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
+                sameSite: "strict",
+              },
+            );
             response.redirect(refer || "/");
             // console.log("All headers", request.headers);
           } else {
@@ -220,8 +225,9 @@ export class HttpServer {
     if ((await this.authenticator.getAllUsers()).length > 0) {
       // Users defined, so enabling auth
       app.use(async ({ request, response, cookies }, next) => {
+        const host = request.url.host;
         if (!excludedPaths.includes(request.url.pathname)) {
-          const authCookie = await cookies.get("auth");
+          const authCookie = await cookies.get(authCookieName(host));
           if (!authCookie) {
             response.redirect("/.auth");
             return;
@@ -477,4 +483,8 @@ export class HttpServer {
 
 function utcDateString(mtime: number): string {
   return new Date(mtime).toUTCString();
+}
+
+function authCookieName(host: string) {
+  return `auth:${host}`;
 }
