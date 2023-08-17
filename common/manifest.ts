@@ -8,6 +8,8 @@ import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 import { MQHookT } from "../plugos/hooks/mq.ts";
 import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 
+/** Silverbullet hooks give plugs access to silverbullet core systems.
+  */
 export type SilverBulletHooks =
   & CommandHookT
   & SlashCommandHookT
