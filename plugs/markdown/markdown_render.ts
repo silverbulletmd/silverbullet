@@ -226,7 +226,7 @@ function render(
     case "WikiLink": {
       // console.log("WikiLink", JSON.stringify(t, null, 2));
       const ref = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
-      let linkText = ref;
+      let linkText = ref.split("/").pop()!;
       const aliasNode = findNodeOfType(t, "WikiLinkAlias");
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
