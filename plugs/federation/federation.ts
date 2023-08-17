@@ -43,60 +43,8 @@ export async function listFiles(): Promise<FileMeta[]> {
   // Fetch them all in parallel
   try {
     await Promise.all((await readFederationConfigs()).map(async (config) => {
-      const cachedListing = await store.get(
-        `${fileListingPrefixCacheKey}${config.uri}`,
-      ) as FileListingCacheEntry;
-      if (
-        cachedListing &&
-        cachedListing.lastUpdated > Date.now() - listingCacheTimeout
-      ) {
-        fileMetas = fileMetas.concat(cachedListing.items);
-        return;
-      }
-      console.log("Fetching listing from federated", config);
-      const uriParts = config.uri.split("/");
-      const rootUri = uriParts[0];
-      const prefix = uriParts.slice(1).join("/");
-      const indexUrl = `${federatedPathToUrl(rootUri)}/index.json`;
-      try {
-        const fetchController = new AbortController();
-        const timeout = setTimeout(
-          () => fetchController.abort(),
-          listingFetchTimeout,
-        );
-
-        const r = await nativeFetch(indexUrl, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-          signal: fetchController.signal,
-        });
-        clearTimeout(timeout);
-
-        if (r.status !== 200) {
-          throw new Error(`Got status ${r.status}`);
-        }
-        const jsonResult = await r.json();
-        const items: FileMeta[] = jsonResult.filter((meta: FileMeta) =>
-          meta.name.startsWith(prefix)
-        ).map((meta: FileMeta) => ({
-          ...meta,
-          perm: config.perm || "ro",
-          name: `${rootUri}/${meta.name}`,
-        }));
-        await store.set(`${fileListingPrefixCacheKey}${config.uri}`, {
-          items,
-          lastUpdated: Date.now(),
-        } as FileListingCacheEntry);
-        fileMetas = fileMetas.concat(items);
-      } catch (e: any) {
-        console.error("Failed to process", indexUrl, e);
-        if (cachedListing) {
-          console.info("Using cached listing");
-          fileMetas = fileMetas.concat(cachedListing.items);
-        }
-      }
+      const items = await cacheFileListing(config.uri);
+      fileMetas = fileMetas.concat(items);
     }));
 
     // console.log("All of em: ", fileMetas);
@@ -105,6 +53,65 @@ export async function listFiles(): Promise<FileMeta[]> {
     console.error("Error listing federation files", e);
     return [];
   }
+}
+
+export async function cacheFileListing(uri: string): Promise<FileMeta[]> {
+  const cachedListing = await store.get(
+    `${fileListingPrefixCacheKey}${uri}`,
+  ) as FileListingCacheEntry;
+  if (
+    cachedListing &&
+    cachedListing.lastUpdated > Date.now() - listingCacheTimeout
+  ) {
+    // console.info("Using cached listing", cachedListing);
+    return cachedListing.items;
+  }
+  console.log("Fetching listing from federated", uri);
+  const uriParts = uri.split("/");
+  const rootUri = uriParts[0];
+  const prefix = uriParts.slice(1).join("/");
+  const indexUrl = `${federatedPathToUrl(rootUri)}/index.json`;
+  try {
+    const fetchController = new AbortController();
+    const timeout = setTimeout(
+      () => fetchController.abort(),
+      listingFetchTimeout,
+    );
+
+    const r = await nativeFetch(indexUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
+      signal: fetchController.signal,
+    });
+    clearTimeout(timeout);
+
+    if (r.status !== 200) {
+      throw new Error(`Got status ${r.status}`);
+    }
+    const jsonResult = await r.json();
+    const items: FileMeta[] = jsonResult.filter((meta: FileMeta) =>
+      meta.name.startsWith(prefix)
+    ).map((meta: FileMeta) => ({
+      ...meta,
+      perm: "ro",
+      name: `${rootUri}/${meta.name}`,
+    }));
+    await store.set(`${fileListingPrefixCacheKey}${uri}`, {
+      items,
+      lastUpdated: Date.now(),
+    } as FileListingCacheEntry);
+    return items;
+  } catch (e: any) {
+    console.error("Failed to process", indexUrl, e);
+    if (cachedListing) {
+      console.info("Using cached listing");
+      return cachedListing.items;
+    }
+  }
+  return [];
 }
 
 export async function readFile(

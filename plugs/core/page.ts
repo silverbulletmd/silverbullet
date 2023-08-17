@@ -16,6 +16,8 @@ import { applyQuery } from "$sb/lib/query.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 import type { Message } from "$sb/types.ts";
 import { sleep } from "../../common/async_util.ts";
+import { cacheFileListing } from "../federation/federation.ts";
+import type { PageMeta } from "../../web/types.ts";
 
 // Key space:
 //   meta: => metaJson
@@ -95,7 +97,28 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
-  const allPages = await space.listPages();
+  let allPages: PageMeta[] = await space.listPages();
+  const prefix = match[1];
+  if (prefix.startsWith("!")) {
+    // Federation prefix, let's first see if we're matching anything from federation that is locally synced
+    const prefixMatches = allPages.filter((pageMeta) =>
+      pageMeta.name.startsWith(prefix)
+    );
+    if (prefixMatches.length === 0) {
+      // Ok, nothing synced in via federation, let's see if this URI is complete enough to try to fetch index.json
+      if (prefix.includes("/")) {
+        // Yep
+        const domain = prefix.split("/")[0];
+        // Cached listing
+        allPages = (await cacheFileListing(domain)).filter((fm) =>
+          fm.name.endsWith(".md")
+        ).map((fm) => ({
+          ...fm,
+          name: fm.name.slice(0, -3),
+        }));
+      }
+    }
+  }
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
