@@ -10,13 +10,20 @@ export interface Manifest<HookT> {
   };
 }
 
+/** Associates hooks with a function */
 export type FunctionDef<HookT> = {
-  // Read the function from this path and inline it
-  // Format: filename:functionName
+  /** A function path, in the form `${relativeFilename}:${functionName}`, that attached to the given hooks.
+   * 
+   * During compilation (see @{link ../build_plugs.ts}) the function is read from the file and inlined into the plug bundle.
+   * 
+   * This field and @{link FunctionDef.redirect} are mutually exclusive/
+   */
   path?: string;
-  // Reuse an
-  // Format: plugName.functionName
+
+  /** A function from another plug, in the form `${plugName}.${functionName}` that will be attached to the given hooks. */
   redirect?: string;
+
+  /** Environments where this plug is allowed to run, current may be one of "cli", "server", or "client". */
   env?: string;
 } & HookT;
 
