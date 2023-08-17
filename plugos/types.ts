@@ -1,10 +1,28 @@
 import { System } from "./system.ts";
 import { AssetJson } from "./asset_bundle/bundle.ts";
 
+/** The generic top level of a plug manifest file.
+ * Defines plug metadata and functions.
+ */
 export interface Manifest<HookT> {
+  /** The plug's name. Typically this matches ${plugName} in the manifest file name. */
   name: string;
+
+  /** A list of syscall permissions required for this plug to function.
+   * 
+   * Possible values:
+   * - `fetch`: enables `fetch` function.
+   * - `shell`: enables {@link ../plug-api/plugos-syscall/shell.ts#run}.
+   */
   requiredPermissions?: string[];
+
+  /** A list of files or glob patterns that should be bundled with the plug.
+   * 
+   * These files will be accessible through the {@link ../plug-api/plugos-syscall/asset.ts#readAsset} function.
+   */
   assets?: string[] | AssetJson;
+
+  /** A map of function names to definitions. Declared functions are public, and may be associated with {@link ../manifest.ts#SilverBulletHooks} */
   functions: {
     [key: string]: FunctionDef<HookT>;
   };
