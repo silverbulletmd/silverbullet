@@ -11,8 +11,7 @@ import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 /** @typedef {import("../plug-api/lib/tree.ts")} tree */
 /** @typedef {import("../plugos/types.ts")} plugos */
 
-/** Silverbullet hooks give plugs access to silverbullet core systems.
-  */
+/** Silverbullet hooks give plugs access to silverbullet core systems. */
 export type SilverBulletHooks =
   & CommandHookT
   & SlashCommandHookT
@@ -23,9 +22,7 @@ export type SilverBulletHooks =
   & EndpointHookT
   & PlugNamespaceHookT;
 
-/** Syntax extension allow plugs to declaratively add new *inline* parse tree nodes to the markdown parser.
- * 
- */
+/** Syntax extension allow plugs to declaratively add new *inline* parse tree nodes to the markdown parser. */
 export type SyntaxExtensions = {
   /** Key-value pair of node **name** (see {@link tree.ParseTree.type}), to parsing and highlighting instructions.
    */
@@ -34,12 +31,10 @@ export type SyntaxExtensions = {
 
 /** Parsing and highlighting instructions for SyntaxExtension */
 export type NodeDef = {
-  /** Characters to begin matching on.
-   */
+  /** Characters to begin matching on. */
   firstCharacters: string[];
 
-  /** A regular expression that matches the *entire* syntax, including the first character.
-   */
+  /** A regular expression that matches the *entire* syntax, including the first character. */
   regex: string;
 
   /** CSS styles to apply to the matched text.
@@ -50,8 +45,7 @@ export type NodeDef = {
    */
   styles: { [key: string]: string };
 
-  /** CSS class name to apply to the matched text
-   */
+  /** CSS class name to apply to the matched text */
   className?: string;
 };
 
