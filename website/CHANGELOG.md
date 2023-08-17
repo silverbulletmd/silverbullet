@@ -3,6 +3,12 @@ release.
 
 ---
 
+## Next
+
+* Cookies set when using SilverBullet's built-in [[Authentication]] are now per domain + port, allowing you to run multiple instances of SB on a single host with different ports without the authentication interfering.
+
+---
+
 ## 0.3.10
 * Sync improvements:
   * Now syncing the currently open page every 5s with the server
