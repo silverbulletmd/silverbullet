@@ -9,7 +9,7 @@ import { MQHookT } from "../plugos/hooks/mq.ts";
 import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 
 /** @typedef {import("../plug-api/lib/tree.ts")} tree */
-/** @typedef {import("../plugos/types.ts")} plugos */
+/** @typedef {import("../plugos/types.ts").Manifest} plugosManifest */
 
 /** Silverbullet hooks give plugs access to silverbullet core systems.
   */
@@ -55,7 +55,7 @@ export type NodeDef = {
   className?: string;
 };
 
-/** A plug manifest configures {@link SilverBulletHooks hooks}, declares {@link SyntaxExtensions syntax} extension, and describes plug {@link plugos.Manifest metadata}.
+/** A plug manifest configures {@link SilverBulletHooks hooks}, declares {@link SyntaxExtensions syntax} extensions, and describes plug {@link plugosManifest Manifest}.
  *
  * Typically the manifest file is in a plug's root directory, named `${plugName}.plug.yaml`.
  */
