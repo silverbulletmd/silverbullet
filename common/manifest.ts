@@ -52,7 +52,7 @@ export type NodeDef = {
   className?: string;
 };
 
-/** A plug manifest configures {@link SilverBulletHooks hooks}, declares {@link SyntaxExtensions syntax} extensions, and describes plug.
+/** A plug manifest configures hooks, declares syntax extensions, and describes plug metadata.
  *
  * Typically the manifest file is in a plug's root directory, named `${plugName}.plug.yaml`.
  */
