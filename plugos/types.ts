@@ -5,7 +5,7 @@ import { AssetJson } from "./asset_bundle/bundle.ts";
  * Defines plug metadata and functions.
  */
 export interface Manifest<HookT> {
-  /** The plug's name. Typically this matches ${plugName} in the manifest file name. */
+  /** The plug's name. Typically this is the name of the manifest file, without the file extension. */
   name: string;
 
   /** A list of syscall permissions required for this plug to function.
@@ -26,16 +26,16 @@ export interface Manifest<HookT> {
 
   /** A map of function names to definitions. Declared functions are public, and may be associated with various hooks
    * 
-   * see: ../common/manifest.ts#SilverBulletHooks
+   * see: common/manifest.ts#SilverBulletHooks
    */
   functions: {
     [key: string]: FunctionDef<HookT>;
   };
 }
 
-/** Associates hooks with a function */
+/** Associates hooks with a function. This is the generic base structure, that identifies the function. Hooks are defined by the type parameter. */
 export type FunctionDef<HookT> = {
-  /** A function path, in the form `${relativeFilename}:${functionName}`, that attached to the given hooks.
+  /** A function path, in the form `${relativeFilename}:${functionName}`.
    * 
    * During compilation (see `../build_plugs.ts`) the function is read from the file and inlined into the plug bundle.
    * 
