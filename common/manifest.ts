@@ -27,7 +27,7 @@ export type SilverBulletHooks =
 
 /** Syntax extension allow plugs to declaratively add new *inline* parse tree nodes to the markdown parser. */
 export type SyntaxExtensions = {
-  /** A map of node **name** (also called "type"), to parsing and highlighting instructions. Each entry defines a new node.
+  /** A map of node **name** (also called "type"), to parsing and highlighting instructions. Each entry defines a new node. By convention node names (types) are UpperCamelCase (PascalCase).
    * 
    * see: plug-api/lib/tree.ts#ParseTree
    */
