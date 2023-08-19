@@ -8,7 +8,13 @@ import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 import { MQHookT } from "../plugos/hooks/mq.ts";
 import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 
-/** Silverbullet hooks give plugs access to silverbullet core systems. */
+/** Silverbullet hooks give plugs access to silverbullet core systems. 
+ * 
+ * Hooks are associated with typescript functions through a manifest file.
+ * On various triggers (user enters a slash command, an HTTP endpoint is hit, user clicks, etc) the typescript function is called.
+ * 
+ * related: plugos/type.ts#FunctionDef
+*/
 export type SilverBulletHooks =
   & CommandHookT
   & SlashCommandHookT
