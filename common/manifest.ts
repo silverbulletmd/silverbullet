@@ -27,14 +27,19 @@ export type SilverBulletHooks =
 
 /** Syntax extension allow plugs to declaratively add new *inline* parse tree nodes to the markdown parser. */
 export type SyntaxExtensions = {
-  /** Key-value pair of node **name** (see: plug-api/lib/tree.ts#ParseTree.type), to parsing and highlighting instructions.
+  /** A map of node **name** (also called "type"), to parsing and highlighting instructions. Each entry defines a new node.
+   * 
+   * see: plug-api/lib/tree.ts#ParseTree
    */
   syntax?: { [key: string]: NodeDef };
 };
 
 /** Parsing and highlighting instructions for SyntaxExtension */
 export type NodeDef = {
-  /** Characters to begin matching on. */
+  /** An array of possible first characters to begin matching on.
+   * 
+   * **Example**: If this node has the regex '[abc][123]', NodeDef.firstCharacters should be ["a", "b", "c"].
+  */
   firstCharacters: string[];
 
   /** A regular expression that matches the *entire* syntax, including the first character. */
