@@ -10,6 +10,7 @@ import { FunctionalComponent } from "https://esm.sh/v99/preact@10.11.3/src/index
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "./fuse_search.ts";
+import { deepEqual } from "../../common/util.ts";
 
 export function FilterList({
   placeholder,
@@ -60,8 +61,11 @@ export function FilterList({
       });
     }
 
-    setMatchingOptions(results);
-    setSelectionOption(0);
+    if (!deepEqual(matchingOptions, results)) {
+      // Only do this (=> rerender of UI) if the results have changed
+      setMatchingOptions(results);
+      setSelectionOption(0);
+    }
   }
 
   useEffect(() => {
@@ -70,7 +74,7 @@ export function FilterList({
 
   useEffect(() => {
     function closer() {
-      console.log("Invoking closer");
+      // console.log("Invoking closer");
       onSelect(undefined);
     }
 

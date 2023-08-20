@@ -18,8 +18,6 @@ export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 export * as YAML from "https://deno.land/std@0.189.0/yaml/mod.ts";
 export * as path from "https://deno.land/std@0.189.0/path/mod.ts";
 
-// export { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
-
 export type {
   BlockContext,
   Element,
