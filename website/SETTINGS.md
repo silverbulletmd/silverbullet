@@ -36,7 +36,7 @@ plugOverrides:
     # https://github.com/silverbulletmd/silverbullet/blob/main/plugs/core/core.plug.yaml
     # and overriding the "key" for centering the cursor
     functions.centerCursor.command.key: Ctrl-Alt-p
-    # However, it's even possible to define custom slash commands this way without building a plug:
+    # However, it's even possible to define custom slash commands this way without building a plug (/today-header in this case):
     functions.todayHeader:
       redirect: insertTemplateText
       slashCommand:
