@@ -35,6 +35,7 @@ import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { expandPropertyNames } from "$sb/lib/json.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -389,7 +390,11 @@ export class Client {
       console.info("No SETTINGS page, falling back to default", e);
       settingsText = '```yaml\nindexPage: "[[index]]"\n```\n';
     }
-    const settings = parseYamlSettings(settingsText!) as BuiltinSettings;
+    let settings = parseYamlSettings(settingsText!) as BuiltinSettings;
+
+    settings = expandPropertyNames(settings);
+
+    console.log("Settings", settings);
 
     if (!settings.indexPage) {
       settings.indexPage = "[[index]]";

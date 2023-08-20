@@ -96,6 +96,7 @@ export class ClientSystem {
       const plug = await this.system.load(
         new URL(`/${fileName}`, location.href),
         createSandbox,
+        this.editor.settings.plugOverrides,
       );
       if ((plug.manifest! as Manifest).syntax) {
         // If there are syntax extensions, rebuild the markdown parser immediately
@@ -154,6 +155,7 @@ export class ClientSystem {
         await this.system.load(
           new URL(plugName, location.origin),
           createSandbox,
+          this.editor.settings.plugOverrides,
         );
       } catch (e: any) {
         console.error("Could not load plug", plugName, "error:", e.message);

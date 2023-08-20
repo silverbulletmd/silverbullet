@@ -1,3 +1,4 @@
+import { Manifest } from "../common/manifest.ts";
 import { AppCommand } from "./hooks/command.ts";
 
 export type PageMeta = {
@@ -33,9 +34,10 @@ export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
+  customStyles?: string;
+  plugOverrides?: Record<string, Partial<Manifest>>;
   // Format: compatible with docker ignore
   spaceIgnore?: string;
-  customStyles?: string;
 };
 
 export type PanelConfig = {
