@@ -1,11 +1,11 @@
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { FileMeta } from "../common/types.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
 import { throttle } from "../common/async_util.ts";
 import { KVStore } from "../plugos/lib/kv_store.ts";
+import { FileMeta } from "$sb/types.ts";
 
 export type SpaceEvents = {
   pageCreated: (meta: PageMeta) => void;

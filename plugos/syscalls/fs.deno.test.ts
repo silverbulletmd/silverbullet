@@ -1,5 +1,5 @@
+import { FileMeta } from "$sb/types.ts";
 import { assert } from "../../test_deps.ts";
-import { FileMeta } from "../../common/types.ts";
 import { path } from "../deps.ts";
 import fileSystemSyscalls from "./fs.deno.ts";
 

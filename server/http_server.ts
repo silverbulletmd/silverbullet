@@ -7,7 +7,7 @@ import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { Authenticator } from "./auth.ts";
-import { FileMeta } from "../common/types.ts";
+import { FileMeta } from "$sb/types.ts";
 
 export type ServerOptions = {
   hostname: string;

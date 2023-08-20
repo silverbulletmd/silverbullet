@@ -1,4 +1,5 @@
 import.meta.main = false;
+// import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/command.ts";
 import { Command } from "https://deno.land/x/cliffy@v0.25.2/command/command.ts";
 
 import { version } from "./version.ts";
@@ -30,7 +31,7 @@ await new Command()
   .option("-p, --port <port:number>", "Port to listen on")
   .option(
     "--user <user:string>",
-    "'username:password' combo for BasicAuth authentication",
+    "'username:password' combo for authentication",
   )
   .option(
     "--auth <auth.json:string>",

@@ -1,6 +1,6 @@
+import { FileMeta } from "$sb/types.ts";
 import { EventHook } from "../../plugos/hooks/event.ts";
 
-import { FileMeta } from "../types.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
 
 export class EventedSpacePrimitives implements SpacePrimitives {

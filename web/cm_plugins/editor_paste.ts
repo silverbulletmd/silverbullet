@@ -1,5 +1,4 @@
 import { EditorView, syntaxTree, ViewPlugin, ViewUpdate } from "../deps.ts";
-import { maximumAttachmentSize } from "../../common/types.ts";
 import { Client } from "../client.ts";
 
 // We use turndown to convert HTML to Markdown
@@ -18,6 +17,7 @@ import {
   nodeAtPos,
 } from "../../plug-api/lib/tree.ts";
 import { folderName, resolve } from "../../common/path.ts";
+import { maximumAttachmentSize } from "../constants.ts";
 
 const turndownService = new TurndownService({
   hr: "---",

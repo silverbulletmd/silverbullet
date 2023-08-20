@@ -1,6 +1,6 @@
 import { renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
-import type { FileMeta } from "../../common/types.ts";
 import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
+import { FileMeta } from "$sb/types.ts";
 
 export const cloudPrefix = "💭 ";
 

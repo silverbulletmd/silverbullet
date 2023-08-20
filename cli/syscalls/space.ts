@@ -1,3 +1,4 @@
+import { FileMeta } from "$sb/types.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { Space } from "../../web/space.ts";
 import { AttachmentMeta, PageMeta } from "../../web/types.ts";
@@ -56,6 +57,27 @@ export function spaceSyscalls(space: Space): SysCallMapping {
     },
     "space.deleteAttachment": async (_ctx, name: string) => {
       await space.deleteAttachment(name);
+    },
+
+    // FS
+    "space.listFiles": (): Promise<FileMeta[]> => {
+      return space.spacePrimitives.fetchFileList();
+    },
+    "space.getFileMeta": (_ctx, name: string): Promise<FileMeta> => {
+      return space.spacePrimitives.getFileMeta(name);
+    },
+    "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
+      return (await space.spacePrimitives.readFile(name)).data;
+    },
+    "space.writeFile": (
+      _ctx,
+      name: string,
+      data: Uint8Array,
+    ): Promise<FileMeta> => {
+      return space.spacePrimitives.writeFile(name, data);
+    },
+    "space.deleteFile": (_ctx, name: string) => {
+      return space.spacePrimitives.deleteFile(name);
     },
   };
 }

@@ -1,4 +1,4 @@
-import { FileMeta } from "../types.ts";
+import { FileMeta } from "$sb/types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export class FilteredSpacePrimitives implements SpacePrimitives {

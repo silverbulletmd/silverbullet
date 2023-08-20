@@ -2,8 +2,8 @@
 import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
 import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
 import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
-import { FileMeta } from "../../common/types.ts";
 import { mime } from "../deps.ts";
+import { FileMeta } from "$sb/types.ts";
 
 export class S3SpacePrimitives implements SpacePrimitives {
   client: S3Client;

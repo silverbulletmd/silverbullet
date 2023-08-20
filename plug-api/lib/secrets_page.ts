@@ -5,10 +5,10 @@ import { readYamlPage } from "./yaml_page.ts";
 // of not decising this SECRETS page to other places
 export async function readSecrets(keys: string[]): Promise<any[]> {
   try {
-    let allSecrets = await readYamlPage("SECRETS", ["yaml", "secrets"]);
-    let collectedSecrets: any[] = [];
-    for (let key of keys) {
-      let secret = allSecrets[key];
+    const allSecrets = await readYamlPage("SECRETS", ["yaml", "secrets"]);
+    const collectedSecrets: any[] = [];
+    for (const key of keys) {
+      const secret = allSecrets[key];
       if (secret) {
         collectedSecrets.push(secret);
       } else {

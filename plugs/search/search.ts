@@ -3,9 +3,8 @@ import { renderToText } from "$sb/lib/tree.ts";
 import { store } from "$sb/plugos-syscall/mod.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
-import { base64EncodedDataUrl } from "../../plugos/asset_bundle/base64.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
-import { FileMeta } from "../../common/types.ts";
+import { FileMeta } from "$sb/types.ts";
 
 const searchPrefix = "🔍 ";
 

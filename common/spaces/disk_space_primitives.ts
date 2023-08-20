@@ -1,10 +1,9 @@
-// import { mkdir, readdir, readFile, stat, unlink, writeFile } from "fs/promises";
-import { path } from "../deps.ts";
-import { readAll } from "../deps.ts";
-import { FileMeta } from "../types.ts";
+import * as path from "https://deno.land/std@0.189.0/path/mod.ts";
+import { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 import { walk } from "https://deno.land/std@0.198.0/fs/walk.ts";
+import { FileMeta } from "$sb/types.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";

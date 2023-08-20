@@ -1,6 +1,6 @@
-import { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import type { SysCallMapping } from "../../plugos/system.ts";
+import { FileMeta } from "$sb/types.ts";
 
 // Enriches the file list listing with custom metadata from the page index
 export class FileMetaSpacePrimitives implements SpacePrimitives {

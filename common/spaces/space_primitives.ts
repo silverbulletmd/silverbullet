@@ -1,7 +1,7 @@
-import type { FileMeta } from "../types.ts";
-
 // export type FileEncoding = "utf8" | "arraybuffer" | "dataurl";
 // export type FileData = ArrayBuffer | string;
+
+import { FileMeta } from "$sb/types.ts";
 
 export interface SpacePrimitives {
   // Returns a list of file meta data as well as the timestamp of this snapshot

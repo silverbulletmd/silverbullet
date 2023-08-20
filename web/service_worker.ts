@@ -2,7 +2,7 @@ import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
 
 import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
-import type { FileMeta } from "../common/types.ts";
+import { FileMeta } from "$sb/types.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 

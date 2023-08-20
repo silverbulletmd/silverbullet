@@ -1,7 +1,7 @@
-import type { FileMeta } from "../types.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import Dexie, { Table } from "dexie";
 import { mime } from "../deps.ts";
+import { FileMeta } from "$sb/types.ts";
 
 export type FileContent = {
   name: string;

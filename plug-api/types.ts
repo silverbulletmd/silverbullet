@@ -10,3 +10,12 @@ export type QueueStats = {
   processing: number;
   dlq: number;
 };
+
+export type FileMeta = {
+  name: string;
+  lastModified: number;
+  contentType: string;
+  size: number;
+  perm: "ro" | "rw";
+  noSync?: boolean;
+} & Record<string, any>;

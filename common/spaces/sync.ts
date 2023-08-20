@@ -1,9 +1,9 @@
 import { renderToText, replaceNodesMatching } from "../../plug-api/lib/tree.ts";
 import buildMarkdown from "../markdown_parser/parser.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
-import type { FileMeta } from "../types.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../../plugos/event.ts";
+import { FileMeta } from "$sb/types.ts";
 
 type SyncHash = number;
 
