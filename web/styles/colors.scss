@@ -206,14 +206,9 @@
     }
   }
 
-  /* Color list item this way */
-  .sb-line-li .sb-meta {
+  /* Color list items when the cursor is on it */
+  .sb-li-cursor .sb-meta {
     color: var(--editor-line-meta-color);
-  }
-
-  /* Then undo other meta */
-  .sb-line-li .sb-meta~.sb-meta {
-    color: var(--editor-meta-color);
   }
 
   .sb-table-widget {
