@@ -13,6 +13,7 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 import { Authenticator } from "../server/auth.ts";
 import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
+import { sleep } from "../common/async_util.ts";
 
 export async function serveCommand(
   options: any,
@@ -104,5 +105,9 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     certFile: options.cert,
     maxFileSizeMB: +maxFileSizeMB,
   });
-  return httpServer.start();
+  await httpServer.start();
+  // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
+  while (true) {
+    sleep(1000);
+  }
 }
