@@ -108,6 +108,6 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   await httpServer.start();
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {
-    sleep(1000);
+    await sleep(1000);
   }
 }
