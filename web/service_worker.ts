@@ -156,7 +156,11 @@ async function handleLocalFileRequest(
       url = `https://${url}`;
     }
     console.info("Proxying federated URL", path, "to", url);
-    return fetch(url, { method: "GET", headers: request.headers });
+    return fetch(url, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+    });
   } else {
     console.error(
       "Did not find file in locally synced space",

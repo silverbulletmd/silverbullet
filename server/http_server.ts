@@ -469,9 +469,18 @@ export class HttpServer {
         url = `https://${url}`;
       }
       try {
+        const safeRequestHeaders = new Headers();
+        for (const headerName of ["Authorization", "Accept", "Content-Type"]) {
+          if (request.headers.has(headerName)) {
+            safeRequestHeaders.set(
+              headerName,
+              request.headers.get(headerName)!,
+            );
+          }
+        }
         const req = await fetch(url, {
           method: request.method,
-          headers: request.headers,
+          headers: safeRequestHeaders,
           body: request.hasBody
             ? request.body({ type: "stream" }).value
             : undefined,
@@ -520,4 +529,11 @@ function utcDateString(mtime: number): string {
 
 function authCookieName(host: string) {
   return `auth:${host}`;
+}
+
+function copyHeader(fromHeaders: Headers, toHeaders: Headers, header: string) {
+  const value = fromHeaders.get(header);
+  if (value) {
+    toHeaders.set(header, value);
+  }
 }
