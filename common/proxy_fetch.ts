@@ -1,9 +1,9 @@
-import { base64Encode } from "../plugos/asset_bundle/base64.ts";
+import { base64Decode, base64Encode } from "../plugos/asset_bundle/base64.ts";
 
 export type ProxyFetchRequest = {
   method?: string;
   headers?: Record<string, string>;
-  body?: string;
+  base64Body?: string;
 };
 
 export type ProxyFetchResponse = {
@@ -23,7 +23,7 @@ export async function performLocalFetch(
     req && {
       method: req.method,
       headers: req.headers,
-      body: req.body,
+      body: req.base64Body && base64Decode(req.base64Body),
     },
   );
   return {

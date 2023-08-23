@@ -357,6 +357,15 @@ function render(
         };
       }
       return null;
+    case "Escape": {
+      return {
+        name: "span",
+        attrs: {
+          class: "escape",
+        },
+        body: t.children![0].text!.slice(1),
+      };
+    }
     // Text
     case undefined:
       return t.text!;

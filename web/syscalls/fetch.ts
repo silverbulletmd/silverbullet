@@ -5,6 +5,10 @@ import {
   ProxyFetchResponse,
 } from "../../common/proxy_fetch.ts";
 import type { Client } from "../client.ts";
+import {
+  base64Decode,
+  base64Encode,
+} from "../../plugos/asset_bundle/base64.ts";
 
 export function sandboxFetchSyscalls(
   client: Client,
@@ -13,25 +17,32 @@ export function sandboxFetchSyscalls(
     "sandboxFetch.fetch": async (
       _ctx,
       url: string,
-      options: ProxyFetchRequest,
+      options?: ProxyFetchRequest,
     ): Promise<ProxyFetchResponse> => {
-      // console.log("Got sandbox fetch ", url);
+      // console.log("Got sandbox fetch ", url, op);
+      url = url.replace(/^https?:\/\//, "");
+      const fetchOptions = options
+        ? {
+          method: options.method,
+          headers: options.headers,
+          body: options.base64Body && base64Decode(options.base64Body),
+        }
+        : {};
       if (!client.remoteSpacePrimitives) {
         // No SB server to proxy the fetch available so let's execute the request directly
-        return performLocalFetch(url, options);
+        return performLocalFetch(url, fetchOptions);
       }
-      const resp = client.remoteSpacePrimitives.authenticatedFetch(
-        `${client.remoteSpacePrimitives.url}/.rpc`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            operation: "fetch",
-            url,
-            options,
-          }),
-        },
+      const resp = await client.remoteSpacePrimitives.authenticatedFetch(
+        `${client.remoteSpacePrimitives.url}/!${url}`,
+        fetchOptions,
       );
-      return (await resp).json();
+      const body = await resp.arrayBuffer();
+      return {
+        ok: resp.ok,
+        status: resp.status,
+        headers: Object.fromEntries(resp.headers.entries()),
+        base64Body: base64Encode(new Uint8Array(body)),
+      };
     },
   };
 }

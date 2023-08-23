@@ -8,20 +8,15 @@ export async function publishCommand() {
   const text = await editor.getText();
   const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  const { $share } = await extractFrontmatter(tree);
+  let { $share } = await extractFrontmatter(tree);
   if (!$share) {
-    await editor.flashNotification("Saved.");
+    // Nothing to do here
     return;
   }
   if (!Array.isArray($share)) {
-    await editor.flashNotification(
-      "$share front matter must be an array.",
-      "error",
-    );
-    return;
+    $share = [$share];
   }
   await editor.flashNotification("Sharing...");
-  // Delegate actual publishing to the server
   try {
     await publish(pageName, $share);
     await editor.flashNotification("Done!");
@@ -31,9 +26,6 @@ export async function publishCommand() {
 }
 
 async function publish(pageName: string, uris: string[]) {
-  if (!Array.isArray(uris)) {
-    uris = [uris];
-  }
   for (const uri of uris) {
     const publisher = uri.split(":")[0];
     const results = await events.dispatchEvent(

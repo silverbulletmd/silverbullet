@@ -33,11 +33,11 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       pageMeta[k] = v;
     }
     // Don't index meta data starting with $
-    // for (const key in pageMeta) {
-    //   if (key.startsWith("$")) {
-    //     delete pageMeta[key];
-    //   }
-    // }
+    for (const key in pageMeta) {
+      if (key.startsWith("$")) {
+        delete pageMeta[key];
+      }
+    }
     // console.log("Extracted page meta data", pageMeta);
     await index.set(name, "meta:", pageMeta);
   }

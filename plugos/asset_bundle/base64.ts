@@ -8,7 +8,10 @@ export function base64Decode(s: string): Uint8Array {
   return bytes;
 }
 
-export function base64Encode(buffer: Uint8Array): string {
+export function base64Encode(buffer: Uint8Array | string): string {
+  if (typeof buffer === "string") {
+    buffer = new TextEncoder().encode(buffer);
+  }
   let binary = "";
   const len = buffer.byteLength;
   for (let i = 0; i < len; i++) {

@@ -394,7 +394,7 @@ export class Client {
 
     settings = expandPropertyNames(settings);
 
-    console.log("Settings", settings);
+    // console.log("Settings", settings);
 
     if (!settings.indexPage) {
       settings.indexPage = "[[index]]";

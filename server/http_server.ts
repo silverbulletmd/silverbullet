@@ -282,13 +282,13 @@ export class HttpServer {
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
-          case "fetch": {
-            const result = await performLocalFetch(body.url, body.options);
-            console.log("Proxying fetch request to", body.url);
-            response.headers.set("Content-Type", "application/json");
-            response.body = JSON.stringify(result);
-            return;
-          }
+          // case "fetch": {
+          //   const result = await performLocalFetch(body.url, body.options);
+          //   console.log("Proxying fetch request to", body.url);
+          //   response.headers.set("Content-Type", "application/json");
+          //   response.body = JSON.stringify(result);
+          //   return;
+          // }
           case "shell": {
             // TODO: Have a nicer way to do this
             if (this.options.pagesPath.startsWith("s3://")) {
@@ -335,7 +335,7 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "\/(.+\\.[a-zA-Z]+)";
+    const filePathRegex = "\/([^!].+\\.[a-zA-Z]+)";
 
     fsRouter
       .get(
@@ -379,7 +379,6 @@ export class HttpServer {
               response.status = 500;
               response.body = e.message;
             }
-            // response.redirect(url);
             return;
           }
           try {
@@ -459,6 +458,40 @@ export class HttpServer {
         }
       })
       .options(filePathRegex, corsMiddleware);
+
+    const proxyPathRegex = "\/!(.+)";
+    fsRouter.all(proxyPathRegex, async ({ params, response, request }) => {
+      let url = params[0];
+      console.log("Requested path to proxy", url, request.method);
+      if (url.startsWith("localhost")) {
+        url = `http://${url}`;
+      } else {
+        url = `https://${url}`;
+      }
+      try {
+        const req = await fetch(url, {
+          method: request.method,
+          headers: request.headers,
+          body: request.hasBody
+            ? request.body({ type: "stream" }).value
+            : undefined,
+        });
+        response.status = req.status;
+        // // Override X-Permssion header to always be "ro"
+        // const newHeaders = new Headers();
+        // for (const [key, value] of req.headers.entries()) {
+        //   newHeaders.set(key, value);
+        // }
+        // newHeaders.set("X-Permission", "ro");
+        response.headers = req.headers;
+        response.body = req.body;
+      } catch (e: any) {
+        console.error("Error fetching federated link", e);
+        response.status = 500;
+        response.body = e.message;
+      }
+      return;
+    });
     return fsRouter;
   }
 

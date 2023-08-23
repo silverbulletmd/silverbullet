@@ -158,7 +158,7 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 <!-- #query page limit 3 -->
 |name      |lastModified |contentType  |size|perm|pageAttribute|
 |----------|-------------|-------------|----|--|-----|
-|API       |1691499342795|text/markdown|1879|rw|     |
+|API       |1692191260028|text/markdown|2200|rw|     |
 |Attributes|1691176701257|text/markdown|1466|rw|hello|
 |Authelia  |1688482500313|text/markdown|866 |rw|     |
 <!-- /query -->
@@ -171,13 +171,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name         |lastModified |contentType  |size|perm|type|repo                                                     |uri                                                               |author   |share-support|
+|name         |lastModified |contentType  |size|perm|type|uri                                                               |repo                                                     |author              |share-support|
 |--|--|--|--|--|--|--|--|--|--|
-|🔌 Share     |1691177844386|text/markdown|693 |rw|plug|https://github.com/silverbulletmd/silverbullet           |                                                                  |         |    |
-|🔌 Github    |1691137925014|text/markdown|2206|rw|plug|https://github.com/silverbulletmd/silverbullet-github    |github:silverbulletmd/silverbullet-github/github.plug.js          |Zef Hemel|true|
-|🔌 Mattermost|1691137924741|text/markdown|3535|rw|plug|https://github.com/silverbulletmd/silverbullet-mattermost|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|Zef Hemel|true|
-|🔌 Git       |1691137924435|text/markdown|1112|rw|plug|https://github.com/silverbulletmd/silverbullet-git       |github:silverbulletmd/silverbullet-git/git.plug.js                |Zef Hemel|    |
-|🔌 Ghost     |1691137922296|text/markdown|1733|rw|plug|https://github.com/silverbulletmd/silverbullet-ghost     |github:silverbulletmd/silverbullet-ghost/ghost.plug.js            |Zef Hemel|true|
+|🔌 Twitter   |1692810059854|text/markdown|1266|rw|plug|github:silverbulletmd/silverbullet-twitter/twitter.plug.js        |https://github.com/silverbulletmd/silverbullet-twitter   |SilverBullet Authors|    |
+|🔌 Share     |1691177844386|text/markdown|693 |rw|plug|                                                                  |https://github.com/silverbulletmd/silverbullet           |                    |    |
+|🔌 Github    |1691137925014|text/markdown|2206|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.js          |https://github.com/silverbulletmd/silverbullet-github    |Zef Hemel           |true|
+|🔌 Mattermost|1691137924741|text/markdown|3535|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel           |true|
+|🔌 Git       |1691137924435|text/markdown|1112|rw|plug|github:silverbulletmd/silverbullet-git/git.plug.js                |https://github.com/silverbulletmd/silverbullet-git       |Zef Hemel           |    |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -189,13 +189,13 @@ and `repo` columns and then sort by last modified time.
 from a visual perspective.
 
 <!-- #query page select name, author, repo where type = "plug" order by lastModified desc limit 5 -->
-|name         |author   |repo                                                     |
+|name         |author              |repo                                                     |
 |--|--|--|
-|🔌 Share     |         |https://github.com/silverbulletmd/silverbullet           |
-|🔌 Github    |Zef Hemel|https://github.com/silverbulletmd/silverbullet-github    |
-|🔌 Mattermost|Zef Hemel|https://github.com/silverbulletmd/silverbullet-mattermost|
-|🔌 Git       |Zef Hemel|https://github.com/silverbulletmd/silverbullet-git       |
-|🔌 Ghost     |Zef Hemel|https://github.com/silverbulletmd/silverbullet-ghost     |
+|🔌 Twitter   |SilverBullet Authors|https://github.com/silverbulletmd/silverbullet-twitter   |
+|🔌 Share     |                    |https://github.com/silverbulletmd/silverbullet           |
+|🔌 Github    |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-github    |
+|🔌 Mattermost|Zef Hemel           |https://github.com/silverbulletmd/silverbullet-mattermost|
+|🔌 Git       |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-git       |
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -205,11 +205,11 @@ from a visual perspective.
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
+* [[🔌 Twitter]] by **SilverBullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
 * [[🔌 Share]] 
 * [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
 * [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
 * [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-git))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are

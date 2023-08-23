@@ -6,6 +6,10 @@ release.
 ## Next
 
 * Cookies set when using SilverBullet's built-in [[Authentication]] are now per domain + port, allowing you to run multiple instances of SB on a single host with different ports without the authentication interfering.
+* Page references in [[SETTINGS]] now use double-bracket notation (optionally) which is nicer, because you’ll get completion. See [[SETTINGS]] for examples.
+* It is now possible to override [[🔌 Plugs]] manifests. The primary use case for this is to be able to _override keyboard shortcuts_. This feature may still change over time, but you can try it out. See [[SETTINGS]] for an example.
+* Fixes to syntax coloring
+* Various internal refactoring in preparation for cool things to come
 
 ---
 
@@ -17,7 +21,6 @@ release.
 * New `/page-template` slash command to apply (insert) a page [[🔌 Core/Templates|template]] at the current location
 * When the PWA starts, it will now send you back to the last opened page instead of the index page (you may have to reinstall the PWA for this change to take effect).
 * [[Markdown/Syntax Highlighting]] for HTML
-* [[Frontmatter]] attributes starting with `$` are now indexed again (couldn't remember why we excluded them before)
 * Various heavy-weight commands (such as {[Space: Reindex]} and {[Directives: Update Entire Space]}) now use an internal message queue, allowing to continue the processing even when interrupted or crashing.
 * Various internal refactorings
 

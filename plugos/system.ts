@@ -109,7 +109,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
         plug.manifest,
         manifestOverrides[plug.manifest!.name],
       );
-      console.log("New manifest", plug.manifest);
+      // console.log("New manifest", plug.manifest);
     }
     // and there it is!
     const manifest = plug.manifest!;

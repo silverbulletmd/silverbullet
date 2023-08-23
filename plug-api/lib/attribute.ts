@@ -6,11 +6,6 @@ import {
 
 import { YAML } from "$sb/plugos-syscall/mod.ts";
 
-export type Attribute = {
-  name: string;
-  value: string;
-};
-
 /**
  * Extracts attributes from a tree, optionally cleaning them out of the tree.
  * @param tree tree to extract attributes from

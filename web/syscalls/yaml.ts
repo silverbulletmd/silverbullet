@@ -7,7 +7,10 @@ export function yamlSyscalls(): SysCallMapping {
       return YAML.parse(text);
     },
     "yaml.stringify": (_ctx, obj: any): string => {
-      return YAML.stringify(obj);
+      return YAML.stringify(obj, {
+        noArrayIndent: true,
+        noCompatMode: true,
+      });
     },
   };
 }
