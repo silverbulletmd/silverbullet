@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.3.11
 
 * Cookies set when using SilverBullet's built-in [[Authentication]] are now per domain + port, allowing you to run multiple instances of SB on a single host with different ports without the authentication interfering.
 * Page references in [[SETTINGS]] now use double-bracket notation (optionally) which is nicer, because you’ll get completion. See [[SETTINGS]] for examples.
