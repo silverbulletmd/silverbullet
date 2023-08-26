@@ -33,6 +33,8 @@ import {
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
+import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
+import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 
 export class ClientSystem {
   system: System<SilverBulletHooks> = new System("client");
@@ -45,11 +47,12 @@ export class ClientSystem {
   mdExtensions: MDExt[] = [];
 
   constructor(
-    private editor: Client,
+    private client: Client,
     private kvStore: DexieKVStore,
     private mq: DexieMQ,
     private dbPrefix: string,
     private eventHook: EventHook,
+    private thinClientMode: boolean,
   ) {
     this.system.addHook(this.eventHook);
 
@@ -61,11 +64,15 @@ export class ClientSystem {
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
 
-    this.indexSyscalls = pageIndexSyscalls(
-      `${dbPrefix}_page_index`,
-      globalThis.indexedDB,
-      globalThis.IDBKeyRange,
-    );
+    if (thinClientMode) {
+      this.indexSyscalls = indexProxySyscalls(client);
+    } else {
+      this.indexSyscalls = pageIndexSyscalls(
+        `${dbPrefix}_page_index`,
+        globalThis.indexedDB,
+        globalThis.IDBKeyRange,
+      );
+    }
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -78,7 +85,7 @@ export class ClientSystem {
     this.commandHook = new CommandHook();
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
-        this.editor.ui.viewDispatch({
+        this.client.ui.viewDispatch({
           type: "update-commands",
           commands: commandMap,
         });
@@ -87,7 +94,7 @@ export class ClientSystem {
     this.system.addHook(this.commandHook);
 
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.editor);
+    this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
     this.eventHook.addLocalListener("plug:changed", async (fileName) => {
@@ -96,7 +103,7 @@ export class ClientSystem {
       const plug = await this.system.load(
         new URL(`/${fileName}`, location.href),
         createSandbox,
-        this.editor.settings.plugOverrides,
+        this.client.settings.plugOverrides,
       );
       if ((plug.manifest! as Manifest).syntax) {
         // If there are syntax extensions, rebuild the markdown parser immediately
@@ -108,19 +115,21 @@ export class ClientSystem {
   }
 
   registerSyscalls() {
-    const storeCalls = storeSyscalls(this.kvStore);
+    const storeCalls = this.thinClientMode
+      ? storeProxySyscalls(this.client)
+      : storeSyscalls(this.kvStore);
 
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.editor);
+    this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
     // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
-      editorSyscalls(this.editor),
-      spaceSyscalls(this.editor),
-      systemSyscalls(this.editor, this.system),
+      editorSyscalls(this.client),
+      spaceSyscalls(this.client),
+      systemSyscalls(this.client, this.system),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -128,20 +137,19 @@ export class ClientSystem {
       storeCalls,
       this.indexSyscalls,
       debugSyscalls(),
-      syncSyscalls(this.editor),
-      // LEGACY
-      clientStoreSyscalls(storeCalls),
+      syncSyscalls(this.client),
+      clientStoreSyscalls(this.kvStore),
     );
 
     // Syscalls that require some additional permissions
     this.system.registerSyscalls(
       ["fetch"],
-      sandboxFetchSyscalls(this.editor),
+      sandboxFetchSyscalls(this.client),
     );
 
     this.system.registerSyscalls(
       ["shell"],
-      shellSyscalls(this.editor),
+      shellSyscalls(this.client),
     );
   }
 
@@ -155,7 +163,7 @@ export class ClientSystem {
         await this.system.load(
           new URL(plugName, location.origin),
           createSandbox,
-          this.editor.settings.plugOverrides,
+          this.client.settings.plugOverrides,
         );
       } catch (e: any) {
         console.error("Could not load plug", plugName, "error:", e.message);

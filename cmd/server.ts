@@ -1,4 +1,4 @@
-import { path } from "../server/deps.ts";
+import { Application, path } from "../server/deps.ts";
 import { HttpServer } from "../server/http_server.ts";
 import clientAssetBundle from "../dist/client_asset_bundle.json" assert {
   type: "json",
@@ -14,16 +14,34 @@ import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 import { Authenticator } from "../server/auth.ts";
 import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
 import { sleep } from "../common/async_util.ts";
+import { ServerSystem } from "../server/server_system.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { System } from "../plugos/system.ts";
 
 export async function serveCommand(
-  options: any,
+  options: {
+    hostname?: string;
+    port?: number;
+    user?: string;
+    auth?: string;
+    cert?: string;
+    key?: string;
+    // Thin client mode
+    thinClient?: boolean;
+    reindex?: boolean;
+    db?: string;
+  },
   folder?: string,
 ) {
   const hostname = options.hostname || Deno.env.get("SB_HOSTNAME") ||
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-  const maxFileSizeMB = options.maxFileSizeMB || 20;
+
+  const thinClientMode = options.thinClient || Deno.env.has("SB_THIN_CLIENT");
+  let dbFile = options.db || Deno.env.get("SB_DB_FILE") || ".silverbullet.db";
+
+  const app = new Application();
 
   if (!folder) {
     folder = Deno.env.get("SB_FOLDER");
@@ -55,15 +73,34 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
       bucket: Deno.env.get("AWS_BUCKET")!,
     });
     console.log("Running in S3 mode");
+    folder = Deno.cwd();
   } else {
     // Regular disk mode
     folder = path.resolve(Deno.cwd(), folder);
     spacePrimitives = new DiskSpacePrimitives(folder);
   }
+
   spacePrimitives = new AssetBundlePlugSpacePrimitives(
     spacePrimitives,
     new AssetBundle(plugAssetBundle as AssetJson),
   );
+
+  let system: System<SilverBulletHooks> | undefined;
+  if (thinClientMode) {
+    dbFile = path.resolve(folder, dbFile);
+    console.log(`Running in thin client mode, keeping state in ${dbFile}`);
+    const serverSystem = new ServerSystem(spacePrimitives, dbFile, app);
+    await serverSystem.init();
+    spacePrimitives = serverSystem.spacePrimitives;
+    system = serverSystem.system;
+    if (options.reindex) {
+      console.log("Reindexing space (requested via --reindex flag)");
+      await serverSystem.system.loadedPlugs.get("core")!.invoke(
+        "reindexSpace",
+        [],
+      );
+    }
+  }
 
   const authStore = new JSONKVStore();
   const authenticator = new Authenticator(authStore);
@@ -82,7 +119,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     await authStore.load(authFile);
     (async () => {
       // Asynchronously kick off file watcher
-      for await (const _event of Deno.watchFs(options.auth)) {
+      for await (const _event of Deno.watchFs(options.auth!)) {
         console.log("Authentication file changed, reloading...");
         await authStore.load(authFile);
       }
@@ -95,7 +132,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authStore.loadString(envAuth);
   }
 
-  const httpServer = new HttpServer(spacePrimitives!, {
+  const httpServer = new HttpServer(spacePrimitives!, app, system, {
     hostname,
     port: port,
     pagesPath: folder!,
@@ -103,11 +140,11 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authenticator,
     keyFile: options.key,
     certFile: options.cert,
-    maxFileSizeMB: +maxFileSizeMB,
   });
   await httpServer.start();
+
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {
-    await sleep(1000);
+    await sleep(10000);
   }
 }

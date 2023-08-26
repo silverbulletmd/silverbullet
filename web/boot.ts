@@ -1,11 +1,13 @@
 import { safeRun } from "../common/util.ts";
 import { Client } from "./client.ts";
 
+const thinClientMode = window.silverBulletConfig.thinClientMode === "on";
 safeRun(async () => {
   console.log("Booting SilverBullet...");
 
   const client = new Client(
     document.getElementById("sb-root")!,
+    thinClientMode,
   );
   await client.init();
   window.client = client;
@@ -19,12 +21,14 @@ if (navigator.serviceWorker) {
     .then(() => {
       console.log("Service worker registered...");
     });
-  navigator.serviceWorker.ready.then((registration) => {
-    registration.active!.postMessage({
-      type: "config",
-      config: window.silverBulletConfig,
+  if (!thinClientMode) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.active!.postMessage({
+        type: "config",
+        config: window.silverBulletConfig,
+      });
     });
-  });
+  }
 } else {
   console.warn(
     "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",

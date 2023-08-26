@@ -2,12 +2,19 @@ import { Application, Context, Next, oakCors, Router } from "./deps.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
-import { performLocalFetch } from "../common/proxy_fetch.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { Authenticator } from "./auth.ts";
 import { FileMeta } from "$sb/types.ts";
+import {
+  ShellRequest,
+  ShellResponse,
+  SyscallRequest,
+  SyscallResponse,
+} from "./rpc.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
+import { System } from "../plugos/system.ts";
 
 export type ServerOptions = {
   hostname: string;
@@ -18,11 +25,9 @@ export type ServerOptions = {
   pass?: string;
   certFile?: string;
   keyFile?: string;
-  maxFileSizeMB?: number;
 };
 
 export class HttpServer {
-  app: Application;
   private hostname: string;
   private port: number;
   abortController?: AbortController;
@@ -33,27 +38,19 @@ export class HttpServer {
 
   constructor(
     spacePrimitives: SpacePrimitives,
+    private app: Application,
+    private system: System<SilverBulletHooks> | undefined,
     private options: ServerOptions,
   ) {
     this.hostname = options.hostname;
     this.port = options.port;
-    this.app = new Application();
     this.authenticator = options.authenticator;
     this.clientAssetBundle = options.clientAssetBundle;
 
     let fileFilterFn: (s: string) => boolean = () => true;
     this.spacePrimitives = new FilteredSpacePrimitives(
       spacePrimitives,
-      (meta) => {
-        // Don't list file exceeding the maximum file size
-        if (
-          options.maxFileSizeMB &&
-          meta.size / (1024 * 1024) > options.maxFileSizeMB
-        ) {
-          return false;
-        }
-        return fileFilterFn(meta.name);
-      },
+      (meta) => fileFilterFn(meta.name),
       async () => {
         await this.reloadSettings();
         if (typeof this.settings?.spaceIgnore === "string") {
@@ -71,7 +68,7 @@ export class HttpServer {
       .replaceAll(
         "{{SPACE_PATH}}",
         this.options.pagesPath.replaceAll("\\", "\\\\"),
-      );
+      ).replaceAll("{{THIN_CLIENT_MODE}}", this.system ? "on" : "off");
   }
 
   async start() {
@@ -282,13 +279,6 @@ export class HttpServer {
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
-          // case "fetch": {
-          //   const result = await performLocalFetch(body.url, body.options);
-          //   console.log("Proxying fetch request to", body.url);
-          //   response.headers.set("Content-Type", "application/json");
-          //   response.body = JSON.stringify(result);
-          //   return;
-          // }
           case "shell": {
             // TODO: Have a nicer way to do this
             if (this.options.pagesPath.startsWith("s3://")) {
@@ -300,9 +290,14 @@ export class HttpServer {
               });
               return;
             }
-            console.log("Running shell command:", body.cmd, body.args);
-            const p = new Deno.Command(body.cmd, {
-              args: body.args,
+            const shellCommand: ShellRequest = body;
+            console.log(
+              "Running shell command:",
+              shellCommand.cmd,
+              shellCommand.args,
+            );
+            const p = new Deno.Command(shellCommand.cmd, {
+              args: shellCommand.args,
               cwd: this.options.pagesPath,
               stdout: "piped",
               stderr: "piped",
@@ -316,9 +311,37 @@ export class HttpServer {
               stdout,
               stderr,
               code: output.code,
-            });
+            } as ShellResponse);
             if (output.code !== 0) {
               console.error("Error running shell command", stdout, stderr);
+            }
+            return;
+          }
+          case "syscall": {
+            if (!this.system) {
+              response.headers.set("Content-Type", "text/plain");
+              response.status = 400;
+              response.body = "Unknown operation";
+              return;
+            }
+            const syscallCommand: SyscallRequest = body;
+            try {
+              const result = await this.system.localSyscall(
+                syscallCommand.ctx,
+                syscallCommand.name,
+                syscallCommand.args,
+              );
+              response.headers.set("Content-type", "application/json");
+              response.status = 200;
+              response.body = JSON.stringify({
+                result: result,
+              } as SyscallResponse);
+            } catch (e: any) {
+              response.headers.set("Content-type", "application/json");
+              response.status = 500;
+              response.body = JSON.stringify({
+                error: e.message,
+              } as SyscallResponse);
             }
             return;
           }
@@ -529,11 +552,4 @@ function utcDateString(mtime: number): string {
 
 function authCookieName(host: string) {
   return `auth:${host}`;
-}
-
-function copyHeader(fromHeaders: Headers, toHeaders: Headers, header: string) {
-  const value = fromHeaders.get(header);
-  if (value) {
-    toHeaders.set(header, value);
-  }
 }

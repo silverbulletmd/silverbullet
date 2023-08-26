@@ -36,6 +36,7 @@ import { MainUI } from "./editor_ui.tsx";
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
+import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -45,6 +46,7 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
+      thinClientMode: "on" | "off";
     };
     client: Client;
   }
@@ -53,15 +55,13 @@ declare global {
 // TODO: Oh my god, need to refactor this
 export class Client {
   system: ClientSystem;
-
   editorView: EditorView;
-
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
 
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
-  localSpacePrimitives!: FilteredSpacePrimitives;
+  // localSpacePrimitives!: FilteredSpacePrimitives;
   remoteSpacePrimitives!: HttpSpacePrimitives;
   space!: Space;
 
@@ -88,6 +88,7 @@ export class Client {
 
   constructor(
     parent: Element,
+    private thinClientMode = false,
   ) {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
@@ -116,12 +117,13 @@ export class Client {
       this.mq,
       this.dbPrefix,
       this.eventHook,
+      this.thinClientMode,
     );
 
-    this.initSpace();
+    const localSpacePrimitives = this.initSpace();
 
     this.syncService = new SyncService(
-      this.localSpacePrimitives,
+      localSpacePrimitives,
       this.plugSpaceRemotePrimitives,
       this.kvStore,
       this.eventHook,
@@ -133,6 +135,7 @@ export class Client {
           // Except federated ones
           path.startsWith("!");
       },
+      !this.thinClientMode,
     );
 
     this.ui = new MainUI(this);
@@ -319,7 +322,7 @@ export class Client {
     }
   }
 
-  initSpace() {
+  initSpace(): SpacePrimitives {
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       window.silverBulletConfig.spaceFolderPath,
@@ -332,34 +335,40 @@ export class Client {
 
     let fileFilterFn: (s: string) => boolean = () => true;
 
-    this.localSpacePrimitives = new FilteredSpacePrimitives(
-      new FileMetaSpacePrimitives(
-        new EventedSpacePrimitives(
-          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-          new FallbackSpacePrimitives(
-            new IndexedDBSpacePrimitives(
-              `${this.dbPrefix}_space`,
-              globalThis.indexedDB,
-            ),
-            this.plugSpaceRemotePrimitives,
-          ),
-          this.eventHook,
-        ),
-        this.system.indexSyscalls,
-      ),
-      (meta) => fileFilterFn(meta.name),
-      // Run when a list of files has been retrieved
-      async () => {
-        await this.loadSettings();
-        if (typeof this.settings?.spaceIgnore === "string") {
-          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
-        } else {
-          fileFilterFn = () => true;
-        }
-      },
-    );
+    let localSpacePrimitives: SpacePrimitives | undefined;
 
-    this.space = new Space(this.localSpacePrimitives, this.kvStore);
+    if (!this.thinClientMode) {
+      localSpacePrimitives = new FilteredSpacePrimitives(
+        new FileMetaSpacePrimitives(
+          new EventedSpacePrimitives(
+            // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+            new FallbackSpacePrimitives(
+              new IndexedDBSpacePrimitives(
+                `${this.dbPrefix}_space`,
+                globalThis.indexedDB,
+              ),
+              this.plugSpaceRemotePrimitives,
+            ),
+            this.eventHook,
+          ),
+          this.system.indexSyscalls,
+        ),
+        (meta) => fileFilterFn(meta.name),
+        // Run when a list of files has been retrieved
+        async () => {
+          await this.loadSettings();
+          if (typeof this.settings?.spaceIgnore === "string") {
+            fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+          } else {
+            fileFilterFn = () => true;
+          }
+        },
+      );
+    } else {
+      localSpacePrimitives = this.plugSpaceRemotePrimitives;
+    }
+
+    this.space = new Space(localSpacePrimitives, this.kvStore);
 
     this.space.on({
       pageChanged: (meta) => {
@@ -379,6 +388,8 @@ export class Client {
     });
 
     this.space.watch();
+
+    return localSpacePrimitives;
   }
 
   async loadSettings(): Promise<BuiltinSettings> {

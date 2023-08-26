@@ -1,8 +1,6 @@
 name: markdown
 assets:
   - "assets/*"
-requiredPermissions:
-  - fs
 functions:
   toggle:
     path: "./markdown.ts:togglePreview"
@@ -13,6 +11,7 @@ functions:
 
   preview:
     path: "./preview.ts:updateMarkdownPreview"
+    env: client
     events:
       - plug:load
       - editor:updated

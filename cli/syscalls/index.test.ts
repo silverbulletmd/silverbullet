@@ -27,7 +27,6 @@ Deno.test("Test KV index", async () => {
   }, { key: "random", value: "value3" }]);
   let results = await calls["index.queryPrefix"](ctx, "attr:");
   assertEquals(results.length, 4);
-  console.log("here");
   await calls["index.clearPageIndexForPage"](ctx, "page");
   results = await calls["index.queryPrefix"](ctx, "attr:");
   assertEquals(results.length, 2);

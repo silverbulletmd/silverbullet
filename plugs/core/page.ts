@@ -152,12 +152,13 @@ export async function reindexSpace() {
 }
 
 export async function processIndexQueue(messages: Message[]) {
-  // console.log("Processing batch of", messages.length, "pages to index");
   for (const message of messages) {
     const name: string = message.body;
     console.log(`Indexing page ${name}`);
     const text = await space.readPage(name);
+    // console.log("Going to parse markdown");
     const parsed = await markdown.parseMarkdown(text);
+    // console.log("Dispatching ;age:index");
     await events.dispatchEvent("page:index", {
       name,
       tree: parsed,

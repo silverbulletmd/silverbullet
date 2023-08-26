@@ -30,10 +30,18 @@ export function pageIndexSyscalls(kv: KVStore): SysCallMapping {
         }],
       );
     },
-    "index.batchSet": async (_ctx, page: string, kvs: KV[]) => {
+    "index.batchSet": (_ctx, page: string, kvs: KV[]) => {
+      const batch: KV[] = [];
       for (const { key, value } of kvs) {
-        await apiObj["index.set"](_ctx, page, key, value);
+        batch.push({
+          key: `index${sep}${page}${sep}${key}`,
+          value,
+        }, {
+          key: `indexByKey${sep}${key}${sep}${page}`,
+          value,
+        });
       }
+      return kv.batchSet(batch);
     },
     "index.delete": (_ctx, page: string, key: string) => {
       return kv.batchDelete([
@@ -62,20 +70,30 @@ export function pageIndexSyscalls(kv: KVStore): SysCallMapping {
       await apiObj["index.deletePrefixForPage"](ctx, page, "");
     },
     "index.deletePrefixForPage": async (_ctx, page: string, prefix: string) => {
+      const allKeys: string[] = [];
       for (
         const result of await kv.queryPrefix(
           `index${sep}${page}${sep}${prefix}`,
         )
       ) {
         const [_ns, page, key] = result.key.split(sep);
-        await apiObj["index.delete"](_ctx, page, key);
+        allKeys.push(
+          `index${sep}${page}${sep}${key}`,
+          `indexByKey${sep}${key}${sep}${page}`,
+        );
       }
+      return kv.batchDelete(allKeys);
     },
-    "index.clearPageIndex": async (ctx) => {
+    "index.clearPageIndex": async () => {
+      const allKeys: string[] = [];
       for (const result of await kv.queryPrefix(`index${sep}`)) {
         const [_ns, page, key] = result.key.split(sep);
-        await apiObj["index.delete"](ctx, page, key);
+        allKeys.push(
+          `index${sep}${page}${sep}${key}`,
+          `indexByKey${sep}${key}${sep}${page}`,
+        );
       }
+      return kv.batchDelete(allKeys);
     },
   };
   return apiObj;

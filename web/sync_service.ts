@@ -45,6 +45,7 @@ export class SyncService {
     private kvStore: KVStore,
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
+    private enabled: boolean,
   ) {
     this.spaceSync = new SpaceSync(
       this.localSpacePrimitives,
@@ -74,6 +75,9 @@ export class SyncService {
   }
 
   async isSyncing(): Promise<boolean> {
+    if (!this.enabled) {
+      return false;
+    }
     const startTime = await this.kvStore.get(syncStartTimeKey);
     if (!startTime) {
       return false;
@@ -91,11 +95,19 @@ export class SyncService {
   }
 
   hasInitialSyncCompleted(): Promise<boolean> {
+    if (!this.enabled) {
+      return Promise.resolve(true);
+    }
+
     // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
     return this.kvStore.has(syncInitialFullSyncCompletedKey);
   }
 
   async registerSyncStart(fullSync: boolean): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     // Assumption: this is called after an isSyncing() check
     await this.kvStore.batchSet([
       {
@@ -116,6 +128,10 @@ export class SyncService {
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     // Emit a sync event at most every 2s
     if (status && this.lastReportedSyncStatus < Date.now() - 2000) {
       this.eventHook.dispatchEvent("sync:progress", status);
@@ -126,6 +142,10 @@ export class SyncService {
   }
 
   async registerSyncStop(isFullSync: boolean): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
     if (isFullSync) {
@@ -142,6 +162,10 @@ export class SyncService {
 
   // Await a moment when the sync is no longer running
   async noOngoingSync(timeout: number): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     // Not completely safe, could have race condition on setting the syncStartTimeKey
     const startTime = Date.now();
     while (await this.isSyncing()) {
@@ -155,6 +179,10 @@ export class SyncService {
 
   filesScheduledForSync = new Set<string>();
   async scheduleFileSync(path: string): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     if (this.filesScheduledForSync.has(path)) {
       // Already scheduled, no need to duplicate
       console.info(`File ${path} already scheduled for sync`);
@@ -167,11 +195,19 @@ export class SyncService {
   }
 
   async scheduleSpaceSync(): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     await this.noOngoingSync(5000);
     await this.syncSpace();
   }
 
   start() {
+    if (!this.enabled) {
+      return;
+    }
+
     this.syncSpace().catch(console.error);
 
     setInterval(async () => {
@@ -191,6 +227,10 @@ export class SyncService {
   }
 
   async syncSpace(): Promise<number> {
+    if (!this.enabled) {
+      return 0;
+    }
+
     if (await this.isSyncing()) {
       console.log("Aborting space sync: already syncing");
       return 0;
@@ -218,6 +258,10 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
+    if (!this.enabled) {
+      return;
+    }
+
     // console.log("Checking if we can sync file", name);
     if (!this.isSyncCandidate(name)) {
       console.info("Requested sync, but not a sync candidate", name);

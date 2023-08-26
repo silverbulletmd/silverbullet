@@ -45,8 +45,16 @@ await new Command()
     "Path to TLS key",
   )
   .option(
-    "--maxFileSize [type:number]",
-    "Do not sync/expose files larger than this (in MB)",
+    "-t [type:boolean], --thin-client [type:boolean]",
+    "Enable thin-client mode",
+  )
+  .option(
+    "--reindex [type:boolean]",
+    "Reindex space on startup (applies to thin-mode only)",
+  )
+  .option(
+    "--db <db:string>",
+    "Path to database file (applies to thin-mode only)",
   )
   .action(serveCommand)
   // plug:compile
