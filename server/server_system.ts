@@ -37,6 +37,7 @@ export class ServerSystem {
   spacePrimitives!: SpacePrimitives;
   private requeueInterval?: number;
   kvStore?: DenoKVStore;
+  listInterval?: number;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
@@ -122,7 +123,7 @@ export class ServerSystem {
       markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system))),
     );
 
-    setInterval(() => {
+    this.listInterval = setInterval(() => {
       space.updatePageList().catch(console.error);
     }, fileListInterval);
 
@@ -169,6 +170,7 @@ export class ServerSystem {
 
   async close() {
     clearInterval(this.requeueInterval);
+    clearInterval(this.listInterval);
     await this.system.unloadAll();
   }
 }
