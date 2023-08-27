@@ -84,7 +84,7 @@ export class ServerSystem {
       ),
       pageIndexCalls,
     );
-    const space = new Space(this.spacePrimitives, this.kvStore);
+    const space = new Space(this.spacePrimitives, this.kvStore, eventHook);
 
     // Add syscalls
     this.system.registerSyscalls(

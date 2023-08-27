@@ -111,6 +111,24 @@ export class ClientSystem {
       }
       this.plugsUpdated = true;
     });
+
+    // Debugging
+    // this.eventHook.addLocalListener("file:listed", (files) => {
+    //   console.log("New file list", files);
+    // });
+
+    this.eventHook.addLocalListener("file:changed", (file) => {
+      console.log("File changed", file);
+    });
+
+    this.eventHook.addLocalListener("file:created", (file) => {
+      console.log("File created", file);
+    });
+
+    this.eventHook.addLocalListener("file:deleted", (file) => {
+      console.log("File deleted", file);
+    });
+
     this.registerSyscalls();
   }
 

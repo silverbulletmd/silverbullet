@@ -6,7 +6,7 @@ import {
   gitIgnoreCompiler,
   syntaxTree,
 } from "../common/deps.ts";
-import { Space } from "./space.ts";
+import { fileMetaToPageMeta, Space } from "./space.ts";
 import { FilterOption, PageMeta } from "./types.ts";
 import { parseYamlSettings } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
@@ -37,6 +37,7 @@ import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { FileMeta } from "$sb/types.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -320,6 +321,12 @@ export class Client {
         }
       })().catch(console.error);
     }
+
+    // this.eventHook.addLocalListener("page:deleted", (pageName) => {
+    //   if (pageName === this.currentPage) {
+    //     this.flashNotification("Page does exist, creating as a new page");
+    //   }
+    // });
   }
 
   initSpace(): SpacePrimitives {
@@ -365,26 +372,37 @@ export class Client {
         },
       );
     } else {
-      localSpacePrimitives = this.plugSpaceRemotePrimitives;
+      localSpacePrimitives = new EventedSpacePrimitives(
+        this.plugSpaceRemotePrimitives,
+        this.eventHook,
+        [
+          "file:changed",
+          "file:listed",
+          "page:deleted",
+        ],
+      );
     }
 
-    this.space = new Space(localSpacePrimitives, this.kvStore);
+    this.space = new Space(localSpacePrimitives, this.kvStore, this.eventHook);
 
-    this.space.on({
-      pageChanged: (meta) => {
-        // Only reload when watching the current page (to avoid reloading when switching pages)
-        if (this.space.watchInterval && this.currentPage === meta.name) {
-          console.log("Page changed elsewhere, reloading");
-          this.flashNotification("Page changed elsewhere, reloading");
-          this.reloadPage();
-        }
-      },
-      pageListUpdated: (pages) => {
-        this.ui.viewDispatch({
-          type: "pages-listed",
-          pages: pages,
-        });
-      },
+    this.eventHook.addLocalListener("file:changed", (fileMeta: FileMeta) => {
+      // Only reload when watching the current page (to avoid reloading when switching pages)
+      if (
+        this.space.watchInterval && `${this.currentPage}.md` === fileMeta.name
+      ) {
+        console.log("Page changed elsewhere, reloading");
+        this.flashNotification("Page changed elsewhere, reloading");
+        this.reloadPage();
+      }
+    });
+
+    this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
+      this.ui.viewDispatch({
+        type: "pages-listed",
+        pages: fileList.filter((f) => f.name.endsWith(".md")).map(
+          fileMetaToPageMeta,
+        ),
+      });
     });
 
     this.space.watch();

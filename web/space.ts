@@ -1,24 +1,18 @@
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
 import { throttle } from "../common/async_util.ts";
 import { KVStore } from "../plugos/lib/kv_store.ts";
 import { FileMeta } from "$sb/types.ts";
-
-export type SpaceEvents = {
-  pageCreated: (meta: PageMeta) => void;
-  pageChanged: (meta: PageMeta) => void;
-  pageDeleted: (name: string) => void;
-  pageListUpdated: (pages: PageMeta[]) => void;
-};
+import { EventHook } from "../plugos/hooks/event.ts";
 
 const pageWatchInterval = 5000;
 
-export class Space extends EventEmitter<SpaceEvents> {
+export class Space {
   imageHeightCache: Record<string, number> = {};
-  pageMetaCache = new Map<string, PageMeta>();
+  // pageMetaCache = new Map<string, PageMeta>();
+  cachedPageList: PageMeta[] = [];
 
   debouncedCacheFlush = throttle(() => {
     this.kvStore.set("imageHeightCache", this.imageHeightCache).catch(
@@ -40,81 +34,82 @@ export class Space extends EventEmitter<SpaceEvents> {
   watchedPages = new Set<string>();
   watchInterval?: number;
 
-  private initialPageListLoad = true;
+  // private initialPageListLoad = true;
   private saving = false;
 
   constructor(
     readonly spacePrimitives: SpacePrimitives,
     private kvStore: KVStore,
+    private eventHook: EventHook,
   ) {
-    super();
+    // super();
     this.kvStore.get("imageHeightCache").then((cache) => {
       if (cache) {
         // console.log("Loaded image height cache from KV store", cache);
         this.imageHeightCache = cache;
       }
     });
+    eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
+      this.cachedPageList = files.filter(this.isListedPage).map(
+        fileMetaToPageMeta,
+      );
+    });
+    eventHook.addLocalListener("page:deleted", (pageName: string) => {
+      if (this.watchedPages.has(pageName)) {
+        // Stop watching deleted pages already
+        this.watchedPages.delete(pageName);
+      }
+    });
   }
 
   public async updatePageList() {
-    const newPageList = await this.fetchPageList();
-    const deletedPages = new Set<string>(this.pageMetaCache.keys());
-    newPageList.forEach((meta) => {
-      const pageName = meta.name;
-      const oldPageMeta = this.pageMetaCache.get(pageName);
-      const newPageMeta: PageMeta = { ...meta };
-      if (
-        !oldPageMeta &&
-        (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)
-      ) {
-        this.emit("pageCreated", newPageMeta);
-      } else if (
-        oldPageMeta &&
-        oldPageMeta.lastModified !== newPageMeta.lastModified
-      ) {
-        this.emit("pageChanged", newPageMeta);
-      }
-      // Page found, not deleted
-      deletedPages.delete(pageName);
+    // This will trigger appropriate events automatically
+    await this.fetchPageList();
+    // const deletedPages = new Set<string>(this.pageMetaCache.keys());
+    // newPageList.forEach((meta) => {
+    //   const pageName = meta.name;
+    //   const oldPageMeta = this.pageMetaCache.get(pageName);
+    //   const newPageMeta: PageMeta = { ...meta };
+    //   if (
+    //     !oldPageMeta &&
+    //     (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)
+    //   ) {
+    //     this.emit("pageCreated", newPageMeta);
+    //   } else if (
+    //     oldPageMeta &&
+    //     oldPageMeta.lastModified !== newPageMeta.lastModified
+    //   ) {
+    //     this.emit("pageChanged", newPageMeta);
+    //   }
+    //   // Page found, not deleted
+    //   deletedPages.delete(pageName);
 
-      // Update in cache
-      this.pageMetaCache.set(pageName, newPageMeta);
-    });
+    //   // Update in cache
+    //   this.pageMetaCache.set(pageName, newPageMeta);
+    // });
 
-    for (const deletedPage of deletedPages) {
-      this.pageMetaCache.delete(deletedPage);
-      this.emit("pageDeleted", deletedPage);
-    }
+    // for (const deletedPage of deletedPages) {
+    //   this.pageMetaCache.delete(deletedPage);
+    //   this.emit("pageDeleted", deletedPage);
+    // }
 
-    this.emit("pageListUpdated", this.listPages());
-    this.initialPageListLoad = false;
+    // this.emit("pageListUpdated", this.listPages());
+    // this.initialPageListLoad = false;
   }
 
   async deletePage(name: string): Promise<void> {
     await this.getPageMeta(name); // Check if page exists, if not throws Error
     await this.spacePrimitives.deleteFile(`${name}.md`);
-
-    this.pageMetaCache.delete(name);
-    this.emit("pageDeleted", name);
-    this.emit("pageListUpdated", [...this.pageMetaCache.values()]);
   }
 
   async getPageMeta(name: string): Promise<PageMeta> {
-    const oldMeta = this.pageMetaCache.get(name);
-    const newMeta = fileMetaToPageMeta(
+    return fileMetaToPageMeta(
       await this.spacePrimitives.getFileMeta(`${name}.md`),
     );
-    if (oldMeta) {
-      if (oldMeta.lastModified !== newMeta.lastModified) {
-        // Changed on disk, trigger event
-        this.emit("pageChanged", newMeta);
-      }
-    }
-    return this.metaCacher(name, newMeta);
   }
 
   listPages(): PageMeta[] {
-    return [...new Set(this.pageMetaCache.values())];
+    return this.cachedPageList;
   }
 
   async listPlugs(): Promise<string[]> {
@@ -129,18 +124,9 @@ export class Space extends EventEmitter<SpaceEvents> {
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
     const pageData = await this.spacePrimitives.readFile(`${name}.md`);
-    const previousMeta = this.pageMetaCache.get(name);
-    const newMeta = fileMetaToPageMeta(pageData.meta);
-    if (previousMeta) {
-      if (previousMeta.lastModified !== newMeta.lastModified) {
-        // Page changed since last cached metadata, trigger event
-        this.emit("pageChanged", newMeta);
-      }
-    }
-    const meta = this.metaCacher(name, newMeta);
     return {
       text: new TextDecoder().decode(pageData.data),
-      meta: meta,
+      meta: fileMetaToPageMeta(pageData.meta),
     };
   }
 
@@ -151,37 +137,33 @@ export class Space extends EventEmitter<SpaceEvents> {
   ): Promise<PageMeta> {
     try {
       this.saving = true;
-      const pageMeta = fileMetaToPageMeta(
+      return fileMetaToPageMeta(
         await this.spacePrimitives.writeFile(
           `${name}.md`,
           new TextEncoder().encode(text),
           selfUpdate,
         ),
       );
-      if (!selfUpdate) {
-        this.emit("pageChanged", pageMeta);
-      }
-      return this.metaCacher(name, pageMeta);
     } finally {
       this.saving = false;
     }
   }
 
   // We're listing all pages that don't start with a _
-  isListedPageName(name: string): boolean {
-    return name.endsWith(".md") && !name.startsWith("_");
+  isListedPage(fileMeta: FileMeta): boolean {
+    return fileMeta.name.endsWith(".md") && !fileMeta.name.startsWith("_");
   }
 
   async fetchPageList(): Promise<PageMeta[]> {
     return (await this.spacePrimitives.fetchFileList())
-      .filter((fileMeta) => this.isListedPageName(fileMeta.name))
+      .filter(this.isListedPage)
       .map(fileMetaToPageMeta);
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
     return (await this.spacePrimitives.fetchFileList()).filter(
       (fileMeta) =>
-        !this.isListedPageName(fileMeta.name) &&
+        !this.isListedPage(fileMeta) &&
         !fileMeta.name.endsWith(".plug.js"),
     );
   }
@@ -225,13 +207,6 @@ export class Space extends EventEmitter<SpaceEvents> {
           return;
         }
         for (const pageName of this.watchedPages) {
-          const oldMeta = this.pageMetaCache.get(pageName);
-          if (!oldMeta) {
-            // No longer in cache, meaning probably deleted let's unwatch
-            this.watchedPages.delete(pageName);
-            continue;
-          }
-          // This seems weird, but simply fetching it will compare to local cache and trigger an event if necessary
           await this.getPageMeta(pageName);
         }
       });
@@ -252,17 +227,9 @@ export class Space extends EventEmitter<SpaceEvents> {
   unwatchPage(pageName: string) {
     this.watchedPages.delete(pageName);
   }
-
-  private metaCacher(name: string, meta: PageMeta): PageMeta {
-    if (meta.lastModified !== 0) {
-      // Don't cache metadata for pages with a 0 lastModified timestamp (usualy dynamically generated pages)
-      this.pageMetaCache.set(name, meta);
-    }
-    return meta;
-  }
 }
 
-function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
+export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
   return {
     ...fileMeta,
     name: fileMeta.name.substring(0, fileMeta.name.length - 3),
