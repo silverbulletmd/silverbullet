@@ -1,6 +1,14 @@
 import type { CommandDef } from "../../web/hooks/command.ts";
 import { syscall } from "./syscall.ts";
 
+export function invoke(
+  name: string,
+  ...args: any[]
+): Promise<any> {
+  return syscall("system.invoke", name, ...args);
+}
+
+// @deprecated use invoke instead
 export function invokeFunction(
   env: string,
   name: string,

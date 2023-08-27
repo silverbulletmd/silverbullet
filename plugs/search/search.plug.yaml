@@ -12,6 +12,7 @@ functions:
 
   searchUnindex:
     path: "./search.ts:pageUnindex"
+    env: client
     events:
       - page:deleted
   searchQueryProvider:

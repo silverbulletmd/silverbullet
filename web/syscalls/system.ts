@@ -2,15 +2,25 @@ import type { Plug } from "../../plugos/plug.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { Client } from "../client.ts";
 import { CommandDef } from "../hooks/command.ts";
+import { proxySyscall } from "./util.ts";
 
 export function systemSyscalls(
   editor: Client,
   system: System<any>,
 ): SysCallMapping {
-  return {
+  const api: SysCallMapping = {
     "system.invokeFunction": (
       ctx,
       _env: string,
+      name: string,
+      ...args: any[]
+    ) => {
+      // For backwards compatibility
+      // TODO: Remove at some point
+      return api["system.invoke"](ctx, name, ...args);
+    },
+    "system.invoke": (
+      ctx,
       name: string,
       ...args: any[]
     ) => {
@@ -27,6 +37,14 @@ export function systemSyscalls(
           throw Error(`Plug ${plugName} not found`);
         }
         name = functionName;
+      }
+      const functionDef = plug.manifest!.functions[name];
+      if (!functionDef) {
+        throw Error(`Function ${name} not found`);
+      }
+      if (functionDef.env && system.env && functionDef.env !== system.env) {
+        // Proxy to another environment
+        return proxySyscall(editor.remoteSpacePrimitives, name, args);
       }
       return plug.invoke(name, args);
     },
@@ -47,4 +65,5 @@ export function systemSyscalls(
       return system.env;
     },
   };
+  return api;
 }

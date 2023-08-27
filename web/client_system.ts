@@ -37,7 +37,6 @@ import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
 import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 
 export class ClientSystem {
-  system: System<SilverBulletHooks> = new System("client");
   commandHook: CommandHook;
   slashCommandHook: SlashCommandHook;
   namespaceHook: PlugNamespaceHook;
@@ -45,15 +44,19 @@ export class ClientSystem {
   codeWidgetHook: CodeWidgetHook;
   plugsUpdated = false;
   mdExtensions: MDExt[] = [];
+  system: System<SilverBulletHooks>;
 
   constructor(
     private client: Client,
     private kvStore: DexieKVStore,
     private mq: DexieMQ,
-    private dbPrefix: string,
+    dbPrefix: string,
     private eventHook: EventHook,
     private thinClientMode: boolean,
   ) {
+    // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
+    this.system = new System(thinClientMode ? "client" : undefined);
+
     this.system.addHook(this.eventHook);
 
     // Plug page namespace hook

@@ -37,6 +37,7 @@ functions:
       name: "Editor: Move Cursor to Position"
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
+    env: server
     events:
       - page:saved
       - page:deleted
@@ -46,6 +47,7 @@ functions:
       - query:page
   parseIndexTextRepublish:
     path: "./page.ts:parseIndexTextRepublish"
+    env: server
     events:
       - page:index_text
   reindexSpaceCommand:

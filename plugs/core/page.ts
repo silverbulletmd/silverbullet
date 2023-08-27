@@ -13,7 +13,7 @@ import {
 import { events, mq } from "$sb/plugos-syscall/mod.ts";
 
 import { applyQuery } from "$sb/lib/query.ts";
-import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { invoke } from "$sb/silverbullet-syscall/system.ts";
 import type { Message } from "$sb/types.ts";
 import { sleep } from "../../common/async_util.ts";
 import { cacheFileListing } from "../federation/federation.ts";
@@ -135,7 +135,7 @@ export async function reindexSpace() {
   console.log("Clearing page index...");
   await index.clearPageIndex();
   // Executed this way to not have to embed the search plug code here
-  await invokeFunction("client", "search.clearIndex");
+  await invoke("search.clearIndex");
   const pages = await space.listPages();
 
   // Queue all page names to be indexed
@@ -172,7 +172,7 @@ export async function clearPageIndex(page: string) {
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
-  // console.log("Reindexing", name);
+  console.log("Reindexing", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: await markdown.parseMarkdown(text),

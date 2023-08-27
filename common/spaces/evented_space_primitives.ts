@@ -5,64 +5,59 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 
 /**
  * Events exposed:
- * - file:changed (FileMeta)
+ * - file:changed (string, localUpdate: boolean)
  * - file:deleted (string)
  * - file:listed (FileMeta[])
  * - page:saved (string, FileMeta)
  * - page:deleted (string)
  */
-
 export class EventedSpacePrimitives implements SpacePrimitives {
-  private fileMetaCache = new Map<string, FileMeta>();
+  alreadyFetching = false;
   initialFileListLoad = true;
 
+  spaceSnapshot: Record<string, number> = {};
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
-    private eventsToDispatch = [
-      "file:changed",
-      "file:deleted",
-      "file:listed",
-      "page:saved",
-      "page:deleted",
-    ],
   ) {}
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
-    if (this.eventsToDispatch.includes(name)) {
-      return this.eventHook.dispatchEvent(name, ...args);
-    } else {
-      return Promise.resolve([]);
-    }
+    return this.eventHook.dispatchEvent(name, ...args);
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
     const newFileList = await this.wrapped.fetchFileList();
-    const deletedFiles = new Set<string>(this.fileMetaCache.keys());
+    if (this.alreadyFetching) {
+      // Avoid race conditions
+      return newFileList;
+    }
+    // console.log("HEREEREEEREEREE");
+    this.alreadyFetching = true;
+    const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
     for (const meta of newFileList) {
-      const oldFileMeta = this.fileMetaCache.get(meta.name);
-      const newFileMeta: FileMeta = { ...meta };
+      const oldHash = this.spaceSnapshot[meta.name];
+      const newHash = meta.lastModified;
       if (
         (
           // New file scenario
-          !oldFileMeta && !this.initialFileListLoad
+          !oldHash && !this.initialFileListLoad
         ) || (
           // Changed file scenario
-          oldFileMeta &&
-          oldFileMeta.lastModified !== newFileMeta.lastModified
+          oldHash &&
+          oldHash !== newHash
         )
       ) {
-        this.dispatchEvent("file:changed", newFileMeta);
+        this.dispatchEvent("file:changed", meta.name);
       }
       // Page found, not deleted
       deletedFiles.delete(meta.name);
 
-      // Update in cache
-      this.fileMetaCache.set(meta.name, newFileMeta);
+      // Update in snapshot
+      this.spaceSnapshot[meta.name] = newHash;
     }
 
     for (const deletedFile of deletedFiles) {
-      this.fileMetaCache.delete(deletedFile);
+      delete this.spaceSnapshot[deletedFile];
       this.dispatchEvent("file:deleted", deletedFile);
 
       if (deletedFile.endsWith(".md")) {
@@ -71,28 +66,18 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
     }
 
-    const fileList = [...new Set(this.fileMetaCache.values())];
-    this.dispatchEvent("file:listed", fileList);
+    this.dispatchEvent("file:listed", newFileList);
+    this.alreadyFetching = false;
     this.initialFileListLoad = false;
-    return fileList;
+    return newFileList;
   }
 
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const data = await this.wrapped.readFile(name);
-    const previousMeta = this.fileMetaCache.get(name);
-    const newMeta = data.meta;
-    if (previousMeta) {
-      if (previousMeta.lastModified !== newMeta.lastModified) {
-        // Page changed since last cached metadata, trigger event
-        this.dispatchEvent("file:changed", newMeta);
-      }
-    }
-    return {
-      data: data.data,
-      meta: this.metaCacher(name, newMeta),
-    };
+    this.triggerEventsAndCache(name, data.meta.lastModified);
+    return data;
   }
 
   async writeFile(
@@ -108,9 +93,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       meta,
     );
     if (!selfUpdate) {
-      this.dispatchEvent("file:changed", newMeta);
+      this.dispatchEvent("file:changed", name, true);
     }
-    this.metaCacher(name, newMeta);
+    this.spaceSnapshot[name] = newMeta.lastModified;
 
     // This can happen async
     if (name.endsWith(".md")) {
@@ -136,17 +121,21 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return newMeta;
   }
 
+  triggerEventsAndCache(name: string, newHash: number) {
+    const oldHash = this.spaceSnapshot[name];
+    if (oldHash && oldHash !== newHash) {
+      // Page changed since last cached metadata, trigger event
+      this.dispatchEvent("file:changed", name);
+    }
+    this.spaceSnapshot[name] = newHash;
+    return;
+  }
+
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
-      const oldMeta = this.fileMetaCache.get(name);
       const newMeta = await this.wrapped.getFileMeta(name);
-      if (oldMeta) {
-        if (oldMeta.lastModified !== newMeta.lastModified) {
-          // Changed on disk, trigger event
-          this.dispatchEvent("file:changed", newMeta);
-        }
-      }
-      return this.metaCacher(name, newMeta);
+      this.triggerEventsAndCache(name, newMeta.lastModified);
+      return newMeta;
     } catch (e: any) {
       console.log("Checking error", e, name);
       if (e.message === "Not found") {
@@ -167,15 +156,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
     // await this.getPageMeta(name); // Check if page exists, if not throws Error
     await this.wrapped.deleteFile(name);
-    this.fileMetaCache.delete(name);
+    delete this.spaceSnapshot[name];
     this.dispatchEvent("file:deleted", name);
-  }
-
-  private metaCacher(name: string, meta: FileMeta): FileMeta {
-    if (meta.lastModified !== 0) {
-      // Don't cache metadata for pages with a 0 lastModified timestamp (usualy dynamically generated pages)
-      this.fileMetaCache.set(name, meta);
-    }
-    return meta;
   }
 }

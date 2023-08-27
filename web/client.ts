@@ -321,12 +321,6 @@ export class Client {
         }
       })().catch(console.error);
     }
-
-    // this.eventHook.addLocalListener("page:deleted", (pageName) => {
-    //   if (pageName === this.currentPage) {
-    //     this.flashNotification("Page does exist, creating as a new page");
-    //   }
-    // });
   }
 
   initSpace(): SpacePrimitives {
@@ -375,20 +369,15 @@ export class Client {
       localSpacePrimitives = new EventedSpacePrimitives(
         this.plugSpaceRemotePrimitives,
         this.eventHook,
-        [
-          "file:changed",
-          "file:listed",
-          "page:deleted",
-        ],
       );
     }
 
     this.space = new Space(localSpacePrimitives, this.kvStore, this.eventHook);
 
-    this.eventHook.addLocalListener("file:changed", (fileMeta: FileMeta) => {
+    this.eventHook.addLocalListener("file:changed", (path: string) => {
       // Only reload when watching the current page (to avoid reloading when switching pages)
       if (
-        this.space.watchInterval && `${this.currentPage}.md` === fileMeta.name
+        this.space.watchInterval && `${this.currentPage}.md` === path
       ) {
         console.log("Page changed elsewhere, reloading");
         this.flashNotification("Page changed elsewhere, reloading");

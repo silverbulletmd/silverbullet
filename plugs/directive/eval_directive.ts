@@ -44,7 +44,7 @@ export async function evalDirectiveRenderer(
     const result = await (0, eval)(
       `(async () => { 
         function invokeFunction(name, ...args) {
-          return syscall("system.invokeFunction", "server", name, ...args);
+          return syscall("system.invoke", name, ...args);
         }
         return ${replaceTemplateVars(translateJs(expression), pageMeta)};
       })()`,

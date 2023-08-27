@@ -30,10 +30,12 @@ import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
 import { IDBKeyRange, indexedDB } from "https://esm.sh/fake-indexeddb@4.0.2";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 
+const fileListInterval = 30 * 1000; // 30s
+
 export class ServerSystem {
   system: System<SilverBulletHooks> = new System("server");
   spacePrimitives!: SpacePrimitives;
-  requeueInterval?: number;
+  private requeueInterval?: number;
   kvStore?: DenoKVStore;
 
   constructor(
@@ -114,19 +116,31 @@ export class ServerSystem {
 
     await this.loadPlugs();
 
-    // for (let plugPath of await space.listPlugs()) {
-    //   plugPath = path.resolve(this.spacePath, plugPath);
-    //   await this.system.load(
-    //     new URL(`file://${plugPath}`),
-    //     createSandbox,
-    //   );
-    // }
-
     // Load markdown syscalls based on all new syntax (if any)
     this.system.registerSyscalls(
       [],
       markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system))),
     );
+
+    setInterval(() => {
+      space.updatePageList().catch(console.error);
+    }, fileListInterval);
+
+    eventHook.addLocalListener("file:changed", (path, localChange) => {
+      (async () => {
+        // console.log("!!!!! FILE CHANGED", path, localChange);
+        if (!localChange && path.endsWith(".md")) {
+          const pageName = path.slice(0, -3);
+          const data = await this.spacePrimitives.readFile(path);
+          console.log("Outside page change: reindexing", pageName);
+          // Change made outside of editor, trigger reindex
+          await eventHook.dispatchEvent("page:index_text", {
+            name: pageName,
+            text: new TextDecoder().decode(data.data),
+          });
+        }
+      })().catch(console.error);
+    });
   }
 
   async loadPlugs() {

@@ -9,7 +9,7 @@ export interface Manifest<HookT> {
   name: string;
 
   /** A list of syscall permissions required for this plug to function.
-   * 
+   *
    * Possible values:
    * - `fetch`: enables `fetch` function. (see: plug-api/plugos-syscall/fetch.ts, and plug-api/lib/fetch.ts)
    * - `shell`: enables the `shell.run` syscall. (see: plug-api/plugos-syscall/shell.ts)
@@ -17,28 +17,26 @@ export interface Manifest<HookT> {
   requiredPermissions?: string[];
 
   /** A list of files or glob patterns that should be bundled with the plug.
-   * 
+   *
    * These files will be accessible through the `asset.readAsset` function.
-   * 
+   *
    * see: plug-api/plugos-syscall/asset.ts#readAsset
    */
   assets?: string[] | AssetJson;
 
   /** A map of function names to definitions. Declared functions are public, and may be associated with various hooks
-   * 
+   *
    * see: common/manifest.ts#SilverBulletHooks
    */
-  functions: {
-    [key: string]: FunctionDef<HookT>;
-  };
+  functions: Record<string, FunctionDef<HookT>>;
 }
 
 /** Associates hooks with a function. This is the generic base structure, that identifies the function. Hooks are defined by the type parameter. */
 export type FunctionDef<HookT> = {
   /** A function path, in the form `${relativeFilename}:${functionName}`.
-   * 
+   *
    * During compilation (see `../build_plugs.ts`) the function is read from the file and inlined into the plug bundle.
-   * 
+   *
    * This field and `FunctionDef.redirect` are mutually exclusive.
    */
   path?: string;

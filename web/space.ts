@@ -65,36 +65,6 @@ export class Space {
   public async updatePageList() {
     // This will trigger appropriate events automatically
     await this.fetchPageList();
-    // const deletedPages = new Set<string>(this.pageMetaCache.keys());
-    // newPageList.forEach((meta) => {
-    //   const pageName = meta.name;
-    //   const oldPageMeta = this.pageMetaCache.get(pageName);
-    //   const newPageMeta: PageMeta = { ...meta };
-    //   if (
-    //     !oldPageMeta &&
-    //     (pageName.startsWith(plugPrefix) || !this.initialPageListLoad)
-    //   ) {
-    //     this.emit("pageCreated", newPageMeta);
-    //   } else if (
-    //     oldPageMeta &&
-    //     oldPageMeta.lastModified !== newPageMeta.lastModified
-    //   ) {
-    //     this.emit("pageChanged", newPageMeta);
-    //   }
-    //   // Page found, not deleted
-    //   deletedPages.delete(pageName);
-
-    //   // Update in cache
-    //   this.pageMetaCache.set(pageName, newPageMeta);
-    // });
-
-    // for (const deletedPage of deletedPages) {
-    //   this.pageMetaCache.delete(deletedPage);
-    //   this.emit("pageDeleted", deletedPage);
-    // }
-
-    // this.emit("pageListUpdated", this.listPages());
-    // this.initialPageListLoad = false;
   }
 
   async deletePage(name: string): Promise<void> {
