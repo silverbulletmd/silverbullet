@@ -2,10 +2,9 @@
 // data:page@pos
 
 import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
-import { index } from "$sb/silverbullet-syscall/mod.ts";
+import { index, YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import { applyQuery, removeQueries } from "$sb/lib/query.ts";
-import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: { key: string; value: any }[] = [];

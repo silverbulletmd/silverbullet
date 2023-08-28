@@ -11,7 +11,6 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { DenoKVStore } from "../plugos/lib/kv_store.deno_kv.ts";
-import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
@@ -19,16 +18,16 @@ import { storeSyscalls } from "../plugos/syscalls/store.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
 import { debugSyscalls } from "../web/syscalls/debug.ts";
-import { pageIndexSyscalls } from "../cli/syscalls/index.ts";
+import { pageIndexSyscalls } from "./syscalls/index.ts";
 import { markdownSyscalls } from "../web/syscalls/markdown.ts";
-import { spaceSyscalls } from "../cli/syscalls/space.ts";
+import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
 import { yamlSyscalls } from "../web/syscalls/yaml.ts";
 import { Application, path } from "./deps.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
-import { IDBKeyRange, indexedDB } from "https://esm.sh/fake-indexeddb@4.0.2";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import { DenoKvMQ } from "../plugos/lib/mq.deno_kv.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -38,6 +37,7 @@ export class ServerSystem {
   private requeueInterval?: number;
   kvStore?: DenoKVStore;
   listInterval?: number;
+  denoKv!: Deno.Kv;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
@@ -56,19 +56,15 @@ export class ServerSystem {
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
 
-    this.kvStore = new DenoKVStore();
-    await this.kvStore.init(this.dbPath);
+    this.denoKv = await Deno.openKv(this.dbPath);
+
+    this.kvStore = new DenoKVStore(this.denoKv);
 
     // Endpoint hook
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
     // Use DexieMQ for this, in memory
-    const mq = new DexieMQ("mq", indexedDB, IDBKeyRange);
-
-    this.requeueInterval = setInterval(() => {
-      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
-      mq.requeueTimeouts(5000, 3, true).catch(console.error);
-    }, 20000); // Look to requeue every 20s
+    const mq = new DenoKvMQ(this.denoKv);
 
     const pageIndexCalls = pageIndexSyscalls(this.kvStore);
 
@@ -148,9 +144,7 @@ export class ServerSystem {
     const tempDir = await Deno.makeTempDir();
     try {
       for (const { name } of await this.spacePrimitives.fetchFileList()) {
-        if (
-          name.endsWith(".plug.js") // && !filePath.includes("search.plug.js")
-        ) {
+        if (name.endsWith(".plug.js")) {
           const plugPath = path.join(tempDir, name);
           await Deno.mkdir(path.dirname(plugPath), { recursive: true });
           await Deno.writeFile(

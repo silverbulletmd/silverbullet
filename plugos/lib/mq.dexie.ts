@@ -1,18 +1,14 @@
 import Dexie, { Table } from "dexie";
-import { Message, QueueStats } from "$sb/types.ts";
+import { MQMessage, MQStats, MQSubscribeOptions } from "$sb/types.ts";
+import { MessageQueue } from "./mq.ts";
 
-export type ProcessingMessage = Message & {
+export type ProcessingMessage = MQMessage & {
   ts: number;
 };
 
-export type SubscribeOptions = {
-  batchSize?: number;
-  pollInterval?: number;
-};
-
-export class DexieMQ {
+export class DexieMQ implements MessageQueue {
   db: Dexie;
-  queued: Table<Message, [string, string]>;
+  queued: Table<MQMessage, [string, string]>;
   processing: Table<ProcessingMessage, [string, string]>;
   dlq: Table<ProcessingMessage, [string, string]>;
 
@@ -63,13 +59,15 @@ export class DexieMQ {
     return this.batchSend(queue, [body]);
   }
 
-  poll(queue: string, maxItems: number): Promise<Message[]> {
+  poll(queue: string, maxItems: number): Promise<MQMessage[]> {
     return this.db.transaction(
       "rw",
       [this.queued, this.processing],
       async (tx) => {
         const messages =
-          (await tx.table<Message, [string, string]>("queued").where({ queue })
+          (await tx.table<MQMessage, [string, string]>("queued").where({
+            queue,
+          })
             .sortBy("id")).slice(0, maxItems);
         const ids: [string, string][] = messages.map((m) => [queue, m.id]);
         await tx.table("queued").bulkDelete(ids);
@@ -93,8 +91,8 @@ export class DexieMQ {
    */
   subscribe(
     queue: string,
-    options: SubscribeOptions,
-    callback: (messages: Message[]) => Promise<void> | void,
+    options: MQSubscribeOptions,
+    callback: (messages: MQMessage[]) => Promise<void> | void,
   ): () => void {
     let running = true;
     let timeout: number | undefined;
@@ -219,7 +217,7 @@ export class DexieMQ {
     return this.dlq.clear();
   }
 
-  getQueueStats(queue: string): Promise<QueueStats> {
+  getQueueStats(queue: string): Promise<MQStats> {
     return this.db.transaction(
       "r",
       [this.queued, this.processing, this.dlq],
@@ -237,8 +235,8 @@ export class DexieMQ {
     );
   }
 
-  async getAllQueueStats(): Promise<Record<string, QueueStats>> {
-    const allStatus: Record<string, QueueStats> = {};
+  async getAllQueueStats(): Promise<Record<string, MQStats>> {
+    const allStatus: Record<string, MQStats> = {};
     await this.db.transaction(
       "r",
       [this.queued, this.processing, this.dlq],

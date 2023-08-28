@@ -1,10 +1,10 @@
 // This is some shocking stuff. My profession would kill me for this.
 
-import { YAML } from "$sb/plugos-syscall/mod.ts";
+import { YAML } from "$sb/syscalls.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
-import { PageMeta } from "../../web/types.ts";
-import { replaceTemplateVars } from "../core/template.ts";
+import type { PageMeta } from "../../web/types.ts";
+import { replaceTemplateVars } from "../template/template.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions
 function translateJs(js: string): string {
@@ -44,7 +44,7 @@ export async function evalDirectiveRenderer(
     const result = await (0, eval)(
       `(async () => { 
         function invokeFunction(name, ...args) {
-          return syscall("system.invoke", name, ...args);
+          return syscall("system.invokeFunction", name, ...args);
         }
         return ${replaceTemplateVars(translateJs(expression), pageMeta)};
       })()`,

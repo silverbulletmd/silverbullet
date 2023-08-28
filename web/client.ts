@@ -47,7 +47,6 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
-      thinClientMode: "on" | "off";
     };
     client: Client;
   }

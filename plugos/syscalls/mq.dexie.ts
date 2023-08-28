@@ -1,9 +1,9 @@
 import { SysCallMapping } from "../system.ts";
-import { DexieMQ } from "../lib/mq.dexie.ts";
 import { fullQueueName } from "../lib/mq_util.ts";
+import { MessageQueue } from "../lib/mq.ts";
 
 export function mqSyscalls(
-  mq: DexieMQ,
+  mq: MessageQueue,
 ): SysCallMapping {
   return {
     "mq.send": (ctx, queue: string, body: any) => {

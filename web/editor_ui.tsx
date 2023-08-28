@@ -195,7 +195,7 @@ export class MainUI {
               return;
             }
             console.log("Now renaming page to...", newName);
-            await editor.system.system.loadedPlugs.get("core")!.invoke(
+            await editor.system.system.loadedPlugs.get("index")!.invoke(
               "renamePageCommand",
               [{ page: newName }],
             );

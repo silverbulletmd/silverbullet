@@ -57,7 +57,7 @@ A simple example is multiplying numbers:
 
 However, you can also invoke arbitrary plug functions, e.g. the `titleUnfurlOptions` function in the `core` plug:
 
-    <!-- #eval core.titleUnfurlOptions() -->
+    <!-- #eval editor.titleUnfurlOptions() -->
     |id          |name         |
     |------------|-------------|
     |title-unfurl|Extract title|
@@ -65,7 +65,7 @@ However, you can also invoke arbitrary plug functions, e.g. the `titleUnfurlOpti
 
 Optionally, you can use a `render` clause to render the result as a template, similar to [[🔌 Directive/Query]]:
 
-    <!-- #eval core.titleUnfurlOptions() render [[template/debug]] -->
+    <!-- #eval editor.titleUnfurlOptions() render [[template/debug]] -->
     id: title-unfurl
     name: Extract title
     ---

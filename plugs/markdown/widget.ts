@@ -1,13 +1,13 @@
-import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
+import { markdown } from "$sb/syscalls.ts";
 import type { WidgetContent } from "$sb/app_event.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 
 export async function markdownWidget(
   bodyText: string,
 ): Promise<WidgetContent> {
-  const mdTree = await parseMarkdown(bodyText);
+  const mdTree = await markdown.parseMarkdown(bodyText);
 
-  const html = await renderMarkdownToHtml(mdTree, {
+  const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
   });
   return Promise.resolve({

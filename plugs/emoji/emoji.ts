@@ -1,5 +1,5 @@
 import emojis from "./emoji.json" assert { type: "json" };
-import type { CompleteEvent } from "../../plug-api/app_event.ts";
+import type { CompleteEvent } from "$sb/app_event.ts";
 
 export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
   const match = /:([\w]+)$/.exec(linePrefix);

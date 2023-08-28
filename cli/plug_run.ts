@@ -38,7 +38,7 @@ export async function runPlug(
   });
 
   if (indexFirst) {
-    await serverSystem.system.loadedPlugs.get("core")!.invoke(
+    await serverSystem.system.loadedPlugs.get("index")!.invoke(
       "reindexSpace",
       [],
     );
@@ -53,8 +53,8 @@ export async function runPlug(
     }
     const result = await plug.invoke(funcName, args);
     await serverSystem.close();
-    await serverSystem.kvStore?.delete();
-    // await Deno.remove(tempFile);
+    serverSystem.denoKv.close();
+    await Deno.remove(tempFile);
     serverController.abort();
     return result;
   } else {

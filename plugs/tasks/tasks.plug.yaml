@@ -20,7 +20,7 @@ syntax:
       backgroundColor: "rgba(22,22,22,0.07)"
 functions:
   turnIntoTask:
-    redirect: core.applyLineReplace
+    redirect: template.applyLineReplace
     slashCommand:
       name: task
       description: Turn into task

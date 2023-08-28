@@ -11,21 +11,17 @@ export function systemSyscalls(
   const api: SysCallMapping = {
     "system.invokeFunction": (
       ctx,
-      _env: string,
-      name: string,
-      ...args: any[]
-    ) => {
-      // For backwards compatibility
-      // TODO: Remove at some point
-      return api["system.invoke"](ctx, name, ...args);
-    },
-    "system.invoke": (
-      ctx,
       name: string,
       ...args: any[]
     ) => {
       if (!ctx.plug) {
         throw Error("No plug associated with context");
+      }
+
+      if (name === "server" || name === "client") {
+        // Backwards compatibility mode (previously there was an 'env' argument)
+        name = args[0];
+        args = args.slice(1);
       }
 
       let plug: Plug<any> | undefined = ctx.plug;
@@ -44,7 +40,7 @@ export function systemSyscalls(
       }
       if (functionDef.env && system.env && functionDef.env !== system.env) {
         // Proxy to another environment
-        return proxySyscall(editor.remoteSpacePrimitives, name, args);
+        return proxySyscall(ctx, editor.remoteSpacePrimitives, name, args);
       }
       return plug.invoke(name, args);
     },

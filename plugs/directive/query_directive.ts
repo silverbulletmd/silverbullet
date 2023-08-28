@@ -1,11 +1,11 @@
-import { events } from "$sb/plugos-syscall/mod.ts";
+import { events } from "$sb/syscalls.ts";
 
-import { replaceTemplateVars } from "../core/template.ts";
+import { replaceTemplateVars } from "../template/template.ts";
 import { renderTemplate } from "./util.ts";
 import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
-import { PageMeta } from "../../web/types.ts";
+import type { PageMeta } from "../../web/types.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,

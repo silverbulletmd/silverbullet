@@ -1,14 +1,9 @@
 import { queryRegex } from "$sb/lib/query.ts";
-import {
-  findNodeOfType,
-  ParseTree,
-  renderToText,
-  traverseTree,
-} from "$sb/lib/tree.ts";
-import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
+import { ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { markdown, space } from "$sb/syscalls.ts";
 import Handlebars from "handlebars";
 
-import { replaceTemplateVars } from "../core/template.ts";
+import { replaceTemplateVars } from "../template/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";

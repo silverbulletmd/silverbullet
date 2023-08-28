@@ -1,4 +1,4 @@
-import { editor, markdown, space, sync } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, mq, space, sync } from "$sb/syscalls.ts";
 import {
   ParseTree,
   removeParentPointers,
@@ -7,10 +7,9 @@ import {
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { PageMeta } from "../../web/types.ts";
+import type { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
-import { mq } from "$sb/plugos-syscall/mod.ts";
-import { Message } from "$sb/types.ts";
+import { MQMessage } from "$sb/types.ts";
 import { sleep } from "../../common/async_util.ts";
 
 const directiveUpdateQueueName = "directiveUpdateQueue";
@@ -92,7 +91,7 @@ export async function updateDirectivesInSpaceCommand() {
   await editor.flashNotification("Updating of all directives completed!");
 }
 
-export async function processUpdateQueue(messages: Message[]) {
+export async function processUpdateQueue(messages: MQMessage[]) {
   for (const message of messages) {
     const pageName: string = message.body;
     console.log("Updating directives in page", pageName);

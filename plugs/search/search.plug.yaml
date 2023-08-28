@@ -3,7 +3,7 @@ functions:
   indexPage:
    path: search.ts:indexPage
    # Only enable in client for now
-   env: client
+  #  env: client
    events:
    - page:index
 

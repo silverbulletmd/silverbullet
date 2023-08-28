@@ -1,8 +1,7 @@
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { store } from "$sb/plugos-syscall/mod.ts";
 import { applyQuery } from "$sb/lib/query.ts";
-import { editor, index } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, index, store } from "$sb/syscalls.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
 import { FileMeta } from "$sb/types.ts";
 
@@ -26,10 +25,10 @@ class StoreKVStore implements BatchKVStore<string, string[]> {
   }
 }
 
-const engine = new SimpleSearchEngine(
-  new StoreKVStore("fts:"),
-  new StoreKVStore("fts_rev:"),
-);
+const ftsKvStore = new StoreKVStore("fts:");
+const ftsRevKvStore = new StoreKVStore("fts_rev:");
+
+const engine = new SimpleSearchEngine(ftsKvStore, ftsRevKvStore);
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   const text = renderToText(tree);

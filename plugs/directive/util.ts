@@ -1,7 +1,7 @@
 import Handlebars from "handlebars";
 
-import { space } from "$sb/silverbullet-syscall/mod.ts";
-import { PageMeta } from "../../web/types.ts";
+import { space } from "$sb/syscalls.ts";
+import type { PageMeta } from "../../web/types.ts";
 import { handlebarHelpers } from "./handlebar_helpers.ts";
 
 const maxWidth = 70;

@@ -3,6 +3,12 @@ release.
 
 ---
 
+## Next
+* Another heavy behind-the-scenes refactoring release, refactoring the large “core” plug into multiple smaller ones, documentation to be updated to reflect this.
+* Removed [[Cloud Links]] support in favor of [[Federation]]
+
+---
+
 ## 0.3.11
 
 * Cookies set when using SilverBullet's built-in [[Authentication]] are now per domain + port, allowing you to run multiple instances of SB on a single host with different ports without the authentication interfering.

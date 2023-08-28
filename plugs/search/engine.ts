@@ -58,7 +58,7 @@ export class SimpleSearchEngine {
     const uniqueStemmedWords = [...new Set(stemmedWords)];
     const currentIdsArray = await this.index.get(uniqueStemmedWords);
 
-    stemmedWords.forEach((stemmedWord, i) => {
+    stemmedWords.forEach((stemmedWord) => {
       const currentIds =
         currentIdsArray[uniqueStemmedWords.indexOf(stemmedWord)] || [];
 

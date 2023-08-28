@@ -1,5 +1,4 @@
-import { events } from "$sb/plugos-syscall/mod.ts";
-import { editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, events, markdown } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PublishEvent } from "$sb/app_event.ts";
 

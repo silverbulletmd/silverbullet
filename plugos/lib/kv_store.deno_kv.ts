@@ -5,23 +5,7 @@ import { KV, KVStore } from "./kv_store.ts";
 const kvBatchSize = 10;
 
 export class DenoKVStore implements KVStore {
-  kv!: Deno.Kv;
-  path: string | undefined;
-
-  async init(path?: string) {
-    this.path = path;
-    this.kv = await Deno.openKv(path);
-  }
-
-  close() {
-    this.kv.close();
-  }
-
-  async delete() {
-    this.kv.close();
-    if (this.path) {
-      await Deno.remove(this.path);
-    }
+  constructor(private kv: Deno.Kv) {
   }
 
   del(key: string): Promise<void> {

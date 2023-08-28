@@ -4,13 +4,7 @@ import type {
   QueryProviderEvent,
 } from "$sb/app_event.ts";
 
-import {
-  editor,
-  index,
-  markdown,
-  space,
-  sync,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { editor, index, markdown, space, sync } from "$sb/syscalls.ts";
 
 import {
   addParentPointers,
@@ -26,7 +20,7 @@ import { applyQuery, removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { indexAttributes } from "../core/attributes.ts";
+import { indexAttributes } from "../index/attributes.ts";
 
 export type Task = {
   name: string;

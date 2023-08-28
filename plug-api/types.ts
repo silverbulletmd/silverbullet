@@ -1,14 +1,19 @@
-export type Message = {
+export type MQMessage = {
   id: string;
   queue: string;
   body: any;
   retries?: number;
 };
 
-export type QueueStats = {
+export type MQStats = {
   queued: number;
   processing: number;
   dlq: number;
+};
+
+export type MQSubscribeOptions = {
+  batchSize?: number;
+  pollInterval?: number;
 };
 
 export type FileMeta = {

@@ -1,7 +1,8 @@
 import { safeRun } from "../common/util.ts";
 import { Client } from "./client.ts";
 
-const thinClientMode = window.silverBulletConfig.thinClientMode === "on";
+const thinClientMode = !!localStorage.getItem("thinClientMode");
+
 safeRun(async () => {
   console.log("Booting SilverBullet...");
 

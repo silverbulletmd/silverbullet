@@ -1,8 +1,8 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { DexieMQ } from "../lib/mq.dexie.ts";
 import { fullQueueName } from "../lib/mq_util.ts";
-import { Message } from "$sb/types.ts";
+import { MQMessage } from "$sb/types.ts";
+import { MessageQueue } from "../lib/mq.ts";
 
 type MQSubscription = {
   queue: string;
@@ -17,7 +17,7 @@ export type MQHookT = {
 export class MQHook implements Hook<MQHookT> {
   subscriptions: (() => void)[] = [];
 
-  constructor(private system: System<MQHookT>, readonly mq: DexieMQ) {
+  constructor(private system: System<MQHookT>, readonly mq: MessageQueue) {
   }
 
   apply(system: System<MQHookT>): void {
@@ -64,7 +64,7 @@ export class MQHook implements Hook<MQHookT> {
               {
                 batchSize: subscriptionDef.batchSize,
               },
-              async (messages: Message[]) => {
+              async (messages: MQMessage[]) => {
                 try {
                   await plug.invoke(name, [messages]);
                   if (subscriptionDef.autoAck) {

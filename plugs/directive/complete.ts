@@ -1,11 +1,11 @@
-import { events } from "$sb/plugos-syscall/mod.ts";
+import { events } from "$sb/syscalls.ts";
 import { CompleteEvent } from "$sb/app_event.ts";
 import { buildHandebarOptions } from "./util.ts";
 import type { PageMeta } from "../../web/types.ts";
-import {
+import type {
   AttributeCompleteEvent,
   AttributeCompletion,
-} from "../core/attributes.ts";
+} from "../index/attributes.ts";
 
 export async function queryComplete(completeEvent: CompleteEvent) {
   const querySourceMatch = /#query\s+([\w\-_]*)$/.exec(

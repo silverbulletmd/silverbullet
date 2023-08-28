@@ -1,0 +1,9 @@
+name: sync
+functions:
+  syncSpaceCommand:
+    path: "./sync.ts:syncSpaceCommand"
+    command:
+      name: "Sync: Now"
+      key: "Alt-Shift-s"
+      mac: "Cmd-Shift-s"
+

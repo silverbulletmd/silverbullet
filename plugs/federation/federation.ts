@@ -1,8 +1,8 @@
 import "$sb/lib/fetch.ts";
 import { federatedPathToUrl } from "$sb/lib/resolve.ts";
 import { readFederationConfigs } from "./config.ts";
-import { store } from "$sb/plugos-syscall/mod.ts";
-import { FileMeta } from "$sb/types.ts";
+import { store } from "$sb/syscalls.ts";
+import type { FileMeta } from "$sb/types.ts";
 
 async function responseToFileMeta(
   r: Response,

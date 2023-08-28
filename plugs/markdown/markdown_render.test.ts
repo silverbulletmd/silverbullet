@@ -10,7 +10,7 @@ import { assertEquals } from "../../test_deps.ts";
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
   await system.load(
-    new URL("../../dist_plug_bundle/_plug/core.plug.js", import.meta.url),
+    new URL("../../dist_plug_bundle/_plug/editor.plug.js", import.meta.url),
     createSandbox,
   );
   await system.load(

@@ -1,0 +1,133 @@
+name: index
+syntax:
+  Hashtag:
+    firstCharacters:
+      - "#"
+    regex: "#[^#\\d\\s\\[\\]]+\\w+"
+    className: sb-hashtag
+  NamedAnchor:
+    firstCharacters:
+      - "$"
+    regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
+    className: sb-named-anchor
+functions:
+  clearPageIndex:
+    path: "./page.ts:clearPageIndex"
+    env: server
+    events:
+      - page:saved
+      - page:deleted
+  pageQueryProvider:
+    path: ./page.ts:pageQueryProvider
+    events:
+      - query:page
+  parseIndexTextRepublish:
+    path: "./page.ts:parseIndexTextRepublish"
+    env: server
+    events:
+      - page:index_text
+  reindexSpaceCommand:
+    path: "./page.ts:reindexCommand"
+    command:
+      name: "Space: Reindex"
+  processIndexQueue:
+    path: ./page.ts:processIndexQueue
+    mqSubscriptions:
+    - queue: indexQueue
+      batchSize: 10
+      autoAck: true
+  reindexSpace:
+    path: "./page.ts:reindexSpace"
+
+  # Attachments
+  attachmentQueryProvider:
+    path: ./attachment.ts:attachmentQueryProvider
+    events:
+      - query:attachment
+
+  # Backlinks
+  indexLinks:
+    path: "./page_links.ts:indexLinks"
+    events:
+      - page:index
+  linkQueryProvider:
+    path: ./page_links.ts:linkQueryProvider
+    events:
+      - query:link
+
+  attributeComplete:
+    path: "./attributes.ts:attributeComplete"
+    events:
+    - editor:complete
+
+  customAttributeCompleter:
+    path: ./attributes.ts:customAttributeCompleter
+    events:
+    - attribute:complete:page
+    - attribute:complete:task
+    - attribute:complete:item
+    - attribute:complete:*
+
+  builtinAttributeCompleter:
+    path: ./attributes.ts:builtinAttributeCompleter
+    events:
+    - attribute:complete:page
+    - attribute:complete:task
+    - attribute:complete:item
+    - attribute:complete:*
+
+  # Item indexing
+  indexItem:
+    path: "./item.ts:indexItems"
+    events:
+      - page:index
+  itemQueryProvider:
+    path: "./item.ts:queryProvider"
+    events:
+      - query:item
+
+  # Anchors
+  indexAnchors:
+    path: "./anchor.ts:indexAnchors"
+    events:
+      - page:index
+  anchorComplete:
+    path: "./anchor.ts:anchorComplete"
+    events:
+      - editor:complete
+  
+
+
+  # Hashtags
+  indexTags:
+    path: "./tags.ts:indexTags"
+    events:
+      - page:index
+  tagComplete:
+    path: "./tags.ts:tagComplete"
+    events:
+      - editor:complete
+  tagProvider:
+    path: "./tags.ts:tagProvider"
+    events:
+      - query:tag
+
+  renamePageCommand:
+    path: "./refactor.ts:renamePageCommand"
+    command:
+      name: "Page: Rename"
+      mac: Cmd-Alt-r
+      key: Ctrl-Alt-r
+      page: ""
+  renamePrefixCommand:
+    path: "./refactor.ts:renamePrefixCommand"
+    command:
+      name: "Page: Batch Rename Prefix"
+
+  # Refactoring Commands
+  extractToPageCommand:
+    path: ./refactor.ts:extractToPageCommand
+    command:
+      name: "Page: Extract"
+
+

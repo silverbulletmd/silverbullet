@@ -35,6 +35,7 @@ import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
 import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
+import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -82,7 +83,9 @@ export class ClientSystem {
     this.system.addHook(this.codeWidgetHook);
 
     // MQ hook
-    this.system.addHook(new MQHook(this.system, this.mq));
+    if (!this.thinClientMode) {
+      this.system.addHook(new MQHook(this.system, this.mq));
+    }
 
     // Command hook
     this.commandHook = new CommandHook();
@@ -120,17 +123,17 @@ export class ClientSystem {
     //   console.log("New file list", files);
     // });
 
-    this.eventHook.addLocalListener("file:changed", (file) => {
-      console.log("File changed", file);
-    });
+    // this.eventHook.addLocalListener("file:changed", (file) => {
+    //   console.log("File changed", file);
+    // });
 
-    this.eventHook.addLocalListener("file:created", (file) => {
-      console.log("File created", file);
-    });
+    // this.eventHook.addLocalListener("file:created", (file) => {
+    //   console.log("File created", file);
+    // });
 
-    this.eventHook.addLocalListener("file:deleted", (file) => {
-      console.log("File deleted", file);
-    });
+    // this.eventHook.addLocalListener("file:deleted", (file) => {
+    //   console.log("File deleted", file);
+    // });
 
     this.registerSyscalls();
   }
@@ -154,7 +157,7 @@ export class ClientSystem {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      mqSyscalls(this.mq),
+      this.thinClientMode ? mqProxySyscalls(this.client) : mqSyscalls(this.mq),
       storeCalls,
       this.indexSyscalls,
       debugSyscalls(),

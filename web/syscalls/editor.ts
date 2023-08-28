@@ -171,9 +171,20 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       return editor.confirm(message);
     },
     "editor.getUiOption": (_ctx, key: string): any => {
+      if (key === "thinClientMode") {
+        return !!localStorage.getItem("thinClientMode");
+      }
       return (editor.ui.viewState.uiOptions as any)[key];
     },
     "editor.setUiOption": (_ctx, key: string, value: any) => {
+      if (key === "thinClientMode") {
+        if (value) {
+          localStorage.setItem("thinClientMode", "true");
+        } else {
+          localStorage.removeItem("thinClientMode");
+        }
+        return;
+      }
       editor.ui.viewDispatch({
         type: "set-ui-option",
         key,

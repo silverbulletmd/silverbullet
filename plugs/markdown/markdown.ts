@@ -1,7 +1,6 @@
-import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import { clientStore, editor } from "$sb/syscalls.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { updateMarkdownPreview } from "./preview.ts";
-import { clientStore } from "$sb/silverbullet-syscall/mod.ts";
 
 export async function togglePreview() {
   const currentValue = !!(await clientStore.get("enableMarkdownPreview"));

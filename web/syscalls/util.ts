@@ -1,19 +1,21 @@
+import { plugCompileCommand } from "../../cmd/plug_compile.ts";
 import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
 import { SyscallResponse } from "../../server/rpc.ts";
 import { Client } from "../client.ts";
 
 export function proxySyscalls(client: Client, names: string[]): SysCallMapping {
   const syscalls: SysCallMapping = {};
   for (const name of names) {
-    syscalls[name] = (_ctx, ...args: any[]) => {
-      return proxySyscall(client.remoteSpacePrimitives, name, args);
+    syscalls[name] = (ctx, ...args: any[]) => {
+      return proxySyscall(ctx, client.remoteSpacePrimitives, name, args);
     };
   }
   return syscalls;
 }
 
 export async function proxySyscall(
+  ctx: SyscallContext,
   httpSpacePrimitives: HttpSpacePrimitives,
   name: string,
   args: any[],
@@ -23,6 +25,7 @@ export async function proxySyscall(
     {
       method: "POST",
       body: JSON.stringify({
+        ctx: ctx.plug.name,
         operation: "syscall",
         name,
         args,

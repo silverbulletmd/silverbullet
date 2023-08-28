@@ -34,14 +34,12 @@
     };
     window.silverBulletConfig = {
       // These {{VARIABLES}} are replaced by http_server.ts
-      spaceFolderPath: "{{SPACE_PATH}}",
-      thinClientMode: "{{THIN_CLIENT_MODE}}",
+      spaceFolderPath: "{{SPACE_PATH}}"
     };
     // But in case these variables aren't replaced by the server, fall back fully static mode (no sync)
     if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
       window.silverBulletConfig = {
         spaceFolderPath: "",
-        thinClientMode: "off",
       };
     }
   </script>

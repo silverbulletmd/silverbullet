@@ -1,0 +1,240 @@
+name: editor
+requiredPermissions:
+  - fetch
+syntax:
+  NakedURL:
+    firstCharacters:
+      - "h"
+    regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
+    className: sb-naked-url
+functions:
+  setEditorMode:
+    path: "./editor.ts:setEditorMode"
+    events:
+      - editor:init
+  toggleDarkMode:
+    path: "./editor.ts:toggleDarkMode"
+    command:
+      name: "Editor: Toggle Dark Mode"
+
+  # Page operations
+  deletePage:
+    path: "./page.ts:deletePage"
+    command:
+      name: "Page: Delete"
+  copyPage:
+    path: "./page.ts:copyPage"
+    command:
+      name: "Page: Copy"
+  newPage:
+    path: ./page.ts:newPageCommand
+    command:
+      name: "Page: New"
+      key: "Alt-Shift-n"
+
+  # Completion
+  pageComplete:
+    path: "./page.ts:pageComplete"
+    events:
+      - editor:complete
+  commandComplete:
+    path: "./command.ts:commandComplete"
+    events:
+      - editor:complete
+
+  # Navigation
+  linkNavigate:
+    path: "./navigate.ts:linkNavigate"
+    command:
+      name: Navigate To page
+      key: Ctrl-Enter
+      mac: Cmd-Enter
+  clickNavigate:
+    path: "./navigate.ts:clickNavigate"
+    events:
+      - page:click
+  navigateHome:
+    path: "./navigate.ts:navigateCommand"
+    command:
+      name: "Navigate: Home"
+      key: "Alt-h"
+      page: ""
+
+  # Text editing commands
+  quoteSelectionCommand:
+    path: ./text.ts:quoteSelection
+    command:
+      name: "Text: Quote Selection"
+      key: "Ctrl-Shift-."
+      mac: "Cmd-Shift-."
+  listifySelection:
+    path: ./text.ts:listifySelection
+    command:
+      name: "Text: Listify Selection"
+      key: "Ctrl-Shift-8"
+      mac: "Cmd-Shift-8"
+  numberListifySelection:
+    path: ./text.ts:numberListifySelection
+    command:
+      name: "Text: Number Listify Selection"
+  linkSelection:
+    path: ./text.ts:linkSelection
+    command:
+      name: "Text: Link Selection"
+      key: "Ctrl-Shift-k"
+      mac: "Cmd-Shift-k"
+  bold:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Bold"
+      key: "Ctrl-b"
+      mac: "Cmd-b"
+      wrapper: "**"
+  italic:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Italic"
+      key: "Ctrl-i"
+      mac: "Cmd-i"
+      wrapper: "_"
+  strikethrough:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Strikethrough"
+      key: "Ctrl-Shift-s"
+      mac: "Cmd-Shift-s"
+      wrapper: "~~"
+  marker:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Marker"
+      key: "Alt-m"
+      wrapper: "=="
+  centerCursor:
+    path: "./editor.ts:centerCursorCommand"
+    command:
+      name: "Editor: Center Cursor"
+      key: "Ctrl-Alt-l"
+  moveToPos:
+    path: "./editor.ts:moveToPosCommand"
+    command:
+      name: "Editor: Move Cursor to Position"
+
+  # Debug commands
+  parseCommand:
+    path: ./debug.ts:parsePageCommand
+    command:
+      name: "Debug: Parse Document"
+
+  # Link unfurl infrastructure
+  unfurlLink:
+    path: ./link.ts:unfurlCommand
+    command:
+      name: "Link: Unfurl"
+      key: "Ctrl-Shift-u"
+      mac: "Cmd-Shift-u"
+      contexts:
+        - NakedURL
+
+  # Title-based link unfurl
+  titleUnfurlOptions:
+    path: ./link.ts:titleUnfurlOptions
+    events:
+      - unfurl:options
+  titleUnfurl:
+    path: ./link.ts:titleUnfurl
+    events:
+      - unfurl:title-unfurl
+
+  embedWidget:
+    path: ./embed.ts:embedWidget
+    codeWidget: embed
+
+  # Folding commands
+  foldCommand:
+    path: ./editor.ts:foldCommand
+    command:
+      name: "Fold: Fold"
+      mac: "Cmd-Alt-["
+      key: "Ctrl-Shift-["
+  unfoldCommand:
+    path: ./editor.ts:unfoldCommand
+    command:
+      name: "Fold: Unfold"
+      mac: "Cmd-Alt-]"
+      key: "Ctrl-Shift-]"
+  toggleFoldCommand:
+    path: ./editor.ts:toggleFoldCommand
+    command:
+      name: "Fold: Toggle Fold"
+      mac: "Cmd-Alt-f"
+      key: "Ctrl-Alt-f"
+  foldAllCommand:
+    path: ./editor.ts:foldAllCommand
+    command:
+      name: "Fold: Fold All"
+      key: "Ctrl-Alt-["
+  unfoldAllCommand:
+    path: ./editor.ts:unfoldAllCommand
+    command:
+      name: "Fold: Unfold All"
+      key: "Ctrl-Alt-]"
+
+  # Vim
+  toggleVimMode:
+    path: "./vim.ts:toggleVimMode"
+    command:
+      name: "Editor: Toggle Vim Mode"
+  loadVimRc:
+    path: "./vim.ts:loadVimRc"
+    command:
+      name: "Editor: Vim: Load VIMRC"
+    events:
+      - editor:modeswitch
+
+  brokenLinksCommand:
+    path: ./broken_links.ts:brokenLinksCommand
+    command:
+      name: "Broken Links: Show"
+
+  # Client mode
+  enableThinClient:
+    path: ./client.ts:setThinClient
+    command:
+      name: "Client: Enable Thin Client"
+      value: true
+  disableThinClient:
+    path: ./client.ts:setThinClient
+    command:
+      name: "Client: Disable Thin Client"
+      value: false
+
+  # Random stuff
+  statsCommand:
+    path: ./stats.ts:statsCommand
+    command:
+      name: "Stats: Show"
+  reloadUICommand:
+    path: ./debug.ts:reloadUICommand
+    command:
+      name: "Debug: Reload UI"
+
+  resetClientCommand:
+    path: ./debug.ts:resetClientCommand
+    command:
+      name: "Debug: Reset Client"
+
+  versionCommand:
+    path: ./help.ts:versionCommand
+    command:
+      name: "Help: Version"
+  gettingStartedCommand:
+    path: ./help.ts:gettingStartedCommand
+    command:
+      name: "Help: Getting Started"
+
+  accountLogoutCommand:
+    path: ./account.ts:accountLogoutCommand
+    command:
+      name: "Account: Logout"
+
