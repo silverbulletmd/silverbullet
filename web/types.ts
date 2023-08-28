@@ -34,7 +34,7 @@ export type PanelMode = number;
 
 export type BuiltinSettings = {
   indexPage: string;
-  customStyles?: string;
+  customStyles?: string | string[];
   plugOverrides?: Record<string, Partial<Manifest>>;
   // Format: compatible with docker ignore
   spaceIgnore?: string;

@@ -794,20 +794,29 @@ export class Client {
 
   async loadCustomStyles() {
     if (this.settings.customStyles) {
-      try {
-        const { text: stylesText } = await this.space.readPage(
-          cleanPageRef(this.settings.customStyles),
-        );
-        const cssBlockRegex = /```css([^`]+)```/;
-        const match = cssBlockRegex.exec(stylesText);
-        if (!match) {
-          return;
-        }
-        const css = match[1];
-        document.getElementById("custom-styles")!.innerHTML = css;
-      } catch (e: any) {
-        console.error("Failed to load custom styles", e);
+      const accumulatedCSS: string[] = [];
+      let customStylePages = this.settings.customStyles;
+      if (!Array.isArray(customStylePages)) {
+        customStylePages = [customStylePages];
       }
+      for (const customStylesPage of customStylePages) {
+        try {
+          const { text: stylesText } = await this.space.readPage(
+            cleanPageRef(customStylesPage),
+          );
+          const cssBlockRegex = /```css([^`]+)```/;
+          const match = cssBlockRegex.exec(stylesText);
+          if (!match) {
+            return;
+          }
+          accumulatedCSS.push(match[1]);
+        } catch (e: any) {
+          console.error("Failed to load custom styles", e);
+        }
+      }
+      document.getElementById("custom-styles")!.innerHTML = accumulatedCSS.join(
+        "\n\n",
+      );
     }
   }
 

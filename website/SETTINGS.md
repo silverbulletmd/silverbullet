@@ -4,7 +4,7 @@ This page contains settings for configuring SilverBullet and its Plugs. Changing
 # Initial page to load when launching SB
 indexPage: "[[SilverBullet]]"
 
-# Load custom CSS styles from the following page
+# Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
 
 # Template related settings
