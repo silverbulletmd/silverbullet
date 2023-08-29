@@ -51,7 +51,7 @@ The best part about data sources: there is auto-completion. 🎉
 
 Start writing `<!— #query` or simply use `/query` slash command, it will show you all available data sources. 🤯
 
-Additionally there are [[🔌 Core/Templates@vars|special variables]] you can use in your queries. 
+Additionally there are [[🔌 Template@vars|special variables]] you can use in your queries. 
 
 For example, if you wanted a query for all the tasks from a previous day's daily note, you could use the following query: 
 `<!-- #query task where page = "📅 {{yesterday}}" -->`

@@ -10,7 +10,7 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import type { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 import { MQMessage } from "$sb/types.ts";
-import { sleep } from "../../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 
 const directiveUpdateQueueName = "directiveUpdateQueue";
 

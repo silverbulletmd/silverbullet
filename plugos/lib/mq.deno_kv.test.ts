@@ -1,4 +1,4 @@
-import { sleep } from "../../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 import { DenoKvMQ } from "./mq.deno_kv.ts";
 
 Deno.test("Deno MQ", async () => {

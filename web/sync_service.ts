@@ -1,4 +1,4 @@
-import { sleep } from "../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import {
   SpaceSync,
@@ -7,6 +7,7 @@ import {
 } from "../common/spaces/sync.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { KVStore } from "../plugos/lib/kv_store.ts";
+import { Space } from "./space.ts";
 
 // Keeps the current sync snapshot
 const syncSnapshotKey = "syncSnapshot";
@@ -31,11 +32,21 @@ const spaceSyncInterval = 17 * 1000; // Every 17s or so
 // Used from Client
 export const pageSyncInterval = 6000;
 
+export interface ISyncService {
+  start(): void;
+  isSyncing(): Promise<boolean>;
+  hasInitialSyncCompleted(): Promise<boolean>;
+  noOngoingSync(_timeout: number): Promise<void>;
+  syncFile(name: string): Promise<void>;
+  scheduleFileSync(_path: string): Promise<void>;
+  scheduleSpaceSync(): Promise<void>;
+}
+
 /**
  * The SyncService primarily wraps the SpaceSync engine but also coordinates sync between
  * different browser tabs. It is using the KVStore to keep track of sync state.
  */
-export class SyncService {
+export class SyncService implements ISyncService {
   spaceSync: SpaceSync;
   lastReportedSyncStatus = Date.now();
 
@@ -45,7 +56,6 @@ export class SyncService {
     private kvStore: KVStore,
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
-    private enabled: boolean,
   ) {
     this.spaceSync = new SpaceSync(
       this.localSpacePrimitives,
@@ -72,12 +82,15 @@ export class SyncService {
       const path = `${name}.md`;
       this.scheduleFileSync(path).catch(console.error);
     });
+
+    this.spaceSync.on({
+      fileSynced: (meta, direction) => {
+        eventHook.dispatchEvent("file:synced", meta, direction);
+      },
+    });
   }
 
   async isSyncing(): Promise<boolean> {
-    if (!this.enabled) {
-      return false;
-    }
     const startTime = await this.kvStore.get(syncStartTimeKey);
     if (!startTime) {
       return false;
@@ -95,19 +108,11 @@ export class SyncService {
   }
 
   hasInitialSyncCompleted(): Promise<boolean> {
-    if (!this.enabled) {
-      return Promise.resolve(true);
-    }
-
     // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
     return this.kvStore.has(syncInitialFullSyncCompletedKey);
   }
 
   async registerSyncStart(fullSync: boolean): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     // Assumption: this is called after an isSyncing() check
     await this.kvStore.batchSet([
       {
@@ -128,10 +133,6 @@ export class SyncService {
   }
 
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     // Emit a sync event at most every 2s
     if (status && this.lastReportedSyncStatus < Date.now() - 2000) {
       this.eventHook.dispatchEvent("sync:progress", status);
@@ -142,10 +143,6 @@ export class SyncService {
   }
 
   async registerSyncStop(isFullSync: boolean): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     await this.registerSyncProgress();
     await this.kvStore.del(syncStartTimeKey);
     if (isFullSync) {
@@ -162,10 +159,6 @@ export class SyncService {
 
   // Await a moment when the sync is no longer running
   async noOngoingSync(timeout: number): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     // Not completely safe, could have race condition on setting the syncStartTimeKey
     const startTime = Date.now();
     while (await this.isSyncing()) {
@@ -179,10 +172,6 @@ export class SyncService {
 
   filesScheduledForSync = new Set<string>();
   async scheduleFileSync(path: string): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     if (this.filesScheduledForSync.has(path)) {
       // Already scheduled, no need to duplicate
       console.info(`File ${path} already scheduled for sync`);
@@ -195,19 +184,11 @@ export class SyncService {
   }
 
   async scheduleSpaceSync(): Promise<void> {
-    if (!this.enabled) {
-      return;
-    }
-
     await this.noOngoingSync(5000);
     await this.syncSpace();
   }
 
   start() {
-    if (!this.enabled) {
-      return;
-    }
-
     this.syncSpace().catch(console.error);
 
     setInterval(async () => {
@@ -227,10 +208,6 @@ export class SyncService {
   }
 
   async syncSpace(): Promise<number> {
-    if (!this.enabled) {
-      return 0;
-    }
-
     if (await this.isSyncing()) {
       console.log("Aborting space sync: already syncing");
       return 0;
@@ -258,10 +235,6 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
-    if (!this.enabled) {
-      return;
-    }
-
     // console.log("Checking if we can sync file", name);
     if (!this.isSyncCandidate(name)) {
       console.info("Requested sync, but not a sync candidate", name);
@@ -326,10 +299,6 @@ export class SyncService {
     }
     await this.saveSnapshot(snapshot);
     await this.registerSyncStop(false);
-    // HEAD
-    // console.log("And done with file sync for", name);
-    //
-    //main
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
@@ -381,5 +350,48 @@ export class SyncService {
     ]);
 
     return 1;
+  }
+}
+
+/**
+ * A no-op sync service that doesn't do anything used when running in thin client mode
+ */
+export class NoSyncSyncService implements ISyncService {
+  constructor(private space: Space) {
+  }
+
+  isSyncing(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+
+  hasInitialSyncCompleted(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  noOngoingSync(_timeout: number): Promise<void> {
+    return Promise.resolve();
+  }
+
+  scheduleFileSync(_path: string): Promise<void> {
+    return Promise.resolve();
+  }
+
+  scheduleSpaceSync(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  start() {
+    setInterval(() => {
+      // Trigger a page upload for change events
+      this.space.updatePageList().catch(console.error);
+    }, spaceSyncInterval);
+  }
+
+  syncSpace(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
+  syncFile(_name: string): Promise<void> {
+    return Promise.resolve();
   }
 }

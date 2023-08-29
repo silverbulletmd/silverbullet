@@ -10,6 +10,7 @@ import {
   BookIcon,
   HomeIcon,
   preactRender,
+  RefreshCwIcon,
   runScopeHandlers,
   TerminalIcon,
   useEffect,
@@ -18,6 +19,7 @@ import {
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
+import { async } from "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2020,mode=imports/optimized/regenerator-runtime.js";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -202,6 +204,40 @@ export class MainUI {
             editor.focus();
           }}
           actionButtons={[
+            ...window.silverBulletConfig.supportOnlineMode === "true"
+              ? [{
+                icon: RefreshCwIcon,
+                description: this.editor.syncMode
+                  ? "Currently in sync mode: switch to online mode"
+                  : "Currently in online mode: switch to sync mode",
+                class: this.editor.syncMode ? "sb-enabled" : undefined,
+                callback: () => {
+                  (async () => {
+                    const newValue = !this.editor.syncMode;
+
+                    if (newValue) {
+                      if (
+                        await this.editor.confirm(
+                          "This will enable local sync. Are you sure?",
+                        )
+                      ) {
+                        localStorage.setItem("syncMode", "true");
+                        location.reload();
+                      }
+                    } else {
+                      if (
+                        await this.editor.confirm(
+                          "This will disable local sync. Are you sure?",
+                        )
+                      ) {
+                        localStorage.removeItem("syncMode");
+                        location.reload();
+                      }
+                    }
+                  })().catch(console.error);
+                },
+              }]
+              : [],
             {
               icon: HomeIcon,
               description: `Go home (Alt-h)`,

@@ -1,6 +1,4 @@
 name: editor
-requiredPermissions:
-  - fetch
 syntax:
   NakedURL:
     firstCharacters:
@@ -59,6 +57,10 @@ functions:
       name: "Navigate: Home"
       key: "Alt-h"
       page: ""
+  moveToPos:
+    path: "./editor.ts:moveToPosCommand"
+    command:
+      name: "Navigate: Move Cursor to Position"
 
   # Text editing commands
   quoteSelectionCommand:
@@ -113,12 +115,8 @@ functions:
   centerCursor:
     path: "./editor.ts:centerCursorCommand"
     command:
-      name: "Editor: Center Cursor"
+      name: "Navigate: Center Cursor"
       key: "Ctrl-Alt-l"
-  moveToPos:
-    path: "./editor.ts:moveToPosCommand"
-    command:
-      name: "Editor: Move Cursor to Position"
 
   # Debug commands
   parseCommand:
@@ -196,18 +194,6 @@ functions:
     path: ./broken_links.ts:brokenLinksCommand
     command:
       name: "Broken Links: Show"
-
-  # Client mode
-  enableThinClient:
-    path: ./client.ts:setThinClient
-    command:
-      name: "Client: Enable Thin Client"
-      value: true
-  disableThinClient:
-    path: ./client.ts:setThinClient
-    command:
-      name: "Client: Disable Thin Client"
-      value: false
 
   # Random stuff
   statsCommand:

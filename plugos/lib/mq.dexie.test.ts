@@ -1,7 +1,7 @@
 import { IDBKeyRange, indexedDB } from "https://esm.sh/fake-indexeddb@4.0.2";
 import { DexieMQ } from "./mq.dexie.ts";
 import { assertEquals } from "../../test_deps.ts";
-import { sleep } from "../../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 
 Deno.test("Dexie MQ", async () => {
   const mq = new DexieMQ("test", indexedDB, IDBKeyRange);

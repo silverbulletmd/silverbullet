@@ -2,4 +2,4 @@ SilverBullet has infrastructure to “unfurl” — that is: replace with somet
 
 Plugs can provide custom unfurls for specific URL patterns. For instance the [[🔌 Twitter]] plug provides the ability to unfurl tweets, and pull in their content.
 
-[[🔌 Core]] provides a generic URL unfurl, adding a title for a url.
+[[🔌 Editor]] provides a generic URL unfurl, adding a title for a url.

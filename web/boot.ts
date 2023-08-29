@@ -1,14 +1,15 @@
 import { safeRun } from "../common/util.ts";
 import { Client } from "./client.ts";
 
-const thinClientMode = !!localStorage.getItem("thinClientMode");
+const syncMode = window.silverBulletConfig.supportOnlineMode !== "true" ||
+  !!localStorage.getItem("syncMode");
 
 safeRun(async () => {
   console.log("Booting SilverBullet...");
 
   const client = new Client(
     document.getElementById("sb-root")!,
-    thinClientMode,
+    syncMode,
   );
   await client.init();
   window.client = client;
@@ -22,7 +23,7 @@ if (navigator.serviceWorker) {
     .then(() => {
       console.log("Service worker registered...");
     });
-  if (!thinClientMode) {
+  if (syncMode) {
     navigator.serviceWorker.ready.then((registration) => {
       registration.active!.postMessage({
         type: "config",

@@ -5,8 +5,8 @@ import { CommandDef } from "../hooks/command.ts";
 import { proxySyscall } from "./util.ts";
 
 export function systemSyscalls(
-  editor: Client,
   system: System<any>,
+  client?: Client,
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
@@ -38,24 +38,36 @@ export function systemSyscalls(
       if (!functionDef) {
         throw Error(`Function ${name} not found`);
       }
-      if (functionDef.env && system.env && functionDef.env !== system.env) {
+      if (
+        client && functionDef.env && system.env &&
+        functionDef.env !== system.env
+      ) {
         // Proxy to another environment
-        return proxySyscall(ctx, editor.remoteSpacePrimitives, name, args);
+        return proxySyscall(ctx, client.remoteSpacePrimitives, name, args);
       }
       return plug.invoke(name, args);
     },
     "system.invokeCommand": (_ctx, name: string) => {
-      return editor.runCommandByName(name);
+      if (!client) {
+        throw new Error("Not supported");
+      }
+      return client.runCommandByName(name);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
+      if (!client) {
+        throw new Error("Not supported");
+      }
       const allCommands: { [key: string]: CommandDef } = {};
-      for (const [cmd, def] of editor.system.commandHook.editorCommands) {
+      for (const [cmd, def] of client.system.commandHook.editorCommands) {
         allCommands[cmd] = def.command;
       }
       return allCommands;
     },
     "system.reloadPlugs": () => {
-      return editor.loadPlugs();
+      if (!client) {
+        throw new Error("Not supported");
+      }
+      return client.loadPlugs();
     },
     "system.getEnv": () => {
       return system.env;

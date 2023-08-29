@@ -1,6 +1,6 @@
 SilverBullet at its core is bare bones in terms of functionality, most of its power it gains from **plugs**.
 
-Plugs are an extension mechanism (implemented using a library called PlugOS that’s part of the silverbullet repo) that runs “plug” code in the browser using [web workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers).
+Plugs are an extension mechanism (implemented using a library called [[PlugOS]] that’s part of the silverbullet repo) that runs “plug” code in the browser using [web workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers).
 
 Plugs can hook into SB in various ways:
 
@@ -17,12 +17,14 @@ Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.j
 ## Core plugs
 These plugs are distributed with SilverBullet and are automatically enabled:
 <!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
-* [[🔌 Core]] 
 * [[🔌 Directive]] 
+* [[🔌 Editor]] 
 * [[🔌 Emoji]] 
+* [[🔌 Index]] 
 * [[🔌 Markdown]] 
 * [[🔌 Share]] 
-* [[🔌 Tasks]]
+* [[🔌 Tasks]] 
+* [[🔌 Template]]
 <!-- /query -->
 
 ## Third-party plugs
@@ -85,7 +87,6 @@ Within seconds (watch your browser’s JavaScript console), your plug should be 
 Since plugs run in your browser, you can use the usual browser debugging tools. When you console.log things, these logs will appear in your browser’s JavaScript console.
 
 ## Distribution
-
 Once you’re happy with your plug, you can distribute it in various ways:
 
 - You can put it on github by simply committing the resulting `.plug.js` file there and instructing users to point to by adding

@@ -13,8 +13,8 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 import { Authenticator } from "../server/auth.ts";
 import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
-import { sleep } from "../common/async_util.ts";
 import { ServerSystem } from "../server/server_system.ts";
+import { sleep } from "$sb/lib/async.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 
@@ -26,10 +26,9 @@ export async function serveCommand(
     auth?: string;
     cert?: string;
     key?: string;
-    // Thin client mode
-    thinClient?: boolean;
     reindex?: boolean;
     db?: string;
+    serverProcessing?: boolean;
   },
   folder?: string,
 ) {
@@ -38,7 +37,6 @@ export async function serveCommand(
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
 
-  const thinClientMode = options.thinClient || Deno.env.has("SB_THIN_CLIENT");
   let dbFile = options.db || Deno.env.get("SB_DB_FILE") || ".silverbullet.db";
 
   const app = new Application();
@@ -86,9 +84,12 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   );
 
   let system: System<SilverBulletHooks> | undefined;
-  if (thinClientMode) {
+  if (options.serverProcessing) {
+    // Enable server-side processing
     dbFile = path.resolve(folder, dbFile);
-    console.log(`Running in thin client mode, keeping state in ${dbFile}`);
+    console.log(
+      `Running in server-processing mode, keeping state in ${dbFile}`,
+    );
     const serverSystem = new ServerSystem(spacePrimitives, dbFile, app);
     await serverSystem.init();
     spacePrimitives = serverSystem.spacePrimitives;
@@ -132,15 +133,20 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authStore.loadString(envAuth);
   }
 
-  const httpServer = new HttpServer(spacePrimitives!, app, system, {
-    hostname,
-    port: port,
-    pagesPath: folder!,
-    clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-    authenticator,
-    keyFile: options.key,
-    certFile: options.cert,
-  });
+  const httpServer = new HttpServer(
+    spacePrimitives!,
+    app,
+    system,
+    {
+      hostname,
+      port: port,
+      pagesPath: folder!,
+      clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+      authenticator,
+      keyFile: options.key,
+      certFile: options.cert,
+    },
+  );
   await httpServer.start();
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)

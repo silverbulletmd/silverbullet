@@ -96,8 +96,6 @@ functions:
     events:
       - editor:complete
   
-
-
   # Hashtags
   indexTags:
     path: "./tags.ts:indexTags"

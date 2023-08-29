@@ -24,6 +24,6 @@ Metadata is data about data. There are a few entities you can add meta data to:
 
 In addition, this metadata can be augmented in a few additional ways:
 
-* [[🔌 Core/Tags]]: adds to the `tags` attribute
+* [[Tags]]: adds to the `tags` attribute
 * [[Frontmatter]]: at the top of pages, a [[YAML]] encoded block can be used to define additional attributes to a page
 * [[Attributes]]

@@ -11,7 +11,7 @@ import {
 
 import { applyQuery } from "$sb/lib/query.ts";
 import type { MQMessage } from "$sb/types.ts";
-import { sleep } from "../../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 
 // Key space:
 //   meta: => metaJson
@@ -53,9 +53,7 @@ export async function processIndexQueue(messages: MQMessage[]) {
     const name: string = message.body;
     console.log(`Indexing page ${name}`);
     const text = await space.readPage(name);
-    // console.log("Going to parse markdown");
     const parsed = await markdown.parseMarkdown(text);
-    // console.log("Dispatching ;age:index");
     await events.dispatchEvent("page:index", {
       name,
       tree: parsed,
@@ -69,7 +67,7 @@ export async function clearPageIndex(page: string) {
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
-  console.log("Reindexing", name);
+  // console.log("Reindexing", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: await markdown.parseMarkdown(text),

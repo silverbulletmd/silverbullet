@@ -2,10 +2,11 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
-import { throttle } from "../common/async_util.ts";
+
 import { KVStore } from "../plugos/lib/kv_store.ts";
 import { FileMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
+import { throttle } from "$sb/lib/async.ts";
 
 const pageWatchInterval = 5000;
 

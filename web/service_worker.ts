@@ -89,6 +89,11 @@ self.addEventListener("fetch", (event: any) => {
         return cachedResponse;
       }
 
+      if (!fileContentTable) {
+        // Not initialzed yet, or in thin client mode, let's just proxy
+        return fetch(request);
+      }
+
       const requestUrl = new URL(request.url);
       const pathname = requestUrl.pathname;
 
@@ -119,17 +124,12 @@ async function handleLocalFileRequest(
   request: Request,
   pathname: string,
 ): Promise<Response> {
-  if (!fileContentTable) {
-    // Not initialzed yet, or explicitly in sync mode (so direct server communication requested)
-    return fetch(request);
-  }
-
   if (!db?.isOpen()) {
     console.log("Detected that the DB was closed, reopening");
     await db!.open();
   }
   const path = decodeURIComponent(pathname.slice(1));
-  const data = await fileContentTable.get(path);
+  const data = await fileContentTable!.get(path);
   if (data) {
     // console.log("Serving from space", path);
     if (!data.meta) {

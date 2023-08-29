@@ -14,7 +14,7 @@ export async function brokenLinksCommand() {
       if (tree.type === "WikiLinkPage") {
         // Add the prefix in the link text
         const [pageName] = tree.children![0].text!.split("@");
-        if (pageName.startsWith("💭 ")) {
+        if (pageName.startsWith("!")) {
           return true;
         }
         if (
@@ -31,7 +31,7 @@ export async function brokenLinksCommand() {
       }
       if (tree.type === "PageRef") {
         const pageName = tree.children![0].text!.slice(2, -2);
-        if (pageName.startsWith("💭 ")) {
+        if (pageName.startsWith("!")) {
           return true;
         }
         if (!allPagesMap.has(pageName)) {

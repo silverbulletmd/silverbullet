@@ -47,7 +47,7 @@ So, for instance, a template can take a tag name as an argument:
 $eval
 The `#eval` directive can be used to evaluate arbitrary JavaScript expressions. It’s also possible to invoke arbitrary plug functions this way.
 
-**Note:** This feature is experimental and will likely evolve.
+**Note:** ==This feature is experimental== and will likely evolve.
 
 A simple example is multiplying numbers:
 

@@ -1,4 +1,4 @@
-SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, SilverBullet goes a bit beyond _just_ that.
+SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, SilverBullet goes _a bit_ beyond just that.
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
@@ -7,7 +7,7 @@ Before we get to the nitty gritty, some _quick links_ for the impatient reader: 
 Now that we got that out of the way let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) as an **offline-first [[PWA]],** keeping the primary copy of your content in the browser, syncing back to the server when a network connection is available.
+* Runs in any modern browser (including on mobile) as a [[PWA]] in two potential [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
 * Optimized for **keyboard-based operation**:

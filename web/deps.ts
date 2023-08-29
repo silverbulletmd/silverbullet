@@ -12,6 +12,7 @@ export {
 export {
   Book as BookIcon,
   Home as HomeIcon,
+  RefreshCw as RefreshCwIcon,
   Terminal as TerminalIcon,
 } from "https://esm.sh/preact-feather@4.2.1?external=preact";
 

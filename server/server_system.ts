@@ -23,21 +23,22 @@ import { markdownSyscalls } from "../web/syscalls/markdown.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
 import { yamlSyscalls } from "../web/syscalls/yaml.ts";
-import { Application, path } from "./deps.ts";
+import { Application } from "./deps.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { DenoKvMQ } from "../plugos/lib/mq.deno_kv.ts";
+import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
+import { Plug } from "../plugos/plug.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
 export class ServerSystem {
   system: System<SilverBulletHooks> = new System("server");
   spacePrimitives!: SpacePrimitives;
-  private requeueInterval?: number;
-  kvStore?: DenoKVStore;
-  listInterval?: number;
   denoKv!: Deno.Kv;
+  kvStore!: DenoKVStore;
+  listInterval?: number;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
@@ -93,7 +94,7 @@ export class ServerSystem {
       assetSyscalls(this.system),
       yamlSyscalls(),
       storeSyscalls(this.kvStore),
-      systemSyscalls(undefined as any, this.system),
+      systemSyscalls(this.system),
       mqSyscalls(mq),
       pageIndexCalls,
       debugSyscalls(),
@@ -136,34 +137,34 @@ export class ServerSystem {
             text: new TextDecoder().decode(data.data),
           });
         }
+
+        if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
+          console.log("Plug updated, reloading:", path);
+          this.system.unload(path);
+          await this.loadPlugFromSpace(path);
+        }
       })().catch(console.error);
     });
   }
 
   async loadPlugs() {
-    const tempDir = await Deno.makeTempDir();
-    try {
-      for (const { name } of await this.spacePrimitives.fetchFileList()) {
-        if (name.endsWith(".plug.js")) {
-          const plugPath = path.join(tempDir, name);
-          await Deno.mkdir(path.dirname(plugPath), { recursive: true });
-          await Deno.writeFile(
-            plugPath,
-            (await this.spacePrimitives.readFile(name)).data,
-          );
-          await this.system.load(
-            new URL(`file://${plugPath}`),
-            createSandbox,
-          );
-        }
+    for (const { name } of await this.spacePrimitives.fetchFileList()) {
+      if (name.endsWith(".plug.js")) {
+        await this.loadPlugFromSpace(name);
       }
-    } finally {
-      await Deno.remove(tempDir, { recursive: true });
     }
   }
 
+  async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {
+    const plugJS = (await this.spacePrimitives.readFile(path)).data;
+    return this.system.load(
+      // Base64 encoding this to support `deno compile` mode
+      new URL(base64EncodedDataUrl("application/javascript", plugJS)),
+      createSandbox,
+    );
+  }
+
   async close() {
-    clearInterval(this.requeueInterval);
     clearInterval(this.listInterval);
     await this.system.unloadAll();
   }

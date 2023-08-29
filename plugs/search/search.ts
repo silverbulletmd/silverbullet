@@ -4,6 +4,7 @@ import { applyQuery } from "$sb/lib/query.ts";
 import { editor, index, store } from "$sb/syscalls.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
 import { FileMeta } from "$sb/types.ts";
+import { PromiseQueue } from "$sb/lib/async.ts";
 
 const searchPrefix = "🔍 ";
 
@@ -30,11 +31,16 @@ const ftsRevKvStore = new StoreKVStore("fts_rev:");
 
 const engine = new SimpleSearchEngine(ftsKvStore, ftsRevKvStore);
 
-export async function indexPage({ name, tree }: IndexTreeEvent) {
+// Search indexing is prone to concurrency issues, so we queue all write operations
+const promiseQueue = new PromiseQueue();
+
+export function indexPage({ name, tree }: IndexTreeEvent) {
   const text = renderToText(tree);
-  //   console.log("Now FTS indexing", name);
-  await engine.deleteDocument(name);
-  await engine.indexDocument({ id: name, text });
+  return promiseQueue.runInQueue(async () => {
+    // console.log("Now FTS indexing", name);
+    await engine.deleteDocument(name);
+    await engine.indexDocument({ id: name, text });
+  });
 }
 
 export async function clearIndex() {
@@ -42,8 +48,10 @@ export async function clearIndex() {
   await store.deletePrefix("fts_rev:");
 }
 
-export async function pageUnindex(pageName: string) {
-  await engine.deleteDocument(pageName);
+export function pageUnindex(pageName: string) {
+  return promiseQueue.runInQueue(() => {
+    return engine.deleteDocument(pageName);
+  });
 }
 
 export async function queryProvider({

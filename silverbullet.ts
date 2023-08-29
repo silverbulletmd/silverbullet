@@ -45,16 +45,16 @@ await new Command()
     "Path to TLS key",
   )
   .option(
-    "-t [type:boolean], --thin-client [type:boolean]",
-    "Enable thin-client mode",
+    "--no-server-processing [type:boolean]",
+    "Disable online mode (no server-side processing)",
   )
   .option(
     "--reindex [type:boolean]",
-    "Reindex space on startup (applies to thin-mode only)",
+    "Reindex space on startup",
   )
   .option(
     "--db <db:string>",
-    "Path to database file (applies to thin-mode only)",
+    "Path to database file",
   )
   .action(serveCommand)
   // plug:compile

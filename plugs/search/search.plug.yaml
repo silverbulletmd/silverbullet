@@ -2,8 +2,6 @@ name: search
 functions:
   indexPage:
    path: search.ts:indexPage
-   # Only enable in client for now
-  #  env: client
    events:
    - page:index
 

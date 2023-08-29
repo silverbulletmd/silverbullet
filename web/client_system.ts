@@ -53,10 +53,9 @@ export class ClientSystem {
     private mq: DexieMQ,
     dbPrefix: string,
     private eventHook: EventHook,
-    private thinClientMode: boolean,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
-    this.system = new System(thinClientMode ? "client" : undefined);
+    this.system = new System(client.syncMode ? undefined : "client");
 
     this.system.addHook(this.eventHook);
 
@@ -68,9 +67,11 @@ export class ClientSystem {
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
 
-    if (thinClientMode) {
+    if (!client.syncMode) {
+      // In non-sync mode, proxy these to the server
       this.indexSyscalls = indexProxySyscalls(client);
     } else {
+      // In sync mode, run them locally
       this.indexSyscalls = pageIndexSyscalls(
         `${dbPrefix}_page_index`,
         globalThis.indexedDB,
@@ -83,7 +84,8 @@ export class ClientSystem {
     this.system.addHook(this.codeWidgetHook);
 
     // MQ hook
-    if (!this.thinClientMode) {
+    if (client.syncMode) {
+      // Process MQ messages locally
       this.system.addHook(new MQHook(this.system, this.mq));
     }
 
@@ -103,19 +105,21 @@ export class ClientSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
-    this.eventHook.addLocalListener("plug:changed", async (fileName) => {
-      console.log("Plug updated, reloading:", fileName);
-      this.system.unload(fileName);
-      const plug = await this.system.load(
-        new URL(`/${fileName}`, location.href),
-        createSandbox,
-        this.client.settings.plugOverrides,
-      );
-      if ((plug.manifest! as Manifest).syntax) {
-        // If there are syntax extensions, rebuild the markdown parser immediately
-        this.updateMarkdownParser();
+    this.eventHook.addLocalListener("file:changed", async (path: string) => {
+      if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
+        console.log("Plug updated, reloading:", path);
+        this.system.unload(path);
+        const plug = await this.system.load(
+          new URL(`/${path}`, location.href),
+          createSandbox,
+          this.client.settings.plugOverrides,
+        );
+        if ((plug.manifest! as Manifest).syntax) {
+          // If there are syntax extensions, rebuild the markdown parser immediately
+          this.updateMarkdownParser();
+        }
+        this.plugsUpdated = true;
       }
-      this.plugsUpdated = true;
     });
 
     // Debugging
@@ -139,9 +143,11 @@ export class ClientSystem {
   }
 
   registerSyscalls() {
-    const storeCalls = this.thinClientMode
-      ? storeProxySyscalls(this.client)
-      : storeSyscalls(this.kvStore);
+    const storeCalls = this.client.syncMode
+      // In sync mode handle locally
+      ? storeSyscalls(this.kvStore)
+      // In non-sync mode proxy to server
+      : storeProxySyscalls(this.client);
 
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client);
@@ -153,11 +159,15 @@ export class ClientSystem {
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
       spaceSyscalls(this.client),
-      systemSyscalls(this.client, this.system),
+      systemSyscalls(this.system, this.client),
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      this.thinClientMode ? mqProxySyscalls(this.client) : mqSyscalls(this.mq),
+      this.client.syncMode
+        // In sync mode handle locally
+        ? mqSyscalls(this.mq)
+        // In non-sync mode proxy to server
+        : mqProxySyscalls(this.client),
       storeCalls,
       this.indexSyscalls,
       debugSyscalls(),

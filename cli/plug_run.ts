@@ -3,7 +3,7 @@ import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 
 import { Application } from "../server/deps.ts";
-import { sleep } from "../common/async_util.ts";
+import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 

@@ -12,6 +12,7 @@ import { MiniEditor } from "./mini_editor.tsx";
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps>;
   description: string;
+  class?: string;
   callback: () => void;
   href?: string;
 };
@@ -141,6 +142,7 @@ export function TopBar({
                       e.stopPropagation();
                     }}
                     title={actionButton.description}
+                    className={actionButton.class}
                   >
                     <actionButton.icon size={18} />
                   </button>

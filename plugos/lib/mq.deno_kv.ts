@@ -41,14 +41,20 @@ export class DenoKvMQ implements MessageQueue {
   }
 
   async batchSend(queue: string, bodies: any[]): Promise<void> {
-    const results = await Promise.all(
-      bodies.map((body) => this.kv.enqueue([queue, body])),
-    );
-    for (const result of results) {
+    for (const body of bodies) {
+      const result = await this.kv.enqueue([queue, body]);
       if (!result.ok) {
         throw result;
       }
     }
+    // const results = await Promise.all(
+    //   bodies.map((body) => this.kv.enqueue([queue, body])),
+    // );
+    // for (const result of results) {
+    //   if (!result.ok) {
+    //     throw result;
+    //   }
+    // }
   }
   async send(queue: string, body: any): Promise<void> {
     const result = await this.kv.enqueue([queue, body]);

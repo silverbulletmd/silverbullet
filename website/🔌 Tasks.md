@@ -9,7 +9,7 @@ Tasks in SilverBullet are written using semi-standard task syntax:
 
 * [ ] This is a task
 
-Tasks can also be annotated with [[🔌 Core/Tags]]:
+Tasks can also be annotated with [[Tags]]:
 
 * [ ] This is a tagged task #my-tag
 
@@ -27,6 +27,6 @@ This metadata is extracted and available via the `task` query source to [[🔌 D
 |name                         |done |page    |pos|tags  |deadline  |
 |-----------------------------|-----|--------|---|------|----------|
 |This is a task               |false|🔌 Tasks|213|      |          |
-|This is a tagged task #my-tag|false|🔌 Tasks|287|my-tag|          |
-|This is due                  |false|🔌 Tasks|573|      |2022-11-26|
+|This is a tagged task #my-tag|false|🔌 Tasks|279|my-tag|          |
+|This is due                  |false|🔌 Tasks|565|      |2022-11-26|
 <!-- /query -->

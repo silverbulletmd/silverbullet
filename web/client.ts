@@ -16,12 +16,17 @@ import { PathPageNavigator } from "./navigator.ts";
 import { AppViewState, BuiltinSettings } from "./types.ts";
 
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
-import { throttle } from "../common/async_util.ts";
+import { throttle } from "$sb/lib/async.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { pageSyncInterval, SyncService } from "./sync_service.ts";
+import {
+  ISyncService,
+  NoSyncSyncService,
+  pageSyncInterval,
+  SyncService,
+} from "./sync_service.ts";
 import { simpleHash } from "../common/crypto.ts";
 import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
@@ -47,6 +52,7 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
+      supportOnlineMode: string;
     };
     client: Client;
   }
@@ -75,7 +81,7 @@ export class Client {
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
-  syncService: SyncService;
+  syncService: ISyncService;
   settings!: BuiltinSettings;
   kvStore: DexieKVStore;
   mq: DexieMQ;
@@ -88,7 +94,7 @@ export class Client {
 
   constructor(
     parent: Element,
-    private thinClientMode = false,
+    public syncMode = false,
   ) {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
@@ -117,26 +123,26 @@ export class Client {
       this.mq,
       this.dbPrefix,
       this.eventHook,
-      this.thinClientMode,
     );
 
     const localSpacePrimitives = this.initSpace();
 
-    this.syncService = new SyncService(
-      localSpacePrimitives,
-      this.plugSpaceRemotePrimitives,
-      this.kvStore,
-      this.eventHook,
-      (path) => {
-        // TODO: At some point we should remove the data.db exception here
-        return path !== "data.db" &&
-            // Exclude all plug space primitives paths
-            !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
-          // Except federated ones
-          path.startsWith("!");
-      },
-      !this.thinClientMode,
-    );
+    this.syncService = this.syncMode
+      ? new SyncService(
+        localSpacePrimitives,
+        this.plugSpaceRemotePrimitives,
+        this.kvStore,
+        this.eventHook,
+        (path) => {
+          // TODO: At some point we should remove the data.db exception here
+          return path !== "data.db" &&
+              // Exclude all plug space primitives paths
+              !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
+            // Except federated ones
+            path.startsWith("!");
+        },
+      )
+      : new NoSyncSyncService(this.space);
 
     this.ui = new MainUI(this);
     this.ui.render(parent);
@@ -243,14 +249,15 @@ export class Client {
         Math.round(status.filesProcessed / status.totalFiles * 100),
       );
     });
-    this.syncService.spaceSync.on({
-      fileSynced: (meta, direction) => {
+    this.eventHook.addLocalListener(
+      "file:synced",
+      (meta: FileMeta, direction: string) => {
         if (meta.name.endsWith(".md") && direction === "secondary->primary") {
           // We likely polled the currently open page which trigggered a local update, let's update the editor accordingly
           this.space.getPageMeta(meta.name.slice(0, -3));
         }
       },
-    });
+    );
   }
 
   private initNavigator() {
@@ -337,7 +344,7 @@ export class Client {
 
     let localSpacePrimitives: SpacePrimitives | undefined;
 
-    if (!this.thinClientMode) {
+    if (this.syncMode) {
       localSpacePrimitives = new FilteredSpacePrimitives(
         new FileMetaSpacePrimitives(
           new EventedSpacePrimitives(

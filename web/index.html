@@ -34,12 +34,14 @@
     };
     window.silverBulletConfig = {
       // These {{VARIABLES}} are replaced by http_server.ts
-      spaceFolderPath: "{{SPACE_PATH}}"
+      spaceFolderPath: "{{SPACE_PATH}}",
+      supportOnlineMode: "{{SUPPORT_ONLINE_MODE}}",
     };
     // But in case these variables aren't replaced by the server, fall back fully static mode (no sync)
     if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
       window.silverBulletConfig = {
         spaceFolderPath: "",
+        supportOnlineMode: false,
       };
     }
   </script>

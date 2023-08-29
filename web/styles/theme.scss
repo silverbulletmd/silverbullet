@@ -45,6 +45,7 @@ html {
   --action-button-background-color: transparent;
   --action-button-color: #292929;
   --action-button-hover-color: #0772be;
+  --action-button-active-color: #0772be;
 
   --editor-caret-color: black;
   --editor-selection-background-color: #d7e1f6;
@@ -159,6 +160,7 @@ html[data-theme="dark"] {
   --action-button-background-color: transparent;
   --action-button-color: #adadad;
   --action-button-hover-color: #37a1ed;
+  --action-button-active-color: #37a1ed;
 
   --editor-caret-color: #fff;
   --editor-selection-background-color: #d7e1f630;

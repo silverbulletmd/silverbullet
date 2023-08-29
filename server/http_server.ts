@@ -68,7 +68,11 @@ export class HttpServer {
       .replaceAll(
         "{{SPACE_PATH}}",
         this.options.pagesPath.replaceAll("\\", "\\\\"),
-      ).replaceAll("{{THIN_CLIENT_MODE}}", this.system ? "on" : "off");
+        // );
+      ).replaceAll(
+        "{{SUPPORT_ONLINE_MODE}}",
+        this.system ? "true" : "false",
+      );
   }
 
   async start() {

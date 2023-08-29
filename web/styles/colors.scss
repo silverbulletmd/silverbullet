@@ -71,6 +71,10 @@
   cursor: pointer;
 }
 
+.sb-actions button.sb-enabled {
+  color: var(--action-button-active-color);
+}
+
 .sb-actions button:hover {
   color: var(--action-button-hover-color);
 }

@@ -1,7 +1,11 @@
-The core plug implements a few templating mechanisms.
+---
+type: plug
+repo: https://github.com/silverbulletmd/silverbullet
+---
+
+The [[🔌 Template]] plug implements a few templating mechanisms.
 
 ### Page Templates
-
 The {[Template: Instantiate Page]} command enables you to create a new page based on a page template.
 
 Page templates, by default, are looked for in the `template/page/` prefix. So creating e.g. a `template/page/Meeting Notes` page will create a “Meeting Notes” template. You can override this prefix by setting the `pageTemplatePrefix` in `SETTINGS`.
@@ -63,6 +67,16 @@ with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePre
 ### Quick Note
 
 The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context.
+
+## Slash commands
+* `/front-matter`: Insert [[Frontmatter]]
+* `/h1` - `/h4`: turn the current line into a header
+* `/code`: insert a fenced code block
+* `/hr`: insert a horizontal rule
+* `/table`: insert a table
+* `/page-template`: insert a page template
+* `/today`: insert today’s date
+* `/tomorrow`: insert tomorrow’s date
 
 ### Template helpers
 $vars
