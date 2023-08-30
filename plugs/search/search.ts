@@ -8,7 +8,7 @@ import { PromiseQueue } from "$sb/lib/async.ts";
 
 const searchPrefix = "🔍 ";
 
-class StoreKVStore implements BatchKVStore<string, string[]> {
+class StoreKVStore implements BatchKVStore {
   constructor(private prefix: string) {
   }
   get(keys: string[]): Promise<(string[] | undefined)[]> {

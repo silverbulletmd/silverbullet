@@ -1,22 +1,32 @@
 import { assertEquals } from "../../test_deps.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
 
-class InMemoryBatchKVStore<K, V> implements BatchKVStore<K, V> {
-  private store = new Map<K, V>();
+class InMemoryBatchKVStore implements BatchKVStore {
+  private store = new Map<string, any>();
 
-  get(keys: K[]): Promise<(V | undefined)[]> {
-    const results: (V | undefined)[] = keys.map((key) => this.store.get(key));
+  get(keys: string[]): Promise<(any | undefined)[]> {
+    const results: (any | undefined)[] = keys.map((key) => this.store.get(key));
     return Promise.resolve(results);
   }
 
-  set(entries: Map<K, V>): Promise<void> {
+  queryPrefix(prefix: string): Promise<[string, any][]> {
+    const results: [string, any][] = [];
+    for (const [key, value] of this.store.entries()) {
+      if (key.startsWith(prefix)) {
+        results.push([key, value]);
+      }
+    }
+    return Promise.resolve(results);
+  }
+
+  set(entries: Map<string, any>): Promise<void> {
     for (const [key, value] of entries) {
       this.store.set(key, value);
     }
     return Promise.resolve();
   }
 
-  delete(keys: K[]): Promise<void> {
+  delete(keys: string[]): Promise<void> {
     for (const key of keys) {
       this.store.delete(key);
     }

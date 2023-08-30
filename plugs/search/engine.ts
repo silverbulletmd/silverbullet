@@ -5,10 +5,10 @@ export type Document = {
   text: string;
 };
 
-export interface BatchKVStore<K, V> {
-  get(keys: K[]): Promise<(V | undefined)[]>;
-  set(entries: Map<K, V>): Promise<void>;
-  delete(keys: K[]): Promise<void>;
+export interface BatchKVStore {
+  get(keys: string[]): Promise<(any | undefined)[]>;
+  set(entries: Map<string, any>): Promise<void>;
+  delete(keys: string[]): Promise<void>;
 }
 
 type ResultObject = {
@@ -20,8 +20,8 @@ export class SimpleSearchEngine {
   private stopWords = ["and", "or", "the", "a", "an"];
 
   constructor(
-    public index: BatchKVStore<string, string[]>,
-    public reverseIndex: BatchKVStore<string, string[]>,
+    public index: BatchKVStore,
+    public reverseIndex: BatchKVStore,
   ) {
   }
 
@@ -86,7 +86,7 @@ export class SimpleSearchEngine {
     const filteredWords = this.removeStopWords(words);
     const stemmedWords = filteredWords.map((word) => this.stem(word));
 
-    const wordIdsArray = await this.index.get(stemmedWords);
+    const wordIdsArray: string[][] = await this.index.get(stemmedWords);
     const matchCounts: Map<string, number> = new Map();
 
     wordIdsArray.forEach((wordIds) => {
@@ -110,13 +110,13 @@ export class SimpleSearchEngine {
 
   // Delete a document from the index
   public async deleteDocument(documentId: string): Promise<void> {
-    const words = await this.reverseIndex.get([documentId]);
+    const words: string[][] = await this.reverseIndex.get([documentId]);
     if (words && words[0]) {
-      const currentIdsArray = await this.index.get(words[0]);
+      const currentIdsArray: string[][] = await this.index.get(words[0]);
       const deleteKeys: string[] = [];
       const updateMap = new Map<string, string[]>();
 
-      words[0].forEach((word, i) => {
+      words[0].forEach((word: string, i: number) => {
         const currentIds = currentIdsArray[i];
         if (currentIds) {
           const updatedIds = currentIds.filter((id) => id !== documentId);
