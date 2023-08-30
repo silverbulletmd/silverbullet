@@ -11,6 +11,12 @@ const searchPrefix = "🔍 ";
 class StoreKVStore implements BatchKVStore {
   constructor(private prefix: string) {
   }
+  async queryPrefix(prefix: string): Promise<[string, any][]> {
+    const results = await store.queryPrefix(this.prefix + prefix);
+    return results.map((
+      { key, value },
+    ) => [key.substring(this.prefix.length), value]);
+  }
   get(keys: string[]): Promise<(string[] | undefined)[]> {
     return store.batchGet(keys.map((key) => this.prefix + key));
   }

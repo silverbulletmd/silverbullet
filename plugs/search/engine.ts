@@ -9,6 +9,7 @@ export interface BatchKVStore {
   get(keys: string[]): Promise<(any | undefined)[]>;
   set(entries: Map<string, any>): Promise<void>;
   delete(keys: string[]): Promise<void>;
+  queryPrefix(prefix: string): Promise<[string, any][]>;
 }
 
 type ResultObject = {
@@ -45,8 +46,8 @@ export class SimpleSearchEngine {
 
   // Index an array of documents
   public async indexDocument(document: Document): Promise<void> {
-    const updateIndexMap = new Map<string, string[]>();
-    const updateReverseIndexMap = new Map<string, string[]>();
+    const updateIndexMap = new Map<string, number>(); // word!id -> count
+    const updateReverseIndexMap = new Map<string, boolean>(); // id!word -> true
 
     const pageContent = this.tokenize(document.text);
     const pageName = this.tokenize(document.id);
@@ -55,24 +56,15 @@ export class SimpleSearchEngine {
     const stemmedWords = filteredWords.map((word) => this.stem(word));
 
     // Get the current IDs for these stemmed words
-    const uniqueStemmedWords = [...new Set(stemmedWords)];
-    const currentIdsArray = await this.index.get(uniqueStemmedWords);
+    // const uniqueStemmedWords = [...new Set(stemmedWords)];
 
-    stemmedWords.forEach((stemmedWord) => {
-      const currentIds =
-        currentIdsArray[uniqueStemmedWords.indexOf(stemmedWord)] || [];
-
-      currentIds.push(document.id);
-      updateIndexMap.set(stemmedWord, currentIds);
-
-      if (!updateReverseIndexMap.has(document.id)) {
-        updateReverseIndexMap.set(document.id, []);
-      }
-
-      if (!updateReverseIndexMap.get(document.id)!.includes(stemmedWord)) {
-        updateReverseIndexMap.get(document.id)!.push(stemmedWord);
-      }
-    });
+    for (const stemmedWord of stemmedWords) {
+      const key = `${stemmedWord}!${document.id}`;
+      const revKey = `${document.id}!${stemmedWord}`;
+      const currentFreq = updateIndexMap.get(key) || 0;
+      updateIndexMap.set(key, currentFreq + 1);
+      updateReverseIndexMap.set(revKey, true);
+    }
 
     // console.log("updateIndexMap", updateIndexMap);
 
@@ -86,20 +78,20 @@ export class SimpleSearchEngine {
     const filteredWords = this.removeStopWords(words);
     const stemmedWords = filteredWords.map((word) => this.stem(word));
 
-    const wordIdsArray: string[][] = await this.index.get(stemmedWords);
-    const matchCounts: Map<string, number> = new Map();
+    // const wordIdsArray: string[][] = await this.index.get(stemmedWords);
+    const matchCounts: Map<string, number> = new Map(); // pageName -> count
 
-    wordIdsArray.forEach((wordIds) => {
-      if (wordIds) {
-        wordIds.forEach((id) => {
-          if (matchCounts.has(id)) {
-            matchCounts.set(id, matchCounts.get(id)! + 1);
-          } else {
-            matchCounts.set(id, 1);
-          }
-        });
+    for (const stemmedWord of stemmedWords) {
+      const entries = await this.index.queryPrefix(`${stemmedWord}!`);
+      for (const [key, value] of entries) {
+        const id = key.split("!").slice(1).join("!");
+        if (matchCounts.has(id)) {
+          matchCounts.set(id, matchCounts.get(id)! + value);
+        } else {
+          matchCounts.set(id, value);
+        }
       }
-    });
+    }
 
     const results = Array.from(matchCounts.entries()).map(
       ([id, score]) => ({ id, score }),
@@ -110,32 +102,18 @@ export class SimpleSearchEngine {
 
   // Delete a document from the index
   public async deleteDocument(documentId: string): Promise<void> {
-    const words: string[][] = await this.reverseIndex.get([documentId]);
-    if (words && words[0]) {
-      const currentIdsArray: string[][] = await this.index.get(words[0]);
-      const deleteKeys: string[] = [];
-      const updateMap = new Map<string, string[]>();
-
-      words[0].forEach((word: string, i: number) => {
-        const currentIds = currentIdsArray[i];
-        if (currentIds) {
-          const updatedIds = currentIds.filter((id) => id !== documentId);
-          if (updatedIds.length > 0) {
-            updateMap.set(word, updatedIds);
-          } else {
-            deleteKeys.push(word);
-          }
-        }
-      });
-
-      if (deleteKeys.length > 0) {
-        await this.index.delete(deleteKeys);
-      }
-      if (updateMap.size > 0) {
-        await this.index.set(updateMap);
-      }
-
-      await this.reverseIndex.delete([documentId]);
+    const words: [string, boolean][] = await this.reverseIndex.queryPrefix(
+      `${documentId}!`,
+    );
+    const keysToDelete: string[] = [];
+    const revKeysToDelete: string[] = [];
+    for (const [wordKey] of words) {
+      const word = wordKey.split("!").slice(1).join("!");
+      keysToDelete.push(`${word}!${documentId}`);
+      revKeysToDelete.push(wordKey);
     }
+    await this.index.delete(keysToDelete);
+    await this.reverseIndex.delete(revKeysToDelete);
+    // console.log("Deleted", documentId, keysToDelete, revKeysToDelete);
   }
 }
