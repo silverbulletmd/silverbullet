@@ -114,6 +114,5 @@ export class SimpleSearchEngine {
     }
     await this.index.delete(keysToDelete);
     await this.reverseIndex.delete(revKeysToDelete);
-    // console.log("Deleted", documentId, keysToDelete, revKeysToDelete);
   }
 }

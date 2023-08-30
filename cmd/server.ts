@@ -100,10 +100,10 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     system = serverSystem.system;
     if (options.reindex) {
       console.log("Reindexing space (requested via --reindex flag)");
-      await serverSystem.system.loadedPlugs.get("index")!.invoke(
+      serverSystem.system.loadedPlugs.get("index")!.invoke(
         "reindexSpace",
         [],
-      );
+      ).catch(console.error);
     }
   }
 

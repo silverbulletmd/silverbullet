@@ -145,6 +145,17 @@ export class ServerSystem {
         }
       })().catch(console.error);
     });
+
+    // Check if this space was ever indexed before
+    if (!await this.kvStore.has("$initialIndexCompleted")) {
+      console.log("Indexing space for the first time (in the background)");
+      this.system.loadedPlugs.get("index")!.invoke(
+        "reindexSpace",
+        [],
+      ).then(() => {
+        this.kvStore.set("$initialIndexCompleted", true);
+      }).catch(console.error);
+    }
   }
 
   async loadPlugs() {
