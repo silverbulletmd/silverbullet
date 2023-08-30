@@ -1,7 +1,9 @@
 // This is the runtime imported from the compiled plug worker code
-
 import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
-import type { Manifest } from "../common/manifest.ts";
+import type {
+  ProxyFetchRequest,
+  ProxyFetchResponse,
+} from "../common/proxy_fetch.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
@@ -53,7 +55,7 @@ self.syscall = async (name: string, ...args: any[]) => {
 export function setupMessageListener(
   // deno-lint-ignore ban-types
   functionMapping: Record<string, Function>,
-  manifest: Manifest,
+  manifest: any,
 ) {
   self.addEventListener("message", (event: { data: WorkerMessage }) => {
     (async () => {
@@ -81,7 +83,6 @@ export function setupMessageListener(
               });
             }
           }
-
           break;
         case "sysr":
           {
@@ -109,6 +110,72 @@ export function setupMessageListener(
   });
 }
 
+export function base64Decode(s: string): Uint8Array {
+  const binString = atob(s);
+  const len = binString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export function base64Encode(buffer: Uint8Array | string): string {
+  if (typeof buffer === "string") {
+    buffer = new TextEncoder().encode(buffer);
+  }
+  let binary = "";
+  const len = buffer.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  return btoa(binary);
+}
+
+export async function sandboxFetch(
+  reqInfo: RequestInfo,
+  options?: ProxyFetchRequest,
+): Promise<ProxyFetchResponse> {
+  if (typeof reqInfo !== "string") {
+    const body = new Uint8Array(await reqInfo.arrayBuffer());
+    const encodedBody = body.length > 0 ? base64Encode(body) : undefined;
+    options = {
+      method: reqInfo.method,
+      headers: Object.fromEntries(reqInfo.headers.entries()),
+      base64Body: encodedBody,
+    };
+    reqInfo = reqInfo.url;
+  }
+  return syscall("sandboxFetch.fetch", reqInfo, options);
+}
+
 // Monkey patch fetch()
-import { monkeyPatchFetch } from "../plug-api/plugos-syscall/fetch.ts";
+
+export function monkeyPatchFetch() {
+  globalThis.nativeFetch = globalThis.fetch;
+  // @ts-ignore: monkey patching fetch
+  globalThis.fetch = async function (
+    reqInfo: RequestInfo,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const encodedBody = init && init.body
+      ? base64Encode(
+        new Uint8Array(await (new Response(init.body)).arrayBuffer()),
+      )
+      : undefined;
+    const r = await sandboxFetch(
+      reqInfo,
+      init && {
+        method: init.method,
+        headers: init.headers as Record<string, string>,
+        base64Body: encodedBody,
+      },
+    );
+    return new Response(r.base64Body ? base64Decode(r.base64Body) : null, {
+      status: r.status,
+      headers: r.headers,
+    });
+  };
+}
+
 monkeyPatchFetch();

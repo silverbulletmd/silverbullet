@@ -104,7 +104,6 @@ functions:
     command:
       name: "Text: Strikethrough"
       key: "Ctrl-Shift-s"
-      mac: "Cmd-Shift-s"
       wrapper: "~~"
   marker:
     path: ./text.ts:wrapSelection

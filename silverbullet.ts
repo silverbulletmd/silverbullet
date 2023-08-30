@@ -45,11 +45,11 @@ await new Command()
     "Path to TLS key",
   )
   .option(
-    "--no-server-processing [type:boolean]",
-    "Disable online mode (no server-side processing)",
+    "--store-only",
+    "Run the server as a pure space (file) store only without any backend processing (this disables 'server mode' in the client)",
   )
   .option(
-    "--reindex [type:boolean]",
+    "--reindex",
     "Reindex space on startup",
   )
   .option(
@@ -60,8 +60,8 @@ await new Command()
   // plug:compile
   .command("plug:compile", "Bundle (compile) one or more plug manifests")
   .arguments("<...name.plug.yaml:string>")
-  .option("--debug [type:boolean]", "Do not minifiy code", { default: false })
-  .option("--info [type:boolean]", "Print out size info per function", {
+  .option("--debug", "Do not minifiy code", { default: false })
+  .option("--info", "Print out size info per function", {
     default: false,
   })
   .option("--watch, -w [type:boolean]", "Watch for changes and rebuild", {
@@ -78,14 +78,15 @@ await new Command()
   // plug:run
   .command("plug:run", "Run a PlugOS function from the CLI")
   .arguments("<spacePath> [function] [...args:string]")
-  .option("--noIndex [type:boolean]", "Do not run a full space index first", {
-    default: false,
-  })
   .option(
     "--hostname, -L <hostname:string>",
     "Hostname or address to listen on",
   )
   .option("-p, --port <port:number>", "Port to listen on")
+  .option(
+    "--db <db:string>",
+    "Path to database file",
+  )
   .action(plugRunCommand)
   .command("user:add", "Add a new user to an authentication file")
   .arguments("[username:string]")

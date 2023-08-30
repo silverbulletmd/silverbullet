@@ -121,7 +121,9 @@ body {
       display: inline-block;
       position: relative;
       top: -6px;
-      padding-right: 6px;
+      padding: 4px;
+      background-color: var(--top-background-color);
+      margin-right: -2px;
     }
 
     .progress-bar {

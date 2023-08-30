@@ -45,9 +45,7 @@ export async function renamePageCommand(cmdDef: any) {
         throw e;
       }
     }
-    const updatedReferences = await renamePage(oldName, newName);
-    console.log("Navigating to new page");
-    await editor.navigate(newName, 0, true);
+    const updatedReferences = await renamePage(oldName, newName, true);
 
     await editor.flashNotification(
       `Renamed page, and updated ${updatedReferences} references`,
@@ -57,11 +55,20 @@ export async function renamePageCommand(cmdDef: any) {
   }
 }
 
-async function renamePage(oldName: string, newName: string): Promise<number> {
+async function renamePage(
+  oldName: string,
+  newName: string,
+  navigateThere = false,
+): Promise<number> {
   const text = await space.readPage(oldName);
 
   console.log("Writing new page to space");
   const newPageMeta = await space.writePage(newName, text);
+
+  if (navigateThere) {
+    console.log("Navigating to new page");
+    await editor.navigate(newName, 0, true);
+  }
 
   const pagesToUpdate = await getBackLinks(oldName);
   console.log("All pages containing backlinks", pagesToUpdate);

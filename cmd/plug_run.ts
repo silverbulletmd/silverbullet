@@ -4,14 +4,15 @@ import assets from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { silverBulletDbFile } from "./constants.ts";
 
 export async function plugRunCommand(
   {
-    noIndex,
+    db,
     hostname,
     port,
   }: {
-    noIndex: boolean;
+    db?: string;
     hostname?: string;
     port?: number;
   },
@@ -21,14 +22,18 @@ export async function plugRunCommand(
 ) {
   spacePath = path.resolve(spacePath);
   console.log("Space path", spacePath);
+  let dbPath = path.resolve(spacePath, silverBulletDbFile);
+  if (db) {
+    dbPath = path.resolve(db);
+  }
   console.log("Function to run:", functionName, "with arguments", args);
   try {
     const result = await runPlug(
       spacePath,
+      dbPath,
       functionName,
       args,
       new AssetBundle(assets),
-      !noIndex,
       port,
       hostname,
     );

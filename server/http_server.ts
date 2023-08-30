@@ -70,8 +70,8 @@ export class HttpServer {
         this.options.pagesPath.replaceAll("\\", "\\\\"),
         // );
       ).replaceAll(
-        "{{SUPPORT_ONLINE_MODE}}",
-        this.system ? "true" : "false",
+        "{{SYNC_ONLY}}",
+        this.system ? "false" : "true",
       );
   }
 

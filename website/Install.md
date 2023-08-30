@@ -130,6 +130,7 @@ You can configure SB with environment variables instead of flags as well. The fo
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
 * `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
 * `SB_AUTH`: Loads an [[Authentication]] database from a (JSON encoded) string, e.g. `SB_AUTH=$(cat /path/to/.auth.json)`
+* `SB_STORE_ONLY`: Runs the server in a "dumb" space store only mode (not indexing content or keeping other state), e.g. `SB_STORE_ONLY=1`
 
 ## Using Authelia
 You need to adjust a few configuration options in [[Authelia]] in order for SilverBullet to work as intended.

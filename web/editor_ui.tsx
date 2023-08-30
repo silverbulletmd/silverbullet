@@ -204,7 +204,8 @@ export class MainUI {
             editor.focus();
           }}
           actionButtons={[
-            ...window.silverBulletConfig.supportOnlineMode === "true"
+            ...!window.silverBulletConfig.syncOnly
+              // If we support syncOnly, don't show this toggle button
               ? [{
                 icon: RefreshCwIcon,
                 description: this.editor.syncMode

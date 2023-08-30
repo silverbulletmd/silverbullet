@@ -52,7 +52,7 @@ declare global {
     // Injected via index.html
     silverBulletConfig: {
       spaceFolderPath: string;
-      supportOnlineMode: string;
+      syncOnly: boolean;
     };
     client: Client;
   }

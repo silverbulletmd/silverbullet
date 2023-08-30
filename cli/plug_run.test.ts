@@ -10,6 +10,7 @@ import { path } from "../common/deps.ts";
 
 Deno.test("Test plug run", async () => {
   // const tempDir = await Deno.makeTempDir();
+  const tempDbFile = await Deno.makeTempFile({ suffix: ".db" });
 
   const assetBundle = new AssetBundle(assets);
 
@@ -26,6 +27,7 @@ Deno.test("Test plug run", async () => {
   assertEquals(
     await runPlug(
       testSpaceFolder,
+      tempDbFile,
       "test.run",
       [],
       assetBundle,
@@ -35,4 +37,5 @@ Deno.test("Test plug run", async () => {
 
   // await Deno.remove(tempDir, { recursive: true });
   esbuild.stop();
+  await Deno.remove(tempDbFile);
 });

@@ -9,16 +9,13 @@ import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_sp
 
 export async function runPlug(
   spacePath: string,
+  dbPath: string,
   functionName: string | undefined,
   args: string[] = [],
   builtinAssetBundle: AssetBundle,
-  indexFirst = false,
   httpServerPort = 3123,
   httpHostname = "127.0.0.1",
 ) {
-  spacePath = path.resolve(spacePath);
-  const tempFile = Deno.makeTempFileSync({ suffix: ".db" });
-  console.log("Tempt db file", tempFile);
   const serverController = new AbortController();
   const app = new Application();
 
@@ -27,7 +24,7 @@ export async function runPlug(
       new DiskSpacePrimitives(spacePath),
       builtinAssetBundle,
     ),
-    tempFile,
+    dbPath,
     app,
   );
   await serverSystem.init();
@@ -36,13 +33,6 @@ export async function runPlug(
     port: httpServerPort,
     signal: serverController.signal,
   });
-
-  if (indexFirst) {
-    await serverSystem.system.loadedPlugs.get("index")!.invoke(
-      "reindexSpace",
-      [],
-    );
-  }
 
   if (functionName) {
     const [plugName, funcName] = functionName.split(".");
@@ -54,7 +44,6 @@ export async function runPlug(
     const result = await plug.invoke(funcName, args);
     await serverSystem.close();
     serverSystem.denoKv.close();
-    await Deno.remove(tempFile);
     serverController.abort();
     return result;
   } else {

@@ -46,8 +46,6 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
   // Another one of my less proud moments:
   // Somehow I cannot seem to proerply limit the width of the page name, so I'm doing
   // it this way. If you have a better way to do this, please let me know!
@@ -66,7 +64,7 @@ export function TopBar({
 
         // Then calculate a new width
         currentPageElement.style.width = `${
-          Math.min(editorWidth - 150, innerDiv.clientWidth - 150)
+          Math.min(editorWidth - 170, innerDiv.clientWidth - 170)
         }px`;
       }
     }

@@ -1,7 +1,7 @@
 import { safeRun } from "../common/util.ts";
 import { Client } from "./client.ts";
 
-const syncMode = window.silverBulletConfig.supportOnlineMode !== "true" ||
+const syncMode = window.silverBulletConfig.syncOnly ||
   !!localStorage.getItem("syncMode");
 
 safeRun(async () => {
