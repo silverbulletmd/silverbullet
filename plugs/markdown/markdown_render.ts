@@ -260,16 +260,30 @@ function render(
         name: "span",
         body: cleanTags(mapRender(t.children!)),
       };
-    case "TaskMarker":
-      return {
-        name: "input",
-        attrs: {
-          type: "checkbox",
-          checked: t.children![0].text !== "[ ]" ? "checked" : undefined,
-          "data-onclick": JSON.stringify(["task", t.to]),
-        },
-        body: "",
-      };
+
+    case "TaskState": {
+      // child[0] = marker, child[1] = state, child[2] = marker
+      const stateText = t.children![1].text!;
+      if ([" ", "x", "X"].includes(stateText)) {
+        return {
+          name: "input",
+          attrs: {
+            type: "checkbox",
+            checked: t.children![0].text !== "[ ]" ? "checked" : undefined,
+            "data-onclick": JSON.stringify(["task", t.to]),
+          },
+          body: "",
+        };
+      } else {
+        return {
+          name: "span",
+          attrs: {
+            class: "task-state",
+          },
+          body: stateText,
+        };
+      }
+    }
     case "NamedAnchor":
       return {
         name: "a",

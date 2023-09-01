@@ -37,12 +37,13 @@ export function taskListPlugin(
     syntaxTree(state).iterate({
       enter({ type, from, to, node }) {
         if (type.name !== "Task") return;
-        let checked = false;
+        // true/false if this is a checkbox, undefined when it's a custom-status task
+        let checkboxStatus: boolean | undefined;
         // Iterate inside the task node to find the checkbox
         node.toTree().iterate({
           enter: (ref) => iterateInner(ref.type, ref.from, ref.to),
         });
-        if (checked) {
+        if (checkboxStatus === true) {
           widgets.push(
             Decoration.mark({
               tagName: "span",
@@ -52,14 +53,22 @@ export function taskListPlugin(
         }
 
         function iterateInner(type: NodeType, nfrom: number, nto: number) {
-          if (type.name !== "TaskMarker") return;
+          if (type.name !== "TaskState") return;
           if (isCursorInRange(state, [from + nfrom, from + nto])) return;
           const checkbox = state.sliceDoc(from + nfrom, from + nto);
           // Checkbox is checked if it has a 'x' in between the []
-          if ("xX".includes(checkbox[1])) checked = true;
+          if (checkbox === "[x]" || checkbox === "[X]") {
+            checkboxStatus = true;
+          } else if (checkbox === "[ ]") {
+            checkboxStatus = false;
+          }
+          if (checkboxStatus === undefined) {
+            // Not replacing it with a widget
+            return;
+          }
           const dec = Decoration.replace({
             widget: new CheckboxWidget(
-              checked,
+              checkboxStatus,
               from + nfrom + 1,
               onCheckboxClick,
             ),

@@ -10,6 +10,7 @@ import {
   addParentPointers,
   collectNodesMatching,
   findNodeOfType,
+  findParentMatching,
   nodeAtPos,
   ParseTree,
   renderToText,
@@ -25,6 +26,7 @@ import { indexAttributes } from "../index/attributes.ts";
 export type Task = {
   name: string;
   done: boolean;
+  state: string;
   deadline?: string;
   tags?: string[];
   nested?: string;
@@ -37,8 +39,12 @@ function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");
 }
 
+const completeStates = ["x", "X"];
+const incompleteStates = [" "];
+
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const tasks: { key: string; value: Task }[] = [];
+  const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
   const allAttributes: Record<string, any> = {};
@@ -46,10 +52,19 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     if (n.type !== "Task") {
       return false;
     }
-    const complete = n.children![0].children![0].text! !== "[ ]";
+    const state = n.children![0].children![1].text!;
+    if (!incompleteStates.includes(state) && !completeStates.includes(state)) {
+      if (!taskStates.has(state)) {
+        taskStates.set(state, 1);
+      } else {
+        taskStates.set(state, taskStates.get(state)! + 1);
+      }
+    }
+    const complete = completeStates.includes(state);
     const task: Task = {
       name: "",
       done: complete,
+      state,
     };
 
     rewritePageRefs(n, name);
@@ -95,31 +110,59 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   // console.log("Found", tasks, "task(s)");
   await index.batchSet(name, tasks);
   await indexAttributes(name, allAttributes, "task");
+  await index.batchSet(
+    name,
+    Array.from(taskStates.entries()).map(([state, count]) => ({
+      key: `taskState:${state}`,
+      value: count,
+    })),
+  );
 }
 
 export function taskToggle(event: ClickEvent) {
-  return taskToggleAtPos(event.page, event.pos);
+  if (event.altKey) {
+    return;
+  }
+  return taskCycleAtPos(event.page, event.pos);
 }
 
 export async function previewTaskToggle(eventString: string) {
   const [eventName, pos] = JSON.parse(eventString);
   if (eventName === "task") {
-    return taskToggleAtPos(await editor.getCurrentPage(), +pos);
+    return taskCycleAtPos(await editor.getCurrentPage(), +pos);
   }
 }
 
-async function toggleTaskMarker(
+async function cycleTaskState(
   pageName: string,
   node: ParseTree,
 ) {
-  let changeTo = "[x]";
-  if (node.children![0].text === "[x]" || node.children![0].text === "[X]") {
-    changeTo = "[ ]";
+  const stateText = node.children![1].text!;
+  let changeTo: string | undefined;
+  if (completeStates.includes(stateText)) {
+    changeTo = " ";
+  } else if (incompleteStates.includes(stateText)) {
+    changeTo = "x";
+  } else {
+    // Not a checkbox, but a custom state
+    const allStates = await index.queryPrefix("taskState:");
+    const states = [...new Set(allStates.map((s) => s.key.split(":")[1]))];
+    states.sort();
+    // Select a next state
+    const currentStateIndex = states.indexOf(stateText);
+    if (currentStateIndex === -1) {
+      console.error("Unknown state", stateText);
+      return;
+    }
+    const nextStateIndex = (currentStateIndex + 1) % states.length;
+    changeTo = states[nextStateIndex];
+    // console.log("All possible states", states);
+    // return;
   }
   await editor.dispatch({
     changes: {
-      from: node.from,
-      to: node.to,
+      from: node.children![1].from,
+      to: node.children![1].to,
       insert: changeTo,
     },
   });
@@ -135,10 +178,23 @@ async function toggleTaskMarker(
       const pos = +posS;
       if (page === pageName) {
         // In current page, just update the task marker with dispatch
+        const editorText = await editor.getText();
+        // Check if the task state marker is still there
+        const targetText = editorText.substring(
+          pos + 1,
+          pos + 1 + stateText.length,
+        );
+        if (targetText !== stateText) {
+          console.error(
+            "Reference not a task marker, out of date?",
+            targetText,
+          );
+          return;
+        }
         await editor.dispatch({
           changes: {
-            from: pos,
-            to: pos + changeTo.length,
+            from: pos + 1,
+            to: pos + 1 + stateText.length,
             insert: changeTo,
           },
         });
@@ -146,17 +202,16 @@ async function toggleTaskMarker(
         let text = await space.readPage(page);
 
         const referenceMdTree = await markdown.parseMarkdown(text);
-        // Adding +1 to immediately hit the task marker
-        const taskMarkerNode = nodeAtPos(referenceMdTree, pos + 1);
-
-        if (!taskMarkerNode || taskMarkerNode.type !== "TaskMarker") {
+        // Adding +1 to immediately hit the task state node
+        const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
+        if (!taskStateNode || taskStateNode.type !== "TaskState") {
           console.error(
             "Reference not a task marker, out of date?",
-            taskMarkerNode,
+            taskStateNode,
           );
           return;
         }
-        taskMarkerNode.children![0].text = changeTo;
+        taskStateNode.children![1].text = changeTo;
         text = renderToText(referenceMdTree);
         await space.writePage(page, text);
         sync.scheduleFileSync(`${page}.md`);
@@ -165,27 +220,53 @@ async function toggleTaskMarker(
   }
 }
 
-export async function taskToggleAtPos(pageName: string, pos: number) {
+export async function taskCycleAtPos(pageName: string, pos: number) {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   addParentPointers(mdTree);
 
-  const node = nodeAtPos(mdTree, pos);
-  if (node && node.type === "TaskMarker") {
-    await toggleTaskMarker(pageName, node);
+  let node = nodeAtPos(mdTree, pos);
+  if (node) {
+    if (node.type === "TaskMarker") {
+      node = node.parent!;
+    }
+    if (node.type === "TaskState") {
+      await cycleTaskState(pageName, node);
+    }
   }
 }
 
-export async function taskToggleCommand() {
+export async function taskCycleCommand() {
   const text = await editor.getText();
   const pos = await editor.getCursor();
   const tree = await markdown.parseMarkdown(text);
   addParentPointers(tree);
 
-  const node = nodeAtPos(tree, pos);
-  // We kwow node.type === Task (due to the task context)
-  const taskMarker = findNodeOfType(node!, "TaskMarker");
-  await toggleTaskMarker(await editor.getCurrentPage(), taskMarker!);
+  let node = nodeAtPos(tree, pos);
+  if (!node) {
+    await editor.flashNotification("No task at cursor");
+    return;
+  }
+  if (["BulletList", "Document"].includes(node.type!)) {
+    // Likely at the end of the line, let's back up a position
+    node = nodeAtPos(tree, pos - 1);
+  }
+  if (!node) {
+    await editor.flashNotification("No task at cursor");
+    return;
+  }
+  console.log("Node", node);
+  const taskNode = node.type === "Task"
+    ? node
+    : findParentMatching(node!, (n) => n.type === "Task");
+  if (!taskNode) {
+    await editor.flashNotification("No task at cursor");
+    return;
+  }
+  const taskState = findNodeOfType(taskNode!, "TaskState");
+  if (taskState) {
+    await cycleTaskState(await editor.getCurrentPage(), taskState);
+  }
 }
 
 export async function postponeCommand() {
@@ -210,7 +291,7 @@ export async function postponeCommand() {
     return;
   }
   // Parse "naive" due date
-  let [yyyy, mm, dd] = date.split("-").map(Number);
+  const [yyyy, mm, dd] = date.split("-").map(Number);
   // Create new naive Date object.
   // `monthIndex` parameter is zero-based, so subtract 1 from parsed month.
   const d = new Date(yyyy, mm - 1, dd);
@@ -236,7 +317,6 @@ export async function postponeCommand() {
       anchor: pos,
     },
   });
-  // await toggleTaskMarker(taskMarker!, pos);
 }
 
 export async function queryProvider({

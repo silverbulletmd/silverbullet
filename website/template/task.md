@@ -1,1 +1,1 @@
-* [{{#if done}}x{{else}} {{/if}}] [[{{page}}@{{pos}}]] {{name}}
+* [{{state}}] [[{{page}}@{{pos}}]] {{name}}

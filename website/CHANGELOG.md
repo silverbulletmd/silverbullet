@@ -8,6 +8,8 @@ This release brings a new default [[Client Modes|client mode]] to SilverBullet: 
 
 Other notable changes:
 * Massive reshuffling of built-in [[🔌 Plugs]], splitting the old “core” plug into [[🔌 Editor]], [[🔌 Template]] and [[🔌 Index]].
+* [[🔌 Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
+  * [IN PROGRESS] An in progress task
 * Removed [[Cloud Links]] support in favor of [[Federation]]
 
 ---

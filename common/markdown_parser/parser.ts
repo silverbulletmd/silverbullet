@@ -10,10 +10,10 @@ import {
   Strikethrough,
   styleTags,
   tags as t,
-  TaskList,
   yamlLanguage,
 } from "../deps.ts";
 import * as ct from "./customtags.ts";
+import { TaskList } from "./extended_task.ts";
 import {
   MDExt,
   mdExtensionStyleTags,

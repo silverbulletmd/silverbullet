@@ -96,6 +96,9 @@ export class Client {
     parent: Element,
     public syncMode = false,
   ) {
+    if (!syncMode) {
+      this.fullSyncCompleted = true;
+    }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
 

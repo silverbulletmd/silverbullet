@@ -32,7 +32,7 @@ functions:
 
   # Completion
   pageComplete:
-    path: "./page.ts:pageComplete"
+    path: "./complete.ts:pageComplete"
     events:
       - editor:complete
   commandComplete:

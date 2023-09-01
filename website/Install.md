@@ -83,15 +83,7 @@ docker run -p 3000:3000 -v myspace:/space -d -e SB_USER=me:letmein zefhemel/silv
 
 To build your own version of the docker image, run `./scripts/build_docker.sh`.
 
-You can also use docker-compose if you prefer. From a silverbullet check-out run:
-
-```shell
-PORT=3000 docker-compose up
-```
-
-or similar.
-
-To upgrade, simply pull the latest docker image (rebuilt and pushed after every commit to "main") and start the new container.
+To upgrade, simply pull the latest docker image and start the new container.
 
 ```shell
 docker pull zefhemel/silverbullet

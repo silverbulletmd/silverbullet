@@ -103,7 +103,7 @@ And one with nested brackets: [array: [1, 2, 3]]
 Deno.test("Test inline attribute syntax", () => {
   const lang = buildMarkdown([]);
   const tree = parse(lang, inlineAttributeSample);
-  console.log("Attribute parsed", JSON.stringify(tree, null, 2));
+  // console.log("Attribute parsed", JSON.stringify(tree, null, 2));
   const attributes = collectNodesOfType(tree, "Attribute");
   let nameNode = findNodeOfType(attributes[0], "AttributeName");
   assertEquals(nameNode?.children![0].text, "age");
@@ -119,4 +119,22 @@ Deno.test("Test inline attribute syntax", () => {
   assertEquals(nameNode?.children![0].text, "array");
   valueNode = findNodeOfType(attributes[2], "AttributeValue");
   assertEquals(valueNode?.children![0].text, "[1, 2, 3]");
+});
+
+const multiStatusTaskExample = `
+* [ ] Task 1
+- [x] Task 2
+* [TODO] Task 3
+`;
+
+Deno.test("Test multi-status tasks", () => {
+  const lang = buildMarkdown([]);
+  const tree = parse(lang, multiStatusTaskExample);
+  // console.log("Tasks parsed", JSON.stringify(tree, null, 2));
+  const tasks = collectNodesOfType(tree, "Task");
+  assertEquals(tasks.length, 3);
+  // Check " " checkbox state parsing
+  assertEquals(tasks[0].children![0].children![1].text, " ");
+  assertEquals(tasks[1].children![0].children![1].text, "x");
+  assertEquals(tasks[2].children![0].children![1].text, "TODO");
 });

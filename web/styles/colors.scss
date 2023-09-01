@@ -381,6 +381,10 @@
     color: var(--editor-task-marker-color);
   }
 
+  .sb-task-state {
+    color: var(--editor-task-state-color);
+  }
+
   .sb-line-comment {
     background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
   }

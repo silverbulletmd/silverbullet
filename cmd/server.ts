@@ -42,8 +42,6 @@ export async function serveCommand(
 
   const app = new Application();
 
-  console.log(options);
-
   if (!folder) {
     folder = Deno.env.get("SB_FOLDER");
     if (!folder) {

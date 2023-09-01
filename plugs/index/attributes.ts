@@ -33,6 +33,7 @@ const builtinAttributes: Record<string, Record<string, string>> = {
     name: "string",
     done: "boolean",
     page: "string",
+    state: "string",
     deadline: "string",
     pos: "number",
     tags: "array",
@@ -126,6 +127,10 @@ export function builtinAttributeCompleter(
 }
 
 export async function attributeComplete(completeEvent: CompleteEvent) {
+  if (/([\-\*]\s+\[)([^\]]+)$/.test(completeEvent.linePrefix)) {
+    // Don't match task states, which look similar
+    return null;
+  }
   const inlineAttributeMatch = /([^\[\{}]|^)\[(\w+)$/.exec(
     completeEvent.linePrefix,
   );

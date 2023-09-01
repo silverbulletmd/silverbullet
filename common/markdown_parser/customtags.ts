@@ -5,8 +5,6 @@ export const CommandLinkNameTag = Tag.define();
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();
 export const CodeInfoTag = Tag.define();
-export const TaskTag = Tag.define();
-export const TaskMarkerTag = Tag.define();
 export const CommentTag = Tag.define();
 export const CommentMarkerTag = Tag.define();
 export const BulletList = Tag.define();
@@ -22,3 +20,7 @@ export const DirectiveProgramTag = Tag.define();
 export const AttributeTag = Tag.define();
 export const AttributeNameTag = Tag.define();
 export const AttributeValueTag = Tag.define();
+
+export const TaskTag = Tag.define();
+export const TaskMarkerTag = Tag.define();
+export const TaskStateTag = Tag.define();

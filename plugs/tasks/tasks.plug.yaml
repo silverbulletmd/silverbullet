@@ -40,12 +40,10 @@ functions:
     events:
       - query:task
   taskToggleCommand:
-    path: ./task.ts:taskToggleCommand
+    path: ./task.ts:taskCycleCommand
     command:
-      name: "Task: Toggle"
+      name: "Task: Cycle State"
       key: Alt-t
-      contexts:
-        - Task
   taskPostponeCommand:
     path: ./task.ts:postponeCommand
     command:
@@ -57,3 +55,8 @@ functions:
     path: ./task.ts:previewTaskToggle
     events:
       - preview:click
+
+  taskComplete:
+    path: ./complete.ts:completeTaskState
+    events:
+    - editor:complete

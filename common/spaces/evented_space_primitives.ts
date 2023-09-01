@@ -115,9 +115,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           console.error("Error dispatching page:saved event", e);
         });
     }
-    // if (name.startsWith("_plug/") && name.endsWith(".plug.js")) {
-    //   await this.dispatchEvent("plug:changed", name);
-    // }
     return newMeta;
   }
 
