@@ -1,4 +1,5 @@
 import { safeRun } from "../common/util.ts";
+import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { Client } from "./client.ts";
 
 const syncMode = window.silverBulletConfig.syncOnly ||

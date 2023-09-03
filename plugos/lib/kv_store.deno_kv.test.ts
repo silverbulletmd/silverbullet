@@ -2,7 +2,8 @@ import { assertEquals } from "../../test_deps.ts";
 import { DenoKVStore } from "./kv_store.deno_kv.ts";
 
 Deno.test("Test KV index", async () => {
-  const denoKv = await Deno.openKv("test.db");
+  const tmpFile = await Deno.makeTempFile();
+  const denoKv = await Deno.openKv(tmpFile);
   const kv = new DenoKVStore(denoKv);
 
   await kv.set("name", "Peter");
@@ -53,5 +54,5 @@ Deno.test("Test KV index", async () => {
   assertEquals(await kv.queryPrefix(""), []);
 
   denoKv.close();
-  await Deno.remove("test.db");
+  await Deno.remove(tmpFile);
 });
