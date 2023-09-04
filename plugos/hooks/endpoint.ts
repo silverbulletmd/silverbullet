@@ -49,8 +49,8 @@ export class EndpointHook implements Hook<EndpointHookT> {
           continue;
         }
         const functions = manifest.functions;
-        console.log("Checking plug", plugName);
-        const prefix = `${this.prefix}/${plugName}`;
+        // console.log("Checking plug", plugName);
+        const prefix = `${this.prefix}${plugName}`;
         if (!requestPath.startsWith(prefix)) {
           continue;
         }
@@ -58,11 +58,11 @@ export class EndpointHook implements Hook<EndpointHookT> {
           if (!functionDef.http) {
             continue;
           }
-          console.log("Got config", functionDef);
+          // console.log("Got config", functionDef);
           const endpoints = Array.isArray(functionDef.http)
             ? functionDef.http
             : [functionDef.http];
-          console.log(endpoints);
+          // console.log(endpoints);
           for (const { path, method } of endpoints) {
             const prefixedPath = `${prefix}${path}`;
             if (
@@ -92,7 +92,7 @@ export class EndpointHook implements Hook<EndpointHookT> {
                 }
                 ctx.response.status = response.status;
                 ctx.response.body = response.body;
-                console.log("Sent result");
+                // console.log("Sent result");
                 return;
               } catch (e: any) {
                 console.error("Error executing function", e);
