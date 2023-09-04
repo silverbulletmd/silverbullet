@@ -8,6 +8,25 @@ import {
   templateDirectiveRenderer,
 } from "./template_directive.ts";
 
+/** An error that occurs while a directive is being rendered.
+ * Mostly annotates the underlying error with page metadata.
+ */
+export class RenderDirectiveError extends Error {
+  pageMeta: PageMeta;
+  directive: string;
+  cause: Error;
+
+  constructor(pageMeta: PageMeta, directive: string, cause: Error) {
+    super(`In directive "${directive}" from "${pageMeta.name}": ${cause}`, {
+      cause: cause,
+    });
+
+    this.pageMeta = pageMeta;
+    this.directive = directive;
+    this.cause = cause;
+  }
+}
+
 export const directiveStartRegex =
   /<!--\s*#(use|use-verbose|include|eval|query)\s+(.*?)-->/i;
 
@@ -68,12 +87,19 @@ export async function renderDirectives(
   pageMeta: PageMeta,
   directiveTree: ParseTree,
 ): Promise<string> {
-  const replacementText = await directiveDispatcher(pageMeta, directiveTree, {
-    use: templateDirectiveRenderer,
-    include: templateDirectiveRenderer,
-    query: queryDirectiveRenderer,
-    eval: evalDirectiveRenderer,
-  });
-
-  return cleanTemplateInstantiations(replacementText);
+  try {
+    const replacementText = await directiveDispatcher(pageMeta, directiveTree, {
+      use: templateDirectiveRenderer,
+      include: templateDirectiveRenderer,
+      query: queryDirectiveRenderer,
+      eval: evalDirectiveRenderer,
+    });
+    return cleanTemplateInstantiations(replacementText);
+  } catch (e) {
+    throw new RenderDirectiveError(
+      pageMeta,
+      renderToText(directiveTree.children![0].children![1]).trim(),
+      e,
+    );
+  }
 }
