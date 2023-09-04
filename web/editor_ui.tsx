@@ -20,6 +20,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
 import { async } from "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2020,mode=imports/optimized/regenerator-runtime.js";
+import { sleep } from "$sb/lib/async.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -217,23 +218,19 @@ export class MainUI {
                     const newValue = !this.editor.syncMode;
 
                     if (newValue) {
-                      if (
-                        await this.editor.confirm(
-                          "This will enable local sync. Are you sure?",
-                        )
-                      ) {
-                        localStorage.setItem("syncMode", "true");
-                        location.reload();
-                      }
+                      localStorage.setItem("syncMode", "true");
+                      this.editor.flashNotification(
+                        "Now switching to sync mode, one moment please...",
+                      );
+                      await sleep(1000);
+                      location.reload();
                     } else {
-                      if (
-                        await this.editor.confirm(
-                          "This will disable local sync. Are you sure?",
-                        )
-                      ) {
-                        localStorage.removeItem("syncMode");
-                        location.reload();
-                      }
+                      localStorage.removeItem("syncMode");
+                      this.editor.flashNotification(
+                        "Now switching to server mode, one moment please...",
+                      );
+                      await sleep(1000);
+                      location.reload();
                     }
                   })().catch(console.error);
                 },
