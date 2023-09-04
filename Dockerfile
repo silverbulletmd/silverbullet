@@ -24,7 +24,7 @@ RUN mkdir -p /space \
     && chown -R ${SILVERBULLET_USERNAME}:${SILVERBULLET_USERNAME} /deno-dir \
     && chmod +x /tini \
     && apt update \
-    && apt install -y git \
+    && apt install -y git ssh \
     && echo "**** cleanup ****" \
     && apt-get -y autoremove \
     && apt-get clean  \
