@@ -45,8 +45,8 @@ await new Command()
     "Path to TLS key",
   )
   .option(
-    "--store-only",
-    "Run the server as a pure space (file) store only without any backend processing (this disables 'server mode' in the client)",
+    "--sync-only",
+    "Run the server as a pure space (file) store only without any backend processing (this disables 'online mode' in the client)",
   )
   .option(
     "--reindex",

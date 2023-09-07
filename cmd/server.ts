@@ -29,7 +29,7 @@ export async function serveCommand(
     key?: string;
     reindex?: boolean;
     db?: string;
-    storeOnly?: boolean;
+    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -37,7 +37,7 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-  const storeOnly = options.storeOnly || Deno.env.get("SB_STORE_ONLY");
+  const syncOnly = options.syncOnly || Deno.env.get("SB_SYNC_ONLY");
   let dbFile = options.db || Deno.env.get("SB_DB_FILE") || silverBulletDbFile;
 
   const app = new Application();
@@ -85,8 +85,8 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   );
 
   let system: System<SilverBulletHooks> | undefined;
-  // system = undefined in storeOnly mode (no PlugOS instance on the server)
-  if (!storeOnly) {
+  // system = undefined in syncOnly mode (no PlugOS instance on the server)
+  if (!syncOnly) {
     // Enable server-side processing
     dbFile = path.resolve(folder, dbFile);
     console.log(
