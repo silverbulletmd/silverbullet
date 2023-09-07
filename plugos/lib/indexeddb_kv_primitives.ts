@@ -1,7 +1,7 @@
 import { KV, KvKey, KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { IDBPDatabase, openDB } from "https://esm.sh/idb@7.1.1/with-async-ittr";
 
-const sep = "\uffff";
+const sep = "\0";
 
 export class IndexedDBKvPrimitives implements KvPrimitives {
   db!: IDBPDatabase<any>;

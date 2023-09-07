@@ -43,8 +43,12 @@ async function test(db: KvPrimitives) {
       "address.city",
       "San Francisco",
     ]],
+    select: ["name"],
   });
-  assertEquals(results[0].key, ["kv", "complicated"]);
+  assertEquals(results[0], {
+    key: ["kv", "complicated"],
+    value: { name: "Frank" },
+  });
 }
 
 Deno.test("Test Deno KV DataStore", async () => {

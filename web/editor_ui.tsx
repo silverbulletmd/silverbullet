@@ -210,8 +210,8 @@ export class MainUI {
               ? [{
                 icon: RefreshCwIcon,
                 description: this.editor.syncMode
-                  ? "Currently in sync mode: switch to online mode"
-                  : "Currently in online mode: switch to sync mode",
+                  ? "Currently in Sync mode, click to switch to Online mode"
+                  : "Currently in Online mode, click to switch to Sync mode",
                 class: this.editor.syncMode ? "sb-enabled" : undefined,
                 callback: () => {
                   (async () => {

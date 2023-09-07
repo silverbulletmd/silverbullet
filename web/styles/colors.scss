@@ -72,7 +72,8 @@
 }
 
 .sb-actions button.sb-enabled {
-  color: var(--action-button-active-color);
+  background-color: var(--top-border-color);
+  border-radius: 5px;
 }
 
 .sb-actions button:hover {
