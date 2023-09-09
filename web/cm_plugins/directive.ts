@@ -19,7 +19,7 @@ export function directivePlugin() {
           return;
         }
 
-        const cursorInRange = isCursorInRange(state, [parent.from, parent.to]);
+        const cursorInRange = isCursorInRange(state, [from, to]);
 
         if (type.name === "DirectiveStart") {
           if (cursorInRange) {

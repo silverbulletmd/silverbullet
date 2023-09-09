@@ -342,6 +342,7 @@
   .sb-directive-end-outside {
     color: transparent;
     pointer-events: none;
+    height: 1.3em;
 
     .sb-directive-placeholder {
       padding-right: 7px;
@@ -486,12 +487,12 @@ div:not(.cm-focused).cm-fat-cursor {
 }
 
 
-@media only screen and (max-width: 600px) {
-  #sb-editor {
+// @media only screen and (max-width: 600px) {
+//   #sb-editor {
 
-    .sb-directive-start-outside,
-    .sb-directive-end-outside {
-      height: 22px;
-    }
-  }
-}
+//     .sb-directive-start-outside,
+//     .sb-directive-end-outside {
+//       height: 22px;
+//     }
+//   }
+// }
