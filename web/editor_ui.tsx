@@ -227,7 +227,7 @@ export class MainUI {
                     } else {
                       localStorage.removeItem("syncMode");
                       this.editor.flashNotification(
-                        "Now switching to server mode, one moment please...",
+                        "Now switching to online mode, one moment please...",
                       );
                       await sleep(1000);
                       location.reload();
