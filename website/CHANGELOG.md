@@ -3,14 +3,17 @@ release.
 
 ---
 
-## Next
-This release brings a new default [[Client Modes|client mode]] to SilverBullet: online mode, which does not sync content to the client but keeps it all at the server. More information: [[Client Modes]].
+## 0.4.0
+The big change in this release is that SilverBullet now supports two [[Client Modes|client modes]]: _online_ mode and _sync_ mode. Read more about them here: [[Client Modes]].
 
 Other notable changes:
 * Massive reshuffling of built-in [[🔌 Plugs]], splitting the old “core” plug into [[🔌 Editor]], [[🔌 Template]] and [[🔌 Index]].
+* Directives in [[Live Preview]] now always take up a single line height.
 * [[🔌 Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
   * [IN PROGRESS] An in progress task
-* Removed [[Cloud Links]] support in favor of [[Federation]]
+  * [BLOCKED] A task that’s blocked
+  [[🔌 Tasks|Read more]]
+* Removed [[Cloud Links]] support in favor of [[Federation]]. If you still have legacy cloud links, simply replace the 🌩️ with a `!` and things should work as before.
 
 ---
 
