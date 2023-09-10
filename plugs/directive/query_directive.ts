@@ -2,12 +2,11 @@ import { events } from "$sb/syscalls.ts";
 
 import { replaceTemplateVars } from "../template/template.ts";
 import { renderTemplate } from "./util.ts";
-import { parseQuery } from "./parser.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree, parseTreeToAST } from "$sb/lib/tree.ts";
 import type { PageMeta } from "../../web/types.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-import { Query } from "$sb/lib/query.ts";
+import type { Query } from "$sb/lib/query.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,
@@ -22,7 +21,7 @@ export async function queryDirectiveRenderer(
       JSON.parse(replaceTemplateVars(JSON.stringify(query), pageMeta)),
     ),
   );
-  // console.log("QUERY", parsedQuery);
+  console.log("QUERY", parsedQuery);
 
   const eventName = `query:${parsedQuery.querySource}`;
 

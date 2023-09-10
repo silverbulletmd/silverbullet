@@ -1,5 +1,5 @@
-import { AST } from "$sb/lib/tree.ts";
-import { Query, QueryExpression } from "./query.ts";
+import type { AST } from "$sb/lib/tree.ts";
+import type { Query, QueryExpression } from "$sb/lib/query.ts";
 
 export function astToKvQuery(
   node: AST,
@@ -102,9 +102,8 @@ function expressionToKvQueryExpression(node: AST): QueryExpression {
       return ["boolean", node[1][1] === "true"];
     case "null":
       return ["null"];
-    case "Regex": {
+    case "Regex":
       return ["regexp", new RegExp((node[1] as string).slice(1, -1))];
-    }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
       const binOp = (node[2] as string).trim();
@@ -112,7 +111,6 @@ function expressionToKvQueryExpression(node: AST): QueryExpression {
       return [binOp as any, lval, val];
     }
     case "LogicalExpression": {
-      //   console.log("Logical expression", node);
       const op1 = expressionToKvQueryFilter(node[1]);
       const op = node[2];
       const op2 = expressionToKvQueryFilter(node[3]);

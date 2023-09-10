@@ -207,7 +207,9 @@ export function liftAttributeFilter(
 export function applyQuery(query: Query, allItems: any[]): any[] {
   // Filter
   if (query.filter) {
-    allItems = allItems.filter((r) => evalQueryExpression(query.filter!, r));
+    allItems = allItems.filter((item) =>
+      evalQueryExpression(query.filter!, item)
+    );
   }
   // Add dummy keys, then remove them
   return applyQueryNoFilterKV(

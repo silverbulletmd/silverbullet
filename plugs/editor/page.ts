@@ -1,8 +1,4 @@
-import type { CompleteEvent } from "$sb/app_event.ts";
 import { editor, space } from "$sb/syscalls.ts";
-
-import { cacheFileListing } from "../federation/federation.ts";
-import type { PageMeta } from "../../web/types.ts";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
