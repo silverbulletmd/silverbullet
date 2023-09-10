@@ -103,7 +103,7 @@ function expressionToKvQueryExpression(node: AST): QueryExpression {
     case "null":
       return ["null"];
     case "Regex":
-      return ["regexp", new RegExp((node[1] as string).slice(1, -1))];
+      return ["regexp", new RegExp((node[1] as string).slice(1, -1), "i")];
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
       const binOp = (node[2] as string).trim();

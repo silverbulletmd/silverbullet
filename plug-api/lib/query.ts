@@ -204,7 +204,7 @@ export function liftAttributeFilter(
   throw new Error(`Cannot find attribute assignment for ${attributeName}`);
 }
 
-export function applyQuery(query: Query, allItems: any[]): any[] {
+export function applyQuery<T>(query: Query, allItems: T[]): T[] {
   // Filter
   if (query.filter) {
     allItems = allItems.filter((item) =>

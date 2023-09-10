@@ -21,7 +21,7 @@ export async function queryDirectiveRenderer(
       JSON.parse(replaceTemplateVars(JSON.stringify(query), pageMeta)),
     ),
   );
-  console.log("QUERY", parsedQuery);
+  // console.log("QUERY", parsedQuery);
 
   const eventName = `query:${parsedQuery.querySource}`;
 

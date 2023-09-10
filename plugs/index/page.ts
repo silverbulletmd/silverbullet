@@ -19,7 +19,6 @@ import { sleep } from "$sb/lib/async.ts";
 export async function pageQueryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  console.log("GOING TO APPLY QUERY", query);
   return applyQuery(query, await space.listPages());
 }
 
