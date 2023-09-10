@@ -1,58 +1,84 @@
-@precedence { logic @left }
-@top Program { Query }
-@skip { space }
+@precedence {
+  binop @left
+  and @left
+  or @left
+}
+@top Program {
+  Query
+}
 
-Query {
-    Name ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
+@skip {
+  space
 }
 
 commaSep<content> { content ("," content)* }
 
-WhereClause { Where LogicalExpr }
-LimitClause { Limit Number }
-OrderClause { Order Name OrderDirection? }
-SelectClause { Select commaSep<Name> }
-RenderClause { Render (PageRef | String) }
+kw<term> { @specialize[@name={term}]<Identifier, term> }
 
-OrderDirection {
-  "desc" | "asc"
+
+Query {
+    Identifier ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
 }
 
-Value { Number | String | Bool | Regex | Null | List }
+WhereClause { kw<"where"> Expression }
+LimitClause { kw<"limit"> Number }
+OrderClause { Order Identifier OrderDirection? }
+SelectClause { kw<"select"> commaSep<Identifier> }
+RenderClause { kw<"render"> PageRef }
 
-LogicalExpr { FilterExpr (And FilterExpr)* }
+OrderDirection {
+ OrderKW
+}
 
-FilterExpr {
-  Name "<" Value
-| Name "<=" Value
-| Name "=" Value
-| Name "!=" Value
-| Name ">=" Value
-| Name ">" Value
-| Name "=~" Value
-| Name "!=~" Value
-| Name "in" Value
+Value { Number | String | Bool | Regex | kw<"null"> | List }
+
+Attribute {
+  LVal "." Identifier
+}
+
+LVal {
+  Identifier
+| Attribute
+}
+
+ParenthesizedExpression { "(" Expression ")" }
+
+LogicalExpression {
+Expression !and kw<"and"> Expression
+| Expression !or kw<"or"> Expression
+}
+
+Expression {
+  Value
+| LVal
+| ParenthesizedExpression
+| LogicalExpression 
+| BinExpression
+}
+
+BinExpression {
+  LVal !binop "<" Expression
+| LVal !binop "<=" Expression
+| LVal !binop "=" Expression
+| LVal !binop "!=" Expression
+| LVal !binop ">=" Expression
+| LVal !binop ">" Expression
+| LVal !binop "=~" Expression
+| LVal !binop "!=~" Expression
+| LVal !binop InKW Expression
 }
 
 List { "[" commaSep<Value> "]" }
 
 
 Bool {
-  "true" | "false"
+  BooleanKW
 }
 
 
 @tokens {
   space { std.whitespace+ }
-  Name { (std.asciiLetter | "-" | "_")+ }
-
-  Where { "where" }
-  Order { "order by" }
-  Select { "select" }
-  Render { "render" }
-  Limit { "limit" }
-  And { "and" }
-  Null { "null" }
+  Identifier { (std.asciiLetter | "-" | "_")+ }
 
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
@@ -60,9 +86,16 @@ Bool {
   PageRef {
     "[" "[" ![\]]* "]" "]"
   }
+  Order { "order by" }
   Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
 
   Number { std.digit+ }
 
-  // @precedence { Where, Sort, Select, Render, Limit, And, Null, Name }
+  BooleanKW { "true" | "false" }
+
+  InKW { "in" }
+
+  OrderKW { "asc" | "desc" }
+
+  @precedence { Order, BooleanKW, InKW, OrderKW, Identifier }
 }

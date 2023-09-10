@@ -6,12 +6,14 @@ import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
 
 async function test(db: KvPrimitives) {
-  const dataStore = new DataStore(db);
+  const dataStore = new DataStore(db, {
+    count: (arr: any[]) => arr.length,
+  });
   await dataStore.set(["user", "peter"], { name: "Peter" });
   await dataStore.set(["user", "hank"], { name: "Hank" });
   let results = await dataStore.query({
     prefix: ["user"],
-    filter: ["=", "name", "Peter"],
+    filter: ["=", ["attr", "name"], ["string", "Peter"]],
   });
   assertEquals(results, [{ key: ["user", "peter"], value: { name: "Peter" } }]);
   await dataStore.batchSet([
@@ -33,21 +35,31 @@ async function test(db: KvPrimitives) {
   assertEquals(await dataStore.get(["kv", "data"]), new Uint8Array([1, 2, 3]));
   results = await dataStore.query({
     prefix: ["kv"],
-    filter: ["=", "", "Zef"],
+    filter: ["=", ["attr", ""], ["string", "Zef"]],
   });
   assertEquals(results, [{ key: ["kv", "name"], value: "Zef" }]);
   results = await dataStore.query({
     prefix: ["kv"],
-    filter: ["and", ["=", "parents", "John"], [
+    filter: ["and", ["=", ["attr", "parents"], ["string", "John"]], [
       "=",
-      "address.city",
-      "San Francisco",
+      ["attr", "address.city"],
+      ["string", "San Francisco"],
     ]],
-    select: ["name"],
+    select: [
+      { name: "parents" },
+      {
+        name: "name",
+        expr: ["binop", "+", ["attr", "name"], ["string", "!"]],
+      },
+      {
+        name: "parentCount",
+        expr: ["call", "count", [["attr", "parents"]]],
+      },
+    ],
   });
   assertEquals(results[0], {
     key: ["kv", "complicated"],
-    value: { name: "Frank" },
+    value: { name: "Frank!", parentCount: 2, parents: ["John", "Jane"] },
   });
 }
 

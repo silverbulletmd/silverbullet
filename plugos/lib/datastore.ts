@@ -14,85 +14,181 @@ export type KvOrderBy = {
   desc: boolean;
 };
 
+export type KvSelect = {
+  name: string;
+  expr?: KvQueryExpression;
+};
+
 export type KvQuery = {
   prefix: KvKey;
   filter?: KvQueryFilter;
   orderBy?: KvOrderBy[];
+  select?: KvSelect[];
   limit?: number;
-  select?: string[];
 };
 
 export type KvQueryFilter =
-  | ["=", string, any]
-  | ["!=", string, any]
-  | ["=~", string, RegExp]
-  | ["!=~", string, RegExp]
-  | ["prefix", string, string]
-  | ["<", string, any]
-  | ["<=", string, any]
-  | [">", string, any]
-  | [">=", string, any]
-  | ["in", string, any[]]
   | ["and", KvQueryFilter, KvQueryFilter]
-  | ["or", KvQueryFilter, KvQueryFilter];
+  | ["or", KvQueryFilter, KvQueryFilter]
+  | ["=", KvQueryExpression, KvQueryExpression]
+  | ["!=", KvQueryExpression, KvQueryExpression]
+  | ["=~", KvQueryExpression, KvQueryExpression]
+  | ["!=~", KvQueryExpression, KvQueryExpression]
+  | ["<", KvQueryExpression, KvQueryExpression]
+  | ["<=", KvQueryExpression, KvQueryExpression]
+  | [">", KvQueryExpression, KvQueryExpression]
+  | [">=", KvQueryExpression, KvQueryExpression]
+  | ["in", KvQueryExpression, KvQueryExpression];
 
-function filterKvQuery(kvQuery: KvQueryFilter, obj: KvValue): boolean {
+export type KvQueryExpression =
+  | ["attr", string]
+  | ["number", number]
+  | ["string", string]
+  | ["boolean", boolean]
+  | ["null"]
+  | ["array", KvQueryExpression[]]
+  | ["object", Record<string, any>]
+  | ["regexp", RegExp]
+  | ["binop", string, KvQueryExpression, KvQueryExpression]
+  | ["call", string, KvQueryExpression[]];
+
+type KvFunctionMap = Record<string, (...args: any[]) => any>;
+
+export function evalKvQueryExpression(
+  val: KvQueryExpression,
+  obj: any,
+  functionMap: KvFunctionMap = {},
+): any {
+  const [type, val2] = val;
+  switch (type) {
+    case "null":
+      return null;
+    case "number":
+    case "string":
+    case "boolean":
+    case "regexp":
+      return val2;
+    case "attr": {
+      let attributeVal = obj;
+      for (const part of val2.split(".")) {
+        if (!part) {
+          return attributeVal;
+        }
+        if (attributeVal === undefined) {
+          return attributeVal;
+        }
+        attributeVal = attributeVal[part];
+      }
+      return attributeVal;
+    }
+    case "array":
+      return val2.map((v) => evalKvQueryExpression(v, obj, functionMap));
+    case "object":
+      return obj;
+    case "binop": {
+      const [_binop, op, op1, op2] = val;
+      const v1 = evalKvQueryExpression(op1, obj, functionMap);
+      const v2 = evalKvQueryExpression(op2, obj, functionMap);
+      switch (op) {
+        case "+":
+          return v1 + v2;
+        case "-":
+          return v1 - v2;
+        case "*":
+          return v1 * v2;
+        case "/":
+          return v1 / v2;
+        case "%":
+          return v1 % v2;
+        default:
+          throw new Error(`Unsupported binary operator: ${op}`);
+      }
+    }
+    case "call": {
+      const fn = functionMap[val2];
+      if (!fn) {
+        throw new Error(`Unknown function: ${val2}`);
+      }
+      return fn(
+        ...val[2].map((v) => evalKvQueryExpression(v, obj, functionMap)),
+      );
+    }
+    default:
+      throw new Error(`Unsupported value type: ${type}`);
+  }
+}
+
+export function jsValueToKvQueryExpression(val: any): KvQueryExpression {
+  if (val === null) {
+    return ["null"];
+  } else if (typeof val === "number") {
+    return ["number", val];
+  } else if (typeof val === "string") {
+    return ["string", val];
+  } else if (typeof val === "boolean") {
+    return ["boolean", val];
+  } else if (Array.isArray(val)) {
+    return ["array", val.map(jsValueToKvQueryExpression)];
+  } else if (val instanceof RegExp) {
+    return ["regexp", val];
+  } else if (typeof val === "object") {
+    return ["object", val];
+  } else {
+    throw new Error(`Unsupported value type: ${typeof val}`);
+  }
+}
+
+function filterKvQuery(
+  kvQuery: KvQueryFilter,
+  obj: KvValue,
+  functionMap: KvFunctionMap,
+): boolean {
   const [op, op1, op2] = kvQuery;
 
   if (op === "and") {
-    return filterKvQuery(op1, obj) &&
-      filterKvQuery(op2, obj);
+    return filterKvQuery(op1, obj, functionMap) &&
+      filterKvQuery(op2, obj, functionMap);
   } else if (op === "or") {
-    return filterKvQuery(op1, obj) || filterKvQuery(op2, obj);
+    return filterKvQuery(op1, obj, functionMap) ||
+      filterKvQuery(op2, obj, functionMap);
   }
 
-  // Look up the value of the attribute, supporting nested attributes via `attr.attr2.attr3`, and empty attribute value signifies the root object
-  let attributeVal = obj;
-  for (const part of op1.split(".")) {
-    if (!part) {
-      continue;
-    }
-    if (attributeVal === undefined) {
-      return false;
-    }
-    attributeVal = attributeVal[part];
-  }
+  const val1 = evalKvQueryExpression(op1, obj, functionMap);
+  const val2 = evalKvQueryExpression(op2, obj, functionMap);
 
   // And apply the operator
   switch (op) {
     case "=": {
-      if (Array.isArray(attributeVal) && !Array.isArray(op2)) {
+      if (Array.isArray(val1) && !Array.isArray(val2)) {
         // Record property is an array, and value is a scalar: find the value in the array
-        if (attributeVal.includes(op2)) {
+        if (val1.includes(val2)) {
           return true;
         }
-      } else if (Array.isArray(attributeVal) && Array.isArray(obj)) {
+      } else if (Array.isArray(val1) && Array.isArray(val2)) {
         // Record property is an array, and value is an array: find the value in the array
-        if (attributeVal.some((v) => obj.includes(v))) {
+        if (val1.some((v) => val2.includes(v))) {
           return true;
         }
       }
 
-      return attributeVal === op2;
+      return val1 === val2;
     }
     case "!=":
-      return attributeVal !== op2;
+      return val1 !== val2;
     case "=~":
-      return op2.test(attributeVal);
+      return val2.test(val1);
     case "!=~":
-      return !op2.test(attributeVal);
-    case "prefix":
-      return attributeVal.startsWith(op2);
+      return !val2.test(val1);
     case "<":
-      return attributeVal < op2;
+      return val1 < val2;
     case "<=":
-      return attributeVal <= op2;
+      return val1 <= val2;
     case ">":
-      return attributeVal > op2;
+      return val1 > val2;
     case ">=":
-      return attributeVal >= op2;
+      return val1 >= val2;
     case "in":
-      return op2.includes(attributeVal);
+      return val2.includes(val1);
     default:
       throw new Error(`Unupported operator: ${op}`);
   }
@@ -103,7 +199,10 @@ function filterKvQuery(kvQuery: KvQueryFilter, obj: KvValue): boolean {
  * in a more user-friendly way
  */
 export class DataStore {
-  constructor(private kv: KvPrimitives) {
+  constructor(
+    private kv: KvPrimitives,
+    private functionMap: KvFunctionMap = {},
+  ) {
   }
 
   async get(key: KvKey): Promise<KvValue> {
@@ -136,7 +235,10 @@ export class DataStore {
     // Accumuliate results
     for await (const entry of this.kv.query({ prefix: query.prefix })) {
       // Filter
-      if (query.filter && !filterKvQuery(query.filter, entry.value)) {
+      if (
+        query.filter &&
+        !filterKvQuery(query.filter, entry.value, this.functionMap)
+      ) {
         continue;
       }
       results.push(entry);
@@ -172,8 +274,10 @@ export class DataStore {
       for (let i = 0; i < results.length; i++) {
         const rec = results[i].value;
         const newRec: any = {};
-        for (const k of query.select) {
-          newRec[k] = rec[k];
+        for (const { name, expr } of query.select) {
+          newRec[name] = expr
+            ? evalKvQueryExpression(expr, rec, this.functionMap)
+            : rec[name];
         }
         results[i].value = newRec;
       }

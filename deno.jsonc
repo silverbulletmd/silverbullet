@@ -15,8 +15,7 @@
 
     "bundle": "deno run -A build_bundle.ts",
     // Regenerates some bundle files (checked into the repo)
-    // Install lezer-generator with "npm install -g @lezer/generator"
-    "generate": "lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js",
+    "generate": "npx lezer-generator common/markdown_parser/query.grammar -o common/markdown_parser/parse-query.js",
 
     // Compile
     "compile": "deno task bundle && deno compile -A --unstable -o silverbullet dist/silverbullet.js",

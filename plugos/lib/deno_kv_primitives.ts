@@ -1,7 +1,8 @@
 /// <reference lib="deno.unstable" />
 
 import { KV, KvKey, KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
-const kvBatchSize = 10;
+
+const kvBatchSize = 100;
 
 export class DenoKvPrimitives implements KvPrimitives {
   db!: Deno.Kv;
