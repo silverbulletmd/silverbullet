@@ -432,7 +432,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
         props: [
           styleTags({
             Task: ct.TaskTag,
-            TaskMarker: ct.TaskMarkerTag,
+            TaskMark: ct.TaskMarkTag,
             Comment: ct.CommentTag,
             "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
               t.processingInstruction,

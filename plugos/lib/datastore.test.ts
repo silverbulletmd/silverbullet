@@ -42,7 +42,7 @@ async function test(db: KvPrimitives) {
     prefix: ["kv"],
     filter: ["and", ["=", ["attr", "parents"], ["string", "John"]], [
       "=",
-      ["attr", "address.city"],
+      ["attr", ["attr", "address"], "city"],
       ["string", "San Francisco"],
     ]],
     select: [

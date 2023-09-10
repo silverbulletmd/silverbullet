@@ -1,72 +1,80 @@
-import { findNodeOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { AST, findNodeOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import {
   KvQuery,
   KvQueryExpression,
   KvQueryFilter,
 } from "../../plugos/lib/datastore.ts";
-import { Expression } from "./parse-query.terms.js";
 
-export function parseTreeToKvQuery(
-  tree: ParseTree,
+export function astToKvQuery(
+  node: AST,
 ): KvQuery {
-  let query: KvQuery = {
+  const query: KvQuery = {
     prefix: [],
   };
-  const querySourceNode = tree.children![0].children![0];
-  query.prefix = [querySourceNode.text!];
-  for (const child of tree.children!) {
-    switch (child.type) {
+  const [queryType, querySource, ...clauses] = node;
+  if (queryType !== "Query") {
+    throw new Error(`Expected query type, got ${queryType}`);
+  }
+  console.log(node);
+  query.prefix = [querySource[1] as string];
+  for (const clause of clauses) {
+    const [clauseType] = clause;
+    switch (clauseType) {
       case "WhereClause": {
-        const expression = findNodeOfType(child, "Expression")!;
-        query.filter = expressionToKvQueryFilter(expression);
+        query.filter = expressionToKvQueryFilter(clause[2]);
       }
     }
   }
   return query;
 }
 
-function expressionToKvQueryExpression(tree: ParseTree): KvQueryExpression {
-  if (["LVal", "Expression", "Value"].includes(tree.type!)) {
-    return expressionToKvQueryExpression(tree.children![0]);
+function expressionToKvQueryExpression(node: AST): KvQueryExpression {
+  if (["LVal", "Expression", "Value"].includes(node[0])) {
+    return expressionToKvQueryExpression(node[1]);
   }
-  //   console.log("Got expression", tree);
-  switch (tree.type) {
-    case "Attribute":
-      return ["attr", renderToText(tree)];
+  //   console.log("Got expression", node);
+  switch (node[0]) {
+    case "Attribute": {
+      return [
+        "attr",
+        expressionToKvQueryExpression(node[1]),
+        node[3][1] as string,
+      ];
+    }
     case "Identifier":
-      return ["attr", renderToText(tree)];
+      return ["attr", node[1] as string];
     case "String":
-      return ["string", renderToText(tree).slice(1, -1)];
+      return ["string", (node[1] as string).slice(1, -1)];
     case "Number":
-      return ["number", +renderToText(tree)];
+      return ["number", +(node[1])];
     case "Bool":
-      return ["boolean", renderToText(tree) === "true"];
+      return ["boolean", node[1][1] === "true"];
     default:
-      throw new Error(`Not supported: ${tree.type}`);
+      throw new Error(`Not supported: ${node[0]}`);
   }
 }
 
 function expressionToKvQueryFilter(
-  tree: ParseTree,
+  node: AST,
 ): KvQueryFilter {
-  const expressionType = tree.children![0].type;
-  const node = tree.children![0];
+  const [expressionType] = node;
+  if (expressionType === "Expression") {
+    return expressionToKvQueryFilter(node[1]);
+  }
   switch (expressionType) {
     case "BinExpression": {
-      const lval = expressionToKvQueryExpression(node.children![0]);
-      const binOp = node.children![1].text!.trim();
-      const val = expressionToKvQueryExpression(node.children![2]);
+      const lval = expressionToKvQueryExpression(node[1]);
+      const binOp = (node[2] as string).trim();
+      const val = expressionToKvQueryExpression(node[3]);
       return [binOp as any, lval, val];
     }
     case "LogicalExpression": {
       //   console.log("Logical expression", node);
       // 0 = first operand, 1 = whitespace, 2 = operator, 3 = whitespace, 4 = second operand
-      const op1 = expressionToKvQueryFilter(node.children![0]);
-      const op = node.children![2].type!; // 1 is whitespace
-      const op2 = expressionToKvQueryFilter(
-        node.children![4],
-      );
-      return [op as any, op1, op2];
+      const op1 = expressionToKvQueryFilter(node[1]);
+      const op = node[2]; // 1 is whitespace
+      const op2 = expressionToKvQueryFilter(node[3]);
+      return [op[1] as any, op1, op2];
     }
     default:
       throw new Error(`Unknown expression type: ${expressionType}`);

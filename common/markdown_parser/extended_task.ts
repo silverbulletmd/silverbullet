@@ -23,9 +23,9 @@ class MultiStatusTaskParser implements LeafBlockParser {
       leaf,
       cx.elt("Task", leaf.start, leaf.start + leaf.content.length, [
         cx.elt("TaskState", leaf.start, leaf.start + 2 + this.status.length, [
-          cx.elt("TaskMarker", leaf.start, leaf.start + 1),
+          cx.elt("TaskMark", leaf.start, leaf.start + 1),
           cx.elt(
-            "TaskMarker",
+            "TaskMark",
             leaf.start + 1 + this.status.length,
             leaf.start + 2 + this.status.length,
           ),
@@ -43,7 +43,7 @@ class MultiStatusTaskParser implements LeafBlockParser {
 export const TaskList: MarkdownConfig = {
   defineNodes: [
     { name: "Task", block: true, style: t.list },
-    { name: "TaskMarker", style: t.atom },
+    { name: "TaskMark", style: t.atom },
     { name: "TaskState", style: TaskStateTag },
   ],
   parseBlock: [{

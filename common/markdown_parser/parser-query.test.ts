@@ -1,26 +1,25 @@
 import { parse } from "./parse_tree.ts";
 import buildMarkdown from "./parser.ts";
 import {
+  AST,
   findNodeOfType,
-  ParseTree,
-  renderToText,
+  parseTreeToAST,
 } from "../../plug-api/lib/tree.ts";
 import { assertEquals } from "../../test_deps.ts";
-import { parseTreeToKvQuery } from "./parse-query.ts";
-import { assert } from "https://deno.land/std@0.189.0/_util/asserts.ts";
+import { astToKvQuery } from "./parse-query.ts";
 
 const lang = buildMarkdown([]);
 
-function wrapQueryParse(query: string): ParseTree | null {
+function wrapQueryParse(query: string): AST | null {
   const tree = parse(lang, `<!-- #query ${query} -->\n$\n<!-- /query -->`);
-  return findNodeOfType(tree, "Query");
+  return parseTreeToAST(findNodeOfType(tree, "Query")!);
 }
 
 Deno.test("Test directive parser", () => {
   // const query = ;
   // console.log("query", query);
   assertEquals(
-    parseTreeToKvQuery(wrapQueryParse(`page where name = "test"`)!),
+    astToKvQuery(wrapQueryParse(`page where name = "test"`)!),
     {
       prefix: ["page"],
       filter: ["=", ["attr", "name"], ["string", "test"]],
@@ -28,15 +27,15 @@ Deno.test("Test directive parser", () => {
   );
 
   assertEquals(
-    parseTreeToKvQuery(wrapQueryParse(`page where parent.name = "test"`)!),
+    astToKvQuery(wrapQueryParse(`page where parent.name = "test"`)!),
     {
       prefix: ["page"],
-      filter: ["=", ["attr", "parent.name"], ["string", "test"]],
+      filter: ["=", ["attr", ["attr", "parent"], "name"], ["string", "test"]],
     },
   );
 
   assertEquals(
-    parseTreeToKvQuery(
+    astToKvQuery(
       wrapQueryParse(`page where name = "test" and age > 20`)!,
     ),
     {
@@ -49,7 +48,7 @@ Deno.test("Test directive parser", () => {
   );
 
   assertEquals(
-    parseTreeToKvQuery(
+    astToKvQuery(
       wrapQueryParse(`page where name = "test" and age > 20 or done = true`)!,
     ),
     {

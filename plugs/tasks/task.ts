@@ -227,7 +227,7 @@ export async function taskCycleAtPos(pageName: string, pos: number) {
 
   let node = nodeAtPos(mdTree, pos);
   if (node) {
-    if (node.type === "TaskMarker") {
+    if (node.type === "TaskMark") {
       node = node.parent!;
     }
     if (node.type === "TaskState") {

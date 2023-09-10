@@ -4,6 +4,7 @@ import {
   collectNodesMatching,
   findParentMatching,
   nodeAtPos,
+  parseTreeToAST,
   removeParentPointers,
   renderToText,
   replaceNodesMatching,
@@ -76,4 +77,10 @@ Deno.test("Test parsing", () => {
   // console.log(JSON.stringify(mdTree, null, 2));
   let mdTree3 = parse(lang, mdTest3);
   // console.log(JSON.stringify(mdTree3, null, 2));
+});
+
+Deno.test("AST functions", () => {
+  const lang = wikiMarkdownLang([]);
+  const mdTree = parse(lang, mdTest1);
+  console.log(JSON.stringify(parseTreeToAST(mdTree), null, 2));
 });

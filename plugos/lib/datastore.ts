@@ -41,6 +41,7 @@ export type KvQueryFilter =
   | ["in", KvQueryExpression, KvQueryExpression];
 
 export type KvQueryExpression =
+  | ["attr", KvQueryExpression, string]
   | ["attr", string]
   | ["number", number]
   | ["string", string]
@@ -70,16 +71,18 @@ export function evalKvQueryExpression(
       return val2;
     case "attr": {
       let attributeVal = obj;
-      for (const part of val2.split(".")) {
-        if (!part) {
-          return attributeVal;
+      if (val.length === 3) {
+        attributeVal = evalKvQueryExpression(val[1], obj, functionMap);
+        if (attributeVal) {
+          return attributeVal[val[2]];
+        } else {
+          return null;
         }
-        if (attributeVal === undefined) {
-          return attributeVal;
-        }
-        attributeVal = attributeVal[part];
+      } else if (!val[1]) {
+        return obj;
+      } else {
+        return attributeVal[val[1]];
       }
-      return attributeVal;
     }
     case "array":
       return val2.map((v) => evalKvQueryExpression(v, obj, functionMap));

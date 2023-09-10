@@ -22,5 +22,5 @@ export const AttributeNameTag = Tag.define();
 export const AttributeValueTag = Tag.define();
 
 export const TaskTag = Tag.define();
-export const TaskMarkerTag = Tag.define();
+export const TaskMarkTag = Tag.define();
 export const TaskStateTag = Tag.define();
