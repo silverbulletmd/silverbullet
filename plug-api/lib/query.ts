@@ -7,139 +7,258 @@ export const directiveStartRegex = /<!--\s*#([\w\-]+)\s+(.+?)-->/s;
 
 export const directiveEndRegex = /<!--\s*\/([\w\-]+)\s*-->/s;
 
-export type QueryFilter = {
-  op: string;
-  prop: string;
-  value: any;
+export type OrderBy = {
+  attribute: string;
+  desc: boolean;
 };
 
-export type QueryOrdering = {
-  orderBy: string;
-  orderDesc: boolean;
+export type Select = {
+  name: string;
+  expr?: QueryExpression;
 };
 
-export type ParsedQuery = {
-  table: string;
+export type Query = {
+  querySource?: string;
+  filter?: QueryExpression;
+  orderBy?: OrderBy[];
+  select?: Select[];
   limit?: number;
-  ordering: QueryOrdering[];
-  /** @deprecated Please use ordering.
-   * Deprecated due to PR #387
-   * Currently holds ordering[0] if exists
-   */
-  orderBy?: string;
-  /** @deprecated Please use ordering.
-   * Deprecated due to PR #387
-   * Currently holds ordering[0] if exists
-   */
-  orderDesc?: boolean;
-  filter: QueryFilter[];
-  select?: string[];
   render?: string;
 };
 
-export function applyQuery<T>(parsedQuery: ParsedQuery, records: T[]): T[] {
-  let resultRecords: any[] = [];
-  if (parsedQuery.filter.length === 0) {
-    resultRecords = records.slice();
-  } else {
-    recordLoop:
-    for (const record of records) {
-      const recordAny: any = record;
-      for (const { op, prop, value } of parsedQuery.filter) {
-        switch (op) {
-          case "=": {
-            const recordPropVal = recordAny[prop];
-            if (Array.isArray(recordPropVal) && !Array.isArray(value)) {
-              // Record property is an array, and value is a scalar: find the value in the array
-              if (!recordPropVal.includes(value)) {
-                continue recordLoop;
-              }
-            } else if (Array.isArray(recordPropVal) && Array.isArray(value)) {
-              // Record property is an array, and value is an array: find the value in the array
-              if (!recordPropVal.some((v) => value.includes(v))) {
-                continue recordLoop;
-              }
-            } else if (!(recordPropVal == value)) {
-              // Both are scalars: exact value
-              continue recordLoop;
-            }
-            break;
-          }
-          case "!=":
-            if (!(recordAny[prop] != value)) {
-              continue recordLoop;
-            }
-            break;
-          case "<":
-            if (!(recordAny[prop] < value)) {
-              continue recordLoop;
-            }
-            break;
-          case "<=":
-            if (!(recordAny[prop] <= value)) {
-              continue recordLoop;
-            }
-            break;
-          case ">":
-            if (!(recordAny[prop] > value)) {
-              continue recordLoop;
-            }
-            break;
-          case ">=":
-            if (!(recordAny[prop] >= value)) {
-              continue recordLoop;
-            }
-            break;
-          case "=~":
-            // TODO: Cache regexps somehow
-            if (!new RegExp(value).exec(recordAny[prop])) {
-              continue recordLoop;
-            }
-            break;
-          case "!=~":
-            if (new RegExp(value).exec(recordAny[prop])) {
-              continue recordLoop;
-            }
-            break;
-          case "in":
-            if (!value.includes(recordAny[prop])) {
-              continue recordLoop;
-            }
-            break;
+export type QueryExpression =
+  | ["and", QueryExpression, QueryExpression]
+  | ["or", QueryExpression, QueryExpression]
+  | ["=", QueryExpression, QueryExpression]
+  | ["!=", QueryExpression, QueryExpression]
+  | ["=~", QueryExpression, QueryExpression]
+  | ["!=~", QueryExpression, QueryExpression]
+  | ["<", QueryExpression, QueryExpression]
+  | ["<=", QueryExpression, QueryExpression]
+  | [">", QueryExpression, QueryExpression]
+  | [">=", QueryExpression, QueryExpression]
+  | ["in", QueryExpression, QueryExpression]
+  | ["attr", QueryExpression, string]
+  | ["attr", string]
+  | ["number", number]
+  | ["string", string]
+  | ["boolean", boolean]
+  | ["null"]
+  | ["array", QueryExpression[]]
+  | ["object", Record<string, any>]
+  | ["regexp", RegExp]
+  | ["+", QueryExpression, QueryExpression]
+  | ["-", QueryExpression, QueryExpression]
+  | ["*", QueryExpression, QueryExpression]
+  | ["%", QueryExpression, QueryExpression]
+  | ["/", QueryExpression, QueryExpression]
+  | ["call", string, QueryExpression[]];
+
+export type FunctionMap = Record<string, (...args: any[]) => any>;
+
+type KV = {
+  key: any;
+  value: any;
+};
+
+export function evalQueryExpression(
+  val: QueryExpression,
+  obj: any,
+  functionMap: FunctionMap = {},
+): any {
+  const [type, op1] = val;
+
+  switch (type) {
+    // Logical operators
+    case "and":
+      return evalQueryExpression(op1, obj, functionMap) &&
+        evalQueryExpression(val[2], obj, functionMap);
+    case "or":
+      return evalQueryExpression(op1, obj, functionMap) ||
+        evalQueryExpression(val[2], obj, functionMap);
+    // Value types
+    case "null":
+      return null;
+    case "number":
+    case "string":
+    case "boolean":
+    case "regexp": {
+      return op1;
+    }
+    case "attr": {
+      let attributeVal = obj;
+      if (val.length === 3) {
+        attributeVal = evalQueryExpression(val[1], obj, functionMap);
+        if (attributeVal) {
+          return attributeVal[val[2]];
+        } else {
+          return null;
         }
+      } else if (!val[1]) {
+        return obj;
+      } else {
+        return attributeVal[val[1]];
       }
-      resultRecords.push(recordAny);
+    }
+    case "array": {
+      return op1.map((v) => evalQueryExpression(v, obj, functionMap));
+    }
+    case "object":
+      return obj;
+    case "call": {
+      const fn = functionMap[op1];
+      if (!fn) {
+        throw new Error(`Unknown function: ${op1}`);
+      }
+      return fn(
+        ...val[2].map((v) => evalQueryExpression(v, obj, functionMap)),
+      );
     }
   }
 
-  if (parsedQuery.ordering.length > 0) {
-    resultRecords = resultRecords.sort((a: any, b: any) => {
-      for (const { orderBy, orderDesc } of parsedQuery.ordering) {
-        if (a[orderBy] < b[orderBy] || a[orderBy] === undefined) {
-          return orderDesc ? 1 : -1;
+  // Binary operators, here we can pre-calculate the two operand values
+  const val1 = evalQueryExpression(op1, obj, functionMap);
+  const val2 = evalQueryExpression(val[2], obj, functionMap);
+
+  switch (type) {
+    case "+":
+      return val1 + val2;
+    case "-":
+      return val1 - val2;
+    case "*":
+      return val1 * val2;
+    case "/":
+      return val1 / val2;
+    case "%":
+      return val1 % val2;
+    case "=": {
+      if (Array.isArray(val1) && !Array.isArray(val2)) {
+        // Record property is an array, and value is a scalar: find the value in the array
+        if (val1.includes(val2)) {
+          return true;
         }
-        if (a[orderBy] > b[orderBy] || b[orderBy] === undefined) {
-          return orderDesc ? -1 : 1;
+      } else if (Array.isArray(val1) && Array.isArray(val2)) {
+        // Record property is an array, and value is an array: find the value in the array
+        if (val1.some((v) => val2.includes(v))) {
+          return true;
         }
-        // Consider them equal. This way helps with comparing arrays (like tags)
       }
+      return val1 === val2;
+    }
+    case "!=":
+      return val1 !== val2;
+    case "=~":
+      return val2.test(val1);
+    case "!=~":
+      return !val2.test(val1);
+    case "<":
+      return val1 < val2;
+    case "<=":
+      return val1 <= val2;
+    case ">":
+      return val1 > val2;
+    case ">=":
+      return val1 >= val2;
+    case "in":
+      return val2.includes(val1);
+    default:
+      throw new Error(`Unupported operator: ${type}`);
+  }
+}
+
+/**
+ * Looks for an attribute assignment in the expression, and returns the expression assigned to the attribute or throws an error when not found
+ * Side effect: effectively removes the attribute assignment from the expression (by replacing it with true = true)
+ */
+export function liftAttributeFilter(
+  expression: QueryExpression | undefined,
+  attributeName: string,
+): QueryExpression {
+  if (!expression) {
+    throw new Error(`Cannot find attribute assignment for ${attributeName}`);
+  }
+  switch (expression[0]) {
+    case "=": {
+      if (expression[1][0] === "attr" && expression[1][1] === attributeName) {
+        const val = expression[2];
+        // Remove the filter by changing it to true = true
+        expression[1] = ["boolean", true];
+        expression[2] = ["boolean", true];
+        return val;
+      }
+      break;
+    }
+    case "and":
+    case "or": {
+      const newOp1 = liftAttributeFilter(expression[1], attributeName);
+      if (newOp1) {
+        return newOp1;
+      }
+      const newOp2 = liftAttributeFilter(expression[2], attributeName);
+      if (newOp2) {
+        return newOp2;
+      }
+      throw new Error(`Cannot find attribute assignment for ${attributeName}`);
+    }
+  }
+  throw new Error(`Cannot find attribute assignment for ${attributeName}`);
+}
+
+export function applyQuery(query: Query, allItems: any[]): any[] {
+  // Filter
+  if (query.filter) {
+    allItems = allItems.filter((r) => evalQueryExpression(query.filter!, r));
+  }
+  // Add dummy keys, then remove them
+  return applyQueryNoFilterKV(
+    query,
+    allItems.map((v) => ({ key: undefined, value: v })),
+  ).map((v) => v.value);
+}
+
+export function applyQueryNoFilterKV(
+  query: Query,
+  allItems: KV[],
+  functionMap: FunctionMap = {}, // TODO: Figure this out later
+): KV[] {
+  // Order by
+  if (query.orderBy) {
+    allItems.sort((a, b) => {
+      const aVal = a.value;
+      const bVal = b.value;
+      for (const { attribute, desc } of query.orderBy!) {
+        if (
+          aVal[attribute] < bVal[attribute] || aVal[attribute] === undefined
+        ) {
+          return desc ? 1 : -1;
+        }
+        if (
+          aVal[attribute] > bVal[attribute] || bVal[attribute] === undefined
+        ) {
+          return desc ? -1 : 1;
+        }
+      }
+      // Consider them equal. This helps with comparing arrays (like tags)
       return 0;
     });
   }
 
-  if (parsedQuery.limit) {
-    resultRecords = resultRecords.slice(0, parsedQuery.limit);
-  }
-  if (parsedQuery.select) {
-    resultRecords = resultRecords.map((rec) => {
+  if (query.select) {
+    for (let i = 0; i < allItems.length; i++) {
+      const rec = allItems[i].value;
       const newRec: any = {};
-      for (const k of parsedQuery.select!) {
-        newRec[k] = rec[k];
+      for (const { name, expr } of query.select) {
+        newRec[name] = expr
+          ? evalQueryExpression(expr, rec, functionMap)
+          : rec[name];
       }
-      return newRec;
-    });
+      allItems[i].value = newRec;
+    }
   }
-  return resultRecords;
+  if (query.limit && allItems.length > query.limit) {
+    allItems = allItems.slice(0, query.limit);
+  }
+  return allItems;
 }
 
 export function removeQueries(pt: ParseTree) {

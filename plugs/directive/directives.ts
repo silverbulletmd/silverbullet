@@ -75,7 +75,7 @@ export async function directiveDispatcher(
     const newBody = await directiveRenderers["query"](
       "query",
       pageMeta,
-      directiveStart.children![1], // The query ParseTree
+      directiveStart.children![1].children![0], // The query ParseTree
     );
     const result =
       `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;

@@ -19,11 +19,11 @@ export function directivePlugin() {
           return;
         }
 
-        const cursorInRange = isCursorInRange(state, [from, to]);
+        const cursorInRange = isCursorInRange(state, [parent.from, parent.to]);
 
         if (type.name === "DirectiveStart") {
           if (cursorInRange) {
-            // Cursor outside this directive
+            // Cursor inside this directive
             widgets.push(
               Decoration.line({ class: "sb-directive-start" }).range(from),
             );

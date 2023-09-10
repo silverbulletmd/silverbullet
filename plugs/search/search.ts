@@ -1,6 +1,10 @@
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import {
+  applyQuery,
+  evalQueryExpression,
+  liftAttributeFilter,
+} from "$sb/lib/query.ts";
 import { editor, index, store } from "$sb/syscalls.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
 import { FileMeta } from "$sb/types.ts";
@@ -63,11 +67,13 @@ export function pageUnindex(pageName: string) {
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  const phraseFilter = query.filter.find((f) => f.prop === "phrase");
+  const phraseFilter = liftAttributeFilter(query.filter, "phrase");
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  let results: any[] = await engine.search(phraseFilter.value);
+  const phrase = evalQueryExpression(phraseFilter, {});
+  // console.log("Phrase", phrase);
+  let results: any[] = await engine.search(phrase);
 
   // Patch the object to a format that users expect (translate id to name)
   for (const r of results) {
@@ -86,9 +92,6 @@ export async function queryProvider({
       }
     }
   }
-
-  // Remove the "phrase" filter
-  query.filter.splice(query.filter.indexOf(phraseFilter), 1);
 
   results = applyQuery(query, results);
   return results;

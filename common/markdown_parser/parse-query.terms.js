@@ -24,5 +24,6 @@ export const
   OrderDirection = 27,
   OrderKW = 28,
   SelectClause = 29,
-  RenderClause = 31,
-  PageRef = 33
+  Select = 31,
+  RenderClause = 33,
+  PageRef = 35

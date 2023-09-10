@@ -1,0 +1,151 @@
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
+import buildMarkdown from "../../common/markdown_parser/parser.ts";
+import { AST, findNodeOfType, parseTreeToAST } from "$sb/lib/tree.ts";
+import { assertEquals } from "../../test_deps.ts";
+import { astToKvQuery } from "$sb/lib/parse-query.ts";
+
+const lang = buildMarkdown([]);
+
+function wrapQueryParse(query: string): AST | null {
+  const tree = parse(lang, `<!-- #query ${query} -->\n$\n<!-- /query -->`);
+  return parseTreeToAST(findNodeOfType(tree, "Query")!);
+}
+
+Deno.test("Test directive parser", () => {
+  // const query = ;
+  // console.log("query", query);
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where name = "test"`)!),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["string", "test"]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where name =~ /test/`)!),
+    {
+      querySource: "page",
+      filter: ["=~", ["attr", "name"], ["regexp", /test/]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where parent.name = "test"`)!),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", ["attr", "parent"], "name"], ["string", "test"]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = "test" and age > 20`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["and", ["=", ["attr", "name"], ["string", "test"]], [">", [
+        "attr",
+        "age",
+      ], ["number", 20]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = "test" and age > 20 or done = true`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["or", ["and", ["=", ["attr", "name"], ["string", "test"]], [
+        ">",
+        [
+          "attr",
+          "age",
+        ],
+        ["number", 20],
+      ]], ["=", ["attr", "done"], ["boolean", true]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where (age <= 20) or task.done = null`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["or", ["<=", ["attr", "age"], ["number", 20]], [
+        "=",
+        [
+          "attr",
+          [
+            "attr",
+            "task",
+          ],
+          "done",
+        ],
+        ["null"],
+      ]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task order by lastModified asc`)!,
+    ),
+    {
+      querySource: "task",
+      orderBy: [{ attribute: "lastModified", desc: false }],
+    },
+  );
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task order by lastModified`)!,
+    ),
+    {
+      querySource: "task",
+      orderBy: [{ attribute: "lastModified", desc: false }],
+    },
+  );
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task order by lastModified desc`)!,
+    ),
+    {
+      querySource: "task",
+      orderBy: [{ attribute: "lastModified", desc: true }],
+    },
+  );
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task order by lastModified desc limit 5`)!,
+    ),
+    {
+      querySource: "task",
+      orderBy: [{ attribute: "lastModified", desc: true }],
+      limit: 5,
+    },
+  );
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task select name, lastModified + 20 as modified`)!,
+    ),
+    {
+      querySource: "task",
+      select: [{ name: "name" }, {
+        name: "modified",
+        expr: ["+", ["attr", "lastModified"], ["number", 20]],
+      }],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task render [[my/page]]`)!,
+    ),
+    {
+      querySource: "task",
+      render: "my/page",
+    },
+  );
+});

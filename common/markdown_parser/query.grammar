@@ -1,8 +1,11 @@
 @precedence {
+  mulop @left
+  addop @left
   binop @left
   and @left
   or @left
 }
+
 @top Program {
   Query
 }
@@ -23,8 +26,10 @@ Query {
 WhereClause { kw<"where"> Expression }
 LimitClause { kw<"limit"> Number }
 OrderClause { Order Identifier OrderDirection? }
-SelectClause { kw<"select"> commaSep<Identifier> }
+SelectClause { kw<"select"> commaSep<Select> }
 RenderClause { kw<"render"> PageRef }
+
+Select { Identifier | Expression kw<"as"> Identifier }
 
 OrderDirection {
  OrderKW
@@ -57,15 +62,21 @@ Expression {
 }
 
 BinExpression {
-  LVal !binop "<" Expression
-| LVal !binop "<=" Expression
-| LVal !binop "=" Expression
-| LVal !binop "!=" Expression
-| LVal !binop ">=" Expression
-| LVal !binop ">" Expression
-| LVal !binop "=~" Expression
-| LVal !binop "!=~" Expression
-| LVal !binop InKW Expression
+  Expression !binop "<" Expression
+| Expression !binop "<=" Expression
+| Expression !binop "=" Expression
+| Expression !binop "!=" Expression
+| Expression !binop ">=" Expression
+| Expression !binop ">" Expression
+| Expression !binop "=~" Expression
+| Expression !binop "!=~" Expression
+| Expression !binop InKW Expression
+
+| Expression !mulop "*" Expression
+| Expression !mulop "/" Expression
+| Expression !mulop "%" Expression
+| Expression !addop "+" Expression
+| Expression !addop "-" Expression
 }
 
 List { "[" commaSep<Value> "]" }
