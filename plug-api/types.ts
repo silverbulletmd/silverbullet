@@ -24,3 +24,64 @@ export type FileMeta = {
   perm: "ro" | "rw";
   noSync?: boolean;
 } & Record<string, any>;
+
+export type KvKey = string[];
+export type KvValue = any;
+
+export type KV = {
+  key: KvKey;
+  value: KvValue;
+};
+
+export type OrderBy = {
+  attribute: string;
+  desc: boolean;
+};
+
+export type Select = {
+  name: string;
+  expr?: QueryExpression;
+};
+
+export type Query = {
+  querySource?: string;
+  filter?: QueryExpression;
+  orderBy?: OrderBy[];
+  select?: Select[];
+  limit?: number;
+  render?: string;
+};
+
+export type KvQuery = Omit<Query, "querySource"> & {
+  prefix: KvKey;
+};
+
+export type QueryExpression =
+  | ["and", QueryExpression, QueryExpression]
+  | ["or", QueryExpression, QueryExpression]
+  | ["=", QueryExpression, QueryExpression]
+  | ["!=", QueryExpression, QueryExpression]
+  | ["=~", QueryExpression, QueryExpression]
+  | ["!=~", QueryExpression, QueryExpression]
+  | ["<", QueryExpression, QueryExpression]
+  | ["<=", QueryExpression, QueryExpression]
+  | [">", QueryExpression, QueryExpression]
+  | [">=", QueryExpression, QueryExpression]
+  | ["in", QueryExpression, QueryExpression]
+  | ["attr", QueryExpression, string]
+  | ["attr", string]
+  | ["number", number]
+  | ["string", string]
+  | ["boolean", boolean]
+  | ["null"]
+  | ["array", QueryExpression[]]
+  | ["object", Record<string, any>]
+  | ["regexp", RegExp]
+  | ["+", QueryExpression, QueryExpression]
+  | ["-", QueryExpression, QueryExpression]
+  | ["*", QueryExpression, QueryExpression]
+  | ["%", QueryExpression, QueryExpression]
+  | ["/", QueryExpression, QueryExpression]
+  | ["call", string, QueryExpression[]];
+
+export type FunctionMap = Record<string, (...args: any[]) => any>;

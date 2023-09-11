@@ -5,3 +5,4 @@ export * as store from "./store.ts";
 export * as YAML from "./yaml.ts";
 export * as mq from "./mq.ts";
 export * from "./syscall.ts";
+export * as dataStore from "./dataStore.ts";

@@ -1,16 +1,12 @@
 /// <reference lib="deno.unstable" />
 
-import { KV, KvKey, KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+import { KV, KvKey } from "$sb/types.ts";
+import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 
 const kvBatchSize = 100;
 
 export class DenoKvPrimitives implements KvPrimitives {
-  db!: Deno.Kv;
-  constructor(private path?: string) {
-  }
-
-  async init() {
-    this.db = await Deno.openKv(this.path);
+  constructor(private db: Deno.Kv) {
   }
 
   async batchGet(keys: KvKey[]): Promise<any[]> {

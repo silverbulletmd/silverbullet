@@ -1,23 +1,6 @@
-import {
-  applyQueryNoFilterKV,
-  evalQueryExpression,
-  FunctionMap,
-  Query,
-} from "$sb/lib/query.ts";
-import { KvKey, KvPrimitives } from "./kv_primitives.ts";
-
-export type { KvKey };
-
-export type KvValue = any;
-
-export type KV = {
-  key: KvKey;
-  value: KvValue;
-};
-
-export type KvQuery = Omit<Query, "querySource"> & {
-  prefix: KvKey;
-};
+import { applyQueryNoFilterKV, evalQueryExpression } from "$sb/lib/query.ts";
+import { FunctionMap, KV, KvKey, KvQuery, KvValue } from "$sb/types.ts";
+import { KvPrimitives } from "./kv_primitives.ts";
 
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives

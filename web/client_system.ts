@@ -36,6 +36,11 @@ import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
 import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
+import { dataStore } from "$sb/syscalls.ts";
+import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
+import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
+import { DataStore } from "../plugos/lib/dataStore.ts";
+import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -46,12 +51,13 @@ export class ClientSystem {
   plugsUpdated = false;
   mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
+  ds!: DataStore;
 
   constructor(
     private client: Client,
     private kvStore: DexieKVStore,
     private mq: DexieMQ,
-    dbPrefix: string,
+    private dbPrefix: string,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
@@ -138,11 +144,13 @@ export class ClientSystem {
     // this.eventHook.addLocalListener("file:deleted", (file) => {
     //   console.log("File deleted", file);
     // });
-
-    this.registerSyscalls();
   }
 
-  registerSyscalls() {
+  async init() {
+    const kvPrimitives = new IndexedDBKvPrimitives(`${this.dbPrefix}_ds`);
+    await kvPrimitives.init();
+    this.ds = new DataStore(kvPrimitives);
+
     const storeCalls = this.client.syncMode
       // In sync mode handle locally
       ? storeSyscalls(this.kvStore)
@@ -168,6 +176,9 @@ export class ClientSystem {
         ? mqSyscalls(this.mq)
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
+      this.client.syncMode
+        ? dataStoreSyscalls(this.ds)
+        : dataStoreProxySyscalls(this.client),
       storeCalls,
       this.indexSyscalls,
       debugSyscalls(),

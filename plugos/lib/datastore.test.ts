@@ -1,6 +1,6 @@
 import "https://esm.sh/fake-indexeddb@4.0.2/auto";
 import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
-import { DataStore } from "./datastore.ts";
+import { DataStore } from "./dataStore.ts";
 import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
@@ -65,8 +65,7 @@ async function test(db: KvPrimitives) {
 
 Deno.test("Test Deno KV DataStore", async () => {
   const tmpFile = await Deno.makeTempFile();
-  const db = new DenoKvPrimitives(tmpFile);
-  await db.init();
+  const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
   await test(db);
   db.close();
   await Deno.remove(tmpFile);

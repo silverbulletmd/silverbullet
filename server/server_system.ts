@@ -30,6 +30,9 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { DenoKvMQ } from "../plugos/lib/mq.deno_kv.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
+import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
+import { DataStore } from "../plugos/lib/dataStore.ts";
+import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -39,6 +42,7 @@ export class ServerSystem {
   denoKv!: Deno.Kv;
   kvStore!: DenoKVStore;
   listInterval?: number;
+  ds!: DataStore;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
@@ -60,6 +64,7 @@ export class ServerSystem {
     this.denoKv = await Deno.openKv(this.dbPath);
 
     this.kvStore = new DenoKVStore(this.denoKv);
+    this.ds = new DataStore(new DenoKvPrimitives(this.denoKv));
 
     // Endpoint hook
     this.system.addHook(new EndpointHook(this.app, "/_/"));
@@ -97,6 +102,7 @@ export class ServerSystem {
       systemSyscalls(this.system),
       mqSyscalls(mq),
       pageIndexCalls,
+      dataStoreSyscalls(this.ds),
       debugSyscalls(),
       markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions
     );

@@ -1,10 +1,4 @@
-export type KvKey = string[];
-export type KvValue = any;
-
-export type KV = {
-  key: KvKey;
-  value: KvValue;
-};
+import { KV, KvKey, KvValue } from "$sb/types.ts";
 
 export type KvQueryOptions = {
   prefix?: KvKey;

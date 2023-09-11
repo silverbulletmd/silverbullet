@@ -1,5 +1,4 @@
-import type { Query } from "../plugos-syscall/store.ts";
-import { syscall } from "./syscall.ts";
+import { syscall } from "$sb/silverbullet-syscall/syscall.ts";
 
 export type KV = {
   key: string;
@@ -30,12 +29,6 @@ export function queryPrefix(
   prefix: string,
 ): Promise<{ key: string; page: string; value: any }[]> {
   return syscall("index.queryPrefix", prefix);
-}
-
-export function query(
-  query: Query,
-): Promise<{ key: string; page: string; value: any }[]> {
-  return syscall("index.query", query);
 }
 
 export function clearPageIndexForPage(page: string): Promise<void> {

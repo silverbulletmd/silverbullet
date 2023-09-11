@@ -6,7 +6,7 @@ import { jsonToMDTable } from "./util.ts";
 import { ParseTree, parseTreeToAST } from "$sb/lib/tree.ts";
 import type { PageMeta } from "../../web/types.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-import type { Query } from "$sb/lib/query.ts";
+import { Query } from "$sb/types.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,

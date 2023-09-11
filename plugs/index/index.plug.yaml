@@ -11,6 +11,20 @@ syntax:
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
 functions:
+  # Public interface
+  batchSet:
+    path: api.ts:batchSet
+    # env: server
+  indexEntities:
+    path: api.ts:indexEntities
+    # env: server
+
+  clearDSIndex:
+    path: api.ts:clearPageIndex
+    events:
+      - page:saved
+      - page:deleted
+
   clearPageIndex:
     path: "./page.ts:clearPageIndex"
     env: server

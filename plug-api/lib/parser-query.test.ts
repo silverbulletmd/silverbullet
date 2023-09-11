@@ -26,7 +26,7 @@ Deno.test("Test directive parser", () => {
     astToKvQuery(wrapQueryParse(`page where name =~ /test/`)!),
     {
       querySource: "page",
-      filter: ["=~", ["attr", "name"], ["regexp", /test/]],
+      filter: ["=~", ["attr", "name"], ["regexp", /test/i]],
     },
   );
 

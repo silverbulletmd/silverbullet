@@ -3,8 +3,7 @@ import { allTests } from "./kv_primitives.test.ts";
 
 Deno.test("Test Deno KV Primitives", async () => {
   const tmpFile = await Deno.makeTempFile();
-  const db = new DenoKvPrimitives(tmpFile);
-  await db.init();
+  const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
   await allTests(db);
   db.close();
   await Deno.remove(tmpFile);

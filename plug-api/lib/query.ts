@@ -1,4 +1,5 @@
 import { ParseTree, renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
+import { FunctionMap, KV, Query, QueryExpression } from "$sb/types.ts";
 
 export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;
@@ -7,59 +8,10 @@ export const directiveStartRegex = /<!--\s*#([\w\-]+)\s+(.+?)-->/s;
 
 export const directiveEndRegex = /<!--\s*\/([\w\-]+)\s*-->/s;
 
-export type OrderBy = {
-  attribute: string;
-  desc: boolean;
-};
-
-export type Select = {
-  name: string;
-  expr?: QueryExpression;
-};
-
-export type Query = {
-  querySource?: string;
-  filter?: QueryExpression;
-  orderBy?: OrderBy[];
-  select?: Select[];
-  limit?: number;
-  render?: string;
-};
-
-export type QueryExpression =
-  | ["and", QueryExpression, QueryExpression]
-  | ["or", QueryExpression, QueryExpression]
-  | ["=", QueryExpression, QueryExpression]
-  | ["!=", QueryExpression, QueryExpression]
-  | ["=~", QueryExpression, QueryExpression]
-  | ["!=~", QueryExpression, QueryExpression]
-  | ["<", QueryExpression, QueryExpression]
-  | ["<=", QueryExpression, QueryExpression]
-  | [">", QueryExpression, QueryExpression]
-  | [">=", QueryExpression, QueryExpression]
-  | ["in", QueryExpression, QueryExpression]
-  | ["attr", QueryExpression, string]
-  | ["attr", string]
-  | ["number", number]
-  | ["string", string]
-  | ["boolean", boolean]
-  | ["null"]
-  | ["array", QueryExpression[]]
-  | ["object", Record<string, any>]
-  | ["regexp", RegExp]
-  | ["+", QueryExpression, QueryExpression]
-  | ["-", QueryExpression, QueryExpression]
-  | ["*", QueryExpression, QueryExpression]
-  | ["%", QueryExpression, QueryExpression]
-  | ["/", QueryExpression, QueryExpression]
-  | ["call", string, QueryExpression[]];
-
-export type FunctionMap = Record<string, (...args: any[]) => any>;
-
-type KV = {
-  key: any;
-  value: any;
-};
+// type KV = {
+//   key: any;
+//   value: any;
+// };
 
 export function evalQueryExpression(
   val: QueryExpression,
@@ -214,7 +166,7 @@ export function applyQuery<T>(query: Query, allItems: T[]): T[] {
   // Add dummy keys, then remove them
   return applyQueryNoFilterKV(
     query,
-    allItems.map((v) => ({ key: undefined, value: v })),
+    allItems.map((v) => ({ key: [], value: v })),
   ).map((v) => v.value);
 }
 

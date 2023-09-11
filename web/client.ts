@@ -167,6 +167,8 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
+    await this.system.init();
+
     // Load settings
     this.settings = await this.loadSettings();
 
