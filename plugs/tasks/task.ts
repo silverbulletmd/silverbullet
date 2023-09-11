@@ -22,17 +22,18 @@ import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { indexAttributes } from "../index/attributes.ts";
+import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { KV } from "$sb/types.ts";
 
 export type Task = {
+  page: string;
+  pos: number;
   name: string;
   done: boolean;
   state: string;
   deadline?: string;
   tags?: string[];
   nested?: string;
-  // Not saved in DB, just added when pulled out (from key)
-  pos?: number;
-  page?: string;
 } & Record<string, any>;
 
 function getDeadline(deadlineNode: ParseTree): string {
@@ -43,7 +44,7 @@ const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const tasks: { key: string; value: Task }[] = [];
+  const tasks: KV[] = [];
   const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
@@ -64,6 +65,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     const task: Task = {
       name: "",
       done: complete,
+      page: name,
+      pos: n.from!,
       state,
     };
 
@@ -101,14 +104,13 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       task.nested = nestedItems.map(renderToText).join("").trim();
     }
     tasks.push({
-      key: `task:${n.from}`,
+      key: [`${n.from}`],
       value: task,
     });
     return true;
   });
 
   // console.log("Found", tasks, "task(s)");
-  await index.batchSet(name, tasks);
   await indexAttributes(name, allAttributes, "task");
   await index.batchSet(
     name,
@@ -117,6 +119,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       value: count,
     })),
   );
+
+  await invokeFunction("index.indexEntities", name, "task", tasks);
 }
 
 export function taskToggle(event: ClickEvent) {
@@ -319,18 +323,18 @@ export async function postponeCommand() {
   });
 }
 
-export async function queryProvider({
-  query,
-}: QueryProviderEvent): Promise<Task[]> {
-  const allTasks: Task[] = [];
+// export async function queryProvider({
+//   query,
+// }: QueryProviderEvent): Promise<Task[]> {
+//   const allTasks: Task[] = [];
 
-  for (const { key, page, value } of await index.queryPrefix("task:")) {
-    const pos = key.split(":")[1];
-    allTasks.push({
-      ...value,
-      page: page,
-      pos: +pos,
-    });
-  }
-  return applyQuery(query, allTasks);
-}
+//   for (const { key, page, value } of await index.queryPrefix("task:")) {
+//     const pos = key.split(":")[1];
+//     allTasks.push({
+//       ...value,
+//       page: page,
+//       pos: +pos,
+//     });
+//   }
+//   return applyQuery(query, allTasks);
+// }

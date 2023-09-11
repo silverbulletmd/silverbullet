@@ -1,5 +1,6 @@
 import { dataStore } from "$sb/syscalls.ts";
 import { KV, KvKey } from "$sb/types.ts";
+import { QueryProviderEvent } from "$sb/app_event.ts";
 
 export function batchSet(page: string, kvs: KV[]): Promise<void> {
   const finalBatch: KV[] = [];
@@ -40,4 +41,15 @@ export async function clearPageIndex(page: string): Promise<void> {
     allKeys.push(["index", ...key.slice(2), page]);
   }
   return dataStore.batchDel(allKeys);
+}
+
+export async function entityDataSource({
+  query,
+}: QueryProviderEvent): Promise<any[]> {
+  console.log("Querying entities", query);
+  const results = await dataStore.query({
+    prefix: ["index", query.querySource!],
+  });
+  console.log("RESULTS", results);
+  return results.map((r) => r.value);
 }

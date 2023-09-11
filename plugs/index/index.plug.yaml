@@ -18,6 +18,11 @@ functions:
   indexEntities:
     path: api.ts:indexEntities
     # env: server
+  entityDataSource:
+    path: api.ts:entityDataSource
+    # env: server
+    events:
+    - query:*
 
   clearDSIndex:
     path: api.ts:clearPageIndex

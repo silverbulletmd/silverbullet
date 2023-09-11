@@ -35,23 +35,22 @@ export async function queryDirectiveRenderer(
   if (results.length === 0) {
     // This means there was no handler for the event which means it's unsupported
     return `**Error:** Unsupported query source '${parsedQuery.querySource}'`;
-  } else if (results.length === 1) {
+  } else {
     // console.log("Parsed query", parsedQuery);
+    const allResults = results.flat();
     if (parsedQuery.render) {
       const rendered = await renderTemplate(
         pageMeta,
         parsedQuery.render,
-        results[0],
+        allResults,
       );
       return rendered.trim();
     } else {
-      if (results[0].length === 0) {
+      if (allResults.length === 0) {
         return "No results";
       } else {
-        return jsonToMDTable(results[0]);
+        return jsonToMDTable(allResults);
       }
     }
-  } else {
-    throw new Error(`Too many query results: ${results.length}`);
   }
 }

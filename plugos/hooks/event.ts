@@ -53,12 +53,18 @@ export class EventHook implements Hook<EventHookT> {
           manifest!.functions,
         )
       ) {
-        if (functionDef.events && functionDef.events.includes(eventName)) {
-          // Only dispatch functions that can run in this environment
-          if (await plug.canInvoke(name)) {
-            const result = await plug.invoke(name, args);
-            if (result !== undefined) {
-              responses.push(result);
+        if (functionDef.events) {
+          for (const event of functionDef.events) {
+            if (
+              event === eventName || eventNameToRegex(event).test(eventName)
+            ) {
+              // Only dispatch functions that can run in this environment
+              if (await plug.canInvoke(name)) {
+                const result = await plug.invoke(name, args);
+                if (result !== undefined) {
+                  responses.push(result);
+                }
+              }
             }
           }
         }
@@ -99,4 +105,10 @@ export class EventHook implements Hook<EventHookT> {
     }
     return errors;
   }
+}
+
+function eventNameToRegex(eventName: string): RegExp {
+  return new RegExp(
+    `^${eventName.replace(/\*/g, ".*").replace(/\//g, "\\/")}$`,
+  );
 }
