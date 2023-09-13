@@ -30,3 +30,9 @@ export function query(
 ): Promise<KV[]> {
   return syscall("dataStore.query", query);
 }
+
+export function queryDelete(
+  query: KvQuery,
+): Promise<void> {
+  return syscall("dataStore.queryDelete", query);
+}

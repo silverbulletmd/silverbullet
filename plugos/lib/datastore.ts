@@ -59,4 +59,12 @@ export class DataStore {
     // Apply order by, limit, and select
     return applyQueryNoFilterKV(query, results, this.functionMap);
   }
+
+  async queryDelete(query: KvQuery): Promise<void> {
+    const keys: KvKey[] = [];
+    for (const { key } of await this.query(query)) {
+      keys.push(key);
+    }
+    return this.batchDelete(keys);
+  }
 }

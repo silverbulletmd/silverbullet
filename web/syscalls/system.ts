@@ -25,6 +25,7 @@ export function systemSyscalls(
       }
 
       let plug: Plug<any> | undefined = ctx.plug;
+      const fullName = name;
       if (name.indexOf(".") !== -1) {
         // plug name in the name
         const [plugName, functionName] = name.split(".");
@@ -43,7 +44,12 @@ export function systemSyscalls(
         functionDef.env !== system.env
       ) {
         // Proxy to another environment
-        return proxySyscall(ctx, client.remoteSpacePrimitives, name, args);
+        return proxySyscall(
+          ctx,
+          client.remoteSpacePrimitives,
+          "system.invokeFunction",
+          [fullName, ...args],
+        );
       }
       return plug.invoke(name, args);
     },

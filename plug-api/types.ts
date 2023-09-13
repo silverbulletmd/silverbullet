@@ -1,3 +1,13 @@
+export type FileMeta = {
+  name: string;
+  lastModified: number;
+  contentType: string;
+  size: number;
+  perm: "ro" | "rw";
+  noSync?: boolean;
+} & Record<string, any>;
+
+// Message Queue related types
 export type MQMessage = {
   id: string;
   queue: string;
@@ -16,15 +26,7 @@ export type MQSubscribeOptions = {
   pollInterval?: number;
 };
 
-export type FileMeta = {
-  name: string;
-  lastModified: number;
-  contentType: string;
-  size: number;
-  perm: "ro" | "rw";
-  noSync?: boolean;
-} & Record<string, any>;
-
+// Key-Value Store related types
 export type KvKey = string[];
 export type KvValue = any;
 
@@ -76,7 +78,7 @@ export type QueryExpression =
   | ["null"]
   | ["array", QueryExpression[]]
   | ["object", Record<string, any>]
-  | ["regexp", RegExp]
+  | ["regexp", string, string] // regex, modifier
   | ["+", QueryExpression, QueryExpression]
   | ["-", QueryExpression, QueryExpression]
   | ["*", QueryExpression, QueryExpression]
@@ -85,3 +87,6 @@ export type QueryExpression =
   | ["call", string, QueryExpression[]];
 
 export type FunctionMap = Record<string, (...args: any[]) => any>;
+
+// Object indexing related types
+export type ObjectValue = KV & { type: string };

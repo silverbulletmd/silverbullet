@@ -1,5 +1,5 @@
 import { CompleteEvent } from "$sb/app_event.ts";
-import { index } from "$sb/syscalls.ts";
+import { queryObjects } from "../index/plug_api.ts";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
   const taskMatch = /([\-\*]\s+\[)([^\[\]]+)$/.exec(
@@ -8,8 +8,8 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = await index.queryPrefix("taskState:");
-  const states = [...new Set(allStates.map((s) => s.key.split(":")[1]))];
+  const allStates = await queryObjects("taskstate", {});
+  const states = [...new Set(allStates.map((s) => s.value.state))];
 
   return {
     from: completeEvent.pos - taskMatch[2].length,

@@ -76,7 +76,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
   }
   // console.log("Found", items, "item(s)");
   await index.batchSet(name, items);
-  await indexAttributes(name, allAttributes, "item");
+  await indexAttributes(name, "item", allAttributes);
 }
 
 export async function queryProvider({

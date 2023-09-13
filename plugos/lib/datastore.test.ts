@@ -35,7 +35,7 @@ async function test(db: KvPrimitives) {
   assertEquals(await dataStore.get(["kv", "data"]), new Uint8Array([1, 2, 3]));
   results = await dataStore.query({
     prefix: ["kv"],
-    filter: ["=~", ["attr", ""], ["regexp", /Z.f/]],
+    filter: ["=~", ["attr", ""], ["regexp", "Z.f", "i"]],
   });
   assertEquals(results, [{ key: ["kv", "name"], value: "Zef" }]);
   results = await dataStore.query({

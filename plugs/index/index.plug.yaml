@@ -11,33 +11,43 @@ syntax:
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
 functions:
-  # Public interface
+  # Public API
   batchSet:
     path: api.ts:batchSet
-    # env: server
-  indexEntities:
-    path: api.ts:indexEntities
-    # env: server
-  entityDataSource:
-    path: api.ts:entityDataSource
-    # env: server
+    env: server
+  indexObjects:
+    path: api.ts:indexObjects
+    env: server
+  queryObjects:
+    path: api.ts:queryObjects
+    env: server
+  objectSourceProvider:
+    path: api.ts:objectSourceProvider
     events:
     - query:*
+  discoverSources:
+    path: api.ts:discoverSources
+    events:
+    - query_
+  clearIndex:
+    path: api.ts:clearIndex
+    env: server
 
   clearDSIndex:
     path: api.ts:clearPageIndex
+    env: server
     events:
       - page:saved
       - page:deleted
 
   clearPageIndex:
-    path: "./page.ts:clearPageIndex"
+    path: page.ts:clearPageIndex
     env: server
     events:
       - page:saved
       - page:deleted
   pageQueryProvider:
-    path: ./page.ts:pageQueryProvider
+    path: page.ts:pageQueryProvider
     events:
       - query:page
   parseIndexTextRepublish:
@@ -79,21 +89,15 @@ functions:
     events:
     - editor:complete
 
-  customAttributeCompleter:
-    path: ./attributes.ts:customAttributeCompleter
+  objectAttributeCompleter:
+    path: ./attributes.ts:objectAttributeCompleter
     events:
-    - attribute:complete:page
-    - attribute:complete:task
-    - attribute:complete:item
     - attribute:complete:*
 
-  builtinAttributeCompleter:
-    path: ./attributes.ts:builtinAttributeCompleter
-    events:
-    - attribute:complete:page
-    - attribute:complete:task
-    - attribute:complete:item
-    - attribute:complete:*
+  # builtinAttributeCompleter:
+  #   path: ./attributes.ts:builtinAttributeCompleter
+  #   events:
+  #   - attribute:complete:*
 
   # Item indexing
   indexItem:

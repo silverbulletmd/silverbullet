@@ -14,13 +14,26 @@ export async function queryComplete(completeEvent: CompleteEvent) {
   if (querySourceMatch) {
     const allEvents = await events.listEvents();
 
+    const completionOptions = allEvents
+      .filter((eventName) =>
+        eventName.startsWith("query:") && eventName.includes("*")
+      )
+      .map((source) => ({
+        label: source.substring("query:".length),
+      }));
+
+    const allObjectTypes: string[] = (await events.dispatchEvent("query_", {}))
+      .flat();
+
+    for (const type of allObjectTypes) {
+      completionOptions.push({
+        label: type,
+      });
+    }
+
     return {
       from: completeEvent.pos - querySourceMatch[1].length,
-      options: allEvents
-        .filter((eventName) => eventName.startsWith("query:"))
-        .map((source) => ({
-          label: source.substring("query:".length),
-        })),
+      options: completionOptions,
     };
   }
 
@@ -69,9 +82,9 @@ export async function templateVariableComplete(completeEvent: CompleteEvent) {
   );
 
   const completions = (await events.dispatchEvent(
-    `attribute:complete:*`,
+    `attribute:complete:_`,
     {
-      source: "*",
+      source: "",
       prefix: match[1],
     } as AttributeCompleteEvent,
   )).flat() as AttributeCompletion[];
@@ -92,7 +105,7 @@ export function attributeCompletionsToCMCompletion(
   return completions.map(
     (completion) => ({
       label: completion.name,
-      detail: `${completion.type} (${completion.source})`,
+      detail: `${completion.attributeType} (${completion.source})`,
       type: "attribute",
     }),
   );

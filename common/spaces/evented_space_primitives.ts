@@ -104,16 +104,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const decoder = new TextDecoder("utf-8");
       text = decoder.decode(data);
 
-      this.dispatchEvent("page:saved", pageName, newMeta)
-        .then(() => {
-          return this.dispatchEvent("page:index_text", {
-            name: pageName,
-            text,
-          });
-        })
-        .catch((e) => {
-          console.error("Error dispatching page:saved event", e);
-        });
+      await this.dispatchEvent("page:saved", pageName, newMeta);
+      await this.dispatchEvent("page:index_text", {
+        name: pageName,
+        text,
+      });
     }
     return newMeta;
   }

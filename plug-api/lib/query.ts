@@ -5,13 +5,7 @@ export const queryRegex =
   /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;
 
 export const directiveStartRegex = /<!--\s*#([\w\-]+)\s+(.+?)-->/s;
-
 export const directiveEndRegex = /<!--\s*\/([\w\-]+)\s*-->/s;
-
-// type KV = {
-//   key: any;
-//   value: any;
-// };
 
 export function evalQueryExpression(
   val: QueryExpression,
@@ -34,9 +28,9 @@ export function evalQueryExpression(
     case "number":
     case "string":
     case "boolean":
-    case "regexp": {
       return op1;
-    }
+    case "regexp":
+      return [op1, val[2]];
     case "attr": {
       let attributeVal = obj;
       if (val.length === 3) {
@@ -99,10 +93,20 @@ export function evalQueryExpression(
     }
     case "!=":
       return val1 !== val2;
-    case "=~":
-      return val2.test(val1);
-    case "!=~":
-      return !val2.test(val1);
+    case "=~": {
+      if (!Array.isArray(val2)) {
+        throw new Error(`Invalid regexp: ${val2}`);
+      }
+      const r = new RegExp(val2[0], val2[1]);
+      return r.test(val1);
+    }
+    case "!=~": {
+      if (!Array.isArray(val2)) {
+        throw new Error(`Invalid regexp: ${val2}`);
+      }
+      const r = new RegExp(val2[0], val2[1]);
+      return !r.test(val1);
+    }
     case "<":
       return val1 < val2;
     case "<=":

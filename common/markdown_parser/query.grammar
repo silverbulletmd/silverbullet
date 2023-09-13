@@ -89,7 +89,9 @@ Bool {
 
 @tokens {
   space { std.whitespace+ }
-  Identifier { (std.asciiLetter | "-" | "_")+ }
+
+
+  Identifier { @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
 
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
@@ -108,5 +110,5 @@ Bool {
 
   OrderKW { "asc" | "desc" }
 
-  @precedence { Order, BooleanKW, InKW, OrderKW, Identifier }
+  @precedence { Order, BooleanKW, InKW, OrderKW, Identifier, Number }
 }

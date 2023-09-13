@@ -1,11 +1,15 @@
-import { index } from "$sb/silverbullet-syscall/mod.ts";
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
+import { indexObjects, queryObjects } from "./plug_api.ts";
+import { QueryExpression } from "$sb/types.ts";
 
-export type AttributeContext = "page" | "item" | "task";
+const builtinPseudoPage = ":builtin:";
 
 type AttributeEntry = {
+  name: string;
+  attributeType: string;
   type: string;
+  page: string;
 };
 
 export type AttributeCompleteEvent = {
@@ -16,7 +20,7 @@ export type AttributeCompleteEvent = {
 export type AttributeCompletion = {
   name: string;
   source: string;
-  type: string;
+  attributeType: string;
   builtin?: boolean;
 };
 
@@ -48,6 +52,12 @@ const builtinAttributes: Record<string, Record<string, string>> = {
     name: "string",
     freq: "number",
   },
+  attribute: {
+    name: "string",
+    attributeType: "string",
+    type: "string",
+    page: "string",
+  },
 };
 
 function determineType(v: any): string {
@@ -60,73 +70,79 @@ function determineType(v: any): string {
   return t;
 }
 
-const attributeKeyPrefix = "attr:";
-
 export async function indexAttributes(
-  pageName: string,
+  page: string,
+  type: string,
   attributes: Record<string, any>,
-  context: AttributeContext,
 ) {
-  await index.batchSet(
-    pageName,
-    Object.entries(attributes).map(([k, v]) => {
-      return {
-        key: `${attributeKeyPrefix}${context}:${k}`,
-        value: {
-          type: determineType(v),
-        } as AttributeEntry,
-      };
-    }),
-  );
-}
-
-export async function customAttributeCompleter(
-  attributeCompleteEvent: AttributeCompleteEvent,
-): Promise<AttributeCompletion[]> {
-  const sourcePrefix = attributeCompleteEvent.source === "*"
-    ? ""
-    : `${attributeCompleteEvent.source}:`;
-  const allAttributes = await index.queryPrefix(
-    `${attributeKeyPrefix}${sourcePrefix}`,
-  );
-  return allAttributes.map((attr) => {
-    const [_prefix, context, name] = attr.key.split(":");
-    return {
-      name,
-      source: context,
-      type: attr.value.type,
-    };
-  });
-}
-
-export function builtinAttributeCompleter(
-  attributeCompleteEvent: AttributeCompleteEvent,
-): AttributeCompletion[] {
-  let allAttributes = builtinAttributes[attributeCompleteEvent.source];
-  if (attributeCompleteEvent.source === "*") {
-    allAttributes = {};
-    for (const [source, attributes] of Object.entries(builtinAttributes)) {
-      for (const [name, type] of Object.entries(attributes)) {
-        allAttributes[name] = `${type}|${source}`;
+  const filteredAttributes = { ...attributes };
+  if (page !== builtinPseudoPage) {
+    for (const attr of Object.keys(filteredAttributes)) {
+      if (builtinAttributes[type]?.[attr]) {
+        delete filteredAttributes[attr];
       }
     }
   }
-  if (!allAttributes) {
-    return [];
+  if (Object.keys(filteredAttributes).length > 0) {
+    await indexObjects(
+      page,
+      Object.entries(filteredAttributes).map(([k, v]) => {
+        return {
+          key: [type, k],
+          type: "attribute",
+          value: {
+            name: k,
+            attributeType: determineType(v),
+            type,
+            page: page,
+          } as AttributeEntry,
+        };
+      }),
+    );
   }
-  return Object.entries(allAttributes).map(([name, type]) => {
+}
+
+const builtinsLoaded = lazyPromise(loadBuiltinsIntoIndex);
+
+export async function objectAttributeCompleter(
+  attributeCompleteEvent: AttributeCompleteEvent,
+): Promise<AttributeCompletion[]> {
+  await builtinsLoaded();
+  const attributeFilter: QueryExpression | undefined =
+    attributeCompleteEvent.source === ""
+      ? undefined
+      : ["=", ["attr", "type"], ["string", attributeCompleteEvent.source]];
+  const allAttributes = await queryObjects("attribute", {
+    filter: attributeFilter,
+  });
+  return allAttributes.map(({ value }) => {
     return {
-      name,
-      source: attributeCompleteEvent.source === "*"
-        ? type.split("|")[1]
-        : attributeCompleteEvent.source,
-      type: attributeCompleteEvent.source === "*" ? type.split("|")[0] : type,
-      builtin: true,
-    };
+      name: value.name,
+      source: value.type,
+      attributeType: value.attributeType,
+      builtin: value.page === builtinPseudoPage,
+    } as AttributeCompletion;
   });
 }
 
+async function loadBuiltinsIntoIndex() {
+  for (const [source, attributes] of Object.entries(builtinAttributes)) {
+    await indexAttributes(builtinPseudoPage, source, attributes);
+  }
+}
+
+function lazyPromise<T>(fn: () => Promise<T>): () => Promise<T> {
+  let promise: Promise<T> | undefined;
+  return () => {
+    if (!promise) {
+      promise = fn();
+    }
+    return promise;
+  };
+}
+
 export async function attributeComplete(completeEvent: CompleteEvent) {
+  await builtinsLoaded();
   if (/([\-\*]\s+\[)([^\]]+)$/.test(completeEvent.linePrefix)) {
     // Don't match task states, which look similar
     return null;
@@ -184,7 +200,7 @@ export function attributeCompletionsToCMCompletion(
     (completion) => ({
       label: completion.name,
       apply: `${completion.name}: `,
-      detail: `${completion.type} (${completion.source})`,
+      detail: `${completion.attributeType} (${completion.source})`,
       type: "attribute",
     }),
   );

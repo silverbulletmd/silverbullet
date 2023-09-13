@@ -42,7 +42,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     await index.set(name, "meta:", pageMeta);
   }
 
-  await indexAttributes(name, pageMeta, "page");
+  await indexAttributes(name, "page", pageMeta);
 
   let directiveDepth = 0;
   traverseTree(tree, (n): boolean => {

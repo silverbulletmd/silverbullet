@@ -53,6 +53,16 @@ export function dataStoreSyscalls(
         value: kv.value,
       }));
     },
+
+    "dataStore.queryDelete": (
+      ctx,
+      query: KvQuery,
+    ): Promise<void> => {
+      return ds.queryDelete({
+        ...query,
+        prefix: applyPrefix(ctx, query.prefix),
+      });
+    },
   };
 
   function applyPrefix(ctx: SyscallContext, key: KvKey): KvKey {

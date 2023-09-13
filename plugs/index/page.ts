@@ -33,6 +33,7 @@ export async function reindexSpace() {
   await index.clearPageIndex();
   // Executed this way to not have to embed the search plug code here
   await system.invokeFunction("search.clearIndex");
+  await system.invokeFunction("index.clearIndex");
   const pages = await space.listPages();
 
   // Queue all page names to be indexed

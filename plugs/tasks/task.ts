@@ -1,8 +1,4 @@
-import type {
-  ClickEvent,
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "$sb/app_event.ts";
+import type { ClickEvent, IndexTreeEvent } from "$sb/app_event.ts";
 
 import { editor, index, markdown, space, sync } from "$sb/syscalls.ts";
 
@@ -17,13 +13,13 @@ import {
   replaceNodesMatching,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { indexAttributes } from "../index/attributes.ts";
-import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { KV } from "$sb/types.ts";
+import { ObjectValue } from "$sb/types.ts";
+import { indexObjects, queryObjects } from "../index/plug_api.ts";
 
 export type Task = {
   page: string;
@@ -44,7 +40,7 @@ const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const tasks: KV[] = [];
+  const tasks: ObjectValue[] = [];
   const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
@@ -104,6 +100,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       task.nested = nestedItems.map(renderToText).join("").trim();
     }
     tasks.push({
+      type: "task",
       key: [`${n.from}`],
       value: task,
     });
@@ -111,16 +108,28 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   });
 
   // console.log("Found", tasks, "task(s)");
-  await indexAttributes(name, allAttributes, "task");
-  await index.batchSet(
-    name,
-    Array.from(taskStates.entries()).map(([state, count]) => ({
-      key: `taskState:${state}`,
-      value: count,
-    })),
-  );
+  await indexAttributes(name, "task", allAttributes);
 
-  await invokeFunction("index.indexEntities", name, "task", tasks);
+  // Index task states
+  if (taskStates.size > 0) {
+    await indexObjects(
+      name,
+      Array.from(taskStates.entries()).map(([state, count]) => ({
+        type: "taskstate",
+        key: [state],
+        value: {
+          state,
+          count,
+          page: name,
+        },
+      })),
+    );
+  }
+
+  // Index tasks themselves
+  if (tasks.length > 0) {
+    await indexObjects(name, tasks);
+  }
 }
 
 export function taskToggle(event: ClickEvent) {
@@ -149,8 +158,8 @@ async function cycleTaskState(
     changeTo = "x";
   } else {
     // Not a checkbox, but a custom state
-    const allStates = await index.queryPrefix("taskState:");
-    const states = [...new Set(allStates.map((s) => s.key.split(":")[1]))];
+    const allStates = await queryObjects("taskstate", {});
+    const states = [...new Set(allStates.map((s) => s.value.state))];
     states.sort();
     // Select a next state
     const currentStateIndex = states.indexOf(stateText);

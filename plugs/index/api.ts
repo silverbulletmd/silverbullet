@@ -1,6 +1,13 @@
 import { dataStore } from "$sb/syscalls.ts";
-import { KV, KvKey } from "$sb/types.ts";
+import { KV, KvKey, ObjectValue, Query } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
+
+/*
+ * Key namespace:
+ * ["index", type, ...key, page] -> value
+ * ["page", page, ...key] -> true // for fast page clearing
+ * ["type", type] -> true // for fast type listing
+ */
 
 export function batchSet(page: string, kvs: KV[]): Promise<void> {
   const finalBatch: KV[] = [];
@@ -16,20 +23,10 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
   return dataStore.batchSet(finalBatch);
 }
 
-export function indexEntities(
-  page: string,
-  type: string,
-  entities: KV[],
-): Promise<void> {
-  return batchSet(
-    page,
-    entities.map(({ key, value }) => ({
-      key: [type, ...key],
-      value,
-    })),
-  );
-}
-
+/**
+ * Clears all keys for a given page
+ * @param page
+ */
 export async function clearPageIndex(page: string): Promise<void> {
   const allKeys: KvKey[] = [];
   for (
@@ -40,16 +37,73 @@ export async function clearPageIndex(page: string): Promise<void> {
     allKeys.push(key);
     allKeys.push(["index", ...key.slice(2), page]);
   }
-  return dataStore.batchDel(allKeys);
+  await dataStore.batchDel(allKeys);
 }
 
-export async function entityDataSource({
+/**
+ * Clears the entire datastore for this "index" plug
+ */
+export async function clearIndex(): Promise<void> {
+  const allKeys: KvKey[] = [];
+  for (
+    const { key } of await dataStore.query({ prefix: [] })
+  ) {
+    allKeys.push(key);
+  }
+  await dataStore.batchDel(allKeys);
+  console.log("Deleted", allKeys.length, "keys from the index");
+}
+
+// ENTITIES API
+
+/**
+ * Indexes entities in the data store
+ */
+export async function indexObjects(
+  page: string,
+  objects: ObjectValue[],
+): Promise<void> {
+  const allTypes = new Set<string>();
+  // console.log("Now indexing objects", objects);
+  const kvs: KV[] = [];
+  for (const { key, value, type } of objects) {
+    allTypes.add(type);
+    kvs.push({
+      key: [type, ...key, page],
+      value,
+    });
+  }
+  await batchSet(
+    page,
+    [...allTypes].map((type) => ({
+      key: ["$type", type],
+      value: true,
+    })),
+  );
+  return batchSet(page, kvs);
+}
+
+export async function queryObjects(
+  type: string,
+  query: Query,
+): Promise<ObjectValue[]> {
+  return (await dataStore.query({ ...query, prefix: ["index", type] })).map(
+    ({ key, value }) => ({ key, value, type }),
+  );
+}
+
+export async function objectSourceProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  console.log("Querying entities", query);
   const results = await dataStore.query({
+    ...query,
     prefix: ["index", query.querySource!],
   });
-  console.log("RESULTS", results);
   return results.map((r) => r.value);
+}
+
+export async function discoverSources() {
+  return (await dataStore.query({ prefix: ["index", "$type"] })).map((
+    { key },
+  ) => key[2]);
 }
