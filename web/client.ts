@@ -43,6 +43,8 @@ import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { FileMeta } from "$sb/types.ts";
+import { DataStore } from "../plugos/lib/dataStore.ts";
+import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -60,8 +62,8 @@ declare global {
 
 // TODO: Oh my god, need to refactor this
 export class Client {
-  system: ClientSystem;
-  editorView: EditorView;
+  system!: ClientSystem;
+  editorView!: EditorView;
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
@@ -81,19 +83,20 @@ export class Client {
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
-  syncService: ISyncService;
+  syncService!: ISyncService;
   settings!: BuiltinSettings;
   kvStore: DexieKVStore;
   mq: DexieMQ;
 
   // Event bus used to communicate between components
-  eventHook: EventHook;
+  eventHook!: EventHook;
 
-  ui: MainUI;
-  openPages: OpenPages;
+  ui!: MainUI;
+  openPages!: OpenPages;
+  ds!: DataStore;
 
   constructor(
-    parent: Element,
+    private parent: Element,
     public syncMode = false,
   ) {
     if (!syncMode) {
@@ -115,6 +118,16 @@ export class Client {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
       this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
     }, 20000); // Look to requeue every 20s
+  }
+
+  /**
+   * Initialize the client
+   * This is a separated from the constructor to allow for async initialization
+   */
+  async init() {
+    const kvPrimitives = new IndexedDBKvPrimitives(`${this.dbPrefix}_ds`);
+    await kvPrimitives.init();
+    this.ds = new DataStore(kvPrimitives);
 
     // Event hook
     this.eventHook = new EventHook();
@@ -124,6 +137,7 @@ export class Client {
       this,
       this.kvStore,
       this.mq,
+      this.ds,
       this.dbPrefix,
       this.eventHook,
     );
@@ -148,7 +162,7 @@ export class Client {
       : new NoSyncSyncService(this.space);
 
     this.ui = new MainUI(this);
-    this.ui.render(parent);
+    this.ui.render(this.parent);
 
     this.editorView = new EditorView({
       state: createEditorState(this, "", "", false),
@@ -160,13 +174,6 @@ export class Client {
     this.focus();
 
     // This constructor will always be followed by an (async) invocatition of init()
-  }
-
-  /**
-   * Initialize the client
-   * This is a separated from the constructor to allow for async initialization
-   */
-  async init() {
     await this.system.init();
 
     // Load settings
@@ -363,7 +370,7 @@ export class Client {
             ),
             this.eventHook,
           ),
-          this.system.indexSyscalls,
+          this.ds,
         ),
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved

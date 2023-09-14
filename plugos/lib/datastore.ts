@@ -1,5 +1,5 @@
 import { applyQueryNoFilterKV, evalQueryExpression } from "$sb/lib/query.ts";
-import { FunctionMap, KV, KvKey, KvQuery, KvValue } from "$sb/types.ts";
+import { FunctionMap, KV, KvKey, KvQuery } from "$sb/types.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
 
 /**
@@ -13,15 +13,15 @@ export class DataStore {
   ) {
   }
 
-  async get(key: KvKey): Promise<KvValue> {
+  async get(key: KvKey): Promise<any> {
     return (await this.kv.batchGet([key]))[0];
   }
 
-  batchGet(keys: KvKey[]): Promise<KvValue[]> {
+  batchGet(keys: KvKey[]): Promise<any[]> {
     return this.kv.batchGet(keys);
   }
 
-  set(key: KvKey, value: KvValue): Promise<void> {
+  set(key: KvKey, value: any): Promise<void> {
     return this.kv.batchSet([{ key, value }]);
   }
 

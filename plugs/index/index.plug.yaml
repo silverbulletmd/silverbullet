@@ -74,15 +74,16 @@ functions:
     events:
       - query:attachment
 
+  indexPage:
+    path: page.ts:indexPage
+    events:
+      - page:index
+
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
     events:
       - page:index
-  linkQueryProvider:
-    path: ./page_links.ts:linkQueryProvider
-    events:
-      - query:link
 
   attributeComplete:
     path: "./attributes.ts:attributeComplete"

@@ -1,12 +1,12 @@
 import { SpacePrimitives } from "./space_primitives.ts";
-import type { SysCallMapping } from "../../plugos/system.ts";
 import { FileMeta } from "$sb/types.ts";
+import { DataStore } from "../../plugos/lib/dataStore.ts";
 
 // Enriches the file list listing with custom metadata from the page index
 export class FileMetaSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
-    private indexSyscalls: SysCallMapping,
+    private dataStore: DataStore,
   ) {
   }
 
@@ -17,12 +17,11 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
       files.map((fm) => [fm.name, fm]),
     );
     for (
-      const { page, value } of await this.indexSyscalls["index.queryPrefix"](
-        {} as any,
-        "meta:",
-      )
+      const { value } of await this.dataStore.query({
+        prefix: ["ds", "index", "index", "$page"],
+      })
     ) {
-      const p = allFilesMap.get(`${page}.md`);
+      const p = allFilesMap.get(`${value.name}.md`);
       if (p) {
         for (const [k, v] of Object.entries(value)) {
           if (
@@ -47,11 +46,13 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     const meta = await this.wrapped.getFileMeta(name);
     if (name.endsWith(".md")) {
       const pageName = name.slice(0, -3);
-      const additionalMeta = await this.indexSyscalls["index.get"](
-        {} as any,
+      const additionalMeta = await this.dataStore.get([
+        "ds",
+        "index",
+        "index",
+        "$page",
         pageName,
-        "meta:",
-      );
+      ]);
       if (additionalMeta) {
         for (const [k, v] of Object.entries(additionalMeta)) {
           if (

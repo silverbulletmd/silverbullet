@@ -1,5 +1,5 @@
 import { dataStore } from "$sb/syscalls.ts";
-import { KV, KvKey, ObjectValue, Query } from "$sb/types.ts";
+import { KV, KvKey, KvQuery, ObjectValue, Query } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 
 /*
@@ -75,7 +75,7 @@ export async function indexObjects(
   }
   await batchSet(
     page,
-    [...allTypes].map((type) => ({
+    [...allTypes].filter((type) => !type.startsWith("$")).map((type) => ({
       key: ["$type", type],
       value: true,
     })),
@@ -85,9 +85,12 @@ export async function indexObjects(
 
 export async function queryObjects(
   type: string,
-  query: Query,
+  query: KvQuery,
 ): Promise<ObjectValue[]> {
-  return (await dataStore.query({ ...query, prefix: ["index", type] })).map(
+  return (await dataStore.query({
+    ...query,
+    prefix: ["index", type, ...(query.prefix ? query.prefix : [])],
+  })).map(
     ({ key, value }) => ({ key, value, type }),
   );
 }

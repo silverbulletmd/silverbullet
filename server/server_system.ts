@@ -87,7 +87,7 @@ export class ServerSystem {
         ),
         eventHook,
       ),
-      pageIndexCalls,
+      this.ds,
     );
     const space = new Space(this.spacePrimitives, this.kvStore, eventHook);
 

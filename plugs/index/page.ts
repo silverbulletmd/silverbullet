@@ -1,4 +1,8 @@
-import type { IndexEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import type {
+  IndexEvent,
+  IndexTreeEvent,
+  QueryProviderEvent,
+} from "$sb/app_event.ts";
 import {
   editor,
   events,
@@ -12,9 +16,39 @@ import {
 import { applyQuery } from "$sb/lib/query.ts";
 import type { MQMessage } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { extractAttributes } from "$sb/lib/attribute.ts";
+import { indexAttributes } from "./attributes.ts";
+import { indexObjects } from "./plug_api.ts";
 
-// Key space:
-//   meta: => metaJson
+// type PageObject = Record<string, any>;
+
+export async function indexPage({ name, tree }: IndexTreeEvent) {
+  const pageMeta: Record<string, any> = await extractFrontmatter(tree);
+  const toplevelAttributes = await extractAttributes(tree, false);
+  if (
+    Object.keys(pageMeta).length > 0 ||
+    Object.keys(toplevelAttributes).length > 0
+  ) {
+    for (const [k, v] of Object.entries(toplevelAttributes)) {
+      pageMeta[k] = v;
+    }
+    // Don't index meta data starting with $
+    for (const key in pageMeta) {
+      if (key.startsWith("$")) {
+        delete pageMeta[key];
+      }
+    }
+    // console.log("Extracted page meta data", pageMeta);
+    await indexObjects(name, [{
+      key: [name],
+      type: "$page",
+      value: { ...pageMeta, name },
+    }]);
+  }
+
+  await indexAttributes(name, "page", pageMeta);
+}
 
 export async function pageQueryProvider({
   query,

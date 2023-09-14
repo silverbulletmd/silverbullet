@@ -1,6 +1,6 @@
 import type { ClickEvent, IndexTreeEvent } from "$sb/app_event.ts";
 
-import { editor, index, markdown, space, sync } from "$sb/syscalls.ts";
+import { editor, markdown, space, sync } from "$sb/syscalls.ts";
 
 import {
   addParentPointers,

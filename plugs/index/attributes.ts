@@ -77,6 +77,7 @@ export async function indexAttributes(
 ) {
   const filteredAttributes = { ...attributes };
   if (page !== builtinPseudoPage) {
+    // Don't index built-in attributes
     for (const attr of Object.keys(filteredAttributes)) {
       if (builtinAttributes[type]?.[attr]) {
         delete filteredAttributes[attr];

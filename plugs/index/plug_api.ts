@@ -1,4 +1,4 @@
-import { ObjectValue, Query } from "$sb/types.ts";
+import { KvQuery, ObjectValue, Query } from "$sb/types.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 
 export function indexObjects(
@@ -8,9 +8,9 @@ export function indexObjects(
   return invokeFunction("index.indexObjects", page, objects);
 }
 
-export function queryObjects(
+export function queryObjects<T = any>(
   type: string,
-  query: Query,
-): Promise<ObjectValue[]> {
+  query: KvQuery,
+): Promise<ObjectValue<T>[]> {
   return invokeFunction("index.queryObjects", type, query);
 }

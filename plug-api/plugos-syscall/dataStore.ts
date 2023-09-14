@@ -1,7 +1,7 @@
 import { syscall } from "$sb/plugos-syscall/syscall.ts";
-import { KV, KvKey, KvQuery, KvValue } from "$sb/types.ts";
+import { KV, KvKey, KvQuery } from "$sb/types.ts";
 
-export function set(key: KvKey, value: KvValue): Promise<void> {
+export function set(key: KvKey, value: any): Promise<void> {
   return syscall("dataStore.set", key, value);
 }
 
@@ -9,11 +9,11 @@ export function batchSet(kvs: KV[]): Promise<void> {
   return syscall("dataStore.batchSet", kvs);
 }
 
-export function get(key: KvKey): Promise<KvValue> {
+export function get(key: KvKey): Promise<any> {
   return syscall("dataStore.get", key);
 }
 
-export function batchGet(keys: KvKey[]): Promise<(KvValue | undefined)[]> {
+export function batchGet(keys: KvKey[]): Promise<(any | undefined)[]> {
   return syscall("dataStore.batchGet", keys);
 }
 

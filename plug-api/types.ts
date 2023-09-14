@@ -28,11 +28,10 @@ export type MQSubscribeOptions = {
 
 // Key-Value Store related types
 export type KvKey = string[];
-export type KvValue = any;
 
-export type KV = {
+export type KV<T = any> = {
   key: KvKey;
-  value: KvValue;
+  value: T;
 };
 
 export type OrderBy = {
@@ -55,7 +54,7 @@ export type Query = {
 };
 
 export type KvQuery = Omit<Query, "querySource"> & {
-  prefix: KvKey;
+  prefix?: KvKey;
 };
 
 export type QueryExpression =
@@ -89,4 +88,4 @@ export type QueryExpression =
 export type FunctionMap = Record<string, (...args: any[]) => any>;
 
 // Object indexing related types
-export type ObjectValue = KV & { type: string };
+export type ObjectValue<T = any> = KV<T> & { type: string };

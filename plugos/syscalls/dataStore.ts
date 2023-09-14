@@ -1,4 +1,4 @@
-import { KV, KvKey, KvQuery, KvValue } from "$sb/types.ts";
+import { KV, KvKey, KvQuery } from "$sb/types.ts";
 import type { DataStore } from "../lib/dataStore.ts";
 import type { SyscallContext, SysCallMapping } from "../system.ts";
 
@@ -16,7 +16,7 @@ export function dataStoreSyscalls(
       return ds.delete(applyPrefix(ctx, key));
     },
 
-    "dataStore.set": (ctx, key: KvKey, value: KvValue) => {
+    "dataStore.set": (ctx, key: KvKey, value: any) => {
       return ds.set(applyPrefix(ctx, key), value);
     },
 
@@ -33,11 +33,11 @@ export function dataStoreSyscalls(
     "dataStore.batchGet": (
       ctx,
       keys: KvKey[],
-    ): Promise<(KvValue | undefined)[]> => {
+    ): Promise<(any | undefined)[]> => {
       return ds.batchGet(keys.map((k) => applyPrefix(ctx, k)));
     },
 
-    "dataStore.get": (ctx, key: KvKey): Promise<KvValue | null> => {
+    "dataStore.get": (ctx, key: KvKey): Promise<any | null> => {
       return ds.get(applyPrefix(ctx, key));
     },
 
@@ -65,8 +65,8 @@ export function dataStoreSyscalls(
     },
   };
 
-  function applyPrefix(ctx: SyscallContext, key: KvKey): KvKey {
-    return [...prefix, ctx.plug.name!, ...key];
+  function applyPrefix(ctx: SyscallContext, key?: KvKey): KvKey {
+    return [...prefix, ctx.plug.name!, ...(key ? key : [])];
   }
 
   function stripPrefix(key: KvKey): KvKey {

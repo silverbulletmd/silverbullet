@@ -16,7 +16,7 @@ export async function queryComplete(completeEvent: CompleteEvent) {
 
     const completionOptions = allEvents
       .filter((eventName) =>
-        eventName.startsWith("query:") && eventName.includes("*")
+        eventName.startsWith("query:") && !eventName.includes("*")
       )
       .map((source) => ({
         label: source.substring("query:".length),

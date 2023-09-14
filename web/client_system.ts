@@ -36,7 +36,6 @@ import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
 import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
-import { dataStore } from "$sb/syscalls.ts";
 import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
 import { DataStore } from "../plugos/lib/dataStore.ts";
@@ -51,12 +50,12 @@ export class ClientSystem {
   plugsUpdated = false;
   mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
-  ds!: DataStore;
 
   constructor(
     private client: Client,
     private kvStore: DexieKVStore,
     private mq: DexieMQ,
+    private ds: DataStore,
     private dbPrefix: string,
     private eventHook: EventHook,
   ) {
@@ -147,10 +146,6 @@ export class ClientSystem {
   }
 
   async init() {
-    const kvPrimitives = new IndexedDBKvPrimitives(`${this.dbPrefix}_ds`);
-    await kvPrimitives.init();
-    this.ds = new DataStore(kvPrimitives);
-
     const storeCalls = this.client.syncMode
       // In sync mode handle locally
       ? storeSyscalls(this.kvStore)
