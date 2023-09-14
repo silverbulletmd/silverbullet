@@ -1,24 +1,33 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { index } from "$sb/syscalls.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
+import { ObjectValue } from "$sb/types.ts";
+import { indexObjects, queryObjects } from "./plug_api.ts";
 
-// Key space
-// a:pageName:anchorName => pos
+type AnchorObject = {
+  name: string;
+  page: string;
+  pos: number;
+};
 
 export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
   removeQueries(tree);
-  const anchors: { key: string; value: string }[] = [];
+  const anchors: ObjectValue<AnchorObject>[] = [];
 
   collectNodesOfType(tree, "NamedAnchor").forEach((n) => {
     const aName = n.children![0].text!.substring(1);
     anchors.push({
-      key: `a:${pageName}:${aName}`,
-      value: "" + n.from,
+      key: [pageName, aName],
+      type: "anchor",
+      value: {
+        name: aName,
+        page: pageName,
+        pos: n.from!,
+      },
     });
   });
   // console.log("Found", anchors.length, "anchors(s)");
-  await index.batchSet(pageName, anchors);
+  await indexObjects(pageName, anchors);
 }
 
 export async function anchorComplete(completeEvent: CompleteEvent) {
@@ -31,13 +40,13 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
   if (!pageRef) {
     pageRef = completeEvent.pageName;
   }
-  const allAnchors = await index.queryPrefix(
-    `a:${pageRef}:${anchorRef}`,
-  );
+  const allAnchors = await queryObjects<AnchorObject>("anchor", {
+    prefix: [pageRef],
+  });
   return {
     from: completeEvent.pos - anchorRef.length,
     options: allAnchors.map((a) => ({
-      label: a.key.split(":")[2],
+      label: a.value.name,
       type: "anchor",
     })),
   };

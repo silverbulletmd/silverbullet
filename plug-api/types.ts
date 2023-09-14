@@ -88,4 +88,4 @@ export type QueryExpression =
 export type FunctionMap = Record<string, (...args: any[]) => any>;
 
 // Object indexing related types
-export type ObjectValue<T = any> = KV<T> & { type: string };
+export type ObjectValue<T> = KV<T> & { type: string };

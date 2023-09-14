@@ -287,21 +287,24 @@ export class Client {
 
           // We're going to look up the anchor through a direct page store query...
           // TODO: This should be extracted
-          const posLookup = await this.system.localSyscall(
-            "index.get",
-            [
+          const matchingAnchors = await this.ds.query({
+            prefix: [
+              "ds",
+              "index",
+              "index",
+              "anchor",
               pageName,
-              `a:${pageName}:${pos}`,
+              pos,
             ],
-          );
+          });
 
-          if (!posLookup) {
+          if (matchingAnchors.length === 0) {
             return this.flashNotification(
               `Could not find anchor @${pos}`,
               "error",
             );
           } else {
-            pos = +posLookup;
+            pos = matchingAnchors[0].value.pos as number;
           }
         }
         this.editorView.dispatch({
