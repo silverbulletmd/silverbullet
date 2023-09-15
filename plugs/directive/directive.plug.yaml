@@ -20,14 +20,6 @@ functions:
     mqSubscriptions:
     - queue: directiveUpdateQueue
       batchSize: 3
-  indexData:
-    path: ./data.ts:indexData
-    events:
-      - page:index
-  dataQueryProvider:
-    path: ./data.ts:queryProvider
-    events:
-      - query:data
   queryComplete:
     path: ./complete.ts:queryComplete
     events:

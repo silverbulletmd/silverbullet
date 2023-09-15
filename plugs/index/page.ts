@@ -21,7 +21,9 @@ import { extractAttributes } from "$sb/lib/attribute.ts";
 import { indexAttributes } from "./attributes.ts";
 import { indexObjects } from "./plug_api.ts";
 
-// type PageObject = Record<string, any>;
+type PageObject = {
+  name: string;
+} & Record<string, any>;
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   const pageMeta: Record<string, any> = await extractFrontmatter(tree);
@@ -40,7 +42,7 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
       }
     }
     // console.log("Extracted page meta data", pageMeta);
-    await indexObjects(name, [{
+    await indexObjects<PageObject>(name, [{
       key: [name],
       type: "$page",
       value: { ...pageMeta, name },

@@ -597,6 +597,7 @@ export class Client {
   async loadPlugs() {
     await this.system.reloadPlugsFromSpace(this.space);
     this.rebuildEditorState();
+    await this.eventHook.dispatchEvent("system:ready");
     await this.dispatchAppEvent("plugs:loaded");
   }
 

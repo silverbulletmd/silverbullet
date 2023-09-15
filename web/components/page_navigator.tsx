@@ -51,7 +51,7 @@ export function PageNavigator({
       darkMode={darkMode}
       completer={completer}
       allowNew={true}
-      helpText="Start typing the page name to filter results, press <code>Return</code> to open."
+      helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page."
       newHint="Create page"
       completePrefix={completePrefix}
       onSelect={(opt) => {

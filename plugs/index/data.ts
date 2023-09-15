@@ -1,13 +1,16 @@
-// Index key space:
-// data:page@pos
-
-import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
-import { index, YAML } from "$sb/syscalls.ts";
+import type { IndexTreeEvent } from "$sb/app_event.ts";
+import { YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { removeQueries } from "$sb/lib/query.ts";
+import { ObjectValue } from "$sb/types.ts";
+import { indexObjects } from "./plug_api.ts";
+
+type DataObject = {
+  page: string;
+} & Record<string, any>;
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
-  const dataObjects: { key: string; value: any }[] = [];
+  const dataObjects: ObjectValue<DataObject>[] = [];
 
   removeQueries(tree);
 
@@ -17,7 +20,8 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
       if (!codeInfoNode) {
         return;
       }
-      if (codeInfoNode.children![0].text !== "data") {
+      const fenceType = codeInfoNode.children![0].text!;
+      if (fenceType !== "data" && !fenceType.startsWith("data:")) {
         return;
       }
       const codeTextNode = findNodeOfType(t, "CodeText");
@@ -26,6 +30,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
         return;
       }
       const codeText = codeTextNode.children![0].text!;
+      const dataType = fenceType === "data" ? "data" : fenceType.substring(5);
       try {
         const docs = codeText.split("---");
         // We support multiple YAML documents in one block
@@ -34,9 +39,14 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           if (!doc) {
             continue;
           }
+          const pos = t.from! + i;
           dataObjects.push({
-            key: `data:${name}@${t.from! + i}`,
-            value: doc,
+            key: ["" + pos],
+            type: dataType,
+            value: {
+              ...doc,
+              page: name,
+            },
           });
         }
         // console.log("Parsed data", parsedData);
@@ -47,20 +57,5 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
     }),
   );
   // console.log("Found", dataObjects.length, "data objects");
-  await index.batchSet(name, dataObjects);
-}
-
-export async function queryProvider({
-  query,
-}: QueryProviderEvent): Promise<any[]> {
-  const allData: any[] = [];
-  for (const { key, page, value } of await index.queryPrefix("data:")) {
-    const [, pos] = key.split("@");
-    allData.push({
-      ...value,
-      page: page,
-      pos: +pos,
-    });
-  }
-  return applyQuery(query, allData);
+  await indexObjects(name, dataObjects);
 }

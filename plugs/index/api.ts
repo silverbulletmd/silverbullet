@@ -59,9 +59,9 @@ export async function clearIndex(): Promise<void> {
 /**
  * Indexes entities in the data store
  */
-export async function indexObjects(
+export async function indexObjects<T>(
   page: string,
-  objects: ObjectValue[],
+  objects: ObjectValue<T>[],
 ): Promise<void> {
   const allTypes = new Set<string>();
   // console.log("Now indexing objects", objects);
@@ -83,10 +83,10 @@ export async function indexObjects(
   return batchSet(page, kvs);
 }
 
-export async function queryObjects(
+export async function queryObjects<T>(
   type: string,
   query: KvQuery,
-): Promise<ObjectValue[]> {
+): Promise<ObjectValue<T>[]> {
   return (await dataStore.query({
     ...query,
     prefix: ["index", type, ...(query.prefix ? query.prefix : [])],

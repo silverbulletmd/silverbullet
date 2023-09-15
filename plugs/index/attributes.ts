@@ -50,13 +50,27 @@ const builtinAttributes: Record<string, Record<string, string>> = {
   },
   tag: {
     name: "string",
-    freq: "number",
+    page: "string",
+    context: "string",
   },
   attribute: {
     name: "string",
     attributeType: "string",
     type: "string",
     page: "string",
+  },
+  anchor: {
+    name: "string",
+    page: "string",
+    pos: "number",
+  },
+  link: {
+    name: "string",
+    page: "string",
+    pos: "number",
+    alias: "string",
+    inDirective: "boolean",
+    asTemplate: "boolean",
   },
 };
 
@@ -103,12 +117,9 @@ export async function indexAttributes(
   }
 }
 
-const builtinsLoaded = lazyPromise(loadBuiltinsIntoIndex);
-
 export async function objectAttributeCompleter(
   attributeCompleteEvent: AttributeCompleteEvent,
 ): Promise<AttributeCompletion[]> {
-  await builtinsLoaded();
   const attributeFilter: QueryExpression | undefined =
     attributeCompleteEvent.source === ""
       ? undefined
@@ -126,24 +137,14 @@ export async function objectAttributeCompleter(
   });
 }
 
-async function loadBuiltinsIntoIndex() {
+export async function loadBuiltinsIntoIndex() {
+  console.log("Loading builtins into index");
   for (const [source, attributes] of Object.entries(builtinAttributes)) {
     await indexAttributes(builtinPseudoPage, source, attributes);
   }
 }
 
-function lazyPromise<T>(fn: () => Promise<T>): () => Promise<T> {
-  let promise: Promise<T> | undefined;
-  return () => {
-    if (!promise) {
-      promise = fn();
-    }
-    return promise;
-  };
-}
-
 export async function attributeComplete(completeEvent: CompleteEvent) {
-  await builtinsLoaded();
   if (/([\-\*]\s+\[)([^\]]+)$/.test(completeEvent.linePrefix)) {
     // Don't match task states, which look similar
     return null;

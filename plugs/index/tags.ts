@@ -1,29 +1,36 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { index } from "$sb/syscalls.ts";
-import type {
-  CompleteEvent,
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "$sb/app_event.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import { removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { indexObjects } from "./plug_api.ts";
+import { queryObjects } from "./api.ts";
 
-// Key space
-// tag:TAG => true (for completion)
+export type TagObject = {
+  name: string;
+  page: string;
+  context: string;
+};
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
   const allTags = new Set<string>();
   const { tags } = await extractFrontmatter(tree);
   if (Array.isArray(tags)) {
-    tags.forEach((t) => allTags.add(t));
+    for (const t of tags) {
+      allTags.add(t);
+    }
   }
   collectNodesOfType(tree, "Hashtag").forEach((n) => {
-    allTags.add(n.children![0].text!.substring(1));
+    const t = n.children![0].text!.substring(1);
+    allTags.add(t);
   });
-  await index.batchSet(
+  await indexObjects<TagObject>(
     name,
-    [...allTags].map((t) => ({ key: `tag:${t}`, value: t })),
+    [...allTags].map((t) => ({
+      key: [t],
+      type: "tag",
+      value: { name: t, page: name, context: "page" },
+    })),
   );
 }
 
@@ -33,35 +40,12 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const tagPrefix = match[0].substring(1);
-  const allTags = await index.queryPrefix(`tag:${tagPrefix}`);
+  const allTags = await queryObjects<TagObject>("tag", {});
   return {
     from: completeEvent.pos - tagPrefix.length,
     options: allTags.map((tag) => ({
-      label: tag.value,
+      label: tag.value.name,
       type: "tag",
     })),
   };
-}
-
-type Tag = {
-  name: string;
-  freq: number;
-};
-
-export async function tagProvider({ query }: QueryProviderEvent) {
-  const allTags = new Map<string, number>();
-  for (const { value } of await index.queryPrefix("tag:")) {
-    let currentFreq = allTags.get(value);
-    if (!currentFreq) {
-      currentFreq = 0;
-    }
-    allTags.set(value, currentFreq + 1);
-  }
-  return applyQuery(
-    query,
-    [...allTags.entries()].map(([name, freq]) => ({
-      name,
-      freq,
-    })),
-  );
 }

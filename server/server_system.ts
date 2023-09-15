@@ -162,6 +162,8 @@ export class ServerSystem {
         this.kvStore.set("$initialIndexCompleted", true);
       }).catch(console.error);
     }
+
+    await eventHook.dispatchEvent("system:ready");
   }
 
   async loadPlugs() {

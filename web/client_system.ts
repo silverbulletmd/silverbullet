@@ -39,7 +39,6 @@ import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
 import { DataStore } from "../plugos/lib/dataStore.ts";
-import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;

@@ -11,6 +11,13 @@ syntax:
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
 functions:
+
+  loadBuiltinsIntoIndex:
+    path: attributes.ts:loadBuiltinsIntoIndex
+    env: server
+    events:
+      - system:ready
+
   # Public API
   batchSet:
     path: api.ts:batchSet
@@ -120,6 +127,12 @@ functions:
     events:
       - editor:complete
   
+  # Data
+  indexData:
+    path: data.ts:indexData
+    events:
+      - page:index
+
   # Hashtags
   indexTags:
     path: "./tags.ts:indexTags"
@@ -129,10 +142,6 @@ functions:
     path: "./tags.ts:tagComplete"
     events:
       - editor:complete
-  tagProvider:
-    path: "./tags.ts:tagProvider"
-    events:
-      - query:tag
 
   renamePageCommand:
     path: "./refactor.ts:renamePageCommand"

@@ -20,6 +20,7 @@ import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { indexAttributes } from "../index/attributes.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
+import type { TagObject } from "../index/tags.ts";
 
 export type Task = {
   page: string;
@@ -40,11 +41,12 @@ const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const tasks: ObjectValue[] = [];
+  const tasks: ObjectValue<Task>[] = [];
   const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
   const allAttributes: Record<string, any> = {};
+  const allTags = new Set<string>();
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
       return false;
@@ -79,7 +81,9 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
           task.tags = [];
         }
         // Push the tag to the list, removing the initial #
-        task.tags.push(tree.children![0].text!.substring(1));
+        const tagName = tree.children![0].text!.substring(1);
+        task.tags.push(tagName);
+        allTags.add(tagName);
         // Remove this node from the tree
         // return null;
       }
@@ -121,6 +125,21 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
           state,
           count,
           page: name,
+        },
+      })),
+    );
+  }
+
+  if (allTags.size > 0) {
+    await indexObjects<TagObject>(
+      name,
+      Array.from(allTags).map((tag) => ({
+        type: "tag",
+        key: [tag],
+        value: {
+          name: tag,
+          page: name,
+          context: "task",
         },
       })),
     );
