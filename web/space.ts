@@ -3,10 +3,10 @@ import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
 import { AttachmentMeta, PageMeta } from "./types.ts";
 
-import { KVStore } from "../plugos/lib/kv_store.ts";
 import { FileMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { throttle } from "$sb/lib/async.ts";
+import { DataStore } from "../plugos/lib/dataStore.ts";
 
 const pageWatchInterval = 5000;
 
@@ -16,7 +16,7 @@ export class Space {
   cachedPageList: PageMeta[] = [];
 
   debouncedCacheFlush = throttle(() => {
-    this.kvStore.set("imageHeightCache", this.imageHeightCache).catch(
+    this.ds.set(["cache", "imageHeight"], this.imageHeightCache).catch(
       console.error,
     );
     console.log("Flushed image height cache to store");
@@ -40,11 +40,11 @@ export class Space {
 
   constructor(
     readonly spacePrimitives: SpacePrimitives,
-    private kvStore: KVStore,
+    private ds: DataStore,
     private eventHook: EventHook,
   ) {
     // super();
-    this.kvStore.get("imageHeightCache").then((cache) => {
+    this.ds.get(["cache", "imageHeight"]).then((cache) => {
       if (cache) {
         // console.log("Loaded image height cache from KV store", cache);
         this.imageHeightCache = cache;

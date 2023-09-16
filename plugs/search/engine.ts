@@ -120,6 +120,5 @@ export class SimpleSearchEngine {
       keysToDelete.push(key);
     }
     await this.index.batchDel(keysToDelete);
-    // await this.reverseIndex.batchDel(revKeysToDelete);
   }
 }

@@ -14,7 +14,6 @@ import { DenoKVStore } from "../plugos/lib/kv_store.deno_kv.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
-import { storeSyscalls } from "../plugos/syscalls/store.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
 import { debugSyscalls } from "../web/syscalls/debug.ts";
@@ -86,7 +85,7 @@ export class ServerSystem {
       ),
       this.ds,
     );
-    const space = new Space(this.spacePrimitives, this.kvStore, eventHook);
+    const space = new Space(this.spacePrimitives, this.ds, eventHook);
 
     // Add syscalls
     this.system.registerSyscalls(
@@ -95,7 +94,6 @@ export class ServerSystem {
       spaceSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      storeSyscalls(this.kvStore),
       systemSyscalls(this.system),
       mqSyscalls(mq),
       dataStoreSyscalls(this.ds),

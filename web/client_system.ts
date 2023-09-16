@@ -3,12 +3,10 @@ import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { storeSyscalls } from "../plugos/syscalls/store.ts";
 import { System } from "../plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
@@ -32,7 +30,6 @@ import {
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
-import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
@@ -49,7 +46,6 @@ export class ClientSystem {
 
   constructor(
     private client: Client,
-    private kvStore: DexieKVStore,
     private mq: DexieMQ,
     private ds: DataStore,
     private dbPrefix: string,
@@ -130,12 +126,6 @@ export class ClientSystem {
   }
 
   async init() {
-    const storeCalls = this.client.syncMode
-      // In sync mode handle locally
-      ? storeSyscalls(this.kvStore)
-      // In non-sync mode proxy to server
-      : storeProxySyscalls(this.client);
-
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
@@ -158,10 +148,9 @@ export class ClientSystem {
       this.client.syncMode
         ? dataStoreSyscalls(this.ds)
         : dataStoreProxySyscalls(this.client),
-      storeCalls,
       debugSyscalls(),
       syncSyscalls(this.client),
-      clientStoreSyscalls(this.kvStore),
+      clientStoreSyscalls(this.ds),
     );
 
     // Syscalls that require some additional permissions

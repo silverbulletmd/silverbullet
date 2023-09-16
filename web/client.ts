@@ -28,7 +28,6 @@ import {
   SyncService,
 } from "./sync_service.ts";
 import { simpleHash } from "../common/crypto.ts";
-import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
@@ -85,7 +84,6 @@ export class Client {
 
   syncService!: ISyncService;
   settings!: BuiltinSettings;
-  kvStore: DexieKVStore;
   mq: DexieMQ;
 
   // Event bus used to communicate between components
@@ -104,13 +102,6 @@ export class Client {
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
-
-    this.kvStore = new DexieKVStore(
-      `${this.dbPrefix}_store`,
-      "data",
-      globalThis.indexedDB,
-      globalThis.IDBKeyRange,
-    );
 
     this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);
 
@@ -135,7 +126,6 @@ export class Client {
     // Instantiate a PlugOS system
     this.system = new ClientSystem(
       this,
-      this.kvStore,
       this.mq,
       this.ds,
       this.dbPrefix,
@@ -148,7 +138,7 @@ export class Client {
       ? new SyncService(
         localSpacePrimitives,
         this.plugSpaceRemotePrimitives,
-        this.kvStore,
+        this.ds,
         this.eventHook,
         (path) => {
           // TODO: At some point we should remove the data.db exception here
@@ -330,13 +320,13 @@ export class Client {
           scrollIntoView: true,
         });
       }
-      await this.kvStore.set("lastOpenedPage", pageName);
+      await this.ds.set(["client", "lastOpenedPage"], pageName);
     });
 
     if (location.hash === "#boot") {
       (async () => {
         // Cold start PWA load
-        const lastPage = await this.kvStore.get("lastOpenedPage");
+        const lastPage = await this.ds.get(["client", "lastOpenedPage"]);
         if (lastPage) {
           await this.navigate(lastPage);
         }
@@ -393,7 +383,7 @@ export class Client {
       );
     }
 
-    this.space = new Space(localSpacePrimitives, this.kvStore, this.eventHook);
+    this.space = new Space(localSpacePrimitives, this.ds, this.eventHook);
 
     this.eventHook.addLocalListener("file:changed", (path: string) => {
       // Only reload when watching the current page (to avoid reloading when switching pages)

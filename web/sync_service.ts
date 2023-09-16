@@ -6,22 +6,22 @@ import {
   SyncStatusItem,
 } from "../common/spaces/sync.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { KVStore } from "../plugos/lib/kv_store.ts";
+import { DataStore } from "../plugos/lib/dataStore.ts";
 import { Space } from "./space.ts";
 
 // Keeps the current sync snapshot
-const syncSnapshotKey = "syncSnapshot";
+const syncSnapshotKey = ["sync", "snapshot"];
 
 // Keeps the start time of an ongoing sync, is reset once the sync is done
-const syncStartTimeKey = "syncStartTime";
+const syncStartTimeKey = ["sync", "startTime"];
 
 // Keeps the start time of the last full sync cycle
-const syncLastFullCycleKey = "syncLastFullCycle";
+const syncLastFullCycleKey = ["sync", "lastFullCycle"];
 
 // Keeps the last time an activity was registered, used to detect if a sync is still alive and whether a new one should be started already
-const syncLastActivityKey = "syncLastActivity";
+const syncLastActivityKey = ["sync", "lastActivity"];
 
-const syncInitialFullSyncCompletedKey = "syncInitialFullSyncCompleted";
+const syncInitialFullSyncCompletedKey = ["sync", "initialFullSyncCompleted"];
 
 // maximum time between two activities before we consider a sync crashed
 const syncMaxIdleTimeout = 1000 * 27;
@@ -53,7 +53,7 @@ export class SyncService implements ISyncService {
   constructor(
     readonly localSpacePrimitives: SpacePrimitives,
     readonly remoteSpace: SpacePrimitives,
-    private kvStore: KVStore,
+    private ds: DataStore,
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
   ) {
@@ -91,30 +91,30 @@ export class SyncService implements ISyncService {
   }
 
   async isSyncing(): Promise<boolean> {
-    const startTime = await this.kvStore.get(syncStartTimeKey);
+    const startTime = await this.ds.get(syncStartTimeKey);
     if (!startTime) {
       return false;
     }
     // Sync is running, but is it still alive?
-    const lastActivity = await this.kvStore.get(syncLastActivityKey)!;
+    const lastActivity = await this.ds.get(syncLastActivityKey)!;
     if (Date.now() - lastActivity > syncMaxIdleTimeout) {
       // It's been too long since the last activity, let's consider this one crashed and
       // reset the sync start state
-      await this.kvStore.del(syncStartTimeKey);
+      await this.ds.delete(syncStartTimeKey);
       console.info("Sync without activity for too long, resetting");
       return false;
     }
     return true;
   }
 
-  hasInitialSyncCompleted(): Promise<boolean> {
+  async hasInitialSyncCompleted(): Promise<boolean> {
     // Initial sync has happened when sync progress has been reported at least once, but the syncStartTime has been reset (which happens after sync finishes)
-    return this.kvStore.has(syncInitialFullSyncCompletedKey);
+    return !!(await this.ds.get(syncInitialFullSyncCompletedKey));
   }
 
   async registerSyncStart(fullSync: boolean): Promise<void> {
     // Assumption: this is called after an isSyncing() check
-    await this.kvStore.batchSet([
+    await this.ds.batchSet([
       {
         key: syncStartTimeKey,
         value: Date.now(),
@@ -139,19 +139,19 @@ export class SyncService implements ISyncService {
       this.lastReportedSyncStatus = Date.now();
       await this.saveSnapshot(status.snapshot);
     }
-    await this.kvStore.set(syncLastActivityKey, Date.now());
+    await this.ds.set(syncLastActivityKey, Date.now());
   }
 
   async registerSyncStop(isFullSync: boolean): Promise<void> {
     await this.registerSyncProgress();
-    await this.kvStore.del(syncStartTimeKey);
+    await this.ds.delete(syncStartTimeKey);
     if (isFullSync) {
-      await this.kvStore.set(syncInitialFullSyncCompletedKey, true);
+      await this.ds.set(syncInitialFullSyncCompletedKey, true);
     }
   }
 
   async getSnapshot(): Promise<Map<string, SyncStatusItem>> {
-    const snapshot = (await this.kvStore.get(syncSnapshotKey)) || {};
+    const snapshot = (await this.ds.get(syncSnapshotKey)) || {};
     return new Map<string, SyncStatusItem>(
       Object.entries(snapshot),
     );
@@ -194,8 +194,7 @@ export class SyncService implements ISyncService {
     setInterval(async () => {
       try {
         if (!await this.isSyncing()) {
-          const lastFullCycle =
-            (await this.kvStore.get(syncLastFullCycleKey)) || 0;
+          const lastFullCycle = (await this.ds.get(syncLastFullCycleKey)) || 0;
           if (lastFullCycle && Date.now() - lastFullCycle > spaceSyncInterval) {
             // It's been a while since the last full cycle, let's sync the whole space
             await this.syncSpace();
@@ -302,7 +301,7 @@ export class SyncService implements ISyncService {
   }
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
-    await this.kvStore.set(syncSnapshotKey, Object.fromEntries(snapshot));
+    await this.ds.set(syncSnapshotKey, Object.fromEntries(snapshot));
   }
 
   public async plugAwareConflictResolver(
