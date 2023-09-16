@@ -1,4 +1,3 @@
-import { path } from "../common/deps.ts";
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 

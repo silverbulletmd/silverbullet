@@ -5,7 +5,7 @@ import { QueryExpression } from "$sb/types.ts";
 
 const builtinPseudoPage = ":builtin:";
 
-type AttributeEntry = {
+export type AttributeObject = {
   name: string;
   attributeType: string;
   type: string;
@@ -74,7 +74,7 @@ const builtinAttributes: Record<string, Record<string, string>> = {
   },
 };
 
-function determineType(v: any): string {
+export function determineType(v: any): string {
   const t = typeof v;
   if (t === "object") {
     if (Array.isArray(v)) {
@@ -86,31 +86,27 @@ function determineType(v: any): string {
 
 export async function indexAttributes(
   page: string,
-  type: string,
-  attributes: Record<string, any>,
+  attributes: AttributeObject[],
 ) {
-  const filteredAttributes = { ...attributes };
-  if (page !== builtinPseudoPage) {
-    // Don't index built-in attributes
-    for (const attr of Object.keys(filteredAttributes)) {
-      if (builtinAttributes[type]?.[attr]) {
-        delete filteredAttributes[attr];
-      }
+  const setAttributes = new Set<string>();
+  const filteredAttributes = attributes.filter((attr) => {
+    const key = `${attr.type}:${attr.name}`;
+    // Remove duplicates, that's ok
+    if (setAttributes.has(key)) {
+      return false;
     }
-  }
+    setAttributes.add(key);
+    return attr.page === builtinPseudoPage ||
+      !builtinAttributes[attr.type]?.[attr.name];
+  });
   if (Object.keys(filteredAttributes).length > 0) {
     await indexObjects(
       page,
-      Object.entries(filteredAttributes).map(([k, v]) => {
+      filteredAttributes.map((attr) => {
         return {
-          key: [type, k],
+          key: [attr.type, attr.name],
           type: "attribute",
-          value: {
-            name: k,
-            attributeType: determineType(v),
-            type,
-            page: page,
-          } as AttributeEntry,
+          value: attr,
         };
       }),
     );
@@ -124,7 +120,7 @@ export async function objectAttributeCompleter(
     attributeCompleteEvent.source === ""
       ? undefined
       : ["=", ["attr", "type"], ["string", attributeCompleteEvent.source]];
-  const allAttributes = await queryObjects("attribute", {
+  const allAttributes = await queryObjects<AttributeObject>("attribute", {
     filter: attributeFilter,
   });
   return allAttributes.map(({ value }) => {
@@ -139,9 +135,18 @@ export async function objectAttributeCompleter(
 
 export async function loadBuiltinsIntoIndex() {
   console.log("Loading builtins into index");
+  const allAttributes: AttributeObject[] = [];
   for (const [source, attributes] of Object.entries(builtinAttributes)) {
-    await indexAttributes(builtinPseudoPage, source, attributes);
+    for (const [name, attributeType] of Object.entries(attributes)) {
+      allAttributes.push({
+        name,
+        attributeType,
+        type: source,
+        page: builtinPseudoPage,
+      });
+    }
   }
+  await indexAttributes(builtinPseudoPage, allAttributes);
 }
 
 export async function attributeComplete(completeEvent: CompleteEvent) {

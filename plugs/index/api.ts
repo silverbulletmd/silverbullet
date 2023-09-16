@@ -1,5 +1,5 @@
 import { dataStore } from "$sb/syscalls.ts";
-import { KV, KvKey, KvQuery, ObjectValue, Query } from "$sb/types.ts";
+import { KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 
 /*

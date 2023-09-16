@@ -65,7 +65,7 @@ For example, if you wanted a query for all the tasks from a previous day's daily
 - `item`: list of ordered and unordered items such as bulleted lists across all pages
 - `tag`: list of all hashtags used in all pages
 - `link`: list of all pages giving a link to the page where query is written
-- `data`: You can insert data using the syntax below. You can query the data using the `data` source.
+- `data`: You can insert data using the syntax below. You can query the data using the `data` source, or define a custom data source by using `data:customdatatype` instead of plain `data`.
 
 ```data
 name: John

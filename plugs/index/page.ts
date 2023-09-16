@@ -3,22 +3,18 @@ import type {
   IndexTreeEvent,
   QueryProviderEvent,
 } from "$sb/app_event.ts";
-import {
-  editor,
-  events,
-  index,
-  markdown,
-  mq,
-  space,
-  system,
-} from "$sb/syscalls.ts";
+import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 
 import { applyQuery } from "$sb/lib/query.ts";
 import type { MQMessage } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { indexAttributes } from "./attributes.ts";
+import {
+  AttributeObject,
+  determineType,
+  indexAttributes,
+} from "./attributes.ts";
 import { indexObjects } from "./plug_api.ts";
 
 type PageObject = {
@@ -27,6 +23,7 @@ type PageObject = {
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   const pageMeta: Record<string, any> = await extractFrontmatter(tree);
+  const attributes: AttributeObject[] = [];
   const toplevelAttributes = await extractAttributes(tree, false);
   if (
     Object.keys(pageMeta).length > 0 ||
@@ -35,21 +32,31 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     for (const [k, v] of Object.entries(toplevelAttributes)) {
       pageMeta[k] = v;
     }
+
+    const pageType = pageMeta.$type || "page";
+    delete pageMeta.$type;
     // Don't index meta data starting with $
-    for (const key in pageMeta) {
+    for (const [key, value] of Object.entries(pageMeta)) {
       if (key.startsWith("$")) {
         delete pageMeta[key];
+      } else {
+        attributes.push({
+          name: key,
+          attributeType: determineType(value),
+          type: pageType,
+          page: name,
+        });
       }
     }
     // console.log("Extracted page meta data", pageMeta);
     await indexObjects<PageObject>(name, [{
       key: [name],
-      type: "$page",
+      type: pageType,
       value: { ...pageMeta, name },
     }]);
   }
 
-  await indexAttributes(name, "page", pageMeta);
+  await indexAttributes(name, attributes);
 }
 
 export async function pageQueryProvider({
@@ -66,7 +73,6 @@ export async function reindexCommand() {
 
 export async function reindexSpace() {
   console.log("Clearing page index...");
-  await index.clearPageIndex();
   // Executed this way to not have to embed the search plug code here
   await system.invokeFunction("search.clearIndex");
   await system.invokeFunction("index.clearIndex");
@@ -96,11 +102,6 @@ export async function processIndexQueue(messages: MQMessage[]) {
       tree: parsed,
     });
   }
-}
-
-export async function clearPageIndex(page: string) {
-  // console.log("Clearing page index for page", page);
-  await index.clearPageIndexForPage(page);
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {

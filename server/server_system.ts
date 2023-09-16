@@ -18,7 +18,6 @@ import { storeSyscalls } from "../plugos/syscalls/store.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
 import { debugSyscalls } from "../web/syscalls/debug.ts";
-import { pageIndexSyscalls } from "./syscalls/index.ts";
 import { markdownSyscalls } from "../web/syscalls/markdown.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
@@ -72,8 +71,6 @@ export class ServerSystem {
     // Use DexieMQ for this, in memory
     const mq = new DenoKvMQ(this.denoKv);
 
-    const pageIndexCalls = pageIndexSyscalls(this.kvStore);
-
     const plugNamespaceHook = new PlugNamespaceHook();
     this.system.addHook(plugNamespaceHook);
 
@@ -101,7 +98,6 @@ export class ServerSystem {
       storeSyscalls(this.kvStore),
       systemSyscalls(this.system),
       mqSyscalls(mq),
-      pageIndexCalls,
       dataStoreSyscalls(this.ds),
       debugSyscalls(),
       markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions

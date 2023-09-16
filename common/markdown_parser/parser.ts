@@ -142,7 +142,7 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-export const attributeStartRegex = /^\[(\w+)(::?\s*)/;
+export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [

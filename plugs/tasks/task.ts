@@ -17,12 +17,16 @@ import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { indexAttributes } from "../index/attributes.ts";
+import {
+  AttributeObject,
+  determineType,
+  indexAttributes,
+} from "../index/attributes.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import type { TagObject } from "../index/tags.ts";
 
-export type Task = {
+export type TaskObject = {
   page: string;
   pos: number;
   name: string;
@@ -30,8 +34,13 @@ export type Task = {
   state: string;
   deadline?: string;
   tags?: string[];
-  nested?: string;
 } & Record<string, any>;
+
+export type TaskStateObject = {
+  state: string;
+  count: number;
+  page: string;
+};
 
 function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");
@@ -41,11 +50,11 @@ const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const tasks: ObjectValue<Task>[] = [];
+  const tasks: ObjectValue<TaskObject>[] = [];
   const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
-  const allAttributes: Record<string, any> = {};
+  const allAttributes: AttributeObject[] = [];
   const allTags = new Set<string>();
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
@@ -60,7 +69,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       }
     }
     const complete = completeStates.includes(state);
-    const task: Task = {
+    const task: TaskObject = {
       name: "",
       done: complete,
       page: name,
@@ -91,20 +100,22 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     // Extract attributes and remove from tree
     const extractedAttributes = await extractAttributes(n, true);
+    const taskType = extractedAttributes.$type || "task";
+    delete extractedAttributes.$type;
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
-      allAttributes[key] = value;
+      allAttributes.push({
+        name: key,
+        attributeType: determineType(value),
+        type: taskType,
+        page: name,
+      });
     }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
-    const taskIndex = n.parent!.children!.indexOf(n);
-    const nestedItems = n.parent!.children!.slice(taskIndex + 1);
-    if (nestedItems.length > 0) {
-      task.nested = nestedItems.map(renderToText).join("").trim();
-    }
     tasks.push({
-      type: "task",
+      type: taskType,
       key: [`${n.from}`],
       value: task,
     });
@@ -112,11 +123,11 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   });
 
   // console.log("Found", tasks, "task(s)");
-  await indexAttributes(name, "task", allAttributes);
+  await indexAttributes(name, allAttributes);
 
   // Index task states
   if (taskStates.size > 0) {
-    await indexObjects(
+    await indexObjects<TaskStateObject>(
       name,
       Array.from(taskStates.entries()).map(([state, count]) => ({
         type: "taskstate",
@@ -125,7 +136,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
           state,
           count,
           page: name,
-        },
+        } as TaskStateObject,
       })),
     );
   }
@@ -177,7 +188,7 @@ async function cycleTaskState(
     changeTo = "x";
   } else {
     // Not a checkbox, but a custom state
-    const allStates = await queryObjects("taskstate", {});
+    const allStates = await queryObjects<TaskStateObject>("taskstate", {});
     const states = [...new Set(allStates.map((s) => s.value.state))];
     states.sort();
     // Select a next state

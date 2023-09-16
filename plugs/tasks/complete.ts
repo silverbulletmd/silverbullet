@@ -1,5 +1,6 @@
 import { CompleteEvent } from "$sb/app_event.ts";
 import { queryObjects } from "../index/plug_api.ts";
+import { TaskStateObject } from "./task.ts";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
   const taskMatch = /([\-\*]\s+\[)([^\[\]]+)$/.exec(
@@ -8,7 +9,7 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = await queryObjects("taskstate", {});
+  const allStates = await queryObjects<TaskStateObject>("taskstate", {});
   const states = [...new Set(allStates.map((s) => s.value.state))];
 
   return {

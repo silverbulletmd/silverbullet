@@ -26,7 +26,18 @@ export class DataStore {
   }
 
   batchSet(entries: KV[]): Promise<void> {
-    return this.kv.batchSet(entries);
+    const allKeyStrings = new Set<string>();
+    const uniqueEntries: KV[] = [];
+    for (const { key, value } of entries) {
+      const keyString = JSON.stringify(key);
+      if (allKeyStrings.has(keyString)) {
+        console.warn(`Duplicate key ${keyString} in batchSet, skipping`);
+      } else {
+        allKeyStrings.add(keyString);
+        uniqueEntries.push({ key, value });
+      }
+    }
+    return this.kv.batchSet(uniqueEntries);
   }
 
   delete(key: KvKey): Promise<void> {

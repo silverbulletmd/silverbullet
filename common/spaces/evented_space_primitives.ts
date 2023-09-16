@@ -129,7 +129,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.triggerEventsAndCache(name, newMeta.lastModified);
       return newMeta;
     } catch (e: any) {
-      console.log("Checking error", e, name);
+      // console.log("Checking error", e, name);
       if (e.message === "Not found") {
         this.dispatchEvent("file:deleted", name);
         if (name.endsWith(".md")) {

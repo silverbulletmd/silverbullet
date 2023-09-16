@@ -46,13 +46,7 @@ functions:
     events:
       - page:saved
       - page:deleted
-
-  clearPageIndex:
-    path: page.ts:clearPageIndex
-    env: server
-    events:
-      - page:saved
-      - page:deleted
+      
   pageQueryProvider:
     path: page.ts:pageQueryProvider
     events:
@@ -112,10 +106,6 @@ functions:
     path: "./item.ts:indexItems"
     events:
       - page:index
-  itemQueryProvider:
-    path: "./item.ts:queryProvider"
-    events:
-      - query:item
 
   # Anchors
   indexAnchors:
@@ -135,11 +125,11 @@ functions:
 
   # Hashtags
   indexTags:
-    path: "./tags.ts:indexTags"
+    path: tags.ts:indexTags
     events:
       - page:index
   tagComplete:
-    path: "./tags.ts:tagComplete"
+    path: tags.ts:tagComplete
     events:
       - editor:complete
 

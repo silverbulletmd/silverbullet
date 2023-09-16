@@ -9,7 +9,7 @@ import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { storeSyscalls } from "../plugos/syscalls/store.ts";
-import { SysCallMapping, System } from "../plugos/system.ts";
+import { System } from "../plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { CommandHook } from "./hooks/command.ts";
@@ -18,7 +18,6 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { debugSyscalls } from "./syscalls/debug.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { pageIndexSyscalls } from "./syscalls/index.ts";
 import { markdownSyscalls } from "./syscalls/markdown.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
@@ -33,7 +32,6 @@ import {
 import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
-import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
 import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
@@ -44,7 +42,6 @@ export class ClientSystem {
   commandHook: CommandHook;
   slashCommandHook: SlashCommandHook;
   namespaceHook: PlugNamespaceHook;
-  indexSyscalls: SysCallMapping;
   codeWidgetHook: CodeWidgetHook;
   plugsUpdated = false;
   mdExtensions: MDExt[] = [];
@@ -70,18 +67,6 @@ export class ClientSystem {
     // Cron hook
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
-
-    if (!client.syncMode) {
-      // In non-sync mode, proxy these to the server
-      this.indexSyscalls = indexProxySyscalls(client);
-    } else {
-      // In sync mode, run them locally
-      this.indexSyscalls = pageIndexSyscalls(
-        `${dbPrefix}_page_index`,
-        globalThis.indexedDB,
-        globalThis.IDBKeyRange,
-      );
-    }
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -174,7 +159,6 @@ export class ClientSystem {
         ? dataStoreSyscalls(this.ds)
         : dataStoreProxySyscalls(this.client),
       storeCalls,
-      this.indexSyscalls,
       debugSyscalls(),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.kvStore),
