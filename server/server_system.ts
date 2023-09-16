@@ -10,7 +10,6 @@ import { CronHook } from "../plugos/hooks/cron.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
-import { DenoKVStore } from "../plugos/lib/kv_store.deno_kv.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
@@ -38,7 +37,6 @@ export class ServerSystem {
   system: System<SilverBulletHooks> = new System("server");
   spacePrimitives!: SpacePrimitives;
   denoKv!: Deno.Kv;
-  kvStore!: DenoKVStore;
   listInterval?: number;
   ds!: DataStore;
 
@@ -60,8 +58,6 @@ export class ServerSystem {
     this.system.addHook(cronHook);
 
     this.denoKv = await Deno.openKv(this.dbPath);
-
-    this.kvStore = new DenoKVStore(this.denoKv);
     this.ds = new DataStore(new DenoKvPrimitives(this.denoKv));
 
     // Endpoint hook
@@ -147,13 +143,13 @@ export class ServerSystem {
     });
 
     // Check if this space was ever indexed before
-    if (!await this.kvStore.has("$initialIndexCompleted")) {
+    if (!await this.ds.get(["$initialIndexCompleted"])) {
       console.log("Indexing space for the first time (in the background)");
       this.system.loadedPlugs.get("index")!.invoke(
         "reindexSpace",
         [],
       ).then(() => {
-        this.kvStore.set("$initialIndexCompleted", true);
+        this.ds.set(["$initialIndexCompleted"], true);
       }).catch(console.error);
     }
 

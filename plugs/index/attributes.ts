@@ -1,6 +1,6 @@
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
-import { indexObjects, queryObjects } from "./plug_api.ts";
+import { indexObjects, queryObjects } from "./api.ts";
 import { QueryExpression } from "$sb/types.ts";
 
 const builtinPseudoPage = ":builtin:";

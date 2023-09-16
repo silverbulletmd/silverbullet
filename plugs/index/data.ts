@@ -3,7 +3,7 @@ import { YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { ObjectValue } from "$sb/types.ts";
-import { indexObjects } from "./plug_api.ts";
+import { indexObjects } from "./api.ts";
 
 type DataObject = {
   page: string;

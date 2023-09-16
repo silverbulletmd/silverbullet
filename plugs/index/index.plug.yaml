@@ -68,6 +68,7 @@ functions:
       autoAck: true
   reindexSpace:
     path: "./page.ts:reindexSpace"
+    env: server
 
   # Attachments
   attachmentQueryProvider:

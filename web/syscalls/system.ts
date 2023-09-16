@@ -26,7 +26,8 @@ export function systemSyscalls(
 
       let plug: Plug<any> | undefined = ctx.plug;
       const fullName = name;
-      if (name.indexOf(".") !== -1) {
+      // console.log("Invoking function", fullName, "on plug", plug);
+      if (name.includes(".")) {
         // plug name in the name
         const [plugName, functionName] = name.split(".");
         plug = system.loadedPlugs.get(plugName);

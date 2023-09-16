@@ -2,7 +2,7 @@ import { collectNodesOfType } from "$sb/lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { ObjectValue } from "$sb/types.ts";
-import { indexObjects, queryObjects } from "./plug_api.ts";
+import { indexObjects, queryObjects } from "./api.ts";
 
 type AnchorObject = {
   name: string;

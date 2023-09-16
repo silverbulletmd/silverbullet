@@ -1,6 +1,6 @@
-import { KV, KVStore } from "./kv_store.ts";
+import { KV } from "$sb/types.ts";
 
-export class JSONKVStore implements KVStore {
+export class JSONKVStore {
   private data: { [key: string]: any } = {};
 
   async load(path: string) {
@@ -37,21 +37,6 @@ export class JSONKVStore implements KVStore {
   set(key: string, value: any): Promise<void> {
     this.data[key] = value;
     return Promise.resolve();
-  }
-  batchSet(kvs: KV[]): Promise<void> {
-    for (const kv of kvs) {
-      this.data[kv.key] = kv.value;
-    }
-    return Promise.resolve();
-  }
-  batchDelete(keys: string[]): Promise<void> {
-    for (const key of keys) {
-      delete this.data[key];
-    }
-    return Promise.resolve();
-  }
-  batchGet(keys: string[]): Promise<any[]> {
-    return Promise.resolve(keys.map((key) => this.data[key]));
   }
   get(key: string): Promise<any> {
     return Promise.resolve(this.data[key]);

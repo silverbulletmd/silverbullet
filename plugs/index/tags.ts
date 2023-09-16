@@ -2,7 +2,7 @@ import { collectNodesOfType } from "$sb/lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { indexObjects } from "./plug_api.ts";
+import { indexObjects } from "./api.ts";
 import { queryObjects } from "./api.ts";
 
 export type TagObject = {

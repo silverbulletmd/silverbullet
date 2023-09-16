@@ -1,4 +1,4 @@
-import { KVStore } from "../plugos/lib/kv_store.ts";
+import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
 
 export type User = {
   username: string;
@@ -24,7 +24,7 @@ async function createUser(
 const userPrefix = `u:`;
 
 export class Authenticator {
-  constructor(private store: KVStore) {
+  constructor(private store: JSONKVStore) {
   }
 
   async register(

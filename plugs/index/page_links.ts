@@ -1,7 +1,7 @@
 import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
 import { IndexTreeEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
-import { indexObjects, queryObjects } from "./plug_api.ts";
+import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$sb/types.ts";
 
 export type LinkObject = {

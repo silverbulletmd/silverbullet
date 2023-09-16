@@ -15,7 +15,8 @@ import {
   determineType,
   indexAttributes,
 } from "./attributes.ts";
-import { indexObjects } from "./plug_api.ts";
+import { indexObjects } from "./api.ts";
+import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 
 type PageObject = {
   name: string;
@@ -67,7 +68,7 @@ export async function pageQueryProvider({
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");
-  await reindexSpace();
+  await invokeFunction("reindexSpace");
   await editor.flashNotification("Done with page index!");
 }
 

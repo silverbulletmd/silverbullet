@@ -330,8 +330,11 @@ export class HttpServer {
             }
             const syscallCommand: SyscallRequest = body;
             try {
-              const result = await this.system.localSyscall(
-                syscallCommand.ctx,
+              const plug = this.system.loadedPlugs.get(syscallCommand.ctx);
+              if (!plug) {
+                throw new Error(`Plug ${syscallCommand.ctx} not found`);
+              }
+              const result = await plug.syscall(
                 syscallCommand.name,
                 syscallCommand.args,
               );
