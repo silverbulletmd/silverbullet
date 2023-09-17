@@ -12,7 +12,7 @@ import { EventHook } from "../plugos/hooks/event.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
+import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
 import { debugSyscalls } from "../web/syscalls/debug.ts";

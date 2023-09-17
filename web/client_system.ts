@@ -28,7 +28,7 @@ import {
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
-import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
+import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
