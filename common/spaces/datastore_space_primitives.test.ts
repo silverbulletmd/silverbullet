@@ -1,9 +1,17 @@
-import { indexedDB } from "https://deno.land/x/indexeddb@1.3.5/ponyfill_memory.ts";
-import { IndexedDBSpacePrimitives } from "./indexeddb_space_primitives.ts";
+import "https://esm.sh/fake-indexeddb@4.0.2/auto";
 import { assertEquals } from "../../test_deps.ts";
+import { DataStore } from "../../plugos/lib/datastore.ts";
+import { IndexedDBKvPrimitives } from "../../plugos/lib/indexeddb_kv_primitives.ts";
+import { DataStoreSpacePrimitives } from "./datastore_space_primitives.ts";
 
-Deno.test("IndexedDBSpacePrimitives", async () => {
-  const space = new IndexedDBSpacePrimitives("test", indexedDB);
+Deno.test("DataStoreSpacePrimitives", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, async () => {
+  const db = new IndexedDBKvPrimitives("test");
+  await db.init();
+
+  const space = new DataStoreSpacePrimitives(new DataStore(db));
   const files = await space.fetchFileList();
   assertEquals(files, []);
   // Write text file
@@ -28,6 +36,8 @@ Deno.test("IndexedDBSpacePrimitives", async () => {
 
   await space.deleteFile("test.bin");
   assertEquals(await space.fetchFileList(), [fileMeta]);
+
+  db.close();
 });
 
 function stringToBytes(str: string): Uint8Array {

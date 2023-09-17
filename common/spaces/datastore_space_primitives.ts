@@ -1,7 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import Dexie, { Table } from "dexie";
 import { mime } from "../deps.ts";
 import { FileMeta } from "$sb/types.ts";
+import { DataStore } from "../../plugos/lib/datastore.ts";
 
 export type FileContent = {
   name: string;
@@ -9,34 +9,27 @@ export type FileContent = {
   data: Uint8Array;
 };
 
-export class IndexedDBSpacePrimitives implements SpacePrimitives {
-  private db: Dexie;
-  filesMetaTable: Table<FileMeta, string>;
-  filesContentTable: Table<FileContent, string>;
+const filesMetaPrefix = ["file", "meta"];
+const filesContentPrefix = ["file", "content"];
 
+export class DataStoreSpacePrimitives implements SpacePrimitives {
   constructor(
-    dbName: string,
-    indexedDB?: any,
+    private ds: DataStore,
   ) {
-    this.db = new Dexie(dbName, {
-      indexedDB,
-    });
-    this.db.version(1).stores({
-      fileMeta: "name",
-      fileContent: "name",
-    });
-    this.filesMetaTable = this.db.table("fileMeta");
-    this.filesContentTable = this.db.table<FileContent, string>("fileContent");
   }
 
-  fetchFileList(): Promise<FileMeta[]> {
-    return this.filesMetaTable.toArray();
+  async fetchFileList(): Promise<FileMeta[]> {
+    return (await this.ds.query<FileMeta>({ prefix: filesMetaPrefix }))
+      .map((kv) => kv.value);
   }
 
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const fileContent = await this.filesContentTable.get(name);
+    const fileContent = await this.ds.get<FileContent>([
+      ...filesContentPrefix,
+      name,
+    ]);
     if (!fileContent) {
       throw new Error("Not found");
     }
@@ -60,22 +53,35 @@ export class IndexedDBSpacePrimitives implements SpacePrimitives {
       size: data.byteLength,
       perm: suggestedMeta?.perm || "rw",
     };
-    await this.filesContentTable.put({ name, data, meta });
-    await this.filesMetaTable.put(meta);
+    await this.ds.batchSet<FileMeta | FileContent>([
+      {
+        key: [...filesContentPrefix, name],
+        value: { name, data, meta },
+      },
+      {
+        key: [...filesMetaPrefix, name],
+        value: meta,
+      },
+    ]);
     return meta;
   }
 
   async deleteFile(name: string): Promise<void> {
-    const fileMeta = await this.filesMetaTable.get(name);
+    const fileMeta = await this.ds.get<FileMeta>([
+      ...filesMetaPrefix,
+      name,
+    ]);
     if (!fileMeta) {
       throw new Error("Not found");
     }
-    await this.filesMetaTable.delete(name);
-    await this.filesContentTable.delete(name);
+    return this.ds.batchDelete([
+      [...filesMetaPrefix, name],
+      [...filesContentPrefix, name],
+    ]);
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    const fileMeta = await this.filesMetaTable.get(name);
+    const fileMeta = await this.ds.get([...filesMetaPrefix, name]);
     if (!fileMeta) {
       throw new Error("Not found");
     }

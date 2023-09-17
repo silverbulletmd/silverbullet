@@ -19,7 +19,6 @@
 
     "preact": "https://esm.sh/preact@10.11.1",
     "$sb/": "./plug-api/",
-    "handlebars": "https://esm.sh/handlebars@4.7.7?target=es2022",
-    "dexie": "https://esm.sh/dexie@3.2.2?target=es2022"
+    "handlebars": "https://esm.sh/handlebars@4.7.7?target=es2022"
   }
 }

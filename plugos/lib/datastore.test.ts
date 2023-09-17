@@ -16,7 +16,7 @@ async function test(db: KvPrimitives) {
     filter: ["=", ["attr", "name"], ["string", "Peter"]],
   });
   assertEquals(results, [{ key: ["user", "peter"], value: { name: "Peter" } }]);
-  await datastore.batchSet([
+  await datastore.batchSet<any>([
     { key: ["kv", "name"], value: "Zef" },
     { key: ["kv", "data"], value: new Uint8Array([1, 2, 3]) },
     {

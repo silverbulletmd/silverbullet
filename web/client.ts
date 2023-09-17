@@ -18,7 +18,6 @@ import { AppViewState, BuiltinSettings } from "./types.ts";
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
 import { throttle } from "$sb/lib/async.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
 import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import {
@@ -44,6 +43,7 @@ import { FileMeta } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -356,10 +356,7 @@ export class Client {
           new EventedSpacePrimitives(
             // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
             new FallbackSpacePrimitives(
-              new IndexedDBSpacePrimitives(
-                `${this.dbPrefix}_space`,
-                globalThis.indexedDB,
-              ),
+              new DataStoreSpacePrimitives(this.ds),
               this.plugSpaceRemotePrimitives,
             ),
             this.eventHook,

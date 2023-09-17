@@ -13,11 +13,11 @@ export class DataStore {
   ) {
   }
 
-  async get<T = any>(key: KvKey): Promise<T> {
+  async get<T = any>(key: KvKey): Promise<T | null> {
     return (await this.kv.batchGet([key]))[0];
   }
 
-  batchGet<T = any>(keys: KvKey[]): Promise<T[]> {
+  batchGet<T = any>(keys: KvKey[]): Promise<(T | null)[]> {
     return this.kv.batchGet(keys);
   }
 
@@ -25,7 +25,7 @@ export class DataStore {
     return this.kv.batchSet([{ key, value }]);
   }
 
-  batchSet(entries: KV[]): Promise<void> {
+  batchSet<T = any>(entries: KV<T>[]): Promise<void> {
     const allKeyStrings = new Set<string>();
     const uniqueEntries: KV[] = [];
     for (const { key, value } of entries) {
