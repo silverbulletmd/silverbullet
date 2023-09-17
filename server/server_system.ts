@@ -24,12 +24,12 @@ import { Application } from "./deps.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { DenoKvMQ } from "../plugos/lib/mq.deno_kv.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
 import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { DataStore } from "../plugos/lib/dataStore.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.dataStore.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -63,8 +63,7 @@ export class ServerSystem {
     // Endpoint hook
     this.system.addHook(new EndpointHook(this.app, "/_/"));
 
-    // Use DexieMQ for this, in memory
-    const mq = new DenoKvMQ(this.denoKv);
+    const mq = new DataStoreMQ(this.ds);
 
     const plugNamespaceHook = new PlugNamespaceHook();
     this.system.addHook(plugNamespaceHook);

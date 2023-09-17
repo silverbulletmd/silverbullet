@@ -1,10 +1,14 @@
-import { IDBKeyRange, indexedDB } from "https://esm.sh/fake-indexeddb@4.0.2";
-import { DexieMQ } from "./mq.dexie.ts";
+import { DataStoreMQ } from "./mq.dataStore.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { sleep } from "$sb/lib/async.ts";
+import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
+import { DataStore } from "./dataStore.ts";
 
-Deno.test("Dexie MQ", async () => {
-  const mq = new DexieMQ("test", indexedDB, IDBKeyRange);
+Deno.test("DataStore MQ", async () => {
+  const tmpFile = await Deno.makeTempFile();
+  const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
+
+  const mq = new DataStoreMQ(new DataStore(db));
   await mq.send("test", "Hello World");
   let messages = await mq.poll("test", 10);
   assertEquals(messages.length, 1);
@@ -50,4 +54,7 @@ Deno.test("Dexie MQ", async () => {
   assertEquals(await mq.fetchProcessingMessages(), []);
   // Give time to close the db
   await sleep(20);
+
+  db.close();
+  await Deno.remove(tmpFile);
 });

@@ -37,13 +37,13 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
-import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { FileMeta } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/dataStore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.dataStore.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -84,7 +84,6 @@ export class Client {
 
   syncService!: ISyncService;
   settings!: BuiltinSettings;
-  mq: DexieMQ;
 
   // Event bus used to communicate between components
   eventHook!: EventHook;
@@ -92,6 +91,7 @@ export class Client {
   ui!: MainUI;
   openPages!: OpenPages;
   ds!: DataStore;
+  mq!: DataStoreMQ;
 
   constructor(
     private parent: Element,
@@ -102,13 +102,6 @@ export class Client {
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
-
-    this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);
-
-    setInterval(() => {
-      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
-      this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
-    }, 20000); // Look to requeue every 20s
   }
 
   /**
@@ -119,6 +112,14 @@ export class Client {
     const kvPrimitives = new IndexedDBKvPrimitives(`${this.dbPrefix}_ds`);
     await kvPrimitives.init();
     this.ds = new DataStore(kvPrimitives);
+
+    // Setup message queue
+    this.mq = new DataStoreMQ(this.ds);
+
+    setInterval(() => {
+      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
+      this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
+    }, 20000); // Look to requeue every 20s
 
     // Event hook
     this.eventHook = new EventHook();

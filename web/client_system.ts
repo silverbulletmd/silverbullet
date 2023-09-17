@@ -27,13 +27,13 @@ import {
   loadMarkdownExtensions,
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
-import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
 import { DataStore } from "../plugos/lib/dataStore.ts";
+import { MessageQueue } from "../plugos/lib/mq.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -46,7 +46,7 @@ export class ClientSystem {
 
   constructor(
     private client: Client,
-    private mq: DexieMQ,
+    private mq: MessageQueue,
     private ds: DataStore,
     private dbPrefix: string,
     private eventHook: EventHook,

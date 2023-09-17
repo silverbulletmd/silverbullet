@@ -13,11 +13,11 @@ export class DataStore {
   ) {
   }
 
-  async get(key: KvKey): Promise<any> {
+  async get<T = any>(key: KvKey): Promise<T> {
     return (await this.kv.batchGet([key]))[0];
   }
 
-  batchGet(keys: KvKey[]): Promise<any[]> {
+  batchGet<T = any>(keys: KvKey[]): Promise<T[]> {
     return this.kv.batchGet(keys);
   }
 
@@ -48,8 +48,8 @@ export class DataStore {
     return this.kv.batchDelete(keys);
   }
 
-  async query(query: KvQuery): Promise<KV[]> {
-    const results: KV[] = [];
+  async query<T = any>(query: KvQuery): Promise<KV<T>[]> {
+    const results: KV<T>[] = [];
     let itemCount = 0;
     // Accumulate results
     for await (const entry of this.kv.query({ prefix: query.prefix })) {
