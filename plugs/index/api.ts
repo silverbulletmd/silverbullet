@@ -1,4 +1,4 @@
-import { dataStore } from "$sb/syscalls.ts";
+import { datastore } from "$sb/syscalls.ts";
 import { KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 
@@ -20,7 +20,7 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
       value: true,
     });
   }
-  return dataStore.batchSet(finalBatch);
+  return datastore.batchSet(finalBatch);
 }
 
 /**
@@ -30,14 +30,14 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
 export async function clearPageIndex(page: string): Promise<void> {
   const allKeys: KvKey[] = [];
   for (
-    const { key } of await dataStore.query({
+    const { key } of await datastore.query({
       prefix: ["page", page],
     })
   ) {
     allKeys.push(key);
     allKeys.push(["index", ...key.slice(2), page]);
   }
-  await dataStore.batchDel(allKeys);
+  await datastore.batchDel(allKeys);
 }
 
 /**
@@ -46,11 +46,11 @@ export async function clearPageIndex(page: string): Promise<void> {
 export async function clearIndex(): Promise<void> {
   const allKeys: KvKey[] = [];
   for (
-    const { key } of await dataStore.query({ prefix: [] })
+    const { key } of await datastore.query({ prefix: [] })
   ) {
     allKeys.push(key);
   }
-  await dataStore.batchDel(allKeys);
+  await datastore.batchDel(allKeys);
   console.log("Deleted", allKeys.length, "keys from the index");
 }
 
@@ -87,7 +87,7 @@ export async function queryObjects<T>(
   type: string,
   query: KvQuery,
 ): Promise<ObjectValue<T>[]> {
-  return (await dataStore.query({
+  return (await datastore.query({
     ...query,
     prefix: ["index", type, ...(query.prefix ? query.prefix : [])],
   })).map(
@@ -98,7 +98,7 @@ export async function queryObjects<T>(
 export async function objectSourceProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  const results = await dataStore.query({
+  const results = await datastore.query({
     ...query,
     prefix: ["index", query.querySource!],
   });
@@ -106,7 +106,7 @@ export async function objectSourceProvider({
 }
 
 export async function discoverSources() {
-  return (await dataStore.query({ prefix: ["index", "$type"] })).map((
+  return (await datastore.query({ prefix: ["index", "$type"] })).map((
     { key },
   ) => key[2]);
 }

@@ -1,6 +1,6 @@
 import { KV, MQMessage, MQStats, MQSubscribeOptions } from "$sb/types.ts";
 import { MessageQueue } from "./mq.ts";
-import { DataStore } from "./dataStore.ts";
+import { DataStore } from "./datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;

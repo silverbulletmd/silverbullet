@@ -1,8 +1,8 @@
-import { DataStoreMQ } from "./mq.dataStore.ts";
+import { DataStoreMQ } from "./mq.datastore.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
-import { DataStore } from "./dataStore.ts";
+import { DataStore } from "./datastore.ts";
 
 Deno.test("DataStore MQ", async () => {
   const tmpFile = await Deno.makeTempFile();

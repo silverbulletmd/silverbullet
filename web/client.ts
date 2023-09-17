@@ -41,9 +41,9 @@ import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { FileMeta } from "$sb/types.ts";
-import { DataStore } from "../plugos/lib/dataStore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.dataStore.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;

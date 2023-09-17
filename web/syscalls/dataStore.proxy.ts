@@ -4,12 +4,12 @@ import { proxySyscalls } from "./util.ts";
 
 export function dataStoreProxySyscalls(client: Client): SysCallMapping {
   return proxySyscalls(client, [
-    "dataStore.delete",
-    "dataStore.set",
-    "dataStore.batchSet",
-    "dataStore.batchDelete",
-    "dataStore.batchGet",
-    "dataStore.get",
-    "dataStore.query",
+    "datastore.delete",
+    "datastore.set",
+    "datastore.batchSet",
+    "datastore.batchDelete",
+    "datastore.batchGet",
+    "datastore.get",
+    "datastore.query",
   ]);
 }

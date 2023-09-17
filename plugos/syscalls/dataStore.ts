@@ -1,9 +1,9 @@
 import { KV, KvKey, KvQuery } from "$sb/types.ts";
-import type { DataStore } from "../lib/dataStore.ts";
+import type { DataStore } from "../lib/datastore.ts";
 import type { SyscallContext, SysCallMapping } from "../system.ts";
 
 /**
- * Exposes the dataStore API to plugs, but scoping everything to a prefix based on the plug's name
+ * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
  * @param ds the datastore to wrap
  * @param prefix prefix to scope all keys to to which the plug name will be appended
  */
@@ -12,36 +12,36 @@ export function dataStoreSyscalls(
   prefix: KvKey = ["ds"],
 ): SysCallMapping {
   return {
-    "dataStore.delete": (ctx, key: KvKey) => {
+    "datastore.delete": (ctx, key: KvKey) => {
       return ds.delete(applyPrefix(ctx, key));
     },
 
-    "dataStore.set": (ctx, key: KvKey, value: any) => {
+    "datastore.set": (ctx, key: KvKey, value: any) => {
       return ds.set(applyPrefix(ctx, key), value);
     },
 
-    "dataStore.batchSet": (ctx, kvs: KV[]) => {
+    "datastore.batchSet": (ctx, kvs: KV[]) => {
       return ds.batchSet(
         kvs.map((kv) => ({ key: applyPrefix(ctx, kv.key), value: kv.value })),
       );
     },
 
-    "dataStore.batchDelete": (ctx, keys: KvKey[]) => {
+    "datastore.batchDelete": (ctx, keys: KvKey[]) => {
       return ds.batchDelete(keys.map((k) => applyPrefix(ctx, k)));
     },
 
-    "dataStore.batchGet": (
+    "datastore.batchGet": (
       ctx,
       keys: KvKey[],
     ): Promise<(any | undefined)[]> => {
       return ds.batchGet(keys.map((k) => applyPrefix(ctx, k)));
     },
 
-    "dataStore.get": (ctx, key: KvKey): Promise<any | null> => {
+    "datastore.get": (ctx, key: KvKey): Promise<any | null> => {
       return ds.get(applyPrefix(ctx, key));
     },
 
-    "dataStore.query": async (
+    "datastore.query": async (
       ctx,
       query: KvQuery,
     ): Promise<KV[]> => {
@@ -54,7 +54,7 @@ export function dataStoreSyscalls(
       }));
     },
 
-    "dataStore.queryDelete": (
+    "datastore.queryDelete": (
       ctx,
       query: KvQuery,
     ): Promise<void> => {

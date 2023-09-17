@@ -6,7 +6,7 @@ import {
   SyncStatusItem,
 } from "../common/spaces/sync.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { DataStore } from "../plugos/lib/dataStore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { Space } from "./space.ts";
 
 // Keeps the current sync snapshot

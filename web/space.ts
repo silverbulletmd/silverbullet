@@ -6,7 +6,7 @@ import { AttachmentMeta, PageMeta } from "./types.ts";
 import { FileMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { throttle } from "$sb/lib/async.ts";
-import { DataStore } from "../plugos/lib/dataStore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 
 const pageWatchInterval = 5000;
 

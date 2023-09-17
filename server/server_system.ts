@@ -27,9 +27,9 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
 import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
-import { DataStore } from "../plugos/lib/dataStore.ts";
-import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.dataStore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 

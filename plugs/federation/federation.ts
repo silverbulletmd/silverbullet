@@ -1,7 +1,7 @@
 import "$sb/lib/fetch.ts";
 import { federatedPathToUrl } from "$sb/lib/resolve.ts";
 import { readFederationConfigs } from "./config.ts";
-import { dataStore } from "$sb/syscalls.ts";
+import { datastore } from "$sb/syscalls.ts";
 import type { FileMeta } from "$sb/types.ts";
 
 async function responseToFileMeta(
@@ -56,7 +56,7 @@ export async function listFiles(): Promise<FileMeta[]> {
 }
 
 export async function cacheFileListing(uri: string): Promise<FileMeta[]> {
-  const cachedListing = await dataStore.get(
+  const cachedListing = await datastore.get(
     [fileListingPrefixCacheKey, uri],
   ) as FileListingCacheEntry;
   if (
@@ -99,7 +99,7 @@ export async function cacheFileListing(uri: string): Promise<FileMeta[]> {
       perm: "ro",
       name: `${rootUri}/${meta.name}`,
     }));
-    await dataStore.set([fileListingPrefixCacheKey, uri], {
+    await datastore.set([fileListingPrefixCacheKey, uri], {
       items,
       lastUpdated: Date.now(),
     } as FileListingCacheEntry);

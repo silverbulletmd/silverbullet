@@ -1,11 +1,11 @@
 import { readCodeBlockPage } from "$sb/lib/yaml_page.ts";
-import { dataStore, editor } from "$sb/syscalls.ts";
+import { datastore, editor } from "$sb/syscalls.ts";
 
 export async function toggleVimMode() {
-  let vimMode = await dataStore.get(["vimMode"]);
+  let vimMode = await datastore.get(["vimMode"]);
   vimMode = !vimMode;
   await editor.setUiOption("vimMode", vimMode);
-  await dataStore.set([vimMode], vimMode);
+  await datastore.set([vimMode], vimMode);
 }
 
 export async function loadVimRc() {

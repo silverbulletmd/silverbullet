@@ -5,14 +5,14 @@ import {
   evalQueryExpression,
   liftAttributeFilter,
 } from "$sb/lib/query.ts";
-import { dataStore, editor } from "$sb/syscalls.ts";
+import { datastore, editor } from "$sb/syscalls.ts";
 import { SimpleSearchEngine } from "./engine.ts";
 import { FileMeta, KvKey } from "$sb/types.ts";
 import { PromiseQueue } from "$sb/lib/async.ts";
 
 const searchPrefix = "🔍 ";
 
-const engine = new SimpleSearchEngine(dataStore);
+const engine = new SimpleSearchEngine(datastore);
 
 // Search indexing is prone to concurrency issues, so we queue all write operations
 const promiseQueue = new PromiseQueue();
@@ -28,13 +28,13 @@ export function indexPage({ name, tree }: IndexTreeEvent) {
 
 export async function clearIndex() {
   const keysToDelete: KvKey[] = [];
-  for (const { key } of await dataStore.query({ prefix: ["fts"] })) {
+  for (const { key } of await datastore.query({ prefix: ["fts"] })) {
     keysToDelete.push(key);
   }
-  for (const { key } of await dataStore.query({ prefix: ["fts_rev"] })) {
+  for (const { key } of await datastore.query({ prefix: ["fts_rev"] })) {
     keysToDelete.push(key);
   }
-  await dataStore.batchDel(keysToDelete);
+  await datastore.batchDel(keysToDelete);
 }
 
 export function pageUnindex(pageName: string) {

@@ -1,12 +1,12 @@
 import { SpacePrimitives } from "./space_primitives.ts";
 import { FileMeta } from "$sb/types.ts";
-import { DataStore } from "../../plugos/lib/dataStore.ts";
+import { DataStore } from "../../plugos/lib/datastore.ts";
 
 // Enriches the file list listing with custom metadata from the page index
 export class FileMetaSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
-    private dataStore: DataStore,
+    private datastore: DataStore,
   ) {
   }
 
@@ -17,7 +17,7 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
       files.map((fm) => [fm.name, fm]),
     );
     for (
-      const { value } of await this.dataStore.query({
+      const { value } of await this.datastore.query({
         prefix: ["ds", "index", "index", "$page"],
       })
     ) {
@@ -46,7 +46,7 @@ export class FileMetaSpacePrimitives implements SpacePrimitives {
     const meta = await this.wrapped.getFileMeta(name);
     if (name.endsWith(".md")) {
       const pageName = name.slice(0, -3);
-      const additionalMeta = await this.dataStore.get([
+      const additionalMeta = await this.datastore.get([
         "ds",
         "index",
         "index",

@@ -30,9 +30,9 @@ import {
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
-import { dataStoreProxySyscalls } from "./syscalls/dataStore.proxy.ts";
-import { dataStoreSyscalls } from "../plugos/syscalls/dataStore.ts";
-import { DataStore } from "../plugos/lib/dataStore.ts";
+import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
+import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 
 export class ClientSystem {

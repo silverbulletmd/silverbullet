@@ -1,22 +1,22 @@
 import "https://esm.sh/fake-indexeddb@4.0.2/auto";
 import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
-import { DataStore } from "./dataStore.ts";
+import { DataStore } from "./datastore.ts";
 import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
 
 async function test(db: KvPrimitives) {
-  const dataStore = new DataStore(db, {
+  const datastore = new DataStore(db, {
     count: (arr: any[]) => arr.length,
   });
-  await dataStore.set(["user", "peter"], { name: "Peter" });
-  await dataStore.set(["user", "hank"], { name: "Hank" });
-  let results = await dataStore.query({
+  await datastore.set(["user", "peter"], { name: "Peter" });
+  await datastore.set(["user", "hank"], { name: "Hank" });
+  let results = await datastore.query({
     prefix: ["user"],
     filter: ["=", ["attr", "name"], ["string", "Peter"]],
   });
   assertEquals(results, [{ key: ["user", "peter"], value: { name: "Peter" } }]);
-  await dataStore.batchSet([
+  await datastore.batchSet([
     { key: ["kv", "name"], value: "Zef" },
     { key: ["kv", "data"], value: new Uint8Array([1, 2, 3]) },
     {
@@ -31,14 +31,14 @@ async function test(db: KvPrimitives) {
       },
     },
   ]);
-  assertEquals(await dataStore.get(["kv", "name"]), "Zef");
-  assertEquals(await dataStore.get(["kv", "data"]), new Uint8Array([1, 2, 3]));
-  results = await dataStore.query({
+  assertEquals(await datastore.get(["kv", "name"]), "Zef");
+  assertEquals(await datastore.get(["kv", "data"]), new Uint8Array([1, 2, 3]));
+  results = await datastore.query({
     prefix: ["kv"],
     filter: ["=~", ["attr", ""], ["regexp", "Z.f", "i"]],
   });
   assertEquals(results, [{ key: ["kv", "name"], value: "Zef" }]);
-  results = await dataStore.query({
+  results = await datastore.query({
     prefix: ["kv"],
     filter: ["and", ["=", ["attr", "parents"], ["string", "John"]], [
       "=",
