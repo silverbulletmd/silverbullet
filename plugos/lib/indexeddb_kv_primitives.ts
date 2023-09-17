@@ -3,31 +3,31 @@ import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { IDBPDatabase, openDB } from "https://esm.sh/idb@7.1.1/with-async-ittr";
 
 const sep = "\0";
+const objectStoreName = "data";
 
 export class IndexedDBKvPrimitives implements KvPrimitives {
   db!: IDBPDatabase<any>;
 
   constructor(
     private dbName: string,
-    private objectStoreName: string = "data",
   ) {
   }
 
   async init() {
     this.db = await openDB(this.dbName, 1, {
       upgrade: (db) => {
-        db.createObjectStore(this.objectStoreName);
+        db.createObjectStore(objectStoreName);
       },
     });
   }
 
   batchGet(keys: KvKey[]): Promise<any[]> {
-    const tx = this.db.transaction(this.objectStoreName, "readonly");
+    const tx = this.db.transaction(objectStoreName, "readonly");
     return Promise.all(keys.map((key) => tx.store.get(this.buildKey(key))));
   }
 
   async batchSet(entries: KV[]): Promise<void> {
-    const tx = this.db.transaction(this.objectStoreName, "readwrite");
+    const tx = this.db.transaction(objectStoreName, "readwrite");
     await Promise.all([
       ...entries.map(({ key, value }) =>
         tx.store.put(value, this.buildKey(key))
@@ -37,7 +37,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   }
 
   async batchDelete(keys: KvKey[]): Promise<void> {
-    const tx = this.db.transaction(this.objectStoreName, "readwrite");
+    const tx = this.db.transaction(objectStoreName, "readwrite");
     await Promise.all([
       ...keys.map((key) => tx.store.delete(this.buildKey(key))),
       tx.done,
@@ -45,7 +45,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   }
 
   async *query({ prefix }: KvQueryOptions): AsyncIterableIterator<KV> {
-    const tx = this.db.transaction(this.objectStoreName, "readonly");
+    const tx = this.db.transaction(objectStoreName, "readonly");
     prefix = prefix || [];
     for await (
       const entry of tx.store.iterate(IDBKeyRange.bound(

@@ -48,7 +48,7 @@ export class ClientSystem {
     private client: Client,
     private mq: MessageQueue,
     private ds: DataStore,
-    private dbPrefix: string,
+    // private dbPrefix: string,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
@@ -78,7 +78,7 @@ export class ClientSystem {
     this.commandHook = new CommandHook();
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
-        this.client.ui.viewDispatch({
+        this.client.ui?.viewDispatch({
           type: "update-commands",
           commands: commandMap,
         });

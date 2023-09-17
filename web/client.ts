@@ -90,7 +90,8 @@ export class Client {
 
   ui!: MainUI;
   openPages!: OpenPages;
-  ds!: DataStore;
+  stateDataStore!: DataStore;
+  spaceDataStore!: DataStore;
   mq!: DataStoreMQ;
 
   constructor(
@@ -109,12 +110,14 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
-    const kvPrimitives = new IndexedDBKvPrimitives(`${this.dbPrefix}_ds`);
-    await kvPrimitives.init();
-    this.ds = new DataStore(kvPrimitives);
+    const stateKvPrimitives = new IndexedDBKvPrimitives(
+      `${this.dbPrefix}_state`,
+    );
+    await stateKvPrimitives.init();
+    this.stateDataStore = new DataStore(stateKvPrimitives);
 
     // Setup message queue
-    this.mq = new DataStoreMQ(this.ds);
+    this.mq = new DataStoreMQ(this.stateDataStore);
 
     setInterval(() => {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
@@ -128,18 +131,17 @@ export class Client {
     this.system = new ClientSystem(
       this,
       this.mq,
-      this.ds,
-      this.dbPrefix,
+      this.stateDataStore,
       this.eventHook,
     );
 
-    const localSpacePrimitives = this.initSpace();
+    const localSpacePrimitives = await this.initSpace();
 
     this.syncService = this.syncMode
       ? new SyncService(
         localSpacePrimitives,
         this.plugSpaceRemotePrimitives,
-        this.ds,
+        this.stateDataStore,
         this.eventHook,
         (path) => {
           // TODO: At some point we should remove the data.db exception here
@@ -278,7 +280,7 @@ export class Client {
 
           // We're going to look up the anchor through a direct page store query...
           // TODO: This should be extracted
-          const matchingAnchors = await this.ds.query({
+          const matchingAnchors = await this.stateDataStore.query({
             prefix: [
               "ds",
               "index",
@@ -321,13 +323,16 @@ export class Client {
           scrollIntoView: true,
         });
       }
-      await this.ds.set(["client", "lastOpenedPage"], pageName);
+      await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
     });
 
     if (location.hash === "#boot") {
       (async () => {
         // Cold start PWA load
-        const lastPage = await this.ds.get(["client", "lastOpenedPage"]);
+        const lastPage = await this.stateDataStore.get([
+          "client",
+          "lastOpenedPage",
+        ]);
         if (lastPage) {
           await this.navigate(lastPage);
         }
@@ -335,7 +340,7 @@ export class Client {
     }
   }
 
-  initSpace(): SpacePrimitives {
+  async initSpace(): Promise<SpacePrimitives> {
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       window.silverBulletConfig.spaceFolderPath,
@@ -351,17 +356,23 @@ export class Client {
     let localSpacePrimitives: SpacePrimitives | undefined;
 
     if (this.syncMode) {
+      // We'll store the space files in a separate data store
+      const spaceKvPrimitives = new IndexedDBKvPrimitives(
+        `${this.dbPrefix}_space`,
+      );
+      await spaceKvPrimitives.init();
+
       localSpacePrimitives = new FilteredSpacePrimitives(
         new FileMetaSpacePrimitives(
           new EventedSpacePrimitives(
             // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
             new FallbackSpacePrimitives(
-              new DataStoreSpacePrimitives(this.ds),
+              new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
               this.plugSpaceRemotePrimitives,
             ),
             this.eventHook,
           ),
-          this.ds,
+          this.stateDataStore,
         ),
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved
@@ -381,7 +392,11 @@ export class Client {
       );
     }
 
-    this.space = new Space(localSpacePrimitives, this.ds, this.eventHook);
+    this.space = new Space(
+      localSpacePrimitives,
+      this.stateDataStore,
+      this.eventHook,
+    );
 
     this.eventHook.addLocalListener("file:changed", (path: string) => {
       // Only reload when watching the current page (to avoid reloading when switching pages)

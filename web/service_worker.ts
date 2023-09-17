@@ -181,7 +181,7 @@ self.addEventListener("message", (event: any) => {
     const dbPrefix = "" + simpleHash(spaceFolderPath);
 
     // Setup space
-    const kv = new IndexedDBKvPrimitives(`${dbPrefix}_ds`);
+    const kv = new IndexedDBKvPrimitives(`${dbPrefix}_space`);
     kv.init().then(() => {
       ds = new DataStore(kv);
       console.log("Datastore in service worker initialized...");
