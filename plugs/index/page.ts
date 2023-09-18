@@ -1,69 +1,63 @@
-import type {
-  IndexEvent,
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "$sb/app_event.ts";
+import type { IndexEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 
-import { applyQuery } from "$sb/lib/query.ts";
-import type { MQMessage } from "$sb/types.ts";
+import type { AttributeObject, MQMessage } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import {
-  AttributeObject,
-  determineType,
-  indexAttributes,
-} from "./attributes.ts";
+import { determineType } from "./attributes.ts";
 import { indexObjects } from "./api.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { PageMeta } from "../../web/types.ts";
+import { builtins } from "./builtins.ts";
 
-type PageObject = {
-  name: string;
+type PageObject = Omit<PageMeta, "lastModified"> & {
+  tags?: string[];
+  lastModified: string; // indexing it as a string
 } & Record<string, any>;
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
-  const pageMeta: Record<string, any> = await extractFrontmatter(tree);
+  const pageMeta = await space.getPageMeta(name);
+  let pageObj: PageObject = {
+    ...pageMeta,
+    lastModified: new Date(pageMeta.lastModified).toISOString(),
+  };
   const attributes: AttributeObject[] = [];
-  const toplevelAttributes = await extractAttributes(tree, false);
-  if (
-    Object.keys(pageMeta).length > 0 ||
-    Object.keys(toplevelAttributes).length > 0
-  ) {
-    for (const [k, v] of Object.entries(toplevelAttributes)) {
-      pageMeta[k] = v;
-    }
 
-    const pageType = pageMeta.$type || "page";
-    delete pageMeta.$type;
-    // Don't index meta data starting with $
-    for (const [key, value] of Object.entries(pageMeta)) {
-      if (key.startsWith("$")) {
-        delete pageMeta[key];
-      } else {
+  const frontmatter: Record<string, any> = await extractFrontmatter(tree);
+  const toplevelAttributes = await extractAttributes(tree, false);
+
+  // Push them all into the page object
+  pageObj = { ...pageObj, ...frontmatter, ...toplevelAttributes };
+
+  const tags = ["page", ...pageObj.tags || []];
+
+  // Don't index meta data starting with $
+  for (const [key, value] of Object.entries(pageObj)) {
+    if (key.startsWith("$")) {
+      // Don't index attributes starting with $
+      delete pageObj[key];
+    } else if (builtins["page"][key]) {
+      continue;
+    } else {
+      for (const tag of tags) {
         attributes.push({
           name: key,
           attributeType: determineType(value),
-          type: pageType,
+          tag,
           page: name,
         });
       }
     }
-    // console.log("Extracted page meta data", pageMeta);
-    await indexObjects<PageObject>(name, [{
-      key: [name],
-      type: pageType,
-      value: { ...pageMeta, name },
-    }]);
   }
+  // console.log("Extracted page meta data", pageMeta);
+  await indexObjects<PageObject>(name, [{
+    key: [name],
+    tags,
+    value: pageObj,
+  }]);
 
-  await indexAttributes(name, attributes);
-}
-
-export async function pageQueryProvider({
-  query,
-}: QueryProviderEvent): Promise<any[]> {
-  return applyQuery(query, await space.listPages());
+  // await indexAttributes(name, attributes);
 }
 
 export async function reindexCommand() {

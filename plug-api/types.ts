@@ -87,5 +87,14 @@ export type QueryExpression =
 
 export type FunctionMap = Record<string, (...args: any[]) => any>;
 
-// Object indexing related types
-export type ObjectValue<T> = KV<T> & { type: string };
+// An object value is a key-value pair in addition to a list of tags the object belongs to
+export type ObjectValue<T> = KV<T> & {
+  tags: string[];
+};
+
+export type AttributeObject = {
+  name: string;
+  attributeType: string;
+  tag: string;
+  page: string;
+};

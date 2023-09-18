@@ -13,7 +13,7 @@ syntax:
 functions:
 
   loadBuiltinsIntoIndex:
-    path: attributes.ts:loadBuiltinsIntoIndex
+    path: builtins.ts:loadBuiltinsIntoIndex
     env: server
     events:
       - system:ready
@@ -47,15 +47,12 @@ functions:
       - page:saved
       - page:deleted
       
-  pageQueryProvider:
-    path: page.ts:pageQueryProvider
-    events:
-      - query:page
   parseIndexTextRepublish:
     path: "./page.ts:parseIndexTextRepublish"
     env: server
     events:
       - page:index_text
+
   reindexSpaceCommand:
     path: "./page.ts:reindexCommand"
     command:

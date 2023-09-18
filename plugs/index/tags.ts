@@ -1,9 +1,7 @@
-import { collectNodesOfType } from "$sb/lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { indexObjects } from "./api.ts";
-import { queryObjects } from "./api.ts";
+import { indexObjects, queryObjects } from "./api.ts";
 
 export type TagObject = {
   name: string;
@@ -13,22 +11,15 @@ export type TagObject = {
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
-  const allTags = new Set<string>();
-  const { tags } = await extractFrontmatter(tree);
-  if (Array.isArray(tags)) {
-    for (const t of tags) {
-      allTags.add(t);
-    }
+  let tags: string[] | undefined = (await extractFrontmatter(tree)).tags;
+  if (!tags) {
+    tags = [];
   }
-  collectNodesOfType(tree, "Hashtag").forEach((n) => {
-    const t = n.children![0].text!.substring(1);
-    allTags.add(t);
-  });
   await indexObjects<TagObject>(
     name,
-    [...allTags].map((t) => ({
+    tags.map((t) => ({
       key: [t],
-      type: "tag",
+      tags: ["tag"],
       value: { name: t, page: name, context: "page" },
     })),
   );

@@ -33,7 +33,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         const pos = pageRef.from! + 2;
         backLinks.push({
           key: [pageRefName, "" + pos],
-          type: "link",
+          tags: ["link"],
           value: { name: pageRefName, pos, page: name, asTemplate: true },
         });
       }
@@ -46,7 +46,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           const pos = n.from! + match.index! + 2;
           backLinks.push({
             key: [pageRefName, "" + pos],
-            type: "link",
+            tags: ["link"],
             value: { name: pageRefName, page: name, pos, asTemplate: true },
           });
         }
@@ -76,7 +76,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       }
       backLinks.push({
         key: [toPage, "" + pos],
-        type: "link",
+        tags: ["link"],
         value: blEntry,
       });
       return true;

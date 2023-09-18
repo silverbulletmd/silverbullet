@@ -1,4 +1,4 @@
-import { KvQuery, ObjectValue } from "$sb/types.ts";
+import { AttributeObject, KvQuery, ObjectValue } from "$sb/types.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
 
 export function indexObjects<T>(

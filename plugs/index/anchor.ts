@@ -18,7 +18,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
     const aName = n.children![0].text!.substring(1);
     anchors.push({
       key: [pageName, aName],
-      type: "anchor",
+      tags: ["anchor"],
       value: {
         name: aName,
         page: pageName,

@@ -17,12 +17,8 @@ import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import {
-  AttributeObject,
-  determineType,
-  indexAttributes,
-} from "../index/attributes.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { determineType } from "../index/attributes.ts";
+import { AttributeObject, ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import type { TagObject } from "../index/tags.ts";
 
@@ -100,37 +96,38 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     // Extract attributes and remove from tree
     const extractedAttributes = await extractAttributes(n, true);
-    const taskType = extractedAttributes.$type || "task";
-    delete extractedAttributes.$type;
+    const tags = ["task", ...task.tags || []];
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
-      allAttributes.push({
-        name: key,
-        attributeType: determineType(value),
-        type: taskType,
-        page: name,
-      });
+      for (const tag of tags) {
+        allAttributes.push({
+          name: key,
+          attributeType: determineType(value),
+          tag,
+          page: name,
+        });
+      }
     }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
     tasks.push({
-      type: taskType,
       key: [`${n.from}`],
+      tags,
       value: task,
     });
     return true;
   });
 
-  // console.log("Found", tasks, "task(s)");
-  await indexAttributes(name, allAttributes);
+  // console.log("Found", allAttributes, "task attributes(s)");
+  // await indexAttributes(name, allAttributes);
 
   // Index task states
   if (taskStates.size > 0) {
     await indexObjects<TaskStateObject>(
       name,
       Array.from(taskStates.entries()).map(([state, count]) => ({
-        type: "taskstate",
+        tags: ["taskstate"],
         key: [state],
         value: {
           state,
@@ -145,7 +142,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     await indexObjects<TagObject>(
       name,
       Array.from(allTags).map((tag) => ({
-        type: "tag",
+        tags: ["tag"],
         key: [tag],
         value: {
           name: tag,
@@ -361,19 +358,3 @@ export async function postponeCommand() {
     },
   });
 }
-
-// export async function queryProvider({
-//   query,
-// }: QueryProviderEvent): Promise<Task[]> {
-//   const allTasks: Task[] = [];
-
-//   for (const { key, page, value } of await index.queryPrefix("task:")) {
-//     const pos = key.split(":")[1];
-//     allTasks.push({
-//       ...value,
-//       page: page,
-//       pos: +pos,
-//     });
-//   }
-//   return applyQuery(query, allTasks);
-// }

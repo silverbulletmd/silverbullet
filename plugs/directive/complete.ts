@@ -38,7 +38,7 @@ export async function queryComplete(completeEvent: CompleteEvent) {
   }
 
   if (completeEvent.parentNodes.includes("DirectiveStart")) {
-    const querySourceMatch = /#query\s+([\w\-_]+)/.exec(
+    const querySourceMatch = /#query\s+([\w\-_\/]+)/.exec(
       completeEvent.linePrefix,
     );
     const whereMatch =

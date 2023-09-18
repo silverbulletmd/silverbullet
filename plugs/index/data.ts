@@ -4,8 +4,10 @@ import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
+import { TagObject } from "./tags.ts";
 
 type DataObject = {
+  pos: number;
   page: string;
 } & Record<string, any>;
 
@@ -42,14 +44,22 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           const pos = t.from! + i;
           dataObjects.push({
             key: ["" + pos],
-            type: dataType,
+            tags: [dataType],
             value: {
               ...doc,
+              pos,
               page: name,
             },
           });
         }
         // console.log("Parsed data", parsedData);
+        await indexObjects<TagObject>(name, [
+          {
+            key: [dataType],
+            tags: ["tag"],
+            value: { name: dataType, page: name, context: "data" },
+          },
+        ]);
       } catch (e) {
         console.error("Could not parse data", codeText, "error:", e);
         return;

@@ -1,6 +1,8 @@
 import { datastore } from "$sb/syscalls.ts";
-import { KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
+import { AttributeObject, KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
+import { builtinPseudoPage, builtins } from "./builtins.ts";
+import { determineType } from "./attributes.ts";
 
 /*
  * Key namespace:
@@ -63,50 +65,105 @@ export async function indexObjects<T>(
   page: string,
   objects: ObjectValue<T>[],
 ): Promise<void> {
-  const allTypes = new Set<string>();
-  // console.log("Now indexing objects", objects);
-  const kvs: KV[] = [];
-  for (const { key, value, type } of objects) {
-    allTypes.add(type);
-    kvs.push({
-      key: [type, ...key, page],
-      value,
-    });
+  const kvs: KV<T>[] = [];
+  const allAttributes = new Map<string, string>(); // tag:name -> attributeType
+  for (const { key, value, tags } of objects) {
+    for (const tag of tags) {
+      kvs.push({
+        key: [tag, ...key, page],
+        value,
+      });
+      // Index attributes
+      if (!builtins[tag]) {
+        // But only for non-builtin tags
+        for (
+          const [attrName, attrValue] of Object.entries(
+            value as Record<string, any>,
+          )
+        ) {
+          if (attrName.startsWith("$")) {
+            continue;
+          }
+          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
+        }
+      }
+    }
   }
-  await batchSet(
-    page,
-    [...allTypes].filter((type) => !type.startsWith("$")).map((type) => ({
-      key: ["$type", type],
-      value: true,
-    })),
-  );
+  if (allAttributes.size > 0) {
+    await indexObjects<AttributeObject>(
+      page,
+      [...allAttributes].map(([key, value]) => {
+        const [tag, name] = key.split(":");
+        return {
+          key: [tag, name],
+          tags: ["attribute"],
+          value: {
+            tag,
+            name,
+            attributeType: value,
+            page,
+          },
+        };
+      }),
+    );
+  }
   return batchSet(page, kvs);
 }
 
+// export async function indexAttributes(
+//   page: string,
+//   attributes: AttributeObject[],
+// ) {
+//   const setAttributes = new Set<string>();
+//   const filteredAttributes = attributes.filter((attr) => {
+//     const key = `${attr.tag}:${attr.name}`;
+//     // Remove duplicates, that's ok
+//     if (setAttributes.has(key)) {
+//       return false;
+//     }
+//     setAttributes.add(key);
+//     return attr.page === builtinPseudoPage ||
+//       !builtins[attr.tag]?.[attr.name];
+//   });
+//   if (Object.keys(filteredAttributes).length > 0) {
+//     await indexObjects(
+//       page,
+//       filteredAttributes.map((attr) => {
+//         return {
+//           key: [attr.tag, attr.name],
+//           tags: ["attribute"],
+//           value: attr,
+//         };
+//       }),
+//     );
+//   }
+// }
+
 export async function queryObjects<T>(
-  type: string,
+  tag: string,
   query: KvQuery,
 ): Promise<ObjectValue<T>[]> {
   return (await datastore.query({
     ...query,
-    prefix: ["index", type, ...(query.prefix ? query.prefix : [])],
+    prefix: ["index", tag, ...(query.prefix ? query.prefix : [])],
   })).map(
-    ({ key, value }) => ({ key, value, type }),
+    ({ key, value }) => ({ key, value, tags: [tag] }),
   );
 }
 
 export async function objectSourceProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
+  const tag = query.querySource!;
   const results = await datastore.query({
     ...query,
-    prefix: ["index", query.querySource!],
+    prefix: ["index", tag],
   });
   return results.map((r) => r.value);
 }
 
 export async function discoverSources() {
-  return (await datastore.query({ prefix: ["index", "$type"] })).map((
+  return (await datastore.query({ prefix: ["index", "tag"] })).map((
     { key },
   ) => key[2]);
 }

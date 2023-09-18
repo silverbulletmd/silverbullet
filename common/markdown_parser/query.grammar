@@ -20,7 +20,7 @@ kw<term> { @specialize[@name={term}]<Identifier, term> }
 
 
 Query {
-    Identifier ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
+    TagIdentifier ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
 }
 
 WhereClause { kw<"where"> Expression }
@@ -90,6 +90,7 @@ Bool {
 @tokens {
   space { std.whitespace+ }
 
+  TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
 
   Identifier { @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
 
