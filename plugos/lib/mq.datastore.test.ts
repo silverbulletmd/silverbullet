@@ -33,6 +33,7 @@ Deno.test("DataStore MQ", async () => {
   const unsubscribe = mq.subscribe("test123", {}, async (messages) => {
     assertEquals(messages.length, 1);
     receivedMessage = true;
+    console.log("RECEIVED TEH EMSSSAGE");
     await mq.ack("test123", messages[0].id);
   });
   await mq.send("test123", "Hello World");
