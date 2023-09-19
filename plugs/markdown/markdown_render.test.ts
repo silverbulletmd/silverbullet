@@ -22,7 +22,7 @@ Deno.test("Markdown render", async () => {
     new URL("test/example.md", import.meta.url).pathname,
   );
   const tree = parse(lang, testFile);
-  await renderMarkdownToHtml(tree, {
+  renderMarkdownToHtml(tree, {
     failOnUnknown: true,
   });
   // console.log("HTML", html);
@@ -34,7 +34,7 @@ Deno.test("Smart hard break test", async () => {
 *world!*`;
   const lang = buildMarkdown([]);
   const tree = parse(lang, example);
-  const html = await renderMarkdownToHtml(tree, {
+  const html =  renderMarkdownToHtml(tree, {
     failOnUnknown: true,
     smartHardBreak: true,
   });

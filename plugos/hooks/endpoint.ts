@@ -105,7 +105,7 @@ export class EndpointHook implements Hook<EndpointHookT> {
         }
       }
       // console.log("Shouldn't get here");
-      next();
+      await next();
     });
   }
 

@@ -57,7 +57,7 @@ export async function titleUnfurl(url: string): Promise<string> {
   const response = await fetch(url);
   if (response.status < 200 || response.status >= 300) {
     console.error("Unfurl failed", await response.text());
-    throw new Error(`Failed to fetch: ${await response.statusText}`);
+    throw new Error(`Failed to fetch: ${response.statusText}`);
   }
   const body = await response.text();
   const match = titleRegex.exec(body);

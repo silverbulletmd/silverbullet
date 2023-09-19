@@ -172,7 +172,7 @@ export async function compileManifests(
         }
       }
       console.log("Change detected, rebuilding...");
-      buildAll();
+      await buildAll();
     }
   }
 }

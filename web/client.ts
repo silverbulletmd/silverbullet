@@ -223,7 +223,7 @@ export class Client {
       if (this.system.plugsUpdated) {
         // To register new commands, update editor state based on new plugs
         this.rebuildEditorState();
-        this.dispatchAppEvent(
+        await this.dispatchAppEvent(
           "editor:pageLoaded",
           this.currentPage,
           undefined,

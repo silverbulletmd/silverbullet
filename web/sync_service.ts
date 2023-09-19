@@ -135,7 +135,7 @@ export class SyncService implements ISyncService {
   async registerSyncProgress(status?: SyncStatus): Promise<void> {
     // Emit a sync event at most every 2s
     if (status && this.lastReportedSyncStatus < Date.now() - 2000) {
-      this.eventHook.dispatchEvent("sync:progress", status);
+      await this.eventHook.dispatchEvent("sync:progress", status);
       this.lastReportedSyncStatus = Date.now();
       await this.saveSnapshot(status.snapshot);
     }
@@ -222,11 +222,11 @@ export class SyncService implements ISyncService {
       );
       await this.saveSnapshot(snapshot);
       await this.registerSyncStop(true);
-      this.eventHook.dispatchEvent("sync:success", operations);
+      await this.eventHook.dispatchEvent("sync:success", operations);
     } catch (e: any) {
       await this.saveSnapshot(snapshot);
       await this.registerSyncStop(false);
-      this.eventHook.dispatchEvent("sync:error", e.message);
+      await this.eventHook.dispatchEvent("sync:error", e.message);
       console.error("Sync error", e.message);
     }
     return operations;
