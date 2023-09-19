@@ -22,7 +22,7 @@ export class DataStoreMQ implements MessageQueue {
   // Internal sequencer for messages, only really necessary when batch sending tons of messages within a millisecond
   seq = 0;
 
-  async batchSend(queue: string, bodies: any[]) {
+  async batchSend(queue: string, bodies: any[]): Promise<void> {
     const messages: KV<MQMessage>[] = bodies.map((body) => {
       const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
       const key = [...queuedPrefix, queue, id];
@@ -43,7 +43,7 @@ export class DataStoreMQ implements MessageQueue {
     }
   }
 
-  send(queue: string, body: any) {
+  send(queue: string, body: any): Promise<void> {
     return this.batchSend(queue, [body]);
   }
 
