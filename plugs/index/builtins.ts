@@ -1,5 +1,6 @@
-import { AttributeObject, ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
+import { AttributeObject } from "./attributes.ts";
 import { TagObject } from "./tags.ts";
 
 export const builtinPseudoPage = ":builtin:";
@@ -58,7 +59,7 @@ export async function loadBuiltinsIntoIndex() {
       value: {
         name: tag,
         page: builtinPseudoPage,
-        context: "builtin",
+        parent: "builtin",
       },
     });
     await indexObjects<AttributeObject>(

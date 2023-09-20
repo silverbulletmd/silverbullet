@@ -91,10 +91,3 @@ export type FunctionMap = Record<string, (...args: any[]) => any>;
 export type ObjectValue<T> = KV<T> & {
   tags: string[];
 };
-
-export type AttributeObject = {
-  name: string;
-  attributeType: string;
-  tag: string;
-  page: string;
-};

@@ -4,8 +4,7 @@ import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { removeQueries } from "$sb/lib/query.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { determineType } from "./attributes.ts";
-import { AttributeObject, ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 
 export type ItemObject = {

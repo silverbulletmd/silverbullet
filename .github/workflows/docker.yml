@@ -70,7 +70,6 @@ jobs:
             type=semver,pattern=latest,enable=true
             # When pushing to main branch, release as :edge
             type=edge,branch=main
-
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
         with:

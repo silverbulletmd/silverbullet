@@ -358,7 +358,7 @@ export class Client {
     if (this.syncMode) {
       // We'll store the space files in a separate data store
       const spaceKvPrimitives = new IndexedDBKvPrimitives(
-        `${this.dbPrefix}_space`,
+        `${this.dbPrefix}_synced_space`,
       );
       await spaceKvPrimitives.init();
 

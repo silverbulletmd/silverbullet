@@ -1,8 +1,15 @@
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
 import { queryObjects } from "./api.ts";
-import { AttributeObject, QueryExpression } from "$sb/types.ts";
+import { QueryExpression } from "$sb/types.ts";
 import { builtinPseudoPage } from "./builtins.ts";
+
+export type AttributeObject = {
+  name: string;
+  attributeType: string;
+  tag: string;
+  page: string;
+};
 
 export type AttributeCompleteEvent = {
   source: string;

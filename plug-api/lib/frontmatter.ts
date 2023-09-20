@@ -3,6 +3,7 @@ import { YAML } from "$sb/plugos-syscall/mod.ts";
 import {
   addParentPointers,
   findNodeOfType,
+  findParentMatching,
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
@@ -20,10 +21,9 @@ export async function extractFrontmatter(
   addParentPointers(tree);
 
   await replaceNodesMatchingAsync(tree, async (t) => {
-    // Find top-level hash tags
     if (t.type === "Hashtag") {
       // Check if if nested directly into a Paragraph
-      if (t.parent && t.parent.type === "Paragraph") {
+      if (!findParentMatching(t, (n) => n.type === "ListItem")) {
         const tagname = t.children![0].text!.substring(1);
         if (!data.tags) {
           data.tags = [];

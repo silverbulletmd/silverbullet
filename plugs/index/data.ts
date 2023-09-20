@@ -57,7 +57,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           {
             key: [dataType],
             tags: ["tag"],
-            value: { name: dataType, page: name, context: "data" },
+            value: { name: dataType, page: name, parent: "data" },
           },
         ]);
       } catch (e) {

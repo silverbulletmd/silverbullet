@@ -17,10 +17,8 @@ import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { determineType } from "../index/attributes.ts";
-import { AttributeObject, ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
-import type { TagObject } from "../index/tags.ts";
 
 export type TaskObject = {
   page: string;
@@ -50,8 +48,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const taskStates = new Map<string, number>();
   removeQueries(tree);
   addParentPointers(tree);
-  const allAttributes: AttributeObject[] = [];
-  const allTags = new Set<string>();
+  // const allAttributes: AttributeObject[] = [];
+  // const allTags = new Set<string>();
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
       return false;
@@ -88,9 +86,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
         // Push the tag to the list, removing the initial #
         const tagName = tree.children![0].text!.substring(1);
         task.tags.push(tagName);
-        allTags.add(tagName);
-        // Remove this node from the tree
-        // return null;
       }
     });
 
@@ -99,14 +94,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     const tags = ["task", ...task.tags || []];
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
-      for (const tag of tags) {
-        allAttributes.push({
-          name: key,
-          attributeType: determineType(value),
-          tag,
-          page: name,
-        });
-      }
     }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
@@ -118,9 +105,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     });
     return true;
   });
-
-  // console.log("Found", allAttributes, "task attributes(s)");
-  // await indexAttributes(name, allAttributes);
 
   // Index task states
   if (taskStates.size > 0) {
@@ -134,21 +118,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
           count,
           page: name,
         } as TaskStateObject,
-      })),
-    );
-  }
-
-  if (allTags.size > 0) {
-    await indexObjects<TagObject>(
-      name,
-      Array.from(allTags).map((tag) => ({
-        tags: ["tag"],
-        key: [tag],
-        value: {
-          name: tag,
-          page: name,
-          context: "task",
-        },
       })),
     );
   }

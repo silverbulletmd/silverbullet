@@ -1,8 +1,8 @@
 import { datastore } from "$sb/syscalls.ts";
-import { AttributeObject, KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
+import { KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
-import { builtinPseudoPage, builtins } from "./builtins.ts";
-import { determineType } from "./attributes.ts";
+import { builtins } from "./builtins.ts";
+import { AttributeObject, determineType } from "./attributes.ts";
 
 /*
  * Key namespace:
@@ -109,35 +109,6 @@ export async function indexObjects<T>(
   }
   return batchSet(page, kvs);
 }
-
-// export async function indexAttributes(
-//   page: string,
-//   attributes: AttributeObject[],
-// ) {
-//   const setAttributes = new Set<string>();
-//   const filteredAttributes = attributes.filter((attr) => {
-//     const key = `${attr.tag}:${attr.name}`;
-//     // Remove duplicates, that's ok
-//     if (setAttributes.has(key)) {
-//       return false;
-//     }
-//     setAttributes.add(key);
-//     return attr.page === builtinPseudoPage ||
-//       !builtins[attr.tag]?.[attr.name];
-//   });
-//   if (Object.keys(filteredAttributes).length > 0) {
-//     await indexObjects(
-//       page,
-//       filteredAttributes.map((attr) => {
-//         return {
-//           key: [attr.tag, attr.name],
-//           tags: ["attribute"],
-//           value: attr,
-//         };
-//       }),
-//     );
-//   }
-// }
 
 export async function queryObjects<T>(
   tag: string,
