@@ -29,7 +29,7 @@ async function responseToFileMeta(
   };
 }
 
-const fileListingPrefixCacheKey = `federationListCache:`;
+const fileListingPrefixCacheKey = `federationListCache`;
 const listingCacheTimeout = 1000 * 30;
 const listingFetchTimeout = 2000;
 

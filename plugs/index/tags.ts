@@ -35,7 +35,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
     //   tags.add(`${tagName}:page`);
     // }
   });
-  console.log("Indexing these tags", tags);
+  // console.log("Indexing these tags", tags);
   await indexObjects<TagObject>(
     name,
     [...tags].map((tag) => {

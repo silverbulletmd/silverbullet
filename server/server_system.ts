@@ -142,13 +142,13 @@ export class ServerSystem {
     });
 
     // Check if this space was ever indexed before
-    if (!await this.ds.get(["$initialIndexCompleted"])) {
+    if (!await this.ds.get(["$initialIndexDone"])) {
       console.log("Indexing space for the first time (in the background)");
       this.system.loadedPlugs.get("index")!.invoke(
         "reindexSpace",
         [],
       ).then(() => {
-        this.ds.set(["$initialIndexCompleted"], true);
+        this.ds.set(["$initialIndexDone"], true);
       }).catch(console.error);
     }
 
