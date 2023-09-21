@@ -1,9 +1,8 @@
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
-import { AttachmentMeta, PageMeta } from "./types.ts";
 
-import { FileMeta } from "$sb/types.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { throttle } from "$sb/lib/async.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";

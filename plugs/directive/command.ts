@@ -7,9 +7,8 @@ import {
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import type { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
-import { MQMessage } from "$sb/types.ts";
+import { MQMessage, PageMeta } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 
 const directiveUpdateQueueName = "directiveUpdateQueue";

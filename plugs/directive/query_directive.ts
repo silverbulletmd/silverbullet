@@ -4,9 +4,8 @@ import { replaceTemplateVars } from "../template/template.ts";
 import { renderTemplate } from "./util.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree, parseTreeToAST } from "$sb/lib/tree.ts";
-import type { PageMeta } from "../../web/types.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-import { Query } from "$sb/types.ts";
+import { PageMeta, Query } from "$sb/types.ts";
 
 export async function queryDirectiveRenderer(
   _directive: string,

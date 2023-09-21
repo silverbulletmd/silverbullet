@@ -7,7 +7,7 @@ import {
   syntaxTree,
 } from "../common/deps.ts";
 import { fileMetaToPageMeta, Space } from "./space.ts";
-import { FilterOption, PageMeta } from "./types.ts";
+import { FilterOption } from "./types.ts";
 import { parseYamlSettings } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { AppCommand } from "./hooks/command.ts";
@@ -18,7 +18,6 @@ import { AppViewState, BuiltinSettings } from "./types.ts";
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
 import { throttle } from "$sb/lib/async.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import {
   ISyncService,
@@ -39,7 +38,7 @@ import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { FileMeta } from "$sb/types.ts";
+import { FileMeta, PageMeta } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
@@ -363,16 +362,13 @@ export class Client {
       await spaceKvPrimitives.init();
 
       localSpacePrimitives = new FilteredSpacePrimitives(
-        new FileMetaSpacePrimitives(
-          new EventedSpacePrimitives(
-            // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-            new FallbackSpacePrimitives(
-              new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
-              this.plugSpaceRemotePrimitives,
-            ),
-            this.eventHook,
+        new EventedSpacePrimitives(
+          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+          new FallbackSpacePrimitives(
+            new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
+            this.plugSpaceRemotePrimitives,
           ),
-          this.stateDataStore,
+          this.eventHook,
         ),
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved
@@ -758,9 +754,6 @@ export class Client {
     let doc;
     try {
       doc = await this.space.readPage(pageName);
-      if (doc.meta.contentType.startsWith("text/html")) {
-        throw new Error("Got HTML page, not markdown");
-      }
     } catch (e: any) {
       if (e.message.includes("Not found")) {
         // Not found, new page

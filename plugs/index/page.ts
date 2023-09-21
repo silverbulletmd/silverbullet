@@ -1,14 +1,13 @@
 import type { IndexEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 
-import type { MQMessage } from "$sb/types.ts";
+import type { MQMessage, PageMeta } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { AttributeObject, determineType } from "./attributes.ts";
 import { indexObjects } from "./api.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { PageMeta } from "../../web/types.ts";
 import { builtins } from "./builtins.ts";
 
 type PageObject = Omit<PageMeta, "lastModified"> & {

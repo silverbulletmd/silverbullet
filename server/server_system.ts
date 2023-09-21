@@ -3,7 +3,6 @@ import { SilverBulletHooks } from "../common/manifest.ts";
 import { loadMarkdownExtensions } from "../common/markdown_parser/markdown_ext.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
@@ -70,15 +69,12 @@ export class ServerSystem {
 
     this.system.addHook(new MQHook(this.system, mq));
 
-    this.spacePrimitives = new FileMetaSpacePrimitives(
-      new EventedSpacePrimitives(
-        new PlugSpacePrimitives(
-          this.baseSpacePrimitives,
-          plugNamespaceHook,
-        ),
-        eventHook,
+    this.spacePrimitives = new EventedSpacePrimitives(
+      new PlugSpacePrimitives(
+        this.baseSpacePrimitives,
+        plugNamespaceHook,
       ),
-      this.ds,
+      eventHook,
     );
     const space = new Space(this.spacePrimitives, this.ds, eventHook);
 

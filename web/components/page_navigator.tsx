@@ -1,6 +1,7 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption, PageMeta } from "../types.ts";
+import { FilterOption } from "../types.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
+import { PageMeta } from "$sb/types.ts";
 
 export function PageNavigator({
   allPages,

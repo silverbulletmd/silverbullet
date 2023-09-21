@@ -1,5 +1,5 @@
 import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { PageMeta } from "../../web/types.ts";
+import { PageMeta } from "$sb/types.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";
 import { queryDirectiveRenderer } from "./query_directive.ts";

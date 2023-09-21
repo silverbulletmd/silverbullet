@@ -3,11 +3,11 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
-import { PageMeta } from "../../web/types.ts";
 import { buildHandebarOptions } from "../directive/util.ts";
 
 import Handlebars from "handlebars";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { PageMeta } from "$sb/types.ts";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -278,7 +278,7 @@ export async function insertTemplateText(cmdDef: any) {
   let templateText: string = cmdDef.value;
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, pageMeta);
+  templateText = replaceTemplateVars(templateText, pageMeta!);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);

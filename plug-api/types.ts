@@ -5,7 +5,22 @@ export type FileMeta = {
   size: number;
   perm: "ro" | "rw";
   noSync?: boolean;
-} & Record<string, any>;
+};
+
+export type PageMeta = {
+  name: string;
+  lastModified: number;
+  lastOpened?: number;
+  perm: "ro" | "rw";
+};
+
+export type AttachmentMeta = {
+  name: string;
+  contentType: string;
+  lastModified: number;
+  size: number;
+  perm: "ro" | "rw";
+};
 
 // Message Queue related types
 export type MQMessage = {

@@ -3,8 +3,8 @@
 import { YAML } from "$sb/syscalls.ts";
 import { ParseTree } from "$sb/lib/tree.ts";
 import { jsonToMDTable, renderTemplate } from "./util.ts";
-import type { PageMeta } from "../../web/types.ts";
 import { replaceTemplateVars } from "../template/template.ts";
+import { PageMeta } from "$sb/types.ts";
 
 // Enables plugName.functionName(arg1, arg2) syntax in JS expressions
 function translateJs(js: string): string {

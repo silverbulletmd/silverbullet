@@ -1,8 +1,8 @@
 import Handlebars from "handlebars";
 
 import { space } from "$sb/syscalls.ts";
-import type { PageMeta } from "../../web/types.ts";
 import { handlebarHelpers } from "./handlebar_helpers.ts";
+import { PageMeta } from "$sb/types.ts";
 
 const maxWidth = 70;
 

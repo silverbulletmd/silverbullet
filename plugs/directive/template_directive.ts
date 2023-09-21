@@ -8,8 +8,8 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
 import { buildHandebarOptions } from "./util.ts";
-import { PageMeta } from "../../web/types.ts";
 import { resolvePath, rewritePageRefs } from "$sb/lib/resolve.ts";
+import { PageMeta } from "$sb/types.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
