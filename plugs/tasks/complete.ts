@@ -10,7 +10,7 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
     return null;
   }
   const allStates = await queryObjects<TaskStateObject>("taskstate", {});
-  const states = [...new Set(allStates.map((s) => s.value.state))];
+  const states = [...new Set(allStates.map((s) => s.state))];
 
   return {
     from: completeEvent.pos - taskMatch[2].length,

@@ -89,11 +89,19 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         id: id as any,
         config: { html, script, mode },
       });
+      setTimeout(() => {
+        // Dummy dispatch to rerender the editor and toggle the panel
+        editor.editorView.dispatch({});
+      });
     },
     "editor.hidePanel": (_ctx, id: string) => {
       editor.ui.viewDispatch({
         type: "hide-panel",
         id: id as any,
+      });
+      setTimeout(() => {
+        // Dummy dispatch to rerender the editor and toggle the panel
+        editor.editorView.dispatch({});
       });
     },
     "editor.insertAtPos": (_ctx, text: string, pos: number) => {

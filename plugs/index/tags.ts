@@ -9,6 +9,8 @@ import {
 } from "$sb/lib/tree.ts";
 
 export type TagObject = {
+  ref: string;
+  tags: string[];
   name: string;
   page: string;
   parent: string;
@@ -31,9 +33,6 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
       // Or an item
       tags.add(`${tagName}:item`);
     }
-    //  else {
-    //   tags.add(`${tagName}:page`);
-    // }
   });
   // console.log("Indexing these tags", tags);
   await indexObjects<TagObject>(
@@ -41,13 +40,11 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
     [...tags].map((tag) => {
       const [tagName, parent] = tag.split(":");
       return {
-        key: [tagName],
+        ref: tagName,
         tags: ["tag"],
-        value: {
-          name: tagName,
-          page: name,
-          parent,
-        },
+        name: tagName,
+        page: name,
+        parent,
       };
     }),
   );
@@ -74,7 +71,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - tagPrefix.length,
     options: allTags.map((tag) => ({
-      label: tag.value.name,
+      label: tag.name,
       type: "tag",
     })),
   };

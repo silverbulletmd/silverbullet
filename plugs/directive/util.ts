@@ -10,6 +10,9 @@ export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {
     return "";
   }
+  if (typeof v === "string") {
+    return v.replaceAll("\n", " ").replaceAll("|", "\\|");
+  }
   return "" + v;
 }
 

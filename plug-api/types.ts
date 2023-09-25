@@ -102,7 +102,15 @@ export type QueryExpression =
 
 export type FunctionMap = Record<string, (...args: any[]) => any>;
 
-// An object value is a key-value pair in addition to a list of tags the object belongs to
-export type ObjectValue<T> = KV<T> & {
+/**
+ * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of
+ * of two fields:
+ * - ref: a unique reference (id) for the object, ideally a page reference
+ * - tags: a list of tags that the object belongs to
+ */
+export type ObjectValue<T> = {
+  ref: string;
   tags: string[];
-};
+} & T;
+
+export type ObjectQuery = Omit<Query, "prefix">;

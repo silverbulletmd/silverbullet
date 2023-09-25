@@ -1,15 +1,15 @@
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
 import { queryObjects } from "./api.ts";
-import { QueryExpression } from "$sb/types.ts";
+import { ObjectValue, QueryExpression } from "$sb/types.ts";
 import { builtinPseudoPage } from "./builtins.ts";
 
-export type AttributeObject = {
+export type AttributeObject = ObjectValue<{
   name: string;
   attributeType: string;
   tag: string;
   page: string;
-};
+}>;
 
 export type AttributeCompleteEvent = {
   source: string;
@@ -43,7 +43,7 @@ export async function objectAttributeCompleter(
   const allAttributes = await queryObjects<AttributeObject>("attribute", {
     filter: attributeFilter,
   });
-  return allAttributes.map(({ value }) => {
+  return allAttributes.map((value) => {
     return {
       name: value.name,
       source: value.tag,

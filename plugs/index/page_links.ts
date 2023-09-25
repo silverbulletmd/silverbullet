@@ -1,24 +1,53 @@
-import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
+import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
 import { IndexTreeEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$sb/types.ts";
 
 export type LinkObject = {
+  ref: string;
+  tags: string[];
   // The page the link points to
-  name: string;
+  toPage: string;
   // The page the link occurs in
   page: string;
   pos: number;
+  snippet: string;
   alias?: string;
-  inDirective?: boolean;
-  asTemplate?: boolean;
+  inDirective: boolean;
+  asTemplate: boolean;
 };
 
+export function extractSnippet(text: string, pos: number): string {
+  let prefix = "";
+  for (let i = pos - 1; i > 0; i--) {
+    if (text[i] === "\n") {
+      break;
+    }
+    prefix = text[i] + prefix;
+    if (prefix.length > 25) {
+      break;
+    }
+  }
+  let suffix = "";
+  for (let i = pos; i < text.length; i++) {
+    if (text[i] === "\n") {
+      break;
+    }
+    suffix += text[i];
+    if (suffix.length > 25) {
+      break;
+    }
+  }
+  return prefix + suffix;
+}
+
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
-  const backLinks: ObjectValue<LinkObject>[] = [];
+  const links: ObjectValue<LinkObject>[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
+
+  const pageText = renderToText(tree);
 
   let directiveDepth = 0;
   traverseTree(tree, (n): boolean => {
@@ -31,10 +60,15 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           pageRef.children![0].text!.slice(2, -2),
         );
         const pos = pageRef.from! + 2;
-        backLinks.push({
-          key: [pageRefName, "" + pos],
+        links.push({
+          ref: `${name}@${pos}`,
           tags: ["link"],
-          value: { name: pageRefName, pos, page: name, asTemplate: true },
+          toPage: pageRefName,
+          pos: pos,
+          snippet: extractSnippet(pageText, pos),
+          page: name,
+          asTemplate: true,
+          inDirective: false,
         });
       }
       const directiveText = n.children![0].text;
@@ -44,10 +78,15 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         if (match) {
           const pageRefName = resolvePath(name, match[1]);
           const pos = n.from! + match.index! + 2;
-          backLinks.push({
-            key: [pageRefName, "" + pos],
+          links.push({
+            ref: `${name}@${pos}`,
             tags: ["link"],
-            value: { name: pageRefName, page: name, pos, asTemplate: true },
+            toPage: pageRefName,
+            page: name,
+            snippet: extractSnippet(pageText, pos),
+            pos: pos,
+            asTemplate: true,
+            inDirective: false,
           });
         }
       }
@@ -67,30 +106,35 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (toPage.includes("@")) {
         toPage = toPage.split("@")[0];
       }
-      const blEntry: LinkObject = { name: toPage, pos, page: name };
+      const link: LinkObject = {
+        ref: `${name}@${pos}`,
+        tags: ["link"],
+        toPage: toPage,
+        snippet: extractSnippet(pageText, pos),
+        pos,
+        page: name,
+        inDirective: false,
+        asTemplate: false,
+      };
       if (directiveDepth > 0) {
-        blEntry.inDirective = true;
+        link.inDirective = true;
       }
       if (wikiLinkAlias) {
-        blEntry.alias = wikiLinkAlias.children![0].text!;
+        link.alias = wikiLinkAlias.children![0].text!;
       }
-      backLinks.push({
-        key: [toPage, "" + pos],
-        tags: ["link"],
-        value: blEntry,
-      });
+      links.push(link);
       return true;
     }
     return false;
   });
   // console.log("Found", backLinks, "page link(s)");
-  await indexObjects(name, backLinks);
+  await indexObjects(name, links);
 }
 
 export async function getBackLinks(
   pageName: string,
 ): Promise<LinkObject[]> {
   return (await queryObjects<LinkObject>("link", {
-    prefix: [pageName],
-  })).map((bl) => bl.value);
+    filter: ["=", ["attr", "toPage"], ["string", pageName]],
+  }));
 }

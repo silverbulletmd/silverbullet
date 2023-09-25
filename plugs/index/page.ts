@@ -5,23 +5,23 @@ import type { MQMessage, PageMeta } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { AttributeObject, determineType } from "./attributes.ts";
 import { indexObjects } from "./api.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { builtins } from "./builtins.ts";
 
 type PageObject = Omit<PageMeta, "lastModified"> & {
-  tags?: string[];
+  ref: string;
+  tags: string[];
   lastModified: string; // indexing it as a string
 } & Record<string, any>;
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   const pageMeta = await space.getPageMeta(name);
   let pageObj: PageObject = {
+    ref: name,
+    tags: [], // will be overridden in a bit
     ...pageMeta,
     lastModified: new Date(pageMeta.lastModified).toISOString(),
   };
-  const attributes: AttributeObject[] = [];
 
   const frontmatter: Record<string, any> = await extractFrontmatter(tree);
   const toplevelAttributes = await extractAttributes(tree, false);
@@ -29,32 +29,10 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   // Push them all into the page object
   pageObj = { ...pageObj, ...frontmatter, ...toplevelAttributes };
 
-  const tags = ["page", ...pageObj.tags || []];
+  pageObj.tags = ["page", ...pageObj.tags || []];
 
-  // Don't index meta data starting with $
-  for (const [key, value] of Object.entries(pageObj)) {
-    if (key.startsWith("$")) {
-      // Don't index attributes starting with $
-      delete pageObj[key];
-    } else if (builtins["page"][key]) {
-      continue;
-    } else {
-      for (const tag of tags) {
-        attributes.push({
-          name: key,
-          attributeType: determineType(value),
-          tag,
-          page: name,
-        });
-      }
-    }
-  }
   // console.log("Extracted page meta data", pageMeta);
-  await indexObjects<PageObject>(name, [{
-    key: [name],
-    tags,
-    value: pageObj,
-  }]);
+  await indexObjects<PageObject>(name, [pageObj]);
 }
 
 export async function reindexCommand() {

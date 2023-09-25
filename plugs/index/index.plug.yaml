@@ -10,8 +10,9 @@ syntax:
       - "$"
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
+assets:
+  - asset/*
 functions:
-
   loadBuiltinsIntoIndex:
     path: builtins.ts:loadBuiltinsIntoIndex
     env: server
@@ -149,4 +150,22 @@ functions:
     command:
       name: "Page: Extract"
 
+  # Mentions panel (postscript)
+  toggleMentions:
+    path: "./mentions_ps.ts:toggleMentions"
+    command:
+      name: "Mentions: Toggle"
+      key: ctrl-alt-m
+    events:
+    - mentions:hide
+  updateMentions:
+    path: "./mentions_ps.ts:updateMentions"
+    env: client
+    events:
+      - plug:load
+      - editor:pageLoaded
+  navigateToMention:
+    path: "./mentions_ps.ts:navigate"
+    events:
+      - mentions:navigate
 

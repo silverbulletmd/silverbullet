@@ -144,7 +144,12 @@ body {
 .sb-panel {
   flex: 1;
 }
+
+.sb-ps-iframe {
+  width: 100%;
+  border: 0;
 }
+
 
 #sb-main {
   display: flex;

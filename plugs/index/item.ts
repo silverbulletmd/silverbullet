@@ -7,12 +7,13 @@ import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 
-export type ItemObject = {
-  name: string;
-  tags: string[];
-  page: string;
-  pos: number;
-} & Record<string, any>;
+export type ItemObject = ObjectValue<
+  {
+    name: string;
+    page: string;
+    pos: number;
+  } & Record<string, any>
+>;
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items: ObjectValue<ItemObject>[] = [];
@@ -32,10 +33,11 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     }
 
     const item: ItemObject = {
+      ref: `${name}@${n.from}`,
+      tags: [],
       name: "", // to be replaced
       page: name,
       pos: n.from!,
-      tags: [],
     };
 
     const textNodes: ParseTree[] = [];
@@ -63,11 +65,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
     if (item.tags.length > 0) {
       // Only index items with tags
-      items.push({
-        key: ["" + item.pos],
-        tags: item.tags,
-        value: item,
-      });
+      items.push(item);
     }
   }
   // console.log("Found", items, "item(s)");

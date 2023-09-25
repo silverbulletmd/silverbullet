@@ -54,31 +54,26 @@ export async function loadBuiltinsIntoIndex() {
   const allTags: ObjectValue<TagObject>[] = [];
   for (const [tag, attributes] of Object.entries(builtins)) {
     allTags.push({
-      key: [tag],
+      ref: tag,
       tags: ["tag"],
-      value: {
-        name: tag,
-        page: builtinPseudoPage,
-        parent: "builtin",
-      },
+      name: tag,
+      page: builtinPseudoPage,
+      parent: "builtin",
     });
     await indexObjects<AttributeObject>(
       builtinPseudoPage,
       Object.entries(attributes).map(([name, attributeType]) => {
         return {
-          key: [tag, name],
+          ref: `${tag}:${name}`,
           tags: ["attribute"],
-          value: {
-            tag,
-            name,
-            attributeType,
-            builtinPseudoPage,
-            page: builtinPseudoPage,
-          },
+          tag,
+          name,
+          attributeType,
+          builtinPseudoPage,
+          page: builtinPseudoPage,
         };
       }),
     );
   }
-  // await indexAttributes(builtinPseudoPage, allAttributes);
   await indexObjects(builtinPseudoPage, allTags);
 }

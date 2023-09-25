@@ -146,7 +146,7 @@ export class ClientSystem {
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
       this.client.syncMode
-        ? dataStoreSyscalls(this.ds)
+        ? dataStoreSyscalls(this.ds, []) // don't use a prefix in the client
         : dataStoreProxySyscalls(this.client),
       debugSyscalls(),
       syncSyscalls(this.client),

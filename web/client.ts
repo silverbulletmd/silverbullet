@@ -299,9 +299,11 @@ export class Client {
             pos = matchingAnchors[0].value.pos as number;
           }
         }
-        this.editorView.dispatch({
-          selection: { anchor: pos },
-          effects: EditorView.scrollIntoView(pos, { y: "start" }),
+        setTimeout(() => {
+          this.editorView.dispatch({
+            selection: { anchor: pos as number },
+            effects: EditorView.scrollIntoView(pos as number, { y: "start" }),
+          });
         });
       } else if (!stateRestored) {
         // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.

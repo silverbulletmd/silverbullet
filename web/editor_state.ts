@@ -63,6 +63,7 @@ import {
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
 import { TextChange } from "$sb/lib/change.ts";
+import { postScriptPlugin } from "./cm_plugins/post_script.ts";
 
 export function createEditorState(
   editor: Client,
@@ -286,6 +287,7 @@ export function createEditorState(
       indentOnInput(),
       ...cleanModePlugins(editor),
       EditorView.lineWrapping,
+      postScriptPlugin(editor),
       lineWrapper([
         { selector: "ATXHeading1", class: "sb-line-h1" },
         { selector: "ATXHeading2", class: "sb-line-h2" },

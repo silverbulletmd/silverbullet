@@ -1,13 +1,16 @@
 import { datastore } from "$sb/syscalls.ts";
-import { KV, KvKey, KvQuery, ObjectValue } from "$sb/types.ts";
+import { KV, KvKey, ObjectQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { builtins } from "./builtins.ts";
 import { AttributeObject, determineType } from "./attributes.ts";
 
+const indexKey = "idx";
+const pageKey = "ridx";
+
 /*
  * Key namespace:
- * ["index", type, ...key, page] -> value
- * ["page", page, ...key] -> true // for fast page clearing
+ * [indexKey, type, ...key, page] -> value
+ * [pageKey, page, ...key] -> true // for fast page clearing
  * ["type", type] -> true // for fast type listing
  */
 
@@ -15,10 +18,10 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
   const finalBatch: KV[] = [];
   for (const { key, value } of kvs) {
     finalBatch.push({
-      key: ["index", ...key, page],
+      key: [indexKey, ...key, page],
       value,
     }, {
-      key: ["page", page, ...key],
+      key: [pageKey, page, ...key],
       value: true,
     });
   }
@@ -33,17 +36,17 @@ export async function clearPageIndex(page: string): Promise<void> {
   const allKeys: KvKey[] = [];
   for (
     const { key } of await datastore.query({
-      prefix: ["page", page],
+      prefix: [pageKey, page],
     })
   ) {
     allKeys.push(key);
-    allKeys.push(["index", ...key.slice(2), page]);
+    allKeys.push([indexKey, ...key.slice(2), page]);
   }
   await datastore.batchDel(allKeys);
 }
 
 /**
- * Clears the entire datastore for this "index" plug
+ * Clears the entire datastore for this indexKey plug
  */
 export async function clearIndex(): Promise<void> {
   const allKeys: KvKey[] = [];
@@ -67,18 +70,18 @@ export async function indexObjects<T>(
 ): Promise<void> {
   const kvs: KV<T>[] = [];
   const allAttributes = new Map<string, string>(); // tag:name -> attributeType
-  for (const { key, value, tags } of objects) {
-    for (const tag of tags) {
+  for (const obj of objects) {
+    for (const tag of obj.tags) {
       kvs.push({
-        key: [tag, ...key, page],
-        value,
+        key: [tag, cleanKey(obj.ref, page)],
+        value: obj,
       });
       // Index attributes
       if (!builtins[tag]) {
         // But only for non-builtin tags
         for (
           const [attrName, attrValue] of Object.entries(
-            value as Record<string, any>,
+            obj as Record<string, any>,
           )
         ) {
           if (attrName.startsWith("$")) {
@@ -95,14 +98,12 @@ export async function indexObjects<T>(
       [...allAttributes].map(([key, value]) => {
         const [tag, name] = key.split(":");
         return {
-          key: [tag, name],
+          ref: key,
           tags: ["attribute"],
-          value: {
-            tag,
-            name,
-            attributeType: value,
-            page,
-          },
+          tag,
+          name,
+          attributeType: value,
+          page,
         };
       }),
     );
@@ -110,16 +111,22 @@ export async function indexObjects<T>(
   return batchSet(page, kvs);
 }
 
+function cleanKey(ref: string, page: string) {
+  if (ref.startsWith(`${page}@`)) {
+    return ref.substring(page.length + 1);
+  } else {
+    return ref;
+  }
+}
+
 export async function queryObjects<T>(
   tag: string,
-  query: KvQuery,
+  query: ObjectQuery,
 ): Promise<ObjectValue<T>[]> {
   return (await datastore.query({
     ...query,
-    prefix: ["index", tag, ...(query.prefix ? query.prefix : [])],
-  })).map(
-    ({ key, value }) => ({ key, value, tags: [tag] }),
-  );
+    prefix: [indexKey, tag],
+  })).map(({ value }) => value);
 }
 
 export async function objectSourceProvider({
@@ -128,13 +135,13 @@ export async function objectSourceProvider({
   const tag = query.querySource!;
   const results = await datastore.query({
     ...query,
-    prefix: ["index", tag],
+    prefix: [indexKey, tag],
   });
   return results.map((r) => r.value);
 }
 
 export async function discoverSources() {
-  return (await datastore.query({ prefix: ["index", "tag"] })).map((
+  return (await datastore.query({ prefix: [indexKey, "tag"] })).map((
     { key },
   ) => key[2]);
 }

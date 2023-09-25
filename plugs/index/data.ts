@@ -6,10 +6,12 @@ import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 import { TagObject } from "./tags.ts";
 
-type DataObject = {
-  pos: number;
-  page: string;
-} & Record<string, any>;
+type DataObject = ObjectValue<
+  {
+    pos: number;
+    page: string;
+  } & Record<string, any>
+>;
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: ObjectValue<DataObject>[] = [];
@@ -43,21 +45,21 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           }
           const pos = t.from! + i;
           dataObjects.push({
-            key: ["" + pos],
+            ref: `${name}@${pos}`,
             tags: [dataType],
-            value: {
-              ...doc,
-              pos,
-              page: name,
-            },
+            ...doc,
+            pos,
+            page: name,
           });
         }
         // console.log("Parsed data", parsedData);
         await indexObjects<TagObject>(name, [
           {
-            key: [dataType],
+            ref: dataType,
             tags: ["tag"],
-            value: { name: dataType, page: name, parent: "data" },
+            name: dataType,
+            page: name,
+            parent: "data",
           },
         ]);
       } catch (e) {
