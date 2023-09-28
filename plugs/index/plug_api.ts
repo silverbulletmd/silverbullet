@@ -9,8 +9,16 @@ export function indexObjects<T>(
 }
 
 export function queryObjects<T>(
-  type: string,
+  tag: string,
   query: ObjectQuery,
 ): Promise<ObjectValue<T>[]> {
-  return invokeFunction("index.queryObjects", type, query);
+  return invokeFunction("index.queryObjects", tag, query);
+}
+
+export function getObjectByRef<T>(
+  page: string,
+  tag: string,
+  ref: string,
+): Promise<ObjectValue<T>[]> {
+  return invokeFunction("index.getObjectByRef", page, tag, ref);
 }

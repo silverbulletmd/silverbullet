@@ -3,26 +3,27 @@ import { clientStore, editor } from "$sb/silverbullet-syscall/mod.ts";
 import { queryObjects } from "./api.ts";
 import { LinkObject } from "./page_links.ts";
 
-const showMentionsPreferenceKey = "showMentions";
+const hideMentionsKey = "hideMentions";
 
 export async function toggleMentions() {
-  const showingMentions = await clientStore.get(showMentionsPreferenceKey);
-  await clientStore.set(showMentionsPreferenceKey, !showingMentions);
-  if (!showingMentions) {
+  let hideMentions = await clientStore.get(hideMentionsKey);
+  hideMentions = !hideMentions;
+  await clientStore.set(hideMentionsKey, hideMentions);
+  if (!hideMentions) {
     const name = await editor.getCurrentPage();
-    await showMentions(name);
+    await renderMentions(name);
   } else {
     await editor.hidePanel("ps");
   }
 }
 
-// if something changes, redraw
+// Triggered when switching pages or upon first load
 export async function updateMentions() {
-  if (!await clientStore.get(showMentionsPreferenceKey)) {
+  if (await clientStore.get(hideMentionsKey)) {
     return;
   }
   const name = await editor.getCurrentPage();
-  await showMentions(name);
+  await renderMentions(name);
 }
 
 // use internal navigation via syscall to prevent reloading the full page.
@@ -38,7 +39,7 @@ function escapeHtml(unsafe: string) {
   );
 }
 
-async function showMentions(page: string) {
+async function renderMentions(page: string) {
   const linksResult = await queryObjects<LinkObject>("link", {
     // Query all links that point to this page, excluding those that are inside directives.
     filter: ["and", ["=", ["attr", "toPage"], ["string", page]], ["=", [

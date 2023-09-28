@@ -40,7 +40,6 @@ export class ClientSystem {
   slashCommandHook: SlashCommandHook;
   namespaceHook: PlugNamespaceHook;
   codeWidgetHook: CodeWidgetHook;
-  plugsUpdated = false;
   mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
 
@@ -103,7 +102,7 @@ export class ClientSystem {
           // If there are syntax extensions, rebuild the markdown parser immediately
           this.updateMarkdownParser();
         }
-        this.plugsUpdated = true;
+        this.client.debouncedPlugsUpdatedEvent();
       }
     });
 

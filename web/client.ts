@@ -78,6 +78,17 @@ export class Client {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
+  debouncedPlugsUpdatedEvent = throttle(async () => {
+    // To register new commands, update editor state based on new plugs
+    this.rebuildEditorState();
+    await this.dispatchAppEvent(
+      "editor:pageLoaded",
+      this.currentPage,
+      undefined,
+      true,
+    );
+  }, 1000);
+
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
@@ -194,7 +205,6 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
 
     setInterval(() => {
-      // console.log("Syncing page", this.currentPage, "in background");
       try {
         this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
           console.error("Interval sync error", e);
@@ -202,7 +212,6 @@ export class Client {
       } catch (e: any) {
         console.error("Interval sync error", e);
       }
-      // console.log("End of kick-off of background sync of", this.currentPage);
     }, pageSyncInterval);
   }
 
@@ -219,23 +228,12 @@ export class Client {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
         this.fullSyncCompleted = true;
       }
-      if (this.system.plugsUpdated) {
-        // To register new commands, update editor state based on new plugs
-        this.rebuildEditorState();
-        await this.dispatchAppEvent(
-          "editor:pageLoaded",
-          this.currentPage,
-          undefined,
-          true,
-        );
-        if (operations) {
-          // Likely initial sync so let's show visually that we're synced now
-          // this.flashNotification(`Synced ${operations} files`, "info");
-          this.showProgress(100);
-        }
+      // if (this.system.plugsUpdated) {
+      if (operations) {
+        // Likely initial sync so let's show visually that we're synced now
+        this.showProgress(100);
       }
-      // Reset for next sync cycle
-      this.system.plugsUpdated = false;
+      // }
 
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
@@ -277,26 +275,20 @@ export class Client {
         if (typeof pos === "string") {
           console.log("Navigating to anchor", pos);
 
-          // We're going to look up the anchor through a direct page store query...
-          // TODO: This should be extracted
-          const matchingAnchors = await this.stateDataStore.query({
-            prefix: [
-              "ds",
-              "index",
-              "index",
-              "anchor",
-              pageName,
-              pos,
-            ],
-          });
+          // We're going to look up the anchor through a API invocation
+          const matchingAnchor = await this.system.system.localSyscall(
+            "index",
+            "system.invokeFunction",
+            ["getObjectByRef", pageName, "anchor", `${pageName}@${pos}`],
+          );
 
-          if (matchingAnchors.length === 0) {
+          if (!matchingAnchor) {
             return this.flashNotification(
-              `Could not find anchor @${pos}`,
+              `Could not find anchor $${pos}`,
               "error",
             );
           } else {
-            pos = matchingAnchors[0].value.pos as number;
+            pos = matchingAnchor.pos as number;
           }
         }
         setTimeout(() => {

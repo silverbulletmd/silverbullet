@@ -129,6 +129,15 @@ export async function queryObjects<T>(
   })).map(({ value }) => value);
 }
 
+export async function getObjectByRef<T>(
+  page: string,
+  tag: string,
+  ref: string,
+): Promise<ObjectValue<T> | undefined> {
+  console.log("Fetching!!!!!", [indexKey, tag, cleanKey(ref, page), page]);
+  return (await datastore.get([indexKey, tag, cleanKey(ref, page), page]));
+}
+
 export async function objectSourceProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {

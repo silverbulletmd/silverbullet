@@ -29,6 +29,10 @@ functions:
   queryObjects:
     path: api.ts:queryObjects
     env: server
+  getObjectByRef:
+    path: api.ts:getObjectByRef
+    env: server
+
   objectSourceProvider:
     path: api.ts:objectSourceProvider
     events:
@@ -49,23 +53,23 @@ functions:
       - page:deleted
       
   parseIndexTextRepublish:
-    path: "./page.ts:parseIndexTextRepublish"
+    path: "./command.ts:parseIndexTextRepublish"
     env: server
     events:
       - page:index_text
 
   reindexSpaceCommand:
-    path: "./page.ts:reindexCommand"
+    path: "./command.ts:reindexCommand"
     command:
       name: "Space: Reindex"
   processIndexQueue:
-    path: ./page.ts:processIndexQueue
+    path: ./command.ts:processIndexQueue
     mqSubscriptions:
     - queue: indexQueue
       batchSize: 10
       autoAck: true
   reindexSpace:
-    path: "./page.ts:reindexSpace"
+    path: "./command.ts:reindexSpace"
     env: server
 
   # Attachments

@@ -1,1 +1,1 @@
-* [{{state}}] [[{{page}}@{{pos}}]] {{name}}
+* [{{state}}] [[{{ref}}]] {{name}}
