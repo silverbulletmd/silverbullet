@@ -1,6 +1,7 @@
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { IndexEvent } from "$sb/app_event.ts";
+import { MQMessage } from "$sb/types.ts";
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");
