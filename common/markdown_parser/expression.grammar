@@ -1,4 +1,4 @@
-@top Program { Query }
+@top Program { Expression }
 
 @precedence {
   mulop @left

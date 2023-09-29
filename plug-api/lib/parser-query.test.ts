@@ -95,7 +95,7 @@ Deno.test("Test directive parser", () => {
     ),
     {
       querySource: "task",
-      orderBy: [{ attribute: "lastModified", desc: false }],
+      orderBy: [{ expr: ["attr", "lastModified"], desc: false }],
     },
   );
   assertEquals(
@@ -104,16 +104,19 @@ Deno.test("Test directive parser", () => {
     ),
     {
       querySource: "task",
-      orderBy: [{ attribute: "lastModified", desc: false }],
+      orderBy: [{ expr: ["attr", "lastModified"], desc: false }],
     },
   );
   assertEquals(
     astToKvQuery(
-      wrapQueryParse(`task order by lastModified desc`)!,
+      wrapQueryParse(`task order by lastModified desc, name, age asc`)!,
     ),
     {
       querySource: "task",
-      orderBy: [{ attribute: "lastModified", desc: true }],
+      orderBy: [{ expr: ["attr", "lastModified"], desc: true }, {
+        expr: ["attr", "name"],
+        desc: false,
+      }, { expr: ["attr", "age"], desc: false }],
     },
   );
   assertEquals(
@@ -122,8 +125,8 @@ Deno.test("Test directive parser", () => {
     ),
     {
       querySource: "task",
-      orderBy: [{ attribute: "lastModified", desc: true }],
-      limit: 5,
+      orderBy: [{ expr: ["attr", "lastModified"], desc: true }],
+      limit: ["number", 5],
     },
   );
   assertEquals(
@@ -146,6 +149,45 @@ Deno.test("Test directive parser", () => {
     {
       querySource: "task",
       render: "my/page",
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task where name in ["hello", 1]`)!,
+    ),
+    {
+      querySource: "task",
+      filter: ["in", ["attr", "name"], ["array", [["string", "hello"], [
+        "number",
+        1,
+      ]]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task select today() as today2`)!,
+    ),
+    {
+      querySource: "task",
+      select: [{
+        name: "today2",
+        expr: ["call", "today", []],
+      }],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task select today(1, 2, 3) as today`)!,
+    ),
+    {
+      querySource: "task",
+      select: [{
+        name: "today",
+        expr: ["call", "today", [["number", 1], ["number", 2], ["number", 3]]],
+      }],
     },
   );
 });

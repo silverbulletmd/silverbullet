@@ -9,6 +9,7 @@ We mentioned markdown _extensions_, here are the ones currently supported:
 * Hashtags, e.g. `#mytag`.
 * Command link syntax: `{[Stats: Show]}` rendered into a clickable button {[Stats: Show]}.
 * [[Markdown/Code Widgets]]
+* [[Anchors]]
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
 * [Fenced code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks)
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)

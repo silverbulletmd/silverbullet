@@ -184,14 +184,16 @@ export function applyQueryNoFilterKV(
     allItems.sort((a, b) => {
       const aVal = a.value;
       const bVal = b.value;
-      for (const { attribute, desc } of query.orderBy!) {
+      for (const { expr, desc } of query.orderBy!) {
+        const evalA = evalQueryExpression(expr, aVal, functionMap);
+        const evalB = evalQueryExpression(expr, bVal, functionMap);
         if (
-          aVal[attribute] < bVal[attribute] || aVal[attribute] === undefined
+          evalA < evalB || evalA === undefined
         ) {
           return desc ? 1 : -1;
         }
         if (
-          aVal[attribute] > bVal[attribute] || bVal[attribute] === undefined
+          evalA > evalB || evalB === undefined
         ) {
           return desc ? -1 : 1;
         }
@@ -213,8 +215,11 @@ export function applyQueryNoFilterKV(
       allItems[i].value = newRec;
     }
   }
-  if (query.limit && allItems.length > query.limit) {
-    allItems = allItems.slice(0, query.limit);
+  if (query.limit) {
+    const limit = evalQueryExpression(query.limit, {}, functionMap);
+    if (allItems.length > limit) {
+      allItems = allItems.slice(0, limit);
+    }
   }
   return allItems;
 }

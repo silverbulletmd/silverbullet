@@ -61,3 +61,10 @@ void main() {
   print('Hello, World!');
 }
 ```
+
+```c
+void main() {
+
+}
+```
+

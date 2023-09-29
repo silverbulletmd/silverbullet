@@ -29,25 +29,31 @@ export function astToKvQuery(
         break;
       }
       case "OrderClause": {
-        const column = clause[2][1] as string;
         if (!query.orderBy) {
           query.orderBy = [];
         }
-        if (clause[3]) {
-          query.orderBy?.push({
-            attribute: column,
-            desc: clause[3][1][1] === "desc",
-          });
-        } else {
-          query.orderBy.push({
-            attribute: column,
-            desc: false,
-          });
+        for (const orderBy of clause.slice(2)) {
+          if (orderBy[0] === "OrderBy") {
+            // console.log("orderBy", orderBy);
+            const expr = orderBy[1][1];
+            if (orderBy[2]) {
+              query.orderBy.push({
+                expr: expressionToKvQueryExpression(expr),
+                desc: orderBy[2][1][1] === "desc",
+              });
+            } else {
+              query.orderBy.push({
+                expr: expressionToKvQueryExpression(expr),
+                desc: false,
+              });
+            }
+          }
         }
+
         break;
       }
       case "LimitClause": {
-        query.limit = +(clause[2][1]);
+        query.limit = expressionToKvQueryExpression(clause[2][1]);
         break;
       }
       case "SelectClause": {
@@ -79,7 +85,7 @@ export function astToKvQuery(
   return query;
 }
 
-function expressionToKvQueryExpression(node: AST): QueryExpression {
+export function expressionToKvQueryExpression(node: AST): QueryExpression {
   if (["LVal", "Expression", "Value"].includes(node[0])) {
     return expressionToKvQueryExpression(node[1]);
   }
@@ -104,6 +110,15 @@ function expressionToKvQueryExpression(node: AST): QueryExpression {
       return ["null"];
     case "Regex":
       return ["regexp", (node[1] as string).slice(1, -1), "i"];
+    case "List": {
+      const exprs: AST[] = [];
+      for (const expr of node.slice(2)) {
+        if (expr[0] === "Expression") {
+          exprs.push(expr);
+        }
+      }
+      return ["array", exprs.map(expressionToKvQueryExpression)];
+    }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
       const binOp = (node[2] as string).trim();
@@ -118,6 +133,17 @@ function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "ParenthesizedExpression": {
       return expressionToKvQueryFilter(node[2]);
+    }
+    case "Call": {
+      // console.log("Call", node);
+      const fn = node[1][1] as string;
+      const args: AST[] = [];
+      for (const expr of node.slice(2)) {
+        if (expr[0] === "Expression") {
+          args.push(expr);
+        }
+      }
+      return ["call", fn, args.map(expressionToKvQueryExpression)];
     }
     default:
       throw new Error(`Not supported: ${node[0]}`);
@@ -134,7 +160,7 @@ function expressionToKvQueryFilter(
   switch (expressionType) {
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
-      const binOp = (node[2] as string).trim();
+      const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
       const val = expressionToKvQueryExpression(node[3]);
       return [binOp as any, lval, val];
     }

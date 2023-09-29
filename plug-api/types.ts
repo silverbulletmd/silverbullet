@@ -50,7 +50,7 @@ export type KV<T = any> = {
 };
 
 export type OrderBy = {
-  attribute: string;
+  expr: QueryExpression;
   desc: boolean;
 };
 
@@ -64,7 +64,7 @@ export type Query = {
   filter?: QueryExpression;
   orderBy?: OrderBy[];
   select?: Select[];
-  limit?: number;
+  limit?: QueryExpression;
   render?: string;
 };
 

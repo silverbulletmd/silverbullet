@@ -1,6 +1,6 @@
 import { niceDate } from "$sb/lib/dates.ts";
 
-export function handlebarHelpers(_pageName: string) {
+export function handlebarHelpers() {
   return {
     json: (v: any) => JSON.stringify(v),
     niceDate: (ts: any) => niceDate(new Date(ts)),

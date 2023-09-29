@@ -41,11 +41,11 @@ function escapeHtml(unsafe: string) {
 
 async function renderMentions(page: string) {
   const linksResult = await queryObjects<LinkObject>("link", {
-    // Query all links that point to this page, excluding those that are inside directives.
-    filter: ["and", ["=", ["attr", "toPage"], ["string", page]], ["=", [
+    // Query all links that point to this page, excluding those that are inside directives and self pointers.
+    filter: ["and", ["!=", ["attr", "page"], ["string", page]], ["and", ["=", [
       "attr",
-      "inDirective",
-    ], ["boolean", false]]],
+      "toPage",
+    ], ["string", page]], ["=", ["attr", "inDirective"], ["boolean", false]]]],
   });
   if (linksResult.length === 0) {
     // Don't show the panel if there are no links here.

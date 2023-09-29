@@ -95,7 +95,7 @@ export async function renderTemplate(
 
 export function buildHandebarOptions(pageMeta: PageMeta) {
   return {
-    helpers: handlebarHelpers(pageMeta.name),
+    helpers: handlebarHelpers(),
     data: { page: pageMeta },
   };
 }

@@ -8,7 +8,7 @@ Deno.test("DataStore MQ", async () => {
   const tmpFile = await Deno.makeTempFile();
   const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
 
-  const mq = new DataStoreMQ(new DataStore(db));
+  const mq = new DataStoreMQ(new DataStore(db, ["mq"]));
   await mq.send("test", "Hello World");
   let messages = await mq.poll("test", 10);
   assertEquals(messages.length, 1);

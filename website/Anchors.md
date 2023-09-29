@@ -1,0 +1,1 @@
+Anchor represent named locations within a page and are defined using the $anchor syntax. They can then be referenced withing the page using [[@anchor]], or cross-page via [[Anchors@anchor]].

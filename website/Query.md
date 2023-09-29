@@ -1,18 +1,14 @@
-## Query
-The `#query` is the most widely used directive. It can be used to query various data sources and render results in various ways.
+`#query` is the most widely used [[🔌 Directive]]. It can be used to query various data sources as well as [[Objects]] and render results either as a table or using a [[🔌 Template]].
 
 ### Syntax
-1. _start with_: `<!-- #query [QUERY GOES HERE] -->`
-2. _end with_: `<!-- /query -->`
-3. _write your query_: replace `[QUERY GOES HERE]` with any query you want using the options below.
-4. _available query options_: Usage of options is similar to SQL except for the special `render` option. The `render` option is used to display the data in a format that you created in a separate template.
-   * `where`
-   * `order by`
-   * `limit`
-   * `select`
-   * `render`
 
-P.S.: If you are a developer or have a technical knowledge to read a code and would like to know more about syntax, please check out
+    <!-- #query your-query-here -->
+    query result materialized in place
+    <!-- /query -->
+
+It’s recommended to use the `/query` slash command to insert a query in a page.
+
+For those comfortable reading 
 [query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
 
 #### 2.1. Available query operators:
@@ -86,10 +82,10 @@ country: Germany
 
 Example:
 <!-- #query data where age > 20 and country = "Italy" -->
-|name|age|city |country|page              |pos |
-|----|--|-----|-----|------------------|----|
-|John|50|Milan|Italy|🔌 Directive/Query|2933|
-|Jane|53|Rome |Italy|🔌 Directive/Query|2934|
+|ref       |tags|name|age|city |country|pos |page |
+|----------|----|----|--|-----|-----|----|-----|
+|Query@3012|data|John|50|Milan|Italy|3012|Query|
+|Query@3013|data|Jane|53|Rome |Italy|3013|Query|
 <!-- /query -->
 
 #### 4.2 Plugs’ data sources
@@ -156,11 +152,11 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Look at the data. This is more than we need. The query even gives us template pages. Let's try to limit it in the next step.
 
 <!-- #query page limit 3 -->
-|name      |lastModified |contentType  |size|perm|pageAttribute|
-|----------|-------------|-------------|----|--|-----|
-|API       |1692191260028|text/markdown|2200|rw|     |
-|Attributes|1691176701257|text/markdown|1466|rw|hello|
-|Authelia  |1688482500313|text/markdown|866 |rw|     |
+|ref       |tags|name      |size|contentType  |lastModified            |perm|pageAttribute|
+|--|--|--|--|--|--|--|--|
+|API       |page|API       |2200|text/markdown|2023-08-16T13:07:40.028Z|rw|     |
+|Anchors   |page|Anchors   |190 |text/markdown|2023-09-28T18:48:54.138Z|rw|     |
+|Attributes|page|Attributes|1596|text/markdown|2023-09-26T16:07:40.979Z|rw|hello|
 <!-- /query -->
 
 
@@ -171,13 +167,13 @@ For the sake of simplicity, we will use the `page` data source and limit the res
 **Result:** Okay, this is what we wanted but there is also information such as `perm`, `type` and `lastModified` that we don't need.
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 -->
-|name         |lastModified |contentType  |size|perm|type|uri                                                               |repo                                                     |author              |share-support|
-|--|--|--|--|--|--|--|--|--|--|
-|🔌 Twitter   |1692810059854|text/markdown|1266|rw|plug|github:silverbulletmd/silverbullet-twitter/twitter.plug.js        |https://github.com/silverbulletmd/silverbullet-twitter   |SilverBullet Authors|    |
-|🔌 Share     |1691177844386|text/markdown|693 |rw|plug|                                                                  |https://github.com/silverbulletmd/silverbullet           |                    |    |
-|🔌 Github    |1691137925014|text/markdown|2206|rw|plug|github:silverbulletmd/silverbullet-github/github.plug.js          |https://github.com/silverbulletmd/silverbullet-github    |Zef Hemel           |true|
-|🔌 Mattermost|1691137924741|text/markdown|3535|rw|plug|github:silverbulletmd/silverbullet-mattermost/mattermost.plug.json|https://github.com/silverbulletmd/silverbullet-mattermost|Zef Hemel           |true|
-|🔌 Git       |1691137924435|text/markdown|1112|rw|plug|github:silverbulletmd/silverbullet-git/git.plug.js                |https://github.com/silverbulletmd/silverbullet-git       |Zef Hemel           |    |
+|ref         |tags|name        |size|contentType  |lastModified            |perm|type|repo                                                    |uri                                                           |author        |share-support|
+|--|--|--|--|--|--|--|--|--|--|--|--|
+|🔌 Directive|page|🔌 Directive|2585|text/markdown|2023-09-28T18:53:11.738Z|rw|plug|https://github.com/silverbulletmd/silverbullet          |                                                              |              |    |
+|🔌 Editor   |page|🔌 Editor   |2205|text/markdown|2023-08-29T12:49:32.016Z|rw|plug|https://github.com/silverbulletmd/silverbullet          |                                                              |              |    |
+|🔌 Ghost    |page|🔌 Ghost    |1733|text/markdown|2023-08-04T08:32:02.296Z|rw|plug|https://github.com/silverbulletmd/silverbullet-ghost    |github:silverbulletmd/silverbullet-ghost/ghost.plug.js        |Zef Hemel     |true|
+|🔌 Backlinks|page|🔌 Backlinks|951 |text/markdown|2023-05-26T12:32:34.899Z|rw|plug|https://github.com/silverbulletmd/silverbullet-backlinks|github:silverbulletmd/silverbullet-backlinks/backlinks.plug.js|Guillermo Vayá|    |
+|🔌 Emoji    |page|🔌 Emoji    |155 |text/markdown|2023-02-11T13:16:46.528Z|rw|plug|https://github.com/silverbulletmd/silverbullet          |                                                              |              |    |
 <!-- /query -->
 
 #### 6.3 Query to select only certain fields
@@ -189,13 +185,13 @@ and `repo` columns and then sort by last modified time.
 from a visual perspective.
 
 <!-- #query page select name, author, repo where type = "plug" order by lastModified desc limit 5 -->
-|name         |author              |repo                                                     |
+|name        |repo                                                    |author        |
 |--|--|--|
-|🔌 Twitter   |SilverBullet Authors|https://github.com/silverbulletmd/silverbullet-twitter   |
-|🔌 Share     |                    |https://github.com/silverbulletmd/silverbullet           |
-|🔌 Github    |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-github    |
-|🔌 Mattermost|Zef Hemel           |https://github.com/silverbulletmd/silverbullet-mattermost|
-|🔌 Git       |Zef Hemel           |https://github.com/silverbulletmd/silverbullet-git       |
+|🔌 Directive|https://github.com/silverbulletmd/silverbullet          |              |
+|🔌 Editor   |https://github.com/silverbulletmd/silverbullet          |              |
+|🔌 Ghost    |https://github.com/silverbulletmd/silverbullet-ghost    |Zef Hemel     |
+|🔌 Backlinks|https://github.com/silverbulletmd/silverbullet-backlinks|Guillermo Vayá|
+|🔌 Emoji    |https://github.com/silverbulletmd/silverbullet          |              |
 <!-- /query -->
 
 #### 6.4 Display the data in a format defined by a template
@@ -205,11 +201,11 @@ from a visual perspective.
 **Result:** Here you go. This is the result we would like to achieve 🎉. Did you see how I used `render` and `template/plug` in a query? 🚀
 
 <!-- #query page where type = "plug" order by lastModified desc limit 5 render [[template/plug]] -->
-* [[🔌 Twitter]] by **SilverBullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
-* [[🔌 Share]] 
-* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-git))
+* [[🔌 Directive]] 
+* [[🔌 Editor]] 
+* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
+* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/silverbulletmd/silverbullet-backlinks))
+* [[🔌 Emoji]]
 <!-- /query -->
 
 PS: You don't need to select only certain fields to use templates. Templates are

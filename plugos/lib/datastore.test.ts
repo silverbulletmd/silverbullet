@@ -6,7 +6,7 @@ import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
 
 async function test(db: KvPrimitives) {
-  const datastore = new DataStore(db, {
+  const datastore = new DataStore(db, ["ds"], {
     count: (arr: any[]) => arr.length,
   });
   await datastore.set(["user", "peter"], { name: "Peter" });
@@ -57,6 +57,7 @@ async function test(db: KvPrimitives) {
       },
     ],
   });
+  assertEquals(results.length, 1);
   assertEquals(results[0], {
     key: ["kv", "complicated"],
     value: { name: "Frank!", parentCount: 2, parents: ["John", "Jane"] },

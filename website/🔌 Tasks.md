@@ -38,7 +38,7 @@ Tasks can specify deadlines:
 When the cursor is positioned inside of a due date, the {[Task: Postpone]} command can be used to postpone the task for a certain period.
 
 ## Querying
-All meta data (`done` status, `state`, `tags`, `deadline` and custom attributes) is extracted and available via the `task` query source to [[🔌 Directive/Query]]:
+All meta data (`done` status, `state`, `tags`, `deadline` and custom attributes) is extracted and available via the `task` query source to [[Query]]:
 
 <!-- #query task where page = "{{@page.name}}" -->
 |name                          |done |state      |page    |pos |tags  |taskAttribute|deadline  |

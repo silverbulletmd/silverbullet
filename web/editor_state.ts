@@ -125,143 +125,210 @@ export function createEditorState(
       // The uber markdown mode
       markdown({
         base: markdownLanguage,
-        codeLanguages: [
-          LanguageDescription.of({
+        codeLanguages: (info) => {
+          const yaml = LanguageDescription.of({
             name: "yaml",
-            alias: ["meta", "data", "embed"],
-            support: new LanguageSupport(StreamLanguage.define(yamlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "javascript",
-            alias: ["js"],
-            support: new LanguageSupport(javascriptLanguage),
-          }),
-          LanguageDescription.of({
-            name: "typescript",
-            alias: ["ts"],
-            support: new LanguageSupport(typescriptLanguage),
-          }),
-          LanguageDescription.of({
-            name: "sql",
-            alias: ["sql"],
-            support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "postgresql",
-            alias: ["pgsql", "postgres"],
+            // alias: ["meta", "data", "embed"],
             support: new LanguageSupport(
-              StreamLanguage.define(postgresqlLanguage),
+              StreamLanguage.define(yamlLanguage),
             ),
-          }),
-          LanguageDescription.of({
-            name: "rust",
-            alias: ["rs"],
-            support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "css",
-            support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "html",
-            support: new LanguageSupport(htmlLanguage),
-          }),
-          LanguageDescription.of({
-            name: "python",
-            alias: ["py"],
-            support: new LanguageSupport(
-              StreamLanguage.define(pythonLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "protobuf",
-            alias: ["proto"],
-            support: new LanguageSupport(
-              StreamLanguage.define(protobufLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "shell",
-            alias: ["sh", "bash", "zsh", "fish"],
-            support: new LanguageSupport(
-              StreamLanguage.define(shellLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "swift",
-            support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "toml",
-            support: new LanguageSupport(StreamLanguage.define(tomlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "json",
-            support: new LanguageSupport(StreamLanguage.define(jsonLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "xml",
-            support: new LanguageSupport(StreamLanguage.define(xmlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "c",
-            support: new LanguageSupport(StreamLanguage.define(cLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "cpp",
-            alias: ["c++", "cxx"],
-            support: new LanguageSupport(StreamLanguage.define(cppLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "java",
-            support: new LanguageSupport(StreamLanguage.define(javaLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "csharp",
-            alias: ["c#", "cs"],
-            support: new LanguageSupport(
-              StreamLanguage.define(csharpLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "scala",
-            alias: ["sc"],
-            support: new LanguageSupport(
-              StreamLanguage.define(scalaLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "kotlin",
-            alias: ["kt", "kts"],
-            support: new LanguageSupport(
-              StreamLanguage.define(kotlinLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "objc",
-            alias: ["objective-c", "objectivec"],
-            support: new LanguageSupport(
-              StreamLanguage.define(objectiveCLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "objcpp",
-            alias: [
-              "objc++",
-              "objective-cpp",
-              "objectivecpp",
-              "objective-c++",
-              "objectivec++",
-            ],
-            support: new LanguageSupport(
-              StreamLanguage.define(objectiveCppLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "dart",
-            support: new LanguageSupport(StreamLanguage.define(dartLanguage)),
-          }),
-        ],
+          });
+          switch (info) {
+            case "meta":
+            case "yaml":
+            case "data":
+              return yaml;
+
+            case "javascript":
+            case "js":
+              return LanguageDescription.of({
+                name: "javascript",
+                support: new LanguageSupport(javascriptLanguage),
+              });
+            case "typescript":
+            case "ts":
+              return LanguageDescription.of({
+                name: "typescript",
+                // alias: ["ts"],
+                support: new LanguageSupport(typescriptLanguage),
+              });
+            case "sql":
+              return LanguageDescription.of({
+                name: "sql",
+                support: new LanguageSupport(
+                  StreamLanguage.define(sqlLanguage),
+                ),
+              });
+            case "postgresql":
+            case "pgsql":
+            case "postgres":
+              return LanguageDescription.of({
+                name: "postgresql",
+                support: new LanguageSupport(
+                  StreamLanguage.define(postgresqlLanguage),
+                ),
+              });
+            case "rust":
+            case "rs":
+              return LanguageDescription.of({
+                name: "rust",
+                support: new LanguageSupport(
+                  StreamLanguage.define(rustLanguage),
+                ),
+              });
+            case "css":
+              return LanguageDescription.of({
+                name: "css",
+                support: new LanguageSupport(
+                  StreamLanguage.define(sqlLanguage),
+                ),
+              });
+            case "html":
+              return LanguageDescription.of({
+                name: "html",
+                support: new LanguageSupport(htmlLanguage),
+              });
+            case "python":
+            case "py":
+              return LanguageDescription.of({
+                name: "python",
+                support: new LanguageSupport(
+                  StreamLanguage.define(pythonLanguage),
+                ),
+              });
+            case "protobuf":
+            case "proto":
+              return LanguageDescription.of({
+                name: "protobuf",
+                support: new LanguageSupport(
+                  StreamLanguage.define(protobufLanguage),
+                ),
+              });
+            case "shell":
+            case "sh":
+            case "bash":
+            case "zsh":
+            case "fish":
+              return LanguageDescription.of({
+                name: "shell",
+                support: new LanguageSupport(
+                  StreamLanguage.define(shellLanguage),
+                ),
+              });
+            case "swift":
+              return LanguageDescription.of({
+                name: "swift",
+                support: new LanguageSupport(
+                  StreamLanguage.define(rustLanguage),
+                ),
+              });
+            case "toml":
+              return LanguageDescription.of({
+                name: "toml",
+                support: new LanguageSupport(
+                  StreamLanguage.define(tomlLanguage),
+                ),
+              });
+            case "json":
+              return LanguageDescription.of({
+                name: "json",
+                support: new LanguageSupport(
+                  StreamLanguage.define(jsonLanguage),
+                ),
+              });
+            case "xml":
+              return LanguageDescription.of({
+                name: "xml",
+                support: new LanguageSupport(
+                  StreamLanguage.define(xmlLanguage),
+                ),
+              });
+            case "c":
+              return LanguageDescription.of({
+                name: "c",
+                support: new LanguageSupport(
+                  StreamLanguage.define(cLanguage),
+                ),
+              });
+
+            case "cpp":
+            case "c++":
+            case "cxx":
+              return LanguageDescription.of({
+                name: "cpp",
+                support: new LanguageSupport(
+                  StreamLanguage.define(cppLanguage),
+                ),
+              });
+            case "java":
+              return LanguageDescription.of({
+                name: "java",
+                support: new LanguageSupport(
+                  StreamLanguage.define(javaLanguage),
+                ),
+              });
+            case "csharp":
+            case "cs":
+            case "c#":
+              return LanguageDescription.of({
+                name: "csharp",
+                //     alias: ["c#", "cs"],
+                support: new LanguageSupport(
+                  StreamLanguage.define(csharpLanguage),
+                ),
+              });
+            case "scala":
+              return LanguageDescription.of({
+                name: "scala",
+                support: new LanguageSupport(
+                  StreamLanguage.define(scalaLanguage),
+                ),
+              });
+            case "kotlin":
+              return LanguageDescription.of({
+                name: "kotlin",
+                alias: ["kt", "kts"],
+                support: new LanguageSupport(
+                  StreamLanguage.define(kotlinLanguage),
+                ),
+              });
+            case "objc":
+            case "objective-c":
+            case "objectivec":
+              return LanguageDescription.of({
+                name: "objc",
+                support: new LanguageSupport(
+                  StreamLanguage.define(objectiveCLanguage),
+                ),
+              });
+            case "objcpp":
+            case "objective-cpp":
+            case "objectivecpp":
+            case "objective-c++":
+            case "objectivec++":
+              return LanguageDescription.of({
+                name: "objcpp",
+
+                support: new LanguageSupport(
+                  StreamLanguage.define(objectiveCppLanguage),
+                ),
+              });
+
+            case "dart":
+              return LanguageDescription.of({
+                name: "dart",
+                support: new LanguageSupport(
+                  StreamLanguage.define(dartLanguage),
+                ),
+              });
+
+            default:
+              if (info.startsWith("#")) {
+                return yaml;
+              }
+          }
+          return null;
+        },
         addKeymap: true,
       }),
       markdownLanguage.data.of({

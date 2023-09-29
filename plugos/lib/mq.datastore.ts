@@ -52,7 +52,7 @@ export class DataStoreMQ implements MessageQueue {
     // Retrieve a batch of messages
     const messages = await this.ds.query<MQMessage>({
       prefix: [...queuedPrefix, queue],
-      limit: maxItems,
+      limit: ["number", maxItems],
     });
     // Put them in the processing queue
     await this.ds.batchSet(

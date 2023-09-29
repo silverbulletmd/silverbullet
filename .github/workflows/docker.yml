@@ -33,7 +33,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.36
+          deno-version: v1.37
   
       - name: Run bundle build
         run: |

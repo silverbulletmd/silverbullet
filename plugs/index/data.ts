@@ -25,7 +25,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
         return;
       }
       const fenceType = codeInfoNode.children![0].text!;
-      if (fenceType !== "data" && !fenceType.startsWith("data:")) {
+      if (fenceType !== "data" && !fenceType.startsWith("#")) {
         return;
       }
       const codeTextNode = findNodeOfType(t, "CodeText");
@@ -34,7 +34,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
         return;
       }
       const codeText = codeTextNode.children![0].text!;
-      const dataType = fenceType === "data" ? "data" : fenceType.substring(5);
+      const dataType = fenceType === "data" ? "data" : fenceType.substring(1);
       try {
         const docs = codeText.split("---");
         // We support multiple YAML documents in one block

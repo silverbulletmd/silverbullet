@@ -1,31 +1,36 @@
 #meta-tag
 
-SilverBullet automatically builds and maintains a database of _objects_ based on your space, and subsequently allows you to [[🔌 Directive/Query]] this database in (potentially) useful ways.
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Query]] this database in (potentially) useful ways.
 
-This index is maintained by the [[🔌 Index]] plug.
+Some examples of things you can query for:
+* Give me a list of all books that I have marked as _want to read_
+* Give me a list of all tasks not yet completed that have today as a due date
+* Give me a list of items tagged with `#quote`
+* Give me a list of not-completed tasks that reference the current page
 
+By design, the truth remains in the markdown: all data indexed into objects will have a representation in markdown text as well. The index can be flushed at any time and be rebuilt from markdown files.
+
+# Object representation
 Every object has a set of [[Attributes]]:
-* A `ref` attribute: acting as an _identifier_ and often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `link` will use `page name@pos` (where `pos` is the location the link appears in `page name`).
-* One more more `tags`, which define the type(s) of an object.
+* `ref`: a unique _identifier_ (unique to the page, at least), often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
+* `tags`: an array of type(s) of an object, see [[@tags]].
 * Any number of additional tag-specific and custom [[Attributes]].
 
 # Tags
 $tags
-Every object has one or more tags, defining the type of an object. Some tags are built-in (as described below), but you can easily define new tags by simply using the #hashtag notation in strategic locations.
+Every object has one or more tags, defining the types of an object. Some tags are built-in (as described below), but you can easily define new tags by simply using the #hashtag notation in strategic locations (more on these locations later).
 
----
-
-This concept is best explained through examples. For this purpose, let’s walk through the base tags in use in SilverBullet:
+Here are the currently built-in tags:
 
 ## page
-Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either defining them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph_ of your page, as is done in this particular page with a #meta-tag.
+Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph_ of your page, as is done in this particular page with a #meta-tag.
 
-The following query shows the attributes defined for a page:
+In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
 <!-- #query page where name = "{{@page.name}}" -->
 |ref    |tags         |name   |size|contentType  |lastModified            |perm|
 |--|--|--|--|--|--|--|
-|Objects|page,meta-tag|Objects|6745|text/markdown|2023-09-27T08:49:07.911Z|rw|
+|Objects|page,meta-tag|Objects|8080|text/markdown|2023-09-28T18:46:08.677Z|rw|
 <!-- /query -->
 
 Since we’ve tagged this page with #meta-tag, we can also query `meta-tag` as a source:
@@ -33,27 +38,34 @@ Since we’ve tagged this page with #meta-tag, we can also query `meta-tag` as a
 <!-- #query meta-tag -->
 |ref    |tags         |name   |size|contentType  |lastModified            |perm|
 |--|--|--|--|--|--|--|
-|Objects|page,meta-tag|Objects|6745|text/markdown|2023-09-27T08:49:07.911Z|rw|
+|Objects|page,meta-tag|Objects|8080|text/markdown|2023-09-28T18:46:08.677Z|rw|
 <!-- /query -->
 
-Potentially useful tags for pages could be:
-
-* Tags denoting the type of thing the page is describing, for instance `#person` or `#book`.
-* The status of a page, e.g. `#InProgress` or `#Published`
-
 ## task
-Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using tags in the task name, e.g.
+Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using [[Tags]] in the task name, e.g.
 
 * [ ] My task #upnext 
 
-And can then be queried via either `task` or `upnext`:
+And can then be queried via either `task` or `upnext`. 
+
+The following query shows all attributes available for tasks:
+
+<!-- #query upnext -->
+|ref         |tags       |name           |done |page   |pos |state|
+|------------|-----------|---------------|-----|-------|----|-|
+|Objects@2709|task,upnext|My task #upnext|false|Objects|2709| |
+<!-- /query -->
+
+Although you may want to render it using a template such as [[template/task]] instead:
 
 <!-- #query upnext render [[template/task]] -->
-* [ ] [[Objects@2387]] My task #upnext
+* [ ] [[Objects@2709]] My task #upnext
 <!-- /query -->
 
 ## item
-List items are not indexed unless explicitly tagged (for performance reasons). Tagging of items is done by simply adding a tag to the item:
+List items are not currently indexed unless explicitly tagged (for performance reasons). Like other things, an an item can be tagged using [[Tags]].
+
+Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 
 * “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
 
@@ -66,18 +78,19 @@ And then queried via the #quote tag:
 <!-- /query -->
 
 ## data
-You can also embed arbitrary YAML data blocks in pages via fencded code blocks using the `data` language, for which you can optionally define a (single) tag, by using `data:tag`, e.g.
+You can also embed arbitrary YAML data blocks in pages via fenced code blocks and use a tag as a coding language, e.g.
 
-```data:person
+```#person
 name: Pete
 age: 55
 ```
 
-Which then becomes queryable via `person`:
+Which then becomes queriable via the `person` tag:
+
 <!-- #query person -->
 |ref         |tags  |name|age|pos |page   |
 |------------|------|----|--|----|-------|
-|Objects@3267|person|Pete|55|3267|Objects|
+|Objects@3999|person|Pete|55|3999|Objects|
 <!-- /query -->
 
 ## link
@@ -93,33 +106,39 @@ _Note_: this is the data source used for the {[Mentions: Toggle]} feature as wel
 Here is an query that shows all links that appear in this particular page:
 
 <!-- #query link where page = "{{@page.name}}" and inDirective = false -->
-|ref         |tags|toPage            |snippet                                             |pos |page   |inDirective|asTemplate|
-|--|--|--|--|--|--|--|--|
-|Objects@1274|link|Frontmatter       |in the `tags` attribute [[Frontmatter]], or by putti|1274|Objects|false|false|
-|Objects@1316|link|Tags              |r by putting additional [[Tags]] in the _first parag|1316|Objects|false|false|
-|Objects@137 |link|🔌 Directive/Query|sequently allows you to [[🔌 Directive/Query]] this |137 |Objects|false|false|
-|Objects@237 |link|🔌 Index          |ex is maintained by the [[🔌 Index]] plug.          |237 |Objects|false|false|
-|Objects@2493|link|template/task     |-- #query upnext render [[template/task]] -->       |2493|Objects|false|true |
-|Objects@283 |link|Attributes        |ery object has a set of [[Attributes]]:             |283 |Objects|false|false|
-|Objects@6250|link|Attributes        |ch is used to index all [[Attributes]] used in your |6250|Objects|false|false|
-|Objects@746 |link|Attributes        |tag-specific and custom [[Attributes]].             |746 |Objects|false|false|
+|ref         |tags|toPage            |snippet                                             |pos |page   |inDirective|asTemplate|alias    |
+|--|--|--|--|--|--|--|--|--|
+|Objects@1190|link|                  |pe(s) of an object, see [[@tags]].                  |1190|Objects|false|false|         |
+|Objects@1252|link|Attributes        |tag-specific and custom [[Attributes]].             |1252|Objects|false|false|         |
+|Objects@162 |link|🔌 Directive/Query|sequently allows you to [[Query]] this |162 |Objects|false|false|         |
+|Objects@1724|link|Frontmatter       |in the `tags` attribute [[Frontmatter]], or by putti|1724|Objects|false|false|         |
+|Objects@1766|link|Tags              |r by putting additional [[Tags]] in the _first parag|1766|Objects|false|false|         |
+|Objects@2676|link|Tags              |dditional tags by using [[Tags]] in the task name, e|2676|Objects|false|false|         |
+|Objects@3149|link|template/task     |sing a template such as [[template/task]] instead:  |3149|Objects|false|false|         |
+|Objects@3203|link|template/task     |-- #query upnext render [[template/task]] -->       |3203|Objects|false|true |         |
+|Objects@3428|link|Tags              |tem can be tagged using [[Tags]].                   |3428|Objects|false|false|         |
+|Objects@3490|link|Attributes        |ote item using a custom [[Attributes\|attribute]]:  |3490|Objects|false|false|attribute|
+|Objects@6570|link|Anchors           |[[Anchors]] use the `$myanch                        |6570|Objects|false|false|         |
+|Objects@7593|link|Attributes        |ch is used to index all [[Attributes]] used in your |7593|Objects|false|false|         |
+|Objects@791 |link|Attributes        |ery object has a set of [[Attributes]]:             |791 |Objects|false|false|         |
 <!-- /query -->
 
 ## anchor
 $myanchor
-Anchors use the `$myanchor` notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
+
+[[Anchors]] use the `$myanchor` notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
 
 Here is an example query:
 
 <!-- #query anchor where page = "{{@page.name}}"-->
 |ref             |tags  |name    |page   |pos |
 |----------------|------|--------|-------|----|
-|Objects@myanchor|anchor|myanchor|Objects|5219|
-|Objects@tags    |anchor|tags    |Objects|768 |
+|Objects@myanchor|anchor|myanchor|Objects|6557|
+|Objects@tags    |anchor|tags    |Objects|1274|
 <!-- /query -->
 
 ## tag
-The ultimate meta tag is _tag_ itself, which indexes all tags used, in which page and what their “parent tag” is (the context in which the tag is used).
+The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which page they appear and what their “parent tag” is (the context of the tag: either `page`, `item` or `task`).
 
 Here are the tags used/defined in this page:
 

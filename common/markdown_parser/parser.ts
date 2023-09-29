@@ -252,6 +252,7 @@ const directiveStart = /^\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
 const directiveEnd = /^\s*<!--\s*\/(.*?)-->\s*/;
 
 import { parser as directiveParser } from "./parse-query.js";
+import { parser as expressionParser } from "./parse-expression.js";
 import { Table } from "./table_parser.ts";
 
 const highlightingDirectiveParser = directiveParser.configure({
@@ -261,7 +262,7 @@ const highlightingDirectiveParser = directiveParser.configure({
       "String": t.string,
       "Number": t.number,
       "PageRef": ct.WikiLinkTag,
-      "where limit select render Order OrderKW and or": t.keyword,
+      "where limit select render Order OrderKW and or as InKW": t.keyword,
     }),
   ],
 });
@@ -293,6 +294,14 @@ export const Directive: MarkdownConfig = {
           cx.parsedPos,
           cx.parsedPos + line.text.length + 1,
           [cx.elt(queryParseTree, frontStart + fullMatch.indexOf(arg))],
+        ));
+      } else if (directive === "eval") {
+        const expressionParseTree = expressionParser.parse(arg);
+        elts.push(cx.elt(
+          "DirectiveStart",
+          cx.parsedPos,
+          cx.parsedPos + line.text.length + 1,
+          [cx.elt(expressionParseTree, frontStart + fullMatch.indexOf(arg))],
         ));
       } else {
         elts.push(cx.elt(
