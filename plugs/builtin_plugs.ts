@@ -7,6 +7,7 @@ export const builtinPlugNames = [
   "plug-manager",
   "directive",
   "emoji",
+  "query",
   "markdown",
   "share",
   "tasks",

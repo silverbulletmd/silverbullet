@@ -1,4 +1,6 @@
-import buildMarkdown from "../common/markdown_parser/parser.ts";
+import buildMarkdown, {
+  highlightingDirectiveParser,
+} from "../common/markdown_parser/parser.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
@@ -51,7 +53,7 @@ import {
   yamlLanguage,
 } from "../common/deps.ts";
 import { Client } from "./client.ts";
-import { vim } from "./deps.ts";
+import { Language, vim } from "./deps.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
@@ -64,6 +66,7 @@ import {
 } from "./cm_plugins/editor_paste.ts";
 import { TextChange } from "$sb/lib/change.ts";
 import { postScriptPlugin } from "./cm_plugins/post_script.ts";
+import { LRLanguage } from "@codemirror/language";
 
 export function createEditorState(
   editor: Client,
@@ -320,6 +323,15 @@ export function createEditorState(
                 support: new LanguageSupport(
                   StreamLanguage.define(dartLanguage),
                 ),
+              });
+
+            case "query":
+              return LanguageDescription.of({
+                name: "query",
+                support: new LanguageSupport(LRLanguage.define({
+                  name: "query",
+                  parser: highlightingDirectiveParser,
+                })),
               });
 
             default:

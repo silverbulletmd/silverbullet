@@ -62,10 +62,6 @@ window.addEventListener("message", (message) => {
   }
 });
 
-// DEPRECATED: Use syscall("event.dispatch", ...) instead
-function sendEvent(name, ...args) {
-  window.parent.postMessage({ type: "event", name, args, }, "*");
-}
 function api(obj) {
   window.parent.postMessage(obj, "*");
 }
@@ -94,14 +90,13 @@ function loadJsByUrl(url) {
 
   return new Promise((resolve) => {
     script.onload = resolve;
-  
     document.documentElement.firstChild.appendChild(script);
   });
 }
 </script>
 </head>
 <body>
-Loading...
+
 </body>
 </html>`;
 

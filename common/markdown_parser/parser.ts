@@ -255,7 +255,7 @@ import { parser as directiveParser } from "./parse-query.js";
 import { parser as expressionParser } from "./parse-expression.js";
 import { Table } from "./table_parser.ts";
 
-const highlightingDirectiveParser = directiveParser.configure({
+export const highlightingDirectiveParser = directiveParser.configure({
   props: [
     styleTags({
       "Name": t.variableName,

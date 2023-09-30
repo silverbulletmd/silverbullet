@@ -10,6 +10,8 @@ import {
 } from "./util.ts";
 
 class IFrameWidget extends WidgetType {
+  iframe?: HTMLIFrameElement;
+
   constructor(
     readonly from: number,
     readonly to: number,
@@ -22,8 +24,9 @@ class IFrameWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const iframe = document.createElement("iframe");
+    this.iframe = iframe;
     iframe.srcdoc = panelHtml;
-    // iframe.style.height = "0";
+    // iframe.style.height = "150px";
 
     const messageListener = (evt: any) => {
       if (evt.source !== iframe.contentWindow) {
@@ -39,6 +42,7 @@ class IFrameWidget extends WidgetType {
           break;
         case "setHeight":
           iframe.style.height = data.height + "px";
+          this.editor.space.setCachedWidgetHeight(this.bodyText, data.height);
           break;
         case "setBody":
           this.editor.editorView.dispatch({
@@ -84,6 +88,12 @@ class IFrameWidget extends WidgetType {
       );
     };
     return iframe;
+  }
+
+  get estimatedHeight(): number {
+    const cachedHeight = this.editor.space.getCachedWidgetHeight(this.bodyText);
+    // console.log("Calling estimated height", cachedHeight);
+    return cachedHeight || 150;
   }
 
   eq(other: WidgetType): boolean {

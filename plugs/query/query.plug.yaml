@@ -1,0 +1,7 @@
+name: query
+assets:
+  - "assets/*"
+functions:
+  queryWidget:
+    path: ./widget.ts:widget
+    codeWidget: query
