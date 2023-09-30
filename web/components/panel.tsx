@@ -69,11 +69,23 @@ function sendEvent(name, ...args) {
 function api(obj) {
   window.parent.postMessage(obj, "*");
 }
+
+let oldHeight = undefined;
+let heightChecks = 0;
 function updateHeight() {
-  api({
-    type: "setHeight", 
-    height: document.documentElement.offsetHeight,
-  });
+  const body = document.body, html = document.documentElement;
+  let height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+  heightChecks++;
+  if(height !== oldHeight) {
+    oldHeight = height;
+    api({
+      type: "setHeight", 
+      height: height,
+    });
+  }
+  if(heightChecks < 25) {
+    setTimeout(updateHeight, 100);
+  }
 }
 
 function loadJsByUrl(url) {

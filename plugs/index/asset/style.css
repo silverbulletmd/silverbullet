@@ -1,41 +1,26 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    margin: 0;
-    font-size: 14pt;
+    font-family: var(--editor-font);
     border: 1px solid #0000000f;
     border-radius: 5px;
-    padding: 0;
+    width: 99% !important;
+    height: 99% !important;
 }
 
-h2 {
+.sb-line-h2 {
     border-top-right-radius: 5px;
     border-top-left-radius: 5px;
     margin: 0;
-    padding: 10px;
+    padding: 10px !important;
     background-color: rgba(233, 233, 233, 0.5);
-    font-size: 24px;
-    font-weight: normal;
 }
 
 #hide-button {
     position: absolute;
-    right: 10px;
+    right: 15px;
     top: 15px;
 }
 
 li code {
     font-size: 80%;
     color: #a5a4a4;
-}
-
-a[href] {
-    text-decoration: none;
-}
-
-span.wiki-link-page {
-    color: #0330cb;
-    cursor: pointer;
-    background-color: #4d8dff12;
-    border-radius: 5px;
-    padding: 0 5px;
 }

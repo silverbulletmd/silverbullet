@@ -57,20 +57,22 @@ async function renderMentions(page: string) {
     await editor.showPanel(
       "ps",
       1,
-      `<html><head></head><body>
-        <style>${css}</style>
+      ` <style>${css}</style>
+        <link rel="stylesheet" href="/.client/main.css" />
+        <div id="sb-main"><div id="sb-editor"><div class="cm-editor">
         <button id="hide-button">Hide</button>
-        <h2>Linked Mentions</h2>
+        <div class="cm-line sb-line-h2">Linked Mentions</div>
         <ul id="link-ul">
         ${
         linksResult.map((link) =>
-          `<li data-ref="${link.ref}"><span class="wiki-link-page">${link.ref}</span>: <code>...${
+          `<li data-ref="${link.ref}"><span class="sb-wiki-link-page">${link.ref}</span>: <code>...${
             escapeHtml(link.snippet)
           }...</code></li>`
         ).join("")
       }
         </ul>
-        </body></html>`,
+        </div></div></div>
+        `,
       js,
     );
   }
