@@ -21,7 +21,7 @@ import { shellSyscalls } from "./syscalls/shell.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { yamlSyscalls } from "./syscalls/yaml.ts";
+import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { Space } from "./space.ts";
 import {
   loadMarkdownExtensions,
@@ -35,6 +35,7 @@ import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
+import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -140,6 +141,7 @@ export class ClientSystem {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
+      handlebarsSyscalls(),
       languageSyscalls(),
       this.client.syncMode
         // In sync mode handle locally

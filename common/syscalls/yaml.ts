@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../../plugos/system.ts";
-import { YAML } from "../deps.ts";
+import { YAML } from "../../web/deps.ts";
 
 export function yamlSyscalls(): SysCallMapping {
   return {

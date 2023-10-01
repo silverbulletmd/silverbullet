@@ -6,7 +6,7 @@ import { evalQueryExpression } from "$sb/lib/query.ts";
 import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 
 // This is rather scary and fragile stuff, but it works.
-export function evalDirectiveRenderer(
+export async function evalDirectiveRenderer(
   _directive: string,
   pageMeta: PageMeta,
   expression: string | ParseTree,
@@ -14,7 +14,9 @@ export function evalDirectiveRenderer(
   try {
     const result = evalQueryExpression(
       expressionToKvQueryExpression(parseTreeToAST(
-        JSON.parse(replaceTemplateVars(JSON.stringify(expression), pageMeta)),
+        JSON.parse(
+          await replaceTemplateVars(JSON.stringify(expression), pageMeta),
+        ),
       )),
       {},
       builtinFunctions,

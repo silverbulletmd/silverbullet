@@ -1,7 +1,5 @@
-import Handlebars from "handlebars";
-
-import { space } from "$sb/syscalls.ts";
-import { handlebarHelpers } from "./handlebar_helpers.ts";
+import { handlebars, space } from "$sb/syscalls.ts";
+import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
 
 const maxWidth = 70;
@@ -89,8 +87,10 @@ export async function renderTemplate(
 ): Promise<string> {
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
-  const template = Handlebars.compile(templateText, { noEscape: true });
-  return template(data, buildHandebarOptions(pageMeta));
+  console.log("New implementation");
+  // const template = Handlebars.compile(templateText, { noEscape: true });
+  // return template(data, buildHandebarOptions(pageMeta));
+  return handlebars.renderTemplate(templateText, data, { page: pageMeta });
 }
 
 export function buildHandebarOptions(pageMeta: PageMeta) {

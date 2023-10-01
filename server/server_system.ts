@@ -18,7 +18,7 @@ import { debugSyscalls } from "../web/syscalls/debug.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
-import { yamlSyscalls } from "../web/syscalls/yaml.ts";
+import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { Application } from "./deps.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
@@ -31,6 +31,7 @@ import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { language } from "@codemirror/language";
 import { languageSyscalls } from "../common/syscalls/language.ts";
+import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -90,6 +91,7 @@ export class ServerSystem {
       systemSyscalls(this.system),
       mqSyscalls(mq),
       languageSyscalls(),
+      handlebarsSyscalls(),
       dataStoreSyscalls(this.ds),
       debugSyscalls(),
       markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions

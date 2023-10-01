@@ -17,7 +17,7 @@ export async function queryDirectiveRenderer(
   }
   const parsedQuery: Query = astToKvQuery(
     parseTreeToAST(
-      JSON.parse(replaceTemplateVars(JSON.stringify(query), pageMeta)),
+      JSON.parse(await replaceTemplateVars(JSON.stringify(query), pageMeta)),
     ),
   );
   // console.log("QUERY", parsedQuery);
