@@ -15,7 +15,7 @@ import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
 import { debugSyscalls } from "../web/syscalls/debug.ts";
-import { markdownSyscalls } from "../web/syscalls/markdown.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
 import { yamlSyscalls } from "../web/syscalls/yaml.ts";
@@ -29,6 +29,8 @@ import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { language } from "@codemirror/language";
+import { languageSyscalls } from "../common/syscalls/language.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -87,6 +89,7 @@ export class ServerSystem {
       yamlSyscalls(),
       systemSyscalls(this.system),
       mqSyscalls(mq),
+      languageSyscalls(),
       dataStoreSyscalls(this.ds),
       debugSyscalls(),
       markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions

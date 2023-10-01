@@ -1,7 +1,12 @@
 import { WidgetContent } from "$sb/app_event.ts";
-import { asset, editor, events, markdown, space } from "$sb/syscalls.ts";
-import { parser as directiveParser } from "../../common/markdown_parser/parse-query.js";
-import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
+import {
+  asset,
+  editor,
+  events,
+  language,
+  markdown,
+  space,
+} from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
@@ -12,12 +17,12 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
   const css = await asset.readAsset("assets/style.css");
   const js = await asset.readAsset("assets/script.js");
   const queryAST = parseTreeToAST(
-    lezerToParseTree(bodyText, directiveParser.parse(bodyText).topNode),
+    await language.parseLanguage("query", bodyText),
   );
   const parsedQuery = astToKvQuery(
     queryAST[1],
   );
-  //   console.log("actual query", parsedQuery);
+  // console.log("actual query", parsedQuery);
   const eventName = `query:${parsedQuery.querySource}`;
 
   let resultMd = "";

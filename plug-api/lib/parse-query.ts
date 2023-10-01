@@ -11,7 +11,6 @@ export function astToKvQuery(
   if (queryType !== "Query") {
     throw new Error(`Expected query type, got ${queryType}`);
   }
-  // console.log(JSON.stringify(node, null, 2));
   query.querySource = querySource[1] as string;
   for (const clause of clauses) {
     const [clauseType] = clause;

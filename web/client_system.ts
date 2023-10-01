@@ -16,7 +16,7 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { debugSyscalls } from "./syscalls/debug.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { markdownSyscalls } from "./syscalls/markdown.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
@@ -34,6 +34,7 @@ import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
+import { languageSyscalls } from "../common/syscalls/language.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -139,6 +140,7 @@ export class ClientSystem {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
+      languageSyscalls(),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)

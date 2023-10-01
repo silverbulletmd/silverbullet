@@ -5,3 +5,4 @@ export * as system from "./system.ts";
 export * as clientStore from "./clientStore.ts";
 export * as sync from "./sync.ts";
 export * as debug from "./debug.ts";
+export * as language from "./language.ts";
