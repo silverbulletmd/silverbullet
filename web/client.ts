@@ -4,6 +4,7 @@ import {
   CompletionResult,
   EditorView,
   gitIgnoreCompiler,
+  SyntaxNode,
   syntaxTree,
 } from "../common/deps.ts";
 import { fileMetaToPageMeta, Space } from "./space.ts";
@@ -633,13 +634,20 @@ export class Client {
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
     const parentNodes: string[] = [];
-    const currentNode = syntaxTree(editorState).resolveInner(selection.from);
+    const sTree = syntaxTree(editorState);
+    const currentNode = sTree.resolveInner(selection.from);
     if (currentNode) {
-      let node = currentNode;
-      while (node.parent) {
-        parentNodes.push(node.parent.name);
+      let node: SyntaxNode | null = currentNode;
+      do {
+        if (node.name === "FencedCode") {
+          const code = editorState.sliceDoc(node.from + 3, node.to);
+          const fencedCodeLanguage = code.split("\n")[0];
+          parentNodes.push(`FencedCode:${fencedCodeLanguage}`);
+        } else {
+          parentNodes.push(node.name);
+        }
         node = node.parent;
-      }
+      } while (node);
     }
 
     const results = await this.dispatchAppEvent(eventName, {

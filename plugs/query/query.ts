@@ -1,31 +1,28 @@
-import { WidgetContent } from "$sb/app_event.ts";
-import {
-  asset,
-  editor,
-  events,
-  language,
-  markdown,
-  space,
-} from "$sb/syscalls.ts";
+import type { WidgetContent } from "$sb/app_event.ts";
+import { editor, events, language, markdown, space } from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
 import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
+import { replaceTemplateVars } from "../template/template.ts";
+import { prepareJS, wrapHTML } from "./util.ts";
 
 export async function widget(bodyText: string): Promise<WidgetContent> {
   const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
-  const css = await asset.readAsset("assets/style.css");
-  const js = await asset.readAsset("assets/script.js");
+
   const queryAST = parseTreeToAST(
     await language.parseLanguage("query", bodyText),
   );
   const parsedQuery = astToKvQuery(
-    queryAST[1],
+    JSON.parse(
+      await replaceTemplateVars(JSON.stringify(queryAST[1]), pageMeta),
+    ),
   );
+
   // console.log("actual query", parsedQuery);
   const eventName = `query:${parsedQuery.querySource}`;
 
-  let resultMd = "";
+  let resultMarkdown = "";
 
   // console.log("Parsed query", parsedQuery);
   // Let's dispatch an event and see what happens
@@ -40,48 +37,36 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
       html: `**Error:** Unsupported query source '${parsedQuery.querySource}'`,
     };
   } else {
-    // console.log("Parsed query", parsedQuery);
     const allResults = results.flat();
     if (parsedQuery.render) {
+      // Configured a custom rendering template, let's use it!
       const rendered = await renderTemplate(
         pageMeta,
         parsedQuery.render,
         allResults,
       );
-      resultMd = rendered.trim();
+      resultMarkdown = rendered.trim();
     } else {
       if (allResults.length === 0) {
-        resultMd = "No results";
+        resultMarkdown = "No results";
       } else {
-        resultMd = jsonToMDTable(allResults);
+        // TODO: At this point it's a bit pointless to first render a markdown table, and then convert that to HTML
+        // We should just render the HTML table directly
+        resultMarkdown = jsonToMDTable(allResults);
       }
     }
   }
 
-  const mdTree = await markdown.parseMarkdown(resultMd);
-  const html = renderMarkdownToHtml(mdTree, {
-    smartHardBreak: true,
-    translateUrls: (url) => {
-      // if (!url.includes("://")) {
-      //   url = resolvePath(currentPage, decodeURI(url), true);
-      // }
-      return url;
-    },
-  });
+  // Parse markdown to a ParseTree
+  const mdTree = await markdown.parseMarkdown(resultMarkdown);
+  // And then render it to HTML
+  const html = renderMarkdownToHtml(mdTree, { smartHardBreak: true });
   return {
-    html: `
-       <style>${css}</style>
-       <link rel="stylesheet" href="/.client/main.css" />
-       <div id="sb-main"><div id="sb-editor"><div class="cm-editor">
-       <div id="button-bar">
-        <button id="edit-button">✎</button>
-       </div>
-       
+    html: await wrapHTML(`
        ${parsedQuery.render ? "" : `<div class="sb-table-widget">`}
-  ${html}
-  ${parsedQuery.render ? "" : `</div>`}
-  </div></div></div>
-  `,
-    script: js,
+       ${html}
+       ${parsedQuery.render ? "" : `</div>`}
+      `),
+    script: await prepareJS(),
   };
 }

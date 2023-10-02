@@ -86,7 +86,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     args: any[],
   ): Promise<any> {
     return this.syscallWithContext(
-      // Mock the plug
       { plug: this.plugs.get(contextPlugName)! },
       syscallName,
       args,

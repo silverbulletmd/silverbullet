@@ -128,18 +128,17 @@ export function taskToggle(event: ClickEvent) {
   if (event.altKey) {
     return;
   }
-  return taskCycleAtPos(event.page, event.pos);
+  return taskCycleAtPos(event.pos);
 }
 
-export async function previewTaskToggle(eventString: string) {
+export function previewTaskToggle(eventString: string) {
   const [eventName, pos] = JSON.parse(eventString);
   if (eventName === "task") {
-    return taskCycleAtPos(await editor.getCurrentPage(), +pos);
+    return taskCycleAtPos(+pos);
   }
 }
 
 async function cycleTaskState(
-  pageName: string,
   node: ParseTree,
 ) {
   const stateText = node.children![1].text!;
@@ -179,53 +178,62 @@ async function cycleTaskState(
   for (const wikiLink of parentWikiLinks) {
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
-      const [page, posS] = ref.split("@");
-      const pos = +posS;
-      if (page === pageName) {
-        // In current page, just update the task marker with dispatch
-        const editorText = await editor.getText();
-        // Check if the task state marker is still there
-        const targetText = editorText.substring(
-          pos + 1,
-          pos + 1 + stateText.length,
-        );
-        if (targetText !== stateText) {
-          console.error(
-            "Reference not a task marker, out of date?",
-            targetText,
-          );
-          return;
-        }
-        await editor.dispatch({
-          changes: {
-            from: pos + 1,
-            to: pos + 1 + stateText.length,
-            insert: changeTo,
-          },
-        });
-      } else {
-        let text = await space.readPage(page);
-
-        const referenceMdTree = await markdown.parseMarkdown(text);
-        // Adding +1 to immediately hit the task state node
-        const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
-        if (!taskStateNode || taskStateNode.type !== "TaskState") {
-          console.error(
-            "Reference not a task marker, out of date?",
-            taskStateNode,
-          );
-          return;
-        }
-        taskStateNode.children![1].text = changeTo;
-        text = renderToText(referenceMdTree);
-        await space.writePage(page, text);
-        sync.scheduleFileSync(`${page}.md`);
-      }
+      await updateTaskState(ref, stateText, changeTo);
     }
   }
 }
 
-export async function taskCycleAtPos(pageName: string, pos: number) {
+export async function updateTaskState(
+  ref: string,
+  oldState: string,
+  newState: string,
+) {
+  const currentPage = await editor.getCurrentPage();
+  const [page, posS] = ref.split("@");
+  const pos = +posS;
+  if (page === currentPage) {
+    // In current page, just update the task marker with dispatch
+    const editorText = await editor.getText();
+    // Check if the task state marker is still there
+    const targetText = editorText.substring(
+      pos + 1,
+      pos + 1 + oldState.length,
+    );
+    if (targetText !== oldState) {
+      console.error(
+        "Reference not a task marker, out of date?",
+        targetText,
+      );
+      return;
+    }
+    await editor.dispatch({
+      changes: {
+        from: pos + 1,
+        to: pos + 1 + oldState.length,
+        insert: newState,
+      },
+    });
+  } else {
+    let text = await space.readPage(page);
+
+    const referenceMdTree = await markdown.parseMarkdown(text);
+    // Adding +1 to immediately hit the task state node
+    const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
+    if (!taskStateNode || taskStateNode.type !== "TaskState") {
+      console.error(
+        "Reference not a task marker, out of date?",
+        taskStateNode,
+      );
+      return;
+    }
+    taskStateNode.children![1].text = newState;
+    text = renderToText(referenceMdTree);
+    await space.writePage(page, text);
+    sync.scheduleFileSync(`${page}.md`);
+  }
+}
+
+export async function taskCycleAtPos(pos: number) {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   addParentPointers(mdTree);
@@ -236,7 +244,7 @@ export async function taskCycleAtPos(pageName: string, pos: number) {
       node = node.parent!;
     }
     if (node.type === "TaskState") {
-      await cycleTaskState(pageName, node);
+      await cycleTaskState(node);
     }
   }
 }
@@ -270,7 +278,7 @@ export async function taskCycleCommand() {
   }
   const taskState = findNodeOfType(taskNode!, "TaskState");
   if (taskState) {
-    await cycleTaskState(await editor.getCurrentPage(), taskState);
+    await cycleTaskState(taskState);
   }
 }
 

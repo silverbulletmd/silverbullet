@@ -1,8 +1,8 @@
-import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { PanelConfig } from "../types.ts";
+import { panelHtml } from "../components/panel_html.ts";
 
 class IFrameWidget extends WidgetType {
   constructor(

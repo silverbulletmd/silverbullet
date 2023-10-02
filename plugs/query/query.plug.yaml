@@ -3,5 +3,43 @@ assets:
   - "assets/*"
 functions:
   queryWidget:
-    path: ./widget.ts:widget
+    path: query.ts:widget
     codeWidget: query
+
+  useWidget:
+    path: use.ts:widget
+    codeWidget: use
+
+  queryComplete:
+    path: complete.ts:queryComplete
+    events:
+    - editor:complete
+
+  # Slash commands
+  insertQuery:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: query
+      description: Insert a query
+      value: |
+        ```query
+        |^|
+        ```
+  insertInclude:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: include
+      description: Include another page
+      value: |
+        <!-- #include [[|^|]] -->
+
+        <!-- /include -->
+  insertUseTemplate:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: use
+      description: Use a template
+      value: |
+        ```use
+        template: "[[|^|]]"
+        ```

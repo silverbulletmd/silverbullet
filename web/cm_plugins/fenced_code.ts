@@ -1,5 +1,4 @@
 import { WidgetContent } from "../../plug-api/app_event.ts";
-import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { CodeWidgetCallback } from "../hooks/code_widget.ts";
@@ -8,6 +7,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
+import { panelHtml } from "../components/panel_html.ts";
 
 class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;
@@ -29,37 +29,67 @@ class IFrameWidget extends WidgetType {
     // iframe.style.height = "150px";
 
     const messageListener = (evt: any) => {
-      if (evt.source !== iframe.contentWindow) {
-        return;
-      }
-      const data = evt.data;
-      if (!data) {
-        return;
-      }
-      switch (data.type) {
-        case "event":
-          this.editor.dispatchAppEvent(data.name, ...data.args);
-          break;
-        case "setHeight":
-          iframe.style.height = data.height + "px";
-          this.editor.space.setCachedWidgetHeight(this.bodyText, data.height);
-          break;
-        case "setBody":
-          this.editor.editorView.dispatch({
-            changes: {
-              from: this.from,
-              to: this.to,
-              insert: data.body,
-            },
-          });
-          break;
-        case "blur":
-          this.editor.editorView.dispatch({
-            selection: { anchor: this.from },
-          });
-          this.editor.focus();
-          break;
-      }
+      (async () => {
+        if (evt.source !== iframe.contentWindow) {
+          return;
+        }
+        const data = evt.data;
+        if (!data) {
+          return;
+        }
+        switch (data.type) {
+          case "event":
+            await this.editor.dispatchAppEvent(data.name, ...data.args);
+            break;
+          case "syscall": {
+            const { id, name, args } = data;
+            try {
+              const result = await this.editor.system.localSyscall(name, args);
+              if (!iframe.contentWindow) {
+                // iFrame already went away
+                return;
+              }
+              iframe.contentWindow!.postMessage({
+                type: "syscall-response",
+                id,
+                result,
+              });
+            } catch (e: any) {
+              if (!iframe.contentWindow) {
+                // iFrame already went away
+                return;
+              }
+              iframe.contentWindow!.postMessage({
+                type: "syscall-response",
+                id,
+                error: e.message,
+              });
+            }
+            break;
+          }
+          case "setHeight":
+            iframe.style.height = data.height + "px";
+            this.editor.space.setCachedWidgetHeight(this.bodyText, data.height);
+            break;
+          case "setBody":
+            this.editor.editorView.dispatch({
+              changes: {
+                from: this.from,
+                to: this.to,
+                insert: data.body,
+              },
+            });
+            break;
+          case "blur":
+            this.editor.editorView.dispatch({
+              selection: { anchor: this.from },
+            });
+            this.editor.focus();
+            break;
+        }
+      })().catch((e) => {
+        console.error("Message listener error", e);
+      });
     };
 
     iframe.onload = () => {

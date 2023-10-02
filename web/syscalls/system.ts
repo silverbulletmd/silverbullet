@@ -14,10 +14,6 @@ export function systemSyscalls(
       name: string,
       ...args: any[]
     ) => {
-      if (!ctx.plug) {
-        throw Error("No plug associated with context");
-      }
-
       if (name === "server" || name === "client") {
         // Backwards compatibility mode (previously there was an 'env' argument)
         name = args[0];
@@ -36,7 +32,7 @@ export function systemSyscalls(
         }
         name = functionName;
       }
-      const functionDef = plug.manifest!.functions[name];
+      const functionDef = plug?.manifest!.functions[name];
       if (!functionDef) {
         throw Error(`Function ${name} not found`);
       }

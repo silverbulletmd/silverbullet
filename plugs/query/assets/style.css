@@ -4,6 +4,7 @@ body {
     border-radius: 5px;
     width: 99% !important;
     height: 99% !important;
+    overflow: scroll;
 }
 
 ul li p {
@@ -25,4 +26,9 @@ body:active #button-bar {
 li code {
     font-size: 80%;
     color: #a5a4a4;
+}
+
+iframe {
+    border: none;
+    width: 100%;
 }

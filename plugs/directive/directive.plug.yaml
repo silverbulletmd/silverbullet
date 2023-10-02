@@ -30,42 +30,6 @@ functions:
       - editor:complete
 
   # Templates
-  insertQuery:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: query
-      description: Insert a query
-      value: |
-        <!-- #query |^| -->
-
-        <!-- /query -->
-  insertInclude:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: include
-      description: Include another page
-      value: |
-        <!-- #include [[|^|]] -->
-
-        <!-- /include -->
-  insertUseTemplate:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: use
-      description: Use a template
-      value: |
-        <!-- #use [[|^|]] {} -->
-
-        <!-- /use -->
-  insertUseVerboseTemplate:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: use-verbose
-      description: Use a template (verbose mode)
-      value: |
-        <!-- #use-verbose [[|^|]] {} -->
-
-        <!-- /use-verbose -->
   insertEvalTemplate:
     redirect: template.insertTemplateText
     slashCommand:

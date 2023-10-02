@@ -87,9 +87,6 @@ export async function renderTemplate(
 ): Promise<string> {
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
-  console.log("New implementation");
-  // const template = Handlebars.compile(templateText, { noEscape: true });
-  // return template(data, buildHandebarOptions(pageMeta));
   return handlebars.renderTemplate(templateText, data, { page: pageMeta });
 }
 
