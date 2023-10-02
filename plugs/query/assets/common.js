@@ -3,6 +3,9 @@ async function init() {
   document.getElementById("edit-button").addEventListener("click", () => {
     api({ type: "blur" });
   });
+  document.getElementById("reload-button").addEventListener("click", () => {
+    api({ type: "reload" });
+  });
 
   // Find all fenced code blocks and replace them with iframes (if a code widget is defined for them)
   const allWidgets = document.querySelectorAll("pre[data-lang]");
@@ -15,7 +18,13 @@ async function init() {
       const iframe = document.createElement("iframe");
       iframe.srcdoc = panelHtml; // set as a global
       iframe.onload = () => {
-        iframe.contentWindow.postMessage({ type: "html", ...result }, "*");
+        iframe.contentWindow.postMessage({
+          type: "html",
+          theme: document.getElementsByTagName("html")[0].getAttribute(
+            "data-theme",
+          ),
+          ...result,
+        }, "*");
       };
       widget.parentNode.replaceChild(iframe, widget);
 

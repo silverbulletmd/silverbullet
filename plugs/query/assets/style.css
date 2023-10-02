@@ -1,9 +1,7 @@
 body {
-    font-family: var(--editor-font);
-    border: 1px solid #0000000f;
-    border-radius: 5px;
-    width: 99% !important;
-    height: 99% !important;
+    font-family: var(--ui-font);
+    background-color: var(--root-background-color);
+    color: var(--root-color);
     overflow: scroll;
 }
 
@@ -21,6 +19,14 @@ body:active #button-bar {
     right: 12px;
     top: 3px;
     display: none;
+}
+
+#button-bar button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    margin-left: -12px;
+    color: var(--root-color);
 }
 
 li code {

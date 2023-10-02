@@ -451,6 +451,8 @@
       max-width: 100%;
       padding: 0;
       margin: 0;
+      border: 1px solid var(--editor-directive-background-color);
+      border-radius: 5px;
     }
   }
 

@@ -86,17 +86,16 @@ class IFrameWidget extends WidgetType {
             });
             this.editor.focus();
             break;
+          case "reload":
+            loadContent();
+            break;
         }
       })().catch((e) => {
         console.error("Message listener error", e);
       });
     };
 
-    iframe.onload = () => {
-      // Subscribe to message event on global object (to receive messages from iframe)
-      globalThis.addEventListener("message", messageListener);
-      // Only run this code once
-      iframe.onload = null;
+    const loadContent = () => {
       this.codeWidgetCallback(this.bodyText).then(
         (widgetContent: WidgetContent) => {
           if (widgetContent.html) {
@@ -104,6 +103,7 @@ class IFrameWidget extends WidgetType {
               type: "html",
               html: widgetContent.html,
               script: widgetContent.script,
+              theme: document.getElementsByTagName("html")[0].dataset.theme,
             });
           } else if (widgetContent.url) {
             iframe.contentWindow!.location.href = widgetContent.url;
@@ -116,6 +116,14 @@ class IFrameWidget extends WidgetType {
           }
         },
       );
+    };
+
+    iframe.onload = () => {
+      // Subscribe to message event on global object (to receive messages from iframe)
+      globalThis.addEventListener("message", messageListener);
+      // Only run this code once
+      iframe.onload = null;
+      loadContent();
     };
     return iframe;
   }
