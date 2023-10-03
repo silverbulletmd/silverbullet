@@ -11,6 +11,7 @@ Oh boy, this is a big one. This release brings you the following:
 * The query syntax used in [[Live Queries]] (but also used in [[🔌 Directive]]) has been significantly expanded, although there may still be bugs. There’s still more value to be unlocked here in future releases.
 * The previous “backlinks” plug is now built into SilverBullet as [[Linked Mentions]] and appears at the bottom of every page (if there are incoming links). You can toggle linked mentions via {[Mentions: Toggle]}.
 * A whole bunch of [[PlugOS]] syscalls have been updated, I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
+* This release effectively already removes the `#eval` [[🔌 Directive]] (it’s still there, but likely not working), this directive needs some rethinking. Join us on [Discord](https://discord.gg/EvXbFucTxn) if you have a use case for it and how you use/want to use it.
 
 Due to significant changes in how data is stored, likely your space will be resynced to all your clients once you upgrade. Just in case you may also want to {[Space: Reindex]} your space. If things are really broken, try the {[Debug: Reset Client]} command.
 

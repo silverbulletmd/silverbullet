@@ -45,31 +45,3 @@ So, for instance, a template can take a tag name as an argument:
     <!-- #use [[template/tagged-tasks]] "test" -->
     * [ ] [[🔌 Directive@1537]] This is a test task  #test
     <!-- /use -->
-
-## Eval
-$eval
-The `#eval` directive can be used to evaluate arbitrary JavaScript expressions. It’s also possible to invoke arbitrary plug functions this way.
-
-**Note:** ==This feature is experimental== and will likely evolve.
-
-A simple example is multiplying numbers:
-
-    <!-- #eval 10 * 10 -->
-    100
-    <!-- /eval -->
-
-However, you can also invoke arbitrary plug functions, e.g. the `titleUnfurlOptions` function in the `core` plug:
-
-    <!-- #eval editor.titleUnfurlOptions() -->
-    |id          |name         |
-    |------------|-------------|
-    |title-unfurl|Extract title|
-    <!-- /eval -->
-
-Optionally, you can use a `render` clause to render the result as a template, similar to [[Live Queries]]:
-
-    <!-- #eval editor.titleUnfurlOptions() render [[template/debug]] -->
-    id: title-unfurl
-    name: Extract title
-    ---
-    <!-- /eval -->
