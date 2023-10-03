@@ -13,6 +13,9 @@ Oh boy, this is a big one. This release brings you the following:
 * A whole bunch of [[PlugOS]] syscalls have been updated, I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
 * This release effectively already removes the `#eval` [[🔌 Directive]] (it’s still there, but likely not working), this directive needs some rethinking. Join us on [Discord](https://discord.gg/EvXbFucTxn) if you have a use case for it and how you use/want to use it.
 
+**Important**:
+* If you have plugs such as “backlinks” or “graphview” installed, please remove them (or to be safe: all plugs) from the `_plug` folder in your space after the upgrade. Then, also remove them from your [[PLUGS]] page. The backlinks plug is now included by default (named [[Linked Mentions]]), and GraphView still needs to be updated (although it’s been kind of abandoned by the author).
+
 Due to significant changes in how data is stored, likely your space will be resynced to all your clients once you upgrade. Just in case you may also want to {[Space: Reindex]} your space. If things are really broken, try the {[Debug: Reset Client]} command.
 
 ---
