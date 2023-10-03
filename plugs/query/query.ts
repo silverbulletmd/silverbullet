@@ -20,7 +20,6 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
       ),
     );
 
-    // console.log("actual query", parsedQuery);
     const eventName = `query:${parsedQuery.querySource}`;
 
     let resultMarkdown = "";

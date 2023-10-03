@@ -7,7 +7,7 @@ Before we get to the nitty gritty, some _quick links_ for the impatient reader: 
 Now that we got that out of the way let’s have a look at some of SilverBullet’s features.
 
 ## Features
-* Runs in any modern browser (including on mobile) as a [[PWA]] in two potential [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
+* Runs in any modern browser (including on mobile) as a [[PWA]] in two [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as “Linked Mentions” at the bottom of the pages linked to thereby providing _bi-directional linking_.
 * Optimized for **keyboard-based operation**:
@@ -31,7 +31,7 @@ Here’s the kicker:
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally. (Note that a few other features including _directive_ updating are also disabled.)
+On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally.
 
 Don’t just sit there, try it!
 
@@ -43,7 +43,6 @@ Don’t just sit there, try it!
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to invoke a **slash command**.
-* Hit `Cmd-p` (Mac) or `Ctrl-p` (Windows, Linux) to show a live preview for the current page on the side, if your brain doesn’t speak native Markdown yet.
 * Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
 * Open this site on your phone or tablet and... it just works!
 * Are you using a browser with **PWA support** (e.g., any Chromium-based
@@ -70,6 +69,13 @@ or YAML:
 name: SilverBullet
 rating: 5
 ```
+
+But where things get really interesting when using features like [[Live Queries]]. For instance, here are:
+
+```query
+page order by name desc limit 5 
+```
+
 
 ## Install SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to the [[Install]] and enjoy!

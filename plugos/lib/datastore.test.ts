@@ -16,6 +16,28 @@ async function test(db: KvPrimitives) {
     filter: ["=", ["attr", "name"], ["string", "Peter"]],
   });
   assertEquals(results, [{ key: ["user", "peter"], value: { name: "Peter" } }]);
+
+  assertEquals(
+    [{ key: ["user", "hank"], value: { name: "Hank" } }, {
+      key: ["user", "peter"],
+      value: { name: "Peter" },
+    }],
+    await datastore.query({
+      prefix: ["user"],
+      orderBy: [{ expr: ["attr", "name"], desc: false }],
+    }),
+  );
+  assertEquals(
+    [{ key: ["user", "peter"], value: { name: "Peter" } }, {
+      key: ["user", "hank"],
+      value: { name: "Hank" },
+    }],
+    await datastore.query({
+      prefix: ["user"],
+      orderBy: [{ expr: ["attr", "name"], desc: true }],
+    }),
+  );
+
   await datastore.batchSet<any>([
     { key: ["kv", "name"], value: "Zef" },
     { key: ["kv", "data"], value: new Uint8Array([1, 2, 3]) },

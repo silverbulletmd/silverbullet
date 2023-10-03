@@ -181,7 +181,7 @@ export function applyQueryNoFilterKV(
 ): KV[] {
   // Order by
   if (query.orderBy) {
-    allItems.sort((a, b) => {
+    allItems = allItems.sort((a, b) => {
       const aVal = a.value;
       const bVal = b.value;
       for (const { expr, desc } of query.orderBy!) {

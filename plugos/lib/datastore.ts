@@ -83,7 +83,8 @@ export class DataStore {
       results.push(entry);
       itemCount++;
       // Stop when the limit has been reached
-      if (itemCount === limit) {
+      if (itemCount === limit && !query.orderBy) {
+        // Only break when not also ordering in which case we need all results
         break;
       }
     }
