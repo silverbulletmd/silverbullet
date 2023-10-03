@@ -1,5 +1,6 @@
 import { WidgetContent } from "$sb/app_event.ts";
 import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
+import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
 import { prepareJS, wrapHTML } from "./util.ts";
 
@@ -20,16 +21,12 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
   try {
     const config: TemplateConfig = await YAML.parse(bodyText);
     let templateText = config.template || "";
-    if (config.page) {
-      let page = config.page;
-      if (!page) {
-        throw new Error("Missing `page`");
+    let templatePage = config.page;
+    if (templatePage) {
+      if (templatePage.startsWith("[[")) {
+        templatePage = templatePage.slice(2, -2);
       }
-
-      if (page.startsWith("[[")) {
-        page = page.slice(2, -2);
-      }
-      templateText = await space.readPage(page);
+      templateText = await space.readPage(templatePage);
     }
 
     const rendered = config.raw
@@ -42,6 +39,10 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
         },
       );
     const parsedMarkdown = await markdown.parseMarkdown(rendered);
+
+    if (templatePage) {
+      rewritePageRefs(parsedMarkdown, templatePage);
+    }
     const html = renderMarkdownToHtml(parsedMarkdown, {
       smartHardBreak: true,
     });
