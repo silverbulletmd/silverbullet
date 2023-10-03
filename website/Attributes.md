@@ -32,11 +32,9 @@ However, usually [[Frontmatter]] is be used for this purpose instead.
 
 Example query:
 
-<!-- #query page where name = "{{@page.name}}" select name, pageAttribute -->
-|name      |pageAttribute|
-|----------|-----|
-|Attributes|hello|
-<!-- /query -->
+```query
+page where name = "{{@page.name}}" select name, pageAttribute 
+```
 
 This attaches an attribute to an item:
 
@@ -44,11 +42,9 @@ This attaches an attribute to an item:
 
 Example query:
 
-<!-- #query specialitem where itemAttribute = "hello" select name, itemAttribute -->
-|name              |itemAttribute|
-|------------------|-----|
-|Item  #specialitem|hello|
-<!-- /query -->
+```query
+specialitem where itemAttribute = "hello" select name, itemAttribute 
+```
 
 This attaches an attribute to a task:
 
@@ -56,8 +52,6 @@ This attaches an attribute to a task:
 
 Example query:
 
-<!-- #query task where page = "Attributes" and taskAttribute = "hello" select name, taskAttribute -->
-|name|taskAttribute|
-|----|-----|
-|Task|hello|
-<!-- /query -->
+```query
+task where page = "Attributes" and taskAttribute = "hello" select name, taskAttribute 
+```

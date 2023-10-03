@@ -1,5 +1,11 @@
-import { ParseTree, renderToText } from "$sb/lib/tree.ts";
+import {
+  addParentPointers,
+  findParentMatching,
+  ParseTree,
+  renderToText,
+} from "$sb/lib/tree.ts";
 import { PageMeta } from "$sb/types.ts";
+import { editor, markdown } from "$sb/syscalls.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";
 import { queryDirectiveRenderer } from "./query_directive.ts";

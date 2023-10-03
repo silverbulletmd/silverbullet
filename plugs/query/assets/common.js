@@ -7,6 +7,13 @@ async function init() {
     api({ type: "reload" });
   });
 
+  document.querySelectorAll("a[data-ref]").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      syscall("editor.navigate", el.dataset.ref);
+    });
+  });
+
   // Find all fenced code blocks and replace them with iframes (if a code widget is defined for them)
   const allWidgets = document.querySelectorAll("pre[data-lang]");
   for (const widget of allWidgets) {
@@ -90,7 +97,6 @@ async function init() {
       );
     });
   });
-
 }
 
 init().catch(console.error);

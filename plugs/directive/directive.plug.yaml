@@ -29,6 +29,12 @@ functions:
     events:
       - editor:complete
 
+  # Conversion
+  convertToLiveQuery:
+    path: command.ts:convertToLiveQuery
+    command:
+      name: "Directive: Convert Query to Live Query"
+
   # Templates
   insertEvalTemplate:
     redirect: template.insertTemplateText

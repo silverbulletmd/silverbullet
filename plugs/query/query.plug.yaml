@@ -6,9 +6,9 @@ functions:
     path: query.ts:widget
     codeWidget: query
 
-  useWidget:
-    path: use.ts:widget
-    codeWidget: use
+  templateWidget:
+    path: template.ts:widget
+    codeWidget: template
 
   queryComplete:
     path: complete.ts:queryComplete
@@ -37,9 +37,9 @@ functions:
   insertUseTemplate:
     redirect: template.insertTemplateText
     slashCommand:
-      name: use
+      name: template
       description: Use a template
       value: |
-        ```use
-        template: "[[|^|]]"
+        ```template
+        page: "[[|^|]]"
         ```

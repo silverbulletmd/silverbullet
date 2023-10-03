@@ -3,9 +3,12 @@ type: plug
 repo: https://github.com/silverbulletmd/silverbullet
 ---
 
+> **Warning** Deprecated
+> Directives are now deprecated and will likely soon be removed, use [[Live Templates]] and [[Live Queries]] instead.
+
 The directive plug is a built-in plug implementing various so-called “directive” that all take the form of `<!-- #directiveName ... -->` and close with `<!-- /directiveName -->`. Currently the following directives are supported:
 
-* `#query` to perform queries: [[Query]]
+* `#query` to perform queries: [[Live Queries]]
 * `#include` to inline the content of another page verbatim: [[@include]]
 * `#use` to use the content of another as a [handlebars](https://handlebarsjs.com/) template: [[@use]]
 * `#eval` to evaluate an arbitrary JavaScript expression and inline the result: [[@eval]]
@@ -63,7 +66,7 @@ However, you can also invoke arbitrary plug functions, e.g. the `titleUnfurlOpti
     |title-unfurl|Extract title|
     <!-- /eval -->
 
-Optionally, you can use a `render` clause to render the result as a template, similar to [[Query]]:
+Optionally, you can use a `render` clause to render the result as a template, similar to [[Live Queries]]:
 
     <!-- #eval editor.titleUnfurlOptions() render [[template/debug]] -->
     id: title-unfurl

@@ -45,7 +45,8 @@ function languageLookup(name: string): Language | null {
   switch (name) {
     case "meta":
     case "yaml":
-    case "use":
+    case "template":
+    case "embed":
     case "data":
       return StreamLanguage.define(yamlLanguage);
 

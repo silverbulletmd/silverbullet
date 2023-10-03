@@ -1,5 +1,5 @@
 body {
-    font-family: var(--ui-font);
+    font-family: var(--editor-font);
     background-color: var(--root-background-color);
     color: var(--root-color);
     overflow: scroll;
@@ -26,7 +26,6 @@ body:active #button-bar {
     border: none;
     background: none;
     cursor: pointer;
-    /* margin-left: -12px; */
     color: var(--root-color);
 }
 

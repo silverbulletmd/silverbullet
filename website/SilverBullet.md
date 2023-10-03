@@ -9,12 +9,12 @@ Now that we got that out of the way let’s have a look at some of SilverBullet�
 ## Features
 * Runs in any modern browser (including on mobile) as a [[PWA]] in two potential [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
-* Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed.
+* Supports wiki-style **page linking** using the `[[page link]]` syntax, even keeping links up-to-date when pages are renamed. When pages have incoming links, they are listed at the bottom of the page under “Linked Mentions”.
 * Optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[🔌 Core/Slash Commands|slash commands]] to perform common text editing operations.
-* Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for annotating pages with [[Frontmatter]] and [[🔌 Directive|directives]] (such as [[🔌 Directive/Query|#query]]), making parts of pages _dynamic_.
+* Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for [[Objects]], [[Live Queries]] and [[Live Templates]].
 * Robust extension mechanism using [[🔌 Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.

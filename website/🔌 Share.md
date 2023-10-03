@@ -8,9 +8,6 @@ The Share plug provides infrastructure for sharing pages outside of your space. 
 See the [original RFC](https://github.com/silverbulletmd/silverbullet/discussions/117) for implementation details.
 
 Specific implementations for sharing are implemented in other plugs, specifically:
-<!-- #query page where share-support = true render [[template/page]] -->
-* [[🔌 Ghost]]
-* [[🔌 Github]]
-* [[🔌 Markdown]]
-* [[🔌 Mattermost]]
-<!-- /query -->
+```query
+page where share-support = true render [[template/page]] 
+```
