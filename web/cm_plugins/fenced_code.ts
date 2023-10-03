@@ -52,13 +52,15 @@ class IFrameWidget extends WidgetType {
       },
     );
 
+    iframe.style.height = `${this.estimatedHeight}px`;
+
     return iframe;
   }
 
   get estimatedHeight(): number {
     const cachedHeight = this.editor.space.getCachedWidgetHeight(this.bodyText);
-    // console.log("Calling estimated height", cachedHeight);
-    return cachedHeight || 150;
+    console.log("Calling estimated height", cachedHeight);
+    return cachedHeight > 0 ? cachedHeight : 150;
   }
 
   eq(other: WidgetType): boolean {
