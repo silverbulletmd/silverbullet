@@ -1,6 +1,7 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
+import { template } from "https://esm.sh/v130/handlebars@4.7.7/runtime.d.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -62,9 +63,10 @@ export async function ensureSettingsAndIndex(
         new TextEncoder().encode(
           `Hello! And welcome to your brand new SilverBullet space!
 
-<!-- #use [[!silverbullet.md/Getting Started]] -->
-Loading some onboarding content for you (but doing so does require a working internet connection)...
-<!-- /use -->`,
+\`\`\`template
+page: "[[!silverbullet.md/Getting Started]]"
+\`\`\`
+`,
         ),
       );
     }

@@ -18,24 +18,15 @@ Notice that as you move your cursor around on this page and you get close to or 
 
 Hadn’t we mentioned [[Markdown]] yet? Yeah, that’s the markup language you’ll use to add that dash of markup to your documents. It’s pretty simple to learn if you don’t know it already.
 
-You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[Live Templates]], which embeds another (sometime external) page into the existing one.
+You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[Live Templates]], which embeds another (sometime external) page into the existing one. If you hover over this section, you’ll notice a small _refresh_ and _edit_ button. Hit that edit button to reveal the underlying source that renders this content.
 
-But SilverBullet has even more tricks up its sleeve. Consider [[Live Queries]] which allow you to query [[Objects]] in your space easily.
+SilverBullet has even more tricks up its sleeve. Consider [[Live Queries]] which allow you to query [[Objects]] in your space easily.
 
 Don’t believe me? Check this out, here’s a list of (max 10) pages in your space ordered by name, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
 ```query
 page select name order by name limit 10 
 ```
-
-That said, the directive used wrapping this page section is `#use` which uses the content of another page as a template and inlines it. Directives recalculate their bodies in two scenarios:
-
-1. When you load/switch to a page
-2. When you explicitly run the {[Directives: Update]} command
-
-In the case of `#use` this means the body will again be replaced with the page included, so don’t be surprised when whatever you just updated inside of this directive block will be undone later. Just sayin’. [[🔌 Directive|Directives]] are a powerful feature, so you should definitely look into them once you get comfortable with the basics.
-
-Feel free to completely remove all content on this page and make it your own, it’s just to get you started.
 
 ## What next?
 If you are a visual learner, you may [enjoy this introduction video on Youtube](https://youtu.be/VemS-cqAD5k).
