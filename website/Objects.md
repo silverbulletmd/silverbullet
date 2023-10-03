@@ -1,4 +1,4 @@
-#meta-tag
+#core
 
 SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries]] this database in (potentially) useful ways.
 
@@ -26,7 +26,7 @@ Every object has one or more tags, defining the types of an object. Some tags ar
 Here are the currently built-in tags:
 
 ## page
-Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph of your page_, as is done in this particular page with a #meta-tag.
+Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph of your page_, as is done with the #core tag at the beginning of this page.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 

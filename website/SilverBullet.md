@@ -70,12 +70,22 @@ name: SilverBullet
 rating: 5
 ```
 
-But where things get really interesting when using features like [[Live Queries]]. For instance, here are:
+But where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your space. 
+
+Let’s explore this with a meta example of using this for this very website. All pages in this space that represent a plug are tagged with the #plug tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
 
 ```query
-page order by name desc limit 5 
+plug render [[template/plug]]
 ```
+Hover over that list, click the edit button to see the query that generates this view.
 
+And it’s not just pages that can be queried, there’s a large variety of queriable sources and you can define your own via tags. Examples include `task`s, `page`s, `tag`s, and `link`s.
+
+For instance, here’s a list of all outgoing page links from this page:
+```query
+link where page = "{{@page.name}}" select toPage as name render [[template/page]]
+```
+The sky is the limit.
 
 ## Install SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to the [[Install]] and enjoy!

@@ -1,7 +1,4 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
----
+#plug
 
 The [[🔌 Template]] plug implements a few templating mechanisms.
 

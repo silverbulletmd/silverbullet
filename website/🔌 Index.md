@@ -1,7 +1,5 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
----
+#plug
+
 SilverBullet has a generic indexing infrastructure. Pages are reindexed upon saving, so about every second. 
 
 The [[🔌 Index]] plug also defines syntax for [[Tags]]

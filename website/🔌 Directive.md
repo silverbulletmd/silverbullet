@@ -1,7 +1,4 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
----
+#plug
 
 > **Warning** Deprecated
 > Directives are now deprecated and will likely soon be removed, use [[Live Templates]] and [[Live Queries]] instead.

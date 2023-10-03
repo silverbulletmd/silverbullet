@@ -1,7 +1,4 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
----
+#plug
 
 The `editor` plug implements foundational editor functionality for SilverBullet.
 

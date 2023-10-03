@@ -1,8 +1,4 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
-share-support: true
----
+#share-support #plug
 
 The Markdown plug provides support for various advanced Markdown features, specifically:
 

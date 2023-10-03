@@ -1,7 +1,4 @@
----
-type: plug
-repo: https://github.com/silverbulletmd/silverbullet
----
+#plug
 
 The Tasks plug implements task support in SilverBullet.
 
