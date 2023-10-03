@@ -20,6 +20,7 @@ body:active #button-bar {
     top: 3px;
     display: none;
     background: rgb(255 255 255 / 0.9);
+    padding: 0 3px;
 }
 
 #button-bar button {
@@ -27,6 +28,10 @@ body:active #button-bar {
     background: none;
     cursor: pointer;
     color: var(--root-color);
+}
+
+#edit-button {
+    margin-left: -10px;
 }
 
 li code {

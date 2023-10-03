@@ -50,7 +50,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     for await (
       const entry of tx.store.iterate(IDBKeyRange.bound(
         this.buildKey([...prefix, ""]),
-        this.buildKey([...prefix, "\ufffe"]),
+        this.buildKey([...prefix, "\uffff"]),
       ))
     ) {
       yield { key: this.extractKey(entry.key), value: entry.value };

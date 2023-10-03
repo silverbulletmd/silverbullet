@@ -3,6 +3,19 @@ release.
 
 ---
 
+## 0.5.0
+Oh boy, this is a big one. This release brings you the following:
+
+* [[Objects]]: a more generic system to indexing and querying content in your space, including the ability to define your own custom object “types” (dubbed [[Tags]]). See the referenced pages for examples.
+* [[Live Queries]] and [[Live Templates]]: ultimately will replace [[🔌 Directive]] in future versions and **[[🔌 Directive]] is now deprecated.** They differ from directives in that they don’t materialize their output into the page itself, but rather render them on the fly so only the query/template instantiation is kept on disk. All previous directive examples on this website how now been replaced with [[Live Templates]] and [[Live Queries]]. To ease the conversion there is {[Directive: Convert Query to Live Query]} command: just put your cursor inside of an existing (query) directive and run it to auto-convert.
+* The query syntax used in [[Live Queries]] (but also used in [[🔌 Directive]]) has been significantly expanded, although there may still be bugs. There’s still more value to be unlocked here in future releases.
+* The previous “backlinks” plug is now built into SilverBullet as [[Linked Mentions]] and appears at the bottom of every page (if there are incoming links). You can toggle linked mentions via {[Mentions: Toggle]}.
+* A whole bunch of [[PlugOS]] syscalls have been updated, I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
+
+Due to significant changes in how data is stored, likely your space will be resynced to all your clients once you upgrade. Just in case you may also want to {[Space: Reindex]} your space. If things are really broken, try the {[Debug: Reset Client]} command.
+
+---
+
 ## 0.4.0
 The big change in this release is that SilverBullet now supports two [[Client Modes|client modes]]: _online_ mode and _sync_ mode. Read more about them here: [[Client Modes]].
 

@@ -14,7 +14,7 @@ It’s most convenient to use `/query` [[Slash Commands]] to insert a query in a
 
 For those comfortable reading such things [here you can find the full query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
 
-The general syntax is to specify a `querySource` followed by a number of clauses that modify or restrict.
+The general syntax is to specify a `querySource` followed by a number of clauses that modify or restrict. If you haven’t already, check out how [[Objects]] work in SilverBullet.
 
 ## Clauses
 ## `where` [[@expression]]

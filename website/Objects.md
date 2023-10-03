@@ -11,10 +11,13 @@ Some examples of things you can query for:
 By design, the truth remains in the markdown: all data indexed into objects will have a representation in markdown text as well. The index can be flushed at any time and be rebuilt from markdown files.
 
 # Object representation
-Every object has a set of [[Attributes]]:
+Every object has a set of [[Attributes]].
+
+At the very least:
 * `ref`: a unique _identifier_ (unique to the page, at least), often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
 * `tags`: an array of type(s) of an object, see [[@tags]].
-* Any number of additional tag-specific and custom [[Attributes]].
+
+In addition, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
 $tags
@@ -23,7 +26,7 @@ Every object has one or more tags, defining the types of an object. Some tags ar
 Here are the currently built-in tags:
 
 ## page
-Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph_ of your page, as is done in this particular page with a #meta-tag.
+Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph of your page_, as is done in this particular page with a #meta-tag.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
