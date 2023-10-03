@@ -1,4 +1,5 @@
 import {
+  collectNodesOfType,
   findNodeOfType,
   ParseTree,
   renderToText,
@@ -115,9 +116,13 @@ function render(
     case "FencedCode":
     case "CodeBlock": {
       // Clear out top-level indent blocks
+      const lang = findNodeOfType(t, "CodeInfo");
       t.children = t.children!.filter((c) => c.type);
       return {
         name: "pre",
+        attrs: {
+          "data-lang": lang ? lang.children![0].text : undefined,
+        },
         body: cleanTags(mapRender(t.children!)),
       };
     }
@@ -235,6 +240,7 @@ function render(
         name: "a",
         attrs: {
           href: `/${ref.replace("@", "#")}`,
+          "data-ref": ref,
         },
         body: linkText,
       };
@@ -255,12 +261,25 @@ function render(
         body: t.children![0].text!,
       };
 
-    case "Task":
+    case "Task": {
+      let externalTaskRef = "";
+      collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
+        const ref = wikilink.children![0].text!;
+        if (!externalTaskRef && ref.includes("@")) {
+          externalTaskRef = ref;
+        }
+      });
+
       return {
         name: "span",
+        attrs: externalTaskRef
+          ? {
+            "data-external-task-ref": externalTaskRef,
+          }
+          : {},
         body: cleanTags(mapRender(t.children!)),
       };
-
+    }
     case "TaskState": {
       // child[0] = marker, child[1] = state, child[2] = marker
       const stateText = t.children![1].text!;
@@ -269,8 +288,8 @@ function render(
           name: "input",
           attrs: {
             type: "checkbox",
-            checked: t.children![0].text !== "[ ]" ? "checked" : undefined,
-            "data-onclick": JSON.stringify(["task", t.to]),
+            checked: stateText !== " " ? "checked" : undefined,
+            "data-state": stateText,
           },
           body: "",
         };

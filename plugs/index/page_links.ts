@@ -1,48 +1,53 @@
-import { index } from "$sb/syscalls.ts";
-import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
-import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
+import { IndexTreeEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
-import { indexAttributes } from "./attributes.ts";
+import { indexObjects, queryObjects } from "./api.ts";
+import { ObjectValue } from "$sb/types.ts";
 
-// Key space:
-//   l:toPage:pos => {name: pageName, inDirective: true, asTemplate: true}
-
-export const backlinkPrefix = `l:`;
-
-export type BacklinkEntry = {
-  name: string;
+export type LinkObject = {
+  ref: string;
+  tags: string[];
+  // The page the link points to
+  toPage: string;
+  // The page the link occurs in
+  page: string;
+  pos: number;
+  snippet: string;
   alias?: string;
-  inDirective?: boolean;
-  asTemplate?: boolean;
+  inDirective: boolean;
+  asTemplate: boolean;
 };
 
+export function extractSnippet(text: string, pos: number): string {
+  let prefix = "";
+  for (let i = pos - 1; i > 0; i--) {
+    if (text[i] === "\n") {
+      break;
+    }
+    prefix = text[i] + prefix;
+    if (prefix.length > 25) {
+      break;
+    }
+  }
+  let suffix = "";
+  for (let i = pos; i < text.length; i++) {
+    if (text[i] === "\n") {
+      break;
+    }
+    suffix += text[i];
+    if (suffix.length > 25) {
+      break;
+    }
+  }
+  return prefix + suffix;
+}
+
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
-  const backLinks: { key: string; value: BacklinkEntry }[] = [];
+  const links: ObjectValue<LinkObject>[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
-  const pageMeta = await extractFrontmatter(tree);
-  const toplevelAttributes = await extractAttributes(tree, false);
-  if (
-    Object.keys(pageMeta).length > 0 ||
-    Object.keys(toplevelAttributes).length > 0
-  ) {
-    for (const [k, v] of Object.entries(toplevelAttributes)) {
-      pageMeta[k] = v;
-    }
-    // Don't index meta data starting with $
-    for (const key in pageMeta) {
-      if (key.startsWith("$")) {
-        delete pageMeta[key];
-      }
-    }
-    // console.log("Extracted page meta data", pageMeta);
-    await index.set(name, "meta:", pageMeta);
-  }
 
-  await indexAttributes(name, pageMeta, "page");
+  const pageText = renderToText(tree);
 
   let directiveDepth = 0;
   traverseTree(tree, (n): boolean => {
@@ -54,9 +59,16 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           name,
           pageRef.children![0].text!.slice(2, -2),
         );
-        backLinks.push({
-          key: `${backlinkPrefix}${pageRefName}:${pageRef.from! + 2}`,
-          value: { name, asTemplate: true },
+        const pos = pageRef.from! + 2;
+        links.push({
+          ref: `${name}@${pos}`,
+          tags: ["link"],
+          toPage: pageRefName,
+          pos: pos,
+          snippet: extractSnippet(pageText, pos),
+          page: name,
+          asTemplate: true,
+          inDirective: false,
         });
       }
       const directiveText = n.children![0].text;
@@ -65,18 +77,23 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         const match = /\[\[(.+)\]\]/.exec(directiveText);
         if (match) {
           const pageRefName = resolvePath(name, match[1]);
-          backLinks.push({
-            key: `${backlinkPrefix}${pageRefName}:${
-              n.from! + match.index! + 2
-            }`,
-            value: { name, asTemplate: true },
+          const pos = n.from! + match.index! + 2;
+          links.push({
+            ref: `${name}@${pos}`,
+            tags: ["link"],
+            toPage: pageRefName,
+            page: name,
+            snippet: extractSnippet(pageText, pos),
+            pos: pos,
+            asTemplate: true,
+            inDirective: false,
           });
         }
       }
 
       return true;
     }
-    if (n.type === "DirectiveStop") {
+    if (n.type === "DirectiveEnd") {
       directiveDepth--;
       return true;
     }
@@ -85,66 +102,39 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
       let toPage = resolvePath(name, wikiLinkPage.children![0].text!);
+      const pos = wikiLinkPage.from!;
       if (toPage.includes("@")) {
         toPage = toPage.split("@")[0];
       }
-      const blEntry: BacklinkEntry = { name };
+      const link: LinkObject = {
+        ref: `${name}@${pos}`,
+        tags: ["link"],
+        toPage: toPage,
+        snippet: extractSnippet(pageText, pos),
+        pos,
+        page: name,
+        inDirective: false,
+        asTemplate: false,
+      };
       if (directiveDepth > 0) {
-        blEntry.inDirective = true;
+        link.inDirective = true;
       }
       if (wikiLinkAlias) {
-        blEntry.alias = wikiLinkAlias.children![0].text!;
+        link.alias = wikiLinkAlias.children![0].text!;
       }
-      backLinks.push({
-        key: `${backlinkPrefix}${toPage}:${wikiLinkPage.from}`,
-        value: blEntry,
-      });
+      links.push(link);
       return true;
     }
     return false;
   });
   // console.log("Found", backLinks, "page link(s)");
-  await index.batchSet(name, backLinks);
+  await indexObjects(name, links);
 }
 
-export async function linkQueryProvider({
-  query,
-  pageName,
-}: QueryProviderEvent): Promise<any[]> {
-  const links: any[] = [];
-  for (
-    const { value: blEntry, key } of await index.queryPrefix(
-      `${backlinkPrefix}${pageName}:`,
-    )
-  ) {
-    const [, , pos] = key.split(":"); // Key: l:page:pos
-    if (!blEntry.inDirective) {
-      blEntry.inDirective = false;
-    }
-    if (!blEntry.asTemplate) {
-      blEntry.asTemplate = false;
-    }
-    links.push({ ...blEntry, pos });
-  }
-  return applyQuery(query, links);
-}
-
-type BackLinkPage = {
-  page: string;
-  pos: number;
-};
-
-export async function getBackLinks(pageName: string): Promise<BackLinkPage[]> {
-  const allBackLinks = await index.queryPrefix(
-    `${backlinkPrefix}${pageName}:`,
-  );
-  const pagesToUpdate: BackLinkPage[] = [];
-  for (const { key, value: { name } } of allBackLinks) {
-    const keyParts = key.split(":");
-    pagesToUpdate.push({
-      page: name,
-      pos: +keyParts[keyParts.length - 1],
-    });
-  }
-  return pagesToUpdate;
+export async function getBackLinks(
+  pageName: string,
+): Promise<LinkObject[]> {
+  return (await queryObjects<LinkObject>("link", {
+    filter: ["=", ["attr", "toPage"], ["string", pageName]],
+  }));
 }

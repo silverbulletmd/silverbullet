@@ -16,31 +16,14 @@ Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.j
 
 ## Core plugs
 These plugs are distributed with SilverBullet and are automatically enabled:
-<!-- #query page where type = "plug" and uri = null order by name render [[template/plug]] -->
-* [[🔌 Directive]] 
-* [[🔌 Editor]] 
-* [[🔌 Emoji]] 
-* [[🔌 Index]] 
-* [[🔌 Markdown]] 
-* [[🔌 Share]] 
-* [[🔌 Tasks]] 
-* [[🔌 Template]]
-<!-- /query -->
-
+```query
+page where type = "plug" and uri = null order by name render [[template/plug]]
+```
 ## Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution:
-<!-- #query page where type = "plug" and uri != null order by name render [[template/plug]] -->
-* [[🔌 Backlinks]] by **Guillermo Vayá** ([repo](https://github.com/silverbulletmd/silverbullet-backlinks))
-* [[🔌 Ghost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-ghost))
-* [[🔌 Git]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-git))
-* [[🔌 Github]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-github))
-* [[🔌 Graph View]] by **Bertjan Broeksema** ([repo](https://github.com/silverbulletmd/silverbullet-graphview))
-* [[🔌 KaTeX]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-katex))
-* [[🔌 Mattermost]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mattermost))
-* [[🔌 Mermaid]] by **Zef Hemel** ([repo](https://github.com/silverbulletmd/silverbullet-mermaid))
-* [[🔌 Serendipity]] by **Pantelis Vratsalis** ([repo](https://github.com/m1lt0n/silverbullet-serendipity))
-* [[🔌 Twitter]] by **SilverBullet Authors** ([repo](https://github.com/silverbulletmd/silverbullet-twitter))
-<!-- /query -->
+```query
+page where type = "plug" and uri != null order by name render [[template/plug]]
+```
 
 ## How to develop your own plug
 The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.

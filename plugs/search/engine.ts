@@ -1,4 +1,5 @@
 import { stemmer } from "https://esm.sh/porter-stemmer@0.9.1";
+import { KV, KvKey } from "$sb/types.ts";
 
 export type Document = {
   id: string;
@@ -6,10 +7,9 @@ export type Document = {
 };
 
 export interface BatchKVStore {
-  get(keys: string[]): Promise<(any | undefined)[]>;
-  set(entries: Map<string, any>): Promise<void>;
-  delete(keys: string[]): Promise<void>;
-  queryPrefix(prefix: string): Promise<[string, any][]>;
+  batchSet(kvs: KV[]): Promise<void>;
+  batchDel(keys: KvKey[]): Promise<void>;
+  query(options: { prefix: KvKey }): Promise<KV[]>;
 }
 
 type ResultObject = {
@@ -22,7 +22,7 @@ export class SimpleSearchEngine {
 
   constructor(
     public index: BatchKVStore,
-    public reverseIndex: BatchKVStore,
+    // public reverseIndex: BatchKVStore,
   ) {
   }
 
@@ -68,8 +68,16 @@ export class SimpleSearchEngine {
 
     // console.log("updateIndexMap", updateIndexMap);
 
-    await this.index.set(updateIndexMap);
-    await this.reverseIndex.set(updateReverseIndexMap);
+    await this.index.batchSet(
+      [...updateIndexMap.entries()].map((
+        [key, value],
+      ) => ({ key: ["fts", ...key.split("!")], value: value })),
+    );
+    await this.index.batchSet(
+      [...updateReverseIndexMap.entries()].map((
+        [key, value],
+      ) => ({ key: ["fts_rev", ...key.split("!")], value: value })),
+    );
   }
 
   // Search for a phrase and return document ids sorted by match count
@@ -82,9 +90,9 @@ export class SimpleSearchEngine {
     const matchCounts: Map<string, number> = new Map(); // pageName -> count
 
     for (const stemmedWord of stemmedWords) {
-      const entries = await this.index.queryPrefix(`${stemmedWord}!`);
-      for (const [key, value] of entries) {
-        const id = key.split("!").slice(1).join("!");
+      const entries = await this.index.query({ prefix: ["fts", stemmedWord] });
+      for (const { key, value } of entries) {
+        const id = key[2];
         if (matchCounts.has(id)) {
           matchCounts.set(id, matchCounts.get(id)! + value);
         } else {
@@ -102,17 +110,15 @@ export class SimpleSearchEngine {
 
   // Delete a document from the index
   public async deleteDocument(documentId: string): Promise<void> {
-    const words: [string, boolean][] = await this.reverseIndex.queryPrefix(
-      `${documentId}!`,
-    );
-    const keysToDelete: string[] = [];
-    const revKeysToDelete: string[] = [];
-    for (const [wordKey] of words) {
-      const word = wordKey.split("!").slice(1).join("!");
-      keysToDelete.push(`${word}!${documentId}`);
-      revKeysToDelete.push(wordKey);
+    const words = await this.index.query({
+      prefix: ["fts_rev", documentId],
+    });
+    const keysToDelete: KvKey[] = [];
+    for (const { key } of words) {
+      const word = key[2];
+      keysToDelete.push(["fts", word, documentId]);
+      keysToDelete.push(key);
     }
-    await this.index.delete(keysToDelete);
-    await this.reverseIndex.delete(revKeysToDelete);
+    await this.index.batchDel(keysToDelete);
   }
 }

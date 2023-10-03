@@ -1,5 +1,8 @@
 import { editor, markdown, mq, space, sync } from "$sb/syscalls.ts";
 import {
+  addParentPointers,
+  findParentMatching,
+  nodeAtPos,
   ParseTree,
   removeParentPointers,
   renderToText,
@@ -7,9 +10,8 @@ import {
 } from "$sb/lib/tree.ts";
 import { renderDirectives } from "./directives.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import type { PageMeta } from "../../web/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
-import { MQMessage } from "$sb/types.ts";
+import { MQMessage, PageMeta } from "$sb/types.ts";
 import { sleep } from "$sb/lib/async.ts";
 
 const directiveUpdateQueueName = "directiveUpdateQueue";
@@ -199,4 +201,31 @@ export async function updateDirectives(
     );
   }
   return text;
+}
+
+export async function convertToLiveQuery() {
+  const text = await editor.getText();
+  const pos = await editor.getCursor();
+  const tree = await markdown.parseMarkdown(text);
+  addParentPointers(tree);
+  const currentNode = nodeAtPos(tree, pos);
+  const directive = findParentMatching(
+    currentNode!,
+    (node) => node.type === "Directive",
+  );
+  if (!directive) {
+    await editor.flashNotification(
+      "No directive found at cursor position",
+      "error",
+    );
+    return;
+  }
+  const queryText = renderToText(directive!.children![0].children![1]);
+  await editor.dispatch({
+    changes: {
+      from: directive.from,
+      to: directive.to,
+      insert: "```query\n" + queryText + "\n```",
+    },
+  });
 }

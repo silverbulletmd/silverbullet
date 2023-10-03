@@ -1,4 +1,3 @@
-import { plugCompileCommand } from "../../cmd/plug_compile.ts";
 import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
 import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
 import { SyscallResponse } from "../../server/rpc.ts";

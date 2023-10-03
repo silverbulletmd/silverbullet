@@ -1,0 +1,45 @@
+name: query
+assets:
+  - "assets/*"
+functions:
+  queryWidget:
+    path: query.ts:widget
+    codeWidget: query
+
+  templateWidget:
+    path: template.ts:widget
+    codeWidget: template
+
+  queryComplete:
+    path: complete.ts:queryComplete
+    events:
+    - editor:complete
+
+  # Slash commands
+  insertQuery:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: query
+      description: Insert a query
+      value: |
+        ```query
+        |^|
+        ```
+  insertInclude:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: include
+      description: Include another page
+      value: |
+        <!-- #include [[|^|]] -->
+
+        <!-- /include -->
+  insertUseTemplate:
+    redirect: template.insertTemplateText
+    slashCommand:
+      name: template
+      description: Use a template
+      value: |
+        ```template
+        page: "[[|^|]]"
+        ```

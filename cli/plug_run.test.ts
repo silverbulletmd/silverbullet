@@ -8,7 +8,10 @@ import assets from "../dist/plug_asset_bundle.json" assert {
 import { assertEquals } from "../test_deps.ts";
 import { path } from "../common/deps.ts";
 
-Deno.test("Test plug run", async () => {
+Deno.test("Test plug run", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, async () => {
   // const tempDir = await Deno.makeTempDir();
   const tempDbFile = await Deno.makeTempFile({ suffix: ".db" });
 

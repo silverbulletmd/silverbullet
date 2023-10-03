@@ -1,10 +1,6 @@
-import type {
-  ClickEvent,
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "$sb/app_event.ts";
+import type { ClickEvent, IndexTreeEvent } from "$sb/app_event.ts";
 
-import { editor, index, markdown, space, sync } from "$sb/syscalls.ts";
+import { editor, markdown, space, sync } from "$sb/syscalls.ts";
 
 import {
   addParentPointers,
@@ -17,23 +13,31 @@ import {
   replaceNodesMatching,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { indexAttributes } from "../index/attributes.ts";
+import { ObjectValue } from "$sb/types.ts";
+import { indexObjects, queryObjects } from "../index/plug_api.ts";
 
-export type Task = {
+export type TaskObject = {
+  ref: string;
+  tags: string[];
+  page: string;
+  pos: number;
   name: string;
   done: boolean;
   state: string;
   deadline?: string;
-  tags?: string[];
-  nested?: string;
-  // Not saved in DB, just added when pulled out (from key)
-  pos?: number;
-  page?: string;
 } & Record<string, any>;
+
+export type TaskStateObject = {
+  ref: string;
+  tags: string[];
+  state: string;
+  count: number;
+  page: string;
+};
 
 function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");
@@ -43,27 +47,32 @@ const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const tasks: { key: string; value: Task }[] = [];
-  const taskStates = new Map<string, number>();
+  const tasks: ObjectValue<TaskObject>[] = [];
+  const taskStates = new Map<string, { count: number; firstPos: number }>();
   removeQueries(tree);
   addParentPointers(tree);
-  const allAttributes: Record<string, any> = {};
+  // const allAttributes: AttributeObject[] = [];
+  // const allTags = new Set<string>();
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
       return false;
     }
     const state = n.children![0].children![1].text!;
     if (!incompleteStates.includes(state) && !completeStates.includes(state)) {
-      if (!taskStates.has(state)) {
-        taskStates.set(state, 1);
-      } else {
-        taskStates.set(state, taskStates.get(state)! + 1);
+      let currentState = taskStates.get(state);
+      if (!currentState) {
+        currentState = { count: 0, firstPos: n.from! };
       }
+      currentState.count++;
     }
     const complete = completeStates.includes(state);
-    const task: Task = {
+    const task: TaskObject = {
+      ref: `${name}@${n.from}`,
+      tags: [],
       name: "",
       done: complete,
+      page: name,
+      pos: n.from!,
       state,
     };
 
@@ -76,65 +85,60 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
         return null;
       }
       if (tree.type === "Hashtag") {
-        if (!task.tags) {
-          task.tags = [];
-        }
         // Push the tag to the list, removing the initial #
-        task.tags.push(tree.children![0].text!.substring(1));
-        // Remove this node from the tree
-        // return null;
+        const tagName = tree.children![0].text!.substring(1);
+        task.tags.push(tagName);
       }
     });
+    task.tags = ["task", ...task.tags];
 
     // Extract attributes and remove from tree
     const extractedAttributes = await extractAttributes(n, true);
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
-      allAttributes[key] = value;
     }
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
-    const taskIndex = n.parent!.children!.indexOf(n);
-    const nestedItems = n.parent!.children!.slice(taskIndex + 1);
-    if (nestedItems.length > 0) {
-      task.nested = nestedItems.map(renderToText).join("").trim();
-    }
-    tasks.push({
-      key: `task:${n.from}`,
-      value: task,
-    });
+    tasks.push(task);
     return true;
   });
 
-  // console.log("Found", tasks, "task(s)");
-  await index.batchSet(name, tasks);
-  await indexAttributes(name, allAttributes, "task");
-  await index.batchSet(
-    name,
-    Array.from(taskStates.entries()).map(([state, count]) => ({
-      key: `taskState:${state}`,
-      value: count,
-    })),
-  );
+  // Index task states
+  if (taskStates.size > 0) {
+    await indexObjects<TaskStateObject>(
+      name,
+      Array.from(taskStates.entries()).map(([state, { firstPos, count }]) => ({
+        ref: `${name}@${firstPos}`,
+        tags: ["taskstate"],
+        state,
+        count,
+        page: name,
+      })),
+    );
+  }
+
+  // Index tasks themselves
+  if (tasks.length > 0) {
+    await indexObjects(name, tasks);
+  }
 }
 
 export function taskToggle(event: ClickEvent) {
   if (event.altKey) {
     return;
   }
-  return taskCycleAtPos(event.page, event.pos);
+  return taskCycleAtPos(event.pos);
 }
 
-export async function previewTaskToggle(eventString: string) {
+export function previewTaskToggle(eventString: string) {
   const [eventName, pos] = JSON.parse(eventString);
   if (eventName === "task") {
-    return taskCycleAtPos(await editor.getCurrentPage(), +pos);
+    return taskCycleAtPos(+pos);
   }
 }
 
 async function cycleTaskState(
-  pageName: string,
   node: ParseTree,
 ) {
   const stateText = node.children![1].text!;
@@ -145,8 +149,8 @@ async function cycleTaskState(
     changeTo = "x";
   } else {
     // Not a checkbox, but a custom state
-    const allStates = await index.queryPrefix("taskState:");
-    const states = [...new Set(allStates.map((s) => s.key.split(":")[1]))];
+    const allStates = await queryObjects<TaskStateObject>("taskstate", {});
+    const states = [...new Set(allStates.map((s) => s.state))];
     states.sort();
     // Select a next state
     const currentStateIndex = states.indexOf(stateText);
@@ -174,64 +178,73 @@ async function cycleTaskState(
   for (const wikiLink of parentWikiLinks) {
     const ref = wikiLink.children![0].text!;
     if (ref.includes("@")) {
-      const [page, posS] = ref.split("@");
-      const pos = +posS;
-      if (page === pageName) {
-        // In current page, just update the task marker with dispatch
-        const editorText = await editor.getText();
-        // Check if the task state marker is still there
-        const targetText = editorText.substring(
-          pos + 1,
-          pos + 1 + stateText.length,
-        );
-        if (targetText !== stateText) {
-          console.error(
-            "Reference not a task marker, out of date?",
-            targetText,
-          );
-          return;
-        }
-        await editor.dispatch({
-          changes: {
-            from: pos + 1,
-            to: pos + 1 + stateText.length,
-            insert: changeTo,
-          },
-        });
-      } else {
-        let text = await space.readPage(page);
-
-        const referenceMdTree = await markdown.parseMarkdown(text);
-        // Adding +1 to immediately hit the task state node
-        const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
-        if (!taskStateNode || taskStateNode.type !== "TaskState") {
-          console.error(
-            "Reference not a task marker, out of date?",
-            taskStateNode,
-          );
-          return;
-        }
-        taskStateNode.children![1].text = changeTo;
-        text = renderToText(referenceMdTree);
-        await space.writePage(page, text);
-        sync.scheduleFileSync(`${page}.md`);
-      }
+      await updateTaskState(ref, stateText, changeTo);
     }
   }
 }
 
-export async function taskCycleAtPos(pageName: string, pos: number) {
+export async function updateTaskState(
+  ref: string,
+  oldState: string,
+  newState: string,
+) {
+  const currentPage = await editor.getCurrentPage();
+  const [page, posS] = ref.split("@");
+  const pos = +posS;
+  if (page === currentPage) {
+    // In current page, just update the task marker with dispatch
+    const editorText = await editor.getText();
+    // Check if the task state marker is still there
+    const targetText = editorText.substring(
+      pos + 1,
+      pos + 1 + oldState.length,
+    );
+    if (targetText !== oldState) {
+      console.error(
+        "Reference not a task marker, out of date?",
+        targetText,
+      );
+      return;
+    }
+    await editor.dispatch({
+      changes: {
+        from: pos + 1,
+        to: pos + 1 + oldState.length,
+        insert: newState,
+      },
+    });
+  } else {
+    let text = await space.readPage(page);
+
+    const referenceMdTree = await markdown.parseMarkdown(text);
+    // Adding +1 to immediately hit the task state node
+    const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
+    if (!taskStateNode || taskStateNode.type !== "TaskState") {
+      console.error(
+        "Reference not a task marker, out of date?",
+        taskStateNode,
+      );
+      return;
+    }
+    taskStateNode.children![1].text = newState;
+    text = renderToText(referenceMdTree);
+    await space.writePage(page, text);
+    sync.scheduleFileSync(`${page}.md`);
+  }
+}
+
+export async function taskCycleAtPos(pos: number) {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   addParentPointers(mdTree);
 
   let node = nodeAtPos(mdTree, pos);
   if (node) {
-    if (node.type === "TaskMarker") {
+    if (node.type === "TaskMark") {
       node = node.parent!;
     }
     if (node.type === "TaskState") {
-      await cycleTaskState(pageName, node);
+      await cycleTaskState(node);
     }
   }
 }
@@ -265,7 +278,7 @@ export async function taskCycleCommand() {
   }
   const taskState = findNodeOfType(taskNode!, "TaskState");
   if (taskState) {
-    await cycleTaskState(await editor.getCurrentPage(), taskState);
+    await cycleTaskState(taskState);
   }
 }
 
@@ -317,20 +330,4 @@ export async function postponeCommand() {
       anchor: pos,
     },
   });
-}
-
-export async function queryProvider({
-  query,
-}: QueryProviderEvent): Promise<Task[]> {
-  const allTasks: Task[] = [];
-
-  for (const { key, page, value } of await index.queryPrefix("task:")) {
-    const pos = key.split(":")[1];
-    allTasks.push({
-      ...value,
-      page: page,
-      pos: +pos,
-    });
-  }
-  return applyQuery(query, allTasks);
 }

@@ -1,0 +1,45 @@
+body {
+    font-family: var(--editor-font);
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+    overflow: scroll;
+}
+
+ul li p {
+    margin: 0;
+}
+
+body:hover #button-bar,
+body:active #button-bar {
+    display: block;
+}
+
+#button-bar {
+    position: absolute;
+    right: 12px;
+    top: 3px;
+    display: none;
+    background: rgb(255 255 255 / 0.9);
+    padding: 0 3px;
+}
+
+#button-bar button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--root-color);
+}
+
+#edit-button {
+    margin-left: -10px;
+}
+
+li code {
+    font-size: 80%;
+    color: #a5a4a4;
+}
+
+iframe {
+    border: none;
+    width: 100%;
+}

@@ -308,7 +308,7 @@
     cursor: pointer;
   }
 
-  .sb-task-marker {
+  .sb-task-mark {
     font-size: 91%;
   }
 
@@ -448,9 +448,11 @@
     iframe {
       border: 0;
       width: 100%;
+      max-width: 100%;
       padding: 0;
       margin: 0;
-      max-width: 100%;
+      border: 1px solid var(--editor-directive-background-color);
+      border-radius: 5px;
     }
   }
 

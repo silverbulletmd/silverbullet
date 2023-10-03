@@ -14,9 +14,9 @@ A full manual is still missing, but this is an attempt to give pointers on topic
 * [[Markdown]]
   * [[Markdown/Syntax Highlighting]]
   * [[Markdown/Code Widgets]]
-* [[Metadata]]
+  * [[Live Queries]]
+  * [[Live Templates]]
+* [[Objects]]
   * [[Frontmatter]]
   * [[Attributes]]
-* [[🔌 Directive|Directives]]
-  * [[🔌 Directive/Query]]
 * [[SETTINGS]]: A few settings you can tweak

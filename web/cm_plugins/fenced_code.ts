@@ -1,5 +1,4 @@
 import { WidgetContent } from "../../plug-api/app_event.ts";
-import { panelHtml } from "../components/panel.tsx";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { CodeWidgetCallback } from "../hooks/code_widget.ts";
@@ -8,8 +7,11 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 class IFrameWidget extends WidgetType {
+  iframe?: HTMLIFrameElement;
+
   constructor(
     readonly from: number,
     readonly to: number,
@@ -21,69 +23,42 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const iframe = document.createElement("iframe");
-    iframe.srcdoc = panelHtml;
-    // iframe.style.height = "0";
-
-    const messageListener = (evt: any) => {
-      if (evt.source !== iframe.contentWindow) {
-        return;
-      }
-      const data = evt.data;
-      if (!data) {
-        return;
-      }
-      switch (data.type) {
-        case "event":
-          this.editor.dispatchAppEvent(data.name, ...data.args);
-          break;
-        case "setHeight":
-          iframe.style.height = data.height + "px";
-          break;
-        case "setBody":
-          this.editor.editorView.dispatch({
-            changes: {
-              from: this.from,
-              to: this.to,
-              insert: data.body,
-            },
-          });
-          break;
-        case "blur":
-          this.editor.editorView.dispatch({
-            selection: { anchor: this.from },
-          });
-          this.editor.focus();
-          break;
-      }
-    };
-
-    iframe.onload = () => {
-      // Subscribe to message event on global object (to receive messages from iframe)
-      globalThis.addEventListener("message", messageListener);
-      // Only run this code once
-      iframe.onload = null;
-      this.codeWidgetCallback(this.bodyText).then(
-        (widgetContent: WidgetContent) => {
-          if (widgetContent.html) {
-            iframe.contentWindow!.postMessage({
-              type: "html",
-              html: widgetContent.html,
-              script: widgetContent.script,
+    const iframe = createWidgetSandboxIFrame(
+      this.editor,
+      this.bodyText,
+      this.codeWidgetCallback(this.bodyText),
+      (message) => {
+        switch (message.type) {
+          case "blur":
+            this.editor.editorView.dispatch({
+              selection: { anchor: this.from },
             });
-          } else if (widgetContent.url) {
-            iframe.contentWindow!.location.href = widgetContent.url;
-            if (widgetContent.height) {
-              iframe.style.height = widgetContent.height + "px";
-            }
-            if (widgetContent.width) {
-              iframe.style.width = widgetContent.width + "px";
-            }
-          }
-        },
-      );
-    };
+            this.editor.focus();
+
+            break;
+          case "reload":
+            this.codeWidgetCallback(this.bodyText).then(
+              (widgetContent: WidgetContent) => {
+                iframe.contentWindow!.postMessage({
+                  type: "html",
+                  html: widgetContent.html,
+                  script: widgetContent.script,
+                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                });
+              },
+            );
+            break;
+        }
+      },
+    );
+
     return iframe;
+  }
+
+  get estimatedHeight(): number {
+    const cachedHeight = this.editor.space.getCachedWidgetHeight(this.bodyText);
+    // console.log("Calling estimated height", cachedHeight);
+    return cachedHeight || 150;
   }
 
   eq(other: WidgetType): boolean {

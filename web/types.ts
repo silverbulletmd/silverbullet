@@ -1,20 +1,6 @@
 import { Manifest } from "../common/manifest.ts";
+import { PageMeta } from "$sb/types.ts";
 import { AppCommand } from "./hooks/command.ts";
-
-export type PageMeta = {
-  name: string;
-  lastModified: number;
-  lastOpened?: number;
-  perm: "ro" | "rw";
-} & Record<string, any>;
-
-export type AttachmentMeta = {
-  name: string;
-  contentType: string;
-  lastModified: number;
-  size: number;
-  perm: "ro" | "rw";
-};
 
 // Used by FilterBox
 export type FilterOption = {
@@ -104,6 +90,7 @@ export const initialViewState: AppViewState = {
     rhs: {},
     bhs: {},
     modal: {},
+    ps: {},
   },
   allPages: [],
   commands: new Map(),

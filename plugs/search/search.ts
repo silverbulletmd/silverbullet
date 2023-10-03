@@ -1,41 +1,18 @@
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { applyQuery } from "$sb/lib/query.ts";
-import { editor, index, store } from "$sb/syscalls.ts";
-import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
-import { FileMeta } from "$sb/types.ts";
+import {
+  applyQuery,
+  evalQueryExpression,
+  liftAttributeFilter,
+} from "$sb/lib/query.ts";
+import { datastore, editor } from "$sb/syscalls.ts";
+import { SimpleSearchEngine } from "./engine.ts";
+import { FileMeta, KvKey } from "$sb/types.ts";
 import { PromiseQueue } from "$sb/lib/async.ts";
 
 const searchPrefix = "🔍 ";
 
-class StoreKVStore implements BatchKVStore {
-  constructor(private prefix: string) {
-  }
-  async queryPrefix(prefix: string): Promise<[string, any][]> {
-    const results = await store.queryPrefix(this.prefix + prefix);
-    return results.map((
-      { key, value },
-    ) => [key.substring(this.prefix.length), value]);
-  }
-  get(keys: string[]): Promise<(string[] | undefined)[]> {
-    return store.batchGet(keys.map((key) => this.prefix + key));
-  }
-  set(entries: Map<string, string[]>): Promise<void> {
-    return store.batchSet(
-      Array.from(entries.entries()).map((
-        [key, value],
-      ) => ({ key: this.prefix + key, value })),
-    );
-  }
-  delete(keys: string[]): Promise<void> {
-    return store.batchDel(keys.map((key) => this.prefix + key));
-  }
-}
-
-const ftsKvStore = new StoreKVStore("fts:");
-const ftsRevKvStore = new StoreKVStore("fts_rev:");
-
-const engine = new SimpleSearchEngine(ftsKvStore, ftsRevKvStore);
+const engine = new SimpleSearchEngine(datastore);
 
 // Search indexing is prone to concurrency issues, so we queue all write operations
 const promiseQueue = new PromiseQueue();
@@ -50,8 +27,14 @@ export function indexPage({ name, tree }: IndexTreeEvent) {
 }
 
 export async function clearIndex() {
-  await store.deletePrefix("fts:");
-  await store.deletePrefix("fts_rev:");
+  const keysToDelete: KvKey[] = [];
+  for (const { key } of await datastore.query({ prefix: ["fts"] })) {
+    keysToDelete.push(key);
+  }
+  for (const { key } of await datastore.query({ prefix: ["fts_rev"] })) {
+    keysToDelete.push(key);
+  }
+  await datastore.batchDel(keysToDelete);
 }
 
 export function pageUnindex(pageName: string) {
@@ -63,32 +46,19 @@ export function pageUnindex(pageName: string) {
 export async function queryProvider({
   query,
 }: QueryProviderEvent): Promise<any[]> {
-  const phraseFilter = query.filter.find((f) => f.prop === "phrase");
+  const phraseFilter = liftAttributeFilter(query.filter, "phrase");
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  let results: any[] = await engine.search(phraseFilter.value);
+  const phrase = evalQueryExpression(phraseFilter, {});
+  // console.log("Phrase", phrase);
+  let results: any[] = await engine.search(phrase);
 
   // Patch the object to a format that users expect (translate id to name)
   for (const r of results) {
     r.name = r.id;
     delete r.id;
   }
-
-  const allPageMap: Map<string, any> = new Map(
-    results.map((r: any) => [r.name, r]),
-  );
-  for (const { page, value } of await index.queryPrefix("meta:")) {
-    const p = allPageMap.get(page);
-    if (p) {
-      for (const [k, v] of Object.entries(value)) {
-        p[k] = v;
-      }
-    }
-  }
-
-  // Remove the "phrase" filter
-  query.filter.splice(query.filter.indexOf(phraseFilter), 1);
 
   results = applyQuery(query, results);
   return results;

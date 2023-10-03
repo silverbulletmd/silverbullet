@@ -142,7 +142,7 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-export const attributeStartRegex = /^\[(\w+)(::?\s*)/;
+export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [
@@ -252,16 +252,17 @@ const directiveStart = /^\s*<!--\s*#([a-z]+)\s*(.*?)-->\s*/;
 const directiveEnd = /^\s*<!--\s*\/(.*?)-->\s*/;
 
 import { parser as directiveParser } from "./parse-query.js";
+import { parser as expressionParser } from "./parse-expression.js";
 import { Table } from "./table_parser.ts";
 
-const highlightingDirectiveParser = directiveParser.configure({
+export const highlightingDirectiveParser = directiveParser.configure({
   props: [
     styleTags({
       "Name": t.variableName,
       "String": t.string,
       "Number": t.number,
       "PageRef": ct.WikiLinkTag,
-      "Where Limit Select Render Order OrderDirection And": t.keyword,
+      "where limit select render Order OrderKW and or as InKW": t.keyword,
     }),
   ],
 });
@@ -293,6 +294,14 @@ export const Directive: MarkdownConfig = {
           cx.parsedPos,
           cx.parsedPos + line.text.length + 1,
           [cx.elt(queryParseTree, frontStart + fullMatch.indexOf(arg))],
+        ));
+      } else if (directive === "eval") {
+        const expressionParseTree = expressionParser.parse(arg);
+        elts.push(cx.elt(
+          "DirectiveStart",
+          cx.parsedPos,
+          cx.parsedPos + line.text.length + 1,
+          [cx.elt(expressionParseTree, frontStart + fullMatch.indexOf(arg))],
         ));
       } else {
         elts.push(cx.elt(
@@ -432,7 +441,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
         props: [
           styleTags({
             Task: ct.TaskTag,
-            TaskMarker: ct.TaskMarkerTag,
+            TaskMark: ct.TaskMarkTag,
             Comment: ct.CommentTag,
             "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
               t.processingInstruction,

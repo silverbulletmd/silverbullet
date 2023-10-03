@@ -14,10 +14,6 @@ export function systemSyscalls(
       name: string,
       ...args: any[]
     ) => {
-      if (!ctx.plug) {
-        throw Error("No plug associated with context");
-      }
-
       if (name === "server" || name === "client") {
         // Backwards compatibility mode (previously there was an 'env' argument)
         name = args[0];
@@ -25,7 +21,9 @@ export function systemSyscalls(
       }
 
       let plug: Plug<any> | undefined = ctx.plug;
-      if (name.indexOf(".") !== -1) {
+      const fullName = name;
+      // console.log("Invoking function", fullName, "on plug", plug);
+      if (name.includes(".")) {
         // plug name in the name
         const [plugName, functionName] = name.split(".");
         plug = system.loadedPlugs.get(plugName);
@@ -34,7 +32,7 @@ export function systemSyscalls(
         }
         name = functionName;
       }
-      const functionDef = plug.manifest!.functions[name];
+      const functionDef = plug?.manifest!.functions[name];
       if (!functionDef) {
         throw Error(`Function ${name} not found`);
       }
@@ -43,7 +41,12 @@ export function systemSyscalls(
         functionDef.env !== system.env
       ) {
         // Proxy to another environment
-        return proxySyscall(ctx, client.remoteSpacePrimitives, name, args);
+        return proxySyscall(
+          ctx,
+          client.remoteSpacePrimitives,
+          "system.invokeFunction",
+          [fullName, ...args],
+        );
       }
       return plug.invoke(name, args);
     },

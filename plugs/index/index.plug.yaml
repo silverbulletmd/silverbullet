@@ -10,34 +10,67 @@ syntax:
       - "$"
     regex: "\\$[a-zA-Z\\.\\-\\/]+[\\w\\.\\-\\/]*"
     className: sb-named-anchor
+assets:
+  - asset/*
 functions:
-  clearPageIndex:
-    path: "./page.ts:clearPageIndex"
+  loadBuiltinsIntoIndex:
+    path: builtins.ts:loadBuiltinsIntoIndex
+    env: server
+    events:
+      - system:ready
+
+  # Public API
+  batchSet:
+    path: api.ts:batchSet
+    env: server
+  indexObjects:
+    path: api.ts:indexObjects
+    env: server
+  queryObjects:
+    path: api.ts:queryObjects
+    env: server
+  getObjectByRef:
+    path: api.ts:getObjectByRef
+    env: server
+
+  objectSourceProvider:
+    path: api.ts:objectSourceProvider
+    events:
+    - query:*
+  discoverSources:
+    path: api.ts:discoverSources
+    events:
+    - query_
+  clearIndex:
+    path: api.ts:clearIndex
+    env: server
+
+  clearDSIndex:
+    path: api.ts:clearPageIndex
     env: server
     events:
       - page:saved
       - page:deleted
-  pageQueryProvider:
-    path: ./page.ts:pageQueryProvider
-    events:
-      - query:page
+      
   parseIndexTextRepublish:
-    path: "./page.ts:parseIndexTextRepublish"
+    path: "./command.ts:parseIndexTextRepublish"
     env: server
     events:
       - page:index_text
+
   reindexSpaceCommand:
-    path: "./page.ts:reindexCommand"
+    path: "./command.ts:reindexCommand"
     command:
       name: "Space: Reindex"
   processIndexQueue:
-    path: ./page.ts:processIndexQueue
+    path: ./command.ts:processIndexQueue
     mqSubscriptions:
     - queue: indexQueue
       batchSize: 10
       autoAck: true
   reindexSpace:
-    path: "./page.ts:reindexSpace"
+    path: "./command.ts:reindexSpace"
+    env: server
 
   # Attachments
   attachmentQueryProvider:
@@ -45,46 +78,37 @@ functions:
     events:
       - query:attachment
 
+  indexPage:
+    path: page.ts:indexPage
+    events:
+      - page:index
+
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
     events:
       - page:index
-  linkQueryProvider:
-    path: ./page_links.ts:linkQueryProvider
-    events:
-      - query:link
 
   attributeComplete:
     path: "./attributes.ts:attributeComplete"
     events:
     - editor:complete
 
-  customAttributeCompleter:
-    path: ./attributes.ts:customAttributeCompleter
+  objectAttributeCompleter:
+    path: ./attributes.ts:objectAttributeCompleter
     events:
-    - attribute:complete:page
-    - attribute:complete:task
-    - attribute:complete:item
     - attribute:complete:*
 
-  builtinAttributeCompleter:
-    path: ./attributes.ts:builtinAttributeCompleter
-    events:
-    - attribute:complete:page
-    - attribute:complete:task
-    - attribute:complete:item
-    - attribute:complete:*
+  # builtinAttributeCompleter:
+  #   path: ./attributes.ts:builtinAttributeCompleter
+  #   events:
+  #   - attribute:complete:*
 
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"
     events:
       - page:index
-  itemQueryProvider:
-    path: "./item.ts:queryProvider"
-    events:
-      - query:item
 
   # Anchors
   indexAnchors:
@@ -96,19 +120,21 @@ functions:
     events:
       - editor:complete
   
+  # Data
+  indexData:
+    path: data.ts:indexData
+    events:
+      - page:index
+
   # Hashtags
   indexTags:
-    path: "./tags.ts:indexTags"
+    path: tags.ts:indexTags
     events:
       - page:index
   tagComplete:
-    path: "./tags.ts:tagComplete"
+    path: tags.ts:tagComplete
     events:
       - editor:complete
-  tagProvider:
-    path: "./tags.ts:tagProvider"
-    events:
-      - query:tag
 
   renamePageCommand:
     path: "./refactor.ts:renamePageCommand"
@@ -128,4 +154,18 @@ functions:
     command:
       name: "Page: Extract"
 
+  # Mentions panel (postscript)
+  toggleMentions:
+    path: "./mentions_ps.ts:toggleMentions"
+    command:
+      name: "Mentions: Toggle"
+      key: ctrl-alt-m
+  updateMentions:
+    path: "./mentions_ps.ts:updateMentions"
+    env: client
+    events:
+      - plug:load
+      - editor:pageLoaded
+  navigateToMention:
+    path: "./mentions_ps.ts:navigate"
 

@@ -21,7 +21,7 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: ct.AttributeTag, class: "sb-frontmatter" },
     { tag: ct.AttributeNameTag, class: "sb-atom" },
     { tag: ct.TaskTag, class: "sb-task" },
-    { tag: ct.TaskMarkerTag, class: "sb-task-marker" },
+    { tag: ct.TaskMarkTag, class: "sb-task-mark" },
     { tag: ct.TaskStateTag, class: "sb-task-state" },
     { tag: ct.CodeInfoTag, class: "sb-code-info" },
     { tag: ct.CommentTag, class: "sb-comment" },

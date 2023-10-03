@@ -1,30 +1,27 @@
-import type { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$sb/app_event.ts";
 
-import { index } from "$sb/syscalls.ts";
 import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import { removeQueries } from "$sb/lib/query.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { indexAttributes } from "./attributes.ts";
+import { ObjectValue } from "$sb/types.ts";
+import { indexObjects } from "./api.ts";
 
-export type Item = {
-  name: string;
-  nested?: string;
-  tags?: string[];
-  // Not stored in DB
-  page?: string;
-  pos?: number;
-} & Record<string, any>;
+export type ItemObject = ObjectValue<
+  {
+    name: string;
+    page: string;
+    pos: number;
+  } & Record<string, any>
+>;
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
-  const items: { key: string; value: Item }[] = [];
+  const items: ObjectValue<ItemObject>[] = [];
   removeQueries(tree);
 
   // console.log("Indexing items", name);
 
   const coll = collectNodesOfType(tree, "ListItem");
-
-  const allAttributes: Record<string, any> = {};
 
   for (const n of coll) {
     if (!n.children) {
@@ -35,16 +32,24 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       continue;
     }
 
-    const item: Item = {
+    const item: ItemObject = {
+      ref: `${name}@${n.from}`,
+      tags: [],
       name: "", // to be replaced
+      page: name,
+      pos: n.from!,
     };
 
     const textNodes: ParseTree[] = [];
-    let nested: string | undefined;
+
+    collectNodesOfType(n, "Hashtag").forEach((h) => {
+      // Push tag to the list, removing the initial #
+      item.tags.push(h.children![0].text!.substring(1));
+    });
+
     for (const child of n.children!.slice(1)) {
       rewritePageRefs(child, name);
       if (child.type === "OrderedList" || child.type === "BulletList") {
-        nested = renderToText(child);
         break;
       }
       // Extract attributes and remove from tree
@@ -52,44 +57,17 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
       for (const [key, value] of Object.entries(extractedAttributes)) {
         item[key] = value;
-        allAttributes[key] = value;
       }
       textNodes.push(child);
     }
 
     item.name = textNodes.map(renderToText).join("").trim();
-    if (nested) {
-      item.nested = nested;
-    }
-    collectNodesOfType(n, "Hashtag").forEach((h) => {
-      if (!item.tags) {
-        item.tags = [];
-      }
-      // Push tag to the list, removinn the initial #
-      item.tags.push(h.children![0].text!.substring(1));
-    });
 
-    items.push({
-      key: `it:${n.from}`,
-      value: item,
-    });
+    if (item.tags.length > 0) {
+      // Only index items with tags
+      items.push(item);
+    }
   }
   // console.log("Found", items, "item(s)");
-  await index.batchSet(name, items);
-  await indexAttributes(name, allAttributes, "item");
-}
-
-export async function queryProvider({
-  query,
-}: QueryProviderEvent): Promise<any[]> {
-  const allItems: Item[] = [];
-  for (const { key, page, value } of await index.queryPrefix("it:")) {
-    const [, pos] = key.split(":");
-    allItems.push({
-      ...value,
-      page: page,
-      pos: +pos,
-    });
-  }
-  return applyQuery(query, allItems);
+  await indexObjects(name, items);
 }

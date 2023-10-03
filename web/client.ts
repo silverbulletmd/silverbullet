@@ -4,10 +4,11 @@ import {
   CompletionResult,
   EditorView,
   gitIgnoreCompiler,
+  SyntaxNode,
   syntaxTree,
 } from "../common/deps.ts";
 import { fileMetaToPageMeta, Space } from "./space.ts";
-import { FilterOption, PageMeta } from "./types.ts";
+import { FilterOption } from "./types.ts";
 import { parseYamlSettings } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { AppCommand } from "./hooks/command.ts";
@@ -18,8 +19,6 @@ import { AppViewState, BuiltinSettings } from "./types.ts";
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
 import { throttle } from "$sb/lib/async.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { IndexedDBSpacePrimitives } from "../common/spaces/indexeddb_space_primitives.ts";
-import { FileMetaSpacePrimitives } from "../common/spaces/file_meta_space_primitives.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import {
   ISyncService,
@@ -28,7 +27,6 @@ import {
   SyncService,
 } from "./sync_service.ts";
 import { simpleHash } from "../common/crypto.ts";
-import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
@@ -38,11 +36,14 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
-import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { FileMeta } from "$sb/types.ts";
+import { FileMeta, PageMeta } from "$sb/types.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -60,8 +61,8 @@ declare global {
 
 // TODO: Oh my god, need to refactor this
 export class Client {
-  system: ClientSystem;
-  editorView: EditorView;
+  system!: ClientSystem;
+  editorView!: EditorView;
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
@@ -78,22 +79,34 @@ export class Client {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
+  debouncedPlugsUpdatedEvent = throttle(async () => {
+    // To register new commands, update editor state based on new plugs
+    this.rebuildEditorState();
+    await this.dispatchAppEvent(
+      "editor:pageLoaded",
+      this.currentPage,
+      undefined,
+      true,
+    );
+  }, 1000);
+
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
-  syncService: ISyncService;
+  syncService!: ISyncService;
   settings!: BuiltinSettings;
-  kvStore: DexieKVStore;
-  mq: DexieMQ;
 
   // Event bus used to communicate between components
-  eventHook: EventHook;
+  eventHook!: EventHook;
 
-  ui: MainUI;
-  openPages: OpenPages;
+  ui!: MainUI;
+  openPages!: OpenPages;
+  stateDataStore!: DataStore;
+  spaceDataStore!: DataStore;
+  mq!: DataStoreMQ;
 
   constructor(
-    parent: Element,
+    private parent: Element,
     public syncMode = false,
   ) {
     if (!syncMode) {
@@ -101,15 +114,21 @@ export class Client {
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
+  }
 
-    this.kvStore = new DexieKVStore(
-      `${this.dbPrefix}_store`,
-      "data",
-      globalThis.indexedDB,
-      globalThis.IDBKeyRange,
+  /**
+   * Initialize the client
+   * This is a separated from the constructor to allow for async initialization
+   */
+  async init() {
+    const stateKvPrimitives = new IndexedDBKvPrimitives(
+      `${this.dbPrefix}_state`,
     );
+    await stateKvPrimitives.init();
+    this.stateDataStore = new DataStore(stateKvPrimitives);
 
-    this.mq = new DexieMQ(`${this.dbPrefix}_mq`, indexedDB, IDBKeyRange);
+    // Setup message queue
+    this.mq = new DataStoreMQ(this.stateDataStore);
 
     setInterval(() => {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
@@ -122,19 +141,18 @@ export class Client {
     // Instantiate a PlugOS system
     this.system = new ClientSystem(
       this,
-      this.kvStore,
       this.mq,
-      this.dbPrefix,
+      this.stateDataStore,
       this.eventHook,
     );
 
-    const localSpacePrimitives = this.initSpace();
+    const localSpacePrimitives = await this.initSpace();
 
     this.syncService = this.syncMode
       ? new SyncService(
         localSpacePrimitives,
         this.plugSpaceRemotePrimitives,
-        this.kvStore,
+        this.stateDataStore,
         this.eventHook,
         (path) => {
           // TODO: At some point we should remove the data.db exception here
@@ -148,7 +166,7 @@ export class Client {
       : new NoSyncSyncService(this.space);
 
     this.ui = new MainUI(this);
-    this.ui.render(parent);
+    this.ui.render(this.parent);
 
     this.editorView = new EditorView({
       state: createEditorState(this, "", "", false),
@@ -160,13 +178,8 @@ export class Client {
     this.focus();
 
     // This constructor will always be followed by an (async) invocatition of init()
-  }
+    await this.system.init();
 
-  /**
-   * Initialize the client
-   * This is a separated from the constructor to allow for async initialization
-   */
-  async init() {
     // Load settings
     this.settings = await this.loadSettings();
 
@@ -193,7 +206,6 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
 
     setInterval(() => {
-      // console.log("Syncing page", this.currentPage, "in background");
       try {
         this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
           console.error("Interval sync error", e);
@@ -201,7 +213,6 @@ export class Client {
       } catch (e: any) {
         console.error("Interval sync error", e);
       }
-      // console.log("End of kick-off of background sync of", this.currentPage);
     }, pageSyncInterval);
   }
 
@@ -218,23 +229,12 @@ export class Client {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
         this.fullSyncCompleted = true;
       }
-      if (this.system.plugsUpdated) {
-        // To register new commands, update editor state based on new plugs
-        this.rebuildEditorState();
-        this.dispatchAppEvent(
-          "editor:pageLoaded",
-          this.currentPage,
-          undefined,
-          true,
-        );
-        if (operations) {
-          // Likely initial sync so let's show visually that we're synced now
-          // this.flashNotification(`Synced ${operations} files`, "info");
-          this.showProgress(100);
-        }
+      // if (this.system.plugsUpdated) {
+      if (operations) {
+        // Likely initial sync so let's show visually that we're synced now
+        this.showProgress(100);
       }
-      // Reset for next sync cycle
-      this.system.plugsUpdated = false;
+      // }
 
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
@@ -276,28 +276,27 @@ export class Client {
         if (typeof pos === "string") {
           console.log("Navigating to anchor", pos);
 
-          // We're going to look up the anchor through a direct page store query...
-          // TODO: This should be extracted
-          const posLookup = await this.system.localSyscall(
-            "index.get",
-            [
-              pageName,
-              `a:${pageName}:${pos}`,
-            ],
+          // We're going to look up the anchor through a API invocation
+          const matchingAnchor = await this.system.system.localSyscall(
+            "index",
+            "system.invokeFunction",
+            ["getObjectByRef", pageName, "anchor", `${pageName}@${pos}`],
           );
 
-          if (!posLookup) {
+          if (!matchingAnchor) {
             return this.flashNotification(
-              `Could not find anchor @${pos}`,
+              `Could not find anchor $${pos}`,
               "error",
             );
           } else {
-            pos = +posLookup;
+            pos = matchingAnchor.pos as number;
           }
         }
-        this.editorView.dispatch({
-          selection: { anchor: pos },
-          effects: EditorView.scrollIntoView(pos, { y: "start" }),
+        setTimeout(() => {
+          this.editorView.dispatch({
+            selection: { anchor: pos as number },
+            effects: EditorView.scrollIntoView(pos as number, { y: "start" }),
+          });
         });
       } else if (!stateRestored) {
         // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
@@ -318,13 +317,16 @@ export class Client {
           scrollIntoView: true,
         });
       }
-      await this.kvStore.set("lastOpenedPage", pageName);
+      await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
     });
 
     if (location.hash === "#boot") {
       (async () => {
         // Cold start PWA load
-        const lastPage = await this.kvStore.get("lastOpenedPage");
+        const lastPage = await this.stateDataStore.get([
+          "client",
+          "lastOpenedPage",
+        ]);
         if (lastPage) {
           await this.navigate(lastPage);
         }
@@ -332,7 +334,7 @@ export class Client {
     }
   }
 
-  initSpace(): SpacePrimitives {
+  async initSpace(): Promise<SpacePrimitives> {
     this.remoteSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       window.silverBulletConfig.spaceFolderPath,
@@ -348,20 +350,20 @@ export class Client {
     let localSpacePrimitives: SpacePrimitives | undefined;
 
     if (this.syncMode) {
+      // We'll store the space files in a separate data store
+      const spaceKvPrimitives = new IndexedDBKvPrimitives(
+        `${this.dbPrefix}_synced_space`,
+      );
+      await spaceKvPrimitives.init();
+
       localSpacePrimitives = new FilteredSpacePrimitives(
-        new FileMetaSpacePrimitives(
-          new EventedSpacePrimitives(
-            // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-            new FallbackSpacePrimitives(
-              new IndexedDBSpacePrimitives(
-                `${this.dbPrefix}_space`,
-                globalThis.indexedDB,
-              ),
-              this.plugSpaceRemotePrimitives,
-            ),
-            this.eventHook,
+        new EventedSpacePrimitives(
+          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+          new FallbackSpacePrimitives(
+            new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
+            this.plugSpaceRemotePrimitives,
           ),
-          this.system.indexSyscalls,
+          this.eventHook,
         ),
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved
@@ -381,7 +383,11 @@ export class Client {
       );
     }
 
-    this.space = new Space(localSpacePrimitives, this.kvStore, this.eventHook);
+    this.space = new Space(
+      localSpacePrimitives,
+      this.stateDataStore,
+      this.eventHook,
+    );
 
     this.eventHook.addLocalListener("file:changed", (path: string) => {
       // Only reload when watching the current page (to avoid reloading when switching pages)
@@ -585,6 +591,7 @@ export class Client {
   async loadPlugs() {
     await this.system.reloadPlugsFromSpace(this.space);
     this.rebuildEditorState();
+    await this.eventHook.dispatchEvent("system:ready");
     await this.dispatchAppEvent("plugs:loaded");
   }
 
@@ -627,13 +634,20 @@ export class Client {
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
     const parentNodes: string[] = [];
-    const currentNode = syntaxTree(editorState).resolveInner(selection.from);
+    const sTree = syntaxTree(editorState);
+    const currentNode = sTree.resolveInner(selection.from);
     if (currentNode) {
-      let node = currentNode;
-      while (node.parent) {
-        parentNodes.push(node.parent.name);
+      let node: SyntaxNode | null = currentNode;
+      do {
+        if (node.name === "FencedCode") {
+          const code = editorState.sliceDoc(node.from + 3, node.to);
+          const fencedCodeLanguage = code.split("\n")[0];
+          parentNodes.push(`FencedCode:${fencedCodeLanguage}`);
+        } else {
+          parentNodes.push(node.name);
+        }
         node = node.parent;
-      }
+      } while (node);
     }
 
     const results = await this.dispatchAppEvent(eventName, {
@@ -742,9 +756,6 @@ export class Client {
     let doc;
     try {
       doc = await this.space.readPage(pageName);
-      if (doc.meta.contentType.startsWith("text/html")) {
-        throw new Error("Got HTML page, not markdown");
-      }
     } catch (e: any) {
       if (e.message.includes("Not found")) {
         // Not found, new page

@@ -47,7 +47,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           oldHash !== newHash
         )
       ) {
-        this.dispatchEvent("file:changed", meta.name);
+        await this.dispatchEvent("file:changed", meta.name);
       }
       // Page found, not deleted
       deletedFiles.delete(meta.name);
@@ -58,7 +58,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
     for (const deletedFile of deletedFiles) {
       delete this.spaceSnapshot[deletedFile];
-      this.dispatchEvent("file:deleted", deletedFile);
+      await this.dispatchEvent("file:deleted", deletedFile);
 
       if (deletedFile.endsWith(".md")) {
         const pageName = deletedFile.substring(0, deletedFile.length - 3);
@@ -66,7 +66,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
     }
 
-    this.dispatchEvent("file:listed", newFileList);
+    await this.dispatchEvent("file:listed", newFileList);
     this.alreadyFetching = false;
     this.initialFileListLoad = false;
     return newFileList;
@@ -93,7 +93,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       meta,
     );
     if (!selfUpdate) {
-      this.dispatchEvent("file:changed", name, true);
+      await this.dispatchEvent("file:changed", name, true);
     }
     this.spaceSnapshot[name] = newMeta.lastModified;
 
@@ -104,16 +104,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const decoder = new TextDecoder("utf-8");
       text = decoder.decode(data);
 
-      this.dispatchEvent("page:saved", pageName, newMeta)
-        .then(() => {
-          return this.dispatchEvent("page:index_text", {
-            name: pageName,
-            text,
-          });
-        })
-        .catch((e) => {
-          console.error("Error dispatching page:saved event", e);
-        });
+      await this.dispatchEvent("page:saved", pageName, newMeta);
+      await this.dispatchEvent("page:index_text", {
+        name: pageName,
+        text,
+      });
     }
     return newMeta;
   }
@@ -134,9 +129,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.triggerEventsAndCache(name, newMeta.lastModified);
       return newMeta;
     } catch (e: any) {
-      console.log("Checking error", e, name);
+      // console.log("Checking error", e, name);
       if (e.message === "Not found") {
-        this.dispatchEvent("file:deleted", name);
+        await this.dispatchEvent("file:deleted", name);
         if (name.endsWith(".md")) {
           const pageName = name.substring(0, name.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
@@ -154,6 +149,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     // await this.getPageMeta(name); // Check if page exists, if not throws Error
     await this.wrapped.deleteFile(name);
     delete this.spaceSnapshot[name];
-    this.dispatchEvent("file:deleted", name);
+    await this.dispatchEvent("file:deleted", name);
   }
 }

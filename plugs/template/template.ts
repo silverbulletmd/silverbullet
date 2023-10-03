@@ -1,13 +1,10 @@
-import { editor, markdown, space } from "$sb/syscalls.ts";
+import { editor, handlebars, markdown, space } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
-import { PageMeta } from "../../web/types.ts";
-import { buildHandebarOptions } from "../directive/util.ts";
-
-import Handlebars from "handlebars";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { PageMeta } from "$sb/types.ts";
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -48,7 +45,7 @@ export async function instantiateTemplateCommand() {
   };
 
   if (additionalPageMeta.$name) {
-    additionalPageMeta.$name = replaceTemplateVars(
+    additionalPageMeta.$name = await replaceTemplateVars(
       additionalPageMeta.$name,
       tempPageMeta,
     );
@@ -79,7 +76,10 @@ export async function instantiateTemplateCommand() {
     // The preferred scenario, let's keep going
   }
 
-  const pageText = replaceTemplateVars(renderToText(parseTree), tempPageMeta);
+  const pageText = await replaceTemplateVars(
+    renderToText(parseTree),
+    tempPageMeta,
+  );
   await space.writePage(pageName, pageText);
   await editor.navigate(pageName);
 }
@@ -110,10 +110,10 @@ export async function insertSnippet() {
   }
 
   const text = await space.readPage(`${snippetPrefix}${selectedSnippet.name}`);
-  let templateText = replaceTemplateVars(text, pageMeta);
+  let templateText = await replaceTemplateVars(text, pageMeta);
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, pageMeta);
+  templateText = await replaceTemplateVars(templateText, pageMeta);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);
@@ -148,20 +148,21 @@ export async function applyPageTemplateCommand() {
   const text = await space.readPage(
     `${pageTemplatePrefix}${selectedPage.name}`,
   );
-  let templateText = replaceTemplateVars(text, pageMeta);
+  let templateText = await replaceTemplateVars(text, pageMeta);
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, pageMeta);
+  templateText = await replaceTemplateVars(templateText, pageMeta);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);
   }
 }
 
-// TODO: This should probably be replaced with handlebards somehow?
-export function replaceTemplateVars(s: string, pageMeta: PageMeta): string {
-  const template = Handlebars.compile(s, { noEscape: true });
-  return template({}, buildHandebarOptions(pageMeta));
+export function replaceTemplateVars(
+  s: string,
+  pageMeta: PageMeta,
+): Promise<string> {
+  return handlebars.renderTemplate(s, {}, { page: pageMeta });
 }
 
 export async function quickNoteCommand() {
@@ -204,7 +205,7 @@ export async function dailyNoteCommand() {
 
     await space.writePage(
       pageName,
-      replaceTemplateVars(dailyNoteTemplateText, {
+      await replaceTemplateVars(dailyNoteTemplateText, {
         name: pageName,
         lastModified: 0,
         perm: "rw",
@@ -248,7 +249,7 @@ export async function weeklyNoteCommand() {
       // Doesn't exist, let's create
       await space.writePage(
         pageName,
-        replaceTemplateVars(weeklyNoteTemplateText, {
+        await replaceTemplateVars(weeklyNoteTemplateText, {
           name: pageName,
           lastModified: 0,
           perm: "rw",
@@ -278,7 +279,7 @@ export async function insertTemplateText(cmdDef: any) {
   let templateText: string = cmdDef.value;
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = replaceTemplateVars(templateText, pageMeta);
+  templateText = await replaceTemplateVars(templateText, pageMeta!);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);

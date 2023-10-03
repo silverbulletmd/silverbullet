@@ -75,7 +75,12 @@ export function setupMessageListener(
                 result: result,
               } as ControllerMessage);
             } catch (e: any) {
-              console.error(e);
+              console.error(
+                "An exception was thrown as a result of invoking function",
+                data.name,
+                "error:",
+                e,
+              );
               workerPostMessage({
                 type: "invr",
                 id: data.id!,

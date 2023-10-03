@@ -73,23 +73,6 @@ Before
 End
 `;
 
-Deno.test("Test directive parser", () => {
-  const lang = buildMarkdown([]);
-  let tree = parse(lang, directiveSample);
-  // console.log("tree", JSON.stringify(tree, null, 2));
-  assertEquals(renderToText(tree), directiveSample);
-
-  tree = parse(lang, nestedDirectiveExample);
-  // console.log("tree", JSON.stringify(tree, null, 2));
-  assertEquals(renderToText(tree), nestedDirectiveExample);
-
-  const orderByExample = `<!-- #query page order by lastModified -->
-  
-  <!-- /query -->`;
-  tree = parse(lang, orderByExample);
-  console.log("Tree", JSON.stringify(tree, null, 2));
-});
-
 const inlineAttributeSample = `
 Hello there [a link](http://zef.plus)
 [age: 100]

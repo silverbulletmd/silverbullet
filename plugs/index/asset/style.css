@@ -1,0 +1,25 @@
+body {
+    font-family: var(--ui-font);
+    background-color: var(--root-background-color);
+    color: var(--root-color);
+    overflow: scroll;
+}
+
+.sb-line-h2 {
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    margin: 0;
+    padding: 10px !important;
+    background-color: rgba(233, 233, 233, 0.5);
+}
+
+#hide-button {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+}
+
+li code {
+    font-size: 80%;
+    color: #a5a4a4;
+}

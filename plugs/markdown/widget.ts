@@ -12,7 +12,7 @@ export async function markdownWidget(
   });
   return Promise.resolve({
     html: html,
-    script: `updateHeight();
+    script: `
     document.addEventListener("click", () => {
       api({type: "blur"});
     });`,

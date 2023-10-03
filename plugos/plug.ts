@@ -86,7 +86,7 @@ export class Plug<HookT> {
         `Function ${name} is not available in ${this.runtimeEnv}`,
       );
     }
-    return await sandbox.invoke(name, args);
+    return sandbox.invoke(name, args);
   }
 
   stop() {

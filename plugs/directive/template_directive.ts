@@ -1,15 +1,13 @@
 import { queryRegex } from "$sb/lib/query.ts";
 import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { markdown, space } from "$sb/syscalls.ts";
-import Handlebars from "handlebars";
+import { handlebars, markdown, space } from "$sb/syscalls.ts";
 
 import { replaceTemplateVars } from "../template/template.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
-import { buildHandebarOptions } from "./util.ts";
-import { PageMeta } from "../../web/types.ts";
 import { resolvePath, rewritePageRefs } from "$sb/lib/resolve.ts";
+import { PageMeta } from "$sb/types.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -30,7 +28,7 @@ export async function templateDirectiveRenderer(
   let parsedArgs = {};
   if (args) {
     try {
-      parsedArgs = JSON.parse(replaceTemplateVars(args, pageMeta));
+      parsedArgs = JSON.parse(await replaceTemplateVars(args, pageMeta));
     } catch {
       throw new Error(
         `Failed to parse template instantiation arg: ${
@@ -65,11 +63,9 @@ export async function templateDirectiveRenderer(
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    const templateFn = Handlebars.compile(
-      newBody,
-      { noEscape: true },
-    );
-    newBody = templateFn(parsedArgs, buildHandebarOptions(pageMeta));
+    newBody = await handlebars.renderTemplate(newBody, parsedArgs, {
+      page: pageMeta,
+    });
 
     // Recursively render directives
     const tree = await markdown.parseMarkdown(newBody);

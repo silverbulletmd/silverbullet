@@ -1,19 +1,20 @@
-import { KVStore } from "../../plugos/lib/kv_store.ts";
-import { storeSyscalls } from "../../plugos/syscalls/store.ts";
-import { proxySyscalls } from "../../plugos/syscalls/transport.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
+import { DataStore } from "../../plugos/lib/datastore.ts";
+import { KvKey } from "$sb/types.ts";
 
 export function clientStoreSyscalls(
-  db: KVStore,
+  ds: DataStore,
+  prefix: KvKey = ["client"],
 ): SysCallMapping {
-  const localStoreCalls = storeSyscalls(db);
-  return proxySyscalls(
-    ["clientStore.get", "clientStore.set", "clientStore.delete"],
-    (ctx, name, ...args) => {
-      return localStoreCalls[name.replace("clientStore.", "store.")](
-        ctx,
-        ...args,
-      );
+  return {
+    "clientStore.get": (ctx, key: string): Promise<any> => {
+      return ds.get([...prefix, ctx.plug!.name!, key]);
     },
-  );
+    "clientStore.set": (ctx, key: string, val: any): Promise<void> => {
+      return ds.set([...prefix, ctx.plug!.name!, key], val);
+    },
+    "clientStore.delete": (ctx, key: string): Promise<void> => {
+      return ds.delete([...prefix, ctx.plug!.name!, key]);
+    },
+  };
 }

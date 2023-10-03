@@ -1,14 +1,15 @@
-import Handlebars from "handlebars";
-
-import { space } from "$sb/syscalls.ts";
-import type { PageMeta } from "../../web/types.ts";
-import { handlebarHelpers } from "./handlebar_helpers.ts";
+import { handlebars, space } from "$sb/syscalls.ts";
+import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
+import { PageMeta } from "$sb/types.ts";
 
 const maxWidth = 70;
 
 export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {
     return "";
+  }
+  if (typeof v === "string") {
+    return v.replaceAll("\n", " ").replaceAll("|", "\\|");
   }
   return "" + v;
 }
@@ -86,13 +87,12 @@ export async function renderTemplate(
 ): Promise<string> {
   let templateText = await space.readPage(renderTemplate);
   templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
-  const template = Handlebars.compile(templateText, { noEscape: true });
-  return template(data, buildHandebarOptions(pageMeta));
+  return handlebars.renderTemplate(templateText, data, { page: pageMeta });
 }
 
 export function buildHandebarOptions(pageMeta: PageMeta) {
   return {
-    helpers: handlebarHelpers(pageMeta.name),
+    helpers: handlebarHelpers(),
     data: { page: pageMeta },
   };
 }

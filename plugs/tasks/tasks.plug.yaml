@@ -19,6 +19,11 @@ syntax:
     styles:
       backgroundColor: "rgba(22,22,22,0.07)"
 functions:
+  # API
+  updateTaskState:
+    path: task.ts:updateTaskState
+
+
   turnIntoTask:
     redirect: template.applyLineReplace
     slashCommand:
@@ -35,10 +40,10 @@ functions:
     path: "./task.ts:taskToggle"
     events:
       - page:click
-  itemQueryProvider:
-    path: ./task.ts:queryProvider
-    events:
-      - query:task
+  # itemQueryProvider:
+  #   path: ./task.ts:queryProvider
+  #   events:
+  #     - query:task
   taskToggleCommand:
     path: ./task.ts:taskCycleCommand
     command:

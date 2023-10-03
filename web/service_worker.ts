@@ -1,8 +1,7 @@
-import Dexie from "https://esm.sh/v120/dexie@3.2.2/dist/dexie.js";
-
-import type { FileContent } from "../common/spaces/indexeddb_space_primitives.ts";
+import type { FileContent } from "../common/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "../common/crypto.ts";
-import { FileMeta } from "$sb/types.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -61,9 +60,9 @@ self.addEventListener("activate", (event: any) => {
   );
 });
 
-let db: Dexie | undefined;
-let fileContentTable: Dexie.Table<FileContent, string> | undefined;
-let fileMetatable: Dexie.Table<FileMeta, string> | undefined;
+let ds: DataStore | undefined;
+const filesMetaPrefix = ["file", "meta"];
+const filesContentPrefix = ["file", "content"];
 
 self.addEventListener("fetch", (event: any) => {
   const url = new URL(event.request.url);
@@ -89,7 +88,7 @@ self.addEventListener("fetch", (event: any) => {
         return cachedResponse;
       }
 
-      if (!fileContentTable) {
+      if (!ds) {
         // Not initialzed yet, or in thin client mode, let's just proxy
         return fetch(request);
       }
@@ -124,18 +123,14 @@ async function handleLocalFileRequest(
   request: Request,
   pathname: string,
 ): Promise<Response> {
-  if (!db?.isOpen()) {
-    console.log("Detected that the DB was closed, reopening");
-    await db!.open();
-  }
+  // if (!db?.isOpen()) {
+  //   console.log("Detected that the DB was closed, reopening");
+  //   await db!.open();
+  // }
   const path = decodeURIComponent(pathname.slice(1));
-  const data = await fileContentTable!.get(path);
+  const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
   if (data) {
     // console.log("Serving from space", path);
-    if (!data.meta) {
-      // Legacy database not fully synced yet
-      data.meta = (await fileMetatable!.get(path))!;
-    }
     return new Response(
       data.data,
       {
@@ -177,7 +172,7 @@ self.addEventListener("message", (event: any) => {
     caches.delete(CACHE_NAME)
       .then(() => {
         console.log("[Service worker]", "Cache deleted");
-        db?.close();
+        // ds?.close();
         event.source.postMessage({ type: "cacheFlushed" });
       });
   }
@@ -186,15 +181,10 @@ self.addEventListener("message", (event: any) => {
     const dbPrefix = "" + simpleHash(spaceFolderPath);
 
     // Setup space
-    db = new Dexie(`${dbPrefix}_space`, {
-      indexedDB: globalThis.indexedDB,
+    const kv = new IndexedDBKvPrimitives(`${dbPrefix}_synced_space`);
+    kv.init().then(() => {
+      ds = new DataStore(kv);
+      console.log("Datastore in service worker initialized...");
     });
-    db.version(1).stores({
-      fileMeta: "name",
-      fileContent: "name",
-    });
-
-    fileContentTable = db.table<FileContent, string>("fileContent");
-    fileMetatable = db.table<FileMeta, string>("fileMeta");
   }
 });

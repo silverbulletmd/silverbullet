@@ -74,10 +74,8 @@ body {
       }
 
       .sb-notifications {
-        position: fixed;
-        bottom: 0;
-        left: 5px;
-        right: 5px;
+        float: right;
+        margin-top: 8px;
         font-size: 15px;
         z-index: 100;
 
@@ -87,65 +85,73 @@ body {
           border-radius: 5px;
         }
       }
+    }
 
-      #sb-current-page {
-        flex: 1;
+    #sb-current-page {
+      flex: 1;
 
-        overflow: hidden;
-        white-space: nowrap;
-        text-align: left;
-        display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-align: left;
+      display: block;
 
-        .cm-scroller {
-          font-family: var(--ui-font);
-        }
+      .cm-scroller {
+        font-family: var(--ui-font);
+      }
 
-        .cm-content {
+      .cm-content {
+        padding: 0;
+
+        .cm-line {
           padding: 0;
-
-          .cm-line {
-            padding: 0;
-          }
         }
       }
     }
-
-    .sb-actions {
-      text-align: right;
-      position: absolute;
-      right: 15px;
-      top: 0;
-    }
-
-    .progress-wrapper {
-      display: inline-block;
-      position: relative;
-      top: -6px;
-      padding: 4px;
-      background-color: var(--top-background-color);
-      margin-right: -2px;
-    }
-
-    .progress-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      font-size: 6px;
-    }
-
-    // .progress-bar::before {
-    //   content: "66%";
-    // }
   }
 
-  .sb-panel {
-    flex: 1;
+  .sb-actions {
+    text-align: right;
+    position: absolute;
+    right: 15px;
+    top: 0;
   }
+
+  .progress-wrapper {
+    display: inline-block;
+    position: relative;
+    top: -6px;
+    padding: 4px;
+    background-color: var(--top-background-color);
+    margin-right: -2px;
+  }
+
+  .progress-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 6px;
+  }
+
+  // .progress-bar::before {
+  //   content: "66%";
+  // }
 }
+
+.sb-panel {
+  flex: 1;
+}
+
+.sb-ps-iframe {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--editor-directive-background-color);
+  border-radius: 5px;
+}
+
 
 #sb-main {
   display: flex;

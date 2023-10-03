@@ -93,14 +93,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       file.close();
 
       // Fetch new metadata
-      const s = await Deno.stat(localPath);
-      return {
-        name: name,
-        size: s.size,
-        contentType: lookupContentType(name),
-        lastModified: s.mtime!.getTime(),
-        perm: "rw",
-      };
+      return this.getFileMeta(name);
     } catch (e) {
       console.error("Error while writing file", name, e);
       throw Error(`Could not write ${name}`);

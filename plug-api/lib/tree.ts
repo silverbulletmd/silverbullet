@@ -8,6 +8,8 @@ export type ParseTree = {
   parent?: ParseTree;
 };
 
+export type AST = [string, ...AST[]] | string;
+
 export function addParentPointers(tree: ParseTree) {
   if (!tree.children) {
     return;
@@ -207,4 +209,20 @@ export function cloneTree(tree: ParseTree): ParseTree {
   }
   delete newTree.parent;
   return newTree;
+}
+
+export function parseTreeToAST(tree: ParseTree): AST {
+  if (tree.text !== undefined) {
+    return tree.text;
+  }
+  const ast: AST = [tree.type!];
+  for (const node of tree.children!) {
+    if (node.type && !node.type.endsWith("Mark")) {
+      ast.push(parseTreeToAST(node));
+    }
+    if (node.text && node.text.trim()) {
+      ast.push(node.text);
+    }
+  }
+  return ast;
 }

@@ -1,44 +1,42 @@
+import { KV, KvKey } from "$sb/types.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { BatchKVStore, SimpleSearchEngine } from "./engine.ts";
 
 class InMemoryBatchKVStore implements BatchKVStore {
   private store = new Map<string, any>();
 
-  get(keys: string[]): Promise<(any | undefined)[]> {
-    const results: (any | undefined)[] = keys.map((key) => this.store.get(key));
-    return Promise.resolve(results);
-  }
-
-  queryPrefix(prefix: string): Promise<[string, any][]> {
-    const results: [string, any][] = [];
+  query({ prefix }: { prefix: KvKey }): Promise<KV[]> {
+    const results: KV[] = [];
+    entries:
     for (const [key, value] of this.store.entries()) {
-      if (key.startsWith(prefix)) {
-        results.push([key, value]);
+      const parsedKey: string[] = JSON.parse(key);
+      for (let i = 0; i < prefix.length; i++) {
+        if (prefix[i] !== parsedKey[i]) {
+          continue entries;
+        }
       }
+      results.push({ key: parsedKey, value });
     }
     return Promise.resolve(results);
   }
 
-  set(entries: Map<string, any>): Promise<void> {
-    for (const [key, value] of entries) {
-      this.store.set(key, value);
+  batchSet(kvs: KV[]): Promise<void> {
+    for (const { key, value } of kvs) {
+      this.store.set(JSON.stringify(key), value);
     }
     return Promise.resolve();
   }
 
-  delete(keys: string[]): Promise<void> {
+  batchDel(keys: KvKey[]): Promise<void> {
     for (const key of keys) {
-      this.store.delete(key);
+      this.store.delete(JSON.stringify(key));
     }
     return Promise.resolve();
   }
 }
 
 Deno.test("Test full text search", async () => {
-  const engine = new SimpleSearchEngine(
-    new InMemoryBatchKVStore(),
-    new InMemoryBatchKVStore(),
-  );
+  const engine = new SimpleSearchEngine(new InMemoryBatchKVStore());
 
   await engine.indexDocument({ id: "1", text: "The quick brown fox" });
   await engine.indexDocument({ id: "2", text: "jumps over the lazy dogs" });

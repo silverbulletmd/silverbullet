@@ -1,31 +1,57 @@
-import { collectNodesOfType } from "$sb/lib/tree.ts";
-import { index } from "$sb/syscalls.ts";
-import type {
-  CompleteEvent,
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "$sb/app_event.ts";
-import { applyQuery, removeQueries } from "$sb/lib/query.ts";
+import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import { removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { indexObjects, queryObjects } from "./api.ts";
+import {
+  addParentPointers,
+  collectNodesOfType,
+  findParentMatching,
+} from "$sb/lib/tree.ts";
 
-// Key space
-// tag:TAG => true (for completion)
+export type TagObject = {
+  ref: string;
+  tags: string[];
+  name: string;
+  page: string;
+  parent: string;
+};
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
-  const allTags = new Set<string>();
-  const { tags } = await extractFrontmatter(tree);
-  if (Array.isArray(tags)) {
-    tags.forEach((t) => allTags.add(t));
+  const tags = new Set<string>(); // name:parent
+  addParentPointers(tree);
+  const pageTags: string[] = (await extractFrontmatter(tree)).tags || [];
+  for (const pageTag of pageTags) {
+    tags.add(`${pageTag}:page`);
   }
-  collectNodesOfType(tree, "Hashtag").forEach((n) => {
-    allTags.add(n.children![0].text!.substring(1));
+  collectNodesOfType(tree, "Hashtag").forEach((h) => {
+    const tagName = h.children![0].text!.substring(1);
+    // Check if this occurs in the context of a task
+    if (findParentMatching(h, (n) => n.type === "Task")) {
+      tags.add(`${tagName}:task`);
+    } else if (findParentMatching(h, (n) => n.type === "ListItem")) {
+      // Or an item
+      tags.add(`${tagName}:item`);
+    }
   });
-  await index.batchSet(
+  // console.log("Indexing these tags", tags);
+  await indexObjects<TagObject>(
     name,
-    [...allTags].map((t) => ({ key: `tag:${t}`, value: t })),
+    [...tags].map((tag) => {
+      const [tagName, parent] = tag.split(":");
+      return {
+        ref: tagName,
+        tags: ["tag"],
+        name: tagName,
+        page: name,
+        parent,
+      };
+    }),
   );
 }
+
+const taskPrefixRegex = /^\s*[\-\*]\s+\[([^\]]+)\]/;
+const itemPrefixRegex = /^\s*[\-\*]\s+/;
 
 export async function tagComplete(completeEvent: CompleteEvent) {
   const match = /#[^#\s]+$/.exec(completeEvent.linePrefix);
@@ -33,35 +59,20 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const tagPrefix = match[0].substring(1);
-  const allTags = await index.queryPrefix(`tag:${tagPrefix}`);
+  let parent = "page";
+  if (taskPrefixRegex.test(completeEvent.linePrefix)) {
+    parent = "task";
+  } else if (itemPrefixRegex.test(completeEvent.linePrefix)) {
+    parent = "item";
+  }
+  const allTags = await queryObjects<TagObject>("tag", {
+    filter: ["=", ["attr", "parent"], ["string", parent]],
+  });
   return {
     from: completeEvent.pos - tagPrefix.length,
     options: allTags.map((tag) => ({
-      label: tag.value,
+      label: tag.name,
       type: "tag",
     })),
   };
-}
-
-type Tag = {
-  name: string;
-  freq: number;
-};
-
-export async function tagProvider({ query }: QueryProviderEvent) {
-  const allTags = new Map<string, number>();
-  for (const { value } of await index.queryPrefix("tag:")) {
-    let currentFreq = allTags.get(value);
-    if (!currentFreq) {
-      currentFreq = 0;
-    }
-    allTags.set(value, currentFreq + 1);
-  }
-  return applyQuery(
-    query,
-    [...allTags.entries()].map(([name, freq]) => ({
-      name,
-      freq,
-    })),
-  );
 }

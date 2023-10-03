@@ -3,14 +3,10 @@ import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
   autocompletion,
-  cLanguage,
   closeBrackets,
   closeBracketsKeymap,
   codeFolding,
   completionKeymap,
-  cppLanguage,
-  csharpLanguage,
-  dartLanguage,
   drawSelection,
   dropCursor,
   EditorState,
@@ -18,37 +14,18 @@ import {
   highlightSpecialChars,
   history,
   historyKeymap,
-  htmlLanguage,
   indentOnInput,
   indentWithTab,
-  javaLanguage,
-  javascriptLanguage,
-  jsonLanguage,
   KeyBinding,
   keymap,
-  kotlinLanguage,
   LanguageDescription,
   LanguageSupport,
   markdown,
-  objectiveCLanguage,
-  objectiveCppLanguage,
-  postgresqlLanguage,
-  protobufLanguage,
-  pythonLanguage,
-  rustLanguage,
-  scalaLanguage,
   searchKeymap,
-  shellLanguage,
-  sqlLanguage,
   standardKeymap,
-  StreamLanguage,
   syntaxHighlighting,
-  tomlLanguage,
-  typescriptLanguage,
   ViewPlugin,
   ViewUpdate,
-  xmlLanguage,
-  yamlLanguage,
 } from "../common/deps.ts";
 import { Client } from "./client.ts";
 import { vim } from "./deps.ts";
@@ -63,6 +40,8 @@ import {
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
 import { TextChange } from "$sb/lib/change.ts";
+import { postScriptPlugin } from "./cm_plugins/post_script.ts";
+import { languageFor } from "../common/languages.ts";
 
 export function createEditorState(
   editor: Client,
@@ -124,143 +103,17 @@ export function createEditorState(
       // The uber markdown mode
       markdown({
         base: markdownLanguage,
-        codeLanguages: [
-          LanguageDescription.of({
-            name: "yaml",
-            alias: ["meta", "data", "embed"],
-            support: new LanguageSupport(StreamLanguage.define(yamlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "javascript",
-            alias: ["js"],
-            support: new LanguageSupport(javascriptLanguage),
-          }),
-          LanguageDescription.of({
-            name: "typescript",
-            alias: ["ts"],
-            support: new LanguageSupport(typescriptLanguage),
-          }),
-          LanguageDescription.of({
-            name: "sql",
-            alias: ["sql"],
-            support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "postgresql",
-            alias: ["pgsql", "postgres"],
-            support: new LanguageSupport(
-              StreamLanguage.define(postgresqlLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "rust",
-            alias: ["rs"],
-            support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "css",
-            support: new LanguageSupport(StreamLanguage.define(sqlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "html",
-            support: new LanguageSupport(htmlLanguage),
-          }),
-          LanguageDescription.of({
-            name: "python",
-            alias: ["py"],
-            support: new LanguageSupport(
-              StreamLanguage.define(pythonLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "protobuf",
-            alias: ["proto"],
-            support: new LanguageSupport(
-              StreamLanguage.define(protobufLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "shell",
-            alias: ["sh", "bash", "zsh", "fish"],
-            support: new LanguageSupport(
-              StreamLanguage.define(shellLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "swift",
-            support: new LanguageSupport(StreamLanguage.define(rustLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "toml",
-            support: new LanguageSupport(StreamLanguage.define(tomlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "json",
-            support: new LanguageSupport(StreamLanguage.define(jsonLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "xml",
-            support: new LanguageSupport(StreamLanguage.define(xmlLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "c",
-            support: new LanguageSupport(StreamLanguage.define(cLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "cpp",
-            alias: ["c++", "cxx"],
-            support: new LanguageSupport(StreamLanguage.define(cppLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "java",
-            support: new LanguageSupport(StreamLanguage.define(javaLanguage)),
-          }),
-          LanguageDescription.of({
-            name: "csharp",
-            alias: ["c#", "cs"],
-            support: new LanguageSupport(
-              StreamLanguage.define(csharpLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "scala",
-            alias: ["sc"],
-            support: new LanguageSupport(
-              StreamLanguage.define(scalaLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "kotlin",
-            alias: ["kt", "kts"],
-            support: new LanguageSupport(
-              StreamLanguage.define(kotlinLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "objc",
-            alias: ["objective-c", "objectivec"],
-            support: new LanguageSupport(
-              StreamLanguage.define(objectiveCLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "objcpp",
-            alias: [
-              "objc++",
-              "objective-cpp",
-              "objectivecpp",
-              "objective-c++",
-              "objectivec++",
-            ],
-            support: new LanguageSupport(
-              StreamLanguage.define(objectiveCppLanguage),
-            ),
-          }),
-          LanguageDescription.of({
-            name: "dart",
-            support: new LanguageSupport(StreamLanguage.define(dartLanguage)),
-          }),
-        ],
+        codeLanguages: (info) => {
+          const lang = languageFor(info);
+          if (lang) {
+            return LanguageDescription.of({
+              name: info,
+              support: new LanguageSupport(lang),
+            });
+          }
+
+          return null;
+        },
         addKeymap: true,
       }),
       markdownLanguage.data.of({
@@ -286,6 +139,7 @@ export function createEditorState(
       indentOnInput(),
       ...cleanModePlugins(editor),
       EditorView.lineWrapping,
+      postScriptPlugin(editor),
       lineWrapper([
         { selector: "ATXHeading1", class: "sb-line-h1" },
         { selector: "ATXHeading2", class: "sb-line-h2" },

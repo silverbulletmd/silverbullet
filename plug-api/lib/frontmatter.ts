@@ -2,7 +2,7 @@ import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
-  findNodeOfType,
+  collectNodesOfType,
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
@@ -18,21 +18,24 @@ export async function extractFrontmatter(
 ): Promise<any> {
   let data: any = {};
   addParentPointers(tree);
+  let paragraphCounter = 0;
 
   await replaceNodesMatchingAsync(tree, async (t) => {
-    // Find top-level hash tags
-    if (t.type === "Hashtag") {
-      // Check if if nested directly into a Paragraph
-      if (t.parent && t.parent.type === "Paragraph") {
-        const tagname = t.children![0].text!.substring(1);
+    if (t.type === "Paragraph") {
+      paragraphCounter++;
+      // Only attach hashtags in the first paragraph to the page
+      if (paragraphCounter !== 1) {
+        return;
+      }
+      collectNodesOfType(t, "Hashtag").forEach((h) => {
         if (!data.tags) {
           data.tags = [];
         }
+        const tagname = h.children![0].text!.substring(1);
         if (Array.isArray(data.tags) && !data.tags.includes(tagname)) {
           data.tags.push(tagname);
         }
-      }
-      return;
+      });
     }
     // Find FrontMatter and parse it
     if (t.type === "FrontMatter") {
@@ -62,43 +65,6 @@ export async function extractFrontmatter(
       } catch (e: any) {
         console.warn("Could not parse frontmatter", e.message);
       }
-    }
-
-    // Find a fenced code block with `meta` as the language type
-    if (t.type !== "FencedCode") {
-      return;
-    }
-    const codeInfoNode = findNodeOfType(t, "CodeInfo");
-    if (!codeInfoNode) {
-      return;
-    }
-    if (codeInfoNode.children![0].text !== "meta") {
-      return;
-    }
-    const codeTextNode = findNodeOfType(t, "CodeText");
-    if (!codeTextNode) {
-      // Honestly, this shouldn't happen
-      return;
-    }
-    const codeText = codeTextNode.children![0].text!;
-    const parsedData: any = YAML.parse(codeText);
-    const newData = { ...parsedData };
-    data = { ...data, ...parsedData };
-    if (removeKeys.length > 0) {
-      let removedOne = false;
-      for (const key of removeKeys) {
-        if (key in newData) {
-          delete newData[key];
-          removedOne = true;
-        }
-      }
-      if (removedOne) {
-        codeTextNode.children![0].text = (await YAML.stringify(newData)).trim();
-      }
-    }
-    // If nothing is left, let's just delete this whole block
-    if (Object.keys(newData).length === 0) {
-      return null;
     }
 
     return undefined;

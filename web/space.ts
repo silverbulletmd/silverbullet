@@ -1,33 +1,49 @@
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { plugPrefix } from "../common/spaces/constants.ts";
 import { safeRun } from "../common/util.ts";
-import { AttachmentMeta, PageMeta } from "./types.ts";
 
-import { KVStore } from "../plugos/lib/kv_store.ts";
-import { FileMeta } from "$sb/types.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { throttle } from "$sb/lib/async.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { LimitedMap } from "../common/limited_map.ts";
 
 const pageWatchInterval = 5000;
 
 export class Space {
-  imageHeightCache: Record<string, number> = {};
-  // pageMetaCache = new Map<string, PageMeta>();
+  imageHeightCache = new LimitedMap<number>(100); // url -> height
+  widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
   cachedPageList: PageMeta[] = [];
 
-  debouncedCacheFlush = throttle(() => {
-    this.kvStore.set("imageHeightCache", this.imageHeightCache).catch(
+  debouncedImageCacheFlush = throttle(() => {
+    this.ds.set(["cache", "imageHeight"], this.imageHeightCache).catch(
       console.error,
     );
     console.log("Flushed image height cache to store");
   }, 5000);
 
   setCachedImageHeight(url: string, height: number) {
-    this.imageHeightCache[url] = height;
-    this.debouncedCacheFlush();
+    this.imageHeightCache.set(url, height);
+    this.debouncedImageCacheFlush();
   }
   getCachedImageHeight(url: string): number {
-    return this.imageHeightCache[url] ?? -1;
+    return this.imageHeightCache.get(url) ?? -1;
+  }
+
+  debouncedWidgetCacheFlush = throttle(() => {
+    this.ds.set(["cache", "widgetHeight"], this.widgetHeightCache.toJSON())
+      .catch(
+        console.error,
+      );
+    console.log("Flushed widget height cache to store");
+  }, 5000);
+
+  setCachedWidgetHeight(bodyText: string, height: number) {
+    this.widgetHeightCache.set(bodyText, height);
+    this.debouncedWidgetCacheFlush();
+  }
+  getCachedWidgetHeight(bodyText: string): number {
+    return this.widgetHeightCache.get(bodyText) ?? -1;
   }
 
   // We do watch files in the background to detect changes
@@ -40,16 +56,20 @@ export class Space {
 
   constructor(
     readonly spacePrimitives: SpacePrimitives,
-    private kvStore: KVStore,
+    private ds: DataStore,
     private eventHook: EventHook,
   ) {
     // super();
-    this.kvStore.get("imageHeightCache").then((cache) => {
-      if (cache) {
-        // console.log("Loaded image height cache from KV store", cache);
-        this.imageHeightCache = cache;
-      }
-    });
+    this.ds.batchGet([["cache", "imageHeight"], ["cache", "widgetHeight"]])
+      .then(([imageCache, widgetCache]) => {
+        if (imageCache) {
+          this.imageHeightCache = new LimitedMap(100, imageCache);
+        }
+        if (widgetCache) {
+          // console.log("Loaded widget cache from store", widgetCache);
+          this.widgetHeightCache = new LimitedMap(100, widgetCache);
+        }
+      });
     eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
       this.cachedPageList = files.filter(this.isListedPage).map(
         fileMetaToPageMeta,

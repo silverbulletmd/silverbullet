@@ -1,5 +1,11 @@
-import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { PageMeta } from "../../web/types.ts";
+import {
+  addParentPointers,
+  findParentMatching,
+  ParseTree,
+  renderToText,
+} from "$sb/lib/tree.ts";
+import { PageMeta } from "$sb/types.ts";
+import { editor, markdown } from "$sb/syscalls.ts";
 
 import { evalDirectiveRenderer } from "./eval_directive.ts";
 import { queryDirectiveRenderer } from "./query_directive.ts";
@@ -53,8 +59,29 @@ export async function directiveDispatcher(
   const directiveStartText = renderToText(directiveStart).trim();
   const directiveEndText = renderToText(directiveEnd).trim();
 
-  if (directiveStart.children!.length === 1) {
-    // Everything not #query
+  const firstPart = directiveStart.children![0].text!;
+  if (firstPart?.includes("#query")) {
+    // #query
+    const newBody = await directiveRenderers["query"](
+      "query",
+      pageMeta,
+      directiveStart.children![1].children![0], // The query ParseTree
+    );
+    const result =
+      `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
+    return result;
+  } else if (firstPart?.includes("#eval")) {
+    console.log("Eval stuff", directiveStart.children![1].children![0]);
+    const newBody = await directiveRenderers["eval"](
+      "eval",
+      pageMeta,
+      directiveStart.children![1].children![0],
+    );
+    const result =
+      `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
+    return result;
+  } else {
+    // Everything not #query and #eval
     const match = directiveStartRegex.exec(directiveStart.children![0].text!);
     if (!match) {
       throw Error("No match");
@@ -70,16 +97,6 @@ export async function directiveDispatcher(
     } catch (e: any) {
       return `${directiveStartText}\n**ERROR:** ${e.message}\n${directiveEndText}`;
     }
-  } else {
-    // #query
-    const newBody = await directiveRenderers["query"](
-      "query",
-      pageMeta,
-      directiveStart.children![1], // The query ParseTree
-    );
-    const result =
-      `${directiveStartText}\n${newBody.trim()}\n${directiveEndText}`;
-    return result;
   }
 }
 

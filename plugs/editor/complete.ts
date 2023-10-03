@@ -1,6 +1,6 @@
 import { CompleteEvent } from "$sb/app_event.ts";
 import { space } from "$sb/syscalls.ts";
-import { PageMeta } from "../../web/types.ts";
+import { PageMeta } from "$sb/types.ts";
 import { cacheFileListing } from "../federation/federation.ts";
 
 // Completion

@@ -1,11 +1,11 @@
 import { readCodeBlockPage } from "$sb/lib/yaml_page.ts";
-import { editor, store } from "$sb/syscalls.ts";
+import { clientStore, editor } from "$sb/syscalls.ts";
 
 export async function toggleVimMode() {
-  let vimMode = await store.get("vimMode");
+  let vimMode = await clientStore.get("vimMode");
   vimMode = !vimMode;
   await editor.setUiOption("vimMode", vimMode);
-  await store.set("vimMode", vimMode);
+  await clientStore.set("vimMode", vimMode);
 }
 
 export async function loadVimRc() {
@@ -28,7 +28,7 @@ export async function loadVimRc() {
         }
       }
     }
-  } catch (e: any) {
+  } catch {
     // No VIMRC page found
   }
 }

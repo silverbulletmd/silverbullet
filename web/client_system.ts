@@ -3,13 +3,11 @@ import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { DexieKVStore } from "../plugos/lib/kv_store.dexie.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { storeSyscalls } from "../plugos/syscalls/store.ts";
-import { SysCallMapping, System } from "../plugos/system.ts";
+import { System } from "../plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { CommandHook } from "./hooks/command.ts";
@@ -18,40 +16,41 @@ import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { debugSyscalls } from "./syscalls/debug.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { pageIndexSyscalls } from "./syscalls/index.ts";
-import { markdownSyscalls } from "./syscalls/markdown.ts";
+import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
-import { yamlSyscalls } from "./syscalls/yaml.ts";
+import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { Space } from "./space.ts";
 import {
   loadMarkdownExtensions,
   MDExt,
 } from "../common/markdown_parser/markdown_ext.ts";
-import { DexieMQ } from "../plugos/lib/mq.dexie.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
-import { mqSyscalls } from "../plugos/syscalls/mq.dexie.ts";
-import { indexProxySyscalls } from "./syscalls/index.proxy.ts";
-import { storeProxySyscalls } from "./syscalls/store.proxy.ts";
+import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
+import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
+import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { MessageQueue } from "../plugos/lib/mq.ts";
+import { languageSyscalls } from "../common/syscalls/language.ts";
+import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
+import { widgetSyscalls } from "./syscalls/widget.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
   slashCommandHook: SlashCommandHook;
   namespaceHook: PlugNamespaceHook;
-  indexSyscalls: SysCallMapping;
   codeWidgetHook: CodeWidgetHook;
-  plugsUpdated = false;
   mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
 
   constructor(
     private client: Client,
-    private kvStore: DexieKVStore,
-    private mq: DexieMQ,
-    dbPrefix: string,
+    private mq: MessageQueue,
+    private ds: DataStore,
+    // private dbPrefix: string,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
@@ -67,18 +66,6 @@ export class ClientSystem {
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
 
-    if (!client.syncMode) {
-      // In non-sync mode, proxy these to the server
-      this.indexSyscalls = indexProxySyscalls(client);
-    } else {
-      // In sync mode, run them locally
-      this.indexSyscalls = pageIndexSyscalls(
-        `${dbPrefix}_page_index`,
-        globalThis.indexedDB,
-        globalThis.IDBKeyRange,
-      );
-    }
-
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
     this.system.addHook(this.codeWidgetHook);
@@ -93,7 +80,7 @@ export class ClientSystem {
     this.commandHook = new CommandHook();
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
-        this.client.ui.viewDispatch({
+        this.client.ui?.viewDispatch({
           type: "update-commands",
           commands: commandMap,
         });
@@ -118,7 +105,7 @@ export class ClientSystem {
           // If there are syntax extensions, rebuild the markdown parser immediately
           this.updateMarkdownParser();
         }
-        this.plugsUpdated = true;
+        this.client.debouncedPlugsUpdatedEvent();
       }
     });
 
@@ -138,17 +125,9 @@ export class ClientSystem {
     // this.eventHook.addLocalListener("file:deleted", (file) => {
     //   console.log("File deleted", file);
     // });
-
-    this.registerSyscalls();
   }
 
-  registerSyscalls() {
-    const storeCalls = this.client.syncMode
-      // In sync mode handle locally
-      ? storeSyscalls(this.kvStore)
-      // In non-sync mode proxy to server
-      : storeProxySyscalls(this.client);
-
+  async init() {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
@@ -163,16 +142,20 @@ export class ClientSystem {
       markdownSyscalls(buildMarkdown(this.mdExtensions)),
       assetSyscalls(this.system),
       yamlSyscalls(),
+      handlebarsSyscalls(),
+      widgetSyscalls(this.client),
+      languageSyscalls(),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
-      storeCalls,
-      this.indexSyscalls,
+      this.client.syncMode
+        ? dataStoreSyscalls(this.ds)
+        : dataStoreProxySyscalls(this.client),
       debugSyscalls(),
       syncSyscalls(this.client),
-      clientStoreSyscalls(this.kvStore),
+      clientStoreSyscalls(this.ds),
     );
 
     // Syscalls that require some additional permissions
