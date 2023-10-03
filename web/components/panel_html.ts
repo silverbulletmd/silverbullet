@@ -82,6 +82,9 @@ function updateHeight() {
     setTimeout(updateHeight, 100);
   }
 }
+setTimeout(() => {
+  updateHeight();
+});
 
 function loadJsByUrl(url) {
   const script = document.createElement("script");

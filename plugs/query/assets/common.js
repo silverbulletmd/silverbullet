@@ -91,7 +91,6 @@ async function init() {
     });
   });
 
-  updateHeight();
 }
 
 init().catch(console.error);

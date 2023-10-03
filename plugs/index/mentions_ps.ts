@@ -52,7 +52,7 @@ async function renderMentions(page: string) {
     await editor.hidePanel("ps");
   } else {
     const css = await asset.readAsset("asset/style.css");
-    const js = await asset.readAsset("asset/script.js");
+    const js = await asset.readAsset("asset/linked_mentions.js");
 
     await editor.showPanel(
       "ps",

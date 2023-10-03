@@ -2,7 +2,7 @@ import { Decoration, EditorState, WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { PanelConfig } from "../types.ts";
-import { panelHtml } from "../components/panel_html.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 class IFrameWidget extends WidgetType {
   constructor(
@@ -13,43 +13,8 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const iframe = document.createElement("iframe");
+    const iframe = createWidgetSandboxIFrame(this.editor, null, this.panel);
     iframe.classList.add("sb-ps-iframe");
-    iframe.srcdoc = panelHtml;
-    console.log("Creating new instance of postscript");
-    // iframe.style.height = "0";
-
-    const messageListener = (evt: any) => {
-      if (evt.source !== iframe.contentWindow) {
-        return;
-      }
-      const data = evt.data;
-      if (!data) {
-        return;
-      }
-      switch (data.type) {
-        case "event":
-          this.editor.dispatchAppEvent(data.name, ...data.args);
-          break;
-        case "setHeight":
-          iframe.style.height = data.height + "px";
-          break;
-      }
-    };
-
-    iframe.onload = () => {
-      // Subscribe to message event on global object (to receive messages from iframe)
-      globalThis.addEventListener("message", messageListener);
-      // Only run this code once
-      iframe.onload = null;
-      if (this.panel.html) {
-        iframe.contentWindow!.postMessage({
-          type: "html",
-          html: this.panel.html,
-          script: this.panel.script,
-        });
-      }
-    };
     return iframe;
   }
 

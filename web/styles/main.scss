@@ -147,8 +147,9 @@ body {
 
 .sb-ps-iframe {
   width: 100%;
-  border: 0;
   margin-top: 10px;
+  border: 1px solid var(--editor-directive-background-color);
+  border-radius: 5px;
 }
 
 

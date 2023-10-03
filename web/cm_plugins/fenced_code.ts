@@ -7,7 +7,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
-import { panelHtml } from "../components/panel_html.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;
@@ -23,108 +23,35 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const iframe = document.createElement("iframe");
-    this.iframe = iframe;
-    iframe.srcdoc = panelHtml;
-    // iframe.style.height = "150px";
-
-    const messageListener = (evt: any) => {
-      (async () => {
-        if (evt.source !== iframe.contentWindow) {
-          return;
-        }
-        const data = evt.data;
-        if (!data) {
-          return;
-        }
-        switch (data.type) {
-          case "event":
-            await this.editor.dispatchAppEvent(data.name, ...data.args);
-            break;
-          case "syscall": {
-            const { id, name, args } = data;
-            try {
-              const result = await this.editor.system.localSyscall(name, args);
-              if (!iframe.contentWindow) {
-                // iFrame already went away
-                return;
-              }
-              iframe.contentWindow!.postMessage({
-                type: "syscall-response",
-                id,
-                result,
-              });
-            } catch (e: any) {
-              if (!iframe.contentWindow) {
-                // iFrame already went away
-                return;
-              }
-              iframe.contentWindow!.postMessage({
-                type: "syscall-response",
-                id,
-                error: e.message,
-              });
-            }
-            break;
-          }
-          case "setHeight":
-            iframe.style.height = data.height + "px";
-            this.editor.space.setCachedWidgetHeight(this.bodyText, data.height);
-            break;
-          case "setBody":
-            this.editor.editorView.dispatch({
-              changes: {
-                from: this.from,
-                to: this.to,
-                insert: data.body,
-              },
-            });
-            break;
+    const iframe = createWidgetSandboxIFrame(
+      this.editor,
+      this.bodyText,
+      this.codeWidgetCallback(this.bodyText),
+      (message) => {
+        switch (message.type) {
           case "blur":
             this.editor.editorView.dispatch({
               selection: { anchor: this.from },
             });
             this.editor.focus();
+
             break;
           case "reload":
-            loadContent();
+            this.codeWidgetCallback(this.bodyText).then(
+              (widgetContent: WidgetContent) => {
+                iframe.contentWindow!.postMessage({
+                  type: "html",
+                  html: widgetContent.html,
+                  script: widgetContent.script,
+                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                });
+              },
+            );
             break;
         }
-      })().catch((e) => {
-        console.error("Message listener error", e);
-      });
-    };
+      },
+    );
 
-    const loadContent = () => {
-      this.codeWidgetCallback(this.bodyText).then(
-        (widgetContent: WidgetContent) => {
-          if (widgetContent.html) {
-            iframe.contentWindow!.postMessage({
-              type: "html",
-              html: widgetContent.html,
-              script: widgetContent.script,
-              theme: document.getElementsByTagName("html")[0].dataset.theme,
-            });
-          } else if (widgetContent.url) {
-            iframe.contentWindow!.location.href = widgetContent.url;
-            if (widgetContent.height) {
-              iframe.style.height = widgetContent.height + "px";
-            }
-            if (widgetContent.width) {
-              iframe.style.width = widgetContent.width + "px";
-            }
-          }
-        },
-      );
-    };
-
-    iframe.onload = () => {
-      // Subscribe to message event on global object (to receive messages from iframe)
-      globalThis.addEventListener("message", messageListener);
-      // Only run this code once
-      iframe.onload = null;
-      loadContent();
-    };
     return iframe;
   }
 

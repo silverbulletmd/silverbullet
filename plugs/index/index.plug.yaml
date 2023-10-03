@@ -160,8 +160,6 @@ functions:
     command:
       name: "Mentions: Toggle"
       key: ctrl-alt-m
-    events:
-    - mentions:hide
   updateMentions:
     path: "./mentions_ps.ts:updateMentions"
     env: client
@@ -170,6 +168,4 @@ functions:
       - editor:pageLoaded
   navigateToMention:
     path: "./mentions_ps.ts:navigate"
-    events:
-      - mentions:navigate
 

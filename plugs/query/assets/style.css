@@ -19,13 +19,14 @@ body:active #button-bar {
     right: 12px;
     top: 3px;
     display: none;
+    background: rgb(255 255 255 / 0.9);
 }
 
 #button-bar button {
     border: none;
     background: none;
     cursor: pointer;
-    margin-left: -12px;
+    /* margin-left: -12px; */
     color: var(--root-color);
 }
 
