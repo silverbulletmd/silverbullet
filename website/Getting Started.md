@@ -18,9 +18,11 @@ Notice that as you move your cursor around on this page and you get close to or 
 
 Hadn’t we mentioned [[Markdown]] yet? Yeah, that’s the markup language you’ll use to add that dash of markup to your documents. It’s pretty simple to learn if you don’t know it already.
 
-You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[🔌 Directive]] (in this case `#use`). There are various types of directives, and while we’re not keeping score, likely the coolest ones are [[🔌 Directive/Query|queries]] — so you should definitely look into those.
+You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[Live Templates]], which embeds another (sometime external) page into the existing one.
 
-Don’t believe me, check this out, here’s a list of (max 10) pages in your space ordered by name, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
+But SilverBullet has even more tricks up its sleeve. Consider [[Live Queries]] which allow you to query [[Objects]] in your space easily.
+
+Don’t believe me? Check this out, here’s a list of (max 10) pages in your space ordered by name, it updates (somewhat) dynamically 🤯. Create some new pages and come back here to see that it works:
 
 ```query
 page select name order by name limit 10 
