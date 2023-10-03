@@ -215,6 +215,20 @@ export function applyQueryNoFilterKV(
       allItems[i].value = newRec;
     }
   }
+  if (query.distinct) {
+    // Remove duplicates
+    const valueSet = new Set<string>();
+    const uniqueItems: KV[] = [];
+    for (const item of allItems) {
+      const value = JSON.stringify(item.value);
+      if (!valueSet.has(value)) {
+        valueSet.add(value);
+        uniqueItems.push(item);
+      }
+    }
+    allItems = uniqueItems;
+  }
+
   if (query.limit) {
     const limit = evalQueryExpression(query.limit, {}, functionMap);
     if (allItems.length > limit) {

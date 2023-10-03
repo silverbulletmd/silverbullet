@@ -23,6 +23,9 @@ functions:
   batchSet:
     path: api.ts:batchSet
     env: server
+  query:
+    path: api.ts:query
+    env: server
   indexObjects:
     path: api.ts:indexObjects
     env: server

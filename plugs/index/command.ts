@@ -12,7 +12,6 @@ export async function reindexCommand() {
 export async function reindexSpace() {
   console.log("Clearing page index...");
   // Executed this way to not have to embed the search plug code here
-  await system.invokeFunction("search.clearIndex");
   await system.invokeFunction("index.clearIndex");
   const pages = await space.listPages();
 

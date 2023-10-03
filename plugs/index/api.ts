@@ -1,5 +1,5 @@
 import { datastore } from "$sb/syscalls.ts";
-import { KV, KvKey, ObjectQuery, ObjectValue } from "$sb/types.ts";
+import { KV, KvKey, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { builtins } from "./builtins.ts";
 import { AttributeObject, determineType } from "./attributes.ts";
@@ -126,16 +126,25 @@ export async function queryObjects<T>(
   return (await datastore.query({
     ...query,
     prefix: [indexKey, tag],
+    distinct: true,
   })).map(({ value }) => value);
 }
 
-export async function getObjectByRef<T>(
+export async function query(
+  query: KvQuery,
+): Promise<KV[]> {
+  return (await datastore.query({
+    ...query,
+    prefix: [indexKey, ...query.prefix ? query.prefix : []],
+  })).map(({ key, value }) => ({ key: key.slice(1), value }));
+}
+
+export function getObjectByRef<T>(
   page: string,
   tag: string,
   ref: string,
 ): Promise<ObjectValue<T> | undefined> {
-  console.log("Fetching!!!!!", [indexKey, tag, cleanKey(ref, page), page]);
-  return (await datastore.get([indexKey, tag, cleanKey(ref, page), page]));
+  return datastore.get([indexKey, tag, cleanKey(ref, page), page]);
 }
 
 export async function objectSourceProvider({
@@ -145,6 +154,7 @@ export async function objectSourceProvider({
   const results = await datastore.query({
     ...query,
     prefix: [indexKey, tag],
+    distinct: true,
   });
   return results.map((r) => r.value);
 }

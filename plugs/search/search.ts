@@ -5,14 +5,12 @@ import {
   evalQueryExpression,
   liftAttributeFilter,
 } from "$sb/lib/query.ts";
-import { datastore, editor } from "$sb/syscalls.ts";
-import { SimpleSearchEngine } from "./engine.ts";
-import { FileMeta, KvKey } from "$sb/types.ts";
+import { editor } from "$sb/syscalls.ts";
+import { FileMeta } from "$sb/types.ts";
 import { PromiseQueue } from "$sb/lib/async.ts";
+import { ftsIndexPage, ftsSearch } from "./engine.ts";
 
 const searchPrefix = "🔍 ";
-
-const engine = new SimpleSearchEngine(datastore);
 
 // Search indexing is prone to concurrency issues, so we queue all write operations
 const promiseQueue = new PromiseQueue();
@@ -21,25 +19,8 @@ export function indexPage({ name, tree }: IndexTreeEvent) {
   const text = renderToText(tree);
   return promiseQueue.runInQueue(async () => {
     // console.log("Now FTS indexing", name);
-    await engine.deleteDocument(name);
-    await engine.indexDocument({ id: name, text });
-  });
-}
-
-export async function clearIndex() {
-  const keysToDelete: KvKey[] = [];
-  for (const { key } of await datastore.query({ prefix: ["fts"] })) {
-    keysToDelete.push(key);
-  }
-  for (const { key } of await datastore.query({ prefix: ["fts_rev"] })) {
-    keysToDelete.push(key);
-  }
-  await datastore.batchDel(keysToDelete);
-}
-
-export function pageUnindex(pageName: string) {
-  return promiseQueue.runInQueue(() => {
-    return engine.deleteDocument(pageName);
+    // await engine.deleteDocument(name);
+    await ftsIndexPage(name, text);
   });
 }
 
@@ -52,7 +33,7 @@ export async function queryProvider({
   }
   const phrase = evalQueryExpression(phraseFilter, {});
   // console.log("Phrase", phrase);
-  let results: any[] = await engine.search(phrase);
+  let results: any[] = await ftsSearch(phrase);
 
   // Patch the object to a format that users expect (translate id to name)
   for (const r of results) {
@@ -78,7 +59,7 @@ export async function readFileSearch(
     searchPrefix.length,
     name.length - ".md".length,
   );
-  const results = await engine.search(phrase);
+  const results = await ftsSearch(phrase);
   const text = `# Search results for "${phrase}"\n${
     results
       .map((r) => `* [[${r.id}]] (score ${r.score})`)

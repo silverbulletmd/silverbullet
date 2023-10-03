@@ -5,14 +5,6 @@ functions:
    events:
    - page:index
 
-  clearIndex:
-    path: search.ts:clearIndex
-
-  searchUnindex:
-    path: "./search.ts:pageUnindex"
-    env: client
-    events:
-      - page:deleted
   searchQueryProvider:
     path: ./search.ts:queryProvider
     events:
