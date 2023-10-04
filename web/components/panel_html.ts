@@ -69,7 +69,7 @@ let oldHeight = undefined;
 let heightChecks = 0;
 function updateHeight() {
   const body = document.body, html = document.documentElement;
-  let height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+  let height = Math.max(body.offsetHeight, html.offsetHeight);
   heightChecks++;
   if(height !== oldHeight) {
     oldHeight = height;
