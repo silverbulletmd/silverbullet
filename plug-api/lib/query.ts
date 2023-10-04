@@ -82,8 +82,9 @@ export function evalQueryExpression(
         // Record property is an array, and value is a scalar: find the value in the array
         return val1.includes(val2);
       } else if (Array.isArray(val1) && Array.isArray(val2)) {
-        // Record property is an array, and value is an array: find the value in the array
-        return val1.some((v) => val2.includes(v));
+        // Record property is an array, and value is an array: compare the arrays
+        return val1.length === val2.length &&
+          val1.every((v) => val2.includes(v));
       }
       return val1 == val2;
     }
@@ -92,8 +93,9 @@ export function evalQueryExpression(
         // Record property is an array, and value is a scalar: find the value in the array
         return !val1.includes(val2);
       } else if (Array.isArray(val1) && Array.isArray(val2)) {
-        // Record property is an array, and value is an array: find the value in the array
-        return !val1.some((v) => val2.includes(v));
+        // Record property is an array, and value is an array: compare the arrays
+        return !(val1.length === val2.length &&
+          val1.every((v) => val2.includes(v)));
       }
       return val1 !== val2;
     }

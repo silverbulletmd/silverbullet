@@ -83,15 +83,18 @@ Logical expressions:
 * or: `name = "this" or age > 10`
 
 Binary expressions:
-- `=` equals, e.g. `name = "Pete"`
-- `!=` not equals, e.g. `name != "Pete"`
-- `<` less than, e.g. `age < 10`
-- `<=` less than or equals, e.g. `age <= 10`
-- `>` greater than, e.g. `age > 10`
-- `>=` greater than or equals, e.g. `age >= 10`
-- `=~` to match against a regular expression, e.g. `name =~ /^template\//`
-- `!=~` to not match a regular expression, e.g. `name !=~ /^template\//`
-- `in` member of a list (e.g. `prop in ["foo", "bar"]`)
+* `=` equals.
+  * For scalar values this performance an equivalence tests (e.g. `10 = 10`)
+  * If the left operand is an array and the right operand is _not_, this will will check if the right operand is _included_ in the left operand’s value, e.g. `[1, 2, 3] = 2` will be true.
+  * If both operands are arrays, they will be compared for equivalence ignoring order, so this will be true: `[1, 2, 3] = [3, 2, 1]`
+* `!=` the exact inverse of the meaning of `=`, e.g. `name != "Pete"`
+* `<` less than, e.g. `age < 10`
+* `<=` less than or equals, e.g. `age <= 10`
+* `>` greater than, e.g. `age > 10`
+* `>=` greater than or equals, e.g. `age >= 10`
+* `=~` to match against a regular expression, e.g. `name =~ /^template\//`
+* `!=~` to not match a regular expression, e.g. `name !=~ /^template\//`
+* `in` member of a list (e.g. `prop in ["foo", "bar"]`)
 * `+` addition (can also concatenate strings), e.g. `10 + 12` or `name + "!!!"`
 * `-` subtraction, e.g. `10 - 12`
 * `/` addition, e.g. `10 / 12`
