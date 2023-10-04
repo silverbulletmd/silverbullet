@@ -80,19 +80,23 @@ export function evalQueryExpression(
     case "=": {
       if (Array.isArray(val1) && !Array.isArray(val2)) {
         // Record property is an array, and value is a scalar: find the value in the array
-        if (val1.includes(val2)) {
-          return true;
-        }
+        return val1.includes(val2);
       } else if (Array.isArray(val1) && Array.isArray(val2)) {
         // Record property is an array, and value is an array: find the value in the array
-        if (val1.some((v) => val2.includes(v))) {
-          return true;
-        }
+        return val1.some((v) => val2.includes(v));
       }
       return val1 == val2;
     }
-    case "!=":
-      return val1 != val2;
+    case "!=": {
+      if (Array.isArray(val1) && !Array.isArray(val2)) {
+        // Record property is an array, and value is a scalar: find the value in the array
+        return !val1.includes(val2);
+      } else if (Array.isArray(val1) && Array.isArray(val2)) {
+        // Record property is an array, and value is an array: find the value in the array
+        return !val1.some((v) => val2.includes(v));
+      }
+      return val1 !== val2;
+    }
     case "=~": {
       if (!Array.isArray(val2)) {
         throw new Error(`Invalid regexp: ${val2}`);
