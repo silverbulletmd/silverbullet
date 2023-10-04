@@ -34,14 +34,3 @@ functions:
     path: command.ts:convertToLiveQuery
     command:
       name: "Directive: Convert Query to Live Query"
-
-  # Templates
-  insertEvalTemplate:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: eval
-      description: Evaluate a JavaScript expression
-      value: |
-        <!-- #eval |^| -->
-
-        <!-- /eval -->

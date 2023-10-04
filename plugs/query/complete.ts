@@ -1,5 +1,5 @@
 import { CompleteEvent } from "$sb/app_event.ts";
-import { events } from "$sb/syscalls.ts";
+import { events, language } from "$sb/syscalls.ts";
 import {
   AttributeCompleteEvent,
   AttributeCompletion,
@@ -7,11 +7,12 @@ import {
 
 export async function queryComplete(completeEvent: CompleteEvent) {
   const fencedParent = completeEvent.parentNodes.find((node) =>
-    node === "FencedCode:query"
+    node.startsWith("FencedCode:query")
   );
   if (!fencedParent) {
     return null;
   }
+  // First let's try to match the query source
   let querySourceMatch = /^\s*([\w\-_]*)$/.exec(
     completeEvent.linePrefix,
   );
@@ -41,8 +42,10 @@ export async function queryComplete(completeEvent: CompleteEvent) {
     };
   }
 
-  querySourceMatch = /^\s*([\w\-_]*)/.exec(
-    completeEvent.linePrefix,
+  // If that doesn't work, let's try to match other bits of the query
+  // For this we do need to find the query source, though, so let's look for it in fencedParent
+  querySourceMatch = /^[\n\r\s]*([\w\-_]+)/.exec(
+    fencedParent.slice("FencedCode:query".length),
   );
   const whereMatch =
     /(where|order\s+by|and|or|select(\s+[\w\s,]+)?)\s+([\w\-_]*)$/
@@ -77,4 +80,24 @@ function attributeCompletionsToCMCompletion(
       type: "attribute",
     }),
   );
+}
+
+export async function languageComplete(completeEvent: CompleteEvent) {
+  const languagePrefix = /^```(\w*)$/.exec(
+    completeEvent.linePrefix,
+  );
+  if (!languagePrefix) {
+    return null;
+  }
+
+  const allLanguages = await language.listLanguages();
+  return {
+    from: completeEvent.pos - languagePrefix[1].length,
+    options: allLanguages.map(
+      (lang) => ({
+        label: lang,
+        type: "language",
+      }),
+    ),
+  };
 }

@@ -14,3 +14,7 @@ export function parseLanguage(
 ): Promise<ParseTree> {
   return syscall("language.parseLanguage", language, code);
 }
+
+export function listLanguages(): Promise<string[]> {
+  return syscall("language.listLanguages");
+}

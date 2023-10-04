@@ -15,6 +15,11 @@ functions:
     events:
     - editor:complete
 
+  languageComplete:
+    path: complete.ts:languageComplete
+    events:
+    - editor:complete
+
   # Slash commands
   insertQuery:
     redirect: template.insertTemplateText

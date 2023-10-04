@@ -27,108 +27,68 @@ import {
 } from "./deps.ts";
 import { highlightingDirectiveParser } from "./markdown_parser/parser.ts";
 
-const languageCache = new Map<string, Language>();
+export const builtinLanguages: Record<string, Language> = {
+  "meta": StreamLanguage.define(yamlLanguage),
+  "yaml": StreamLanguage.define(yamlLanguage),
+  "template": StreamLanguage.define(yamlLanguage),
+  "embed": StreamLanguage.define(yamlLanguage),
+  "data": StreamLanguage.define(yamlLanguage),
+  "javascript": javascriptLanguage,
+  "js": javascriptLanguage,
+  "typescript": typescriptLanguage,
+  "ts": typescriptLanguage,
+  "sql": StreamLanguage.define(sqlLanguage),
+  "postgresql": StreamLanguage.define(postgresqlLanguage),
+  "pgsql": StreamLanguage.define(postgresqlLanguage),
+  "postgres": StreamLanguage.define(postgresqlLanguage),
+  "rust": StreamLanguage.define(rustLanguage),
+  "rs": StreamLanguage.define(rustLanguage),
+  "css": StreamLanguage.define(sqlLanguage),
+  "html": htmlLanguage,
+  "python": StreamLanguage.define(pythonLanguage),
+  "py": StreamLanguage.define(pythonLanguage),
+  "protobuf": StreamLanguage.define(protobufLanguage),
+  "proto": StreamLanguage.define(protobufLanguage),
+  "shell": StreamLanguage.define(shellLanguage),
+  "sh": StreamLanguage.define(shellLanguage),
+  "bash": StreamLanguage.define(shellLanguage),
+  "zsh": StreamLanguage.define(shellLanguage),
+  "fish": StreamLanguage.define(shellLanguage),
+  "swift": StreamLanguage.define(rustLanguage),
+  "toml": StreamLanguage.define(tomlLanguage),
+  "json": StreamLanguage.define(jsonLanguage),
+  "xml": StreamLanguage.define(xmlLanguage),
+  "c": StreamLanguage.define(cLanguage),
+  "cpp": StreamLanguage.define(cppLanguage),
+  "c++": StreamLanguage.define(cppLanguage),
+  "cxx": StreamLanguage.define(cppLanguage),
+  "java": StreamLanguage.define(javaLanguage),
+  "csharp": StreamLanguage.define(csharpLanguage),
+  "cs": StreamLanguage.define(csharpLanguage),
+  "c#": StreamLanguage.define(csharpLanguage),
+  "scala": StreamLanguage.define(scalaLanguage),
+  "kotlin": StreamLanguage.define(kotlinLanguage),
+  "objc": StreamLanguage.define(objectiveCLanguage),
+  "objective-c": StreamLanguage.define(objectiveCLanguage),
+  "objectivec": StreamLanguage.define(objectiveCLanguage),
+  "objcpp": StreamLanguage.define(objectiveCppLanguage),
+  "objective-cpp": StreamLanguage.define(objectiveCppLanguage),
+  "objectivecpp": StreamLanguage.define(objectiveCppLanguage),
+  "objective-c++": StreamLanguage.define(objectiveCppLanguage),
+  "objectivec++": StreamLanguage.define(objectiveCppLanguage),
+  "dart": StreamLanguage.define(dartLanguage),
+  "query": LRLanguage.define({
+    name: "query",
+    parser: highlightingDirectiveParser,
+  }),
+};
 
 export function languageFor(name: string): Language | null {
-  if (languageCache.has(name)) {
-    return languageCache.get(name)!;
+  if (builtinLanguages[name]) {
+    return builtinLanguages[name];
   }
-  const language = languageLookup(name);
-  if (!language) {
-    return null;
-  }
-  languageCache.set(name, language);
-  return language;
-}
-
-function languageLookup(name: string): Language | null {
-  switch (name) {
-    case "meta":
-    case "yaml":
-    case "template":
-    case "embed":
-    case "data":
-      return StreamLanguage.define(yamlLanguage);
-
-    case "javascript":
-    case "js":
-      return javascriptLanguage;
-    case "typescript":
-    case "ts":
-      return typescriptLanguage;
-    case "sql":
-      return StreamLanguage.define(sqlLanguage);
-    case "postgresql":
-    case "pgsql":
-    case "postgres":
-      return StreamLanguage.define(postgresqlLanguage);
-    case "rust":
-    case "rs":
-      return StreamLanguage.define(rustLanguage);
-    case "css":
-      return StreamLanguage.define(sqlLanguage);
-    case "html":
-      return htmlLanguage;
-    case "python":
-    case "py":
-      return StreamLanguage.define(pythonLanguage);
-    case "protobuf":
-    case "proto":
-      return StreamLanguage.define(protobufLanguage);
-    case "shell":
-    case "sh":
-    case "bash":
-    case "zsh":
-    case "fish":
-      return StreamLanguage.define(shellLanguage);
-    case "swift":
-      return StreamLanguage.define(rustLanguage);
-    case "toml":
-      return StreamLanguage.define(tomlLanguage);
-    case "json":
-      return StreamLanguage.define(jsonLanguage);
-    case "xml":
-      return StreamLanguage.define(xmlLanguage);
-    case "c":
-      return StreamLanguage.define(cLanguage);
-    case "cpp":
-    case "c++":
-    case "cxx":
-      return StreamLanguage.define(cppLanguage);
-    case "java":
-      return StreamLanguage.define(javaLanguage);
-    case "csharp":
-    case "cs":
-    case "c#":
-      return StreamLanguage.define(csharpLanguage);
-    case "scala":
-      return StreamLanguage.define(scalaLanguage);
-    case "kotlin":
-      return StreamLanguage.define(kotlinLanguage);
-    case "objc":
-    case "objective-c":
-    case "objectivec":
-      return StreamLanguage.define(objectiveCLanguage);
-    case "objcpp":
-    case "objective-cpp":
-    case "objectivecpp":
-    case "objective-c++":
-    case "objectivec++":
-      return StreamLanguage.define(objectiveCppLanguage);
-
-    case "dart":
-      return StreamLanguage.define(dartLanguage);
-
-    case "query":
-      return LRLanguage.define({
-        name: "query",
-        parser: highlightingDirectiveParser,
-      });
-
-    default:
-      if (name.startsWith("#")) {
-        return StreamLanguage.define(yamlLanguage);
-      }
+  if (name.startsWith("#")) {
+    return StreamLanguage.define(yamlLanguage);
   }
   return null;
 }

@@ -1,7 +1,7 @@
 import { SysCallMapping } from "../../plugos/system.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import type { ParseTree } from "$sb/lib/tree.ts";
-import { languageFor } from "../languages.ts";
+import { builtinLanguages, languageFor } from "../languages.ts";
 
 export function languageSyscalls(): SysCallMapping {
   return {
@@ -15,6 +15,11 @@ export function languageSyscalls(): SysCallMapping {
         throw new Error(`Unknown language ${language}`);
       }
       return parse(lang, code);
+    },
+    "language.listLanguages": (
+      _ctx,
+    ): string[] => {
+      return Object.keys(builtinLanguages);
     },
   };
 }

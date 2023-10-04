@@ -3,6 +3,15 @@ release.
 
 ---
 
+## Next
+* Fixes to auto-sizing of [[Live Queries]] and [[Live Templates]] widgets
+* Fixed the combination of `limit` and `order by` not working well
+* Auto complete for queries now works for queries split across multiple lines
+* Auto complete for fenced code block languages (use the `/code` slash command)
+* Slightly tweaked semantics for the `=` operator on arrays, see [[Live Queries]] for details
+
+---
+
 ## 0.5.0
 Oh boy, this is a big one. This release brings you the following:
 

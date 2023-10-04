@@ -640,9 +640,8 @@ export class Client {
       let node: SyntaxNode | null = currentNode;
       do {
         if (node.name === "FencedCode") {
-          const code = editorState.sliceDoc(node.from + 3, node.to);
-          const fencedCodeLanguage = code.split("\n")[0];
-          parentNodes.push(`FencedCode:${fencedCodeLanguage}`);
+          const body = editorState.sliceDoc(node.from + 3, node.to - 3);
+          parentNodes.push(`FencedCode:${body}`);
         } else {
           parentNodes.push(node.name);
         }

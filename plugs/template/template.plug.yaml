@@ -46,10 +46,10 @@ functions:
     redirect: insertTemplateText
     slashCommand:
       name: code
-      description: Insert code block
+      description: Insert fenced code block
       value: |
-        ```
-        |^|
+        ```|^|
+        
         ```
 
   insertHRTemplate:
