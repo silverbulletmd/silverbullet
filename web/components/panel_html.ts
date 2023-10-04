@@ -20,6 +20,9 @@ self.syscall = async (name, ...args) => {
   });
 };
 
+let oldHeight = undefined;
+let heightChecks = 0;
+
 window.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {
@@ -35,6 +38,11 @@ window.addEventListener("message", (message) => {
           console.error("Error evaling script", e);
         }
       }
+      setTimeout(() => {
+        oldHeight = undefined;
+        heightChecks = 0;
+        updateHeight();
+      });
       break;
     case "syscall-response":
       {
@@ -65,8 +73,6 @@ function api(obj) {
   window.parent.postMessage(obj, "*");
 }
 
-let oldHeight = undefined;
-let heightChecks = 0;
 function updateHeight() {
   const body = document.body, html = document.documentElement;
   let height = Math.max(body.offsetHeight, html.offsetHeight);
@@ -82,9 +88,6 @@ function updateHeight() {
     setTimeout(updateHeight, 100);
   }
 }
-setTimeout(() => {
-  updateHeight();
-});
 
 function loadJsByUrl(url) {
   const script = document.createElement("script");

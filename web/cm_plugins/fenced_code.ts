@@ -23,6 +23,7 @@ class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
+    const from = this.from;
     const iframe = createWidgetSandboxIFrame(
       this.editor,
       this.bodyText,
@@ -31,7 +32,7 @@ class IFrameWidget extends WidgetType {
         switch (message.type) {
           case "blur":
             this.editor.editorView.dispatch({
-              selection: { anchor: this.from },
+              selection: { anchor: from },
             });
             this.editor.focus();
 

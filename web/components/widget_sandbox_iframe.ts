@@ -10,7 +10,6 @@ export function createWidgetSandboxIFrame(
 ) {
   const iframe = document.createElement("iframe");
   iframe.srcdoc = panelHtml;
-  // iframe.style.height = "150px";
 
   const messageListener = (evt: any) => {
     (async () => {
