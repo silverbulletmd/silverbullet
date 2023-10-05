@@ -151,6 +151,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (res.status === 404) {
       throw new Error(`Not found`);
     }
+    if (!res.ok) {
+      throw new Error(`Failed to get file meta: ${res.statusText}`);
+    }
     return this.responseToMeta(name, res);
   }
 

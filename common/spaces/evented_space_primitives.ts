@@ -31,7 +31,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       // Avoid race conditions
       return newFileList;
     }
-    // console.log("HEREEREEEREEREE");
     this.alreadyFetching = true;
     const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
     for (const meta of newFileList) {

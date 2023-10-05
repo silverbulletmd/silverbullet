@@ -764,11 +764,18 @@ export class Client {
           meta: { name: pageName, lastModified: 0, perm: "rw" } as PageMeta,
         };
       } else {
-        console.error("Could not load page", pageName, e);
-        doc = {
-          text: `**ERROR**: ${e.message}`,
-          meta: { name: pageName, lastModified: 0, perm: "ro" } as PageMeta,
-        };
+        this.flashNotification(
+          `Could not load page ${pageName}: ${e.message}`,
+          "error",
+        );
+        if (previousPage) {
+          this.ui.viewDispatch({
+            type: "page-loading",
+            name: previousPage,
+          });
+        }
+
+        return false;
       }
     }
 

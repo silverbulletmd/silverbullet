@@ -19,7 +19,6 @@ import {
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
-import { async } from "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2020,mode=imports/optimized/regenerator-runtime.js";
 import { sleep } from "$sb/lib/async.ts";
 
 export class MainUI {
