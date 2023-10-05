@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.5.1
 * Fixes to auto-sizing of [[Live Queries]] and [[Live Templates]] widgets
 * Fixed the combination of `limit` and `order by` not working well
 * Auto complete for queries now works for queries split across multiple lines
