@@ -3,6 +3,7 @@ import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
 import { prepareJS, wrapHTML } from "./util.ts";
+import { replaceTemplateVars } from "../template/template.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -29,11 +30,17 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
       templateText = await space.readPage(templatePage);
     }
 
+    const value = config.value
+      ? JSON.parse(
+        await replaceTemplateVars(JSON.stringify(config.value), pageMeta),
+      )
+      : undefined;
+
     const rendered = config.raw
       ? templateText
       : await handlebars.renderTemplate(
         templateText,
-        config.value,
+        value,
         {
           page: pageMeta,
         },

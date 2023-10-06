@@ -12,13 +12,12 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
 
   try {
     const queryAST = parseTreeToAST(
-      await language.parseLanguage("query", bodyText),
-    );
-    const parsedQuery = astToKvQuery(
-      JSON.parse(
-        await replaceTemplateVars(JSON.stringify(queryAST[1]), pageMeta),
+      await language.parseLanguage(
+        "query",
+        await replaceTemplateVars(bodyText, pageMeta),
       ),
     );
+    const parsedQuery = astToKvQuery(queryAST[1]);
 
     const eventName = `query:${parsedQuery.querySource}`;
 
