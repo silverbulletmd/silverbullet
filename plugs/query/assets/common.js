@@ -23,8 +23,10 @@ async function init() {
     try {
       const result = await syscall("widget.render", lang, body);
       const iframe = document.createElement("iframe");
-      iframe.srcdoc = panelHtml; // set as a global
+      iframe.src = "about:blank";
+
       iframe.onload = () => {
+        iframe.contentDocument.write(panelHtml);
         iframe.contentWindow.postMessage({
           type: "html",
           theme: document.getElementsByTagName("html")[0].getAttribute(

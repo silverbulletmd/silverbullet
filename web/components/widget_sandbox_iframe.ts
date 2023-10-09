@@ -9,7 +9,7 @@ export function createWidgetSandboxIFrame(
   onMessage?: (message: any) => void,
 ) {
   const iframe = document.createElement("iframe");
-  iframe.srcdoc = panelHtml;
+  iframe.src = "about:blank";
 
   const messageListener = (evt: any) => {
     (async () => {
@@ -67,6 +67,9 @@ export function createWidgetSandboxIFrame(
   };
 
   iframe.onload = () => {
+    iframe.contentDocument!.write(panelHtml);
+    // return;
+
     // Subscribe to message event on global object (to receive messages from iframe)
     globalThis.addEventListener("message", messageListener);
     // Only run this code once
