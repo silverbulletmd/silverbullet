@@ -1,6 +1,6 @@
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
-import { queryObjects } from "./api.ts";
+import { getObjectByRef, queryObjects } from "./api.ts";
 import { ObjectValue, QueryExpression } from "$sb/types.ts";
 import { builtinPseudoPage } from "./builtins.ts";
 
@@ -85,18 +85,32 @@ export async function attributeComplete(completeEvent: CompleteEvent) {
   }
   const attributeMatch = /^(\w+)$/.exec(completeEvent.linePrefix);
   if (attributeMatch) {
-    if (completeEvent.parentNodes.includes("FrontMatterCode")) {
-      const completions = (await events.dispatchEvent(
-        `attribute:complete:page`,
-        {
-          source: "page",
-          prefix: attributeMatch[1],
-        } as AttributeCompleteEvent,
-      )).flat() as AttributeCompletion[];
+    if (completeEvent.parentNodes.includes("FrontMatter")) {
+      const pageMeta = await getObjectByRef(
+        completeEvent.pageName,
+        "page",
+        completeEvent.pageName,
+      );
+      let tags = ["page"];
+      if (pageMeta?.tags) {
+        tags = pageMeta.tags;
+      }
+      const completions = (await Promise.all(tags.map((tag) =>
+        events.dispatchEvent(
+          `attribute:complete:${tag}`,
+          {
+            source: tag,
+            prefix: attributeMatch[1],
+          } as AttributeCompleteEvent,
+        )
+      ))).flat(2) as AttributeCompletion[];
+      // console.log("Completions", completions);
       return {
         from: completeEvent.pos - attributeMatch[1].length,
         options: attributeCompletionsToCMCompletion(
-          completions.filter((completion) => !completion.builtin),
+          completions.filter((completion) =>
+            !completion.builtin
+          ),
         ),
       };
     }

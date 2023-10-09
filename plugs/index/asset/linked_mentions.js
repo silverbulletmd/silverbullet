@@ -8,10 +8,12 @@ function processClick(e) {
 }
 
 document.getElementById("link-ul").addEventListener("click", processClick);
-document.getElementById("hide-button").addEventListener("click", function () {
-  console.log("HERE")
-  syscall(
-    "system.invokeFunction",
-    "index.toggleMentions",
-  ).catch(console.error);
+document.getElementById("hide-button").addEventListener("click", () => {
+  syscall("system.invokeFunction", "index.toggleMentions").catch(console.error);
+});
+
+document.getElementById("reload-button").addEventListener("click", () => {
+  syscall("system.invokeFunction", "index.renderMentions").catch(
+    console.error,
+  );
 });

@@ -77,14 +77,29 @@ export async function indexObjects<T>(
         value: obj,
       });
       // Index attributes
-      if (!builtins[tag]) {
-        // But only for non-builtin tags
+      const builtinAttributes = builtins[tag];
+      if (!builtinAttributes) {
+        // For non-builtin tags, index all attributes
         for (
           const [attrName, attrValue] of Object.entries(
             obj as Record<string, any>,
           )
         ) {
           if (attrName.startsWith("$")) {
+            continue;
+          }
+          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
+        }
+      } else if (tag !== "attribute") {
+        // For builtin tags, only index custom ones
+        for (
+          const [attrName, attrValue] of Object.entries(
+            obj as Record<string, any>,
+          )
+        ) {
+          // console.log("Indexing", tag, attrName, attrValue);
+          // Skip builtins and internal attributes
+          if (builtinAttributes[attrName] || attrName.startsWith("$")) {
             continue;
           }
           allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));

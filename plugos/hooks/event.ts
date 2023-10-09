@@ -60,9 +60,15 @@ export class EventHook implements Hook<EventHookT> {
             ) {
               // Only dispatch functions that can run in this environment
               if (await plug.canInvoke(name)) {
-                const result = await plug.invoke(name, args);
-                if (result !== undefined) {
-                  responses.push(result);
+                try {
+                  const result = await plug.invoke(name, args);
+                  if (result !== undefined) {
+                    responses.push(result);
+                  }
+                } catch (e: any) {
+                  console.error(
+                    `Error dispatching event ${eventName} to plug ${plug.name}: ${e.message}`,
+                  );
                 }
               }
             }

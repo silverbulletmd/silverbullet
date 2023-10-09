@@ -33,11 +33,24 @@ body {
     background-color: rgba(233, 233, 233, 0.5);
 }
 
-#hide-button {
+#button-bar {
     position: absolute;
-    right: 15px;
-    top: 15px;
+    right: 10px;
+    top: 10px;
+    padding: 0 3px;
 }
+
+#button-bar button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--root-color);
+}
+
+#edit-button {
+    margin-left: -10px;
+}
+
 
 li code {
     font-size: 80%;

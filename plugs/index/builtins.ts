@@ -7,6 +7,7 @@ export const builtinPseudoPage = ":builtin:";
 
 export const builtins: Record<string, Record<string, string>> = {
   page: {
+    ref: "string",
     name: "string",
     lastModified: "date",
     perm: "rw|ro",
@@ -15,6 +16,7 @@ export const builtins: Record<string, Record<string, string>> = {
     tags: "array",
   },
   task: {
+    ref: "string",
     name: "string",
     done: "boolean",
     page: "string",
@@ -24,22 +26,26 @@ export const builtins: Record<string, Record<string, string>> = {
     tags: "array",
   },
   tag: {
+    ref: "string",
     name: "string",
     page: "string",
     context: "string",
   },
   attribute: {
+    ref: "string",
     name: "string",
     attributeType: "string",
     type: "string",
     page: "string",
   },
   anchor: {
+    ref: "string",
     name: "string",
     page: "string",
     pos: "number",
   },
   link: {
+    ref: "string",
     name: "string",
     page: "string",
     pos: "number",

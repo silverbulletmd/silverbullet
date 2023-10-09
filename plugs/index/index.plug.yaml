@@ -102,11 +102,6 @@ functions:
     events:
     - attribute:complete:*
 
-  # builtinAttributeCompleter:
-  #   path: ./attributes.ts:builtinAttributeCompleter
-  #   events:
-  #   - attribute:complete:*
-
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"
@@ -172,3 +167,5 @@ functions:
   navigateToMention:
     path: "./mentions_ps.ts:navigate"
 
+  renderMentions:
+    path: "./mentions_ps.ts:renderMentions"

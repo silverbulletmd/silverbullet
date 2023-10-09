@@ -19,7 +19,13 @@ const directiveUpdateQueueName = "directiveUpdateQueue";
 export async function updateDirectivesOnPageCommand() {
   // If `arg` is a string, it's triggered automatically via an event, not explicitly via a command
   const currentPage = await editor.getCurrentPage();
-  const pageMeta = await space.getPageMeta(currentPage);
+  let pageMeta: PageMeta | undefined;
+  try {
+    pageMeta = await space.getPageMeta(currentPage);
+  } catch {
+    console.info("Page not found, not updating directives");
+    return;
+  }
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
   const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);

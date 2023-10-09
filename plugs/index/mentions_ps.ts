@@ -10,8 +10,7 @@ export async function toggleMentions() {
   hideMentions = !hideMentions;
   await clientStore.set(hideMentionsKey, hideMentions);
   if (!hideMentions) {
-    const name = await editor.getCurrentPage();
-    await renderMentions(name);
+    await renderMentions();
   } else {
     await editor.hidePanel("ps");
   }
@@ -22,8 +21,7 @@ export async function updateMentions() {
   if (await clientStore.get(hideMentionsKey)) {
     return;
   }
-  const name = await editor.getCurrentPage();
-  await renderMentions(name);
+  await renderMentions();
 }
 
 // use internal navigation via syscall to prevent reloading the full page.
@@ -39,7 +37,8 @@ function escapeHtml(unsafe: string) {
   );
 }
 
-async function renderMentions(page: string) {
+export async function renderMentions() {
+  const page = await editor.getCurrentPage();
   const linksResult = await queryObjects<LinkObject>("link", {
     // Query all links that point to this page, excluding those that are inside directives and self pointers.
     filter: ["and", ["!=", ["attr", "page"], ["string", page]], ["and", ["=", [
@@ -60,7 +59,10 @@ async function renderMentions(page: string) {
       ` <style>${css}</style>
         <link rel="stylesheet" href="/.client/main.css" />
         <div id="sb-main"><div id="sb-editor"><div class="cm-editor">
-        <button id="hide-button">Hide</button>
+        <div id="button-bar">
+        <button id="reload-button" title="Reload"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
+        <button id="hide-button" title="Hide linked mentions"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button>
+        </div>
         <div class="cm-line sb-line-h2">Linked Mentions</div>
         <ul id="link-ul">
         ${
