@@ -35,9 +35,9 @@ export function cleanWikiLinkPlugin(editor: Client) {
           cleanPage = page.split("@")[0];
         }
         cleanPage = resolvePath(editor.currentPage!, cleanPage);
-        // console.log("Resolved page", resolvedPage);
+        const lowerCasePageName = cleanPage.toLowerCase();
         for (const pageMeta of allPages) {
-          if (pageMeta.name === cleanPage) {
+          if (pageMeta.name.toLowerCase() === lowerCasePageName) {
             pageExists = true;
             break;
           }

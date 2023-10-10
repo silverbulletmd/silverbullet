@@ -68,13 +68,16 @@ export function createWidgetSandboxIFrame(
 
   iframe.onload = () => {
     iframe.contentDocument!.write(panelHtml);
-    // return;
 
     // Subscribe to message event on global object (to receive messages from iframe)
     globalThis.addEventListener("message", messageListener);
     // Only run this code once
     iframe.onload = null;
     Promise.resolve(content).then((content) => {
+      if (!iframe.contentWindow) {
+        console.warn("Iframe went away or content was not loaded");
+        return;
+      }
       if (content.html) {
         iframe.contentWindow!.postMessage({
           type: "html",
