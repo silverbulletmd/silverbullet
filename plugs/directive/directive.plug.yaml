@@ -31,6 +31,6 @@ functions:
 
   # Conversion
   convertToLiveQuery:
-    path: command.ts:convertToLiveQuery
+    path: command.ts:convertToLive
     command:
-      name: "Directive: Convert Query to Live Query"
+      name: "Directive: Convert to Live Query/Template"

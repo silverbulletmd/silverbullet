@@ -209,7 +209,7 @@ export async function updateDirectives(
   return text;
 }
 
-export async function convertToLiveQuery() {
+export async function convertToLive() {
   const text = await editor.getText();
   const pos = await editor.getCursor();
   const tree = await markdown.parseMarkdown(text);
@@ -226,12 +226,37 @@ export async function convertToLiveQuery() {
     );
     return;
   }
-  const queryText = renderToText(directive!.children![0].children![1]);
-  await editor.dispatch({
-    changes: {
-      from: directive.from,
-      to: directive.to,
-      insert: "```query\n" + queryText + "\n```",
-    },
-  });
+  console.log("Got this directive", directive);
+  const startNode = directive.children![0];
+  const startNodeText = renderToText(startNode);
+  if (startNodeText.includes("#query")) {
+    const queryText = renderToText(startNode.children![1]);
+    await editor.dispatch({
+      changes: {
+        from: directive.from,
+        to: directive.to,
+        insert: "```query\n" + queryText + "\n```",
+      },
+    });
+  } else if (
+    startNodeText.includes("#use") || startNodeText.includes("#include")
+  ) {
+    const pageRefMatch = /\[\[([^\]]+)\]\]\s*([^\-]+)?/.exec(startNodeText);
+    if (!pageRefMatch) {
+      await editor.flashNotification(
+        "No page reference found in directive",
+        "error",
+      );
+      return;
+    }
+    const val = pageRefMatch[2];
+    await editor.dispatch({
+      changes: {
+        from: directive.from,
+        to: directive.to,
+        insert: '```template\npage: "[[' + pageRefMatch[1] + ']]"\n' +
+          (val ? `val: ${val}\n` : "") + "```",
+      },
+    });
+  }
 }
