@@ -1,12 +1,6 @@
 import type { IndexTreeEvent } from "$sb/app_event.ts";
-import { removeQueries } from "$sb/lib/query.ts";
 import { indexObjects } from "./api.ts";
-import {
-  addParentPointers,
-  renderToText,
-  traverseTree,
-  traverseTreeAsync,
-} from "$sb/lib/tree.ts";
+import { renderToText, traverseTree, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 
 export type ParagraphObject = {
@@ -15,8 +9,7 @@ export type ParagraphObject = {
   text: string;
   // TODO: maybe it would be useful to have a list of the the headings above the paragraph
   page: string;
-  startPos: number;
-  endPos: number;
+  pos: number;
 } & Record<string, any>;
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
@@ -38,13 +31,13 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     });
 
     const attrs = await extractAttributes(p, false);
+    const pos = p.from!;
     objects.push({
-      ref: `${page}:${p.from}:${p.to}`,
+      ref: `${page}@${pos}`,
       text: renderToText(p),
       tags: [...tags.values()],
       page,
-      startPos: p.from!,
-      endPos: p.to!,
+      pos,
       ...attrs,
     });
 
