@@ -47,6 +47,11 @@ export const builtins: Record<string, Record<string, string>> = {
     inDirective: "boolean",
     asTemplate: "boolean",
   },
+  paragraph: {
+    text: "string",
+    page: "string",
+    pos: "number",
+  },
 };
 
 export async function loadBuiltinsIntoIndex() {
