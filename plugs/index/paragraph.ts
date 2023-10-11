@@ -3,20 +3,22 @@ import { indexObjects } from "./api.ts";
 import { renderToText, traverseTree, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 
+/** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = {
   ref: string;
   tags: string[];
   text: string;
-  // TODO: maybe it would be useful to have a list of the the headings above the paragraph
   page: string;
   pos: number;
 } & Record<string, any>;
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];
+
   await traverseTreeAsync(tree, async (p) => {
     // only search directly under document
-    if (p.type == "Document") return false;
+    //  Paragraph nodes also appear under block elements
+    if (p.type == "Document") return false; // continue traversal if p is Document
     if (p.type != "Paragraph") return true;
 
     const tags = new Set<string>(["paragraph"]);
@@ -41,7 +43,7 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
       ...attrs,
     });
 
-    // stop on every element except document (see above)
+    // stop on every element except document, including paragraphs
     return true;
   });
 
