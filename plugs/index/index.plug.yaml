@@ -86,6 +86,11 @@ functions:
     events:
       - page:index
 
+  indexParagraphs:
+    path: "./paragraph.ts:indexParagraphs"
+    events:
+      - page:index
+
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
