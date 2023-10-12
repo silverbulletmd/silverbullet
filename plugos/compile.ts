@@ -98,11 +98,11 @@ setupMessageListener(functionMapping, manifest);
     metafile: options.info,
     treeShaking: true,
     plugins: [
-      {
-        name: "json",
-        setup: (build) =>
-          build.onLoad({ filter: /\.json$/ }, () => ({ loader: "json" })),
-      },
+      // {
+      //   name: "json",
+      //   setup: (build) =>
+      //     build.onLoad({ filter: /\.json$/ }, () => ({ loader: "json" })),
+      // },
       ...denoPlugins({
         // TODO do this differently
         importMapURL: options.importMap ||
