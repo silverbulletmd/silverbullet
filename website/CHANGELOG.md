@@ -2,7 +2,7 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
-## 0.5.2
+## 0.5.3
 * Changes to [[Objects]]:
   * Paragraphs are now indexed, see [[Objects@paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
   * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects@item]].
