@@ -75,7 +75,7 @@ But where things get _really_ interesting is when using features like [[Live Que
 Let’s explore this with a meta example of using this for this very website. All pages in this space that represent a plug are tagged with the #plug tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
 
 ```query
-plug render [[template/plug]]
+plug where tags = "page" render [[template/plug]]
 ```
 Hover over that list, click the edit button to see the query that generates this view.
 
