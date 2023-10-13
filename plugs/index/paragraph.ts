@@ -8,15 +8,16 @@ import {
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
+import { ObjectValue } from "$sb/types.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
-export type ParagraphObject = {
-  ref: string;
-  tags: string[];
-  text: string;
-  page: string;
-  pos: number;
-} & Record<string, any>;
+export type ParagraphObject = ObjectValue<
+  {
+    text: string;
+    page: string;
+    pos: number;
+  } & Record<string, any>
+>;
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];

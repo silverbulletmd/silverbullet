@@ -176,6 +176,6 @@ export async function objectSourceProvider({
 
 export async function discoverSources() {
   return (await datastore.query({ prefix: [indexKey, "tag"] })).map((
-    { key },
-  ) => key[2]);
+    { value },
+  ) => value.name);
 }

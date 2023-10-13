@@ -32,6 +32,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       continue;
     }
 
+    const tags = new Set<string>(["item"]);
+
     const item: ItemObject = {
       ref: `${name}@${n.from}`,
       tags: [],
@@ -44,7 +46,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
     collectNodesOfType(n, "Hashtag").forEach((h) => {
       // Push tag to the list, removing the initial #
-      item.tags.push(h.children![0].text!.substring(1));
+      tags.add(h.children![0].text!.substring(1));
     });
 
     for (const child of n.children!.slice(1)) {
@@ -62,11 +64,9 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     }
 
     item.name = textNodes.map(renderToText).join("").trim();
+    item.tags = [...tags.values()];
 
-    if (item.tags.length > 0) {
-      // Only index items with tags
-      items.push(item);
-    }
+    items.push(item);
   }
   // console.log("Found", items, "item(s)");
   await indexObjects(name, items);
