@@ -26,6 +26,7 @@ Every object has one or more tags, defining the types of an object. Some tags ar
 Here are the currently built-in tags:
 
 ## page
+$page
 Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph of your page_, as is done with the #core tag at the beginning of this page.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
@@ -35,6 +36,7 @@ page where name = "{{@page.name}}"
 ```
 
 ## task
+$task
 Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using [[Tags]] in the task name, e.g.
 
 * [ ] My task #upnext 
@@ -53,7 +55,8 @@ upnext render [[template/task]]
 ```
 
 ## item
-List items are not currently indexed unless explicitly tagged (for performance reasons). Like other things, an an item can be tagged using [[Tags]].
+$item
+List items (both bullet point and numbered items) are indexed by default with the `item` tag, and additional tags can be added using [[Tags]].
 
 Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 
@@ -62,10 +65,21 @@ Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 And then queried via the #quote tag:
 
 ```query 
-quote select by, name
+quote where tags = "item" select name, by
+```
+
+## paragraph
+$paragraph
+Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added usin [[Tags]].
+
+A paragraph with a #paragraph-tag.
+
+```query
+paragraph-tag
 ```
 
 ## data
+$data
 You can also embed arbitrary YAML data blocks in pages via fenced code blocks and use a tag as a coding language, e.g.
 
 ```#person
@@ -80,6 +94,7 @@ person
 ```
 
 ## link
+$link
 All page _links_ are tagged with `link`. You cannot attach additional tags to links. The main two attributes of a link are:
 
 * `toPage` the page the link is linking _to_
@@ -96,7 +111,7 @@ link where page = "{{@page.name}}" and inDirective = false
 ```
 
 ## anchor
-$myanchor
+$anchor
 
 [[Anchors]] use the `$myanchor` notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
 
@@ -107,6 +122,7 @@ anchor where page = "{{@page.name}}"
 ```
 
 ## tag
+$tag
 The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which page they appear and what their “parent tag” is (the context of the tag: either `page`, `item` or `task`).
 
 Here are the tags used/defined in this page:
@@ -116,6 +132,7 @@ tag where page = "{{@page.name}}"
 ```
 
 ## attribute
+$attribute
 This is another meta tag, which is used to index all [[Attributes]] used in your space. This is used by e.g. attribute completion in various contexts. You likely don’t need to use this tag directly, but it’s there.
 
 ```query
