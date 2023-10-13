@@ -54,6 +54,18 @@ Although you may want to render it using a template such as [[template/task]] in
 upnext render [[template/task]]
 ```
 
+## taskstate
+[[🔌 Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
+
+* [NOT STARTED] Task 1
+* [IN PROGRESS] Task 2
+
+And can be queried as follows:
+
+```query
+taskstate where page = "{{@page.name}}"
+```
+
 ## item
 $item
 List items (both bullet point and numbered items) are indexed by default with the `item` tag, and additional tags can be added using [[Tags]].

@@ -20,24 +20,22 @@ import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 
-export type TaskObject = {
-  ref: string;
-  tags: string[];
-  page: string;
-  pos: number;
-  name: string;
-  done: boolean;
-  state: string;
-  deadline?: string;
-} & Record<string, any>;
+export type TaskObject = ObjectValue<
+  {
+    page: string;
+    pos: number;
+    name: string;
+    done: boolean;
+    state: string;
+    deadline?: string;
+  } & Record<string, any>
+>;
 
-export type TaskStateObject = {
-  ref: string;
-  tags: string[];
+export type TaskStateObject = ObjectValue<{
   state: string;
   count: number;
   page: string;
-};
+}>;
 
 function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");

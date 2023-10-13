@@ -25,6 +25,13 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "number",
     tags: "array",
   },
+  taskstate: {
+    ref: "string",
+    tags: "array",
+    state: "string",
+    count: "number",
+    page: "string",
+  },
   tag: {
     ref: "string",
     name: "string",
