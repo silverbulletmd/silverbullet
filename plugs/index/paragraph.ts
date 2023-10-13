@@ -22,11 +22,13 @@ export type ParagraphObject = ObjectValue<
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];
   addParentPointers(tree);
+  let paragraphCounter = 0;
 
   await traverseTreeAsync(tree, async (p) => {
     if (p.type !== "Paragraph") {
       return false;
     }
+    paragraphCounter++;
 
     if (findParentMatching(p, (n) => n.type === "ListItem")) {
       // Not looking at paragraphs nested in a list
@@ -35,10 +37,14 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
 
     // So we're looking at indexable a paragraph now
     const tags = new Set<string>(["paragraph"]);
-    // tag the paragraph with any hashtags inside it
-    collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
-      tags.add(tagNode.children![0].text!.substring(1));
-    });
+    if (paragraphCounter > 1) {
+      // Only attach hashtags to later paragraphs than the first
+
+      // tag the paragraph with any hashtags inside it
+      collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
+        tags.add(tagNode.children![0].text!.substring(1));
+      });
+    }
 
     const attrs = await extractAttributes(p, false);
     const pos = p.from!;

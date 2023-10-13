@@ -3,6 +3,7 @@
 > **Warning** Deprecated
 > Directives are now deprecated and will likely soon be removed, use [[Live Templates]] and [[Live Queries]] instead.
 
+
 The directive plug is a built-in plug implementing various so-called “directive” that all take the form of `<!-- #directiveName ... -->` and close with `<!-- /directiveName -->`. Currently the following directives are supported:
 
 * `#query` to perform queries: [[Live Queries]]

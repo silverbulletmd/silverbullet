@@ -72,10 +72,10 @@ rating: 5
 
 But where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your space. 
 
-Let’s explore this with a meta example of using this for this very website. All pages in this space that represent a plug are tagged with the #plug tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
+Let’s explore this with a meta example of using this for this very website. All pages in this space that represent a plug are tagged with the `#plug` tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
 
 ```query
-plug where tags = "page" render [[template/plug]]
+plug render [[template/plug]]
 ```
 Hover over that list, click the edit button to see the query that generates this view.
 
