@@ -32,6 +32,9 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
     } else if (findParentMatching(h, (n) => n.type === "ListItem")) {
       // Or an item
       tags.add(`${tagName}:item`);
+    } else if (findParentMatching(h, (n) => n.type === "Paragraph")) {
+      // Still indexing this as a page tag
+      tags.add(`${tagName}:page`);
     }
   });
   // console.log("Indexing these tags", tags);

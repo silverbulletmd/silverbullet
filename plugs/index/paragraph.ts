@@ -1,6 +1,12 @@
 import type { IndexTreeEvent } from "$sb/app_event.ts";
 import { indexObjects } from "./api.ts";
-import { renderToText, traverseTree, traverseTreeAsync } from "$sb/lib/tree.ts";
+import {
+  addParentPointers,
+  collectNodesOfType,
+  findParentMatching,
+  renderToText,
+  traverseTreeAsync,
+} from "$sb/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
@@ -14,22 +20,23 @@ export type ParagraphObject = {
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];
+  addParentPointers(tree);
 
   await traverseTreeAsync(tree, async (p) => {
-    // only search directly under document
-    //  Paragraph nodes also appear under block elements
-    if (p.type == "Document") return false; // continue traversal if p is Document
-    if (p.type != "Paragraph") return true;
+    if (p.type !== "Paragraph") {
+      return false;
+    }
 
+    if (findParentMatching(p, (n) => n.type === "ListItem")) {
+      // Not looking at paragraphs nested in a list
+      return false;
+    }
+
+    // So we're looking at indexable a paragraph now
     const tags = new Set<string>(["paragraph"]);
     // tag the paragraph with any hashtags inside it
-    traverseTree(p, (e) => {
-      if (e.type == "Hashtag") {
-        tags.add(e.children![0].text!.substring(1));
-        return true;
-      }
-
-      return false;
+    collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
+      tags.add(tagNode.children![0].text!.substring(1));
     });
 
     const attrs = await extractAttributes(p, false);
@@ -46,6 +53,8 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     // stop on every element except document, including paragraphs
     return true;
   });
+
+  // console.log("Paragraph objects", objects);
 
   await indexObjects<ParagraphObject>(page, objects);
 }
