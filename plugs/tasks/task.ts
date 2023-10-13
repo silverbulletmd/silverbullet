@@ -62,6 +62,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       let currentState = taskStates.get(state);
       if (!currentState) {
         currentState = { count: 0, firstPos: n.from! };
+        taskStates.set(state, currentState);
       }
       currentState.count++;
     }
