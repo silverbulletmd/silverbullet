@@ -36,11 +36,17 @@ body:active #button-bar {
 
 #button-bar {
     position: absolute;
-    right: 12px;
-    top: 3px;
+    right: 6px;
+    top: 6px;
     display: none;
-    background: rgb(255 255 255 / 0.9);
-    padding: 0 3px;
+    background: var(--editor-directive-background-color);
+    padding-inline: 3px;
+    padding-bottom: 1px;
+    border-radius: 5px;
+}
+
+.cm-editor {
+  padding-left: 10px;
 }
 
 #button-bar button {
