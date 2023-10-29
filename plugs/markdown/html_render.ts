@@ -7,10 +7,18 @@ export type Tag = {
 } | string;
 
 function htmlEscape(s: string): string {
-  return s.replace(/&/g, "&amp;")
+  s = s.replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/\n/g, "<br>");
+
+  let oldS = s;
+  do {
+    oldS = s;
+    s = s.replace(/  /g, "&nbsp; ");
+  } while (s !== oldS);
+  return s;
 }
 
 export function renderHtml(t: Tag | null): string {
@@ -33,9 +41,9 @@ export function renderHtml(t: Tag | null): string {
   if (t.name === Fragment) {
     return body;
   }
-  if (t.body) {
-    return `<${t.name}${attrs}>${body}</${t.name}>`;
-  } else {
-    return `<${t.name}${attrs}/>`;
-  }
+  // if (t.body) {
+  return `<${t.name}${attrs}>${body}</${t.name}>`;
+  // } else {
+  //   return `<${t.name}${attrs}/>`;
+  // }
 }

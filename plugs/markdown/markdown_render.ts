@@ -1,4 +1,5 @@
 import {
+  addParentPointers,
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
@@ -17,9 +18,12 @@ type MarkdownRenderOptions = {
   translateUrls?: (url: string) => string;
 };
 
-function cleanTags(values: (Tag | null)[]): Tag[] {
+function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
   const result: Tag[] = [];
   for (const value of values) {
+    if (cleanWhitespace && typeof value === "string" && value.match(/^\s+$/)) {
+      continue;
+    }
     if (value) {
       result.push(value);
     }
@@ -28,12 +32,13 @@ function cleanTags(values: (Tag | null)[]): Tag[] {
 }
 
 function preprocess(t: ParseTree, options: MarkdownRenderOptions = {}) {
+  addParentPointers(t);
   traverseTree(t, (node) => {
-    if (node.type === "Paragraph" && options.smartHardBreak) {
-      for (const child of node.children!) {
-        // If at the paragraph level there's a newline, let's turn it into a hard break
-        if (!child.type && child.text === "\n") {
-          child.type = "HardBreak";
+    if (!node.type) {
+      if (node.text?.startsWith("\n")) {
+        const prevNodeIdx = node.parent!.children!.indexOf(node) - 1;
+        if (node.parent!.children![prevNodeIdx]?.type !== "Paragraph") {
+          node.text = node.text.slice(1);
         }
       }
     }
@@ -109,7 +114,10 @@ function render(
       };
     case "Paragraph":
       return {
-        name: "p",
+        name: "span",
+        attrs: {
+          class: "p",
+        },
         body: cleanTags(mapRender(t.children!)),
       };
     // Code blocks
@@ -167,17 +175,17 @@ function render(
     case "BulletList":
       return {
         name: "ul",
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(mapRender(t.children!), true),
       };
     case "OrderedList":
       return {
         name: "ol",
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(mapRender(t.children!), true),
       };
     case "ListItem":
       return {
         name: "li",
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(mapRender(t.children!), true),
       };
     case "StrongEmphasis":
       return {
