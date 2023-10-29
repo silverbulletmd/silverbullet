@@ -6,6 +6,9 @@ async function init() {
   document.getElementById("reload-button").addEventListener("click", () => {
     api({ type: "reload" });
   });
+  document.getElementById("source-button").addEventListener("click", () => {
+    document.getElementById("body-content").innerText = originalMarkdown;
+  });
 
   document.querySelectorAll("a[data-ref]").forEach((el) => {
     el.addEventListener("click", (e) => {
