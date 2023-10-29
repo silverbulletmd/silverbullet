@@ -393,21 +393,23 @@
     margin-bottom: -3rem;
     overflow: auto;
 
-    table {
-      width: 100%;
-      border-spacing: 0;
-    }
-
-    thead tr {
-      font-weight: bold;
-    }
-
-    th,
-    td {
-      padding: 8px;
-      white-space: nowrap;
-    }
   }
+
+  table {
+    width: 100%;
+    border-spacing: 0;
+  }
+
+  thead tr {
+    font-weight: bold;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    white-space: nowrap;
+  }
+
 
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {

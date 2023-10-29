@@ -1,3 +1,4 @@
+import { CodeWidgetContent } from "$sb/types.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { Client } from "../client.ts";
 
@@ -9,7 +10,7 @@ export function widgetSyscalls(
       _ctx,
       lang: string,
       body: string,
-    ): Promise<{ html: string; script: string }> => {
+    ): Promise<CodeWidgetContent> => {
       const langCallback = client.system.codeWidgetHook.codeWidgetCallbacks.get(
         lang,
       );

@@ -1,13 +1,13 @@
 import { WidgetContent } from "../../plug-api/app_event.ts";
 import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
-import { CodeWidgetCallback } from "../hooks/code_widget.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
+import type { CodeWidgetCallback } from "$sb/types.ts";
 
 class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;

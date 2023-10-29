@@ -1,6 +1,4 @@
 name: query
-assets:
-  - "assets/*"
 functions:
   queryWidget:
     path: query.ts:widget

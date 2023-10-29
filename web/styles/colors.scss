@@ -216,15 +216,13 @@
     color: var(--editor-line-meta-color);
   }
 
-  .sb-table-widget {
-    thead tr {
-      background-color: var(--editor-table-head-background-color);
-      color: var(--editor-table-head-color);
-    }
+  thead tr {
+    background-color: var(--editor-table-head-background-color);
+    color: var(--editor-table-head-color);
+  }
 
-    tbody tr:nth-of-type(even) {
-      background-color: var(--editor-table-even-background-color);
-    }
+  tbody tr:nth-of-type(even) {
+    background-color: var(--editor-table-even-background-color);
   }
 
   .sb-line-blockquote {

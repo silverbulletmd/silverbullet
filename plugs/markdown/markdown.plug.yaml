@@ -2,6 +2,13 @@ name: markdown
 assets:
   - "assets/*"
 functions:
+
+  # API
+  markdownContentWidget:
+    path: markdown_content_widget.ts:markdownContentWidget
+
+  # User facing
+
   toggle:
     path: "./markdown.ts:togglePreview"
     command:

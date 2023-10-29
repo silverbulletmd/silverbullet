@@ -1,11 +1,9 @@
 import type { WidgetContent } from "$sb/app_event.ts";
-import { editor, events, language, markdown, space } from "$sb/syscalls.ts";
+import { editor, events, language, space, system } from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
-import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
 import { replaceTemplateVars } from "../template/template.ts";
-import { prepareJS, wrapHTML } from "./util.ts";
 
 export async function widget(bodyText: string): Promise<WidgetContent> {
   const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
@@ -57,21 +55,14 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
       }
     }
 
-    // Parse markdown to a ParseTree
-    const mdTree = await markdown.parseMarkdown(resultMarkdown);
-    // And then render it to HTML
-    const html = renderMarkdownToHtml(mdTree, { smartHardBreak: true });
-    return {
-      html: await wrapHTML(`
-       ${parsedQuery.render ? "" : `<div class="sb-table-widget">`}
-       ${html}
-       ${parsedQuery.render ? "" : `</div>`}
-      `),
-      script: await prepareJS(),
-    };
+    return system.invokeFunction(
+      "markdown.markdownContentWidget",
+      resultMarkdown,
+    );
   } catch (e: any) {
-    return {
-      html: await wrapHTML(`<b>Error:</b> ${e.message}`),
-    };
+    return system.invokeFunction(
+      "markdown.markdownContentWidget",
+      `**Error:** ${e.message}`,
+    );
   }
 }

@@ -115,3 +115,14 @@ export type ObjectValue<T> = {
 } & T;
 
 export type ObjectQuery = Omit<Query, "prefix">;
+
+// Code widget stuff
+export type CodeWidgetCallback = (
+  bodyText: string,
+) => Promise<CodeWidgetContent>;
+
+export type CodeWidgetContent = {
+  html?: string;
+  markdown?: string;
+  script?: string;
+};

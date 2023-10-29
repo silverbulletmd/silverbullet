@@ -10,8 +10,8 @@ export async function updateMarkdownPreview() {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
-  const css = await asset.readAsset("assets/styles.css");
-  const js = await asset.readAsset("assets/handler.js");
+  const css = await asset.readAsset("assets/preview.css");
+  const js = await asset.readAsset("assets/preview.js");
   const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,

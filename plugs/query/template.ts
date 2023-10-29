@@ -1,9 +1,15 @@
 import { WidgetContent } from "$sb/app_event.ts";
-import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
+import {
+  editor,
+  handlebars,
+  markdown,
+  space,
+  system,
+  YAML,
+} from "$sb/syscalls.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
-import { prepareJS, wrapHTML } from "./util.ts";
 import { replaceTemplateVars } from "../template/template.ts";
+import { renderToText } from "$sb/lib/tree.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -36,31 +42,28 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
       )
       : undefined;
 
-    const rendered = config.raw
-      ? templateText
-      : await handlebars.renderTemplate(
-        templateText,
-        value,
-        {
-          page: pageMeta,
-        },
-      );
-    const parsedMarkdown = await markdown.parseMarkdown(rendered);
+    let rendered = config.raw ? templateText : await handlebars.renderTemplate(
+      templateText,
+      value,
+      {
+        page: pageMeta,
+      },
+    );
 
     if (templatePage) {
+      const parsedMarkdown = await markdown.parseMarkdown(rendered);
       rewritePageRefs(parsedMarkdown, templatePage);
+      rendered = renderToText(parsedMarkdown);
     }
-    const html = renderMarkdownToHtml(parsedMarkdown, {
-      smartHardBreak: true,
-    });
 
-    return {
-      html: await wrapHTML(html),
-      script: await prepareJS(),
-    };
+    return system.invokeFunction(
+      "markdown.markdownContentWidget",
+      rendered,
+    );
   } catch (e: any) {
-    return {
-      html: `<b>Error:</b> ${e.message}`,
-    };
+    return system.invokeFunction(
+      "markdown.markdownContentWidget",
+      `**Error:** ${e.message}`,
+    );
   }
 }

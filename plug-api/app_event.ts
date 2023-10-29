@@ -54,6 +54,7 @@ export type CompleteEvent = {
 export type WidgetContent = {
   html?: string;
   script?: string;
+  markdown?: string;
   url?: string;
   height?: number;
   width?: number;

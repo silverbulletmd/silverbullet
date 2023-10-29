@@ -1,9 +1,25 @@
-import { asset } from "$sb/syscalls.ts";
+import { WidgetContent } from "$sb/app_event.ts";
+import { asset, markdown } from "$sb/syscalls.ts";
 import { panelHtml } from "../../web/components/panel_html.ts";
+import { renderMarkdownToHtml } from "./markdown_render.ts";
+
+export async function markdownContentWidget(
+  markdownText: string,
+): Promise<WidgetContent> {
+  // Parse markdown to a ParseTree
+  const mdTree = await markdown.parseMarkdown(markdownText);
+  // And then render it to HTML
+  const html = renderMarkdownToHtml(mdTree, { smartHardBreak: true });
+  return {
+    html: await wrapHTML(html),
+    script: await prepareJS(),
+    // And add back the markdown text so we can render it in a different way if desired
+    markdown: markdownText,
+  };
+}
 
 export async function prepareJS() {
-  const iframeJS = await asset.readAsset("assets/common.js");
-
+  const iframeJS = await asset.readAsset("assets/markdown_widget.js");
   return `
     const panelHtml = \`${panelHtml}\`;
     ${iframeJS}
@@ -11,7 +27,7 @@ export async function prepareJS() {
 }
 
 export async function wrapHTML(html: string): Promise<string> {
-  const css = await asset.readAsset("assets/style.css");
+  const css = await asset.readAsset("assets/markdown_widget.css");
 
   return `
        <!-- Load SB's own CSS here too -->
