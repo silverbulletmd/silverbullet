@@ -10,6 +10,12 @@ body {
     display: initial !important;
 }
 
+#sb-root {
+    display: block !important;
+    width: initial !important;
+    height: initial !important;
+}
+
 #sb-editor {
     flex: initial !important;
     height: initial !important;
@@ -21,7 +27,6 @@ body {
 
 body {
     font-family: var(--editor-font);
-    background-color: var(--root-background-color);
     color: var(--root-color);
 }
 

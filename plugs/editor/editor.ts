@@ -13,8 +13,8 @@ export async function setEditorMode() {
 export async function toggleDarkMode() {
   let darkMode = await clientStore.get("darkMode");
   darkMode = !darkMode;
-  await editor.setUiOption("darkMode", darkMode);
   await clientStore.set("darkMode", darkMode);
+  await editor.reloadUI();
 }
 
 export async function foldCommand() {

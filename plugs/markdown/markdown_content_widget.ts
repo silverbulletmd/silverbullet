@@ -27,8 +27,7 @@ export async function prepareJS(originalMarkdown: string) {
     `;
 }
 
-export async function wrapHTML(  html: string
-): Promise<string> {
+export async function wrapHTML(html: string): Promise<string> {
   const css = await asset.readAsset("assets/markdown_widget.css");
 
   return `
