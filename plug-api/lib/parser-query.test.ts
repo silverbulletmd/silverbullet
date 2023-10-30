@@ -149,6 +149,29 @@ Deno.test("Test directive parser", () => {
     {
       querySource: "task",
       render: "my/page",
+      renderAll: false,
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task render each [[my/page]]`)!,
+    ),
+    {
+      querySource: "task",
+      render: "my/page",
+      renderAll: false,
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task render all [[my/page]]`)!,
+    ),
+    {
+      querySource: "task",
+      render: "my/page",
+      renderAll: true,
     },
   );
 

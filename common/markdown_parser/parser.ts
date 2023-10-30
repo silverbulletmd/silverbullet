@@ -262,7 +262,8 @@ export const highlightingDirectiveParser = directiveParser.configure({
       "String": t.string,
       "Number": t.number,
       "PageRef": ct.WikiLinkTag,
-      "where limit select render Order OrderKW and or as InKW": t.keyword,
+      "where limit select render Order OrderKW and or as InKW each all":
+        t.keyword,
     }),
   ],
 });

@@ -74,7 +74,10 @@ export function astToKvQuery(
         break;
       }
       case "RenderClause": {
-        query.render = (clause[2][1] as string).slice(2, -2);
+        // console.log("Render clause", clause);
+        const pageRef = (clause as any[]).find((c) => c[0] === "PageRef");
+        query.render = pageRef[1].slice(2, -2);
+        query.renderAll = !!(clause as any[]).find((c) => c[0] === "all");
         break;
       }
       default:

@@ -4,6 +4,7 @@ import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
 import { replaceTemplateVars } from "../template/template.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 
 export async function widget(bodyText: string): Promise<WidgetContent> {
   const pageMeta = await space.getPageMeta(await editor.getCurrentPage());
@@ -45,6 +46,7 @@ export async function widget(bodyText: string): Promise<WidgetContent> {
             pageMeta,
             parsedQuery.render,
             allResults,
+            parsedQuery.renderAll!,
           );
           resultMarkdown = rendered.trim();
         } else {

@@ -1,6 +1,7 @@
 import { handlebars, space } from "$sb/syscalls.ts";
 import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
+import { render } from "preact";
 
 export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {
@@ -57,9 +58,12 @@ export async function renderTemplate(
   pageMeta: PageMeta,
   renderTemplate: string,
   data: any[],
+  renderAll: boolean,
 ): Promise<string> {
   let templateText = await space.readPage(renderTemplate);
-  templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
+  if (!renderAll) {
+    templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
+  }
   return handlebars.renderTemplate(templateText, data, { page: pageMeta });
 }
 

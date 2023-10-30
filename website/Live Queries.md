@@ -55,14 +55,25 @@ person
 where page = "{{@page.name}}"
 select name, age, age + 1 as nextYear
 ```
-### `render [[template]]`
-By default results are rendered as a table, to instead render each result item using [[Templates|a template]], use the `render` clause:
+### `render each [[template]]` and `render all [[template]]`
+$render
+By default results are rendered as a table, to instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
 
 ```query
 person
 where page = "{{@page.name}}"
-render [[template/person]]
+render each [[template/person]]
 ```
+
+And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[template/people]] template for instance):
+
+```query
+person
+where page = "{{@page.name}}"
+render all [[template/people]]
+```
+
+
 ## Expressions
 $expression
 

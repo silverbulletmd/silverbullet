@@ -29,4 +29,4 @@ export const
   SelectClause = 32,
   Select = 34,
   RenderClause = 36,
-  PageRef = 38
+  PageRef = 40

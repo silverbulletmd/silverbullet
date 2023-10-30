@@ -26,7 +26,7 @@ LimitClause { kw<"limit"> Expression }
 OrderClause { Order commaSep<OrderBy> }
 OrderBy { Expression OrderDirection? }
 SelectClause { kw<"select"> commaSep<Select> }
-RenderClause { kw<"render"> PageRef }
+RenderClause { kw<"render"> ( kw<"each"> | kw<"all"> )? PageRef }
 
 Select { Identifier | Expression kw<"as"> Identifier }
 

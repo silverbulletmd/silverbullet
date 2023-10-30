@@ -66,6 +66,7 @@ export type Query = {
   select?: Select[];
   limit?: QueryExpression;
   render?: string;
+  renderAll?: boolean;
   distinct?: boolean;
 };
 

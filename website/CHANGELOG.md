@@ -2,6 +2,13 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## 0.5.4
+* Many styling fixes and improvements to [[Live Queries]] and [[Live Templates]]
+* Added a “source” button to [[Live Queries]] and [[Live Templates]] for better debugging (showing you the markdown code rendered by the template so you can more easily detect issues)
+* [[Live Queries]]:
+  * Support for `render all` where the entire result set is passed to a single template allowing you to e.g. dynamically build up tables, see [[Live Queries@render]] for an example.
+
+---
 ## 0.5.3
 * Changes to [[Objects]]:
   * Paragraphs are now indexed, see [[Objects@paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
