@@ -42,6 +42,7 @@ export async function queryDirectiveRenderer(
         pageMeta,
         parsedQuery.render,
         allResults,
+        parsedQuery.renderAll!,
       );
       return rendered.trim();
     } else {
