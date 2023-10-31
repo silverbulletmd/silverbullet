@@ -24,7 +24,7 @@ async function init() {
     const body = widget.innerText;
 
     try {
-      const result = await syscall("widget.render", lang, body);
+      const result = await syscall("codeWidget.render", lang, body, pageName);
       const iframe = document.createElement("iframe");
       iframe.src = "about:blank";
 

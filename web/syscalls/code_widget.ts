@@ -1,23 +1,24 @@
 import { CodeWidgetContent } from "$sb/types.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
-import { Client } from "../client.ts";
+import { CodeWidgetHook } from "../hooks/code_widget.ts";
 
-export function widgetSyscalls(
-  client: Client,
+export function codeWidgetSyscalls(
+  codeWidgetHook: CodeWidgetHook,
 ): SysCallMapping {
   return {
-    "widget.render": (
+    "codeWidget.render": (
       _ctx,
       lang: string,
       body: string,
+      pageName: string,
     ): Promise<CodeWidgetContent> => {
-      const langCallback = client.system.codeWidgetHook.codeWidgetCallbacks.get(
+      const langCallback = codeWidgetHook.codeWidgetCallbacks.get(
         lang,
       );
       if (!langCallback) {
         throw new Error(`Code widget ${lang} not found`);
       }
-      return langCallback(body);
+      return langCallback(body, pageName);
     },
   };
 }

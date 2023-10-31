@@ -23,9 +23,12 @@ export class CodeWidgetHook implements Hook<CodeWidgetT> {
         if (!functionDef.codeWidget) {
           continue;
         }
-        this.codeWidgetCallbacks.set(functionDef.codeWidget, (bodyText) => {
-          return plug.invoke(name, [bodyText]);
-        });
+        this.codeWidgetCallbacks.set(
+          functionDef.codeWidget,
+          (bodyText, pageName) => {
+            return plug.invoke(name, [bodyText, pageName]);
+          },
+        );
       }
     }
   }

@@ -36,7 +36,7 @@ import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
-import { widgetSyscalls } from "./syscalls/widget.ts";
+import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -143,7 +143,7 @@ export class ClientSystem {
       assetSyscalls(this.system),
       yamlSyscalls(),
       handlebarsSyscalls(),
-      widgetSyscalls(this.client),
+      codeWidgetSyscalls(this.codeWidgetHook),
       languageSyscalls(),
       this.client.syncMode
         // In sync mode handle locally

@@ -29,9 +29,10 @@ import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
-import { language } from "@codemirror/language";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
+import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
+import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -72,6 +73,10 @@ export class ServerSystem {
 
     this.system.addHook(new MQHook(this.system, mq));
 
+    const codeWidgetHook = new CodeWidgetHook();
+
+    this.system.addHook(codeWidgetHook);
+
     this.spacePrimitives = new EventedSpacePrimitives(
       new PlugSpacePrimitives(
         this.baseSpacePrimitives,
@@ -94,6 +99,7 @@ export class ServerSystem {
       handlebarsSyscalls(),
       dataStoreSyscalls(this.ds),
       debugSyscalls(),
+      codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions
     );
 

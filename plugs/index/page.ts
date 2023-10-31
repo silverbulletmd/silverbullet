@@ -6,7 +6,7 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { indexObjects } from "./api.ts";
 
-type PageObject = ObjectValue<
+export type PageObject = ObjectValue<
   // The base is PageMeta, but we override lastModified to be a string
   Omit<PageMeta, "lastModified"> & {
     lastModified: string; // indexing it as a string
@@ -14,6 +14,10 @@ type PageObject = ObjectValue<
 >;
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
+  if (name.startsWith("_")) {
+    // Don't index pages starting with _
+    return;
+  }
   const pageMeta = await space.getPageMeta(name);
   let pageObj: PageObject = {
     ref: name,

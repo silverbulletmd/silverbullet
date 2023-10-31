@@ -403,7 +403,7 @@ export class Client {
     this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
       this.ui.viewDispatch({
         type: "pages-listed",
-        pages: fileList.filter((f) => f.name.endsWith(".md")).map(
+        pages: fileList.filter(this.space.isListedPage).map(
           fileMetaToPageMeta,
         ),
       });

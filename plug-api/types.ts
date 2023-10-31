@@ -120,6 +120,7 @@ export type ObjectQuery = Omit<Query, "prefix">;
 // Code widget stuff
 export type CodeWidgetCallback = (
   bodyText: string,
+  pageName: string,
 ) => Promise<CodeWidgetContent>;
 
 export type CodeWidgetContent = {

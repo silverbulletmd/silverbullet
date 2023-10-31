@@ -5,6 +5,7 @@ import { renderMarkdownToHtml } from "./markdown_render.ts";
 
 export async function markdownContentWidget(
   markdownText: string,
+  pageName: string,
 ): Promise<WidgetContent> {
   // Parse markdown to a ParseTree
   const mdTree = await markdown.parseMarkdown(markdownText);
@@ -12,16 +13,17 @@ export async function markdownContentWidget(
   const html = renderMarkdownToHtml(mdTree, { smartHardBreak: true });
   return {
     html: await wrapHTML(html),
-    script: await prepareJS(markdownText),
+    script: await prepareJS(markdownText, pageName),
     // And add back the markdown text so we can render it in a different way if desired
     markdown: markdownText,
   };
 }
 
-export async function prepareJS(originalMarkdown: string) {
+export async function prepareJS(pageName: string, originalMarkdown: string) {
   const iframeJS = await asset.readAsset("assets/markdown_widget.js");
   return `
     const panelHtml = ${JSON.stringify(panelHtml)};
+    const pageName = ${JSON.stringify(pageName)};
     const originalMarkdown = ${JSON.stringify(originalMarkdown)};
     ${iframeJS}
     `;

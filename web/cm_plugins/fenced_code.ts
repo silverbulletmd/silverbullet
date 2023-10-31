@@ -27,7 +27,7 @@ class IFrameWidget extends WidgetType {
     const iframe = createWidgetSandboxIFrame(
       this.editor,
       this.bodyText,
-      this.codeWidgetCallback(this.bodyText),
+      this.codeWidgetCallback(this.bodyText, this.editor.currentPage!),
       (message) => {
         switch (message.type) {
           case "blur":
@@ -38,16 +38,18 @@ class IFrameWidget extends WidgetType {
 
             break;
           case "reload":
-            this.codeWidgetCallback(this.bodyText).then(
-              (widgetContent: WidgetContent) => {
-                iframe.contentWindow!.postMessage({
-                  type: "html",
-                  html: widgetContent.html,
-                  script: widgetContent.script,
-                  theme: document.getElementsByTagName("html")[0].dataset.theme,
-                });
-              },
-            );
+            this.codeWidgetCallback(this.bodyText, this.editor.currentPage!)
+              .then(
+                (widgetContent: WidgetContent) => {
+                  iframe.contentWindow!.postMessage({
+                    type: "html",
+                    html: widgetContent.html,
+                    script: widgetContent.script,
+                    theme:
+                      document.getElementsByTagName("html")[0].dataset.theme,
+                  });
+                },
+              );
             break;
         }
       },
