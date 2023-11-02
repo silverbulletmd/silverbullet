@@ -8,7 +8,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
 
-type MarkdownRenderOptions = {
+export type MarkdownRenderOptions = {
   failOnUnknown?: true;
   smartHardBreak?: true;
   annotationPositions?: true;
