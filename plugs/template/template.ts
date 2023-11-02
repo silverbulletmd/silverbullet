@@ -169,9 +169,8 @@ export async function quickNoteCommand() {
   const { quickNotePrefix } = await readSettings({
     quickNotePrefix: "📥 ",
   });
-  const isoDate = new Date().toISOString();
-  let [date, time] = isoDate.split("T");
-  time = time.split(".")[0];
+  const date = niceDate(new Date());
+  const time = niceTime(new Date());
   const pageName = `${quickNotePrefix}${date} ${time}`;
   await editor.navigate(pageName);
 }
