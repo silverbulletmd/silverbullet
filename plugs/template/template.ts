@@ -1,7 +1,7 @@
 import { editor, handlebars, markdown, space } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { niceDate } from "$sb/lib/dates.ts";
+import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { PageMeta } from "$sb/types.ts";
