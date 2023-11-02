@@ -1,6 +1,7 @@
 import { asset, clientStore, editor, markdown, system } from "$sb/syscalls.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
+import { expandCodeWidgets } from "./api.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await clientStore.get("enableMarkdownPreview"))) {
@@ -12,6 +13,8 @@ export async function updateMarkdownPreview() {
   // const cleanMd = await cleanMarkdown(text);
   const css = await asset.readAsset("assets/preview.css");
   const js = await asset.readAsset("assets/preview.js");
+
+  await expandCodeWidgets(mdTree, currentPage);
   const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,
