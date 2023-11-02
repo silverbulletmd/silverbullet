@@ -1,4 +1,4 @@
-import { niceDate } from "$sb/lib/dates.ts";
+import { niceDate, niceTime } from "$sb/lib/dates.ts";
 
 export function handlebarHelpers() {
   return {
