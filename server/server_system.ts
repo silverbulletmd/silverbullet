@@ -51,7 +51,7 @@ export class ServerSystem {
   }
 
   // Always needs to be invoked right after construction
-  async init() {
+  async init(awaitIndex = false) {
     // Event hook
     const eventHook = new EventHook();
     this.system.addHook(eventHook);
@@ -151,12 +151,15 @@ export class ServerSystem {
     // Check if this space was ever indexed before
     if (!await this.ds.get(["$initialIndexDone"])) {
       console.log("Indexing space for the first time (in the background)");
-      this.system.loadedPlugs.get("index")!.invoke(
+      const indexPromise = this.system.loadedPlugs.get("index")!.invoke(
         "reindexSpace",
         [],
       ).then(() => {
         this.ds.set(["$initialIndexDone"], true);
       }).catch(console.error);
+      if (awaitIndex) {
+        await indexPromise;
+      }
     }
 
     await eventHook.dispatchEvent("system:ready");

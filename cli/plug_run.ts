@@ -26,7 +26,7 @@ export async function runPlug(
     dbPath,
     app,
   );
-  await serverSystem.init();
+  await serverSystem.init(true);
   app.listen({
     hostname: httpHostname,
     port: httpServerPort,
