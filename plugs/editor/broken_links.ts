@@ -13,7 +13,7 @@ export async function brokenLinksCommand() {
     traverseTree(tree, (tree) => {
       if (tree.type === "WikiLinkPage") {
         // Add the prefix in the link text
-        const [pageName] = tree.children![0].text!.split("@");
+        const [pageName] = tree.children![0].text!.split(/[@$]/);
         if (pageName.startsWith("!")) {
           return true;
         }

@@ -67,7 +67,7 @@ export class PathPageNavigator {
   decodeURI(): [string, number | string] {
     const [page, pos] = decodeURI(
       location.pathname.substring(this.root.length + 1),
-    ).split("@");
+    ).split(/[@$]/);
     if (pos) {
       if (pos.match(/^\d+$/)) {
         return [page, +pos];

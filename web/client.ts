@@ -280,7 +280,7 @@ export class Client {
           const matchingAnchor = await this.system.system.localSyscall(
             "index",
             "system.invokeFunction",
-            ["getObjectByRef", pageName, "anchor", `${pageName}@${pos}`],
+            ["getObjectByRef", pageName, "anchor", `${pageName}$${pos}`],
           );
 
           if (!matchingAnchor) {

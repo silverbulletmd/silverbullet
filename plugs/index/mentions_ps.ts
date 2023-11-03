@@ -26,7 +26,7 @@ export async function updateMentions() {
 
 // use internal navigation via syscall to prevent reloading the full page.
 export async function navigate(ref: string) {
-  const [page, pos] = ref.split("@");
+  const [page, pos] = ref.split(/[@$]/);
   await editor.navigate(page, +pos);
 }
 

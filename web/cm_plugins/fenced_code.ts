@@ -15,7 +15,7 @@ class IFrameWidget extends WidgetType {
   constructor(
     readonly from: number,
     readonly to: number,
-    readonly editor: Client,
+    readonly client: Client,
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
   ) {
@@ -25,20 +25,20 @@ class IFrameWidget extends WidgetType {
   toDOM(): HTMLElement {
     const from = this.from;
     const iframe = createWidgetSandboxIFrame(
-      this.editor,
+      this.client,
       this.bodyText,
-      this.codeWidgetCallback(this.bodyText, this.editor.currentPage!),
+      this.codeWidgetCallback(this.bodyText, this.client.currentPage!),
       (message) => {
         switch (message.type) {
           case "blur":
-            this.editor.editorView.dispatch({
+            this.client.editorView.dispatch({
               selection: { anchor: from },
             });
-            this.editor.focus();
+            this.client.focus();
 
             break;
           case "reload":
-            this.codeWidgetCallback(this.bodyText, this.editor.currentPage!)
+            this.codeWidgetCallback(this.bodyText, this.client.currentPage!)
               .then(
                 (widgetContent: WidgetContent) => {
                   iframe.contentWindow!.postMessage({
@@ -61,7 +61,7 @@ class IFrameWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const cachedHeight = this.editor.space.getCachedWidgetHeight(this.bodyText);
+    const cachedHeight = this.client.space.getCachedWidgetHeight(this.bodyText);
     // console.log("Calling estimated height", cachedHeight);
     return cachedHeight > 0 ? cachedHeight : 150;
   }

@@ -31,9 +31,7 @@ export function cleanWikiLinkPlugin(editor: Client) {
         const allPages = editor.space.listPages();
         let pageExists = !editor.fullSyncCompleted;
         let cleanPage = page;
-        if (page.includes("@")) {
-          cleanPage = page.split("@")[0];
-        }
+        cleanPage = page.split(/[@$]/)[0];
         cleanPage = resolvePath(editor.currentPage!, cleanPage);
         const lowerCasePageName = cleanPage.toLowerCase();
         for (const pageMeta of allPages) {

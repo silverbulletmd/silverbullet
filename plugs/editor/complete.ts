@@ -5,7 +5,7 @@ import { cacheFileListing } from "../federation/federation.ts";
 
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@:\{}]*)$/.exec(completeEvent.linePrefix);
+  const match = /\[\[([^\]@$:\{}]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }

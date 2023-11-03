@@ -103,9 +103,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
       let toPage = resolvePath(name, wikiLinkPage.children![0].text!);
       const pos = wikiLinkPage.from!;
-      if (toPage.includes("@")) {
-        toPage = toPage.split("@")[0];
-      }
+      toPage = toPage.split(/[@$]/)[0];
       const link: LinkObject = {
         ref: `${name}@${pos}`,
         tags: ["link"],

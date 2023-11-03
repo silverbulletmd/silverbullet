@@ -17,7 +17,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
   collectNodesOfType(tree, "NamedAnchor").forEach((n) => {
     const aName = n.children![0].text!.substring(1);
     anchors.push({
-      ref: `${pageName}@${aName}`,
+      ref: `${pageName}$${aName}`,
       tags: ["anchor"],
       name: aName,
       page: pageName,
@@ -29,12 +29,14 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function anchorComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@:]*@[\w\.\-\/]*)$/.exec(completeEvent.linePrefix);
+  const match = /\[\[([^\]@$:]*[@$][\w\.\-\/]*)$/.exec(
+    completeEvent.linePrefix,
+  );
   if (!match) {
     return null;
   }
 
-  const pageRef = match[1].split("@")[0];
+  const pageRef = match[1].split(/[@$]/)[0];
   let filter: QueryExpression | undefined = ["=", ["attr", "page"], [
     "string",
     pageRef,
@@ -47,7 +49,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match[1].length,
     options: allAnchors.map((a) => ({
-      label: a.page === completeEvent.pageName ? `@${a.name}` : a.ref,
+      label: a.page === completeEvent.pageName ? `\$${a.name}` : a.ref,
       type: "anchor",
     })),
   };

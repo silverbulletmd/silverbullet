@@ -6,8 +6,10 @@ release.
 * Many styling fixes and improvements to [[Live Queries]] and [[Live Templates]]
 * Added a “source” button to [[Live Queries]] and [[Live Templates]] for better debugging (showing you the markdown code rendered by the template so you can more easily detect issues)
 * [[Live Queries]]:
-  * Support for `render all` where the entire result set is passed to a single template allowing you to e.g. dynamically build up tables, see [[Live Queries@render]] for an example.
+  * Support for `render all` where the entire result set is passed to a single template allowing you to e.g. dynamically build up tables, see [[Live Queries$render]] for an example.
 * The default generated [[SETTINGS]] page now contains a link to [[SETTINGS]] on silverbullet.md for documentation purposes.
+* The syntax to reference [[Anchors]] has now changed to use `$`, instead of `@` (e.g. [[Live Queries$render]]), the old syntax still works but is deprecated. The reason for this change is consistency: you define an anchor using the `$myanchor` syntax, referencing it the same way makes more sense.
+* [[Page Name Rules]] are now documented
 
 ---
 ## 0.5.3

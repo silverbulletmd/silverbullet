@@ -273,7 +273,7 @@ function render(
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
         const ref = wikilink.children![0].text!;
-        if (!externalTaskRef && ref.includes("@")) {
+        if (!externalTaskRef && (ref.includes("@") || ref.includes("$"))) {
           externalTaskRef = ref;
         }
       });

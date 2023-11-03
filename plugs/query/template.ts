@@ -55,11 +55,13 @@ export async function widget(
     return system.invokeFunction(
       "markdown.markdownContentWidget",
       rendered,
+      pageName,
     );
   } catch (e: any) {
     return system.invokeFunction(
       "markdown.markdownContentWidget",
       `**Error:** ${e.message}`,
+      pageName,
     );
   }
 }

@@ -62,6 +62,7 @@ export async function widget(
     return system.invokeFunction(
       "markdown.markdownContentWidget",
       resultMarkdown,
+      pageName,
     );
   } catch (e: any) {
     return system.invokeFunction(
