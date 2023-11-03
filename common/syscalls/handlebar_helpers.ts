@@ -1,4 +1,4 @@
-import { niceDate } from "$sb/lib/dates.ts";
+import { niceDate, niceTime } from "$sb/lib/dates.ts";
 
 export function handlebarHelpers() {
   return {
@@ -15,6 +15,7 @@ export function handlebarHelpers() {
     substring: (s: string, from: number, to: number, elipsis = "") =>
       s.length > to - from ? s.substring(from, to) + elipsis : s,
 
+    time: () => niceTime(new Date()),
     today: () => niceDate(new Date()),
     tomorrow: () => {
       const tomorrow = new Date();

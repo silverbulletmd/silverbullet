@@ -1,7 +1,7 @@
 import { editor, handlebars, markdown, space } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { niceDate } from "$sb/lib/dates.ts";
+import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { PageMeta } from "$sb/types.ts";
@@ -170,9 +170,8 @@ export async function quickNoteCommand() {
   const { quickNotePrefix } = await readSettings({
     quickNotePrefix: "📥 ",
   });
-  const isoDate = new Date().toISOString();
-  let [date, time] = isoDate.split("T");
-  time = time.split(".")[0];
+  const date = niceDate(new Date());
+  const time = niceTime(new Date());
   const pageName = `${quickNotePrefix}${date} ${time}`;
   await editor.navigate(pageName);
 }
