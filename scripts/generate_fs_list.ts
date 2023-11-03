@@ -23,6 +23,7 @@ for await (
   allFiles.push({
     name: fullPath.substring(rootDir.length + 1),
     lastModified: lastModifiedTimestamp,
+    created: lastModifiedTimestamp,
     contentType: mime.getType(fullPath) || "application/octet-stream",
     size: s.size,
     perm: "rw",

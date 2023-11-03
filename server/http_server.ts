@@ -540,6 +540,10 @@ export class HttpServer {
       "X-Last-Modified",
       "" + fileMeta.lastModified,
     );
+    headers.set(
+      "X-Created",
+      "" + fileMeta.created,
+    );
     headers.set("Cache-Control", "no-cache");
     headers.set("X-Permission", fileMeta.perm);
     headers.set("X-Content-Length", "" + fileMeta.size);

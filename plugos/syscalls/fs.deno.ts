@@ -34,6 +34,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       const s = await Deno.stat(p);
       return {
         name: filePath,
+        created: s.birthtime!.getTime(),
         lastModified: s.mtime!.getTime(),
         contentType: mime.getType(filePath) || "application/octet-stream",
         size: s.size,
@@ -56,6 +57,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       const s = await Deno.stat(p);
       return {
         name: filePath,
+        created: s.birthtime!.getTime(),
         lastModified: s.mtime!.getTime(),
         contentType: mime.getType(filePath) || "application/octet-stream",
         size: s.size,
@@ -84,6 +86,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
         const s = await Deno.stat(fullPath);
         allFiles.push({
           name: fullPath.substring(dirPath.length + 1),
+          created: s.birthtime!.getTime(),
           lastModified: s.mtime!.getTime(),
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,

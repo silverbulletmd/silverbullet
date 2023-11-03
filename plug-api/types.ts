@@ -1,5 +1,6 @@
 export type FileMeta = {
   name: string;
+  created: number;
   lastModified: number;
   contentType: string;
   size: number;
@@ -9,6 +10,7 @@ export type FileMeta = {
 
 export type PageMeta = {
   name: string;
+  created: number;
   lastModified: number;
   lastOpened?: number;
   perm: "ro" | "rw";
@@ -17,6 +19,7 @@ export type PageMeta = {
 export type AttachmentMeta = {
   name: string;
   contentType: string;
+  created: number;
   lastModified: number;
   size: number;
   perm: "ro" | "rw";

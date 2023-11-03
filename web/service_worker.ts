@@ -138,6 +138,7 @@ async function handleLocalFileRequest(
           "Content-type": data.meta.contentType,
           "Content-Length": "" + data.meta.size,
           "X-Permission": data.meta.perm,
+          "X-Created": "" + data.meta.created,
           "X-Last-Modified": "" + data.meta.lastModified,
         },
       },

@@ -73,6 +73,7 @@ export async function readFileSearch(
       name,
       contentType: "text/markdown",
       size: text.length,
+      created: 0,
       lastModified: 0,
       perm: "ro",
     },
@@ -91,6 +92,7 @@ export function getFileMetaSearch(name: string): FileMeta {
     name,
     contentType: "text/markdown",
     size: -1,
+    created: 0,
     lastModified: 0,
     perm: "ro",
   };

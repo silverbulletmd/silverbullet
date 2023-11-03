@@ -54,6 +54,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         data,
         meta: {
           name: name,
+          created: s.birthtime!.getTime(),
           lastModified: s.mtime!.getTime(),
           perm: "rw",
           size: s.size,
@@ -108,6 +109,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         name: name,
         size: s.size,
         contentType: lookupContentType(name),
+        created: s.birthtime!.getTime(),
         lastModified: s.mtime!.getTime(),
         perm: "rw",
       };
@@ -145,6 +147,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         }
         allFiles.push({
           name: normalizeForwardSlashPath(name),
+          created: s.birthtime!.getTime(),
           lastModified: s.mtime!.getTime(),
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,

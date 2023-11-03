@@ -5,6 +5,8 @@ import { SpacePrimitives } from "../../common/spaces/space_primitives.ts";
 import { mime } from "../deps.ts";
 import { FileMeta } from "$sb/types.ts";
 
+// TODO: IMPORTANT: This needs a different way to keep meta data (last modified and created dates)
+
 export class S3SpacePrimitives implements SpacePrimitives {
   client: S3Client;
   constructor(options: ClientOptions) {
@@ -27,6 +29,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
       allFiles.push({
         name: this.decodePath(obj.key),
         perm: "rw",
+        created: 0,
         lastModified: obj.lastModified.getTime(),
         contentType: mime.getType(obj.key) || "application/octet-stream",
         size: obj.size,
@@ -46,6 +49,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
       const meta: FileMeta = {
         name,
         perm: "rw",
+        created: 0,
         lastModified: new Date(obj.headers.get("Last-Modified")!).getTime(),
         contentType,
         size: parseInt(obj.headers.get("Content-Length")!),
@@ -70,6 +74,8 @@ export class S3SpacePrimitives implements SpacePrimitives {
       return {
         name,
         perm: "rw",
+        // TODO: Created is not accurate
+        created: 0,
         lastModified: new Date(stat.lastModified).getTime(),
         size: stat.size,
         contentType: mime.getType(name) || "application/octet-stream",

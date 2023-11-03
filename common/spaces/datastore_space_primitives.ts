@@ -48,6 +48,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   ): Promise<FileMeta> {
     const meta: FileMeta = {
       name,
+      created: suggestedMeta?.lastModified || Date.now(),
       lastModified: suggestedMeta?.lastModified || Date.now(),
       contentType: mime.getType(name) || "application/octet-stream",
       size: data.byteLength,

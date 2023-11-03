@@ -25,6 +25,7 @@ async function responseToFileMeta(
       : 0,
     contentType: r.headers.get("Content-type")!,
     perm,
+    created: +(r.headers.get("X-Created") || "0"),
     lastModified: +(r.headers.get("X-Last-Modified") || "0"),
   };
 }
@@ -147,6 +148,7 @@ function errorResult(
     meta: {
       name,
       contentType: "text/markdown",
+      created: 0,
       lastModified: 0,
       size: 0,
       perm: "ro",

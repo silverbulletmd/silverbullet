@@ -40,6 +40,7 @@ export async function instantiateTemplateCommand() {
 
   const tempPageMeta: PageMeta = {
     name: "",
+    created: 0,
     lastModified: 0,
     perm: "rw",
   };
@@ -207,6 +208,7 @@ export async function dailyNoteCommand() {
       pageName,
       await replaceTemplateVars(dailyNoteTemplateText, {
         name: pageName,
+        created: 0,
         lastModified: 0,
         perm: "rw",
       }),
@@ -251,6 +253,7 @@ export async function weeklyNoteCommand() {
         pageName,
         await replaceTemplateVars(weeklyNoteTemplateText, {
           name: pageName,
+          created: 0,
           lastModified: 0,
           perm: "rw",
         }),
@@ -272,7 +275,8 @@ export async function insertTemplateText(cmdDef: any) {
     // Likely page not yet created
     pageMeta = {
       name: page,
-      lastModified: -1,
+      created: 0,
+      lastModified: 0,
       perm: "rw",
     };
   }

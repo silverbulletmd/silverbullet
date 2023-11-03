@@ -108,6 +108,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       "Content-Type": "application/octet-stream",
     };
     if (meta) {
+      headers["X-Created"] = "" + meta.created;
       headers["X-Last-Modified"] = "" + meta.lastModified;
       headers["X-Perm"] = "" + meta.perm;
     }
@@ -165,6 +166,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         ? +res.headers.get("X-Content-Length")!
         : +res.headers.get("Content-Length")!,
       contentType: res.headers.get("Content-type")!,
+      created: +(res.headers.get("X-Created") || "0"),
       lastModified: +(res.headers.get("X-Last-Modified") || "0"),
       perm: (res.headers.get("X-Permission") as "rw" | "ro") || "ro",
     };

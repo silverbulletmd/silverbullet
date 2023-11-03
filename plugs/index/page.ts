@@ -8,7 +8,8 @@ import { indexObjects } from "./api.ts";
 
 export type PageObject = ObjectValue<
   // The base is PageMeta, but we override lastModified to be a string
-  Omit<PageMeta, "lastModified"> & {
+  Omit<Omit<PageMeta, "lastModified">, "created"> & {
+    created: string; // indexing it as a string
     lastModified: string; // indexing it as a string
   } & Record<string, any>
 >;
@@ -23,6 +24,7 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     ref: name,
     tags: [], // will be overridden in a bit
     ...pageMeta,
+    created: new Date(pageMeta.created).toISOString(),
     lastModified: new Date(pageMeta.lastModified).toISOString(),
   };
 
