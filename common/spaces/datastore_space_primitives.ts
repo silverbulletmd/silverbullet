@@ -20,7 +20,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     return (await this.ds.query<FileMeta>({ prefix: filesMetaPrefix }))
-      .map((kv) => kv.value);
+      .map((kv) => this.ensureFileMeta(kv.value));
   }
 
   async readFile(
@@ -36,7 +36,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
 
     return {
       data: fileContent.data,
-      meta: fileContent.meta,
+      meta: this.ensureFileMeta(fileContent.meta),
     };
   }
 
@@ -85,6 +85,13 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     const fileMeta = await this.ds.get([...filesMetaPrefix, name]);
     if (!fileMeta) {
       throw new Error("Not found");
+    }
+    return this.ensureFileMeta(fileMeta);
+  }
+
+  ensureFileMeta(fileMeta: FileMeta): FileMeta {
+    if (!fileMeta.created) {
+      fileMeta.created = fileMeta.lastModified;
     }
     return fileMeta;
   }
