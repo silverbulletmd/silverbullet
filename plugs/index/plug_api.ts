@@ -29,6 +29,6 @@ export function getObjectByRef<T>(
   page: string,
   tag: string,
   ref: string,
-): Promise<ObjectValue<T>[]> {
+): Promise<T | undefined> {
   return invokeFunction("index.getObjectByRef", page, tag, ref);
 }

@@ -1,10 +1,53 @@
-import { editor, handlebars, markdown, space } from "$sb/syscalls.ts";
+import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { PageMeta } from "$sb/types.ts";
+import { ObjectValue, PageMeta } from "$sb/types.ts";
+import { CompleteEvent, SlashCompletion } from "$sb/app_event.ts";
+import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
+
+export type TemplateObject = ObjectValue<{
+  trigger?: string; // has to start with # for now
+  scope?: string;
+  frontmatter?: Record<string, any> | string;
+}>;
+
+export async function templateSlashComplete(
+  completeEvent: CompleteEvent,
+): Promise<SlashCompletion[]> {
+  const allTemplates = await queryObjects<TemplateObject>("template", {});
+  return allTemplates.map((template) => ({
+    label: template.trigger!,
+    detail: "template",
+    templatePage: template.ref,
+    pageName: completeEvent.pageName,
+    invoke: "template.insertSlashTemplate",
+  }));
+}
+
+export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
+  const pageObject = await loadPageObject(slashCompletion.pageName);
+
+  let templateText = await space.readPage(slashCompletion.templatePage);
+  templateText = await replaceTemplateVars(templateText, pageObject);
+  const parseTree = await markdown.parseMarkdown(templateText);
+  const frontmatter = await extractFrontmatter(parseTree, [], true);
+  templateText = renderToText(parseTree).trim();
+  if (frontmatter.frontmatter) {
+    templateText = "---\n" + (await YAML.stringify(frontmatter.frontmatter)) +
+      "---\n" + templateText;
+  }
+
+  const cursorPos = await editor.getCursor();
+  const carretPos = templateText.indexOf("|^|");
+  templateText = templateText.replace("|^|", "");
+  await editor.insertAtCursor(templateText);
+  if (carretPos !== -1) {
+    await editor.moveCursor(cursorPos + carretPos);
+  }
+}
 
 export async function instantiateTemplateCommand() {
   const allPages = await space.listPages();
@@ -39,9 +82,11 @@ export async function instantiateTemplateCommand() {
   ]);
 
   const tempPageMeta: PageMeta = {
+    tags: ["page"],
+    ref: "",
     name: "",
-    created: 0,
-    lastModified: 0,
+    created: "",
+    lastModified: "",
     perm: "rw",
   };
 
@@ -159,6 +204,20 @@ export async function applyPageTemplateCommand() {
   }
 }
 
+export async function loadPageObject(pageName: string): Promise<PageMeta> {
+  return (await getObjectByRef<PageMeta>(
+    pageName,
+    "page",
+    pageName,
+  )) || {
+    ref: pageName,
+    name: pageName,
+    tags: ["page"],
+    lastModified: "",
+    created: "",
+  } as PageMeta;
+}
+
 export function replaceTemplateVars(
   s: string,
   pageMeta: PageMeta,
@@ -206,9 +265,11 @@ export async function dailyNoteCommand() {
     await space.writePage(
       pageName,
       await replaceTemplateVars(dailyNoteTemplateText, {
+        tags: ["page"],
+        ref: pageName,
         name: pageName,
-        created: 0,
-        lastModified: 0,
+        created: "",
+        lastModified: "",
         perm: "rw",
       }),
     );
@@ -252,8 +313,10 @@ export async function weeklyNoteCommand() {
         pageName,
         await replaceTemplateVars(weeklyNoteTemplateText, {
           name: pageName,
-          created: 0,
-          lastModified: 0,
+          ref: pageName,
+          tags: ["page"],
+          created: "",
+          lastModified: "",
           perm: "rw",
         }),
       );
@@ -267,22 +330,11 @@ export async function weeklyNoteCommand() {
 export async function insertTemplateText(cmdDef: any) {
   const cursorPos = await editor.getCursor();
   const page = await editor.getCurrentPage();
-  let pageMeta: PageMeta | undefined;
-  try {
-    pageMeta = await space.getPageMeta(page);
-  } catch {
-    // Likely page not yet created
-    pageMeta = {
-      name: page,
-      created: 0,
-      lastModified: 0,
-      perm: "rw",
-    };
-  }
+  const pageMeta = await loadPageObject(page);
   let templateText: string = cmdDef.value;
   const carretPos = templateText.indexOf("|^|");
   templateText = templateText.replace("|^|", "");
-  templateText = await replaceTemplateVars(templateText, pageMeta!);
+  templateText = await replaceTemplateVars(templateText, pageMeta);
   await editor.insertAtCursor(templateText);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);

@@ -7,6 +7,9 @@ export function handlebarHelpers() {
     escapeRegexp: (ts: any) => {
       return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
     },
+    escape: (handlebarsExpr: string) => {
+      return `{{${handlebarsExpr}}}`;
+    },
     replaceRegexp: (s: string, regexp: string, replacement: string) => {
       return s.replace(new RegExp(regexp, "g"), replacement);
     },

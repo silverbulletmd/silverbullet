@@ -6,6 +6,7 @@ export type AppEvent =
   | "page:click"
   | "editor:complete"
   | "minieditor:complete"
+  | "slash:complete"
   | "page:load"
   | "editor:init"
   | "editor:pageLoaded" // args: pageName, previousPage, isSynced
@@ -50,6 +51,12 @@ export type CompleteEvent = {
   pos: number;
   parentNodes: string[];
 };
+
+export type SlashCompletion = {
+  label: string;
+  detail?: string;
+  invoke: string;
+} & Record<string, any>;
 
 export type WidgetContent = {
   html?: string;

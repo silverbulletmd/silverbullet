@@ -1,7 +1,6 @@
 import { handlebars, space } from "$sb/syscalls.ts";
 import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
-import { render } from "preact";
 
 export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {

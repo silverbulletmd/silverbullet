@@ -9,18 +9,23 @@ import {
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 
+export type FrontMatter = { tags: string[] } & Record<string, any>;
+
 // Extracts front matter (or legacy "meta" code blocks) from a markdown document
 // optionally removes certain keys from the front matter
 export async function extractFrontmatter(
   tree: ParseTree,
   removeKeys: string[] = [],
   removeFrontmatterSection = false,
-): Promise<any> {
-  let data: any = {};
+): Promise<FrontMatter> {
+  let data: FrontMatter = {
+    tags: [],
+  };
   addParentPointers(tree);
   let paragraphCounter = 0;
 
   await replaceNodesMatchingAsync(tree, async (t) => {
+    // Find tags in the first paragraph to attach to the page
     if (t.type === "Paragraph") {
       paragraphCounter++;
       // Only attach hashtags in the first paragraph to the page
@@ -28,11 +33,8 @@ export async function extractFrontmatter(
         return;
       }
       collectNodesOfType(t, "Hashtag").forEach((h) => {
-        if (!data.tags) {
-          data.tags = [];
-        }
         const tagname = h.children![0].text!.substring(1);
-        if (Array.isArray(data.tags) && !data.tags.includes(tagname)) {
+        if (!data.tags.includes(tagname)) {
           data.tags.push(tagname);
         }
       });
@@ -45,6 +47,14 @@ export async function extractFrontmatter(
         const parsedData: any = await YAML.parse(yamlText);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };
+        // Make sure we have a tags array
+        if (!data.tags) {
+          data.tags = [];
+        }
+        // Normalize tags to an array and support a "tag1, tag2" notation
+        if (typeof data.tags === "string") {
+          data.tags = (data.tags as string).split(/,\s*/);
+        }
         if (removeKeys.length > 0) {
           let removedOne = false;
 

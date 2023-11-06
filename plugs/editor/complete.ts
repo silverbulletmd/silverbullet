@@ -1,6 +1,6 @@
 import { CompleteEvent } from "$sb/app_event.ts";
 import { space } from "$sb/syscalls.ts";
-import { PageMeta } from "$sb/types.ts";
+import { FileMeta, PageMeta } from "$sb/types.ts";
 import { cacheFileListing } from "../federation/federation.ts";
 
 // Completion
@@ -24,10 +24,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         // Cached listing
         const federationPages = (await cacheFileListing(domain)).filter((fm) =>
           fm.name.endsWith(".md")
-        ).map((fm) => ({
-          ...fm,
-          name: fm.name.slice(0, -3),
-        }));
+        ).map(fileMetaToPageMeta);
         if (federationPages.length > 0) {
           allPages = allPages.concat(federationPages);
         }
@@ -44,4 +41,16 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       };
     }),
   };
+}
+
+function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
+  const name = fileMeta.name.substring(0, fileMeta.name.length - 3);
+  return {
+    ...fileMeta,
+    ref: fileMeta.name,
+    tags: ["page"],
+    name,
+    created: new Date(fileMeta.created).toISOString(),
+    lastModified: new Date(fileMeta.lastModified).toISOString(),
+  } as PageMeta;
 }

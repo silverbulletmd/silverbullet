@@ -3,19 +3,19 @@ import { events, language, space, system } from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
-import { replaceTemplateVars } from "../template/template.ts";
+import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 
 export async function widget(
   bodyText: string,
   pageName: string,
 ): Promise<WidgetContent> {
-  const pageMeta = await space.getPageMeta(pageName);
+  const pageObject = await loadPageObject(pageName);
 
   try {
     const queryAST = parseTreeToAST(
       await language.parseLanguage(
         "query",
-        await replaceTemplateVars(bodyText, pageMeta),
+        await replaceTemplateVars(bodyText, pageObject),
       ),
     );
     const parsedQuery = astToKvQuery(queryAST[1]);
@@ -28,7 +28,7 @@ export async function widget(
     // Let's dispatch an event and see what happens
     const results = await events.dispatchEvent(
       eventName,
-      { query: parsedQuery, pageName: pageMeta.name },
+      { query: parsedQuery, pageName: pageObject.name },
       30 * 1000,
     );
     if (results.length === 0) {
@@ -45,7 +45,7 @@ export async function widget(
         if (parsedQuery.render) {
           // Configured a custom rendering template, let's use it!
           const rendered = await renderTemplate(
-            pageMeta,
+            pageObject,
             parsedQuery.render,
             allResults,
             parsedQuery.renderAll!,

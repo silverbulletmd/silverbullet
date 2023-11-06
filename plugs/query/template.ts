@@ -1,8 +1,9 @@
 import { WidgetContent } from "$sb/app_event.ts";
 import { handlebars, markdown, space, system, YAML } from "$sb/syscalls.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { replaceTemplateVars } from "../template/template.ts";
+import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { renderToText } from "$sb/lib/tree.ts";
+import { PageMeta } from "$sb/types.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -19,7 +20,7 @@ export async function widget(
   bodyText: string,
   pageName: string,
 ): Promise<WidgetContent> {
-  const pageMeta = await space.getPageMeta(pageName);
+  const pageMeta: PageMeta = await loadPageObject(pageName);
 
   try {
     const config: TemplateConfig = await YAML.parse(bodyText);

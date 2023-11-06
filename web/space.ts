@@ -221,8 +221,13 @@ export class Space {
 }
 
 export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
+  const name = fileMeta.name.substring(0, fileMeta.name.length - 3);
   return {
     ...fileMeta,
-    name: fileMeta.name.substring(0, fileMeta.name.length - 3),
+    ref: name,
+    tags: ["page"],
+    name,
+    created: new Date(fileMeta.created).toISOString(),
+    lastModified: new Date(fileMeta.lastModified).toISOString(),
   } as PageMeta;
 }

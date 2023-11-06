@@ -8,13 +8,15 @@ export type FileMeta = {
   noSync?: boolean;
 };
 
-export type PageMeta = {
-  name: string;
-  created: number;
-  lastModified: number;
-  lastOpened?: number;
-  perm: "ro" | "rw";
-};
+export type PageMeta = ObjectValue<
+  {
+    name: string;
+    created: string; // indexing it as a string
+    lastModified: string; // indexing it as a string
+    lastOpened?: number;
+    perm: "ro" | "rw";
+  } & Record<string, any>
+>;
 
 export type AttachmentMeta = {
   name: string;

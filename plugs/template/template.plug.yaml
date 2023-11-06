@@ -1,5 +1,14 @@
 name: template
 functions:
+
+  templateSlashCommand:
+    path: ./template.ts:templateSlashComplete
+    events:
+    - slash:complete
+
+  insertSlashTemplate:
+    path: ./template.ts:insertSlashTemplate
+
   # Template commands
   insertTemplateText:
     path: "./template.ts:insertTemplateText"

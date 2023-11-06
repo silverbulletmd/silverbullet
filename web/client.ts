@@ -624,7 +624,7 @@ export class Client {
   }
 
   // Code completion support
-  private async completeWithEvent(
+  async completeWithEvent(
     context: CompletionContext,
     eventName: AppEvent,
   ): Promise<CompletionResult | null> {
@@ -761,7 +761,14 @@ export class Client {
         console.log("Page doesn't exist, creating new page:", pageName);
         doc = {
           text: "",
-          meta: { name: pageName, lastModified: 0, perm: "rw" } as PageMeta,
+          meta: {
+            ref: pageName,
+            tags: ["page"],
+            name: pageName,
+            lastModified: "",
+            created: "",
+            perm: "rw",
+          } as PageMeta,
         };
       } else {
         this.flashNotification(

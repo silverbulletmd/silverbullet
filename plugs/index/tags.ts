@@ -7,20 +7,19 @@ import {
   collectNodesOfType,
   findParentMatching,
 } from "$sb/lib/tree.ts";
+import type { ObjectValue } from "$sb/types.ts";
 
-export type TagObject = {
-  ref: string;
-  tags: string[];
+export type TagObject = ObjectValue<{
   name: string;
   page: string;
   parent: string;
-};
+}>;
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   removeQueries(tree);
   const tags = new Set<string>(); // name:parent
   addParentPointers(tree);
-  const pageTags: string[] = (await extractFrontmatter(tree)).tags || [];
+  const pageTags: string[] = (await extractFrontmatter(tree)).tags;
   for (const pageTag of pageTags) {
     tags.add(`${pageTag}:page`);
   }
@@ -68,9 +67,12 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   } else if (itemPrefixRegex.test(completeEvent.linePrefix)) {
     parent = "item";
   }
+
+  // Query all tags
   const allTags = await queryObjects<TagObject>("tag", {
     filter: ["=", ["attr", "parent"], ["string", parent]],
   });
+
   return {
     from: completeEvent.pos - tagPrefix.length,
     options: allTags.map((tag) => ({
