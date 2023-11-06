@@ -717,7 +717,8 @@ export class Client {
     }
 
     try {
-      validatePageName(name);
+      const pagePart = name.split(/[@$]/)[0];
+      validatePageName(pagePart);
     } catch (e: any) {
       return this.flashNotification(e.message, "error");
     }
