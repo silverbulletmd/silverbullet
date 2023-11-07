@@ -3,6 +3,7 @@ html,
 body {
     height: initial !important;
     overflow: initial !important;
+    background-color: var(--root-background-color) !important;
 }
 
 #sb-main {
@@ -21,7 +22,7 @@ body {
 
 body {
     font-family: var(--ui-font);
-    background-color: var(--root-background-color);
+
     color: var(--root-color);
 }
 

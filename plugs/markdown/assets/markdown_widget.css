@@ -3,6 +3,7 @@ html,
 body {
     height: initial !important;
     overflow: initial !important;
+    background-color: var(--root-background-color);
 }
 
 #sb-main {
