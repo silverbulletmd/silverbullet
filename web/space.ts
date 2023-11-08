@@ -128,13 +128,19 @@ export class Space {
   ): Promise<PageMeta> {
     try {
       this.saving = true;
-      return fileMetaToPageMeta(
+      const pageMeta = fileMetaToPageMeta(
         await this.spacePrimitives.writeFile(
           `${name}.md`,
           new TextEncoder().encode(text),
           selfUpdate,
         ),
       );
+      if (!this.cachedPageList.find((page) => page.name === pageMeta.name)) {
+        // New page, let's cache it
+        this.cachedPageList.push(pageMeta);
+      }
+      // Note: we don't do very elaborate cache invalidation work here, quite quickly the cache will be flushed anyway
+      return pageMeta;
     } finally {
       this.saving = false;
     }
