@@ -28,7 +28,9 @@ export async function updateDirectivesOnPageCommand() {
   }
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
-  const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
+  const metaData = await extractFrontmatter(tree, {
+    removeKeys: ["$disableDirectives"],
+  });
 
   if (isFederationPath(currentPage)) {
     console.info("Current page is a federation page, not updating directives.");
@@ -173,7 +175,9 @@ async function updateDirectivesForPage(
   const pageMeta = await space.getPageMeta(pageName);
   const currentText = await space.readPage(pageName);
   const tree = await markdown.parseMarkdown(currentText);
-  const metaData = await extractFrontmatter(tree, ["$disableDirectives"]);
+  const metaData = await extractFrontmatter(tree, {
+    removeKeys: ["$disableDirectives"],
+  });
 
   if (isFederationPath(pageName)) {
     console.info("Current page is a federation page, not updating directives.");

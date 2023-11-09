@@ -3,7 +3,7 @@ For various use cases, SilverBullet uses [Handlebars templates](https://handleba
 Generally templates are stored in your space as regular pages, which allows for reuse. Some examples include [[template/task]] and [[template/page]].
 As a convention, we often name templates with a `template/` prefix, although this is purely a convention.
 
-[[Live Templates]] allow templates to be define inline, for instance:
+[[Live Templates]] allow templates to be defined inline, for instance:
 ```template
 template: |
    Hello, {{name}}! Today is _{{today}}_

@@ -41,9 +41,5 @@ export function renderHtml(t: Tag | null): string {
   if (t.name === Fragment) {
     return body;
   }
-  // if (t.body) {
   return `<${t.name}${attrs}>${body}</${t.name}>`;
-  // } else {
-  //   return `<${t.name}${attrs}/>`;
-  // }
 }

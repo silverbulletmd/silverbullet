@@ -4,20 +4,19 @@ import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { ObjectValue, PageMeta } from "$sb/types.ts";
+import { PageMeta } from "$sb/types.ts";
 import { CompleteEvent, SlashCompletion } from "$sb/app_event.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
-
-export type TemplateObject = ObjectValue<{
-  trigger?: string; // has to start with # for now
-  scope?: string;
-  frontmatter?: Record<string, any> | string;
-}>;
+import { TemplateObject } from "./types.ts";
+import { renderTemplate } from "./api.ts";
 
 export async function templateSlashComplete(
   completeEvent: CompleteEvent,
 ): Promise<SlashCompletion[]> {
-  const allTemplates = await queryObjects<TemplateObject>("template", {});
+  const allTemplates = await queryObjects<TemplateObject>("template", {
+    // Only return templates that have a trigger
+    filter: ["!=", ["attr", "trigger"], ["null"]],
+  });
   return allTemplates.map((template) => ({
     label: template.trigger!,
     detail: "template",
@@ -31,14 +30,7 @@ export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
   const pageObject = await loadPageObject(slashCompletion.pageName);
 
   let templateText = await space.readPage(slashCompletion.templatePage);
-  templateText = await replaceTemplateVars(templateText, pageObject);
-  const parseTree = await markdown.parseMarkdown(templateText);
-  const frontmatter = await extractFrontmatter(parseTree, [], true);
-  templateText = renderToText(parseTree).trim();
-  if (frontmatter.frontmatter) {
-    templateText = "---\n" + (await YAML.stringify(frontmatter.frontmatter)) +
-      "---\n" + templateText;
-  }
+  templateText = await renderTemplate(templateText, pageObject);
 
   const cursorPos = await editor.getCursor();
   const carretPos = templateText.indexOf("|^|");
@@ -76,10 +68,12 @@ export async function instantiateTemplateCommand() {
   );
 
   const parseTree = await markdown.parseMarkdown(text);
-  const additionalPageMeta = await extractFrontmatter(parseTree, [
-    "$name",
-    "$disableDirectives",
-  ]);
+  const additionalPageMeta = await extractFrontmatter(parseTree, {
+    removeKeys: [
+      "$name",
+      "$disableDirectives",
+    ],
+  });
 
   const tempPageMeta: PageMeta = {
     tags: ["page"],

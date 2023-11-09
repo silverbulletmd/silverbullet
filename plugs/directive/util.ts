@@ -1,6 +1,7 @@
 import { handlebars, space } from "$sb/syscalls.ts";
 import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
+import { cleanTemplate, renderTemplate } from "../template/plug_api.ts";
 
 export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {
@@ -53,13 +54,14 @@ export function jsonToMDTable(
   return lines.join("\n");
 }
 
-export async function renderTemplate(
+export async function renderQueryTemplate(
   pageMeta: PageMeta,
-  renderTemplate: string,
+  templatePage: string,
   data: any[],
   renderAll: boolean,
 ): Promise<string> {
-  let templateText = await space.readPage(renderTemplate);
+  let templateText = await space.readPage(templatePage);
+  templateText = await cleanTemplate(templateText);
   if (!renderAll) {
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }

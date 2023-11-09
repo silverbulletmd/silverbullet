@@ -25,15 +25,15 @@ export class MainUI {
   viewState: AppViewState = initialViewState;
   viewDispatch: (action: Action) => void = () => {};
 
-  constructor(private editor: Client) {
+  constructor(private client: Client) {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
-      if (!editor.editorView.hasFocus) {
+      if (!client.editorView.hasFocus) {
         if ((ev.target as any).closest(".cm-editor")) {
           // In some cm element, let's back out
           return;
         }
-        if (runScopeHandlers(editor.editorView, ev, "editor")) {
+        if (runScopeHandlers(client.editorView, ev, "editor")) {
           ev.preventDefault();
         }
       }
@@ -52,7 +52,7 @@ export class MainUI {
         ev.preventDefault();
         this.viewDispatch({
           type: "show-palette",
-          context: editor.getContext(),
+          context: client.getContext(),
         });
       }
     });
@@ -63,7 +63,7 @@ export class MainUI {
     this.viewState = viewState;
     this.viewDispatch = dispatch;
 
-    const editor = this.editor;
+    const editor = this.client;
 
     useEffect(() => {
       if (viewState.currentPage) {
@@ -78,8 +78,8 @@ export class MainUI {
     }, [viewState.uiOptions.forcedROMode]);
 
     useEffect(() => {
-      this.editor.rebuildEditorState();
-      this.editor.dispatchAppEvent("editor:modeswitch");
+      this.client.rebuildEditorState();
+      this.client.dispatchAppEvent("editor:modeswitch");
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
@@ -208,24 +208,24 @@ export class MainUI {
               // If we support syncOnly, don't show this toggle button
               ? [{
                 icon: RefreshCwIcon,
-                description: this.editor.syncMode
+                description: this.client.syncMode
                   ? "Currently in Sync mode, click to switch to Online mode"
                   : "Currently in Online mode, click to switch to Sync mode",
-                class: this.editor.syncMode ? "sb-enabled" : undefined,
+                class: this.client.syncMode ? "sb-enabled" : undefined,
                 callback: () => {
                   (async () => {
-                    const newValue = !this.editor.syncMode;
+                    const newValue = !this.client.syncMode;
 
                     if (newValue) {
                       localStorage.setItem("syncMode", "true");
-                      this.editor.flashNotification(
+                      this.client.flashNotification(
                         "Now switching to sync mode, one moment please...",
                       );
                       await sleep(1000);
                       location.reload();
                     } else {
                       localStorage.removeItem("syncMode");
-                      this.editor.flashNotification(
+                      this.client.flashNotification(
                         "Now switching to online mode, one moment please...",
                       );
                       await sleep(1000);

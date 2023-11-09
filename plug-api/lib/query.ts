@@ -97,7 +97,7 @@ export function evalQueryExpression(
         return !(val1.length === val2.length &&
           val1.every((v) => val2.includes(v)));
       }
-      return val1 !== val2;
+      return val1 != val2;
     }
     case "=~": {
       if (!Array.isArray(val2)) {

@@ -1,5 +1,19 @@
 name: template
 functions:
+  # API
+  renderTemplate:
+    path: api.ts:renderTemplate
+  cleanTemplate:
+    path: api.ts:cleanTemplate
+
+  insertTemplateText:
+    path: template.ts:insertTemplateText
+
+
+  indexTemplate:
+    path: ./index.ts:indexTemplate
+    events:
+    - page:indexTemplate
 
   templateSlashCommand:
     path: ./template.ts:templateSlashComplete
@@ -10,8 +24,6 @@ functions:
     path: ./template.ts:insertSlashTemplate
 
   # Template commands
-  insertTemplateText:
-    path: "./template.ts:insertTemplateText"
   applyLineReplace:
     path: ./template.ts:applyLineReplace
   insertFrontMatter:

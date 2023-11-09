@@ -1,7 +1,7 @@
 import { events } from "$sb/syscalls.ts";
 
 import { replaceTemplateVars } from "../template/template.ts";
-import { renderTemplate } from "./util.ts";
+import { renderQueryTemplate } from "./util.ts";
 import { jsonToMDTable } from "./util.ts";
 import { ParseTree, parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
@@ -38,7 +38,7 @@ export async function queryDirectiveRenderer(
     // console.log("Parsed query", parsedQuery);
     const allResults = results.flat();
     if (parsedQuery.render) {
-      const rendered = await renderTemplate(
+      const rendered = await renderQueryTemplate(
         pageMeta,
         parsedQuery.render,
         allResults,

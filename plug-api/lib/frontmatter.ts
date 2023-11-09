@@ -11,12 +11,17 @@ import {
 
 export type FrontMatter = { tags: string[] } & Record<string, any>;
 
-// Extracts front matter (or legacy "meta" code blocks) from a markdown document
+export type FrontmatterExtractOptions = {
+  removeKeys?: string[];
+  removeTags?: string[] | true;
+  removeFrontmatterSection?: boolean;
+};
+
+// Extracts front matter from a markdown document
 // optionally removes certain keys from the front matter
 export async function extractFrontmatter(
   tree: ParseTree,
-  removeKeys: string[] = [],
-  removeFrontmatterSection = false,
+  options: FrontmatterExtractOptions = {},
 ): Promise<FrontMatter> {
   let data: FrontMatter = {
     tags: [],
@@ -37,6 +42,12 @@ export async function extractFrontmatter(
         if (!data.tags.includes(tagname)) {
           data.tags.push(tagname);
         }
+        if (
+          options.removeTags === true || options.removeTags?.includes(tagname)
+        ) {
+          // Ugly hack to remove the hashtag
+          h.children![0].text = "";
+        }
       });
     }
     // Find FrontMatter and parse it
@@ -55,10 +66,10 @@ export async function extractFrontmatter(
         if (typeof data.tags === "string") {
           data.tags = (data.tags as string).split(/,\s*/);
         }
-        if (removeKeys.length > 0) {
+        if (options.removeKeys && options.removeKeys.length > 0) {
           let removedOne = false;
 
-          for (const key of removeKeys) {
+          for (const key of options.removeKeys) {
             if (key in newData) {
               delete newData[key];
               removedOne = true;
@@ -69,7 +80,9 @@ export async function extractFrontmatter(
           }
         }
         // If nothing is left, let's just delete this whole block
-        if (Object.keys(newData).length === 0 || removeFrontmatterSection) {
+        if (
+          Object.keys(newData).length === 0 || options.removeFrontmatterSection
+        ) {
           return null;
         }
       } catch (e: any) {

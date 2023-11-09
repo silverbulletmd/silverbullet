@@ -2,7 +2,7 @@ import type { WidgetContent } from "$sb/app_event.ts";
 import { events, language, space, system } from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-import { jsonToMDTable, renderTemplate } from "../directive/util.ts";
+import { jsonToMDTable, renderQueryTemplate } from "../directive/util.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 
 export async function widget(
@@ -44,7 +44,7 @@ export async function widget(
       } else {
         if (parsedQuery.render) {
           // Configured a custom rendering template, let's use it!
-          const rendered = await renderTemplate(
+          const rendered = await renderQueryTemplate(
             pageObject,
             parsedQuery.render,
             allResults,

@@ -8,6 +8,7 @@ import { directiveRegex } from "./directives.ts";
 import { updateDirectives } from "./command.ts";
 import { resolvePath, rewritePageRefs } from "$sb/lib/resolve.ts";
 import { PageMeta } from "$sb/types.ts";
+import { renderTemplate } from "../template/plug_api.ts";
 
 const templateRegex = /\[\[([^\]]+)\]\]\s*(.*)\s*/;
 
@@ -52,7 +53,7 @@ export async function templateDirectiveRenderer(
     templateText = await space.readPage(templatePath);
   }
   const tree = await markdown.parseMarkdown(templateText);
-  await extractFrontmatter(tree, [], true); // Remove entire frontmatter section, if any
+  await extractFrontmatter(tree, { removeFrontmatterSection: true }); // Remove entire frontmatter section, if any
 
   // Resolve paths in the template
   rewritePageRefs(tree, templatePath);
@@ -63,9 +64,7 @@ export async function templateDirectiveRenderer(
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    newBody = await handlebars.renderTemplate(newBody, parsedArgs, {
-      page: pageMeta,
-    });
+    newBody = await renderTemplate(newBody, pageMeta, parsedArgs);
 
     // Recursively render directives
     const tree = await markdown.parseMarkdown(newBody);
