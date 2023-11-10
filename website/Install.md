@@ -89,27 +89,14 @@ To upgrade, simply pull the latest docker image and start the new container.
 docker pull zefhemel/silverbullet
 ```
 
-## Running SilverBullet on your network/Internet
+## Exposing SilverBullet to your network/Internet
 $tls
-For SilverBullet to be offline capable (loadable without a network connection) it needs to be accessed either via `localhost` or via TLS (a `https://`) URL. The most straightforward way to do this is by using [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
+Running SilverBullet on your machine is cool, but you likely want to access it from elsewhere as well (other machines on your network, your mobile device), perhaps even from outside your home. For this you either need to use a VPN, or expose SB to the public Internet. In either scenario, be sure to use [[Authentication]].
 
-When you’re deploying on a public server accessible to the Internet, you can do this as follows:
+To expose your SilverBullet instance to the Internet, you have a few options:
 
-```shell
-$ sudo caddy reverse-proxy --to :3000 --from yourdomain.com:443
-```
-
-If you’re deploying on a local network and access your server via a VPN, this is a bit more tricky. The recommended setup here is to use [Tailscale](https://tailscale.com/) which now [supports TLS certificates for your VPN servers](https://tailscale.com/kb/1153/enabling-https/). Once you have this enabled, get a certificate via:
-
-```shell
-$ tailscale cert yourserver.yourtsdomain.ts.net
-```
-
-Caddy can automatically find these certificates once provisioned, so you can just run:
-
-```shell
-$ sudo caddy reverse-proxy --to :3000 --from yourserver.yourtsdomain.ts.net:443
-```
+* [[Deployments/ngrok]]: the easiest solution to exposing your _locally running_ SilverBullet to the Internet
+* [[Deployments/Caddy]]: the easiest solution to expose SilverBullet running on a publicly accessible server to the Internet (but local network as well using Tailscale)
 
 If you access SilverBullet via plain HTTP (outside of localhost) everything _should_ still mostly work, except offline mode.
 

@@ -36,7 +36,7 @@ export function PageNavigator({
       orderId: orderId,
     });
   }
-  let completePrefix: string | undefined = undefined;
+  let completePrefix = currentPage + "/";
   if (currentPage && currentPage.includes("/")) {
     const pieces = currentPage.split("/");
     completePrefix = pieces.slice(0, pieces.length - 1).join("/") + "/";

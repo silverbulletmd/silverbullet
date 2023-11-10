@@ -1,5 +1,4 @@
 # SilverBullet deployment examples
-
 Below you'll find **user examples** on how to deploy SilverBullet using different alternatives.
 
 **NOTE**: paths, usernames and passwords are just examples and should be updated to your own personal environment
