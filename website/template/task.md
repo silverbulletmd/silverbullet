@@ -1,1 +1,2 @@
+#template
 * [{{state}}] [[{{ref}}]] {{name}}

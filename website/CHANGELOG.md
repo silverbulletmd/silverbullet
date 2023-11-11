@@ -2,7 +2,10 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
-## Next
+## 0.5.4
+* We’re on a journey to rethink [[Templates]]:
+  * It is now _recommended_ you tag all your templates with a `#template` tag, this will exclude them from [[Objects]] indexing and may in the future be used to do better template name completion (but not yet).
+  * New feature: Introducing [[Slash Templates]], allowing you to create custom [[Slash Commands]]. This deprecates snippets and page templates, because [[Slash Templates]] are awesomer. 
 * Many styling fixes and improvements to [[Live Queries]] and [[Live Templates]]
 * Added a “source” button to [[Live Queries]] and [[Live Templates]] for better debugging (showing you the markdown code rendered by the template so you can more easily detect issues)
 * [[Live Queries]]:

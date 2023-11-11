@@ -65,6 +65,12 @@ export const builtins: Record<string, Record<string, string>> = {
     page: "string",
     pos: "number",
   },
+  template: {
+    ref: "string",
+    page: "string",
+    pos: "number",
+    trigger: "string",
+  },
 };
 
 export async function loadBuiltinsIntoIndex() {

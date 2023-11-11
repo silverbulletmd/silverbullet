@@ -1,1 +1,0 @@
-Today is {{today}}!

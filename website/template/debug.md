@@ -1,3 +1,4 @@
+#template
 {{#each .}}
 {{@key}}: {{.}}
 {{/each}}

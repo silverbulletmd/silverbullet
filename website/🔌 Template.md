@@ -3,6 +3,9 @@
 The [[🔌 Template]] plug implements a few templating mechanisms.
 
 ### Page Templates
+> **Warning** Deprecated
+> Use [[Slash Templates]] instead
+
 The {[Template: Instantiate Page]} command enables you to create a new page based on a page template.
 
 Page templates, by default, are looked for in the `template/page/` prefix. So creating e.g. a `template/page/Meeting Notes` page will create a “Meeting Notes” template. You can override this prefix by setting the `pageTemplatePrefix` in `SETTINGS`.
@@ -38,6 +41,9 @@ Will prompt you to pick a page name (defaulting to “📕 “), and then create
 
 ### Snippets
 $snippets
+> **Warning** Deprecated
+> Use [[Slash Templates]] instead
+
 Snippets are similar to page templates, except you insert them into an existing page with the `/snippet` slash command. The default prefix is `snippet/` which is configurable via the `snippetPrefix` setting in `SETTINGS`.
 
 Snippet templates do not support the `$name` page meta, because it doesn’t apply.
@@ -65,7 +71,7 @@ with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePre
 
 The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context.
 
-## Slash commands
+## Built-in slash commands
 * `/front-matter`: Insert [[Frontmatter]]
 * `/h1` - `/h4`: turn the current line into a header
 * `/code`: insert a fenced code block
@@ -74,20 +80,3 @@ The {[Quick Note]} command will navigate to an empty page named with the current
 * `/page-template`: insert a page template
 * `/today`: insert today’s date
 * `/tomorrow`: insert tomorrow’s date
-
-### Template helpers
-$vars
-Currently supported (hardcoded in the code):
-
-- `{{today}}`: Today’s date in the usual YYYY-MM-DD format
-- `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
-- `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
-- `{{lastWeek}}`: Current date - 7 days
-- `{{nextWeek}}`: Current date + 7 days
-- `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/
-`* `{{replaceRegexp string regexp replacement}}`: replace a regular expression in a string, example use: `{{replaceRegexp name "#[^#\d\s\[\]]+\w+" ""}}` to remove hashtags from a task name
-- `{{json @page}}` translate any (object) value to JSON, mostly useful for debugging
-- `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
-- `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
-- `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).
-- The `@page` variable contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[Frontmatter]] attributes). You can address it like so: `{{@page.name}}`

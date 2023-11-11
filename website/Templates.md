@@ -1,17 +1,26 @@
-For various use cases, SilverBullet uses [Handlebars templates](https://handlebarsjs.com/).
+Templates are _reusable_ pieces of markdown content, usually with placeholders that are replaced once instantiated.
 
-Generally templates are stored in your space as regular pages, which allows for reuse. Some examples include [[template/task]] and [[template/page]].
-As a convention, we often name templates with a `template/` prefix, although this is purely a convention.
+Templates are used in a few different contexts:
 
-[[Live Templates]] allow templates to be defined inline, for instance:
-```template
-template: |
-   Hello, {{name}}! Today is _{{today}}_
-value:
-   name: Pete
-```
+1. To render [[Live Queries]]
+2. To render [[Live Templates]]
+3. To be included using [[Slash Templates]]
+4. Some legacy use cases described in [[🔌 Template]]
+
+## Creating templates
+Templates are defined as any other page. It’s convenient, although not required, to use a `template/` prefix when naming templates. It is also _recommended_ to tag templates with a `#template` tag. Note that this tag will be removed when the template is instantiated.
+
+Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does two things:
+
+1. It excludes the page from being indexed for [[Objects]], that is: any tasks, items, paragraphs etc. will not appear in your space’s object database. Which is usually what you want.
+2. It allows you to register your templates to be used as [[Slash Templates]].
+
+Templates consist of markdown, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
+
+In addition the special `|^|` marker can be used to specify the desired cursor position after the template is included (relevant mostly to [[Slash Templates]]).
+
 ### Template helpers
-There are a number of built-in handlebars helpers you can use
+There are a number of built-in handlebars helpers you can use:
 
 - `{{today}}`: Today’s date in the usual YYYY-MM-DD format
 - `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format

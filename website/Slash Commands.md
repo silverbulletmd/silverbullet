@@ -8,3 +8,5 @@ The [[🔌 Editor]] plug provides a few helpful ones:
 * `/snippet` see [[🔌 Template@snippets]]
 * `/today` to insert today’s date
 * `/tomorrow` to insert tomorrow’s date
+
+You can create custom slash commands using [[Slash Templates]].

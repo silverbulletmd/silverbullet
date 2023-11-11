@@ -66,6 +66,15 @@ And can be queried as follows:
 taskstate where page = "{{@page.name}}"
 ```
 
+## template
+$template
+Indexes all pages tagged with `#template`. Technically this is not a built-in, but we’ll list it here anyway. See [[Templates]] for more information on templates.
+
+```query
+template
+```
+
+
 ## item
 $item
 List items (both bullet point and numbered items) are indexed by default with the `item` tag, and additional tags can be added using [[Tags]].
