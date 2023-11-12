@@ -248,6 +248,7 @@ function render(
         name: "a",
         attrs: {
           href: `/${ref.replace("@", "#")}`,
+          class: "wiki-link",
           "data-ref": ref,
         },
         body: linkText,
@@ -333,7 +334,13 @@ function render(
     }
 
     case "DeadlineDate":
-      return renderToText(t);
+      return {
+        name: "span",
+        attrs: {
+          class: "task-deadline",
+        },
+        body: renderToText(t),
+      };
 
     // Tables
     case "Table":

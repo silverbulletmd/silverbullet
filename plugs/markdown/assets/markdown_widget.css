@@ -47,6 +47,27 @@ ul li::before {
     /* Also needed for space (tweak if needed) */
 }
 
+h1,
+h2,
+h3,
+h4,
+h5 {
+    margin: 0;
+}
+
+a.wiki-link {
+    border-radius: 5px;
+    padding: 0 5px;
+    color: var(--editor-wiki-link-page-color);
+    background-color: var(--editor-wiki-link-page-background-color);
+    text-decoration: none;
+}
+
+span.task-deadline {
+    background-color: rgba(22, 22, 22, 0.07);
+}
+
+
 
 body:hover #button-bar,
 body:active #button-bar {
