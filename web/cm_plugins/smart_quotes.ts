@@ -2,6 +2,7 @@ import { KeyBinding, syntaxTree } from "../deps.ts";
 
 const straightQuoteContexts = [
   "CommentBlock",
+  "CodeBlock",
   "FencedCode",
   "InlineCode",
   "FrontMatterCode",
