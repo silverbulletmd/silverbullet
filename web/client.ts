@@ -389,16 +389,29 @@ export class Client {
       this.eventHook,
     );
 
-    this.eventHook.addLocalListener("file:changed", (path: string) => {
-      // Only reload when watching the current page (to avoid reloading when switching pages)
-      if (
-        this.space.watchInterval && `${this.currentPage}.md` === path
-      ) {
-        console.log("Page changed elsewhere, reloading");
-        this.flashNotification("Page changed elsewhere, reloading");
-        this.reloadPage();
-      }
-    });
+    this.eventHook.addLocalListener(
+      "file:changed",
+      (
+        path: string,
+        _localChange?: boolean,
+        oldHash?: number,
+        newHash?: number,
+      ) => {
+        // Only reload when watching the current page (to avoid reloading when switching pages)
+        if (
+          this.space.watchInterval && `${this.currentPage}.md` === path
+        ) {
+          console.log(
+            "Page changed elsewhere, reloading. Old hash",
+            oldHash,
+            "new hash",
+            newHash,
+          );
+          this.flashNotification("Page changed elsewhere, reloading");
+          this.reloadPage();
+        }
+      },
+    );
 
     this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
       this.ui.viewDispatch({

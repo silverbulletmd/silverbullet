@@ -96,8 +96,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
     this.spaceSnapshot[name] = newMeta.lastModified;
 
-    // This can happen async
     if (name.endsWith(".md")) {
+      // Let's trigger some page-specific events
       const pageName = name.substring(0, name.length - 3);
       let text = "";
       const decoder = new TextDecoder("utf-8");
@@ -114,9 +114,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   triggerEventsAndCache(name: string, newHash: number) {
     const oldHash = this.spaceSnapshot[name];
-    if (oldHash && oldHash !== newHash) {
+    if (oldHash && newHash && oldHash !== newHash) {
       // Page changed since last cached metadata, trigger event
-      this.dispatchEvent("file:changed", name);
+      this.dispatchEvent("file:changed", name, false, oldHash, newHash);
     }
     this.spaceSnapshot[name] = newHash;
     return;

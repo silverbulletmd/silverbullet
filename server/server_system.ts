@@ -128,7 +128,6 @@ export class ServerSystem {
 
     eventHook.addLocalListener("file:changed", (path, localChange) => {
       (async () => {
-        // console.log("!!!!! FILE CHANGED", path, localChange);
         if (!localChange && path.endsWith(".md")) {
           const pageName = path.slice(0, -3);
           const data = await this.spacePrimitives.readFile(path);
