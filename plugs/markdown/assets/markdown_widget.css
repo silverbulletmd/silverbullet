@@ -1,9 +1,8 @@
 /* Reset SB styles */
-html,
+
 body {
-    height: initial !important;
-    overflow: initial !important;
-    background-color: var(--root-background-color);
+    font-family: var(--editor-font);
+    color: var(--root-color);
 }
 
 #sb-main {
@@ -24,11 +23,6 @@ body {
 
 .cm-editor {
     height: initial !important;
-}
-
-body {
-    font-family: var(--editor-font);
-    color: var(--root-color);
 }
 
 ul,

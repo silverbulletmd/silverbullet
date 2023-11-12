@@ -99,6 +99,16 @@ function loadJsByUrl(url) {
   });
 }
 </script>
+<!-- Load SB's own CSS here too -->
+<link rel="stylesheet" href="/.client/main.css" />
+<style>
+html,
+body {
+    height: initial !important;
+    overflow: initial !important;
+    background-color: var(--root-background-color);
+}
+</style>
 </head>
 <body>
 

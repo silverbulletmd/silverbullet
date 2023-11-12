@@ -2,100 +2,185 @@ import { WidgetContent } from "$sb/app_event.ts";
 import { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
 
+/**
+ * Implements sandbox widgets using iframe with a pooling mechanism to speed up loading
+ */
+
+type PreloadedIFrame = {
+  // The wrapped iframe element
+  iframe: HTMLIFrameElement;
+  // Has the iframe been used yet?
+  used: boolean;
+  // Is it ready (that is: has the initial load happened)
+  ready: Promise<void>;
+};
+
+const iframePool = new Set<PreloadedIFrame>();
+const desiredPoolSize = 5;
+const gcInterval = 5000;
+
+function populateIFramePool() {
+  while (iframePool.size < desiredPoolSize) {
+    iframePool.add(prepareSandboxIFrame());
+  }
+}
+
+populateIFramePool();
+
+setInterval(() => {
+  // Iterate over all iframes
+  for (const preloadedIframe of iframePool) {
+    if (
+      // Is this iframe in use, but has it since been removed from the DOM?
+      preloadedIframe.used && !document.body.contains(preloadedIframe.iframe)
+    ) {
+      // Ditch it
+      console.log("Garbage collecting iframe", preloadedIframe);
+      iframePool.delete(preloadedIframe);
+    }
+  }
+  populateIFramePool();
+}, gcInterval);
+
+export function prepareSandboxIFrame(): PreloadedIFrame {
+  console.log("Preloading iframe");
+  const iframe = document.createElement("iframe");
+  iframe.src = "about:blank";
+
+  const ready = new Promise<void>((resolve) => {
+    iframe.onload = () => {
+      iframe.contentDocument!.write(panelHtml);
+      resolve();
+    };
+  });
+  return {
+    iframe,
+    used: false,
+    ready,
+  };
+}
+
+function claimIFrame(): PreloadedIFrame {
+  for (const preloadedIframe of iframePool) {
+    if (!preloadedIframe.used) {
+      console.log("Took iframe from pool");
+      preloadedIframe.used = true;
+      return preloadedIframe;
+    }
+  }
+  // Nothing available in the pool, let's spin up a new one and add it to the pool
+  const newPreloadedIFrame = prepareSandboxIFrame();
+  newPreloadedIFrame.used = true;
+  iframePool.add(newPreloadedIFrame);
+  return newPreloadedIFrame;
+}
+
+export function mountIFrame(
+  preloadedIFrame: PreloadedIFrame,
+  client: Client,
+  widgetHeightCacheKey: string | null,
+  content: WidgetContent | Promise<WidgetContent>,
+  onMessage?: (message: any) => void,
+) {
+  const iframe = preloadedIFrame.iframe;
+  preloadedIFrame.ready.then(async () => {
+    const messageListener = (evt: any) => {
+      (async () => {
+        if (evt.source !== iframe.contentWindow) {
+          return;
+        }
+        const data = evt.data;
+        if (!data) {
+          return;
+        }
+        switch (data.type) {
+          case "syscall": {
+            const { id, name, args } = data;
+            try {
+              const result = await client.system.localSyscall(name, args);
+              if (!iframe.contentWindow) {
+                // iFrame already went away
+                return;
+              }
+              iframe.contentWindow!.postMessage({
+                type: "syscall-response",
+                id,
+                result,
+              });
+            } catch (e: any) {
+              if (!iframe.contentWindow) {
+                // iFrame already went away
+                return;
+              }
+              iframe.contentWindow!.postMessage({
+                type: "syscall-response",
+                id,
+                error: e.message,
+              });
+            }
+            break;
+          }
+          case "setHeight":
+            iframe.style.height = data.height + "px";
+            if (widgetHeightCacheKey) {
+              client.space.setCachedWidgetHeight(
+                widgetHeightCacheKey,
+                data.height,
+              );
+            }
+            break;
+          default:
+            if (onMessage) {
+              onMessage(data);
+            }
+        }
+      })().catch((e) => {
+        console.error("Message listener error", e);
+      });
+    };
+
+    // Subscribe to message event on global object (to receive messages from iframe)
+    globalThis.addEventListener("message", messageListener);
+    // Only run this code once
+    iframe.onload = null;
+    const resolvedContent = await Promise.resolve(content);
+    if (!iframe.contentWindow) {
+      console.warn("Iframe went away or content was not loaded");
+      return;
+    }
+    if (resolvedContent.html) {
+      iframe.contentWindow!.postMessage({
+        type: "html",
+        html: resolvedContent.html,
+        script: resolvedContent.script,
+        theme: document.getElementsByTagName("html")[0].dataset.theme,
+      });
+    } else if (resolvedContent.url) {
+      iframe.contentWindow!.location.href = resolvedContent.url;
+      if (resolvedContent.height) {
+        iframe.style.height = resolvedContent.height + "px";
+      }
+      if (resolvedContent.width) {
+        iframe.style.width = resolvedContent.width + "px";
+      }
+    }
+  }).catch(console.error);
+}
+
 export function createWidgetSandboxIFrame(
   client: Client,
   widgetHeightCacheKey: string | null,
   content: WidgetContent | Promise<WidgetContent>,
   onMessage?: (message: any) => void,
 ) {
-  const iframe = document.createElement("iframe");
-  iframe.src = "about:blank";
-
-  const messageListener = (evt: any) => {
-    (async () => {
-      if (evt.source !== iframe.contentWindow) {
-        return;
-      }
-      const data = evt.data;
-      if (!data) {
-        return;
-      }
-      switch (data.type) {
-        case "syscall": {
-          const { id, name, args } = data;
-          try {
-            const result = await client.system.localSyscall(name, args);
-            if (!iframe.contentWindow) {
-              // iFrame already went away
-              return;
-            }
-            iframe.contentWindow!.postMessage({
-              type: "syscall-response",
-              id,
-              result,
-            });
-          } catch (e: any) {
-            if (!iframe.contentWindow) {
-              // iFrame already went away
-              return;
-            }
-            iframe.contentWindow!.postMessage({
-              type: "syscall-response",
-              id,
-              error: e.message,
-            });
-          }
-          break;
-        }
-        case "setHeight":
-          iframe.style.height = data.height + "px";
-          if (widgetHeightCacheKey) {
-            client.space.setCachedWidgetHeight(
-              widgetHeightCacheKey,
-              data.height,
-            );
-          }
-          break;
-        default:
-          if (onMessage) {
-            onMessage(data);
-          }
-      }
-    })().catch((e) => {
-      console.error("Message listener error", e);
-    });
-  };
-
-  iframe.onload = () => {
-    iframe.contentDocument!.write(panelHtml);
-
-    // Subscribe to message event on global object (to receive messages from iframe)
-    globalThis.addEventListener("message", messageListener);
-    // Only run this code once
-    iframe.onload = null;
-    Promise.resolve(content).then((content) => {
-      if (!iframe.contentWindow) {
-        console.warn("Iframe went away or content was not loaded");
-        return;
-      }
-      if (content.html) {
-        iframe.contentWindow!.postMessage({
-          type: "html",
-          html: content.html,
-          script: content.script,
-          theme: document.getElementsByTagName("html")[0].dataset.theme,
-        });
-      } else if (content.url) {
-        iframe.contentWindow!.location.href = content.url;
-        if (content.height) {
-          iframe.style.height = content.height + "px";
-        }
-        if (content.width) {
-          iframe.style.width = content.width + "px";
-        }
-      }
-    }).catch(console.error);
-  };
-
-  return iframe;
+  // console.log("Claiming iframe");
+  const preloadedIFrame = claimIFrame();
+  mountIFrame(
+    preloadedIFrame,
+    client,
+    widgetHeightCacheKey,
+    content,
+    onMessage,
+  );
+  return preloadedIFrame.iframe;
 }

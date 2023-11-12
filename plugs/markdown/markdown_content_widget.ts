@@ -33,8 +33,6 @@ export async function wrapHTML(html: string): Promise<string> {
   const css = await asset.readAsset("assets/markdown_widget.css");
 
   return `
-       <!-- Load SB's own CSS here too -->
-       <link rel="stylesheet" href="/.client/main.css" />
        <!-- In addition to some custom CSS -->
        <style>${css}</style>
        <!-- Wrap the whole thing in something SB-like to get access to styles -->
