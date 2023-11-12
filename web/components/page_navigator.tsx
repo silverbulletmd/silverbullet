@@ -2,6 +2,7 @@ import { FilterList } from "./filter.tsx";
 import { FilterOption } from "../types.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
 import { PageMeta } from "$sb/types.ts";
+import { isFederationPath } from "$sb/lib/resolve.ts";
 
 export function PageNavigator({
   allPages,
@@ -21,7 +22,7 @@ export function PageNavigator({
   const options: FilterOption[] = [];
   for (const pageMeta of allPages) {
     // Order by last modified date in descending order
-    let orderId = -pageMeta.lastModified;
+    let orderId = -new Date(pageMeta.lastModified).getTime();
     // Unless it was opened in this session
     if (pageMeta.lastOpened) {
       orderId = -pageMeta.lastOpened;
@@ -30,6 +31,11 @@ export function PageNavigator({
     if (currentPage && currentPage === pageMeta.name) {
       // ... then we put it all the way to the end
       orderId = Infinity;
+    }
+    // And deprioritize federated pages too
+    if (isFederationPath(pageMeta.name)) {
+      orderId = Math.round(orderId / 10); // Just 10x lower the timestamp to push them down, should work
+      console.log("Deprioritizing", pageMeta);
     }
     options.push({
       ...pageMeta,
