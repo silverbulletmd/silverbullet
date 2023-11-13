@@ -2,6 +2,11 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## 0.5.5
+* Bugfix: on some filesystems that don't report file creation time (like some NASes), SilverBullet crash. This should now be fixed.
+* Performance improvements the loading of code widgets (e.g. Live Queries, Live Templates)
+
+---
 ## 0.5.4
 * We’re on a journey to rethink [[Templates]]:
   * It is now _recommended_ you tag all your templates with a `#template` tag, this will exclude them from [[Objects]] indexing and may in the future be used to do better template name completion (but not yet).
