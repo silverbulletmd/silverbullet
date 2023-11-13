@@ -33,7 +33,7 @@ rm -rf website_build/_plug/{plugmd,directive}.plug.js
 
 
 # Generate random modified date, and replace in _headers too
-export LAST_MODIFIED_TIMESTAMP=$RANDOM
+export LAST_MODIFIED_TIMESTAMP=$(date +%s000)
 
 cat website/_headers | sed "s/12345/$LAST_MODIFIED_TIMESTAMP/g" > website_build/_headers
 echo "Generating file listing"
