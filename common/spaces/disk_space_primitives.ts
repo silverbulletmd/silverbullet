@@ -54,8 +54,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         data,
         meta: {
           name: name,
-          created: s.birthtime!.getTime(),
-          lastModified: s.mtime!.getTime(),
+          created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
+          lastModified: s.mtime?.getTime() || 0,
           perm: "rw",
           size: s.size,
           contentType: contentType,
@@ -109,8 +109,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         name: name,
         size: s.size,
         contentType: lookupContentType(name),
-        created: s.birthtime!.getTime(),
-        lastModified: s.mtime!.getTime(),
+        created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
+        lastModified: s.mtime?.getTime() || 0,
         perm: "rw",
       };
     } catch {
@@ -147,8 +147,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         }
         allFiles.push({
           name: normalizeForwardSlashPath(name),
-          created: s.birthtime!.getTime(),
-          lastModified: s.mtime!.getTime(),
+          created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
+          lastModified: s.mtime?.getTime() || 0,
           contentType: mime.getType(fullPath) || "application/octet-stream",
           size: s.size,
           perm: "rw",

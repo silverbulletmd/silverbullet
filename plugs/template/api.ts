@@ -23,7 +23,6 @@ export async function renderTemplate(
     removeTags: ["template"],
   });
   templateText = renderToText(tree).trimStart();
-  // console.log(`Trimmed template: |${templateText}|`);
   // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
   if (frontmatter.frontmatter) {
     if (typeof frontmatter.frontmatter === "string") {
