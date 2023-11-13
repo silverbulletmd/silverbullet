@@ -64,7 +64,7 @@ export async function templateDirectiveRenderer(
 
   // if it's a template injection (not a literal "include")
   if (directive === "use") {
-    newBody = await renderTemplate(newBody, pageMeta, parsedArgs);
+    newBody = (await renderTemplate(newBody, pageMeta, parsedArgs)).text;
 
     // Recursively render directives
     const tree = await markdown.parseMarkdown(newBody);

@@ -5,7 +5,7 @@ export function renderTemplate(
   templateText: string,
   pageMeta: PageMeta,
   data: any = {},
-): Promise<string> {
+): Promise<{ frontmatter?: string; text: string }> {
   return system.invokeFunction(
     "template.renderTemplate",
     templateText,

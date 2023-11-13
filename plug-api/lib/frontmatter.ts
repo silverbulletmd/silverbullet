@@ -104,7 +104,7 @@ export async function extractFrontmatter(
 // Updates the front matter of a markdown document and returns the text as a rendered string
 export async function prepareFrontmatterDispatch(
   tree: ParseTree,
-  data: Record<string, any>,
+  data: string | Record<string, any>,
 ): Promise<any> {
   let dispatchData: any = null;
   await traverseTreeAsync(tree, async (t) => {
@@ -114,14 +114,20 @@ export async function prepareFrontmatterDispatch(
       const yamlText = renderToText(bodyNode);
 
       try {
-        const parsedYaml = await YAML.parse(yamlText) as any;
-        const newData = { ...parsedYaml, ...data };
+        let frontmatterText = "";
+        if (typeof data === "string") {
+          frontmatterText = yamlText + data + "\n";
+        } else {
+          const parsedYaml = await YAML.parse(yamlText) as any;
+          const newData = { ...parsedYaml, ...data };
+          frontmatterText = await YAML.stringify(newData);
+        }
         // Patch inline
         dispatchData = {
           changes: {
             from: bodyNode.from,
             to: bodyNode.to,
-            insert: await YAML.stringify(newData),
+            insert: frontmatterText,
           },
         };
       } catch (e: any) {
@@ -133,12 +139,19 @@ export async function prepareFrontmatterDispatch(
   });
   if (!dispatchData) {
     // If we didn't find frontmatter, let's add it
+    let frontmatterText = "";
+    if (typeof data === "string") {
+      frontmatterText = data + "\n";
+    } else {
+      frontmatterText = await YAML.stringify(data);
+    }
+    const fullFrontmatterText = "---\n" + frontmatterText +
+      "---\n";
     dispatchData = {
       changes: {
         from: 0,
         to: 0,
-        insert: "---\n" + await YAML.stringify(data) +
-          "---\n",
+        insert: fullFrontmatterText,
       },
     };
   }

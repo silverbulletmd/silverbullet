@@ -1,5 +1,8 @@
 import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import {
+  extractFrontmatter,
+  prepareFrontmatterDispatch,
+} from "$sb/lib/frontmatter.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
@@ -29,13 +32,26 @@ export async function templateSlashComplete(
 export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
   const pageObject = await loadPageObject(slashCompletion.pageName);
 
-  let templateText = await space.readPage(slashCompletion.templatePage);
-  templateText = await renderTemplate(templateText, pageObject);
+  const templateText = await space.readPage(slashCompletion.templatePage);
+  let { frontmatter, text } = await renderTemplate(templateText, pageObject);
 
   const cursorPos = await editor.getCursor();
-  const carretPos = templateText.indexOf("|^|");
-  templateText = templateText.replace("|^|", "");
-  await editor.insertAtCursor(templateText);
+
+  if (frontmatter) {
+    frontmatter = frontmatter.trim();
+    const pageText = await editor.getText();
+    const tree = await markdown.parseMarkdown(pageText);
+
+    const dispatch = await prepareFrontmatterDispatch(tree, frontmatter);
+    if (cursorPos === 0) {
+      dispatch.selection = { anchor: frontmatter.length + 9 };
+    }
+    await editor.dispatch(dispatch);
+  }
+
+  const carretPos = text.indexOf("|^|");
+  text = text.replace("|^|", "");
+  await editor.insertAtCursor(text);
   if (carretPos !== -1) {
     await editor.moveCursor(cursorPos + carretPos);
   }

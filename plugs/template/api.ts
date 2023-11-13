@@ -16,7 +16,7 @@ export async function renderTemplate(
   templateText: string,
   pageMeta: PageMeta,
   data: any = {},
-): Promise<string> {
+): Promise<{ frontmatter?: string; text: string }> {
   const tree = await markdown.parseMarkdown(templateText);
   const frontmatter: Partial<TemplateObject> = await extractFrontmatter(tree, {
     removeFrontmatterSection: true,
@@ -24,15 +24,20 @@ export async function renderTemplate(
   });
   templateText = renderToText(tree).trimStart();
   // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
+  let frontmatterText: string | undefined;
   if (frontmatter.frontmatter) {
     if (typeof frontmatter.frontmatter === "string") {
-      templateText = "---\n" + frontmatter.frontmatter + "---\n" + templateText;
+      frontmatterText = frontmatter.frontmatter;
     } else {
-      templateText = "---\n" + (await YAML.stringify(frontmatter.frontmatter)) +
-        "---\n" + templateText;
+      frontmatterText = await YAML.stringify(frontmatter.frontmatter);
     }
   }
-  return handlebars.renderTemplate(templateText, data, { page: pageMeta });
+  return {
+    frontmatter: frontmatterText,
+    text: await handlebars.renderTemplate(templateText, data, {
+      page: pageMeta,
+    }),
+  };
 }
 
 /**
