@@ -35,7 +35,7 @@ export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
   const templateText = await space.readPage(slashCompletion.templatePage);
   let { frontmatter, text } = await renderTemplate(templateText, pageObject);
 
-  const cursorPos = await editor.getCursor();
+  let cursorPos = await editor.getCursor();
 
   if (frontmatter) {
     frontmatter = frontmatter.trim();
@@ -49,6 +49,7 @@ export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
     await editor.dispatch(dispatch);
   }
 
+  cursorPos = await editor.getCursor();
   const carretPos = text.indexOf("|^|");
   text = text.replace("|^|", "");
   await editor.insertAtCursor(text);

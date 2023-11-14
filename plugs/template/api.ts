@@ -31,6 +31,9 @@ export async function renderTemplate(
     } else {
       frontmatterText = await YAML.stringify(frontmatter.frontmatter);
     }
+    frontmatterText = await handlebars.renderTemplate(frontmatterText, data, {
+      page: pageMeta,
+    });
   }
   return {
     frontmatter: frontmatterText,
