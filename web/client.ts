@@ -343,6 +343,7 @@ export class Client {
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       this.remoteSpacePrimitives,
       this.system.namespaceHook,
+      this.syncMode ? undefined : "client",
     );
 
     let fileFilterFn: (s: string) => boolean = () => true;
