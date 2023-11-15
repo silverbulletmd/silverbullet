@@ -37,6 +37,7 @@ import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
+import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -144,6 +145,7 @@ export class ClientSystem {
       yamlSyscalls(),
       handlebarsSyscalls(),
       codeWidgetSyscalls(this.codeWidgetHook),
+      clientCodeWidgetSyscalls(),
       languageSyscalls(),
       this.client.syncMode
         // In sync mode handle locally

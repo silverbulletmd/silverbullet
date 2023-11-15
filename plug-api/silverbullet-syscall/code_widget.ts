@@ -8,3 +8,8 @@ export function render(
 ): Promise<CodeWidgetContent> {
   return syscall("codeWidget.render", lang, body, pageName);
 }
+
+// Refresh all code widgets on the page that support it
+export function refreshAll() {
+  return syscall("codeWidget.refreshAll");
+}

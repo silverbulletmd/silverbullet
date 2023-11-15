@@ -2,6 +2,11 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## Next
+* The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
+
+
+---
 ## 0.5.5
 * Bugfix: on some filesystems that don't report file creation time (like some NASes), SilverBullet crash. This should now be fixed.
 * Performance improvements the loading of code widgets (e.g. Live Queries, Live Templates)

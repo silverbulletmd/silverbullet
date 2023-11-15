@@ -77,11 +77,27 @@ function claimIFrame(): PreloadedIFrame {
     }
   }
   // Nothing available in the pool, let's spin up a new one and add it to the pool
-  console.log("Yeah this shouldn't happen");
+  console.warn("Had to create a new iframe on the fly, this shouldn't happen");
   const newPreloadedIFrame = prepareSandboxIFrame();
   newPreloadedIFrame.used = true;
   iframePool.add(newPreloadedIFrame);
   return newPreloadedIFrame;
+}
+
+export function broadcastReload() {
+  for (const preloadedIframe of iframePool) {
+    if (preloadedIframe.used) {
+      // Send a message to the global object, which the iframe is listening to
+      globalThis.dispatchEvent(
+        new MessageEvent("message", {
+          source: preloadedIframe.iframe.contentWindow,
+          data: {
+            type: "reload",
+          },
+        }),
+      );
+    }
+  }
 }
 
 export function mountIFrame(

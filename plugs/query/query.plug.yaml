@@ -18,6 +18,12 @@ functions:
     events:
     - editor:complete
 
+  refreshAllWidgets:
+    path: widget.ts:refreshAll
+    command:
+      name: "Live Queries and Templates: Refresh All"
+      key: "Alt-q"
+
   # Slash commands
   insertQuery:
     redirect: template.insertTemplateText

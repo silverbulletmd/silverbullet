@@ -6,7 +6,6 @@ functions:
     path: ./command.ts:updateDirectivesOnPageCommand
     command:
       name: "Directives: Update"
-      key: "Alt-q"
     events:
       - editor:pageLoaded
   updateDirectivesInSpace:
