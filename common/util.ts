@@ -1,7 +1,6 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
-import { template } from "https://esm.sh/v130/handlebars@4.7.7/runtime.d.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {

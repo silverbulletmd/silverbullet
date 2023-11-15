@@ -4,6 +4,7 @@ requiredPermissions:
 functions:
   listFiles:
    path: ./federation.ts:listFiles
+   env: server
    pageNamespace:
      pattern: "!.+"
      operation: listFiles

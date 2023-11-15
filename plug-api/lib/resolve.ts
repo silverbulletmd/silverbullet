@@ -55,6 +55,24 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
 
       return true;
     }
+    if (n.type === "FencedCode") {
+      const codeInfo = findNodeOfType(n, "CodeInfo");
+      if (!codeInfo) {
+        return true;
+      }
+      if (!["query", "template"].includes(codeInfo.children![0].text!)) {
+        return true;
+      }
+      const codeText = findNodeOfType(n, "CodeText");
+      if (!codeText) {
+        return true;
+      }
+      let bodyText = codeText.children![0].text!;
+      bodyText = rewritePageRefsInString(bodyText, containerPageName);
+      codeText.children![0].text = bodyText;
+
+      return true;
+    }
     if (n.type === "WikiLinkPage") {
       n.children![0].text = resolvePath(
         containerPageName,
@@ -64,6 +82,15 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
     }
 
     return false;
+  });
+}
+
+export function rewritePageRefsInString(
+  bodyText: string,
+  containerPageName: string,
+) {
+  return bodyText.replaceAll(/\[\[(.+)\]\]/g, (_match, pageRefName) => {
+    return `[[${resolvePath(containerPageName, pageRefName)}]]`;
   });
 }
 

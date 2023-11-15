@@ -1,7 +1,7 @@
 import { handlebars, space } from "$sb/syscalls.ts";
 import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
-import { cleanTemplate, renderTemplate } from "../template/plug_api.ts";
+import { cleanTemplate } from "../template/plug_api.ts";
 
 export function defaultJsonTransformer(_k: string, v: any) {
   if (v === undefined) {
@@ -62,6 +62,7 @@ export async function renderQueryTemplate(
 ): Promise<string> {
   let templateText = await space.readPage(templatePage);
   templateText = await cleanTemplate(templateText);
+
   if (!renderAll) {
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }

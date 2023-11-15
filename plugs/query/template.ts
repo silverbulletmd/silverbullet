@@ -1,10 +1,10 @@
 import { WidgetContent } from "$sb/app_event.ts";
 import { markdown, space, system, YAML } from "$sb/syscalls.ts";
-import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
-import { renderToText } from "$sb/lib/tree.ts";
 import { PageMeta } from "$sb/types.ts";
 import { renderTemplate } from "../template/plug_api.ts";
+import { renderToText } from "$sb/lib/tree.ts";
+import { rewritePageRefs } from "$sb/lib/resolve.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -39,8 +39,6 @@ export async function widget(
         await replaceTemplateVars(JSON.stringify(config.value), pageMeta),
       )
       : undefined;
-
-    console.log("Value", value);
 
     let { text: rendered } = config.raw
       ? { text: templateText }
