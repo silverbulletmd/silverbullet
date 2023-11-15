@@ -1,9 +1,10 @@
 import type { WidgetContent } from "$sb/app_event.ts";
-import { events, language, space, system } from "$sb/syscalls.ts";
+import { events, language, system } from "$sb/syscalls.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { jsonToMDTable, renderQueryTemplate } from "../directive/util.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 export async function widget(
   bodyText: string,
@@ -44,9 +45,10 @@ export async function widget(
       } else {
         if (parsedQuery.render) {
           // Configured a custom rendering template, let's use it!
+          const templatePage = resolvePath(pageName, parsedQuery.render);
           const rendered = await renderQueryTemplate(
             pageObject,
-            parsedQuery.render,
+            templatePage,
             allResults,
             parsedQuery.renderAll!,
           );

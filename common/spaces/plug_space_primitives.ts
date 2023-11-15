@@ -15,12 +15,9 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   // Used e.g. by the sync engine to see if it should sync a certain path (likely not the case when we have a plug space override)
   public isLikelyHandled(path: string): boolean {
     for (
-      const { pattern, env } of this.hook.spaceFunctions
+      const { pattern } of this.hook.spaceFunctions
     ) {
-      if (
-        path.match(pattern) &&
-        (!this.env || (env && env === this.env))
-      ) {
+      if (path.match(pattern)) {
         return true;
       }
     }
@@ -52,7 +49,6 @@ export class PlugSpacePrimitives implements SpacePrimitives {
       if (
         operation === "listFiles" && (!this.env || (env && env === this.env))
       ) {
-        console.log("Going to run this", this.env, env, name, operation);
         try {
           for (const pm of await plug.invoke(name, [])) {
             allFiles.push(pm);
