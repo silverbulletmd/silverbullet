@@ -35,7 +35,6 @@ export function PageNavigator({
     // And deprioritize federated pages too
     if (isFederationPath(pageMeta.name)) {
       orderId = Math.round(orderId / 10); // Just 10x lower the timestamp to push them down, should work
-      console.log("Deprioritizing", pageMeta);
     }
     options.push({
       ...pageMeta,

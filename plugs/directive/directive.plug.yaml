@@ -33,3 +33,8 @@ functions:
     path: command.ts:convertToLive
     command:
       name: "Directive: Convert to Live Query/Template"
+
+  convertSpaceToLive:
+    path: command.ts:convertSpaceToLive
+    command:
+      name: "Directive: Convert Entire Space to Live/Templates"

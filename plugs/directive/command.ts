@@ -1,6 +1,7 @@
 import { editor, markdown, mq, space, sync } from "$sb/syscalls.ts";
 import {
   addParentPointers,
+  collectNodesOfType,
   findParentMatching,
   nodeAtPos,
   ParseTree,
@@ -263,4 +264,54 @@ export async function convertToLive() {
       },
     });
   }
+}
+
+export async function convertSpaceToLive() {
+  if (
+    !await editor.confirm(
+      "This will convert all directives in the space to live queries. Are you sure?",
+    )
+  ) {
+    return;
+  }
+  const pages = await space.listPages();
+  for (const page of pages) {
+    console.log("Now converting", page);
+    const text = await space.readPage(page.name);
+    const newText = await convertDirectivesOnPage(text);
+    if (text !== newText) {
+      console.log("Changes were made, writing", page.name);
+      await space.writePage(page.name, newText);
+    }
+  }
+  await editor.flashNotification("All done!");
+}
+
+export async function convertDirectivesOnPage(text: string) {
+  const tree = await markdown.parseMarkdown(text);
+  collectNodesOfType(tree, "Directive").forEach((directive) => {
+    const directiveText = renderToText(directive);
+    console.log("Got this directive", directiveText);
+    const startNode = directive.children![0];
+    const startNodeText = renderToText(startNode);
+    if (startNodeText.includes("#query")) {
+      const queryText = renderToText(startNode.children![1]);
+      text = text.replace(directiveText, "```query\n" + queryText + "\n```");
+    } else if (
+      startNodeText.includes("#use") || startNodeText.includes("#include")
+    ) {
+      const pageRefMatch = /\[\[([^\]]+)\]\]\s*([^\-]+)?/.exec(startNodeText);
+      if (!pageRefMatch) {
+        return;
+      }
+      const val = pageRefMatch[2];
+      text = text.replace(
+        directiveText,
+        '```template\npage: "[[' + pageRefMatch[1] + ']]"\n' +
+          (val ? `val: ${val}\n` : "") + "```",
+      );
+    }
+  });
+  // console.log("Converted page", text);
+  return text;
 }
