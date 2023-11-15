@@ -1,18 +1,10 @@
-Markdown is a plain text formatting system [originally developed by John Gruber](https://daringfireball.net/projects/markdown/). It has since been standardized into [CommonMark](https://commonmark.org/), which is what SilverBullet uses (with some extensions).
+Markdown is a plain text formatting system [originally developed by John Gruber](https://daringfireball.net/projects/markdown/). It has since been standardized into [CommonMark](https://commonmark.org/), which is what SilverBullet uses (with [[Markdown/Extensions]]). While a bit more technical than [WYSIWYG](https://pl.wikipedia.org/wiki/WYSIWYG)-style editing (like MS Word), the nice thing about markdown is that is a (relatively) easy to implement standard and you can read files even without special tools (like SilverBullet). This means that even if you switch tools, you’ll always have access to the content. It also means that you can use multiple tools at the same time to edit these files. You don’t have to use SilverBullet exclusively.
 
-If you’re not yet familiar with Markdown [here is a good guide to get you started](https://www.markdownguide.org/basic-syntax/).
+There is a bit of a caveat here: Markdown is limited in certain ways, and various tools using markdown as the underlying file format (like SilverBullet) need features that are not directly supported by markdown. As a result, different tools introduce extensions to markdown that are not standard nor interoperable. While in some cases these tools converge on particular pieces of syntax (such as the non-standard `[[page link]]` syntax), some level of divergence in the markdown that each tool supports is unavoidable. SilverBullet is complicit in this as well, it adds a few extensions that are not widely supported, and assigns new meaning certain markdown features to implement novel features. In its defense, all these features are optional. If you want to just write plain markdown, you can.
 
-We mentioned markdown _extensions_, here are the ones currently supported:
+See [[Markdown/Extensions]] for more details on these SilverBullet-specific extensions.
 
-* [[Frontmatter]]
-* Double-bracketed wiki links: `[[link to page]]`, optionally with aliases `[[link to page|alias]]`.
-* Hashtags, e.g. `#mytag`.
-* Command link syntax: `{[Stats: Show]}` rendered into a clickable button {[Stats: Show]}.
-* [[Markdown/Code Widgets]]
-* [[Anchors]]
-* [Tables](https://www.markdownguide.org/extended-syntax/#tables)
-* [Fenced code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks)
-* [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)
-* [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)
-* [Automatic URL linking](https://www.markdownguide.org/extended-syntax/#automatic-url-linking)
-* Custom markdown extensions provided by plugs
+More about markdown:
+
+* [[Markdown/Basics]]: learn some the markdown basics
+* [[Markdown/Extensions]]: learn about SilverBullet’s set of markdown extensions

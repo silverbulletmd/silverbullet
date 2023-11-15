@@ -16,20 +16,17 @@ type PreloadedIFrame = {
 };
 
 const iframePool = new Set<PreloadedIFrame>();
-const desiredPoolSize = 5;
-const gcInterval = 5000;
+const desiredPoolSize = 3;
 
-function populateIFramePool() {
-  while (iframePool.size < desiredPoolSize) {
-    iframePool.add(prepareSandboxIFrame());
-  }
-}
+updatePool();
 
-populateIFramePool();
-
-setInterval(() => {
+function updatePool(exclude?: PreloadedIFrame) {
+  let availableFrames = 0;
   // Iterate over all iframes
   for (const preloadedIframe of iframePool) {
+    if (preloadedIframe === exclude) {
+      continue;
+    }
     if (
       // Is this iframe in use, but has it since been removed from the DOM?
       preloadedIframe.used && !document.body.contains(preloadedIframe.iframe)
@@ -38,18 +35,28 @@ setInterval(() => {
       console.log("Garbage collecting iframe", preloadedIframe);
       iframePool.delete(preloadedIframe);
     }
+    if (!preloadedIframe.used) {
+      availableFrames++;
+    }
   }
-  populateIFramePool();
-}, gcInterval);
+  // And after, add more iframes if needed
+  for (let i = 0; i < desiredPoolSize - availableFrames; i++) {
+    iframePool.add(prepareSandboxIFrame());
+  }
+}
 
 export function prepareSandboxIFrame(): PreloadedIFrame {
   console.log("Preloading iframe");
   const iframe = document.createElement("iframe");
+
+  // Empty page with current origin. Handled this differently before, but "dock apps" in Safari (PWA implementation) seem to have various restrictions
+  // This one works in all browsers, although it's probably less secure
   iframe.src = "about:blank";
 
   const ready = new Promise<void>((resolve) => {
     iframe.onload = () => {
       iframe.contentDocument!.write(panelHtml);
+      // Now ready to use
       resolve();
     };
   });
@@ -65,10 +72,12 @@ function claimIFrame(): PreloadedIFrame {
     if (!preloadedIframe.used) {
       console.log("Took iframe from pool");
       preloadedIframe.used = true;
+      updatePool(preloadedIframe);
       return preloadedIframe;
     }
   }
   // Nothing available in the pool, let's spin up a new one and add it to the pool
+  console.log("Yeah this shouldn't happen");
   const newPreloadedIFrame = prepareSandboxIFrame();
   newPreloadedIFrame.used = true;
   iframePool.add(newPreloadedIFrame);

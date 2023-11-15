@@ -1,12 +1,23 @@
-SilverBullet is an extensible, [open source](https://github.com/silverbulletmd/silverbullet), **personal knowledge management** system. Indeed, that’s fancy talk for “a note-taking app with links.” However, SilverBullet goes _a bit_ beyond just that.
+SilverBullet aims to be your **workshop for the mind**: a creative environment where you collect, create and expand your personal knowledge in primarily textual form, while also letting you constantly evolve the tools you use to do so.
+
+While you _can_ use SilverBullet as a simple note taking application that stores notes in plain markdown files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
+
+SilverBullet is implemented as an open-source, self-hosted, offline-capable web application.
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-Before we get to the nitty gritty, some _quick links_ for the impatient reader: [[Install]], [[Manual]], [[CHANGELOG]], [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1), [Issues](https://github.com/silverbulletmd/silverbullet/issues), [Discussions](https://github.com/silverbulletmd/silverbullet/discussions), [Mastodon](https://fosstodon.org/@silverbulletmd), [Discord](https://discord.gg/EvXbFucTxn), [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet).
-
-Now that we got that out of the way let’s have a look at some of SilverBullet’s features.
+## Quick links
+* [[Install]]: how to install and deploy SilverBullet
+* [[Manual]]: the beginnings of a user manual
+* [[CHANGELOG]]: SilverBullet is in very active development, so things change rapidly. Watch this to see what’s new and changed.
+* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities
+* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them
+* [Discussions](https://github.com/silverbulletmd/silverbullet/discussions)
+* [Mastodon](https://fosstodon.org/@silverbulletmd): Follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
+* [Discord](https://discord.gg/EvXbFucTxn): For more real-time support and discussion, join our Discord!
 
 ## Features
+SilverBullet...
 * Runs in any modern browser (including on mobile) as a [[PWA]] in two [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as “Linked Mentions” at the bottom of the pages linked to thereby providing _bi-directional linking_.
@@ -19,7 +30,7 @@ Now that we got that out of the way let’s have a look at some of SilverBullet�
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
-To get a good feel of what SilverBullet is capable of, have a look at this introduction video.
+To get a good feel of what SilverBullet is capable of, have a look at this (slightly out of date) introduction video.
 
 ```embed
 url: https://youtu.be/VemS-cqAD5k
@@ -70,9 +81,10 @@ name: SilverBullet
 rating: 5
 ```
 
-But where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your space. 
+## Going deeper
+Where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your space. 
 
-Let’s explore this with a meta example of using this for this very website. All pages in this space that represent a plug are tagged with the `#plug` tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
+Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[🔌 Plugs|plug]] are tagged with the `#plug` tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
 
 ```query
 plug render [[template/plug]]
@@ -85,10 +97,10 @@ For instance, here’s a list of all outgoing page links from this page:
 ```query
 link where page = "{{@page.name}}" select toPage as name render [[template/page]]
 ```
-The sky is the limit.
+The sky is the limit. See [[Objects]] and [[Live Queries]] for more information.
 
 ## Install SilverBullet
-Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to the [[Install]] and enjoy!
+Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to [[Install]] and enjoy!
 
 ## Where to go from here
 Have a lock at our work-in-progress [[Manual]].
