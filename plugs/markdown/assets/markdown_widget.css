@@ -67,7 +67,9 @@ span.task-deadline {
     background-color: rgba(22, 22, 22, 0.07);
 }
 
-
+tt {
+    background-color: var(--editor-code-background-color);
+}
 
 body:hover #button-bar,
 body:active #button-bar {
