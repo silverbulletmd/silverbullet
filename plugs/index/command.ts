@@ -35,24 +35,34 @@ export async function processIndexQueue(messages: MQMessage[]) {
     console.log(`Indexing page ${name}`);
     const text = await space.readPage(name);
     const parsed = await markdown.parseMarkdown(text);
-    await events.dispatchEvent("page:index", {
-      name,
-      tree: parsed,
-    });
+    if (isTemplate(text)) {
+      console.log("Indexing", name, "as template");
+      await events.dispatchEvent("page:indexTemplate", {
+        name,
+        tree: parsed,
+      });
+    } else {
+      await events.dispatchEvent("page:index", {
+        name,
+        tree: parsed,
+      });
+    }
   }
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
+  const parsed = await markdown.parseMarkdown(text);
+
   if (isTemplate(text)) {
     console.log("Indexing", name, "as template");
     await events.dispatchEvent("page:indexTemplate", {
       name,
-      tree: await markdown.parseMarkdown(text),
+      tree: parsed,
     });
   } else {
     await events.dispatchEvent("page:index", {
       name,
-      tree: await markdown.parseMarkdown(text),
+      tree: parsed,
     });
   }
 }
