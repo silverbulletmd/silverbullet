@@ -57,7 +57,7 @@ export function PageNavigator({
       darkMode={darkMode}
       completer={completer}
       allowNew={true}
-      helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page."
+      helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page with this exact name."
       newHint="Create page"
       completePrefix={completePrefix}
       onSelect={(opt) => {

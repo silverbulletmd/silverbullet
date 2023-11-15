@@ -1,9 +1,10 @@
 import { WidgetContent } from "$sb/app_event.ts";
-import { handlebars, markdown, space, system, YAML } from "$sb/syscalls.ts";
+import { markdown, space, system, YAML } from "$sb/syscalls.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { PageMeta } from "$sb/types.ts";
+import { renderTemplate } from "../template/plug_api.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -39,13 +40,15 @@ export async function widget(
       )
       : undefined;
 
-    let rendered = config.raw ? templateText : await handlebars.renderTemplate(
-      templateText,
-      value,
-      {
-        page: pageMeta,
-      },
-    );
+    console.log("Value", value);
+
+    let { text: rendered } = config.raw
+      ? { text: templateText }
+      : await renderTemplate(
+        templateText,
+        pageMeta,
+        value,
+      );
 
     if (templatePage) {
       const parsedMarkdown = await markdown.parseMarkdown(rendered);

@@ -4,6 +4,7 @@ release.
 ---
 ## Next
 * The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
+* It’s time to get ready for the removal of directives, and convert your entire space over using (one time operation). Please backup your space before you do: {[Directive: Convert Entire Space to Live/Templates]}
 
 
 ---
@@ -505,8 +506,8 @@ Besides these architectural changes, a few other breaking changes were made to s
 ## 0.0.31
 
 * Update to the query language: the `render` clause now uses page reference
-  syntax `[[page]]`. For example `render [[template/task]]` rather than
-  `render "template/task"`. The old syntax still works, but is deprecated,
+  syntax `[[page]]`. For example `render [[template/tasks/task]]` rather than
+  `render "template/tasks/task"`. The old syntax still works, but is deprecated,
   completion for the old syntax has been removed.
 * Updates to templates:
   * For the `Template: Instantiate Page` command, the page meta value `$name` is
