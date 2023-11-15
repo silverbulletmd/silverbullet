@@ -100,7 +100,7 @@ function loadJsByUrl(url) {
 }
 </script>
 <!-- Load SB's own CSS here too -->
-<link rel="stylesheet" href="/.client/main.css" />
+<link rel="stylesheet" href="/.client/main.css">
 <style>
 html,
 body {

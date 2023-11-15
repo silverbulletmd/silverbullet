@@ -22,7 +22,7 @@ export async function reindexSpace() {
   // Now let's wait for the processing to finish
   let queueStats = await mq.getQueueStats("indexQueue");
   while (queueStats.queued > 0 || queueStats.processing > 0) {
-    sleep(1000);
+    await sleep(500);
     queueStats = await mq.getQueueStats("indexQueue");
   }
   // And notify the user

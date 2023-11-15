@@ -68,6 +68,11 @@ export class ServerSystem {
 
     const mq = new DataStoreMQ(this.ds);
 
+    setInterval(() => {
+      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
+      mq.requeueTimeouts(5000, 3, true).catch(console.error);
+    }, 20000); // Look to requeue every 20s
+
     const plugNamespaceHook = new PlugNamespaceHook();
     this.system.addHook(plugNamespaceHook);
 
@@ -154,6 +159,7 @@ export class ServerSystem {
         "reindexSpace",
         [],
       ).then(() => {
+        console.log("Initial index completed!");
         this.ds.set(["$initialIndexDone"], true);
       }).catch(console.error);
       if (awaitIndex) {
