@@ -47,7 +47,7 @@ async function init() {
         const messageData = e.data;
         switch (messageData.type) {
           case "setHeight":
-            iframe.style.height = messageData.height + "px";
+            iframe.height = messageData.height + "px";
             // Propagate height setting to parent
             updateHeight();
             break;

@@ -105,7 +105,8 @@ function loadJsByUrl(url) {
 html,
 body {
     height: initial !important;
-    overflow: initial !important;
+    overflow-x: initial !important;
+    overflow-y: hidden !important;
     background-color: var(--root-background-color);
 }
 </style>

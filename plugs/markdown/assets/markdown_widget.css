@@ -33,6 +33,7 @@ ol {
 
 ul {
     list-style: none;
+    padding-left: 1ch;
 }
 
 ul li::before {

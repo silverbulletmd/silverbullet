@@ -35,7 +35,7 @@ export class Space {
       .catch(
         console.error,
       );
-    console.log("Flushed widget height cache to store");
+    // console.log("Flushed widget height cache to store");
   }, 5000);
 
   setCachedWidgetHeight(bodyText: string, height: number) {

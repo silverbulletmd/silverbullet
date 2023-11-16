@@ -32,7 +32,7 @@ function updatePool(exclude?: PreloadedIFrame) {
       preloadedIframe.used && !document.body.contains(preloadedIframe.iframe)
     ) {
       // Ditch it
-      console.log("Garbage collecting iframe", preloadedIframe);
+      // console.log("Garbage collecting iframe", preloadedIframe);
       iframePool.delete(preloadedIframe);
     }
     if (!preloadedIframe.used) {
@@ -46,7 +46,7 @@ function updatePool(exclude?: PreloadedIFrame) {
 }
 
 export function prepareSandboxIFrame(): PreloadedIFrame {
-  console.log("Preloading iframe");
+  // console.log("Preloading iframe");
   const iframe = document.createElement("iframe");
 
   // Empty page with current origin. Handled this differently before, but "dock apps" in Safari (PWA implementation) seem to have various restrictions
@@ -70,7 +70,7 @@ export function prepareSandboxIFrame(): PreloadedIFrame {
 function claimIFrame(): PreloadedIFrame {
   for (const preloadedIframe of iframePool) {
     if (!preloadedIframe.used) {
-      console.log("Took iframe from pool");
+      // console.log("Took iframe from pool");
       preloadedIframe.used = true;
       updatePool(preloadedIframe);
       return preloadedIframe;
@@ -108,6 +108,7 @@ export function mountIFrame(
   onMessage?: (message: any) => void,
 ) {
   const iframe = preloadedIFrame.iframe;
+
   preloadedIFrame.ready.then(async () => {
     const messageListener = (evt: any) => {
       (async () => {
@@ -146,7 +147,7 @@ export function mountIFrame(
             break;
           }
           case "setHeight":
-            iframe.style.height = data.height + "px";
+            iframe.height = data.height + "px";
             if (widgetHeightCacheKey) {
               client.space.setCachedWidgetHeight(
                 widgetHeightCacheKey,
@@ -183,10 +184,10 @@ export function mountIFrame(
     } else if (resolvedContent.url) {
       iframe.contentWindow!.location.href = resolvedContent.url;
       if (resolvedContent.height) {
-        iframe.style.height = resolvedContent.height + "px";
+        iframe.height = resolvedContent.height + "px";
       }
       if (resolvedContent.width) {
-        iframe.style.width = resolvedContent.width + "px";
+        iframe.width = resolvedContent.width + "px";
       }
     }
   }).catch(console.error);
