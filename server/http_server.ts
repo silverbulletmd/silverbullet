@@ -388,6 +388,7 @@ export class HttpServer {
           // Handle federated links through a simple redirect, only used for attachments loads with service workers disabled
           if (name.startsWith("!")) {
             let url = name.slice(1);
+            console.log("Handling this as a federated link", url);
             if (url.startsWith("localhost")) {
               url = `http://${url}`;
             } else {
@@ -489,48 +490,56 @@ export class HttpServer {
       })
       .options(filePathRegex, corsMiddleware);
 
+    // Federation proxy
     const proxyPathRegex = "\/!(.+)";
-    fsRouter.all(proxyPathRegex, async ({ params, response, request }) => {
-      let url = params[0];
-      console.log("Requested path to proxy", url, request.method);
-      if (url.startsWith("localhost")) {
-        url = `http://${url}`;
-      } else {
-        url = `https://${url}`;
-      }
-      try {
-        const safeRequestHeaders = new Headers();
-        for (const headerName of ["Authorization", "Accept", "Content-Type"]) {
-          if (request.headers.has(headerName)) {
-            safeRequestHeaders.set(
-              headerName,
-              request.headers.get(headerName)!,
-            );
+    fsRouter.all(
+      proxyPathRegex,
+      async ({ params, response, request }, next) => {
+        let url = params[0];
+        if (!request.headers.has("X-Proxy-Request")) {
+          // Direct browser request, not explicity fetch proxy request
+          if (!/\.[a-zA-Z0-9]+$/.test(url)) {
+            console.log("Directly loading federation page via URL:", url);
+            // This is not a direct file reference so LIKELY a page request, fall through and load the SB UI
+            return next();
           }
         }
-        const req = await fetch(url, {
-          method: request.method,
-          headers: safeRequestHeaders,
-          body: request.hasBody
-            ? request.body({ type: "stream" }).value
-            : undefined,
-        });
-        response.status = req.status;
-        // // Override X-Permssion header to always be "ro"
-        // const newHeaders = new Headers();
-        // for (const [key, value] of req.headers.entries()) {
-        //   newHeaders.set(key, value);
-        // }
-        // newHeaders.set("X-Permission", "ro");
-        response.headers = req.headers;
-        response.body = req.body;
-      } catch (e: any) {
-        console.error("Error fetching federated link", e);
-        response.status = 500;
-        response.body = e.message;
-      }
-      return;
-    });
+        console.log("Requested path to proxy", url, request.method);
+        if (url.startsWith("localhost")) {
+          url = `http://${url}`;
+        } else {
+          url = `https://${url}`;
+        }
+        try {
+          const safeRequestHeaders = new Headers();
+          for (
+            const headerName of ["Authorization", "Accept", "Content-Type"]
+          ) {
+            if (request.headers.has(headerName)) {
+              safeRequestHeaders.set(
+                headerName,
+                request.headers.get(headerName)!,
+              );
+            }
+          }
+          const req = await fetch(url, {
+            method: request.method,
+            headers: safeRequestHeaders,
+            body: request.hasBody
+              ? request.body({ type: "stream" }).value
+              : undefined,
+          });
+          response.status = req.status;
+          response.headers = req.headers;
+          response.body = req.body;
+        } catch (e: any) {
+          console.error("Error fetching federated link", e);
+          response.status = 500;
+          response.body = e.message;
+        }
+        return;
+      },
+    );
     return fsRouter;
   }
 

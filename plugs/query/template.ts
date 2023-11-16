@@ -4,7 +4,7 @@ import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { PageMeta } from "$sb/types.ts";
 import { renderTemplate } from "../template/plug_api.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { rewritePageRefs, rewritePageRefsInString } from "$sb/lib/resolve.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
@@ -28,6 +28,8 @@ export async function widget(
     let templateText = config.template || "";
     let templatePage = config.page;
     if (templatePage) {
+      // Rewrite federation page references
+      templatePage = rewritePageRefsInString(templatePage, pageName);
       if (templatePage.startsWith("[[")) {
         templatePage = templatePage.slice(2, -2);
       }
