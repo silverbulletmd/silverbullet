@@ -28,7 +28,6 @@ functions:
     path: ./page.ts:newPageCommand
     command:
       name: "Page: New"
-      key: "Alt-Shift-n"
 
   # Completion
   pageComplete:

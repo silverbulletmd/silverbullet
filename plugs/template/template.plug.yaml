@@ -94,7 +94,6 @@ functions:
     command:
       name: "Quick Note"
       key: "Alt-Shift-n"
-      priority: 1
   dailyNoteCommand:
     path: ./template.ts:dailyNoteCommand
     command:
