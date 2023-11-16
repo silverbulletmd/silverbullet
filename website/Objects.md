@@ -1,6 +1,6 @@
 #core
 
-SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries]] this database in (potentially) useful ways.
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries|query]] this database in (potentially) useful ways.
 
 Some examples of things you can query for:
 * Give me a list of all books that I have marked as _want to read_
@@ -8,7 +8,7 @@ Some examples of things you can query for:
 * Give me a list of items tagged with `#quote`
 * Give me a list of not-completed tasks that reference the current page
 
-By design, the truth remains in the markdown: all data indexed into objects will have a representation in markdown text as well. The index can be flushed at any time and be rebuilt from markdown files.
+By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. The index can be flushed at any time and be rebuilt from its source markdown files kept in your space.
 
 # Object representation
 Every object has a set of [[Attributes]].

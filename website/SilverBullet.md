@@ -1,22 +1,29 @@
-SilverBullet aims to be your **workshop for the mind**: a creative environment where you collect, create and expand your personal knowledge in primarily textual form, while also letting you constantly evolve the tools you use to do so.
+SilverBullet aims to be your **workshop for the mind**: a creative [[Space]] where you collect, create and expand your personal knowledge, while also letting you constantly evolve the tools you use to do so.
 
-While you _can_ use SilverBullet as a simple note taking application that stores notes in plain markdown files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
+While you _can_ use SilverBullet as a simple note taking application that stores notes in plain [[Markdown]] files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
 
 SilverBullet is implemented as an open-source, self-hosted, offline-capable web application.
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
+> **note** Note
+> While SilverBullet has been under development for close to two years, we are still making significant changes from time to time (for the better, hopefully) that may _occasionally_ break some things. Be prepared to upgrade regularly, and while data loss has been extremely rare, keep your [[Space]] backed up! And watch [[CHANGELOG]] to see what’s cooking!
+
 ## Quick links
 * [[Install]]: how to install and deploy SilverBullet
 * [[Manual]]: the beginnings of a user manual
 * [[CHANGELOG]]: SilverBullet is in very active development, so things change rapidly. Watch this to see what’s new and changed.
-* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities
-* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them
-* [Discussions](https://github.com/silverbulletmd/silverbullet/discussions)
-* [Mastodon](https://fosstodon.org/@silverbulletmd): Follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
-* [Discord](https://discord.gg/EvXbFucTxn): For more real-time support and discussion, join our Discord!
+* Development:
+  * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities
+  * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them
+  * [Discussions](https://github.com/silverbulletmd/silverbullet/discussions)
+* Socials:
+  * [Mastodon](https://fosstodon.org/@silverbulletmd): Follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
+  * [Discord](https://discord.gg/EvXbFucTxn): For more real-time support and discussion, join our Discord!
 
 ## Features
+So, what does this thing do anyway?
+
 SilverBullet...
 * Runs in any modern browser (including on mobile) as a [[PWA]] in two [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
 * Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
@@ -82,7 +89,7 @@ rating: 5
 ```
 
 ## Going deeper
-Where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your space. 
+Where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Space]]. 
 
 Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[🔌 Plugs|plug]] are tagged with the `#plug` tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
 
