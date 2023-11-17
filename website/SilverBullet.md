@@ -37,7 +37,7 @@ SilverBullet...
 To get a good feel of what SilverBullet is capable of, have a look at this (slightly out of date) introduction video.
 
 ```embed
-url: https://youtu.be/VemS-cqAD5k
+url: https://youtu.be/BbNbZgOwB-Y
 ```
 ## Try it
 Here’s the kicker:
