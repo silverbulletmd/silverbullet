@@ -1,54 +1,29 @@
 # SilverBullet
+SilverBullet aims to be your **workshop for the mind**: a creative space where you collect, create and expand your personal knowledge, while also letting you constantly evolve the tools you use to do so.
 
-SilverBullet is an extensible, open source **personal knowledge
-platform**. At its core it’s a clean markdown-based writing/note taking
-application that stores your _pages_ (notes) as plain markdown files in a folder
-referred to as a _space_. Pages can be cross-linked using the
-`[[link to other page]]` syntax. This makes it a simple tool for
-[Personal Knowledge Management](https://en.wikipedia.org/wiki/Personal_knowledge_management).
-However, once you leverage its various extensions (called _plugs_) it can feel
-more like a _knowledge platform_, allowing you to annotate, combine and query
-your accumulated knowledge in creative ways specific to you.
+While you _can_ use SilverBullet as a simple note taking application that stores notes in plain markdown files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging metadata annotations, its Objects infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
 
-<img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-pwa.png" height="400"/><img src="https://github.com/silverbulletmd/silverbullet/raw/main/website/silverbullet-ios.png" height="400"/>
+SilverBullet is implemented as an open-source, self-hosted, offline-capable web application.
 
-SilverBullet is implemented as an offline-first PWA: it syncs all your content into the client (browser) and performs most processing there, allowing full offline operation after first load.
-
-For more in-depth information, an interactive demo, and links to more
-background, check out the [SilverBullet website](https://silverbullet.md)
-(published from this repo’s `website/` folder).
-
-Or checkout these two videos:
-
-- [A Tour of some of SilverBullet’s features](https://youtu.be/VemS-cqAD5k) —
-  spoiler alert: it’s cool.
-- [A look the SilverBullet architecture](https://youtu.be/mXCGau05p5o) — spoiler
-  alert: it’s plugs all the way down.
+You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
 ## Features
+SilverBullet...
+* Runs in any modern browser (including on mobile) as a PWA in two Client Modes (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
+* Provides an enjoyable markdown writing experience with a clean UI, rendering text using Live Preview, further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
+* Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as “Linked Mentions” at the bottom of the pages linked to thereby providing _bi-directional linking_.
+* Optimized for **keyboard-based operation**:
+  * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
+  * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
+  * Use Slash Commands to perform common text editing operations.
+* Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for Objects, Live Queries and Live Templates.
+* Robust extension mechanism using plugs.
+* **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
+* SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
-- **Free and open source**. SilverBullet is MIT licensed.
-- **The truth is in the markdown.** SilverBullet doesn’t use proprietary file
-  formats. It keeps its data as plain markdown files on disk. While SB uses a
-  database for indexing and caching some indexes, all of that can be rebuilt
-  from its markdown source at any time. If SB would ever go away, you can still
-  read your pages with any text editor.
-- **One single, distraction free mode.** SB doesn’t have a separate view and
-  edit mode. It doesn’t have a “focus mode.” You’re always in focused edit mode,
-  why wouldn’t you?
-- **Keyboard oriented**. You can use SB fully using the keyboard, typin’ the
-  keys.
-- **Extend it your way**. SB is highly extensible with
-  [plugs](https://silverbullet.md/🔌%20Plugs), and you can customize it to your
-  liking and your workflows.
 
 ## Installing SilverBullet
 Check out the [official website](https://silverbullet.md)
-## Troubleshooting
-
-If you upgraded to the new Deno-based SilverBullet from an old version, you may
-have to use the `silverbullet fix <pages-path>` command to flush out your old
-database and plugs. Plugs will likely need to be updated.
 
 ## Developing SilverBullet
 
