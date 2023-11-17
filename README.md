@@ -1,7 +1,7 @@
 # SilverBullet
 SilverBullet aims to be your **workshop for the mind**: a creative space where you collect, create and expand your personal knowledge, while also letting you constantly evolve the tools you use to do so.
 
-While you _can_ use SilverBullet as a simple note taking application that stores notes in plain markdown files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging metadata annotations, its Objects infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
+While you _can_ use SilverBullet as a simple note taking application that stores notes in plain markdown files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging metadata annotations, its Objects infrastructure, Live Queries and Live Templates, SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
 
 SilverBullet is implemented as an open-source, self-hosted, offline-capable web application.
 
