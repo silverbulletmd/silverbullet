@@ -438,6 +438,7 @@ export class HttpServer {
           } catch (e: any) {
             console.error("Error GETting file", name, e.message);
             response.status = 404;
+            response.headers.set("Cache-Control", "no-cache");
             response.body = "Not found";
           }
         },

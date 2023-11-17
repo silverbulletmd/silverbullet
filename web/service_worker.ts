@@ -123,10 +123,6 @@ async function handleLocalFileRequest(
   request: Request,
   pathname: string,
 ): Promise<Response> {
-  // if (!db?.isOpen()) {
-  //   console.log("Detected that the DB was closed, reopening");
-  //   await db!.open();
-  // }
   const path = decodeURIComponent(pathname.slice(1));
   const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
   if (data) {
@@ -164,6 +160,9 @@ async function handleLocalFileRequest(
     );
     return new Response("Not found", {
       status: 404,
+      headers: {
+        "Cache-Control": "no-cache",
+      },
     });
   }
 }

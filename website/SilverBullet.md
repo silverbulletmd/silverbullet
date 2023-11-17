@@ -6,9 +6,6 @@ SilverBullet is implemented as an open-source, self-hosted, offline-capable web 
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-> **note** Note
-> While SilverBullet has been under development for close to two years, we are still making significant changes from time to time (for the better, hopefully) that may _occasionally_ break some things. Be prepared to upgrade regularly, and while data loss has been extremely rare, keep your [[Space]] backed up! And watch [[CHANGELOG]] to see what’s cooking!
-
 ## Quick links
 * [[Install]]: how to install and deploy SilverBullet
 * [[Manual]]: the beginnings of a user manual
