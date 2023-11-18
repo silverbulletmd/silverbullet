@@ -7,6 +7,8 @@ SilverBullet is implemented as an open-source, self-hosted, offline-capable web 
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
+[![IIntroduction to SilverBullet](http://img.youtube.com/vi/BbNbZgOwB-Y/0.jpg)](http://www.youtube.com/watch?v=BbNbZgOwB-Y)
+
 ## Features
 SilverBullet...
 * Runs in any modern browser (including on mobile) as a PWA in two Client Modes (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
