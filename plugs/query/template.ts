@@ -33,6 +33,9 @@ export async function widget(
       if (templatePage.startsWith("[[")) {
         templatePage = templatePage.slice(2, -2);
       }
+      if (!templatePage) {
+        throw new Error("No template page specified");
+      }
       templateText = await space.readPage(templatePage);
     }
 

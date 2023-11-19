@@ -2,9 +2,13 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
-## Next
+## 0.5.6
+* Various optimization and bug fixes
+* Experimental idea: [[Template Sets]]
+* The `Alt-Shift-n` key was previously bound to both {[Page: New]} and {[Quick Note]}. That won’t work, so now it’s just bound to {[Quick Note]}
 * The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
-* It’s time to get ready for the removal of directives, and convert your entire space over using (one time operation). Please backup your space before you do: {[Directive: Convert Entire Space to Live/Templates]}
+* It’s likely that version 0.6.0 **will remove directives**, so please switch over to live queries and templates, e.g. using...
+  * The new {[Directive: Convert Entire Space to Live/Templates]} command, which will (attempt) to convert all uses of directives in your space automatically (backup your space before, though, just in case)
 
 
 ---

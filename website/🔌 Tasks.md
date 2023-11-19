@@ -47,7 +47,7 @@ There is a [[!silverbullet.md/template/tasks/task]] template you can use to rend
 Try it (by clicking on the checkbox inside of the directive):
 
 ```query
-task where page = "{{@page.name}}" and name = "Remote toggle me" render [[template/tasks/task]] 
+task where page = "{{@page.name}}" and name = "Remote toggle me" render [[template/task]] 
 ```
 
 * [ ] Remote toggle me

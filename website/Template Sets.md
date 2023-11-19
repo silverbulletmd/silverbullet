@@ -1,8 +1,11 @@
+> **warning** Experimental
+> This is still an experimental idea. These templates may change, be renamed etc. prepare yourself for breakage.
+
 This is an attempt at collecting useful, reusable templates so you don’t have to reinvent the wheel.
 
-The most convenient ways to use them is using [[Federation]]. This will synchronize these templates into your space and make them available for use instantly.
+While you may just copy & paste these templates to your own space, the most convenient ways to use them is using [[Federation]]. This will synchronize these templates into your space and make them available for use instantly.
 
-To set this up, add this to your [[SETTINGS]]:
+To set this up, add the following this to your [[SETTINGS]]:
 
 ```yaml
 federate:
@@ -12,11 +15,11 @@ federate:
 If you don’t want to sync _all_ these templates, you can use more specific URIs, e.g.
 ```yaml
 federate:
-- uri: silverbullet.md/template/tasks
+- uri: silverbullet.md/template/task
 ```
-to just get the `tasks` stuff.
+to just get the `task` stuff.
 
-To reference a template, use the federation syntax, e.g. `[[!silverbullet.md/template/tasks/task]]`.
+To reference a template, use the federation syntax, e.g. `[[!silverbullet.md/template/task]]`.
 
 ## Maintenance
 ```query
@@ -33,7 +36,7 @@ render [[template/documented-template]]
 ```
 ## Tasks
 ```query
-template where name =~ /^template\/tasks/
+template where name =~ /^template\/task/
 order by order
 render [[template/documented-template]]
 ```

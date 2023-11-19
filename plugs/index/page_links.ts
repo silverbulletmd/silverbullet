@@ -4,6 +4,8 @@ import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$sb/types.ts";
 
+const pageRefRegex = /\[\[([^\]]+)\]\]/g;
+
 export type LinkObject = {
   ref: string;
   tags: string[];
@@ -123,9 +125,40 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       links.push(link);
       return true;
     }
+
+    // Also index links used inside query and template fenced code blocks
+    if (n.type === "FencedCode") {
+      const codeInfo = findNodeOfType(n, "CodeInfo")!;
+      if (!codeInfo) {
+        return false;
+      }
+      const codeLang = codeInfo.children![0].text!;
+      if (codeLang === "template" || codeLang === "query") {
+        const codeText = findNodeOfType(n, "CodeText");
+        if (!codeText) {
+          return false;
+        }
+        const code = codeText.children![0].text!;
+        const matches = code.matchAll(pageRefRegex);
+        for (const match of matches) {
+          const pageRefName = resolvePath(name, match[1]);
+          const pos = codeText.from! + match.index! + 2;
+          links.push({
+            ref: `${name}@${pos}`,
+            tags: ["link"],
+            toPage: pageRefName,
+            page: name,
+            snippet: extractSnippet(pageText, pos),
+            pos: pos,
+            asTemplate: true,
+            inDirective: false,
+          });
+        }
+      }
+    }
     return false;
   });
-  // console.log("Found", backLinks, "page link(s)");
+  // console.log("Found", links, "page link(s)");
   await indexObjects(name, links);
 }
 

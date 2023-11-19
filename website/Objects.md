@@ -51,7 +51,7 @@ upnext
 Although you may want to render it using a template such as [[template/tasks/task] instead:
 
 ```query
-upnext render [[template/tasks/task]]
+upnext render [[template/task]]
 ```
 
 ## taskstate
