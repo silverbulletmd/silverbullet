@@ -53,8 +53,11 @@ export class PlugSpacePrimitives implements SpacePrimitives {
           for (const pm of await plug.invoke(name, [])) {
             allFiles.push(pm);
           }
-        } catch (e) {
-          console.error("Error listing files", e);
+        } catch (e: any) {
+          if (!e.message.includes("not available")) {
+            // Don't report "not available in" environments errors
+            console.error("Error listing files", e);
+          }
         }
       }
     }
