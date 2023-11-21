@@ -1,5 +1,7 @@
-import emojis from "./emoji.json" assert { type: "json" };
+import emojiBlob from "./emoji.json" assert { type: "json" };
 import type { CompleteEvent } from "$sb/app_event.ts";
+
+const emojis = emojiBlob.split("|").map((line) => line.split(" "));
 
 export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
   const match = /:([\w]+)$/.exec(linePrefix);
@@ -9,14 +11,14 @@ export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
 
   const [fullMatch, emojiName] = match;
 
-  const filteredEmoji = emojis.filter(([_, shortcode]) =>
+  const filteredEmoji = emojis.filter(([shortcode]) =>
     shortcode.includes(emojiName)
   );
 
   return {
     from: pos - fullMatch.length,
     filter: false,
-    options: filteredEmoji.map(([emoji, shortcode]) => ({
+    options: filteredEmoji.map(([shortcode, emoji]) => ({
       detail: shortcode,
       label: emoji,
       type: "emoji",

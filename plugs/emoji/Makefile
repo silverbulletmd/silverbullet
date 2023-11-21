@@ -1,4 +1,4 @@
 build:
-	curl https://unicode.org/Public/emoji/14.0/emoji-test.txt > emoji-data.txt
-	node build.js
+	curl https://unicode.org/Public/emoji/15.1/emoji-test.txt > emoji-data.txt
+	deno run -A build.ts
 	rm emoji-data.txt
