@@ -27,7 +27,7 @@ class AdmonitionIconWidget extends WidgetType {
   toDOM(): HTMLElement {
     const outerDiv = document.createElement("div");
     outerDiv.classList.add("sb-admonition-icon");
-    outerDiv.addEventListener("click", (e) => {
+    outerDiv.addEventListener("click", () => {
       this.editorView.dispatch({
         selection: {
           anchor: this.pos,

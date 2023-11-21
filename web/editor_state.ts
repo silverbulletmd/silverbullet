@@ -42,22 +42,23 @@ import {
 import { TextChange } from "$sb/lib/change.ts";
 import { postScriptPlugin } from "./cm_plugins/post_script.ts";
 import { languageFor } from "../common/languages.ts";
+import { plugLinter } from "./cm_plugins/lint.ts";
 
 export function createEditorState(
-  editor: Client,
+  client: Client,
   pageName: string,
   text: string,
   readOnly: boolean,
 ): EditorState {
   const commandKeyBindings: KeyBinding[] = [];
-  for (const def of editor.system.commandHook.editorCommands.values()) {
+  for (const def of client.system.commandHook.editorCommands.values()) {
     if (def.command.key) {
       commandKeyBindings.push({
         key: def.command.key,
         mac: def.command.mac,
         run: (): boolean => {
           if (def.command.contexts) {
-            const context = editor.getContext();
+            const context = client.getContext();
             if (!context || !def.command.contexts.includes(context)) {
               return false;
             }
@@ -66,14 +67,14 @@ export function createEditorState(
             .then(def.run)
             .catch((e: any) => {
               console.error(e);
-              editor.flashNotification(
+              client.flashNotification(
                 `Error running command: ${e.message}`,
                 "error",
               );
             })
             .then(() => {
               // Always be focusing the editor after running a command
-              editor.focus();
+              client.focus();
             });
           return true;
         },
@@ -82,24 +83,25 @@ export function createEditorState(
   }
   let touchCount = 0;
 
-  const markdownLanguage = buildMarkdown(editor.system.mdExtensions);
+  const markdownLanguage = buildMarkdown(client.system.mdExtensions);
 
   return EditorState.create({
     doc: text,
     extensions: [
       // Not using CM theming right now, but some extensions depend on the "dark" thing
       EditorView.theme({}, {
-        dark: editor.ui.viewState.uiOptions.darkMode,
+        dark: client.ui.viewState.uiOptions.darkMode,
       }),
       // Enable vim mode, or not
       [
-        ...editor.ui.viewState.uiOptions.vimMode ? [vim({ status: true })] : [],
+        ...client.ui.viewState.uiOptions.vimMode ? [vim({ status: true })] : [],
       ],
       [
-        ...readOnly || editor.ui.viewState.uiOptions.forcedROMode
+        ...readOnly || client.ui.viewState.uiOptions.forcedROMode
           ? [readonlyMode()]
           : [],
       ],
+
       // The uber markdown mode
       markdown({
         base: markdownLanguage,
@@ -119,16 +121,16 @@ export function createEditorState(
       markdownLanguage.data.of({
         closeBrackets: { brackets: ["(", "{", "[", "`"] },
       }),
-      syntaxHighlighting(customMarkdownStyle(editor.system.mdExtensions)),
+      syntaxHighlighting(customMarkdownStyle(client.system.mdExtensions)),
       autocompletion({
         override: [
-          editor.editorComplete.bind(editor),
-          editor.system.slashCommandHook.slashCommandCompleter.bind(
-            editor.system.slashCommandHook,
+          client.editorComplete.bind(client),
+          client.system.slashCommandHook.slashCommandCompleter.bind(
+            client.system.slashCommandHook,
           ),
         ],
       }),
-      inlineImagesPlugin(editor),
+      inlineImagesPlugin(client),
       highlightSpecialChars(),
       history(),
       drawSelection(),
@@ -137,9 +139,12 @@ export function createEditorState(
         placeholderText: "…",
       }),
       indentOnInput(),
-      ...cleanModePlugins(editor),
+      ...cleanModePlugins(client),
       EditorView.lineWrapping,
-      postScriptPlugin(editor),
+      plugLinter(client),
+      // lintGutter(),
+      //       gutters(),
+      postScriptPlugin(client),
       lineWrapper([
         { selector: "ATXHeading1", class: "sb-line-h1" },
         { selector: "ATXHeading2", class: "sb-line-h2" },
@@ -173,8 +178,8 @@ export function createEditorState(
           key: "Ctrl-k",
           mac: "Cmd-k",
           run: (): boolean => {
-            editor.ui.viewDispatch({ type: "start-navigate" });
-            editor.space.updatePageList();
+            client.ui.viewDispatch({ type: "start-navigate" });
+            client.space.updatePageList();
 
             return true;
           },
@@ -183,9 +188,9 @@ export function createEditorState(
           key: "Ctrl-/",
           mac: "Cmd-/",
           run: (): boolean => {
-            editor.ui.viewDispatch({
+            client.ui.viewDispatch({
               type: "show-palette",
-              context: editor.getContext(),
+              context: client.getContext(),
             });
             return true;
           },
@@ -194,9 +199,9 @@ export function createEditorState(
           key: "Ctrl-.",
           mac: "Cmd-.",
           run: (): boolean => {
-            editor.ui.viewDispatch({
+            client.ui.viewDispatch({
               type: "show-palette",
-              context: editor.getContext(),
+              context: client.getContext(),
             });
             return true;
           },
@@ -229,7 +234,7 @@ export function createEditorState(
                   y: touch.clientY,
                 })!,
               };
-              await editor.dispatchAppEvent("page:click", clickEvent);
+              await client.dispatchAppEvent("page:click", clickEvent);
             });
           }
           touchCount = 0;
@@ -257,7 +262,7 @@ export function createEditorState(
               if (parentA) {
                 event.stopPropagation();
                 event.preventDefault();
-                await editor.dispatchAppEvent(
+                await client.dispatchAppEvent(
                   "page:click",
                   potentialClickEvent,
                 );
@@ -270,7 +275,7 @@ export function createEditorState(
             // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
             // Fixes #357
             if (distanceX <= view.defaultCharacterWidth) {
-              await editor.dispatchAppEvent("page:click", potentialClickEvent);
+              await client.dispatchAppEvent("page:click", potentialClickEvent);
             }
           });
         },
@@ -287,16 +292,16 @@ export function createEditorState(
                   newRange: { from: fromB, to: toB },
                 })
               );
-              editor.dispatchAppEvent("editor:pageModified", { changes });
-              editor.ui.viewDispatch({ type: "page-changed" });
-              editor.debouncedUpdateEvent();
-              editor.save().catch((e) => console.error("Error saving", e));
+              client.dispatchAppEvent("editor:pageModified", { changes });
+              client.ui.viewDispatch({ type: "page-changed" });
+              client.debouncedUpdateEvent();
+              client.save().catch((e) => console.error("Error saving", e));
             }
           }
         },
       ),
       pasteLinkExtension,
-      attachmentExtension(editor),
+      attachmentExtension(client),
       closeBrackets(),
     ],
   });

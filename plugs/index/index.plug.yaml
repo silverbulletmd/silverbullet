@@ -174,3 +174,8 @@ functions:
 
   renderMentions:
     path: "./mentions_ps.ts:renderMentions"
+
+  lintYAML:
+    path: lint.ts:lintYAML
+    events:
+    - editor:lint

@@ -133,3 +133,10 @@ export type CodeWidgetContent = {
   markdown?: string;
   script?: string;
 };
+
+export type LintDiagnostic = {
+  from: number;
+  to: number;
+  severity: "error" | "warning" | "info" | "hint";
+  message: string;
+};
