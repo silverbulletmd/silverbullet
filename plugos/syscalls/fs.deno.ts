@@ -78,7 +78,11 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
         const file of walk(dirPath, {
           includeDirs: false,
           // Exclude hidden files
-          skip: [/^.*\/\..+$/],
+          skip: [
+            // Dynamically builds a regexp that matches hidden directories INSIDE the rootPath
+            // (but if the rootPath is hidden, it stil lists files inside of it, fixing #130 and #518)
+            new RegExp(`^${escapeRegExp(root)}.*\\/\\..+$`),
+          ],
           maxDepth: recursive ? Infinity : 1,
         })
       ) {
@@ -96,4 +100,8 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       return allFiles;
     },
   };
+}
+
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
 }
