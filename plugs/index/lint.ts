@@ -1,14 +1,13 @@
-import { editor, markdown, YAML } from "$sb/syscalls.ts";
+import { YAML } from "$sb/syscalls.ts";
 import { LintDiagnostic } from "$sb/types.ts";
 import {
   findNodeOfType,
   renderToText,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
+import { LintEvent } from "$sb/app_event.ts";
 
-export async function lintYAML(): Promise<LintDiagnostic[]> {
-  const text = await editor.getText();
-  const tree = await markdown.parseMarkdown(text);
+export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {

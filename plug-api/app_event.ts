@@ -46,6 +46,11 @@ export type PublishEvent = {
   name: string;
 };
 
+export type LintEvent = {
+  name: string;
+  tree: ParseTree;
+};
+
 export type CompleteEvent = {
   pageName: string;
   linePrefix: string;

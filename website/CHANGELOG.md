@@ -2,6 +2,14 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+
+## Next
+* Upgraded set of emoji (completed via the :thinking_face: syntax) to 15.1 (so more emoji)
+* General support for highlighting errors (underlined) in the editor. Currently implemented for:
+  * All YAML fenced code blocks (and [[Frontmatter]]): will now highlight YAML parse errors
+  * [[Live Queries]]: will highlight non-existing query sources and non-existing template references in `render` clauses
+
+---
 ## 0.5.6
 * Various optimization and bug fixes
 * Experimental idea: [[Template Sets]]
