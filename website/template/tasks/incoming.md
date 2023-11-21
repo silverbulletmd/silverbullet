@@ -6,5 +6,5 @@ order: 2
 ---
 
 ```query
-task where name =~ /\[\[{{escapeRegexp @page.name}}\]\]/ where done = false render [[template/tasks/task]] 
+task where name =~ /\[\[{{escapeRegexp @page.name}}\]\]/ where done = false render [[template/task]] 
 ```

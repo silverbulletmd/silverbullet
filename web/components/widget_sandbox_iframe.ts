@@ -86,7 +86,7 @@ function claimIFrame(): PreloadedIFrame {
 
 export function broadcastReload() {
   for (const preloadedIframe of iframePool) {
-    if (preloadedIframe.used) {
+    if (preloadedIframe.used && preloadedIframe.iframe?.contentWindow) {
       // Send a message to the global object, which the iframe is listening to
       globalThis.dispatchEvent(
         new MessageEvent("message", {

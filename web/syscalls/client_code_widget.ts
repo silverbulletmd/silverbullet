@@ -1,4 +1,3 @@
-import { CodeWidgetContent } from "$sb/types.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { broadcastReload } from "../components/widget_sandbox_iframe.ts";
 
