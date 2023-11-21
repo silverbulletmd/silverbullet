@@ -61,6 +61,26 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       link.download = filename;
       link.click();
     },
+    "editor.attachFile": (_ctx, filepath: string, accept: string) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = accept;
+
+      input.onchange = () => {
+        const file = input.files?.item(0)!;
+        var reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onloadend = async (evt) => {
+          if (evt.target?.readyState == FileReader.DONE) {
+            const arrayBuffer = evt.target.result;
+            const array = new Uint8Array(await file.arrayBuffer());
+            editor.space.writeAttachment(filepath, array);
+          }
+        }
+      }
+
+      input.click();
+    },
     "editor.flashNotification": (
       _ctx,
       message: string,

@@ -55,6 +55,10 @@ export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);
 }
 
+export function attachFile(filepath: string, accept: string): Promise<void> {
+  return syscall("editor.attachFile", filepath, accept);
+}
+
 export function flashNotification(
   message: string,
   type: "info" | "error" = "info",
