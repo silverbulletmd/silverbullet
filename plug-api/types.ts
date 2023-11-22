@@ -143,5 +143,6 @@ export type LintDiagnostic = {
 
 export type UploadFile = {
   name: string;
+  type: string;
   content: Uint8Array;
 }

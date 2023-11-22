@@ -88,6 +88,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
               if (evt.target?.readyState == FileReader.DONE) {
                 resolve({
                   name: file.name,
+                  type: file.type,
                   content: new Uint8Array(await file.arrayBuffer()),
                 });
               }
