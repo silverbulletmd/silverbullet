@@ -1,4 +1,5 @@
 import type { FilterOption } from "../../web/types.ts";
+import { UploadFile } from "../types.ts";
 import { syscall } from "./syscall.ts";
 
 export function getCurrentPage(): Promise<string> {
@@ -55,8 +56,8 @@ export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);
 }
 
-export function attachFile(filepath: string, accept: string): Promise<void> {
-  return syscall("editor.attachFile", filepath, accept);
+export function uploadFile(accept: string | null = null, capture: string | null = null): Promise<UploadFile> {
+  return syscall("editor.uploadFile", accept, capture);
 }
 
 export function flashNotification(

@@ -12,6 +12,7 @@ import {
 } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
+import { UploadFile } from "../../plug-api/types.ts";
 
 export function editorSyscalls(editor: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -61,25 +62,45 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       link.download = filename;
       link.click();
     },
-    "editor.attachFile": (_ctx, filepath: string, accept: string) => {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = accept;
+    "editor.uploadFile": (
+      _ctx,
+      accept: string | null = null,
+      capture: string | null = null
+    ): Promise<UploadFile> => {
+      return new Promise<UploadFile>((resolve, reject) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        if (accept) {
+          input.accept = accept;
+        }
+        if (capture) {
+          input.capture = capture;
+        }
 
-      input.onchange = () => {
-        const file = input.files?.item(0)!;
-        var reader = new FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onloadend = async (evt) => {
-          if (evt.target?.readyState == FileReader.DONE) {
-            const arrayBuffer = evt.target.result;
-            const array = new Uint8Array(await file.arrayBuffer());
-            editor.space.writeAttachment(filepath, array);
+        input.onchange = () => {
+          const file = input.files?.item(0);
+          if (!file) {
+            reject();
+          } else {
+            var reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onloadend = async (evt) => {
+              if (evt.target?.readyState == FileReader.DONE) {
+                const arrayBuffer = evt.target.result;
+                resolve({
+                  name: file.name,
+                  content: new Uint8Array(await file.arrayBuffer())
+                });
+              }
+            };
+            reader.onabort = () => { reject() };
+            reader.onerror = () => { reject() };
           }
         }
-      }
+        input.onabort = () => { reject() };
 
-      input.click();
+        input.click();
+      });
     },
     "editor.flashNotification": (
       _ctx,
