@@ -140,3 +140,8 @@ export type LintDiagnostic = {
   severity: "error" | "warning" | "info" | "hint";
   message: string;
 };
+
+export type UploadFile = {
+  name: string;
+  content: Uint8Array;
+}
