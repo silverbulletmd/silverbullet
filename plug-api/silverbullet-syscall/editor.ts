@@ -56,7 +56,7 @@ export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);
 }
 
-export function uploadFile(accept: string | null = null, capture: string | null = null): Promise<UploadFile> {
+export function uploadFile(accept?: string, capture?: string): Promise<UploadFile> {
   return syscall("editor.uploadFile", accept, capture);
 }
 
