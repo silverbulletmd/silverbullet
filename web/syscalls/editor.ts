@@ -80,7 +80,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         input.onchange = () => {
           const file = input.files?.item(0);
           if (!file) {
-            reject();
+            reject(new Error("No file found"));
           } else {
             var reader = new FileReader();
             reader.readAsArrayBuffer(file);
@@ -93,11 +93,11 @@ export function editorSyscalls(editor: Client): SysCallMapping {
                 });
               }
             };
-            reader.onabort = () => { reject() };
-            reader.onerror = () => { reject() };
+            reader.onabort = (e) => { reject(e) };
+            reader.onerror = (e) => { reject(e) };
           }
         }
-        input.onabort = () => { reject() };
+        input.onabort = (e) => { reject(e) };
 
         input.click();
       });
