@@ -64,8 +64,8 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     },
     "editor.uploadFile": (
       _ctx,
-      accept: string | null = null,
-      capture: string | null = null
+      accept?: string,
+      capture?: string
     ): Promise<UploadFile> => {
       return new Promise<UploadFile>((resolve, reject) => {
         const input = document.createElement("input");
