@@ -65,7 +65,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     "editor.uploadFile": (
       _ctx,
       accept?: string,
-      capture?: string
+      capture?: string,
     ): Promise<UploadFile> => {
       return new Promise<UploadFile>((resolve, reject) => {
         const input = document.createElement("input");
@@ -82,22 +82,27 @@ export function editorSyscalls(editor: Client): SysCallMapping {
           if (!file) {
             reject(new Error("No file found"));
           } else {
-            var reader = new FileReader();
+            const reader = new FileReader();
             reader.readAsArrayBuffer(file);
             reader.onloadend = async (evt) => {
               if (evt.target?.readyState == FileReader.DONE) {
-                const arrayBuffer = evt.target.result;
                 resolve({
                   name: file.name,
-                  content: new Uint8Array(await file.arrayBuffer())
+                  content: new Uint8Array(await file.arrayBuffer()),
                 });
               }
             };
-            reader.onabort = (e) => { reject(e) };
-            reader.onerror = (e) => { reject(e) };
+            reader.onabort = (e) => {
+              reject(e);
+            };
+            reader.onerror = (e) => {
+              reject(e);
+            };
           }
-        }
-        input.onabort = (e) => { reject(e) };
+        };
+        input.onabort = (e) => {
+          reject(e);
+        };
 
         input.click();
       });
