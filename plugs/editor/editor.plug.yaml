@@ -222,3 +222,7 @@ functions:
     command:
       name: "Account: Logout"
 
+  uploadFileCommand:
+    path: ./upload.ts:uploadFile
+    command:
+      name: "Upload: File"
