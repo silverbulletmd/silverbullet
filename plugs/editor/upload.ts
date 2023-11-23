@@ -24,7 +24,6 @@ async function saveFile(file: UploadFile) {
     prefix = "";
   }
   const suggestedName = prefix + file.name;
-  console.log(suggestedName);
 
   const finalFileName = await editor.prompt(
     "File name for pasted attachment",
