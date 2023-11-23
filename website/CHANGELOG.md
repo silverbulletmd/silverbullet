@@ -4,6 +4,7 @@ release.
 ---
 
 ## Next
+* New {[Upload: File]} command to upload files and pictures (particularly valuable for mobile uses). Implemented by [prcrst](https://github.com/silverbulletmd/silverbullet/pull/571).
 * Upgraded set of emoji (completed via the :thinking_face: syntax) to 15.1 (so more emoji)
 * General support for highlighting errors (underlined) in the editor. Currently implemented for:
   * All YAML fenced code blocks (and [[Frontmatter]]): will now highlight YAML parse errors
