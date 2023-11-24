@@ -87,7 +87,9 @@ async function actionClickOrActionEnter(
     }
     case "CommandLink": {
       const commandName = mdTree.children![1]!.children![0].text!;
-      await system.invokeCommand(commandName);
+      const argsNode = findNodeOfType(mdTree, "CommandLinkArgs");
+      const args = argsNode?.children![0]?.text?.split(",")?.map((e) => e.trim());
+      await system.invokeCommand(commandName, args);
       break;
     }
   }

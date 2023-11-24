@@ -9,8 +9,8 @@ export function invokeFunction(
 }
 
 // Only available on the client
-export function invokeCommand(name: string): Promise<any> {
-  return syscall("system.invokeCommand", name);
+export function invokeCommand(name: string, args?: string[]): Promise<any> {
+  return syscall("system.invokeCommand", name, args);
 }
 
 // Only available on the client

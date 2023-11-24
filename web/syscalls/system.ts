@@ -50,11 +50,11 @@ export function systemSyscalls(
       }
       return plug.invoke(name, args);
     },
-    "system.invokeCommand": (_ctx, name: string) => {
+    "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
         throw new Error("Not supported");
       }
-      return client.runCommandByName(name);
+      return client.runCommandByName(name, args);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
       if (!client) {
