@@ -88,7 +88,9 @@ async function actionClickOrActionEnter(
     case "CommandLink": {
       const commandName = mdTree.children![1]!.children![0].text!;
       const argsNode = findNodeOfType(mdTree, "CommandLinkArgs");
-      const args = argsNode?.children![0]?.text?.split(",")?.map((e) => e.trim());
+      const argsText = argsNode?.children![0]?.text;
+      // Assume the arguments are can be parsed as the innards of a valid JSON list
+      const args = argsText ? JSON.parse(`[${argsText}]`) : [];
       await system.invokeCommand(commandName, args);
       break;
     }
