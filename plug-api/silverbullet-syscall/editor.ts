@@ -56,7 +56,10 @@ export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);
 }
 
-export function uploadFile(accept?: string, capture?: string): Promise<UploadFile> {
+export function uploadFile(
+  accept?: string,
+  capture?: string,
+): Promise<UploadFile> {
   return syscall("editor.uploadFile", accept, capture);
 }
 
@@ -77,7 +80,7 @@ export function filterBox(
 }
 
 export function showPanel(
-  id: "lhs" | "rhs" | "bhs" | "modal" | "ps",
+  id: "lhs" | "rhs" | "bhs" | "modal" | "ps" | "preface",
   mode: number,
   html: string,
   script = "",
@@ -86,7 +89,7 @@ export function showPanel(
 }
 
 export function hidePanel(
-  id: "lhs" | "rhs" | "bhs" | "modal" | "ps",
+  id: "lhs" | "rhs" | "bhs" | "modal" | "ps" | "preface",
 ): Promise<void> {
   return syscall("editor.hidePanel", id);
 }

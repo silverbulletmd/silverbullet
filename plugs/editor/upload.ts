@@ -37,7 +37,7 @@ async function saveFile(file: UploadFile) {
     file.content,
   );
   let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
-  if (file.contentType.startsWith("image/")) {
+  if (file.contentType?.startsWith("image/")) {
     attachmentMarkdown = `![](${encodeURI(finalFileName)})`;
   }
   editor.insertAtCursor(attachmentMarkdown);
