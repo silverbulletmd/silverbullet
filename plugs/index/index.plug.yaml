@@ -175,6 +175,20 @@ functions:
   renderMentions:
     path: "./mentions_ps.ts:renderMentions"
 
+  # TOC
+  toggleTOC:
+    path: toc_preface.ts:toggleTOC
+    command:
+      name: "Table of Contents: Toggle"
+      key: ctrl-alt-t
+
+  renderTOC:
+    path: toc_preface.ts:renderTOC
+    env: client
+    events:
+    - plug:load
+    - editor:pageLoaded
+
   lintYAML:
     path: lint.ts:lintYAML
     events:

@@ -26,8 +26,13 @@ export async function updateMentions() {
 
 // use internal navigation via syscall to prevent reloading the full page.
 export async function navigate(ref: string) {
+  const currentPage = await editor.getCurrentPage();
   const [page, pos] = ref.split(/[@$]/);
-  await editor.navigate(page, +pos);
+  if (page === currentPage) {
+    await editor.moveCursor(+pos, true);
+  } else {
+    await editor.navigate(page, +pos);
+  }
 }
 
 function escapeHtml(unsafe: string) {

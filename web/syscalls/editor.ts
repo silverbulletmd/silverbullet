@@ -186,6 +186,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
           ],
         });
       }
+      editor.editorView.focus();
     },
     "editor.setSelection": (_ctx, from: number, to: number) => {
       editor.editorView.dispatch({

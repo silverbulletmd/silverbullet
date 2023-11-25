@@ -58,3 +58,19 @@ li code {
     font-size: 80%;
     color: #a5a4a4;
 }
+
+li.toc-header-1 {
+    margin-left: 0;
+}
+
+li.toc-header-2 {
+    margin-left: 2ch;
+}
+
+li.toc-header-3 {
+    margin-left: 4ch;
+}
+
+li.toc-header-4 {
+    margin-left: 6ch;
+}

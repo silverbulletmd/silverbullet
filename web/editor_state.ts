@@ -40,7 +40,7 @@ import {
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
 import { TextChange } from "$sb/lib/change.ts";
-import { postScriptPlugin } from "./cm_plugins/post_script.ts";
+import { postScriptPrefacePlugin } from "./cm_plugins/preface_ps.ts";
 import { languageFor } from "../common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 
@@ -144,7 +144,7 @@ export function createEditorState(
       plugLinter(client),
       // lintGutter(),
       //       gutters(),
-      postScriptPlugin(client),
+      postScriptPrefacePlugin(client),
       lineWrapper([
         { selector: "ATXHeading1", class: "sb-line-h1" },
         { selector: "ATXHeading2", class: "sb-line-h2" },

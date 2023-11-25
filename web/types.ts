@@ -91,6 +91,7 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
     ps: {},
+    preface: {},
   },
   allPages: [],
   commands: new Map(),
