@@ -1,12 +1,13 @@
 The idea of markdown is that you write plain text with some additional markup that even without further processing (like rendering it to HTML, or [[Live Preview]]) you could just read and understand. It was inspired by conventions used in plain-text e-mails, before e-mail supported rich formatting.
 
-### Basic markup
-So to write markdown, you just write text. But then to emphasize something you can add `_underscores_` around a phrase to make look _italic_, or `**asterisks**` to make it **bold**. You can also use `~~tildes~~` for ~~strikethrough~~ and `==double equals==` for ==highlighting==.
+# Basic markup
 
-### Links
+To write markdown, you just write text. But then to emphasize something you can add `_underscores_` around a phrase to make look _italic_, or `**asterisks**` to make it **bold**. You can also use `~~tildes~~` for ~~strikethrough~~ and `==double equals==` for ==highlighting==.
+
+# Links
 To add external links you use the `[site link](https://silverbullet.md)` syntax, which will appear as [site link](https://silverbullet.md). If you want to link to other pages in your space you use the `[[wiki link syntax]]`, e.g. [[SilverBullet]]. To change the link text you can use the `[[SilverBullet|best PKM evah]]` syntax: [[SilverBullet|best PKM evah]].
 
-## Lists and tasks
+# Lists and tasks
 You can create three types of lists:
 
 Unordered lists are created by prefixing a line with `*` or `-`. For instance:
@@ -32,16 +33,16 @@ When you click the checkbox, it will toggle its state and replace the ` ` inside
 * [DONE] This task is done
 * [TO DO] This task is still to be done
 
-## Headers
+# Headers
 Markdown supports various levels of headings, which generally are created by prefixing a line with one or more `#`. The more `#`‘s the deeper the header nesting. 
 
-## Quotes
+# Quotes
 You can use block quotes by prefixing lines with `>`:
 
 > “If you don’t know where you’re going, you may not get there.”
 > — Yogi Berra
 
-## Code
+# Code
 For the programmers among us, there’s three ways to mark up code. If you want to write some code inline, you can use backticks: `this is code`. For long code snippets you can either use a four-space indent:
 
     This is code

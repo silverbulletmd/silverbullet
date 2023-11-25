@@ -1,6 +1,6 @@
 Live Queries enable a (quasi) live view on various data sources, usually [[Objects]], and renders their results inline via [[Live Preview]] either as a template, or using [[Templates]].
 
-## Syntax
+# Syntax
 The syntax of live queries are inspired by [SQL](https://en.wikipedia.org/wiki/SQL). Below is a query that demonstrates some of the supported clauses, hover over the result and click the edit icon to shows the code that generates the view:
 ```query
 page
@@ -16,7 +16,7 @@ For those comfortable reading such things [here you can find the full query gram
 
 The general syntax is to specify a `querySource` followed by a number of clauses that modify or restrict. If you haven’t already, check out how [[Objects]] work in SilverBullet.
 
-## Clauses
+# Clauses
 ## `where` [[@expression]]
 A `where` clause filters out all objects that do not match a certain condition. You can have multiple `where` clauses if you like, which will have the same effect as combining them with the `and` keyword.
 
@@ -47,7 +47,7 @@ To limit the number of results, you can use a `limit` clause:
 ```query
 person where page = "{{@page.name}}" limit 1
 ```
-### `select`
+## `select`
 To select only specific attributes from the result set, you can use the `select` clause. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name via the `select age + 1 as nextYear` syntax:
 
 ```query
@@ -55,7 +55,8 @@ person
 where page = "{{@page.name}}"
 select name, age, age + 1 as nextYear
 ```
-### `render each [[template]]` and `render all [[template]]`
+
+## `render each [[template]]` and `render all [[template]]`
 $render
 By default results are rendered as a table, to instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
 
@@ -72,9 +73,7 @@ person
 where page = "{{@page.name}}"
 render all [[template/people]]
 ```
-
-
-## Expressions
+# Expressions
 $expression
 
 Primitives:

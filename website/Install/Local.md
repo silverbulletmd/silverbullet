@@ -130,7 +130,7 @@ To build your own version of the docker image, run `./scripts/build_docker.sh`.
 # Configuration
 SilverBullet is partially configured via flags (run it with `--help`) or alternatively via environment variables and partially via a [[SETTINGS]] page in your space.
 
-# Environment variables
+## Environment variables
 $env
 You can configure SB with environment variables instead of flags, which is probably what you want to do in a docker setup. The following environment variables are supported:
 
@@ -139,4 +139,4 @@ You can configure SB with environment variables instead of flags, which is proba
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
 * `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
 * `SB_AUTH`: Loads an [[Authentication]] database from a (JSON encoded) string, e.g. `SB_AUTH=$(cat /path/to/.auth.json)`
-* `SB_SYNC_ONLY`: Runs the server in a "dumb" space store only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`
+* `SB_SYNC_ONLY`: Runs the server in a "dumb" space store only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`. This will disable the Online [[Client Modes]] altogether (and not even show the sync icon in the top bar). Conceptually, [silverbullet.md](https://silverbullet.md) runs in this mode.

@@ -105,6 +105,8 @@ link where page = "{{@page.name}}" select toPage as name render [[template/page]
 ```
 The sky is the limit. See [[Objects]] and [[Live Queries]] for more information.
 
+For additional productivity boosts, have a look at SilverBullet’s [[Templates]] functionality.
+
 # Install SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to [[Install]] and enjoy!
 
