@@ -8,7 +8,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
     * [[Live Templates]]
 * [[Anchors]]
 * Hashtags, e.g. `#mytag`.
-* Command link syntax: `{[Stats: Show]}` rendered into a clickable button {[Stats: Show]}.
+* [[Markdown/Command links]] syntax
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)
 * [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)

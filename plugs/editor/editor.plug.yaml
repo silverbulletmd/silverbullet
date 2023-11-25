@@ -226,3 +226,10 @@ functions:
     path: ./upload.ts:uploadFile
     command:
       name: "Upload: File"
+
+  customFlashMessage:
+    path: editor.ts:customFlashMessage
+    command:
+      name: "Flash: Custom Message"
+      contexts:
+      - internal

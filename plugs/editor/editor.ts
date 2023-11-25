@@ -50,3 +50,7 @@ export async function moveToPosCommand() {
   const pos = +posString;
   await editor.moveCursor(pos);
 }
+
+export async function customFlashMessage(_ctx: any, message: string) {
+  await editor.flashNotification(message);
+}
