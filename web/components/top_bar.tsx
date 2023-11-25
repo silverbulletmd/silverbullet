@@ -30,6 +30,7 @@ export function TopBar({
   progressPerc,
   completer,
   lhs,
+  onClick,
   rhs,
 }: {
   pageName?: string;
@@ -41,6 +42,7 @@ export function TopBar({
   vimMode: boolean;
   progressPerc?: number;
   onRename: (newName?: string) => Promise<void>;
+  onClick: () => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
@@ -77,7 +79,11 @@ export function TopBar({
   }, []);
 
   return (
-    <div id="sb-top" className={syncFailures > 1 ? "sb-sync-error" : undefined}>
+    <div
+      id="sb-top"
+      className={syncFailures > 1 ? "sb-sync-error" : undefined}
+      onClick={onClick}
+    >
       {lhs}
       <div className="main">
         <div className="inner">

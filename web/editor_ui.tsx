@@ -187,6 +187,9 @@ export class MainUI {
           darkMode={viewState.uiOptions.darkMode}
           progressPerc={viewState.progressPerc}
           completer={editor.miniEditorComplete.bind(editor)}
+          onClick={() => {
+            editor.editorView.scrollDOM.scrollTop = 0;
+          }}
           onRename={async (newName) => {
             if (!newName) {
               // Always move cursor to the start of the page
