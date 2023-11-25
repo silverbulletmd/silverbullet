@@ -26,11 +26,9 @@ class IFrameWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const height = this.editor.space.getCachedWidgetHeight(
+    return this.editor.space.getCachedWidgetHeight(
       this.widgetHeightCacheKey,
     );
-    console.log("GOt height", height);
-    return height;
   }
 
   eq(other: WidgetType): boolean {
