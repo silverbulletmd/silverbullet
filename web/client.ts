@@ -191,6 +191,17 @@ export class Client {
         console.warn("Not authenticated, redirecting to auth page");
         return;
       }
+      if (e.message.includes("Offline") && !this.syncMode) {
+        // Offline and not in sync mode, this is not going to fly.
+        this.flashNotification(
+          "Could not reach remote server, going to reload in a few seconds",
+          "error",
+        );
+        setTimeout(() => {
+          location.reload();
+        }, 5000);
+        throw e;
+      }
       console.warn(
         "Could not reach remote server, we're offline or the server is down",
         e,
@@ -433,7 +444,7 @@ export class Client {
 
     try {
       settingsText = (await this.space.readPage("SETTINGS")).text;
-    } catch (e) {
+    } catch (e: any) {
       console.info("No SETTINGS page, falling back to default", e);
       settingsText = '```yaml\nindexPage: "[[index]]"\n```\n';
     }

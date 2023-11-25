@@ -167,7 +167,6 @@ functions:
     path: "./mentions_ps.ts:updateMentions"
     env: client
     events:
-      - plug:load
       - editor:pageLoaded
   navigateToMention:
     path: "./mentions_ps.ts:navigate"
@@ -186,7 +185,6 @@ functions:
     path: toc_preface.ts:renderTOC
     env: client
     events:
-    - plug:load
     - editor:pageLoaded
 
   lintYAML:

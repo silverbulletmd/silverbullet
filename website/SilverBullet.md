@@ -2,14 +2,16 @@ SilverBullet aims to be your **workshop for the mind**: a creative [[Space]] whe
 
 While you _can_ use SilverBullet as a simple note taking application that stores notes in plain [[Markdown]] files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful _end-user programming tool_, enabling you to quickly develop various types of ad-hoc knowledge applications.
 
-SilverBullet is implemented as an open-source, self-hosted, offline-capable web application.
+SilverBullet is implemented as an _open-source_, _self-hosted_, _offline-capable_ web application (PWA).
 
-You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
+You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
 
-## Quick links
+You were told wrong.
+
+# Quick links
 * [[Install]]: how to install and deploy SilverBullet
 * [[Manual]]: the beginnings of a user manual
-* [[CHANGELOG]]: SilverBullet is in very active development, so things change rapidly. Watch this to see what’s new and changed.
+* [[CHANGELOG]]: SilverBullet is in active development, so things change rapidly. Watch this to see what’s new and changed.
 * Development:
   * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities
   * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them
@@ -18,7 +20,7 @@ You’ve been told there is _no such thing_ as a [silver bullet](https://en.wiki
   * [Mastodon](https://fosstodon.org/@silverbulletmd): Follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
   * [Discord](https://discord.gg/EvXbFucTxn): For more real-time support and discussion, join our Discord!
 
-## Features
+# Features
 So, what does this thing do anyway?
 
 SilverBullet...
@@ -39,7 +41,7 @@ To get a good feel of what SilverBullet is capable of, have a look at this (slig
 ```embed
 url: https://youtu.be/BbNbZgOwB-Y
 ```
-## Try it
+# Try it
 Here’s the kicker:
 
 ==You are looking at a (more or less) operational copy of SilverBullet **right now**==.
@@ -85,7 +87,7 @@ name: SilverBullet
 rating: 5
 ```
 
-## Going deeper
+# Advanced features
 Where things get _really_ interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Space]]. 
 
 Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[🔌 Plugs|plug]] are tagged with the `#plug` tag. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this:
@@ -103,13 +105,10 @@ link where page = "{{@page.name}}" select toPage as name render [[template/page]
 ```
 The sky is the limit. See [[Objects]] and [[Live Queries]] for more information.
 
-## Install SilverBullet
+# Install SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to [[Install]] and enjoy!
 
-## Where to go from here
-Have a lock at our work-in-progress [[Manual]].
-
-## Support
+# Support
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
 
 Want to chat with us? [Join our Discord](https://discord.gg/EvXbFucTxn)!

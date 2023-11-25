@@ -11,6 +11,7 @@ release.
   * [[Live Queries]]: will highlight non-existing query sources and non-existing template references in `render` clauses
 * Basic [[Table of Contents]] support: any page _with 3 headers or more_, now has a “Table of Contents” widget appear (see this very page). You can toggle this feature using the {[Table of Contents: Toggle]} command.
 * Tapping/clicking the top bar (outside of the page name and action buttons) now scrolls your page to the very top.
+* Slightly more gracious error reporting on load, when using the Online [[Client Modes]] and the server is offline.
 
 ---
 ## 0.5.6
