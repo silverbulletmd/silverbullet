@@ -43,7 +43,7 @@ async function saveFile(file: UploadFile) {
   editor.insertAtCursor(attachmentMarkdown);
 }
 
-export async function uploadFile() {
-  const uploadFile = await editor.uploadFile();
+export async function uploadFile(_ctx: any, accept?: string, capture?: string) {
+  const uploadFile = await editor.uploadFile(accept, capture);
   await saveFile(uploadFile);
 }

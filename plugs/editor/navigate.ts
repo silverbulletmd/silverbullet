@@ -87,7 +87,15 @@ async function actionClickOrActionEnter(
     }
     case "CommandLink": {
       const commandName = mdTree.children![1]!.children![0].text!;
-      await system.invokeCommand(commandName);
+      const argsNode = findNodeOfType(mdTree, "CommandLinkArgs");
+      const argsText = argsNode?.children![0]?.text;
+      // Assume the arguments are can be parsed as the innards of a valid JSON list
+      try {
+        const args = argsText ? JSON.parse(`[${argsText}]`) : [];
+        await system.invokeCommand(commandName, args);
+      } catch(e: any) {
+        await editor.flashNotification(`Error parsing command link arguments: ${e.message}`, "error");
+      }
       break;
     }
   }

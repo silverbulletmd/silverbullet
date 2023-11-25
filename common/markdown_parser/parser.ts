@@ -68,13 +68,14 @@ const WikiLink: MarkdownConfig = {
   ],
 };
 
-export const commandLinkRegex = /^\{\[([^\]\|]+)(\|([^\]]+))?\]\}/;
+export const commandLinkRegex =  /^\{\[([^\]\|]+)(\|([^\]]+))?\](\(([^\)]+)\))?\}/;
 
 const CommandLink: MarkdownConfig = {
   defineNodes: [
     { name: "CommandLink", style: { "CommandLink/...": ct.CommandLinkTag } },
     { name: "CommandLinkName", style: ct.CommandLinkNameTag },
     { name: "CommandLinkAlias", style: ct.CommandLinkNameTag },
+    { name: "CommandLinkArgs", style: ct.CommandLinkArgsTag },
     { name: "CommandLinkMark", style: t.processingInstruction },
   ],
   parseInline: [
@@ -88,7 +89,7 @@ const CommandLink: MarkdownConfig = {
         ) {
           return -1;
         }
-        const [fullMatch, command, pipePart, label] = match;
+        const [fullMatch, command, pipePart, label, argsPart, args] = match;
         const endPos = pos + fullMatch.length;
 
         let aliasElts: any[] = [];
@@ -103,11 +104,26 @@ const CommandLink: MarkdownConfig = {
             ),
           ];
         }
+
+        let argsElts: any[] = [];
+        if (argsPart) {
+          const argsStartPos = pos + 2 + command.length + (pipePart?.length ?? 0);
+          argsElts = [
+            cx.elt("CommandLinkMark", argsStartPos, argsStartPos + 2),
+            cx.elt(
+              "CommandLinkArgs",
+              argsStartPos + 2,
+              argsStartPos + 2 + args.length,
+            ),
+          ];
+        }
+
         return cx.addElement(
           cx.elt("CommandLink", pos, endPos, [
             cx.elt("CommandLinkMark", pos, pos + 2),
             cx.elt("CommandLinkName", pos + 2, pos + 2 + command.length),
             ...aliasElts,
+            ...argsElts,
             cx.elt("CommandLinkMark", endPos - 2, endPos),
           ]),
         );

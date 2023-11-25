@@ -879,10 +879,14 @@ export class Client {
     }
   }
 
-  async runCommandByName(name: string) {
+  async runCommandByName(name: string, args?: string[]) {
     const cmd = this.ui.viewState.commands.get(name);
     if (cmd) {
-      await cmd.run();
+      if (args) {
+        await cmd.run(args);
+      } else {
+        await cmd.run();
+      }
     } else {
       throw new Error(`Command ${name} not found`);
     }

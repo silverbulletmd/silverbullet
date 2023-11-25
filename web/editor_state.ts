@@ -63,7 +63,7 @@ export function createEditorState(
               return false;
             }
           }
-          Promise.resolve()
+          Promise.resolve([])
             .then(def.run)
             .catch((e: any) => {
               console.error(e);

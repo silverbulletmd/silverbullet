@@ -121,3 +121,40 @@ Deno.test("Test multi-status tasks", () => {
   assertEquals(tasks[1].children![0].children![1].text, "x");
   assertEquals(tasks[2].children![0].children![1].text, "TODO");
 });
+
+const commandLinkSample = `
+{[Some: Command]}
+{[Other: Command|Alias]}
+{[Command: Space | Spaces ]}
+`;
+
+Deno.test("Test command links", () => {
+  const lang = buildMarkdown([]);
+  const tree = parse(lang, commandLinkSample);
+  const commands = collectNodesOfType(tree, "CommandLink");
+  console.log("Command links parsed", JSON.stringify(commands, null, 2));
+  assertEquals(commands.length, 3);
+  assertEquals(commands[0].children![1].children![0].text, "Some: Command");
+  assertEquals(commands[1].children![1].children![0].text, "Other: Command");
+  assertEquals(commands[1].children![3].children![0].text, "Alias");
+  assertEquals(commands[2].children![1].children![0].text, "Command: Space ");
+  assertEquals(commands[2].children![3].children![0].text, " Spaces ");
+});
+
+const commandLinkArgsSample = `
+{[Args: Command]("with", "args")}
+{[Othargs: Command|Args alias]("other", "args", 123)}
+`;
+
+Deno.test("Test command link arguments", () => {
+  const lang = buildMarkdown([]);
+  const tree = parse(lang, commandLinkArgsSample);
+  const commands = collectNodesOfType(tree, "CommandLink");
+  assertEquals(commands.length, 2);
+
+  const args1 = findNodeOfType(commands[0], "CommandLinkArgs")
+  assertEquals(args1!.children![0].text, '"with", "args"');
+
+  const args2 = findNodeOfType(commands[1], "CommandLinkArgs")
+  assertEquals(args2!.children![0].text, '"other", "args", 123');
+});
