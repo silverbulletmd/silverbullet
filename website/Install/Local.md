@@ -139,4 +139,4 @@ You can configure SB with environment variables instead of flags, which is proba
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
 * `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
 * `SB_AUTH`: Loads an [[Authentication]] database from a (JSON encoded) string, e.g. `SB_AUTH=$(cat /path/to/.auth.json)`
-* `SB_SYNC_ONLY`: Runs the server in a "dumb" space store only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`. This will disable the Online [[Client Modes]] altogether (and not even show the sync icon in the top bar). Conceptually, [silverbullet.md](https://silverbullet.md) runs in this mode.
+* `SB_SYNC_ONLY`: Runs the server in a "dumb" space store-only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`. This will disable the Online [[Client Modes]] altogether (and not even show the sync icon in the top bar). Conceptually, [silverbullet.md](https://silverbullet.md) runs in this mode.

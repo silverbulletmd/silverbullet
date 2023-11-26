@@ -17,7 +17,7 @@ Unordered lists are created by prefixing a line with `*` or `-`. For instance:
 
 Since this tool is called SilverBullet, we prefer you to use the `*` bullet (which will even appear in _silver_ — clever huh?).
 
-Ordered lists are created by simply putting a number follow by a period at the beginning of a line:
+Ordered lists are created by simply putting a number followed by a period at the beginning of a line:
 
 1. This is the first item
 2. This is the second item
@@ -43,12 +43,12 @@ You can use block quotes by prefixing lines with `>`:
 > — Yogi Berra
 
 # Code
-For the programmers among us, there’s three ways to mark up code. If you want to write some code inline, you can use backticks: `this is code`. For long code snippets you can either use a four-space indent:
+For the programmers among us, there are three ways to mark up code. If you want to write some code inline, you can use backticks: `this is code`. For long code snippets, you can either use a four-space indent:
 
     This is code
     And another line
 
-Or (preferably) the triple-back tick notation, which also allows you to (optionally) specify a coding language:
+or (preferably) the triple-back tick notation, which also allows you to (optionally) specify a coding language:
 
 ```javascript
 function hello() {
