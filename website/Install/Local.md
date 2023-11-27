@@ -67,9 +67,9 @@ There is a [docker image on docker hub](https://hub.docker.com/r/zefhemel/silver
 There is no 32-bit version of Deno, and therefore we cannot offer a 32-bit version of SilverBullet either. Most people run 64-bit OSes these days, an exception may be Raspberry Pis. Recent (RPI 3 and later) can run 64-bit Linux as well, you may have to re-image, though.
 
 A few key things to note on the SilverBullet container:
-* The container binds to port `3000`, so be sure to export that, e.g. via `-p 3000:3000`
+* The container binds to port `3000`, so be sure to export that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
 * The container uses whatever is volume-mapped to `/space` as the space root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/space:/space`
-* SilverBullet runs under Linux user id (uid) `1000` and group id (gid) `1000` inside the container. Conveniently, in most Linux distros this is the UID of the first non-root user you create. However, make sure that the space folder you mount into the container is _owned by uid 1000_. You can ensure this using: `chown -R 1000:1000 /path/to/space/folder`. 
+* SilverBullet will, conveniently, detect the UNIX owner (UID and GID) of the folder mapped into `/space` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables.
 
 To boot up the container:
 
@@ -89,11 +89,11 @@ docker run -p 3000:3000 -v myspace:/space -d -e SB_USER=me:letmein zefhemel/silv
 You can upgrade your image simply by pulling a new version of the image using `docker pull zefhemel/silverbullet`. However, it is recommended you use a tool like [watchtower](https://github.com/containrrr/watchtower) to automatically update your docker images and restart them.
 
 ## Docker compose
-Here is a simple `docker-compose.yml` that runs SilverBullet as well as [watchtower](https://github.com/containrrr/watchtower), which will check for new SilverBullet upgrades daily (the default) and upgrade automatically.
+Here is a simple `compose.yml` that runs SilverBullet as well as [watchtower](https://github.com/containrrr/watchtower), which will check for new SilverBullet upgrades daily (the default) and upgrade automatically.
 
 Instructions:
 * Please replace the password defined in `SB_USER` with something sensible such as `admin:b3stp4ssword3vah`
-* This volume uses the `notes` directory (that presumably exists) in the same directory as the `docker-compose.yml` file as the place where SB will keep its space. This folder is owned by UID 1000.
+* This volume uses the `notes` directory (that presumably exists) in the same directory as the `compose.yml` file as the place where SB will keep its space.
 
 ```yaml
 services:
@@ -134,6 +134,8 @@ SilverBullet is partially configured via flags (run it with `--help`) or alterna
 $env
 You can configure SB with environment variables instead of flags, which is probably what you want to do in a docker setup. The following environment variables are supported:
 
+* `PID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
+* `GID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)
 * `SB_USER`: Sets single-user credentials (like `--user`), e.g. `SB_USER=pete:1234`
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
