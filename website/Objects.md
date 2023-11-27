@@ -91,7 +91,7 @@ quote where tags = "item" select name, by
 
 ## paragraph
 $paragraph
-Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added usin [[Tags]].
+Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added using [[Tags]].
 
 A paragraph with a #paragraph-tag.
 
@@ -125,7 +125,7 @@ In addition, the `snippet` attribute attempts to capture a little bit of context
 
 _Note_: this is the data source used for the {[Mentions: Toggle]} feature as well page {[Page: Rename]}.
 
-Here is an query that shows all links that appear in this particular page:
+Here is a query that shows all links that appear in this particular page:
 
 ```query
 link where page = "{{@page.name}}" and inDirective = false 

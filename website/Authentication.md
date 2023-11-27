@@ -12,7 +12,7 @@ silverbullet --user pete:1234 .
 Will let `pete` authenticate with password `1234`. 
 
 ## Multiple users
-Although multi-user support is still rudimentary, it is possible to have multiple users authenticate. These users can be configured using an JSON authentication file that SB can generate for you. It is usually named `.auth.json`. 
+Although multi-user support is still rudimentary, it is possible to have multiple users authenticate. These users can be configured using a JSON authentication file that SB can generate for you. It is usually named `.auth.json`. 
 
 You can enable authentication as follows:
 
@@ -20,7 +20,7 @@ You can enable authentication as follows:
 silverbullet --auth /path/to/.auth.json
 ```
 
-To create and manage an `.auth.json` file you can use the following commands:
+To create and manage an `.auth.json` file, you can use the following commands:
 
 * `silverbullet user:add --auth /path/to/.auth.json [username]` to add a user
 * `silverbullet user:delete --auth /path/to/.auth.json [username]` to delete a user
@@ -31,7 +31,7 @@ If the `.auth.json` file does not yet exist, it will be created.
 When SB is run with a `--auth` flag, this fill will automatically be reloaded upon change.
 
 ### Group management
-While this functionality is not yet used, users can also be added to groups, which can be arbitrarily named. Likely the `admin` group will have special meaning down the line. 
+While this functionality is not yet used, users can also be added to groups which can be arbitrarily named. The `admin` group will likely have a special meaning down the line. 
 
 When adding a user, you can add one more `-G` or `--group` flags:
 
