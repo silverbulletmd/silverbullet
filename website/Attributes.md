@@ -1,4 +1,4 @@
-Attribute syntax can contribute additional [[Metadata]] to various [[Objects]] including:
+Attribute syntax can contribute additional [[Metadata]] to various [[Objects]], including:
 
 * Pages
 * Items
@@ -13,7 +13,7 @@ The syntax is as follows:
 
 For Obsidian/LogSeq compatibility, you can also double the colon like this: `[attributeName:: value]`
  
-Attribute names need to be alpha numeric. Values are interpreted as [[YAML]] values. So here are some examples of valid attribute definitions:
+Attribute names need to be alpha-numeric. Values are interpreted as [[YAML]] values. So here are some examples of valid attribute definitions:
 
 * string: [attribute1: sup]
 * number: [attribute2: 10]
@@ -28,7 +28,7 @@ Depending on where these attributes appear, they attach to different things. For
 
 [pageAttribute: hello]
 
-However, usually [[Frontmatter]] is be used for this purpose instead.
+However, usually, [[Frontmatter]] is used for this purpose instead.
 
 Example query:
 
