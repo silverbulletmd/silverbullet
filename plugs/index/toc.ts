@@ -1,5 +1,10 @@
-import { clientStore, editor, markdown } from "$sb/silverbullet-syscall/mod.ts";
-import { renderToText, traverseTree } from "$sb/lib/tree.ts";
+import {
+  clientStore,
+  editor,
+  markdown,
+  system,
+} from "$sb/silverbullet-syscall/mod.ts";
+import { renderToText, traverseTree, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { asset } from "$sb/syscalls.ts";
 
 const hideTOCKey = "hideTOC";
@@ -21,18 +26,24 @@ export async function toggleTOC() {
   await renderTOC(); // This will hide it if needed
 }
 
+async function markdownToHtml(text: string): Promise<string> {
+  return system.invokeFunction("markdown.markdownToHtml", text);
+}
+
 export async function renderTOC(reload = false) {
   if (await clientStore.get(hideTOCKey)) {
-    return editor.hidePanel("preface");
+    return editor.hidePanel("top");
   }
   const page = await editor.getCurrentPage();
   const text = await editor.getText();
   const tree = await markdown.parseMarkdown(text);
   const headers: Header[] = [];
-  traverseTree(tree, (n) => {
+  await traverseTreeAsync(tree, async (n) => {
     if (n.type?.startsWith("ATXHeading")) {
       headers.push({
-        name: n.children!.slice(1).map(renderToText).join("").trim(),
+        name: await markdownToHtml(
+          n.children!.slice(1).map(renderToText).join("").trim(),
+        ),
         pos: n.from!,
         level: +n.type[n.type.length - 1],
       });
@@ -49,20 +60,14 @@ export async function renderTOC(reload = false) {
   cachedTOC = JSON.stringify(headers);
   if (headers.length < headerThreshold) {
     console.log("Not enough headers, not showing TOC", headers.length);
-    await editor.hidePanel("preface");
+    await editor.hidePanel("top");
     return;
-  }
-  let tocMarkdown = "";
-  for (const header of headers) {
-    tocMarkdown += `${
-      " ".repeat(3 * (header.level - 1))
-    }* [${header.name}](/${page}@${header.pos})\n`;
   }
   const css = await asset.readAsset("asset/style.css");
   const js = await asset.readAsset("asset/toc.js");
 
   await editor.showPanel(
-    "preface",
+    "top",
     1,
     ` <style>${css}</style>
       <div id="sb-main"><div id="sb-editor"><div class="cm-editor">

@@ -12,7 +12,7 @@ export async function toggleMentions() {
   if (!hideMentions) {
     await renderMentions();
   } else {
-    await editor.hidePanel("ps");
+    await editor.hidePanel("bottom");
   }
 }
 
@@ -53,13 +53,13 @@ export async function renderMentions() {
   });
   if (linksResult.length === 0) {
     // Don't show the panel if there are no links here.
-    await editor.hidePanel("ps");
+    await editor.hidePanel("bottom");
   } else {
     const css = await asset.readAsset("asset/style.css");
     const js = await asset.readAsset("asset/linked_mentions.js");
 
     await editor.showPanel(
-      "ps",
+      "bottom",
       1,
       ` <style>${css}</style>
         <div id="sb-main"><div id="sb-editor"><div class="cm-editor">

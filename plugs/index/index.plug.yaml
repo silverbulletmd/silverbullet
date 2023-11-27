@@ -176,13 +176,13 @@ functions:
 
   # TOC
   toggleTOC:
-    path: toc_preface.ts:toggleTOC
+    path: toc.ts:toggleTOC
     command:
       name: "Table of Contents: Toggle"
       key: ctrl-alt-t
 
   renderTOC:
-    path: toc_preface.ts:renderTOC
+    path: toc.ts:renderTOC
     env: client
     events:
     - editor:pageLoaded

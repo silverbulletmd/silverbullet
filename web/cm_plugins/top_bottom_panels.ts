@@ -42,26 +42,26 @@ class IFrameWidget extends WidgetType {
 export function postScriptPrefacePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
-    if (editor.ui.viewState.panels.preface.html) {
+    if (editor.ui.viewState.panels.top.html) {
       widgets.push(
         Decoration.widget({
           widget: new IFrameWidget(
             editor,
-            editor.ui.viewState.panels.preface,
-            "sb-preface-iframe",
+            editor.ui.viewState.panels.top,
+            "sb-top-iframe",
           ),
           side: -1,
           block: true,
         }).range(0),
       );
     }
-    if (editor.ui.viewState.panels.ps.html) {
+    if (editor.ui.viewState.panels.bottom.html) {
       widgets.push(
         Decoration.widget({
           widget: new IFrameWidget(
             editor,
-            editor.ui.viewState.panels.ps,
-            "sb-ps-iframe",
+            editor.ui.viewState.panels.bottom,
+            "sb-bottom-iframe",
           ),
           side: 1,
           block: true,
