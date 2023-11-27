@@ -1,25 +1,27 @@
-#!/bin/bash
+#!/bin/bash -e
 
-# Check if UID and GID are passed as environment variables
-if [ -z "$UID" ]; then
+# Check if UID and GID are passed as environment variables, if not, extract from the space folder owner
+if [ -z "$PUID" ]; then
     # Get the UID of the folder owner
-    UID=$(stat -c "%u" "$SB_FOLDER")
+    PUID=$(stat -c "%u" "$SB_FOLDER")
+    echo "Will run SilverBullet with UID $PUID, inferred from the owner of $SB_FOLDER (set PUID environment variable to override)"
 fi
-
-if [ -z "$GID" ]; then
+if [ -z "$PGID" ]; then
     # Get the GID of the folder owner
-    GID=$(stat -c "%g" "$SB_FOLDER")
+    PGID=$(stat -c "%g" "$SB_FOLDER")
 fi
 
-echo "Doing this as $UID, $GID"
-
-ls -l /space
-
-if [ "$UID" -eq 0 ]; then
-    # If the UID is 0, the user is root
+if [ "$PUID" -eq "0" ]; then
+    echo "Will run SilverBullet as root"
     deno run -A --unstable /silverbullet.js $@
-    exit
 else
-    useradd -M -u $UID -g $GID silverbullet
-    su silverbullet -s /bin/bash -c "deno run -A --unstable /silverbullet.js $@"
+    # Create silverbullet user and group ad-hoc mapped to PUID and PGID
+    groupadd -g $PGID silverbullet
+    useradd -M -u $PUID -g $PGID silverbullet
+    # And make sure /deno-dir (Deno cache) is accessible
+    chown -R $PUID:$PGID /deno-dir
+    # And run via su as the newly mapped 'silverbullet' user
+    args="$@"
+    su silverbullet -s /bin/bash -c "deno run -A --unstable /silverbullet.js $args"
 fi
+
