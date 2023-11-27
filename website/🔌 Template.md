@@ -72,7 +72,7 @@ with a 🗓️ emoji by default, but this is configurable via the `weeklyNotePre
 The {[Quick Note]} command will navigate to an empty page named with the current date and time prefixed with a 📥 emoji, but this is configurable via the `quickNotePrefix` in `SETTINGS`. The use case is to take a quick note outside of your current context.
 
 ## Built-in slash commands
-* `/front-matter`: Insert [[Frontmatter]]
+* `/frontmatter`: Insert [[Frontmatter]]
 * `/h1` - `/h4`: turn the current line into a header
 * `/code`: insert a fenced code block
 * `/hr`: insert a horizontal rule

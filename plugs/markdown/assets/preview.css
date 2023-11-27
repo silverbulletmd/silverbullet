@@ -1,5 +1,5 @@
 body {
-  font-family: georgia,times,serif;
+  font-family: georgia, times, serif;
   font-size: 14pt;
   max-width: 800px;
   margin-left: auto;
@@ -12,15 +12,6 @@ img {
   max-width: 100%;
 }
 
-table.front-matter {
-  border: 1px solid #555;
-  font-size: 75%;
-}
-
-table.front-matter .key {
-  font-weight: bold;
-}
-
 table {
   width: 100%;
   border-spacing: 0;
@@ -31,16 +22,17 @@ ul li p {
 }
 
 thead tr {
-    background-color: #333;
-    color: #eee;
+  background-color: #333;
+  color: #eee;
 }
 
-th, td {
-    padding: 8px;
+th,
+td {
+  padding: 8px;
 }
 
 tbody tr:nth-of-type(even) {
-    background-color: #f3f3f3;
+  background-color: #f3f3f3;
 }
 
 a[href] {
@@ -54,16 +46,16 @@ blockquote {
 }
 
 hr {
-    margin: 1em 0 1em 0;
-    text-align: center;
-    border-color: #777;
-    border-width: 0;
-    border-style: dotted;
+  margin: 1em 0 1em 0;
+  text-align: center;
+  border-color: #777;
+  border-width: 0;
+  border-style: dotted;
 }
 
 hr:after {
-    content: "···";
-    letter-spacing: 1em;
+  content: "···";
+  letter-spacing: 1em;
 }
 
 span.highlight {

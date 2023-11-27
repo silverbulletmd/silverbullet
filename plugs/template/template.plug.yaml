@@ -29,8 +29,8 @@ functions:
   insertFrontMatter:
     redirect: insertTemplateText
     slashCommand:
-      name: front-matter
-      description: Insert page front matter
+      name: frontmatter
+      description: Insert page frontmatter
       value: |
         ---
         |^|
