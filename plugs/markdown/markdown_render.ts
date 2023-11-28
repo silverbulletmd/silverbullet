@@ -3,6 +3,7 @@ import {
   collectNodesOfType,
   findNodeOfType,
   ParseTree,
+  removeParentPointers,
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
@@ -414,15 +415,20 @@ function render(
         body: t.children![0].text!.slice(1),
       };
     }
+    case "Entity":
+      return t.children![0].text!;
+
     // Text
     case undefined:
       return t.text!;
     default:
       if (options.failOnUnknown) {
+        removeParentPointers(t);
         console.error("Not handling", JSON.stringify(t, null, 2));
         throw new Error(`Unknown markdown node type ${t.type}`);
       } else {
         // Falling back to rendering verbatim
+        removeParentPointers(t);
         console.warn("Not handling", JSON.stringify(t, null, 2));
         return renderToText(t);
       }
