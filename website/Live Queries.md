@@ -1,7 +1,7 @@
-Live Queries enable a (quasi) live view on various data sources, usually [[Objects]], and renders their results inline via [[Live Preview]] either as a template, or using [[Templates]].
+Live Queries enable a (quasi) live view on various data sources, usually [[Objects]], and renders their results inline via [[Live Preview]] either as a template or using [[Templates]].
 
 # Syntax
-The syntax of live queries are inspired by [SQL](https://en.wikipedia.org/wiki/SQL). Below is a query that demonstrates some of the supported clauses, hover over the result and click the edit icon to shows the code that generates the view:
+The syntax of live queries is inspired by [SQL](https://en.wikipedia.org/wiki/SQL). Below is a query that demonstrates some of the supported clauses. Hover over the result and click the edit icon to show the code that generates the view:
 ```query
 page
 order by lastModified desc
@@ -12,7 +12,7 @@ render [[template/page]]
 ```
 It’s most convenient to use `/query` [[Slash Commands]] to insert a query in a page.
 
-For those comfortable reading such things [here you can find the full query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
+For those comfortable reading such things, [here you can find the full query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
 
 The general syntax is to specify a `querySource` followed by a number of clauses that modify or restrict. If you haven’t already, check out how [[Objects]] work in SilverBullet.
 
@@ -36,7 +36,7 @@ To query all `person`s that are above age 21, we can use the following `where` c
 person where page = "{{@page.name}}" and age > 21
 ```
 ## `order by` [[@expression]]
-In order to sort results, a `order by` clause can be used, optionally with `desc` to order in descending order (ascending is the default):
+To sort results, an `order by` clause can be used, optionally with `desc` to order in descending order (ascending is the default):
 
 ```query
 person where page = "{{@page.name}}" order by age desc
@@ -48,7 +48,7 @@ To limit the number of results, you can use a `limit` clause:
 person where page = "{{@page.name}}" limit 1
 ```
 ## `select`
-To select only specific attributes from the result set, you can use the `select` clause. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name via the `select age + 1 as nextYear` syntax:
+You can use the `select` clause to select only specific attributes from the result set. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name via the `select age + 1 as nextYear` syntax:
 
 ```query
 person
@@ -58,7 +58,7 @@ select name, age, age + 1 as nextYear
 
 ## `render each [[template]]` and `render all [[template]]`
 $render
-By default results are rendered as a table, to instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
+By default, results are rendered as a table. To instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
 
 ```query
 person
@@ -66,7 +66,7 @@ where page = "{{@page.name}}"
 render each [[template/person]]
 ```
 
-And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[template/people]] template for instance):
+And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[template/people]] template, for instance):
 
 ```query
 person
@@ -94,8 +94,8 @@ Logical expressions:
 
 Binary expressions:
 * `=` equals.
-  * For scalar values this performance an equivalence tests (e.g. `10 = 10`)
-  * If the left operand is an array and the right operand is _not_, this will will check if the right operand is _included_ in the left operand’s value, e.g. `[1, 2, 3] = 2` will be true.
+  * For scalar values this performs an equivalence test (e.g. `10 = 10`)
+  * If the left operand is an array and the right operand is _not_, this will check if the right operand is _included_ in the left operand’s value, e.g. `[1, 2, 3] = 2` will be true.
   * If both operands are arrays, they will be compared for equivalence ignoring order, so this will be true: `[1, 2, 3] = [3, 2, 1]`
 * `!=` the exact inverse of the meaning of `=`, e.g. `name != "Pete"`
 * `<` less than, e.g. `age < 10`
