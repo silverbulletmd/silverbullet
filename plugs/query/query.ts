@@ -26,6 +26,10 @@ export async function widget(
     );
     const parsedQuery = astToKvQuery(queryAST[1]);
 
+    if (!parsedQuery.limit) {
+      parsedQuery.limit = ["number", 1000];
+    }
+
     const eventName = `query:${parsedQuery.querySource}`;
 
     let resultMarkdown = "";
