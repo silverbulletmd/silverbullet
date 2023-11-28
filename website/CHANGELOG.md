@@ -3,15 +3,17 @@ release.
 
 ---
 
-## Next
-* New {[Upload: File]} command to upload files and pictures (particularly valuable for mobile uses). Implemented by [prcrst](https://github.com/silverbulletmd/silverbullet/pull/571).
-* Upgraded set of emoji (completed via the :thinking_face: syntax) to 15.1 (so more emoji)
+## 0.5.7
+* New {[Upload: File]} command to upload files and pictures (particularly valuable for mobile use cases). Implemented by [prcrst](https://github.com/silverbulletmd/silverbullet/pull/571).
 * General support for highlighting errors (underlined) in the editor. Currently implemented for:
   * All YAML fenced code blocks (and [[Frontmatter]]): will now highlight YAML parse errors
   * [[Live Queries]]: will highlight non-existing query sources and non-existing template references in `render` clauses
 * Basic [[Table of Contents]] support: any page _with 3 headers or more_, now has a “Table of Contents” widget appear (see this very page). You can toggle this feature using the {[Table of Contents: Toggle]} command.
 * Tapping/clicking the top bar (outside of the page name and action buttons) now scrolls your page to the very top.
 * Slightly more gracious error reporting on load, when using the Online [[Client Modes]] and the server is offline.
+* Any page tagged with `#template` is no longer indexed (beside as a `template`)
+* Upgraded set of emoji (completed via the :thinking_face: syntax) to 15.1 (so more emoji)
+* Various bug fixes
 
 ---
 ## 0.5.6
