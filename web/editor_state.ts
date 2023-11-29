@@ -224,17 +224,30 @@ export function createEditorState(
                 }
               }
 
-              const clickEvent: ClickEvent = {
+              const pos = view.posAtCoords({
+                x: touch.clientX,
+                y: touch.clientY,
+              })!;
+
+              const potentialClickEvent: ClickEvent = {
                 page: pageName,
                 ctrlKey: event.ctrlKey,
                 metaKey: event.metaKey,
                 altKey: event.altKey,
-                pos: view.posAtCoords({
-                  x: touch.clientX,
-                  y: touch.clientY,
-                })!,
+                pos: pos,
               };
-              await client.dispatchAppEvent("page:click", clickEvent);
+
+              const distanceX = touch.clientX - view.coordsAtPos(pos)!.left;
+              // What we're trying to determine here is if the tap occured anywhere near the looked up position
+              // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
+              // Fixes #585
+              //
+              if (distanceX <= view.defaultCharacterWidth) {
+                await client.dispatchAppEvent(
+                  "page:click",
+                  potentialClickEvent,
+                );
+              }
             });
           }
           touchCount = 0;
