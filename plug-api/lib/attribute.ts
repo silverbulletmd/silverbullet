@@ -4,7 +4,7 @@ import {
   replaceNodesMatchingAsync,
 } from "$sb/lib/tree.ts";
 
-import { YAML } from "$sb/plugos-syscall/mod.ts";
+import { YAML } from "$sb/syscalls.ts";
 
 /**
  * Extracts attributes from a tree, optionally cleaning them out of the tree.

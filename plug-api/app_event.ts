@@ -41,7 +41,7 @@ export type IndexTreeEvent = {
 };
 
 export type PublishEvent = {
-  uri: string;
+  uri?: string;
   // Page name
   name: string;
 };

@@ -24,7 +24,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
   const yaml = match[1];
   try {
-    return YAML.parse(yaml) as {
+    return YAML.load(yaml) as {
       [key: string]: any;
     };
   } catch (e: any) {

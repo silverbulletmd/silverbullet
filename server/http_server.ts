@@ -505,7 +505,6 @@ export class HttpServer {
             return next();
           }
         }
-        console.log("Requested path to proxy", url, request.method);
         if (url.startsWith("localhost")) {
           url = `http://${url}`;
         } else {
@@ -573,4 +572,12 @@ function utcDateString(mtime: number): string {
 
 function authCookieName(host: string) {
   return `auth:${host}`;
+}
+
+function headersToJson(headers: Headers) {
+  let headersObj: any = {};
+  for (const [key, value] of headers.entries()) {
+    headersObj[key] = value;
+  }
+  return JSON.stringify(headersObj);
 }

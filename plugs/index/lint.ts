@@ -51,7 +51,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   return diagnostics;
 }
 
-const errorRegex = /at line (\d+),? column (\d+)/;
+const errorRegex = /\((\d+):(\d+)\)/;
 
 async function lintYaml(
   yamlText: string,

@@ -25,6 +25,9 @@ export async function publishCommand() {
 }
 
 async function publish(pageName: string, uris: string[]) {
+  const broadcastResults = await events.dispatchEvent(`share:_`, {
+    name: pageName,
+  } as PublishEvent);
   for (const uri of uris) {
     const publisher = uri.split(":")[0];
     const results = await events.dispatchEvent(
@@ -34,7 +37,7 @@ async function publish(pageName: string, uris: string[]) {
         name: pageName,
       } as PublishEvent,
     );
-    if (results.length === 0) {
+    if (broadcastResults.length === 0 && results.length === 0) {
       throw new Error(`Unsupported publisher: ${publisher} for URI: ${uri}`);
     }
   }
