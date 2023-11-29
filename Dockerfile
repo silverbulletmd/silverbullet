@@ -17,13 +17,15 @@ ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
 
 # Make sure the deno user has access to the space volume
-RUN mkdir -p /space \
+RUN mkdir -p -m 770 /space \
     && chmod +x /tini \
     && apt update \
     && apt install -y git ssh-client \
     && echo "**** cleanup ****" \
     && apt-get -y autoremove \
     && apt-get clean  \
+    && mkdir -p /deno-dir \
+    && chmod 777 /deno-dir \
     && rm -rf \
     /tmp/* \
     /var/lib/apt/lists/* \

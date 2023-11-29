@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Check if UID and GID are passed as environment variables, if not, extract from the space folder owner
-if [ -z "$PUID" ]; then
+if [ -z "$PUID" ] && [ "$UID" == "0" ] ; then
     # Get the UID of the folder owner
     PUID=$(stat -c "%u" "$SB_FOLDER")
     echo "Will run SilverBullet with UID $PUID, inferred from the owner of $SB_FOLDER (set PUID environment variable to override)"
@@ -11,8 +11,8 @@ if [ -z "$PGID" ]; then
     PGID=$(stat -c "%g" "$SB_FOLDER")
 fi
 
-if [ "$PUID" -eq "0" ]; then
-    echo "Will run SilverBullet as root"
+if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
+    # Will run SilverBullet as default user
     deno run -A --unstable /silverbullet.js $@
 else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
