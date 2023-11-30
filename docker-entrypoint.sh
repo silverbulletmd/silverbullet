@@ -16,7 +16,7 @@ if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     deno run -A --unstable /silverbullet.js $@
 else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
-    getent group silverbullet || groupadd -g $PGID silverbullet
+    getent group silverbullet &> /dev/null || groupadd -g $PGID silverbullet
     id -u silverbullet &> /dev/null || useradd -M -u $PUID -g $PGID silverbullet
     # And make sure /deno-dir (Deno cache) is accessible
     chown -R $PUID:$PGID /deno-dir
