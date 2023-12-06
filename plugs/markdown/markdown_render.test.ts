@@ -5,10 +5,9 @@ import { System } from "../../plugos/system.ts";
 import { createSandbox } from "../../plugos/environments/deno_sandbox.ts";
 import { loadMarkdownExtensions } from "../../common/markdown_parser/markdown_ext.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { InMemoryManifestCache } from "../../plugos/manifest_cache.ts";
 
 Deno.test("Markdown render", async () => {
-  const system = new System<any>("server", new InMemoryManifestCache());
+  const system = new System<any>("server");
   await system.load(
     new URL("../../dist_plug_bundle/_plug/editor.plug.js", import.meta.url),
     "editor",

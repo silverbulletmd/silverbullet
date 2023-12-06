@@ -3,10 +3,9 @@ import { System } from "./system.ts";
 import { assertEquals } from "../test_deps.ts";
 import { compileManifest } from "./compile.ts";
 import { esbuild } from "./deps.ts";
-import { InMemoryManifestCache } from "./manifest_cache.ts";
 
 Deno.test("Run a deno sandbox", async () => {
-  const system = new System("server", new InMemoryManifestCache());
+  const system = new System("server");
   system.registerSyscalls([], {
     addNumbers: (_ctx, a, b) => {
       return a + b;

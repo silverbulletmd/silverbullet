@@ -3,7 +3,7 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
-import { ManifestCache } from "./manifest_cache.ts";
+import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -29,6 +29,11 @@ type Syscall = {
   callback: SyscallSignature;
 };
 
+export type SystemOptions = {
+  manifestCache?: ManifestCache<any>;
+  plugFlushTimeout?: number;
+};
+
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
@@ -36,13 +41,15 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
   /**
    * @param env either an environment or undefined for hybrid mode
-   * @param manifestCache
    */
   constructor(
     readonly env: string | undefined,
-    public manifestCache: ManifestCache<HookT>,
+    readonly options: SystemOptions = {},
   ) {
     super();
+    if (!options.manifestCache) {
+      options.manifestCache = new InMemoryManifestCache();
+    }
   }
 
   get loadedPlugs(): Map<string, Plug<HookT>> {

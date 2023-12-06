@@ -108,6 +108,7 @@ export class Sandbox<HookT> {
   stop() {
     if (this.worker) {
       this.worker.terminate();
+      this.worker = undefined;
     }
   }
 }

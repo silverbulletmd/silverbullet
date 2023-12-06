@@ -62,7 +62,12 @@ export class ClientSystem {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(
       client.syncMode ? undefined : "client",
-      new KVPrimitivesManifestCache<SilverBulletHooks>(ds.kv, "manifest"),
+      {
+        manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
+          ds.kv,
+          "manifest",
+        ),
+      },
     );
 
     this.system.addHook(this.eventHook);

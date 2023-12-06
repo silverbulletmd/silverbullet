@@ -61,7 +61,10 @@ export class ServerSystem {
 
     this.system = new System(
       "server",
-      new KVPrimitivesManifestCache(kvPrimitives, "manifest"),
+      {
+        manifestCache: new KVPrimitivesManifestCache(kvPrimitives, "manifest"),
+        plugFlushTimeout: 5 * 60 * 1000, // 5 minutes
+      },
     );
 
     // Event hook
