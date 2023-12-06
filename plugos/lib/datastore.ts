@@ -9,7 +9,7 @@ import { KvPrimitives } from "./kv_primitives.ts";
  */
 export class DataStore {
   constructor(
-    private kv: KvPrimitives,
+    readonly kv: KvPrimitives,
     private prefix: KvKey = [],
     private functionMap: FunctionMap = builtinFunctions,
   ) {

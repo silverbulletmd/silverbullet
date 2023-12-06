@@ -34,6 +34,8 @@ Deno.test("Run a deno sandbox", async () => {
 
   const plug = await system.load(
     new URL(`file://${workerPath}`),
+    "test",
+    0,
     createSandbox,
   );
 

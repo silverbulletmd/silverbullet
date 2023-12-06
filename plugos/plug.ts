@@ -9,34 +9,40 @@ export class Plug<HookT> {
   public grantedPermissions: string[] = [];
   public sandbox: Sandbox<HookT>;
 
-  // Resolves once the worker has been loaded
+  // Resolves once the plug's manifest is available
   ready: Promise<void>;
 
   // Only available after ready resolves
   public manifest?: Manifest<HookT>;
   public assets?: AssetBundle;
 
+  // Time of last function invocation
+  unloadTimeout?: number;
+
   constructor(
     private system: System<HookT>,
     public workerUrl: URL,
+    readonly name: string,
+    private hash: number,
     private sandboxFactory: (plug: Plug<HookT>) => Sandbox<HookT>,
   ) {
     this.runtimeEnv = system.env;
 
-    // Kick off worker
-    this.sandbox = this.sandboxFactory(this);
-    this.ready = this.sandbox.ready.then(() => {
-      this.manifest = this.sandbox.manifest!;
-      this.assets = new AssetBundle(
-        this.manifest.assets ? this.manifest.assets as AssetJson : {},
-      );
-      // TODO: These need to be explicitly granted, not just taken
-      this.grantedPermissions = this.manifest.requiredPermissions || [];
-    });
-  }
+    this.scheduleUnloadTimeout();
 
-  get name(): string | undefined {
-    return this.manifest?.name;
+    this.sandbox = this.sandboxFactory(this);
+    // Retrieve the manifest asynchonously, which may either come from a cache or be loaded from the worker
+    this.ready = system.options.manifestCache!.getManifest(this, this.hash)
+      .then(
+        (manifest) => {
+          this.manifest = manifest;
+          this.assets = new AssetBundle(
+            manifest.assets ? manifest.assets as AssetJson : {},
+          );
+          // TODO: These need to be explicitly granted, not just taken
+          this.grantedPermissions = manifest.requiredPermissions || [];
+        },
+      );
   }
 
   // Invoke a syscall
@@ -54,10 +60,25 @@ export class Plug<HookT> {
     return !funDef.env || !this.runtimeEnv || funDef.env === this.runtimeEnv;
   }
 
+  scheduleUnloadTimeout() {
+    if (!this.system.options.plugFlushTimeout) {
+      return;
+    }
+    // Reset the unload timeout, if set
+    if (this.unloadTimeout) {
+      clearTimeout(this.unloadTimeout);
+    }
+    this.unloadTimeout = setTimeout(() => {
+      this.stop();
+    }, this.system.options.plugFlushTimeout);
+  }
+
   // Invoke a function
   async invoke(name: string, args: any[]): Promise<any> {
     // Ensure the worker is fully up and running
     await this.ready;
+
+    this.scheduleUnloadTimeout();
 
     // Before we access the manifest
     const funDef = this.manifest!.functions[name];
@@ -90,8 +111,7 @@ export class Plug<HookT> {
   }
 
   stop() {
-    if (this.sandbox) {
-      this.sandbox.stop();
-    }
+    console.log("Stopping sandbox for", this.name);
+    this.sandbox.stop();
   }
 }

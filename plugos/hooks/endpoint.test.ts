@@ -18,6 +18,8 @@ Deno.test("Run a plugos endpoint server", async () => {
 
   await system.load(
     new URL(`file://${workerPath}`),
+    "test",
+    0,
     createSandbox,
   );
 

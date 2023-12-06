@@ -29,7 +29,7 @@ export function spaceSyscalls(space: Space): SysCallMapping {
     "space.deletePage": async (_ctx, name: string) => {
       await space.deletePage(name);
     },
-    "space.listPlugs": (): Promise<string[]> => {
+    "space.listPlugs": (): Promise<FileMeta[]> => {
       return space.listPlugs();
     },
     "space.listAttachments": async (): Promise<AttachmentMeta[]> => {
