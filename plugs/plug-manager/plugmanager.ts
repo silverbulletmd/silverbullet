@@ -68,7 +68,7 @@ export async function updatePlugsCommand() {
 
     const allPlugNames = [...builtinPlugNames, ...allCustomPlugNames];
     // And delete extra ones
-    for (const existingPlug of await space.listPlugs()) {
+    for (const { name: existingPlug } of await space.listPlugs()) {
       const plugName = existingPlug.substring(
         "_plug/".length,
         existingPlug.length - ".plug.js".length,

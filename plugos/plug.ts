@@ -19,24 +19,25 @@ export class Plug<HookT> {
   constructor(
     private system: System<HookT>,
     public workerUrl: URL,
+    readonly name: string,
+    private hash: number,
     private sandboxFactory: (plug: Plug<HookT>) => Sandbox<HookT>,
   ) {
     this.runtimeEnv = system.env;
 
     // Kick off worker
     this.sandbox = this.sandboxFactory(this);
-    this.ready = this.sandbox.ready.then(() => {
-      this.manifest = this.sandbox.manifest!;
-      this.assets = new AssetBundle(
-        this.manifest.assets ? this.manifest.assets as AssetJson : {},
-      );
-      // TODO: These need to be explicitly granted, not just taken
-      this.grantedPermissions = this.manifest.requiredPermissions || [];
-    });
-  }
-
-  get name(): string | undefined {
-    return this.manifest?.name;
+    this.ready = system.manifestCache.getManifest(this, this.hash).then(
+      (manifest) => {
+        // console.log("Got manifest for", manifest);
+        this.manifest = manifest;
+        this.assets = new AssetBundle(
+          manifest.assets ? manifest.assets as AssetJson : {},
+        );
+        // TODO: These need to be explicitly granted, not just taken
+        this.grantedPermissions = manifest.requiredPermissions || [];
+      },
+    );
   }
 
   // Invoke a syscall

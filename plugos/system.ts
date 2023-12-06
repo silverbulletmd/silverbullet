@@ -3,6 +3,7 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
+import { ManifestCache } from "./manifest_cache.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -33,7 +34,14 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
 
-  constructor(readonly env?: string) {
+  /**
+   * @param env either an environment or undefined for hybrid mode
+   * @param manifestCache
+   */
+  constructor(
+    readonly env: string | undefined,
+    public manifestCache: ManifestCache<HookT>,
+  ) {
     super();
   }
 
@@ -94,11 +102,13 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
   async load(
     workerUrl: URL,
+    name: string,
+    hash: number,
     sandboxFactory: SandboxFactory<HookT>,
     // Mapping plug name -> manifest overrides
     manifestOverrides?: Record<string, Partial<Manifest<HookT>>>,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, workerUrl, sandboxFactory);
+    const plug = new Plug(this, workerUrl, name, hash, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
     await plug.ready;

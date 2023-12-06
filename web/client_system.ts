@@ -38,6 +38,12 @@ import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
+import {
+  InMemoryManifestCache,
+  KVPrimitivesManifestCache,
+} from "../plugos/manifest_cache.ts";
+
+const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
 export class ClientSystem {
   commandHook: CommandHook;
@@ -51,11 +57,13 @@ export class ClientSystem {
     private client: Client,
     private mq: MessageQueue,
     private ds: DataStore,
-    // private dbPrefix: string,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
-    this.system = new System(client.syncMode ? undefined : "client");
+    this.system = new System(
+      client.syncMode ? undefined : "client",
+      new KVPrimitivesManifestCache<SilverBulletHooks>(ds.kv, "manifest"),
+    );
 
     this.system.addHook(this.eventHook);
 
@@ -93,22 +101,28 @@ export class ClientSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
-    this.eventHook.addLocalListener("file:changed", async (path: string) => {
-      if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
-        console.log("Plug updated, reloading:", path);
-        this.system.unload(path);
-        const plug = await this.system.load(
-          new URL(`/${path}`, location.href),
-          createSandbox,
-          this.client.settings.plugOverrides,
-        );
-        if ((plug.manifest! as Manifest).syntax) {
-          // If there are syntax extensions, rebuild the markdown parser immediately
-          this.updateMarkdownParser();
+    this.eventHook.addLocalListener(
+      "file:changed",
+      async (path: string, _selfUpdate, _oldHash, newHash) => {
+        if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
+          const plugName = plugNameExtractRegex.exec(path)![1];
+          console.log("Plug updated, reloading", plugName, "from", path);
+          this.system.unload(path);
+          const plug = await this.system.load(
+            new URL(`/${path}`, location.href),
+            plugName,
+            newHash,
+            createSandbox,
+            this.client.settings.plugOverrides,
+          );
+          if ((plug.manifest! as Manifest).syntax) {
+            // If there are syntax extensions, rebuild the markdown parser immediately
+            this.updateMarkdownParser();
+          }
+          this.client.debouncedPlugsUpdatedEvent();
         }
-        this.client.debouncedPlugsUpdatedEvent();
-      }
-    });
+      },
+    );
 
     // Debugging
     // this.eventHook.addLocalListener("file:listed", (files) => {
@@ -177,15 +191,23 @@ export class ClientSystem {
     await space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    await Promise.all((await space.listPlugs()).map(async (plugName) => {
+    await Promise.all((await space.listPlugs()).map(async (plugMeta) => {
       try {
+        const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
-          new URL(plugName, location.origin),
+          new URL(plugMeta.name, location.origin),
+          plugName,
+          plugMeta.lastModified,
           createSandbox,
           this.client.settings.plugOverrides,
         );
       } catch (e: any) {
-        console.error("Could not load plug", plugName, "error:", e.message);
+        console.error(
+          "Could not load plug",
+          plugMeta.name,
+          "error:",
+          e.message,
+        );
       }
     }));
   }

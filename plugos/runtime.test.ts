@@ -3,9 +3,10 @@ import { System } from "./system.ts";
 import { assertEquals } from "../test_deps.ts";
 import { compileManifest } from "./compile.ts";
 import { esbuild } from "./deps.ts";
+import { InMemoryManifestCache } from "./manifest_cache.ts";
 
 Deno.test("Run a deno sandbox", async () => {
-  const system = new System("server");
+  const system = new System("server", new InMemoryManifestCache());
   system.registerSyscalls([], {
     addNumbers: (_ctx, a, b) => {
       return a + b;
@@ -34,6 +35,8 @@ Deno.test("Run a deno sandbox", async () => {
 
   const plug = await system.load(
     new URL(`file://${workerPath}`),
+    "test",
+    0,
     createSandbox,
   );
 

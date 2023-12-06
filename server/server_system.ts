@@ -33,11 +33,14 @@ import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
+import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
+const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
+
 export class ServerSystem {
-  system: System<SilverBulletHooks> = new System("server");
+  system!: System<SilverBulletHooks>;
   spacePrimitives!: SpacePrimitives;
   denoKv!: Deno.Kv;
   listInterval?: number;
@@ -52,6 +55,15 @@ export class ServerSystem {
 
   // Always needs to be invoked right after construction
   async init(awaitIndex = false) {
+    this.denoKv = await Deno.openKv(this.dbPath);
+    const kvPrimitives = new DenoKvPrimitives(this.denoKv);
+    this.ds = new DataStore(kvPrimitives);
+
+    this.system = new System(
+      "server",
+      new KVPrimitivesManifestCache(kvPrimitives, "manifest"),
+    );
+
     // Event hook
     const eventHook = new EventHook();
     this.system.addHook(eventHook);
@@ -59,9 +71,6 @@ export class ServerSystem {
     // Cron hook
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
-
-    this.denoKv = await Deno.openKv(this.dbPath);
-    this.ds = new DataStore(new DenoKvPrimitives(this.denoKv));
 
     // Endpoint hook
     this.system.addHook(new EndpointHook(this.app, "/_/"));
@@ -179,10 +188,13 @@ export class ServerSystem {
   }
 
   async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {
-    const plugJS = (await this.spacePrimitives.readFile(path)).data;
+    const { meta, data } = await this.spacePrimitives.readFile(path);
+    const plugName = path.match(plugNameExtractRegex)![1];
     return this.system.load(
       // Base64 encoding this to support `deno compile` mode
-      new URL(base64EncodedDataUrl("application/javascript", plugJS)),
+      new URL(base64EncodedDataUrl("application/javascript", data)),
+      plugName,
+      meta.lastModified,
       createSandbox,
     );
   }

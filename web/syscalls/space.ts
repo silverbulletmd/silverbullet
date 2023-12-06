@@ -33,7 +33,7 @@ export function spaceSyscalls(editor: Client): SysCallMapping {
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },
-    "space.listPlugs": (): Promise<string[]> => {
+    "space.listPlugs": (): Promise<FileMeta[]> => {
       return editor.space.listPlugs();
     },
     "space.listAttachments": async (): Promise<AttachmentMeta[]> => {

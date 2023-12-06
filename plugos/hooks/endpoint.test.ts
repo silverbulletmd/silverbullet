@@ -6,10 +6,14 @@ import { Application } from "../../server/deps.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { compileManifest } from "../compile.ts";
 import { esbuild } from "../deps.ts";
+import { InMemoryManifestCache } from "../manifest_cache.ts";
 
 Deno.test("Run a plugos endpoint server", async () => {
   const tempDir = await Deno.makeTempDir();
-  const system = new System<EndpointHookT>("server");
+  const system = new System<EndpointHookT>(
+    "server",
+    new InMemoryManifestCache(),
+  );
 
   const workerPath = await compileManifest(
     new URL("../test.plug.yaml", import.meta.url).pathname,
@@ -18,6 +22,8 @@ Deno.test("Run a plugos endpoint server", async () => {
 
   await system.load(
     new URL(`file://${workerPath}`),
+    "test",
+    0,
     createSandbox,
   );
 

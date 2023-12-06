@@ -114,7 +114,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         meta,
       );
       if (!selfUpdate) {
-        await this.dispatchEvent("file:changed", name, true);
+        await this.dispatchEvent(
+          "file:changed",
+          name,
+          true,
+          undefined,
+          newMeta.lastModified,
+        );
       }
       this.spaceSnapshot[name] = newMeta.lastModified;
 

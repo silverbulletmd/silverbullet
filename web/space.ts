@@ -103,14 +103,13 @@ export class Space {
     return this.cachedPageList;
   }
 
-  async listPlugs(): Promise<string[]> {
+  async listPlugs(): Promise<FileMeta[]> {
     const files = await this.spacePrimitives.fetchFileList();
     return files
       .filter((fileMeta) =>
         fileMeta.name.startsWith(plugPrefix) &&
         fileMeta.name.endsWith(".plug.js")
-      )
-      .map((fileMeta) => fileMeta.name);
+      );
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

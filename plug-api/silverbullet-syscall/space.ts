@@ -23,7 +23,7 @@ export function deletePage(name: string): Promise<void> {
   return syscall("space.deletePage", name);
 }
 
-export function listPlugs(): Promise<string[]> {
+export function listPlugs(): Promise<FileMeta[]> {
   return syscall("space.listPlugs");
 }
 
