@@ -1,6 +1,9 @@
 An attempt at documenting the changes/new features introduced in each
 release.
 
+## 0.5.8
+* Various bugfixes, primarily related to the new way of running docker containers, which broke things for some people. Be sure to have a look at the new [[Install/Local$env|environment variable]] configuration options
+
 ---
 
 ## 0.5.7
