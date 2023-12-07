@@ -141,7 +141,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     if (this.plugs.has(manifest.name)) {
       this.unload(manifest.name);
     }
-    console.log("Loaded plug", manifest.name);
+    console.log("Activated plug", manifest.name);
     this.plugs.set(manifest.name, plug);
 
     await this.emit("plugLoaded", plug);

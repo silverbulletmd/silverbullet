@@ -18,7 +18,7 @@ export class S3SpacePrimitives implements SpacePrimitives {
   }
 
   private decodePath(encoded: string): string {
-    // AWS only returns ' replace dwith &apos;
+    // AWS only returns ' replace with &apos;
     return encoded.replaceAll("&apos;", "'");
   }
 

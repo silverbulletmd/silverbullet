@@ -25,7 +25,6 @@ import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
-import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
@@ -34,6 +33,7 @@ import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
+import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -42,27 +42,30 @@ const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 export class ServerSystem {
   system!: System<SilverBulletHooks>;
   spacePrimitives!: SpacePrimitives;
-  denoKv!: Deno.Kv;
+  // denoKv!: Deno.Kv;
   listInterval?: number;
   ds!: DataStore;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
-    private dbPath: string,
+    private kvPrimitives: KvPrimitives,
     private app: Application,
   ) {
   }
 
   // Always needs to be invoked right after construction
   async init(awaitIndex = false) {
-    this.denoKv = await Deno.openKv(this.dbPath);
-    const kvPrimitives = new DenoKvPrimitives(this.denoKv);
-    this.ds = new DataStore(kvPrimitives);
+    // const denoKv = await Deno.openKv(this.dbPath);
+    // const kvPrimitives = new DenoKvPrimitives(denoKv);
+    this.ds = new DataStore(this.kvPrimitives);
 
     this.system = new System(
       "server",
       {
-        manifestCache: new KVPrimitivesManifestCache(kvPrimitives, "manifest"),
+        manifestCache: new KVPrimitivesManifestCache(
+          this.kvPrimitives,
+          "manifest",
+        ),
         plugFlushTimeout: 5 * 60 * 1000, // 5 minutes
       },
     );

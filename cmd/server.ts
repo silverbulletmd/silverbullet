@@ -18,6 +18,8 @@ import { sleep } from "$sb/lib/async.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
 import { silverBulletDbFile } from "./constants.ts";
+import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
+import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function serveCommand(
   options: {
@@ -28,8 +30,6 @@ export async function serveCommand(
     cert?: string;
     key?: string;
     reindex?: boolean;
-    db?: string;
-    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -37,8 +37,6 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-  const syncOnly = options.syncOnly || Deno.env.get("SB_SYNC_ONLY");
-  let dbFile = options.db || Deno.env.get("SB_DB_FILE") || silverBulletDbFile;
 
   const app = new Application();
 
@@ -62,22 +60,8 @@ export async function serveCommand(
 To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminator on top.`,
     );
   }
-  let spacePrimitives: SpacePrimitives | undefined;
-  if (folder === "s3://") {
-    spacePrimitives = new S3SpacePrimitives({
-      accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
-      secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
-      endPoint: Deno.env.get("AWS_ENDPOINT")!,
-      region: Deno.env.get("AWS_REGION")!,
-      bucket: Deno.env.get("AWS_BUCKET")!,
-    });
-    console.log("Running in S3 mode");
-    folder = Deno.cwd();
-  } else {
-    // Regular disk mode
-    folder = path.resolve(Deno.cwd(), folder);
-    spacePrimitives = new DiskSpacePrimitives(folder);
-  }
+  let spacePrimitives = determineStorageBackend(folder);
+  folder = path.resolve(Deno.cwd(), folder);
 
   spacePrimitives = new AssetBundlePlugSpacePrimitives(
     spacePrimitives,
@@ -92,7 +76,9 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     console.log(
       `Running in server-processing mode, keeping state in ${dbFile}`,
     );
-    const serverSystem = new ServerSystem(spacePrimitives, dbFile, app);
+    const denoKv = await Deno.openKv(dbFile);
+    const kvPrimitives = new DenoKvPrimitives(denoKv);
+    const serverSystem = new ServerSystem(spacePrimitives, kvPrimitives, app);
     await serverSystem.init();
     spacePrimitives = serverSystem.spacePrimitives;
     system = serverSystem.system;
