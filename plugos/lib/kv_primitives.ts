@@ -9,4 +9,5 @@ export interface KvPrimitives {
   batchSet(entries: KV[]): Promise<void>;
   batchDelete(keys: KvKey[]): Promise<void>;
   query(options: KvQueryOptions): AsyncIterableIterator<KV>;
+  close(): void;
 }

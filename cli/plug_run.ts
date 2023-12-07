@@ -5,10 +5,10 @@ import { Application } from "../server/deps.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import { determineDatabaseBackend } from "../server/db_backend.ts";
 
 export async function runPlug(
   spacePath: string,
-  dbPath: string,
   functionName: string | undefined,
   args: string[] = [],
   builtinAssetBundle: AssetBundle,
@@ -18,12 +18,19 @@ export async function runPlug(
   const serverController = new AbortController();
   const app = new Application();
 
+  const dbBackend = await determineDatabaseBackend(spacePath);
+
+  if (!dbBackend) {
+    console.error("Cannot run plugs in databaseless mode.");
+    return;
+  }
+
   const serverSystem = new ServerSystem(
     new AssetBundlePlugSpacePrimitives(
       new DiskSpacePrimitives(spacePath),
       builtinAssetBundle,
     ),
-    dbPath,
+    dbBackend,
     app,
   );
   await serverSystem.init(true);
@@ -42,7 +49,7 @@ export async function runPlug(
     }
     const result = await plug.invoke(funcName, args);
     await serverSystem.close();
-    serverSystem.denoKv.close();
+    serverSystem.kvPrimitives.close();
     serverController.abort();
     return result;
   } else {

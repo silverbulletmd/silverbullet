@@ -10,12 +10,15 @@ export function determineShellBackend(path: string): ShellBackend {
   switch (backendConfig) {
     case "local":
       return new LocalShell(path);
-    case "off":
+    default:
+      console.info(
+        "Running in shellless mode, meaning shell commands are disabled",
+      );
       return new NotSupportedShell();
   }
 }
 
-interface ShellBackend {
+export interface ShellBackend {
   handle(shellRequest: ShellRequest): Promise<ShellResponse>;
 }
 

@@ -7,49 +7,56 @@ import { gitIgnoreCompiler } from "./deps.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { Authenticator } from "./auth.ts";
 import { FileMeta } from "$sb/types.ts";
-import {
-  ShellRequest,
-  ShellResponse,
-  SyscallRequest,
-  SyscallResponse,
-} from "./rpc.ts";
+import { ShellRequest, SyscallRequest, SyscallResponse } from "./rpc.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
+import { ShellBackend } from "./shell_backend.ts";
 
 export type ServerOptions = {
+  spacePrimitives: SpacePrimitives;
+  app: Application;
+  system: System<SilverBulletHooks> | undefined;
   hostname: string;
   port: number;
   pagesPath: string;
   clientAssetBundle: AssetBundle;
   authenticator: Authenticator;
+  shellBackend: ShellBackend;
   pass?: string;
   certFile?: string;
   keyFile?: string;
 };
 
 export class HttpServer {
-  private hostname: string;
-  private port: number;
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
   settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
+  hostname: string;
+  port: number;
+  app: Application<Record<string, any>>;
+  system: System<SilverBulletHooks> | undefined;
+  pagesPath: string;
+  keyFile: string | undefined;
+  certFile: string | undefined;
   authenticator: Authenticator;
+  shellBackend: ShellBackend;
 
-  constructor(
-    spacePrimitives: SpacePrimitives,
-    private app: Application,
-    private system: System<SilverBulletHooks> | undefined,
-    private options: ServerOptions,
-  ) {
+  constructor(options: ServerOptions) {
+    this.clientAssetBundle = options.clientAssetBundle;
     this.hostname = options.hostname;
     this.port = options.port;
+    this.app = options.app;
+    this.system = options.system;
+    this.pagesPath = options.pagesPath;
+    this.keyFile = options.keyFile;
+    this.certFile = options.certFile;
     this.authenticator = options.authenticator;
-    this.clientAssetBundle = options.clientAssetBundle;
+    this.shellBackend = options.shellBackend;
 
     let fileFilterFn: (s: string) => boolean = () => true;
     this.spacePrimitives = new FilteredSpacePrimitives(
-      spacePrimitives,
+      options.spacePrimitives,
       (meta) => fileFilterFn(meta.name),
       async () => {
         await this.reloadSettings();
@@ -67,7 +74,7 @@ export class HttpServer {
     return this.clientAssetBundle.readTextFileSync(".client/index.html")
       .replaceAll(
         "{{SPACE_PATH}}",
-        this.options.pagesPath.replaceAll("\\", "\\\\"),
+        this.pagesPath.replaceAll("\\", "\\\\"),
         // );
       ).replaceAll(
         "{{SYNC_ONLY}}",
@@ -98,11 +105,11 @@ export class HttpServer {
       port: this.port,
       signal: this.abortController.signal,
     };
-    if (this.options.keyFile) {
-      listenOptions.key = Deno.readTextFileSync(this.options.keyFile);
+    if (this.keyFile) {
+      listenOptions.key = Deno.readTextFileSync(this.keyFile);
     }
-    if (this.options.certFile) {
-      listenOptions.cert = Deno.readTextFileSync(this.options.certFile);
+    if (this.certFile) {
+      listenOptions.cert = Deno.readTextFileSync(this.certFile);
     }
     this.app.listen(listenOptions)
       .catch((e: any) => {
@@ -267,7 +274,7 @@ export class HttpServer {
         if (request.headers.has("X-Sync-Mode")) {
           // Only handle direct requests for a JSON representation of the file list
           response.headers.set("Content-type", "application/json");
-          response.headers.set("X-Space-Path", this.options.pagesPath);
+          response.headers.set("X-Space-Path", this.pagesPath);
           const files = await spacePrimitives.fetchFileList();
           response.body = JSON.stringify(files);
         } else {
@@ -284,40 +291,19 @@ export class HttpServer {
       try {
         switch (body.operation) {
           case "shell": {
-            // TODO: Have a nicer way to do this
-            if (this.options.pagesPath.startsWith("s3://")) {
-              response.status = 500;
-              response.body = JSON.stringify({
-                stdout: "",
-                stderr: "Cannot run shell commands with S3 backend",
-                code: 500,
-              });
-              return;
-            }
             const shellCommand: ShellRequest = body;
             console.log(
               "Running shell command:",
               shellCommand.cmd,
               shellCommand.args,
             );
-            const p = new Deno.Command(shellCommand.cmd, {
-              args: shellCommand.args,
-              cwd: this.options.pagesPath,
-              stdout: "piped",
-              stderr: "piped",
-            });
-            const output = await p.output();
-            const stdout = new TextDecoder().decode(output.stdout);
-            const stderr = new TextDecoder().decode(output.stderr);
-
+            const shellResponse = await this.shellBackend.handle(
+              shellCommand,
+            );
             response.headers.set("Content-Type", "application/json");
-            response.body = JSON.stringify({
-              stdout,
-              stderr,
-              code: output.code,
-            } as ShellResponse);
-            if (output.code !== 0) {
-              console.error("Error running shell command", stdout, stderr);
+            response.body = JSON.stringify(shellResponse);
+            if (shellResponse.code !== 0) {
+              console.error("Error running shell command", shellResponse);
             }
             return;
           }
@@ -572,12 +558,4 @@ function utcDateString(mtime: number): string {
 
 function authCookieName(host: string) {
   return `auth:${host}`;
-}
-
-function headersToJson(headers: Headers) {
-  let headersObj: any = {};
-  for (const [key, value] of headers.entries()) {
-    headersObj[key] = value;
-  }
-  return JSON.stringify(headersObj);
 }

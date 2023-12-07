@@ -83,10 +83,6 @@ await new Command()
     "Hostname or address to listen on",
   )
   .option("-p, --port <port:number>", "Port to listen on")
-  .option(
-    "--db <db:string>",
-    "Path to database file",
-  )
   .action(plugRunCommand)
   .command("user:add", "Add a new user to an authentication file")
   .arguments("[username:string]")

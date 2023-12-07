@@ -48,7 +48,7 @@ export class ServerSystem {
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
-    private kvPrimitives: KvPrimitives,
+    readonly kvPrimitives: KvPrimitives,
     private app: Application,
   ) {
   }

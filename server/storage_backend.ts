@@ -5,7 +5,7 @@ import { S3SpacePrimitives } from "./spaces/s3_space_primitives.ts";
 
 export function determineStorageBackend(folder: string): SpacePrimitives {
   if (folder === "s3://") {
-    console.log("Running in S3 mode");
+    console.info("Using S3 as a storage backend");
     return new S3SpacePrimitives({
       accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
       secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
@@ -13,7 +13,9 @@ export function determineStorageBackend(folder: string): SpacePrimitives {
       region: Deno.env.get("AWS_REGION")!,
       bucket: Deno.env.get("AWS_BUCKET")!,
     });
+  } else {
+    folder = path.resolve(Deno.cwd(), folder);
+    console.info(`Using local disk as a storage backend: ${folder}`);
+    return new DiskSpacePrimitives(folder);
   }
-  folder = path.resolve(Deno.cwd(), folder);
-  return new DiskSpacePrimitives(folder);
 }

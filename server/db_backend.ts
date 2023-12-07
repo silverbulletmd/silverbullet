@@ -4,8 +4,8 @@ import { path } from "./deps.ts";
 
 /**
  * Environment variables:
- * - SB_DB_BACKEND: "denokv" or "off"
- * - SB_DB_FILE (denokv only): path to the database file (default .silverbullet.db) or ":cloud:" for cloud storage"
+ * - SB_DB_BACKEND: "denokv" or "off" (default: denokv)
+ * - SB_DB_FILE (denokv only): path to the database file (default .silverbullet.db) or ":cloud:" for cloud storage
  */
 
 export async function determineDatabaseBackend(
@@ -25,9 +25,15 @@ export async function determineDatabaseBackend(
         dbFile = undefined; // Deno Deploy will use the default KV store
       }
       const denoDb = await Deno.openKv(dbFile);
+      console.info(
+        `Using DenoKV as a database backend (${dbFile}), running in server-processing mode.`,
+      );
       return new DenoKvPrimitives(denoDb);
     }
     default:
+      console.info(
+        "Running in databaseless mode: no server-side indexing and state keeping (beyond space files) will happen.",
+      );
       return null;
   }
 }

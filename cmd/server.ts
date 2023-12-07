@@ -8,18 +8,16 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
 };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
 import { Authenticator } from "../server/auth.ts";
 import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { System } from "../plugos/system.ts";
-import { silverBulletDbFile } from "./constants.ts";
-import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
+
 import { determineStorageBackend } from "../server/storage_backend.ts";
+import { determineDatabaseBackend } from "../server/db_backend.ts";
+import { determineShellBackend } from "../server/shell_backend.ts";
 
 export async function serveCommand(
   options: {
@@ -55,12 +53,18 @@ export async function serveCommand(
     `${hostname}:${port}`,
   );
   if (hostname === "127.0.0.1") {
-    console.log(
-      `NOTE: SilverBullet will only be available locally (via http://localhost:${port}).
+    console.info(
+      `SilverBullet will only be available locally (via http://localhost:${port}).
 To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminator on top.`,
     );
   }
+
+  // Let's determine some backends...
+  const shellBackend = determineShellBackend(folder);
+  const kvPrimitives = await determineDatabaseBackend(folder);
   let spacePrimitives = determineStorageBackend(folder);
+
+  // Properly resolve the folder path
   folder = path.resolve(Deno.cwd(), folder);
 
   spacePrimitives = new AssetBundlePlugSpacePrimitives(
@@ -69,15 +73,9 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
   );
 
   let system: System<SilverBulletHooks> | undefined;
-  // system = undefined in syncOnly mode (no PlugOS instance on the server)
-  if (!syncOnly) {
+  // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
+  if (kvPrimitives) {
     // Enable server-side processing
-    dbFile = path.resolve(folder, dbFile);
-    console.log(
-      `Running in server-processing mode, keeping state in ${dbFile}`,
-    );
-    const denoKv = await Deno.openKv(dbFile);
-    const kvPrimitives = new DenoKvPrimitives(denoKv);
     const serverSystem = new ServerSystem(spacePrimitives, kvPrimitives, app);
     await serverSystem.init();
     spacePrimitives = serverSystem.spacePrimitives;
@@ -121,20 +119,19 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     authStore.loadString(envAuth);
   }
 
-  const httpServer = new HttpServer(
-    spacePrimitives!,
+  const httpServer = new HttpServer({
     app,
     system,
-    {
-      hostname,
-      port: port,
-      pagesPath: folder!,
-      clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-      authenticator,
-      keyFile: options.key,
-      certFile: options.cert,
-    },
-  );
+    spacePrimitives,
+    hostname,
+    port: port,
+    pagesPath: folder!,
+    clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+    authenticator,
+    shellBackend,
+    keyFile: options.key,
+    certFile: options.cert,
+  });
   await httpServer.start();
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
