@@ -1,102 +1,136 @@
-import { Application, Context, Next, oakCors, Router } from "./deps.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
+import {
+  Application,
+  Context,
+  Next,
+  oakCors,
+  Request,
+  Router,
+} from "./deps.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { ensureSettingsAndIndex } from "../common/util.ts";
-import { BuiltinSettings } from "../web/types.ts";
-import { gitIgnoreCompiler } from "./deps.ts";
-import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { Authenticator } from "./auth.ts";
 import { FileMeta } from "$sb/types.ts";
 import { ShellRequest, SyscallRequest, SyscallResponse } from "./rpc.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { System } from "../plugos/system.ts";
-import { ShellBackend } from "./shell_backend.ts";
+import { determineShellBackend } from "./shell_backend.ts";
+import { SpaceServer, SpaceServerConfig } from "./instance.ts";
+import {
+  KvPrimitives,
+  PrefixedKvPrimitives,
+} from "../plugos/lib/kv_primitives.ts";
+import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 
 export type ServerOptions = {
-  spacePrimitives: SpacePrimitives;
   app: Application;
-  system: System<SilverBulletHooks> | undefined;
   hostname: string;
   port: number;
-  pagesPath: string;
   clientAssetBundle: AssetBundle;
-  authenticator: Authenticator;
-  shellBackend: ShellBackend;
-  pass?: string;
+  baseKvPrimitives?: KvPrimitives;
+  syncOnly: boolean;
+  enableAuth: boolean;
   certFile?: string;
   keyFile?: string;
+
+  configs: Map<string, SpaceServerConfig>;
 };
 
 export class HttpServer {
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
-  settings?: BuiltinSettings;
-  spacePrimitives: SpacePrimitives;
   hostname: string;
   port: number;
   app: Application<Record<string, any>>;
-  system: System<SilverBulletHooks> | undefined;
-  pagesPath: string;
   keyFile: string | undefined;
   certFile: string | undefined;
-  authenticator: Authenticator;
-  shellBackend: ShellBackend;
+
+  spaceServers = new Map<string, SpaceServer>();
+  syncOnly: boolean;
+  enableAuth: boolean;
+  baseKvPrimitives?: KvPrimitives;
+  configs: Map<string, SpaceServerConfig>;
 
   constructor(options: ServerOptions) {
     this.clientAssetBundle = options.clientAssetBundle;
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = options.app;
-    this.system = options.system;
-    this.pagesPath = options.pagesPath;
     this.keyFile = options.keyFile;
     this.certFile = options.certFile;
-    this.authenticator = options.authenticator;
-    this.shellBackend = options.shellBackend;
+    this.syncOnly = options.syncOnly;
+    this.enableAuth = options.enableAuth;
+    this.baseKvPrimitives = options.baseKvPrimitives;
+    this.configs = options.configs;
+  }
 
-    let fileFilterFn: (s: string) => boolean = () => true;
-    this.spacePrimitives = new FilteredSpacePrimitives(
-      options.spacePrimitives,
-      (meta) => fileFilterFn(meta.name),
-      async () => {
-        await this.reloadSettings();
-        if (typeof this.settings?.spaceIgnore === "string") {
-          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
-        } else {
-          fileFilterFn = () => true;
-        }
-      },
+  async bootSpaceServer(config: SpaceServerConfig): Promise<SpaceServer> {
+    const spaceServer = new SpaceServer(
+      config.hostname,
+      config.authenticator,
+      determineShellBackend(config.pagesPath),
+      config.pagesPath,
+      this.baseKvPrimitives
+        ? new PrefixedKvPrimitives(this.baseKvPrimitives, [
+          config.namespace,
+        ])
+        : undefined,
     );
+    await spaceServer.init();
+
+    // Store in map
+    this.spaceServers.set(config.hostname, spaceServer);
+
+    return spaceServer;
+  }
+
+  ensureSpaceServer(req: Request): Promise<SpaceServer> {
+    const hostname = req.url.hostname;
+    const spaceServer = this.spaceServers.get(hostname);
+    if (!spaceServer) {
+      // Look up its config
+      let config = this.configs.get(hostname);
+      if (!config) {
+        config = this.configs.get("*");
+      }
+      if (!config) {
+        throw new Error(`No space server found for hostname ${hostname}`);
+      }
+      // And then boot the thing
+      return this.bootSpaceServer(config);
+    }
+    return Promise.resolve(spaceServer);
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
-  renderIndexHtml() {
+  renderIndexHtml(pagesPath: string) {
     return this.clientAssetBundle.readTextFileSync(".client/index.html")
       .replaceAll(
         "{{SPACE_PATH}}",
-        this.pagesPath.replaceAll("\\", "\\\\"),
+        pagesPath.replaceAll("\\", "\\\\"),
         // );
       ).replaceAll(
         "{{SYNC_ONLY}}",
-        this.system ? "false" : "true",
+        this.syncOnly ? "true" : "false",
       );
   }
 
-  async start() {
-    await this.reloadSettings();
-
+  start() {
     // Serve static files (javascript, css, html)
     this.app.use(this.serveStatic.bind(this));
 
-    await this.addPasswordAuth(this.app);
-    const fsRouter = this.addFsRoutes(this.spacePrimitives);
+    const endpointHook = new EndpointHook("/_/");
+
+    this.app.use(async (context, next) => {
+      const spaceServer = await this.ensureSpaceServer(context.request);
+      return endpointHook.handleRequest(spaceServer.system!, context, next);
+    });
+
+    this.addPasswordAuth(this.app);
+    const fsRouter = this.addFsRoutes();
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
 
     // Fallback, serve the UI index.html
-    this.app.use(({ response }) => {
+    this.app.use(async ({ request, response }) => {
       response.headers.set("Content-type", "text/html");
-      response.body = this.renderIndexHtml();
+      const spaceServer = await this.ensureSpaceServer(request);
+      response.body = this.renderIndexHtml(spaceServer.pagesPath);
     });
 
     this.abortController = new AbortController();
@@ -124,7 +158,7 @@ export class HttpServer {
     );
   }
 
-  serveStatic(
+  async serveStatic(
     { request, response }: Context<Record<string, any>, Record<string, any>>,
     next: Next,
   ) {
@@ -134,7 +168,8 @@ export class HttpServer {
       // Serve the UI (index.html)
       // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
       response.headers.set("Content-type", "text/html");
-      response.body = this.renderIndexHtml();
+      const spaceServer = await this.ensureSpaceServer(request);
+      response.body = this.renderIndexHtml(spaceServer.pagesPath);
       return;
     }
     try {
@@ -170,12 +205,7 @@ export class HttpServer {
     }
   }
 
-  async reloadSettings() {
-    // TODO: Throttle this?
-    this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
-  }
-
-  private async addPasswordAuth(app: Application) {
+  private addPasswordAuth(app: Application) {
     const excludedPaths = [
       "/manifest.json",
       "/favicon.png",
@@ -199,10 +229,12 @@ export class HttpServer {
           return;
         } else if (request.method === "POST") {
           const values = await request.body({ type: "form" }).value;
-          const username = values.get("username")!,
-            password = values.get("password")!,
-            refer = values.get("refer");
-          const hashedPassword = await this.authenticator.authenticate(
+          const username = values.get("username")!;
+          const password = values.get("password")!;
+          const refer = values.get("refer");
+
+          const spaceServer = await this.ensureSpaceServer(request);
+          const hashedPassword = await spaceServer.authenticator.authenticate(
             username,
             password,
           );
@@ -230,7 +262,7 @@ export class HttpServer {
       }
     });
 
-    if ((await this.authenticator.getAllUsers()).length > 0) {
+    if (this.enableAuth) {
       // Users defined, so enabling auth
       app.use(async ({ request, response, cookies }, next) => {
         const host = request.url.host;
@@ -240,9 +272,10 @@ export class HttpServer {
             response.redirect("/.auth");
             return;
           }
+          const spaceServer = await this.ensureSpaceServer(request);
           const [username, hashedPassword] = authCookie.split(":");
           if (
-            !await this.authenticator.authenticateHashed(
+            !await spaceServer.authenticator.authenticateHashed(
               username,
               hashedPassword,
             )
@@ -256,7 +289,7 @@ export class HttpServer {
     }
   }
 
-  private addFsRoutes(spacePrimitives: SpacePrimitives): Router {
+  private addFsRoutes(): Router {
     const fsRouter = new Router();
     const corsMiddleware = oakCors({
       allowedHeaders: "*",
@@ -271,11 +304,12 @@ export class HttpServer {
       "/index.json",
       // corsMiddleware,
       async ({ request, response }) => {
+        const spaceServer = await this.ensureSpaceServer(request);
         if (request.headers.has("X-Sync-Mode")) {
           // Only handle direct requests for a JSON representation of the file list
           response.headers.set("Content-type", "application/json");
-          response.headers.set("X-Space-Path", this.pagesPath);
-          const files = await spacePrimitives.fetchFileList();
+          response.headers.set("X-Space-Path", spaceServer.pagesPath);
+          const files = await spaceServer.spacePrimitives.fetchFileList();
           response.body = JSON.stringify(files);
         } else {
           // Otherwise, redirect to the UI
@@ -287,6 +321,7 @@ export class HttpServer {
 
     // RPC
     fsRouter.post("/.rpc", async ({ request, response }) => {
+      const spaceServer = await this.ensureSpaceServer(request);
       const body = await request.body({ type: "json" }).value;
       try {
         switch (body.operation) {
@@ -297,7 +332,7 @@ export class HttpServer {
               shellCommand.cmd,
               shellCommand.args,
             );
-            const shellResponse = await this.shellBackend.handle(
+            const shellResponse = await spaceServer.shellBackend.handle(
               shellCommand,
             );
             response.headers.set("Content-Type", "application/json");
@@ -308,7 +343,7 @@ export class HttpServer {
             return;
           }
           case "syscall": {
-            if (!this.system) {
+            if (this.syncOnly) {
               response.headers.set("Content-Type", "text/plain");
               response.status = 400;
               response.body = "Unknown operation";
@@ -316,7 +351,9 @@ export class HttpServer {
             }
             const syscallCommand: SyscallRequest = body;
             try {
-              const plug = this.system.loadedPlugs.get(syscallCommand.ctx);
+              const plug = spaceServer.system!.loadedPlugs.get(
+                syscallCommand.ctx,
+              );
               if (!plug) {
                 throw new Error(`Plug ${syscallCommand.ctx} not found`);
               }
@@ -358,6 +395,7 @@ export class HttpServer {
         filePathRegex,
         async ({ params, response, request }) => {
           const name = params[0];
+          const spaceServer = await this.ensureSpaceServer(request);
           console.log("Requested file", name);
           if (!request.headers.has("X-Sync-Mode") && name.endsWith(".md")) {
             // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
@@ -401,13 +439,15 @@ export class HttpServer {
           try {
             if (request.headers.has("X-Get-Meta")) {
               // Getting meta via GET request
-              const fileData = await spacePrimitives.getFileMeta(name);
+              const fileData = await spaceServer.spacePrimitives.getFileMeta(
+                name,
+              );
               response.status = 200;
               this.fileMetaToHeaders(response.headers, fileData);
               response.body = "";
               return;
             }
-            const fileData = await spacePrimitives.readFile(name);
+            const fileData = await spaceServer.spacePrimitives.readFile(name);
             const lastModifiedHeader = new Date(fileData.meta.lastModified)
               .toUTCString();
             if (
@@ -433,6 +473,7 @@ export class HttpServer {
         filePathRegex,
         async ({ request, response, params }) => {
           const name = params[0];
+          const spaceServer = await this.ensureSpaceServer(request);
           console.log("Saving file", name);
           if (name.startsWith(".")) {
             // Don't expose hidden files
@@ -443,7 +484,7 @@ export class HttpServer {
           const body = await request.body({ type: "bytes" }).value;
 
           try {
-            const meta = await spacePrimitives.writeFile(
+            const meta = await spaceServer.spacePrimitives.writeFile(
               name,
               body,
             );
@@ -457,8 +498,9 @@ export class HttpServer {
           }
         },
       )
-      .delete(filePathRegex, async ({ response, params }) => {
+      .delete(filePathRegex, async ({ request, response, params }) => {
         const name = params[0];
+        const spaceServer = await this.ensureSpaceServer(request);
         console.log("Deleting file", name);
         if (name.startsWith(".")) {
           // Don't expose hidden files
@@ -466,7 +508,7 @@ export class HttpServer {
           return;
         }
         try {
-          await spacePrimitives.deleteFile(name);
+          await spaceServer.spacePrimitives.deleteFile(name);
           response.status = 200;
           response.body = "OK";
         } catch (e: any) {

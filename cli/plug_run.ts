@@ -18,7 +18,7 @@ export async function runPlug(
   const serverController = new AbortController();
   const app = new Application();
 
-  const dbBackend = await determineDatabaseBackend(spacePath);
+  const dbBackend = await determineDatabaseBackend();
 
   if (!dbBackend) {
     console.error("Cannot run plugs in databaseless mode.");
@@ -31,7 +31,6 @@ export async function runPlug(
       builtinAssetBundle,
     ),
     dbBackend,
-    app,
   );
   await serverSystem.init(true);
   app.listen({

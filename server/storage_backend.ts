@@ -12,6 +12,7 @@ export function determineStorageBackend(folder: string): SpacePrimitives {
       endPoint: Deno.env.get("AWS_ENDPOINT")!,
       region: Deno.env.get("AWS_REGION")!,
       bucket: Deno.env.get("AWS_BUCKET")!,
+      prefix: folder.slice(5),
     });
   } else {
     folder = path.resolve(Deno.cwd(), folder);

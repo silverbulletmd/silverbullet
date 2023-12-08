@@ -7,10 +7,15 @@ import { FileMeta } from "$sb/types.ts";
 
 // TODO: IMPORTANT: This needs a different way to keep meta data (last modified and created dates)
 
+export type S3SpacePrimitivesOptions = ClientOptions & { prefix: string };
+
 export class S3SpacePrimitives implements SpacePrimitives {
   client: S3Client;
-  constructor(options: ClientOptions) {
+  prefix: string;
+  constructor(options: S3SpacePrimitivesOptions) {
     this.client = new S3Client(options);
+    // TODO: Use this
+    this.prefix = options.prefix;
   }
 
   private encodePath(name: string): string {

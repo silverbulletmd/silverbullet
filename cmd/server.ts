@@ -18,6 +18,8 @@ import { System } from "../plugos/system.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { determineShellBackend } from "../server/shell_backend.ts";
+import { SpaceServerConfig } from "../server/instance.ts";
+import { base } from "https://esm.sh/v132/w3c-keyname@2.2.8/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/es2022/w3c-keyname.mjs";
 
 export async function serveCommand(
   options: {
@@ -59,36 +61,6 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     );
   }
 
-  // Let's determine some backends...
-  const shellBackend = determineShellBackend(folder);
-  const kvPrimitives = await determineDatabaseBackend(folder);
-  let spacePrimitives = determineStorageBackend(folder);
-
-  // Properly resolve the folder path
-  folder = path.resolve(Deno.cwd(), folder);
-
-  spacePrimitives = new AssetBundlePlugSpacePrimitives(
-    spacePrimitives,
-    new AssetBundle(plugAssetBundle as AssetJson),
-  );
-
-  let system: System<SilverBulletHooks> | undefined;
-  // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
-  if (kvPrimitives) {
-    // Enable server-side processing
-    const serverSystem = new ServerSystem(spacePrimitives, kvPrimitives, app);
-    await serverSystem.init();
-    spacePrimitives = serverSystem.spacePrimitives;
-    system = serverSystem.system;
-    if (options.reindex) {
-      console.log("Reindexing space (requested via --reindex flag)");
-      serverSystem.system.loadedPlugs.get("index")!.invoke(
-        "reindexSpace",
-        [],
-      ).catch(console.error);
-    }
-  }
-
   const authStore = new JSONKVStore();
   const authenticator = new Authenticator(authStore);
 
@@ -113,26 +85,35 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     })().catch(console.error);
   }
 
+  const baseKvPrimitives = await determineDatabaseBackend();
+
   const envAuth = Deno.env.get("SB_AUTH");
   if (envAuth) {
     console.log("Loading authentication from SB_AUTH");
     authStore.loadString(envAuth);
   }
 
+  const configs = new Map<string, SpaceServerConfig>();
+  configs.set("*", {
+    hostname,
+    namespace: "default",
+    authenticator,
+    pagesPath: folder,
+  });
+
   const httpServer = new HttpServer({
     app,
-    system,
-    spacePrimitives,
     hostname,
-    port: port,
-    pagesPath: folder!,
+    port,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-    authenticator,
-    shellBackend,
+    baseKvPrimitives,
+    syncOnly: baseKvPrimitives === undefined,
+    enableAuth: (await authStore.queryPrefix("")).length > 0,
     keyFile: options.key,
     certFile: options.cert,
+    configs,
   });
-  await httpServer.start();
+  httpServer.start();
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {

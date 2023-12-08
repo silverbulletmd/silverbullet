@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { Application } from "../../server/deps.ts";
+import { Application, Context, Next } from "../../server/deps.ts";
 
 export type EndpointRequest = {
   method: string;
@@ -26,87 +26,90 @@ export type EndPointDef = {
 };
 
 export class EndpointHook implements Hook<EndpointHookT> {
-  private app: Application;
   readonly prefix: string;
 
-  constructor(app: Application, prefix: string) {
-    this.app = app;
+  constructor(prefix: string) {
     this.prefix = prefix;
   }
 
-  apply(system: System<EndpointHookT>): void {
-    this.app.use(async (ctx, next) => {
-      const req = ctx.request;
-      const requestPath = ctx.request.url.pathname;
-      if (!requestPath.startsWith(this.prefix)) {
-        return next();
+  public async handleRequest(
+    system: System<EndpointHookT>,
+    ctx: Context,
+    next: Next,
+  ) {
+    const req = ctx.request;
+    const requestPath = ctx.request.url.pathname;
+    if (!requestPath.startsWith(this.prefix)) {
+      return next();
+    }
+    console.log("Endpoint request", requestPath);
+    // Iterate over all loaded plugins
+    for (const [plugName, plug] of system.loadedPlugs.entries()) {
+      const manifest = plug.manifest;
+      if (!manifest) {
+        continue;
       }
-      console.log("Endpoint request", requestPath);
-      // Iterate over all loaded plugins
-      for (const [plugName, plug] of system.loadedPlugs.entries()) {
-        const manifest = plug.manifest;
-        if (!manifest) {
+      const functions = manifest.functions;
+      // console.log("Checking plug", plugName);
+      const prefix = `${this.prefix}${plugName}`;
+      if (!requestPath.startsWith(prefix)) {
+        continue;
+      }
+      for (const [name, functionDef] of Object.entries(functions)) {
+        if (!functionDef.http) {
           continue;
         }
-        const functions = manifest.functions;
-        // console.log("Checking plug", plugName);
-        const prefix = `${this.prefix}${plugName}`;
-        if (!requestPath.startsWith(prefix)) {
-          continue;
-        }
-        for (const [name, functionDef] of Object.entries(functions)) {
-          if (!functionDef.http) {
-            continue;
-          }
-          // console.log("Got config", functionDef);
-          const endpoints = Array.isArray(functionDef.http)
-            ? functionDef.http
-            : [functionDef.http];
-          // console.log(endpoints);
-          for (const { path, method } of endpoints) {
-            const prefixedPath = `${prefix}${path}`;
-            if (
-              prefixedPath === requestPath &&
-              ((method || "GET") === req.method || method === "ANY")
-            ) {
-              try {
-                const response: EndpointResponse = await plug.invoke(name, [
-                  {
-                    path: req.url.pathname,
-                    method: req.method,
-                    body: req.body(),
-                    query: Object.fromEntries(
-                      req.url.searchParams.entries(),
-                    ),
-                    headers: Object.fromEntries(req.headers.entries()),
-                  } as EndpointRequest,
-                ]);
-                if (response.headers) {
-                  for (
-                    const [key, value] of Object.entries(
-                      response.headers,
-                    )
-                  ) {
-                    ctx.response.headers.set(key, value);
-                  }
+        // console.log("Got config", functionDef);
+        const endpoints = Array.isArray(functionDef.http)
+          ? functionDef.http
+          : [functionDef.http];
+        // console.log(endpoints);
+        for (const { path, method } of endpoints) {
+          const prefixedPath = `${prefix}${path}`;
+          if (
+            prefixedPath === requestPath &&
+            ((method || "GET") === req.method || method === "ANY")
+          ) {
+            try {
+              const response: EndpointResponse = await plug.invoke(name, [
+                {
+                  path: req.url.pathname,
+                  method: req.method,
+                  body: req.body(),
+                  query: Object.fromEntries(
+                    req.url.searchParams.entries(),
+                  ),
+                  headers: Object.fromEntries(req.headers.entries()),
+                } as EndpointRequest,
+              ]);
+              if (response.headers) {
+                for (
+                  const [key, value] of Object.entries(
+                    response.headers,
+                  )
+                ) {
+                  ctx.response.headers.set(key, value);
                 }
-                ctx.response.status = response.status;
-                ctx.response.body = response.body;
-                // console.log("Sent result");
-                return;
-              } catch (e: any) {
-                console.error("Error executing function", e);
-                ctx.response.status = 500;
-                ctx.response.body = e.message;
-                return;
               }
+              ctx.response.status = response.status;
+              ctx.response.body = response.body;
+              // console.log("Sent result");
+              return;
+            } catch (e: any) {
+              console.error("Error executing function", e);
+              ctx.response.status = 500;
+              ctx.response.body = e.message;
+              return;
             }
           }
         }
       }
-      // console.log("Shouldn't get here");
-      await next();
-    });
+    }
+    // console.log("Shouldn't get here");
+    await next();
+  }
+
+  apply(): void {
   }
 
   validateManifest(manifest: Manifest<EndpointHookT>): string[] {

@@ -49,14 +49,11 @@ export class ServerSystem {
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
     readonly kvPrimitives: KvPrimitives,
-    private app: Application,
   ) {
   }
 
   // Always needs to be invoked right after construction
   async init(awaitIndex = false) {
-    // const denoKv = await Deno.openKv(this.dbPath);
-    // const kvPrimitives = new DenoKvPrimitives(denoKv);
     this.ds = new DataStore(this.kvPrimitives);
 
     this.system = new System(
@@ -77,9 +74,6 @@ export class ServerSystem {
     // Cron hook
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
-
-    // Endpoint hook
-    this.system.addHook(new EndpointHook(this.app, "/_/"));
 
     const mq = new DataStoreMQ(this.ds);
 
