@@ -10,17 +10,8 @@ import { KvPrimitives } from "./kv_primitives.ts";
 export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
-    private prefix: KvKey = [],
     private functionMap: FunctionMap = builtinFunctions,
   ) {
-  }
-
-  prefixed(prefix: KvKey): DataStore {
-    return new DataStore(
-      this.kv,
-      [...this.prefix, ...prefix],
-      this.functionMap,
-    );
   }
 
   async get<T = any>(key: KvKey): Promise<T | null> {
@@ -28,7 +19,7 @@ export class DataStore {
   }
 
   batchGet<T = any>(keys: KvKey[]): Promise<(T | null)[]> {
-    return this.kv.batchGet(keys.map((key) => this.applyPrefix(key)));
+    return this.kv.batchGet(keys);
   }
 
   set(key: KvKey, value: any): Promise<void> {
@@ -44,7 +35,7 @@ export class DataStore {
         console.warn(`Duplicate key ${keyString} in batchSet, skipping`);
       } else {
         allKeyStrings.add(keyString);
-        uniqueEntries.push({ key: this.applyPrefix(key), value });
+        uniqueEntries.push({ key, value });
       }
     }
     return this.kv.batchSet(uniqueEntries);
@@ -55,7 +46,7 @@ export class DataStore {
   }
 
   batchDelete(keys: KvKey[]): Promise<void> {
-    return this.kv.batchDelete(keys.map((key) => this.applyPrefix(key)));
+    return this.kv.batchDelete(keys);
   }
 
   async query<T = any>(query: KvQuery): Promise<KV<T>[]> {
@@ -63,15 +54,11 @@ export class DataStore {
     let itemCount = 0;
     // Accumulate results
     let limit = Infinity;
-    const prefixedQuery: KvQuery = {
-      ...query,
-      prefix: query.prefix ? this.applyPrefix(query.prefix) : undefined,
-    };
     if (query.limit) {
       limit = evalQueryExpression(query.limit, {}, this.functionMap);
     }
     for await (
-      const entry of this.kv.query(prefixedQuery)
+      const entry of this.kv.query(query)
     ) {
       // Filter
       if (
@@ -89,29 +76,16 @@ export class DataStore {
       }
     }
     // Apply order by, limit, and select
-    return applyQueryNoFilterKV(prefixedQuery, results, this.functionMap).map((
-      { key, value },
-    ) => ({ key: this.stripPrefix(key), value }));
+    return applyQueryNoFilterKV(query, results, this.functionMap);
   }
 
   async queryDelete(query: KvQuery): Promise<void> {
     const keys: KvKey[] = [];
     for (
-      const { key } of await this.query({
-        ...query,
-        prefix: query.prefix ? this.applyPrefix(query.prefix) : undefined,
-      })
+      const { key } of await this.query(query)
     ) {
       keys.push(key);
     }
     return this.batchDelete(keys);
-  }
-
-  private applyPrefix(key: KvKey): KvKey {
-    return [...this.prefix, ...(key ? key : [])];
-  }
-
-  private stripPrefix(key: KvKey): KvKey {
-    return key.slice(this.prefix.length);
   }
 }

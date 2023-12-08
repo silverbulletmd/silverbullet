@@ -1,5 +1,3 @@
-import { KV } from "$sb/types.ts";
-
 export class JSONKVStore {
   private data: { [key: string]: any } = {};
 
