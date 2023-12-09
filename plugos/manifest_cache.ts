@@ -23,7 +23,7 @@ export class KVPrimitivesManifestCache<T> implements ManifestCache<T> {
     const manifest = plug.sandbox.manifest!;
     await this.kv.batchSet([{
       key: [this.manifestPrefix, plug.name],
-      value: { manifest, hash },
+      value: { manifest: { ...manifest, assets: undefined }, hash },
     }]);
     return manifest;
   }

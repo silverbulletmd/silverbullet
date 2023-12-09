@@ -1,6 +1,7 @@
 import { Manifest } from "./types.ts";
 import { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import { Plug } from "./plug.ts";
+import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
 
 export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
 
@@ -43,8 +44,15 @@ export class Sandbox<HookT> {
       this.worker!.onmessage = (ev) => {
         if (ev.data.type === "manifest") {
           this.manifest = ev.data.manifest;
-          resolve();
-          return;
+          // Set manifest in the plug
+          this.plug.manifest = this.manifest;
+
+          // Set assets in the plug
+          this.plug.assets = new AssetBundle(
+            this.manifest?.assets ? this.manifest.assets as AssetJson : {},
+          );
+
+          return resolve();
         }
 
         this.onMessage(ev.data);
