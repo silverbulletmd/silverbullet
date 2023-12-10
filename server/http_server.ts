@@ -352,19 +352,11 @@ export class HttpServer {
         switch (body.operation) {
           case "shell": {
             const shellCommand: ShellRequest = body;
-            console.log(
-              "Running shell command:",
-              shellCommand.cmd,
-              shellCommand.args,
-            );
             const shellResponse = await spaceServer.shellBackend.handle(
               shellCommand,
             );
             response.headers.set("Content-Type", "application/json");
             response.body = JSON.stringify(shellResponse);
-            if (shellResponse.code !== 0) {
-              console.error("Error running shell command", shellResponse);
-            }
             return;
           }
           case "syscall": {
