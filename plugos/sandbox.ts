@@ -32,8 +32,9 @@ export class Sandbox<HookT> {
   init(): Promise<void> {
     console.log("Booting up worker for", this.plug.name);
     if (this.worker) {
-      // Should not happen
-      console.warn("Double init of sandbox");
+      // Race condition
+      console.warn("Double init of sandbox, ignoring");
+      return Promise.resolve();
     }
     this.worker = new Worker(this.plug.workerUrl, {
       ...this.workerOptions,

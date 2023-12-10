@@ -23,6 +23,7 @@ export class KVPrimitivesManifestCache<T> implements ManifestCache<T> {
     const manifest = plug.sandbox.manifest!;
     await this.kv.batchSet([{
       key: [this.manifestPrefix, plug.name],
+      // Deliverately removing the assets from the manifest to preserve space, will be re-added upon load of actual worker
       value: { manifest: { ...manifest, assets: undefined }, hash },
     }]);
     return manifest;
@@ -43,7 +44,11 @@ export class InMemoryManifestCache<T> implements ManifestCache<T> {
     }
     await plug.sandbox.init();
     const manifest = plug.sandbox.manifest!;
-    this.cache.set(plug.name!, { manifest, hash });
+    // Deliverately removing the assets from the manifest to preserve space, will be re-added upon load of actual worker
+    this.cache.set(plug.name!, {
+      manifest: { ...manifest, assets: undefined },
+      hash,
+    });
     return manifest;
   }
 }
