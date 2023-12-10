@@ -1,4 +1,4 @@
-FROM lukechannings/deno:v1.38.3
+FROM lukechannings/deno:v1.38.5
 # The volume that will keep the space data
 
 # Either create a volume:
