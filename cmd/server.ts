@@ -106,6 +106,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     hostname,
     port,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+    plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     baseKvPrimitives,
     syncOnly: baseKvPrimitives === undefined,
     enableAuth: (await authStore.queryPrefix("")).length > 0,

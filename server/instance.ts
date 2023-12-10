@@ -1,7 +1,9 @@
 import { SilverBulletHooks } from "../common/manifest.ts";
+import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
+import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
@@ -19,6 +21,10 @@ export type SpaceServerConfig = {
 };
 
 export class SpaceServer {
+  public pagesPath: string;
+  authenticator: Authenticator;
+  hostname: string;
+
   private settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
 
@@ -27,29 +33,22 @@ export class SpaceServer {
   system?: System<SilverBulletHooks>;
 
   constructor(
-    private hostname: string,
-    public authenticator: Authenticator,
+    config: SpaceServerConfig,
     public shellBackend: ShellBackend,
-    public pagesPath: string,
+    plugAssetBundle: AssetBundle,
     kvPrimitives?: KvPrimitives,
   ) {
+    this.pagesPath = config.pagesPath;
+    this.authenticator = config.authenticator;
+    this.hostname = config.hostname;
+
     let fileFilterFn: (s: string) => boolean = () => true;
 
-    this.spacePrimitives = determineStorageBackend(pagesPath);
-
-    // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
-    if (kvPrimitives) {
-      // Enable server-side processing
-      const serverSystem = new ServerSystem(
-        this.spacePrimitives,
-        kvPrimitives,
-      );
-      this.serverSystem = serverSystem;
-      this.system = serverSystem.system;
-    }
-
     this.spacePrimitives = new FilteredSpacePrimitives(
-      this.spacePrimitives,
+      new AssetBundlePlugSpacePrimitives(
+        determineStorageBackend(this.pagesPath),
+        plugAssetBundle,
+      ),
       (meta) => fileFilterFn(meta.name),
       async () => {
         await this.reloadSettings();
@@ -60,11 +59,22 @@ export class SpaceServer {
         }
       },
     );
+
+    // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
+    if (kvPrimitives) {
+      // Enable server-side processing
+      const serverSystem = new ServerSystem(
+        this.spacePrimitives,
+        kvPrimitives,
+      );
+      this.serverSystem = serverSystem;
+    }
   }
 
   async init() {
     if (this.serverSystem) {
       await this.serverSystem.init();
+      this.system = this.serverSystem.system;
     }
 
     await this.reloadSettings();

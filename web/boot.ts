@@ -5,7 +5,10 @@ const syncMode = window.silverBulletConfig.syncOnly ||
   !!localStorage.getItem("syncMode");
 
 safeRun(async () => {
-  console.log("Booting SilverBullet...");
+  console.log(
+    "Booting SilverBullet client",
+    syncMode ? "in Sync Mode" : "in Online Mode",
+  );
 
   const client = new Client(
     document.getElementById("sb-root")!,

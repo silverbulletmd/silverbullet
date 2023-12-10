@@ -71,6 +71,7 @@ export class Space {
         }
       });
     eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
+      // console.log("Files listed", files);
       this.cachedPageList = files.filter(this.isListedPage).map(
         fileMetaToPageMeta,
       );
@@ -227,12 +228,17 @@ export class Space {
 
 export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
   const name = fileMeta.name.substring(0, fileMeta.name.length - 3);
-  return {
-    ...fileMeta,
-    ref: name,
-    tags: ["page"],
-    name,
-    created: new Date(fileMeta.created).toISOString(),
-    lastModified: new Date(fileMeta.lastModified).toISOString(),
-  } as PageMeta;
+  try {
+    return {
+      ...fileMeta,
+      ref: name,
+      tags: ["page"],
+      name,
+      created: new Date(fileMeta.created).toISOString(),
+      lastModified: new Date(fileMeta.lastModified).toISOString(),
+    } as PageMeta;
+  } catch (e) {
+    console.error("Failed to convert fileMeta to pageMeta", fileMeta, e);
+    throw e;
+  }
 }

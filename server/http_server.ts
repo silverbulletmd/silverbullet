@@ -22,6 +22,7 @@ export type ServerOptions = {
   hostname: string;
   port: number;
   clientAssetBundle: AssetBundle;
+  plugAssetBundle: AssetBundle;
   baseKvPrimitives?: KvPrimitives;
   syncOnly: boolean;
   enableAuth: boolean;
@@ -34,13 +35,14 @@ export type ServerOptions = {
 export class HttpServer {
   abortController?: AbortController;
   clientAssetBundle: AssetBundle;
+  plugAssetBundle: AssetBundle;
   hostname: string;
   port: number;
   app: Application<Record<string, any>>;
   keyFile: string | undefined;
   certFile: string | undefined;
 
-  spaceServers = new Map<string, SpaceServer>();
+  spaceServers = new Map<string, Promise<SpaceServer>>();
   syncOnly: boolean;
   enableAuth: boolean;
   baseKvPrimitives?: KvPrimitives;
@@ -48,6 +50,7 @@ export class HttpServer {
 
   constructor(options: ServerOptions) {
     this.clientAssetBundle = options.clientAssetBundle;
+    this.plugAssetBundle = options.plugAssetBundle;
     this.hostname = options.hostname;
     this.port = options.port;
     this.app = options.app;
@@ -61,10 +64,9 @@ export class HttpServer {
 
   async bootSpaceServer(config: SpaceServerConfig): Promise<SpaceServer> {
     const spaceServer = new SpaceServer(
-      config.hostname,
-      config.authenticator,
+      config,
       determineShellBackend(config.pagesPath),
-      config.pagesPath,
+      this.plugAssetBundle,
       this.baseKvPrimitives
         ? new PrefixedKvPrimitives(this.baseKvPrimitives, [
           config.namespace,
@@ -73,28 +75,46 @@ export class HttpServer {
     );
     await spaceServer.init();
 
-    // Store in map
-    this.spaceServers.set(config.hostname, spaceServer);
-
     return spaceServer;
   }
 
-  ensureSpaceServer(req: Request): Promise<SpaceServer> {
-    const hostname = req.url.hostname;
-    const spaceServer = this.spaceServers.get(hostname);
-    if (!spaceServer) {
-      // Look up its config
-      let config = this.configs.get(hostname);
-      if (!config) {
-        config = this.configs.get("*");
-      }
-      if (!config) {
-        throw new Error(`No space server found for hostname ${hostname}`);
-      }
-      // And then boot the thing
-      return this.bootSpaceServer(config);
+  determineConfig(req: Request): [string, SpaceServerConfig] {
+    let hostname = req.url.host; // hostname:port
+
+    // First try a full match
+    let config = this.configs.get(hostname);
+    if (config) {
+      return [hostname, config];
     }
-    return Promise.resolve(spaceServer);
+
+    // Then rip off the port and try again
+    hostname = hostname.split(":")[0];
+    config = this.configs.get(hostname);
+    if (config) {
+      return [hostname, config];
+    }
+
+    // If all else fails, try the wildcard
+    config = this.configs.get("*");
+
+    if (config) {
+      return ["*", config];
+    }
+
+    throw new Error(`No space server config found for hostname ${hostname}`);
+  }
+
+  ensureSpaceServer(req: Request): Promise<SpaceServer> {
+    const [matchedHostname, config] = this.determineConfig(req);
+    const spaceServer = this.spaceServers.get(matchedHostname);
+    if (spaceServer) {
+      return spaceServer;
+    }
+    // And then boot the thing, async
+    const spaceServerPromise = this.bootSpaceServer(config);
+    // But immediately write the promise to the map so that we don't boot it twice
+    this.spaceServers.set(matchedHostname, spaceServerPromise);
+    return spaceServerPromise;
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -129,6 +149,7 @@ export class HttpServer {
     // Fallback, serve the UI index.html
     this.app.use(async ({ request, response }) => {
       response.headers.set("Content-type", "text/html");
+      response.headers.set("Cache-Control", "no-cache");
       const spaceServer = await this.ensureSpaceServer(request);
       response.body = this.renderIndexHtml(spaceServer.pagesPath);
     });
@@ -168,6 +189,7 @@ export class HttpServer {
       // Serve the UI (index.html)
       // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
       response.headers.set("Content-type", "text/html");
+      response.headers.set("Cache-Control", "no-cache");
       const spaceServer = await this.ensureSpaceServer(request);
       response.body = this.renderIndexHtml(spaceServer.pagesPath);
       return;
