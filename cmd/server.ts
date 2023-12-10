@@ -11,6 +11,7 @@ import { sleep } from "$sb/lib/async.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
+import { path } from "../common/deps.ts";
 
 export async function serveCommand(
   options: {
@@ -41,6 +42,7 @@ export async function serveCommand(
       Deno.exit(1);
     }
   }
+  folder = path.resolve(Deno.cwd(), folder);
 
   const baseKvPrimitives = await determineDatabaseBackend(folder);
 
