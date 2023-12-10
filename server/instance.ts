@@ -7,7 +7,6 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
-import { Authenticator } from "./auth.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { ServerSystem } from "./server_system.ts";
 import { ShellBackend } from "./shell_backend.ts";
@@ -16,13 +15,13 @@ import { determineStorageBackend } from "./storage_backend.ts";
 export type SpaceServerConfig = {
   hostname: string;
   namespace: string;
-  authenticator: Authenticator;
+  auth?: string; // username:password
   pagesPath: string;
 };
 
 export class SpaceServer {
   public pagesPath: string;
-  authenticator: Authenticator;
+  auth?: string;
   hostname: string;
 
   private settings?: BuiltinSettings;
@@ -39,8 +38,8 @@ export class SpaceServer {
     kvPrimitives?: KvPrimitives,
   ) {
     this.pagesPath = config.pagesPath;
-    this.authenticator = config.authenticator;
     this.hostname = config.hostname;
+    this.auth = config.auth;
 
     let fileFilterFn: (s: string) => boolean = () => true;
 

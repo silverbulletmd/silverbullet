@@ -6,6 +6,7 @@ import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { determineDatabaseBackend } from "../server/db_backend.ts";
+import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 
 export async function runPlug(
   spacePath: string,
@@ -25,6 +26,8 @@ export async function runPlug(
     return;
   }
 
+  const endpointHook = new EndpointHook("/_/");
+
   const serverSystem = new ServerSystem(
     new AssetBundlePlugSpacePrimitives(
       new DiskSpacePrimitives(spacePath),
@@ -33,6 +36,10 @@ export async function runPlug(
     dbBackend,
   );
   await serverSystem.init(true);
+  app.use((context, next) => {
+    return endpointHook.handleRequest(serverSystem.system!, context, next);
+  });
+
   app.listen({
     hostname: httpHostname,
     port: httpServerPort,

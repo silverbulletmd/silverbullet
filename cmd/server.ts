@@ -1,4 +1,4 @@
-import { Application, path } from "../server/deps.ts";
+import { Application } from "../server/deps.ts";
 import { HttpServer } from "../server/http_server.ts";
 import clientAssetBundle from "../dist/client_asset_bundle.json" assert {
   type: "json",
@@ -7,19 +7,10 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { Authenticator } from "../server/auth.ts";
-import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
-import { ServerSystem } from "../server/server_system.ts";
 import { sleep } from "$sb/lib/async.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { System } from "../plugos/system.ts";
 
-import { determineStorageBackend } from "../server/storage_backend.ts";
 import { determineDatabaseBackend } from "../server/db_backend.ts";
-import { determineShellBackend } from "../server/shell_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
-import { base } from "https://esm.sh/v132/w3c-keyname@2.2.8/X-ZS9AY29kZW1pcnJvci9zdGF0ZSxAbGV6ZXIvY29tbW9u/es2022/w3c-keyname.mjs";
 
 export async function serveCommand(
   options: {
@@ -41,6 +32,7 @@ export async function serveCommand(
   const app = new Application();
 
   if (!folder) {
+    // Didn't get a folder as an argument, check if we got it as an environment variable
     folder = Deno.env.get("SB_FOLDER");
     if (!folder) {
       console.error(
@@ -49,6 +41,8 @@ export async function serveCommand(
       Deno.exit(1);
     }
   }
+
+  const baseKvPrimitives = await determineDatabaseBackend(folder);
 
   console.log(
     "Going to start SilverBullet binding to",
@@ -61,43 +55,13 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     );
   }
 
-  const authStore = new JSONKVStore();
-  const authenticator = new Authenticator(authStore);
-
-  const flagUser = options.user ?? Deno.env.get("SB_USER");
-  if (flagUser) {
-    // If explicitly added via env/parameter, add on the fly
-    const [username, password] = flagUser.split(":");
-    await authenticator.register(username, password, ["admin"], "");
-  }
-
-  if (options.auth) {
-    // Load auth file
-    const authFile: string = options.auth;
-    console.log("Loading authentication credentials from", authFile);
-    await authStore.load(authFile);
-    (async () => {
-      // Asynchronously kick off file watcher
-      for await (const _event of Deno.watchFs(options.auth!)) {
-        console.log("Authentication file changed, reloading...");
-        await authStore.load(authFile);
-      }
-    })().catch(console.error);
-  }
-
-  const baseKvPrimitives = await determineDatabaseBackend();
-
-  const envAuth = Deno.env.get("SB_AUTH");
-  if (envAuth) {
-    console.log("Loading authentication from SB_AUTH");
-    authStore.loadString(envAuth);
-  }
+  const userAuth = options.user ?? Deno.env.get("SB_USER");
 
   const configs = new Map<string, SpaceServerConfig>();
   configs.set("*", {
     hostname,
-    namespace: "default",
-    authenticator,
+    namespace: "*",
+    auth: userAuth,
     pagesPath: folder,
   });
 
@@ -109,7 +73,6 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     baseKvPrimitives,
     syncOnly: baseKvPrimitives === undefined,
-    enableAuth: (await authStore.queryPrefix("")).length > 0,
     keyFile: options.key,
     certFile: options.cert,
     configs,

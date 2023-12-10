@@ -1,5 +1,6 @@
 import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { path } from "./deps.ts";
 
 /**
  * Environment variables:
@@ -7,7 +8,9 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
  * - SB_KV_DB (denokv only): path to the database file (default .silverbullet.db) or ":cloud:" for cloud storage
  */
 
-export async function determineDatabaseBackend(): Promise<
+export async function determineDatabaseBackend(
+  singleTenantFolder?: string,
+): Promise<
   KvPrimitives | undefined
 > {
   const backendConfig = Deno.env.get("SB_DB_BACKEND") || "denokv";
@@ -15,6 +18,12 @@ export async function determineDatabaseBackend(): Promise<
     case "denokv": {
       let dbFile: string | undefined = Deno.env.get("SB_KV_DB") ||
         ".silverbullet.db";
+
+      if (singleTenantFolder) {
+        // If we're running in single tenant mode, we may as well use the tenant's space folder to keep the database
+        dbFile = path.resolve(singleTenantFolder, dbFile);
+      }
+
       if (dbFile === ":cloud:") {
         dbFile = undefined; // Deno Deploy will use the default KV store
       }

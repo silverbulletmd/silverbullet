@@ -16,6 +16,7 @@ import {
   PrefixedKvPrimitives,
 } from "../plugos/lib/kv_primitives.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
+import { hashSHA256 } from "./crypto.ts";
 
 export type ServerOptions = {
   app: Application;
@@ -25,7 +26,6 @@ export type ServerOptions = {
   plugAssetBundle: AssetBundle;
   baseKvPrimitives?: KvPrimitives;
   syncOnly: boolean;
-  enableAuth: boolean;
   certFile?: string;
   keyFile?: string;
 
@@ -44,7 +44,6 @@ export class HttpServer {
 
   spaceServers = new Map<string, Promise<SpaceServer>>();
   syncOnly: boolean;
-  enableAuth: boolean;
   baseKvPrimitives?: KvPrimitives;
   configs: Map<string, SpaceServerConfig>;
 
@@ -57,7 +56,6 @@ export class HttpServer {
     this.keyFile = options.keyFile;
     this.certFile = options.certFile;
     this.syncOnly = options.syncOnly;
-    this.enableAuth = options.enableAuth;
     this.baseKvPrimitives = options.baseKvPrimitives;
     this.configs = options.configs;
   }
@@ -256,11 +254,12 @@ export class HttpServer {
           const refer = values.get("refer");
 
           const spaceServer = await this.ensureSpaceServer(request);
-          const hashedPassword = await spaceServer.authenticator.authenticate(
-            username,
-            password,
-          );
-          if (hashedPassword) {
+          const hashedPassword = await hashSHA256(password);
+          const [expectedUser, expectedPassword] = spaceServer.auth!.split(":");
+          if (
+            username === expectedUser &&
+            hashedPassword === await hashSHA256(expectedPassword)
+          ) {
             await cookies.set(
               authCookieName(host),
               `${username}:${hashedPassword}`,
@@ -284,31 +283,35 @@ export class HttpServer {
       }
     });
 
-    if (this.enableAuth) {
-      // Users defined, so enabling auth
-      app.use(async ({ request, response, cookies }, next) => {
-        const host = request.url.host;
-        if (!excludedPaths.includes(request.url.pathname)) {
-          const authCookie = await cookies.get(authCookieName(host));
-          if (!authCookie) {
-            response.redirect("/.auth");
-            return;
-          }
-          const spaceServer = await this.ensureSpaceServer(request);
-          const [username, hashedPassword] = authCookie.split(":");
-          if (
-            !await spaceServer.authenticator.authenticateHashed(
-              username,
-              hashedPassword,
-            )
-          ) {
-            response.redirect("/.auth");
-            return;
-          }
+    // Check auth
+    app.use(async ({ request, response, cookies }, next) => {
+      const spaceServer = await this.ensureSpaceServer(request);
+      if (!spaceServer.auth) {
+        // Auth disabled in this config, skip
+        return next();
+      }
+      const host = request.url.host;
+      if (!excludedPaths.includes(request.url.pathname)) {
+        const authCookie = await cookies.get(authCookieName(host));
+        if (!authCookie) {
+          response.redirect("/.auth");
+          return;
         }
-        await next();
-      });
-    }
+        const spaceServer = await this.ensureSpaceServer(request);
+        const [username, hashedPassword] = authCookie.split(":");
+        const [expectedUser, expectedPassword] = spaceServer.auth!.split(
+          ":",
+        );
+        if (
+          username !== expectedUser ||
+          hashedPassword !== await hashSHA256(expectedPassword)
+        ) {
+          response.redirect("/.auth");
+          return;
+        }
+      }
+      await next();
+    });
   }
 
   private addFsRoutes(): Router {
