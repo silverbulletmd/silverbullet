@@ -30,7 +30,6 @@ Deno.test("Test plug run", {
   assertEquals(
     await runPlug(
       testSpaceFolder,
-      tempDbFile,
       "test.run",
       [],
       assetBundle,

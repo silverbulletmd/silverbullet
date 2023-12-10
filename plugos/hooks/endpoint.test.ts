@@ -26,7 +26,11 @@ Deno.test("Run a plugos endpoint server", async () => {
   const app = new Application();
   const port = 3123;
 
-  system.addHook(new EndpointHook(app, "/_/"));
+  const endpointHook = new EndpointHook("/_/");
+
+  app.use((context, next) => {
+    return endpointHook.handleRequest(system, context, next);
+  });
 
   const controller = new AbortController();
   app.listen({ port: port, signal: controller.signal });

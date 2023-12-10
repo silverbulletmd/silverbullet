@@ -9,6 +9,7 @@ Deno.test("s3_space_primitives", async () => {
     endPoint: "s3.eu-central-1.amazonaws.com",
     region: "eu-central-1",
     bucket: "zef-sb-space",
+    prefix: "test",
   };
 
   const primitives = new S3SpacePrimitives(options);

@@ -1,4 +1,4 @@
-import { Application, path } from "../server/deps.ts";
+import { Application } from "../server/deps.ts";
 import { HttpServer } from "../server/http_server.ts";
 import clientAssetBundle from "../dist/client_asset_bundle.json" assert {
   type: "json",
@@ -7,17 +7,11 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { S3SpacePrimitives } from "../server/spaces/s3_space_primitives.ts";
-import { Authenticator } from "../server/auth.ts";
-import { JSONKVStore } from "../plugos/lib/kv_store.json_file.ts";
-import { ServerSystem } from "../server/server_system.ts";
 import { sleep } from "$sb/lib/async.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { System } from "../plugos/system.ts";
-import { silverBulletDbFile } from "./constants.ts";
+
+import { determineDatabaseBackend } from "../server/db_backend.ts";
+import { SpaceServerConfig } from "../server/instance.ts";
+import { path } from "../common/deps.ts";
 
 export async function serveCommand(
   options: {
@@ -28,8 +22,6 @@ export async function serveCommand(
     cert?: string;
     key?: string;
     reindex?: boolean;
-    db?: string;
-    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -37,12 +29,11 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-  const syncOnly = options.syncOnly || Deno.env.get("SB_SYNC_ONLY");
-  let dbFile = options.db || Deno.env.get("SB_DB_FILE") || silverBulletDbFile;
 
   const app = new Application();
 
   if (!folder) {
+    // Didn't get a folder as an argument, check if we got it as an environment variable
     folder = Deno.env.get("SB_FOLDER");
     if (!folder) {
       console.error(
@@ -51,105 +42,44 @@ export async function serveCommand(
       Deno.exit(1);
     }
   }
+  folder = path.resolve(Deno.cwd(), folder);
+
+  const baseKvPrimitives = await determineDatabaseBackend(folder);
 
   console.log(
     "Going to start SilverBullet binding to",
     `${hostname}:${port}`,
   );
   if (hostname === "127.0.0.1") {
-    console.log(
-      `NOTE: SilverBullet will only be available locally (via http://localhost:${port}).
+    console.info(
+      `SilverBullet will only be available locally (via http://localhost:${port}).
 To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminator on top.`,
     );
   }
-  let spacePrimitives: SpacePrimitives | undefined;
-  if (folder === "s3://") {
-    spacePrimitives = new S3SpacePrimitives({
-      accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
-      secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
-      endPoint: Deno.env.get("AWS_ENDPOINT")!,
-      region: Deno.env.get("AWS_REGION")!,
-      bucket: Deno.env.get("AWS_BUCKET")!,
-    });
-    console.log("Running in S3 mode");
-    folder = Deno.cwd();
-  } else {
-    // Regular disk mode
-    folder = path.resolve(Deno.cwd(), folder);
-    spacePrimitives = new DiskSpacePrimitives(folder);
-  }
 
-  spacePrimitives = new AssetBundlePlugSpacePrimitives(
-    spacePrimitives,
-    new AssetBundle(plugAssetBundle as AssetJson),
-  );
+  const userAuth = options.user ?? Deno.env.get("SB_USER");
 
-  let system: System<SilverBulletHooks> | undefined;
-  // system = undefined in syncOnly mode (no PlugOS instance on the server)
-  if (!syncOnly) {
-    // Enable server-side processing
-    dbFile = path.resolve(folder, dbFile);
-    console.log(
-      `Running in server-processing mode, keeping state in ${dbFile}`,
-    );
-    const serverSystem = new ServerSystem(spacePrimitives, dbFile, app);
-    await serverSystem.init();
-    spacePrimitives = serverSystem.spacePrimitives;
-    system = serverSystem.system;
-    if (options.reindex) {
-      console.log("Reindexing space (requested via --reindex flag)");
-      serverSystem.system.loadedPlugs.get("index")!.invoke(
-        "reindexSpace",
-        [],
-      ).catch(console.error);
-    }
-  }
+  const configs = new Map<string, SpaceServerConfig>();
+  configs.set("*", {
+    hostname,
+    namespace: "*",
+    auth: userAuth,
+    pagesPath: folder,
+  });
 
-  const authStore = new JSONKVStore();
-  const authenticator = new Authenticator(authStore);
-
-  const flagUser = options.user ?? Deno.env.get("SB_USER");
-  if (flagUser) {
-    // If explicitly added via env/parameter, add on the fly
-    const [username, password] = flagUser.split(":");
-    await authenticator.register(username, password, ["admin"], "");
-  }
-
-  if (options.auth) {
-    // Load auth file
-    const authFile: string = options.auth;
-    console.log("Loading authentication credentials from", authFile);
-    await authStore.load(authFile);
-    (async () => {
-      // Asynchronously kick off file watcher
-      for await (const _event of Deno.watchFs(options.auth!)) {
-        console.log("Authentication file changed, reloading...");
-        await authStore.load(authFile);
-      }
-    })().catch(console.error);
-  }
-
-  const envAuth = Deno.env.get("SB_AUTH");
-  if (envAuth) {
-    console.log("Loading authentication from SB_AUTH");
-    authStore.loadString(envAuth);
-  }
-
-  const httpServer = new HttpServer(
-    spacePrimitives!,
+  const httpServer = new HttpServer({
     app,
-    system,
-    {
-      hostname,
-      port: port,
-      pagesPath: folder!,
-      clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-      authenticator,
-      keyFile: options.key,
-      certFile: options.cert,
-    },
-  );
-  await httpServer.start();
+    hostname,
+    port,
+    clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+    plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
+    baseKvPrimitives,
+    syncOnly: baseKvPrimitives === undefined,
+    keyFile: options.key,
+    certFile: options.cert,
+    configs,
+  });
+  httpServer.start();
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {

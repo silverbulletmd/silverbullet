@@ -5,10 +5,11 @@ import { Application } from "../server/deps.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import { determineDatabaseBackend } from "../server/db_backend.ts";
+import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 
 export async function runPlug(
   spacePath: string,
-  dbPath: string,
   functionName: string | undefined,
   args: string[] = [],
   builtinAssetBundle: AssetBundle,
@@ -18,15 +19,27 @@ export async function runPlug(
   const serverController = new AbortController();
   const app = new Application();
 
+  const dbBackend = await determineDatabaseBackend();
+
+  if (!dbBackend) {
+    console.error("Cannot run plugs in databaseless mode.");
+    return;
+  }
+
+  const endpointHook = new EndpointHook("/_/");
+
   const serverSystem = new ServerSystem(
     new AssetBundlePlugSpacePrimitives(
       new DiskSpacePrimitives(spacePath),
       builtinAssetBundle,
     ),
-    dbPath,
-    app,
+    dbBackend,
   );
   await serverSystem.init(true);
+  app.use((context, next) => {
+    return endpointHook.handleRequest(serverSystem.system!, context, next);
+  });
+
   app.listen({
     hostname: httpHostname,
     port: httpServerPort,
@@ -42,7 +55,7 @@ export async function runPlug(
     }
     const result = await plug.invoke(funcName, args);
     await serverSystem.close();
-    serverSystem.denoKv.close();
+    serverSystem.kvPrimitives.close();
     serverController.abort();
     return result;
   } else {
