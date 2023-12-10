@@ -140,4 +140,5 @@ You can configure SB with environment variables instead of flags, which is proba
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
 * `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
+* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to "local" (enabled), set to "off" to disable
 * `SB_SYNC_ONLY`: Runs the server in a "dumb" space store-only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`. This will disable the Online [[Client Modes]] altogether (and not even show the sync icon in the top bar). Conceptually, [silverbullet.md](https://silverbullet.md) runs in this mode.

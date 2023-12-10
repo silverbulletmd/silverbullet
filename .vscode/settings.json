@@ -6,5 +6,6 @@
   "deno.unstable": true,
   "[markdown]": {
     "editor.formatOnSave": false
-  }
+  },
+  "deno.documentPreloadLimit": 0
 }
