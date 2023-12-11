@@ -276,7 +276,9 @@ export class HttpServer {
               authCookieName(host),
               jwt,
               {
-                expires: new Date(Date.now() + authenticationExpirySeconds), // in a week
+                expires: new Date(
+                  Date.now() + authenticationExpirySeconds * 1000,
+                ), // in a week
                 sameSite: "strict",
               },
             );
@@ -305,6 +307,7 @@ export class HttpServer {
       if (!excludedPaths.includes(request.url.pathname)) {
         const authCookie = await cookies.get(authCookieName(host));
         if (!authCookie) {
+          console.log("Unauthorized access, redirecting to auth page");
           return response.redirect("/.auth");
         }
         const [expectedUser] = spaceServer.auth!.split(
