@@ -11,12 +11,11 @@ import { FileMeta } from "$sb/types.ts";
 import { ShellRequest, SyscallRequest, SyscallResponse } from "./rpc.ts";
 import { determineShellBackend } from "./shell_backend.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
-import {
-  KvPrimitives,
-  PrefixedKvPrimitives,
-} from "../plugos/lib/kv_primitives.ts";
+import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
-import { hashSHA256 } from "./crypto.ts";
+import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
+
+const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
 export type ServerOptions = {
   app: Application;
@@ -129,6 +128,8 @@ export class HttpServer {
   }
 
   start() {
+    // Initialize JWT issuer
+    // First check if auth string (username:password) has changed
     // Serve static files (javascript, css, html)
     this.app.use(this.serveStatic.bind(this));
 
@@ -251,25 +252,35 @@ export class HttpServer {
           const values = await request.body({ type: "form" }).value;
           const username = values.get("username")!;
           const password = values.get("password")!;
-          const refer = values.get("refer");
+
+          const formCSRF = values.get("csrf");
+          const cookieCSRF = await cookies.get("csrf_token");
+
+          if (formCSRF !== cookieCSRF) {
+            response.redirect("/.auth?error=2");
+            console.log("CSRF mismatch", formCSRF, cookieCSRF);
+            return;
+          }
+
+          await cookies.delete("csrf_token");
 
           const spaceServer = await this.ensureSpaceServer(request);
-          const hashedPassword = await hashSHA256(password);
           const [expectedUser, expectedPassword] = spaceServer.auth!.split(":");
-          if (
-            username === expectedUser &&
-            hashedPassword === await hashSHA256(expectedPassword)
-          ) {
+          if (username === expectedUser && password === expectedPassword) {
+            // Generate a JWT and set it as a cookie
+            const jwt = await spaceServer.jwtIssuer.createJWT(
+              { username },
+              authenticationExpirySeconds,
+            );
             await cookies.set(
               authCookieName(host),
-              `${username}:${hashedPassword}`,
+              jwt,
               {
-                expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // in a week
+                expires: new Date(Date.now() + authenticationExpirySeconds), // in a week
                 sameSite: "strict",
               },
             );
-            response.redirect(refer || "/");
-            // console.log("All headers", request.headers);
+            response.redirect("/");
           } else {
             response.redirect("/.auth?error=1");
           }
@@ -294,20 +305,25 @@ export class HttpServer {
       if (!excludedPaths.includes(request.url.pathname)) {
         const authCookie = await cookies.get(authCookieName(host));
         if (!authCookie) {
-          response.redirect("/.auth");
-          return;
+          return response.redirect("/.auth");
         }
-        const spaceServer = await this.ensureSpaceServer(request);
-        const [username, hashedPassword] = authCookie.split(":");
-        const [expectedUser, expectedPassword] = spaceServer.auth!.split(
+        const [expectedUser] = spaceServer.auth!.split(
           ":",
         );
-        if (
-          username !== expectedUser ||
-          hashedPassword !== await hashSHA256(expectedPassword)
-        ) {
-          response.redirect("/.auth");
-          return;
+
+        try {
+          const verifiedJwt = await spaceServer.jwtIssuer.verifyAndDecodeJWT(
+            authCookie,
+          );
+          if (verifiedJwt.username !== expectedUser) {
+            throw new Error("Username mismatch");
+          }
+        } catch (e: any) {
+          console.error(
+            "Error verifying JWT, redirecting to auth page",
+            e.message,
+          );
+          return response.redirect("/.auth");
         }
       }
       await next();

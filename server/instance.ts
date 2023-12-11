@@ -5,8 +5,10 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
+import { JWTIssuer } from "./crypto.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { ServerSystem } from "./server_system.ts";
 import { ShellBackend } from "./shell_backend.ts";
@@ -27,6 +29,8 @@ export class SpaceServer {
   private settings?: BuiltinSettings;
   spacePrimitives: SpacePrimitives;
 
+  jwtIssuer: JWTIssuer;
+
   // Only set when syncOnly == false
   private serverSystem?: ServerSystem;
   system?: System<SilverBulletHooks>;
@@ -35,11 +39,12 @@ export class SpaceServer {
     config: SpaceServerConfig,
     public shellBackend: ShellBackend,
     plugAssetBundle: AssetBundle,
-    kvPrimitives?: KvPrimitives,
+    private kvPrimitives?: KvPrimitives,
   ) {
     this.pagesPath = config.pagesPath;
     this.hostname = config.hostname;
     this.auth = config.auth;
+    this.jwtIssuer = new JWTIssuer(kvPrimitives || new MemoryKvPrimitives());
 
     let fileFilterFn: (s: string) => boolean = () => true;
 
@@ -71,6 +76,11 @@ export class SpaceServer {
   }
 
   async init() {
+    if (this.auth) {
+      // Initialize JWT issuer
+      await this.jwtIssuer.init(this.auth);
+    }
+
     if (this.serverSystem) {
       await this.serverSystem.init();
       this.system = this.serverSystem.system;
