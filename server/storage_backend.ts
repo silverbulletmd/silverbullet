@@ -1,7 +1,7 @@
 import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { path } from "./deps.ts";
-import { S3SpacePrimitives } from "./spaces/s3_space_primitives.ts";
+import { S3SpacePrimitives } from "../common/spaces/s3_space_primitives.ts";
 
 export function determineStorageBackend(folder: string): SpacePrimitives {
   if (folder === "s3://") {

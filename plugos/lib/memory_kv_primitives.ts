@@ -43,12 +43,16 @@ export class MemoryKvPrimitives implements KvPrimitives {
   }
 
   async *query(options: KvQueryOptions): AsyncIterableIterator<KV> {
-    const prefix = options.prefix?.join("/");
-    for (const [key, value] of this.store) {
+    const prefix = options.prefix?.join(memoryKeySeparator);
+    const sortedKeys = [...this.store.keys()].sort();
+    for (const key of sortedKeys) {
       if (prefix && !key.startsWith(prefix)) {
         continue;
       }
-      yield { key: key.split(memoryKeySeparator), value };
+      yield {
+        key: key.split(memoryKeySeparator),
+        value: this.store.get(key),
+      };
     }
   }
 
