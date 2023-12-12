@@ -113,7 +113,7 @@ export class ClientSystem {
             plug.manifest,
             manifestOverrides[plug.manifest!.name],
           );
-          console.log("New manifest", plug.manifest);
+          // console.log("New manifest", plug.manifest);
         }
       },
     });
