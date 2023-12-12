@@ -6,7 +6,6 @@ import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitive
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
-import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import assetSyscalls from "../plugos/syscalls/asset.ts";
@@ -19,7 +18,6 @@ import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
-import { Application } from "./deps.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";

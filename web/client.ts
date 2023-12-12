@@ -818,17 +818,16 @@ export class Client {
       doc.text,
       doc.meta.perm === "ro",
     );
+    this.ui.viewDispatch({
+      type: "page-loaded",
+      meta: doc.meta,
+    });
     editorView.setState(editorState);
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM);
     }
     const stateRestored = this.openPages.restoreState(pageName);
     this.space.watchPage(pageName);
-
-    this.ui.viewDispatch({
-      type: "page-loaded",
-      meta: doc.meta,
-    });
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {

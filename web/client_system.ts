@@ -38,10 +38,8 @@ import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
-import {
-  InMemoryManifestCache,
-  KVPrimitivesManifestCache,
-} from "../plugos/manifest_cache.ts";
+import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
+import { deepObjectMerge } from "$sb/lib/json.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -106,6 +104,20 @@ export class ClientSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
+    this.system.on({
+      plugLoaded: (plug) => {
+        // Apply plug overrides
+        const manifestOverrides = this.client.settings.plugOverrides;
+        if (manifestOverrides && manifestOverrides[plug.manifest!.name]) {
+          plug.manifest = deepObjectMerge(
+            plug.manifest,
+            manifestOverrides[plug.manifest!.name],
+          );
+          console.log("New manifest", plug.manifest);
+        }
+      },
+    });
+
     this.eventHook.addLocalListener(
       "file:changed",
       async (path: string, _selfUpdate, _oldHash, newHash) => {
@@ -118,7 +130,6 @@ export class ClientSystem {
             plugName,
             newHash,
             createSandbox,
-            this.client.settings.plugOverrides,
           );
           if ((plug.manifest! as Manifest).syntax) {
             // If there are syntax extensions, rebuild the markdown parser immediately
@@ -204,7 +215,6 @@ export class ClientSystem {
           plugName,
           plugMeta.lastModified,
           createSandbox,
-          this.client.settings.plugOverrides,
         );
       } catch (e: any) {
         console.error(

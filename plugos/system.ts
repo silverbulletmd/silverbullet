@@ -1,8 +1,7 @@
-import { Hook, Manifest } from "./types.ts";
+import { Hook } from "./types.ts";
 import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandbox.ts";
 import { Plug } from "./plug.ts";
-import { deepObjectMerge } from "$sb/lib/json.ts";
 import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
 
 export interface SysCallMapping {
@@ -112,21 +111,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     name: string,
     hash: number,
     sandboxFactory: SandboxFactory<HookT>,
-    // Mapping plug name -> manifest overrides
-    manifestOverrides?: Record<string, Partial<Manifest<HookT>>>,
   ): Promise<Plug<HookT>> {
     const plug = new Plug(this, workerUrl, name, hash, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
     await plug.ready;
 
-    if (manifestOverrides && manifestOverrides[plug.manifest!.name]) {
-      plug.manifest = deepObjectMerge(
-        plug.manifest,
-        manifestOverrides[plug.manifest!.name],
-      );
-      // console.log("New manifest", plug.manifest);
-    }
     // and there it is!
     const manifest = plug.manifest!;
 
