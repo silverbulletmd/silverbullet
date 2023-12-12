@@ -23,7 +23,7 @@ export type ServerOptions = {
   port: number;
   clientAssetBundle: AssetBundle;
   plugAssetBundle: AssetBundle;
-  baseKvPrimitives?: KvPrimitives;
+  baseKvPrimitives: KvPrimitives;
   syncOnly: boolean;
   certFile?: string;
   keyFile?: string;
@@ -43,7 +43,7 @@ export class HttpServer {
 
   spaceServers = new Map<string, Promise<SpaceServer>>();
   syncOnly: boolean;
-  baseKvPrimitives?: KvPrimitives;
+  baseKvPrimitives: KvPrimitives;
   configs: Map<string, SpaceServerConfig>;
 
   constructor(options: ServerOptions) {
@@ -64,11 +64,9 @@ export class HttpServer {
       config,
       determineShellBackend(config.pagesPath),
       this.plugAssetBundle,
-      this.baseKvPrimitives
-        ? new PrefixedKvPrimitives(this.baseKvPrimitives, [
-          config.namespace,
-        ])
-        : undefined,
+      new PrefixedKvPrimitives(this.baseKvPrimitives, [
+        config.namespace,
+      ]),
     );
     await spaceServer.init();
 

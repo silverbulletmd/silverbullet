@@ -1,18 +1,17 @@
 import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 import { path } from "./deps.ts";
 
 /**
  * Environment variables:
- * - SB_DB_BACKEND: "denokv" or "off" (default: denokv)
+ * - SB_DB_BACKEND: "denokv" or "memory" (default: denokv)
  * - SB_KV_DB (denokv only): path to the database file (default .silverbullet.db) or ":cloud:" for cloud storage
  */
 
 export async function determineDatabaseBackend(
   singleTenantFolder?: string,
-): Promise<
-  KvPrimitives | undefined
-> {
+): Promise<KvPrimitives> {
   const backendConfig = Deno.env.get("SB_DB_BACKEND") || "denokv";
   switch (backendConfig) {
     case "denokv": {
@@ -37,8 +36,8 @@ export async function determineDatabaseBackend(
     }
     default:
       console.info(
-        "Running in databaseless mode: no server-side indexing and state keeping (beyond space files) will happen.",
+        "Running in in-memory database mode: index data will be flushed on every restart. Not recommended, but to each their own.",
       );
-      return;
+      return new MemoryKvPrimitives();
   }
 }

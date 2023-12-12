@@ -79,6 +79,10 @@ export class KvMetaSpacePrimitives implements SpacePrimitives {
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    return (await this.kv.batchGet([[name]]))[0];
+    const fileMeta = (await this.kv.batchGet([[name]]))[0];
+    if (!fileMeta) {
+      throw new Error("Not found");
+    }
+    return fileMeta;
   }
 }

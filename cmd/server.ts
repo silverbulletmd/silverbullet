@@ -22,6 +22,7 @@ export async function serveCommand(
     cert?: string;
     key?: string;
     reindex?: boolean;
+    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -29,7 +30,7 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-
+  const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
   const app = new Application();
 
   if (!folder) {
@@ -74,7 +75,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     baseKvPrimitives,
-    syncOnly: baseKvPrimitives === undefined,
+    syncOnly,
     keyFile: options.key,
     certFile: options.cert,
     configs,

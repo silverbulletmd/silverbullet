@@ -1,4 +1,4 @@
-import { assertEquals } from "../../test_deps.ts";
+import { assert, assertEquals } from "../../test_deps.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
@@ -42,6 +42,26 @@ export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
 
   await spacePrimitives.deleteFile("test.bin");
   assertEquals(await spacePrimitives.fetchFileList(), [fileMeta]);
+
+  // Clean up
+  await spacePrimitives.deleteFile("test.txt");
+  assertEquals(await spacePrimitives.fetchFileList(), []);
+
+  // Test weird file names
+  await spacePrimitives.writeFile("test+'s.txt", stringToBytes("Hello world!"));
+  assertEquals(
+    stringToBytes("Hello world!"),
+    (await spacePrimitives.readFile("test+'s.txt")).data,
+  );
+  await spacePrimitives.deleteFile("test+'s.txt");
+
+  // Check deletion of weird file file name
+  try {
+    await spacePrimitives.getFileMeta("test+'s.txt");
+    assert(false);
+  } catch (e: any) {
+    assertEquals(e.message, "Not found");
+  }
 }
 
 function stringToBytes(str: string): Uint8Array {

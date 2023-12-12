@@ -39,18 +39,18 @@ export class SpaceServer {
     config: SpaceServerConfig,
     public shellBackend: ShellBackend,
     plugAssetBundle: AssetBundle,
-    private kvPrimitives?: KvPrimitives,
+    kvPrimitives: KvPrimitives,
   ) {
     this.pagesPath = config.pagesPath;
     this.hostname = config.hostname;
     this.auth = config.auth;
-    this.jwtIssuer = new JWTIssuer(kvPrimitives || new MemoryKvPrimitives());
+    this.jwtIssuer = new JWTIssuer(kvPrimitives);
 
     let fileFilterFn: (s: string) => boolean = () => true;
 
     this.spacePrimitives = new FilteredSpacePrimitives(
       new AssetBundlePlugSpacePrimitives(
-        determineStorageBackend(this.pagesPath),
+        determineStorageBackend(kvPrimitives, this.pagesPath),
         plugAssetBundle,
       ),
       (meta) => fileFilterFn(meta.name),

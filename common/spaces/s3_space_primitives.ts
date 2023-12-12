@@ -3,22 +3,31 @@ import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
 import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
 import { KvPrimitives } from "../../plugos/lib/kv_primitives.ts";
+import { mime } from "../deps.ts";
+import { KV, KvKey } from "$sb/types.ts";
+import { PrefixedKvPrimitives } from "../../plugos/lib/prefixed_kv_primitives.ts";
 
-export type S3SpacePrimitivesOptions = ClientOptions & { prefix: string };
+export type S3SpacePrimitivesOptions = ClientOptions;
 
 /**
  * Because S3 cannot store arbitrary metadata (well it can, but you cannot retrieve it when listing objects), we need to store it in a separate KV store
  */
 export class S3SpacePrimitives extends KvMetaSpacePrimitives {
-  constructor(kv: KvPrimitives, options: S3SpacePrimitivesOptions) {
+  client: S3Client;
+  objectPrefix: string;
+  constructor(
+    baseKv: KvPrimitives,
+    metaPrefix: KvKey,
+    objectPrefix: string,
+    options: S3SpacePrimitivesOptions,
+  ) {
     const client = new S3Client(options);
-    const prefix = options.prefix;
-    super(kv, {
+    super(new PrefixedKvPrimitives(baseKv, metaPrefix), {
       async readFile(
         name: string,
       ): Promise<Uint8Array> {
         try {
-          const obj = await client.getObject(encodePath(prefix + name));
+          const obj = await client.getObject(encodePath(objectPrefix + name));
           return new Uint8Array(await obj.arrayBuffer());
         } catch (e: any) {
           console.error("Got S3 error", e.message);
@@ -33,18 +42,56 @@ export class S3SpacePrimitives extends KvMetaSpacePrimitives {
         name: string,
         data: Uint8Array,
       ): Promise<void> {
-        await client.putObject(encodePath(prefix + name), data);
+        await client.putObject(encodePath(objectPrefix + name), data);
       },
       async deleteFile(name: string): Promise<void> {
-        await client.deleteObject(encodePath(prefix + name));
+        await client.deleteObject(encodePath(objectPrefix + name));
       },
     });
+    this.client = client;
+    this.objectPrefix = objectPrefix;
+  }
+
+  /**
+   * Fetches all objects from S3 bucket, finds any missing files and adds them to the KV store
+   * Doesn't delete items, nor update any existing items
+   */
+  async syncFileList(): Promise<void> {
+    const currentFiles = await this.fetchFileList();
+    const entriesToAdd: KV[] = [];
+    for await (
+      const objectData of this.client.listObjects({
+        prefix: this.objectPrefix,
+      })
+    ) {
+      // Find the file meta for this object
+      let fileMeta = currentFiles.find((f) =>
+        f.name === decodePath(objectData.key.slice(this.objectPrefix.length))
+      );
+      if (fileMeta) {
+        // Exists, continue
+        continue;
+      }
+      fileMeta = {
+        name: decodePath(objectData.key.slice(this.objectPrefix.length)),
+        created: objectData.lastModified.getTime(),
+        lastModified: objectData.lastModified.getTime(),
+        contentType: mime.getType(objectData.key) || "application/octet-stream",
+        size: objectData.size,
+        perm: "rw",
+      };
+      entriesToAdd.push({
+        key: [fileMeta.name],
+        value: fileMeta,
+      });
+    }
+    return this.kv.batchSet(entriesToAdd);
   }
 }
 
 // Stolen from https://github.com/aws/aws-sdk-js/blob/master/lib/util.js
 
-export function uriEscapePath(string: string): string {
+function uriEscapePath(string: string): string {
   return string.split("/").map(uriEscape).join("/");
 }
 
@@ -62,4 +109,8 @@ function uriEscape(string: string): string {
 
 function encodePath(name: string): string {
   return uriEscapePath(name);
+}
+function decodePath(encoded: string): string {
+  // AWS only returns ' replace with &apos;
+  return encoded.replaceAll("&apos;", "'");
 }
