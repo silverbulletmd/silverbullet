@@ -15,6 +15,10 @@ const keySeparator = "\0";
 
 const batchReadSize = 100;
 
+/**
+ * Start of an implementation, to be continued at some point
+ */
+
 export class DynamoDBKvPrimitives implements KvPrimitives {
   client: DynamoDBClient;
   partitionKey: string;
