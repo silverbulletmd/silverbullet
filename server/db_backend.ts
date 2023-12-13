@@ -1,18 +1,17 @@
 import { DenoKvPrimitives } from "../plugos/lib/deno_kv_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 import { path } from "./deps.ts";
 
 /**
  * Environment variables:
- * - SB_DB_BACKEND: "denokv" or "off" (default: denokv)
- * - SB_KV_DB (denokv only): path to the database file (default .silverbullet.db) or ":cloud:" for cloud storage
+ * - SB_DB_BACKEND: "denokv" or "memory" (default: denokv)
+ * - SB_KV_DB (denokv only): path to the database file (default .silverbullet.db)
  */
 
 export async function determineDatabaseBackend(
   singleTenantFolder?: string,
-): Promise<
-  KvPrimitives | undefined
-> {
+): Promise<KvPrimitives> {
   const backendConfig = Deno.env.get("SB_DB_BACKEND") || "denokv";
   switch (backendConfig) {
     case "denokv": {
@@ -24,21 +23,19 @@ export async function determineDatabaseBackend(
         dbFile = path.resolve(singleTenantFolder, dbFile);
       }
 
-      if (dbFile === ":cloud:") {
+      if (Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined) { // We're running in Deno Deploy
         dbFile = undefined; // Deno Deploy will use the default KV store
       }
       const denoDb = await Deno.openKv(dbFile);
       console.info(
-        `Using DenoKV as a database backend (${
-          dbFile || "cloud"
-        }), running in server-processing mode.`,
+        `Using DenoKV as a database backend (${dbFile || "cloud"}.`,
       );
       return new DenoKvPrimitives(denoDb);
     }
     default:
       console.info(
-        "Running in databaseless mode: no server-side indexing and state keeping (beyond space files) will happen.",
+        "Running in in-memory database mode: index data will be flushed on every restart. Not recommended, but to each their own.",
       );
-      return;
+      return new MemoryKvPrimitives();
   }
 }

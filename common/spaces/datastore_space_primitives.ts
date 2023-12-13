@@ -12,6 +12,9 @@ export type FileContent = {
 const filesMetaPrefix = ["file", "meta"];
 const filesContentPrefix = ["file", "content"];
 
+/**
+ * TODO: Replace this with ChunkedDatastoreSpacePrimitives
+ */
 export class DataStoreSpacePrimitives implements SpacePrimitives {
   constructor(
     private ds: DataStore,
@@ -46,14 +49,27 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     _selfUpdate?: boolean,
     suggestedMeta?: FileMeta,
   ): Promise<FileMeta> {
-    const meta: FileMeta = {
-      name,
-      created: suggestedMeta?.lastModified || Date.now(),
-      lastModified: suggestedMeta?.lastModified || Date.now(),
-      contentType: mime.getType(name) || "application/octet-stream",
-      size: data.byteLength,
-      perm: suggestedMeta?.perm || "rw",
-    };
+    let meta: FileMeta | undefined;
+    try {
+      // Build off of the existing file meta, if file exists
+      meta = await this.getFileMeta(name);
+    } catch {
+      // Not found, that's fine
+    }
+    if (!meta) {
+      meta = {
+        name,
+        created: suggestedMeta?.lastModified || Date.now(),
+        perm: suggestedMeta?.perm || "rw",
+        contentType: mime.getType(name) || "application/octet-stream",
+        // Overwritten in a sec
+        lastModified: 0,
+        size: 0,
+      };
+    }
+    meta.lastModified = suggestedMeta?.lastModified || Date.now();
+    meta.size = data.byteLength;
+
     await this.ds.batchSet<FileMeta | FileContent>([
       {
         key: [...filesContentPrefix, name],

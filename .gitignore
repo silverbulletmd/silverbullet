@@ -1,3 +1,4 @@
+.env
 .DS_Store
 dist_client_bundle
 dist_plug_bundle
@@ -10,7 +11,7 @@ deno.lock
 fly.toml
 env.sh
 node_modules
-*.db
+*.db*
 test_space
 silverbullet
-.silverbullet.db*
+deploy.json

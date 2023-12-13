@@ -39,7 +39,7 @@ const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
 export class ServerSystem {
   system!: System<SilverBulletHooks>;
-  spacePrimitives!: SpacePrimitives;
+  public spacePrimitives!: SpacePrimitives;
   // denoKv!: Deno.Kv;
   listInterval?: number;
   ds!: DataStore;

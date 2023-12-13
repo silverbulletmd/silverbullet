@@ -11,7 +11,6 @@ import { sleep } from "$sb/lib/async.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
-import { path } from "../common/deps.ts";
 
 export async function serveCommand(
   options: {
@@ -22,6 +21,7 @@ export async function serveCommand(
     cert?: string;
     key?: string;
     reindex?: boolean;
+    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -29,7 +29,7 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-
+  const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
   const app = new Application();
 
   if (!folder) {
@@ -42,7 +42,6 @@ export async function serveCommand(
       Deno.exit(1);
     }
   }
-  folder = path.resolve(Deno.cwd(), folder);
 
   const baseKvPrimitives = await determineDatabaseBackend(folder);
 
@@ -59,11 +58,17 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
 
   const userAuth = options.user ?? Deno.env.get("SB_USER");
 
+  let userCredentials: { user: string; pass: string } | undefined;
+  if (userAuth) {
+    const [user, pass] = userAuth.split(":");
+    userCredentials = { user, pass };
+  }
   const configs = new Map<string, SpaceServerConfig>();
   configs.set("*", {
     hostname,
     namespace: "*",
-    auth: userAuth,
+    auth: userCredentials,
+    authToken: Deno.env.get("SB_AUTH_TOKEN"),
     pagesPath: folder,
   });
 
@@ -74,7 +79,7 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     baseKvPrimitives,
-    syncOnly: baseKvPrimitives === undefined,
+    syncOnly,
     keyFile: options.key,
     certFile: options.cert,
     configs,

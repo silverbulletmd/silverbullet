@@ -5,7 +5,6 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
-import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
@@ -17,17 +16,21 @@ import { determineStorageBackend } from "./storage_backend.ts";
 export type SpaceServerConfig = {
   hostname: string;
   namespace: string;
-  auth?: string; // username:password
+  // Enable username/password auth
+  auth?: { user: string; pass: string };
+  // Additional API auth token
+  authToken?: string;
   pagesPath: string;
 };
 
 export class SpaceServer {
   public pagesPath: string;
-  auth?: string;
+  auth?: { user: string; pass: string };
+  authToken?: string;
   hostname: string;
 
   private settings?: BuiltinSettings;
-  spacePrimitives: SpacePrimitives;
+  spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;
 
@@ -38,20 +41,24 @@ export class SpaceServer {
   constructor(
     config: SpaceServerConfig,
     public shellBackend: ShellBackend,
-    plugAssetBundle: AssetBundle,
-    private kvPrimitives?: KvPrimitives,
+    private plugAssetBundle: AssetBundle,
+    private kvPrimitives: KvPrimitives,
+    private syncOnly: boolean,
   ) {
     this.pagesPath = config.pagesPath;
     this.hostname = config.hostname;
     this.auth = config.auth;
-    this.jwtIssuer = new JWTIssuer(kvPrimitives || new MemoryKvPrimitives());
+    this.authToken = config.authToken;
+    this.jwtIssuer = new JWTIssuer(kvPrimitives);
+  }
 
+  async init() {
     let fileFilterFn: (s: string) => boolean = () => true;
 
     this.spacePrimitives = new FilteredSpacePrimitives(
       new AssetBundlePlugSpacePrimitives(
-        determineStorageBackend(this.pagesPath),
-        plugAssetBundle,
+        await determineStorageBackend(this.kvPrimitives, this.pagesPath),
+        this.plugAssetBundle,
       ),
       (meta) => fileFilterFn(meta.name),
       async () => {
@@ -65,25 +72,27 @@ export class SpaceServer {
     );
 
     // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
-    if (kvPrimitives) {
+    if (!this.syncOnly) {
       // Enable server-side processing
       const serverSystem = new ServerSystem(
         this.spacePrimitives,
-        kvPrimitives,
+        this.kvPrimitives,
       );
       this.serverSystem = serverSystem;
     }
-  }
 
-  async init() {
     if (this.auth) {
       // Initialize JWT issuer
-      await this.jwtIssuer.init(this.auth);
+      await this.jwtIssuer.init(
+        JSON.stringify({ auth: this.auth, authToken: this.authToken }),
+      );
     }
 
     if (this.serverSystem) {
       await this.serverSystem.init();
       this.system = this.serverSystem.system;
+      // Swap in the space primitives from the server system
+      this.spacePrimitives = this.serverSystem.spacePrimitives;
     }
 
     await this.reloadSettings();

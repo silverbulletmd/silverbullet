@@ -6,6 +6,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
     readonly expectedSpacePath?: string,
+    private bearerToken?: string,
   ) {
   }
 
@@ -20,6 +21,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       ...options.headers,
       "X-Sync-Mode": "true",
     };
+    if (this.bearerToken) {
+      options.headers = {
+        ...options.headers,
+        "Authorization": `Bearer ${this.bearerToken}`,
+      };
+    }
 
     try {
       const result = await fetch(url, options);

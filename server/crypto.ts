@@ -13,6 +13,7 @@ export class JWTIssuer {
   constructor(readonly kv: KvPrimitives) {
   }
 
+  // authString is only used to compare hashes to see if the auth has changed
   async init(authString: string) {
     const [secret] = await this.kv.batchGet([[jwtSecretKey]]);
     if (!secret) {

@@ -21,7 +21,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
-  ) {}
+  ) {
+  }
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, ...args);

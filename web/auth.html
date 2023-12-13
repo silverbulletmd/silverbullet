@@ -58,7 +58,6 @@
     <h1>Login to <img src="/.client/logo.png" style="height: 1ch;" /> SilverBullet</h1>
   </header>
   <form action="/.auth" method="POST" id="login">
-    <input type="hidden" name="csrf" value="" />
     <div class="error-message"></div>
     <div>
       <input type="text" name="username" id="username" autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -80,42 +79,7 @@
     const error = params.get('error');
     if (error === "1") {
       document.querySelector('.error-message').innerText = "Invalid username or password";
-    } else if (error === "2") {
-      document.querySelector('.error-message').innerText = "Invalid CSRF token";
     }
-
-    // Generate CSRF token
-    const csrf = generateCSRFToken();
-
-    // Inject CSRF token in form
-    document.querySelector('input[name="csrf"]').value = csrf;
-
-    function generateRandomString(length) {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
-    }
-
-    function generateCSRFToken() {
-      // Generate random strings
-      const randomPart1 = generateRandomString(16);
-      const randomPart2 = generateRandomString(16);
-
-      // Create a timestamp for uniqueness
-      const timestamp = new Date().getTime();
-
-      // Combine random strings and timestamp
-      const csrfToken = randomPart1 + timestamp + randomPart2;
-
-      // Set cookie
-      document.cookie = `csrf_token=${csrfToken}; SameSite=Lax; Secure`;
-
-      return csrfToken;
-    }
-
   </script>
 </body>
 
