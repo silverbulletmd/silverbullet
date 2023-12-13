@@ -105,7 +105,7 @@ export class Space {
   }
 
   async listPlugs(): Promise<FileMeta[]> {
-    const files = await this.spacePrimitives.fetchFileList();
+    const files = await this.deduplicatedFileList();
     return files
       .filter((fileMeta) =>
         fileMeta.name.startsWith(plugPrefix) &&
@@ -152,17 +152,33 @@ export class Space {
   }
 
   async fetchPageList(): Promise<PageMeta[]> {
-    return (await this.spacePrimitives.fetchFileList())
+    return (await this.deduplicatedFileList())
       .filter(this.isListedPage)
       .map(fileMetaToPageMeta);
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
-    return (await this.spacePrimitives.fetchFileList()).filter(
+    return (await this.deduplicatedFileList()).filter(
       (fileMeta) =>
         !this.isListedPage(fileMeta) &&
         !fileMeta.name.endsWith(".plug.js"),
     );
+  }
+
+  async deduplicatedFileList(): Promise<FileMeta[]> {
+    const files = await this.spacePrimitives.fetchFileList();
+    const fileMap = new Map<string, FileMeta>();
+    for (const file of files) {
+      if (fileMap.has(file.name)) {
+        const existing = fileMap.get(file.name)!;
+        if (existing.lastModified < file.lastModified) {
+          fileMap.set(file.name, file);
+        }
+      } else {
+        fileMap.set(file.name, file);
+      }
+    }
+    return [...fileMap.values()];
   }
 
   /**

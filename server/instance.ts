@@ -17,17 +17,21 @@ import { determineStorageBackend } from "./storage_backend.ts";
 export type SpaceServerConfig = {
   hostname: string;
   namespace: string;
-  auth?: string; // username:password
+  // Enable username/password auth
+  auth?: { user: string; pass: string };
+  // Additional API auth token
+  authToken?: string;
   pagesPath: string;
 };
 
 export class SpaceServer {
   public pagesPath: string;
-  auth?: string;
+  auth?: { user: string; pass: string };
+  authToken?: string;
   hostname: string;
 
   private settings?: BuiltinSettings;
-  spacePrimitives: SpacePrimitives;
+  spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;
 
@@ -38,20 +42,24 @@ export class SpaceServer {
   constructor(
     config: SpaceServerConfig,
     public shellBackend: ShellBackend,
-    plugAssetBundle: AssetBundle,
-    kvPrimitives: KvPrimitives,
+    private plugAssetBundle: AssetBundle,
+    private kvPrimitives: KvPrimitives,
+    private syncOnly: boolean,
   ) {
     this.pagesPath = config.pagesPath;
     this.hostname = config.hostname;
     this.auth = config.auth;
+    this.authToken = config.authToken;
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
+  }
 
+  async init() {
     let fileFilterFn: (s: string) => boolean = () => true;
 
     this.spacePrimitives = new FilteredSpacePrimitives(
       new AssetBundlePlugSpacePrimitives(
-        determineStorageBackend(kvPrimitives, this.pagesPath),
-        plugAssetBundle,
+        await determineStorageBackend(this.kvPrimitives, this.pagesPath),
+        this.plugAssetBundle,
       ),
       (meta) => fileFilterFn(meta.name),
       async () => {
@@ -65,20 +73,20 @@ export class SpaceServer {
     );
 
     // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
-    if (kvPrimitives) {
+    if (!this.syncOnly) {
       // Enable server-side processing
       const serverSystem = new ServerSystem(
         this.spacePrimitives,
-        kvPrimitives,
+        this.kvPrimitives,
       );
       this.serverSystem = serverSystem;
     }
-  }
 
-  async init() {
     if (this.auth) {
       // Initialize JWT issuer
-      await this.jwtIssuer.init(this.auth);
+      await this.jwtIssuer.init(
+        JSON.stringify({ auth: this.auth, authToken: this.authToken }),
+      );
     }
 
     if (this.serverSystem) {

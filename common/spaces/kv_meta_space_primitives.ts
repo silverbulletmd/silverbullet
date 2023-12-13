@@ -37,8 +37,15 @@ export class KvMetaSpacePrimitives implements SpacePrimitives {
     name: string,
     data: Uint8Array,
     _selfUpdate?: boolean | undefined,
-    meta?: FileMeta | undefined,
+    desiredMeta?: FileMeta | undefined,
   ): Promise<FileMeta> {
+    let meta: FileMeta | undefined;
+    try {
+      // Build off of the existing file meta, if file exists
+      meta = await this.getFileMeta(name);
+    } catch {
+      // Not found, that's fine
+    }
     if (!meta) {
       meta = {
         name,
@@ -46,13 +53,13 @@ export class KvMetaSpacePrimitives implements SpacePrimitives {
         created: Date.now(),
         contentType: mime.getType(name) || "application/octet-stream",
         // These will be overwritten in a bit
-        lastModified: -1,
-        size: -1,
+        lastModified: 0,
+        size: 0,
       };
     }
     meta = {
       ...meta,
-      lastModified: meta?.lastModified || Date.now(),
+      lastModified: desiredMeta?.lastModified || Date.now(),
       size: data.byteLength,
     };
     await Promise.all([

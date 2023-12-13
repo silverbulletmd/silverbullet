@@ -11,7 +11,7 @@ deno.lock
 fly.toml
 env.sh
 node_modules
-*.db
+*.db*
 test_space
 silverbullet
 .silverbullet.db*

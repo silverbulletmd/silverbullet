@@ -3,11 +3,13 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { path } from "./deps.ts";
 import { S3SpacePrimitives } from "../common/spaces/s3_space_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { ChunkedKvStoreSpacePrimitives } from "../common/spaces/chunked_datastore_space_primitives.ts";
+import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 
-export function determineStorageBackend(
+export async function determineStorageBackend(
   kvPrimitives: KvPrimitives,
   folder: string,
-): SpacePrimitives {
+): Promise<SpacePrimitives> {
   if (folder.startsWith("s3://")) {
     console.info("Using S3 as a storage backend");
     let objectPrefix = folder.slice("s3://".length);
@@ -15,7 +17,7 @@ export function determineStorageBackend(
       // Add a suffix /
       objectPrefix += "/";
     }
-    return new S3SpacePrimitives(
+    const spacePrimitives = new S3SpacePrimitives(
       kvPrimitives,
       ["meta"],
       objectPrefix,
@@ -26,6 +28,24 @@ export function determineStorageBackend(
         region: Deno.env.get("AWS_REGION")!,
         bucket: Deno.env.get("AWS_BUCKET")!,
       },
+    );
+    if (Deno.env.get("SB_S3_PERFORM_SYNC") === "true") {
+      console.log("Performing S3 file list sync");
+      await spacePrimitives.syncFileList();
+      console.info("S3 file list sync complete");
+    }
+    return spacePrimitives;
+  } else if (folder === "db://") {
+    console.info(`Using the database as a storage backend`);
+    return new ChunkedKvStoreSpacePrimitives(
+      kvPrimitives,
+      65536, // For DenoKV, this is the maximum size of a single value
+    );
+  } else if (folder.startsWith("http://") || folder.startsWith("https://")) {
+    return new HttpSpacePrimitives(
+      folder,
+      undefined,
+      Deno.env.get("SB_AUTH_TOKEN"),
     );
   } else {
     folder = path.resolve(Deno.cwd(), folder);

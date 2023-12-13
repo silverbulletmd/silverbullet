@@ -62,19 +62,23 @@ export class Sandbox<HookT> {
   }
 
   async onMessage(data: ControllerMessage) {
+    if (!this.worker) {
+      console.warn("Received message for terminated worker, ignoring");
+      return;
+    }
     switch (data.type) {
       case "sys":
         try {
           const result = await this.plug.syscall(data.name!, data.args!);
 
-          this.worker!.postMessage({
+          this.worker && this.worker!.postMessage({
             type: "sysr",
             id: data.id,
             result: result,
           } as WorkerMessage);
         } catch (e: any) {
           // console.error("Syscall fail", e);
-          this.worker!.postMessage({
+          this.worker && this.worker!.postMessage({
             type: "sysr",
             id: data.id,
             error: e.message,

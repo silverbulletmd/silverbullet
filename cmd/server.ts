@@ -43,7 +43,6 @@ export async function serveCommand(
       Deno.exit(1);
     }
   }
-  folder = path.resolve(Deno.cwd(), folder);
 
   const baseKvPrimitives = await determineDatabaseBackend(folder);
 
@@ -60,11 +59,17 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
 
   const userAuth = options.user ?? Deno.env.get("SB_USER");
 
+  let userCredentials: { user: string; pass: string } | undefined;
+  if (userAuth) {
+    const [user, pass] = userAuth.split(":");
+    userCredentials = { user, pass };
+  }
   const configs = new Map<string, SpaceServerConfig>();
   configs.set("*", {
     hostname,
     namespace: "*",
-    auth: userAuth,
+    auth: userCredentials,
+    authToken: Deno.env.get("SB_AUTH_TOKEN"),
     pagesPath: folder,
   });
 

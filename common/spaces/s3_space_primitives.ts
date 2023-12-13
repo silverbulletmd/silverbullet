@@ -80,6 +80,7 @@ export class S3SpacePrimitives extends KvMetaSpacePrimitives {
         size: objectData.size,
         perm: "rw",
       };
+      console.log("Adding file metadata to KV", fileMeta.name);
       entriesToAdd.push({
         key: [fileMeta.name],
         value: fileMeta,

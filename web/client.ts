@@ -812,16 +812,17 @@ export class Client {
       }
     }
 
+    this.ui.viewDispatch({
+      type: "page-loaded",
+      meta: doc.meta,
+    });
+
     const editorState = createEditorState(
       this,
       pageName,
       doc.text,
       doc.meta.perm === "ro",
     );
-    this.ui.viewDispatch({
-      type: "page-loaded",
-      meta: doc.meta,
-    });
     editorView.setState(editorState);
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM);

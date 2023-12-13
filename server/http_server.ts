@@ -67,6 +67,7 @@ export class HttpServer {
       new PrefixedKvPrimitives(this.baseKvPrimitives, [
         config.namespace,
       ]),
+      this.syncOnly,
     );
     await spaceServer.init();
 
@@ -138,7 +139,7 @@ export class HttpServer {
       return endpointHook.handleRequest(spaceServer.system!, context, next);
     });
 
-    this.addPasswordAuth(this.app);
+    this.addAuth(this.app);
     const fsRouter = this.addFsRoutes();
     this.app.use(fsRouter.routes());
     this.app.use(fsRouter.allowedMethods());
@@ -224,7 +225,7 @@ export class HttpServer {
     }
   }
 
-  private addPasswordAuth(app: Application) {
+  private addAuth(app: Application) {
     const excludedPaths = [
       "/manifest.json",
       "/favicon.png",
@@ -250,20 +251,9 @@ export class HttpServer {
           const values = await request.body({ type: "form" }).value;
           const username = values.get("username")!;
           const password = values.get("password")!;
-
-          const formCSRF = values.get("csrf");
-          const cookieCSRF = await cookies.get("csrf_token");
-
-          if (formCSRF !== cookieCSRF) {
-            response.redirect("/.auth?error=2");
-            console.log("CSRF mismatch", formCSRF, cookieCSRF);
-            return;
-          }
-
-          await cookies.delete("csrf_token");
-
           const spaceServer = await this.ensureSpaceServer(request);
-          const [expectedUser, expectedPassword] = spaceServer.auth!.split(":");
+          const { user: expectedUser, pass: expectedPassword } = spaceServer
+            .auth!;
           if (username === expectedUser && password === expectedPassword) {
             // Generate a JWT and set it as a cookie
             const jwt = await spaceServer.jwtIssuer.createJWT(
@@ -303,18 +293,35 @@ export class HttpServer {
       }
       const host = request.url.host;
       if (!excludedPaths.includes(request.url.pathname)) {
-        const authCookie = await cookies.get(authCookieName(host));
-        if (!authCookie) {
+        const authToken = await cookies.get(authCookieName(host));
+
+        if (!authToken && spaceServer.authToken) {
+          // Attempt Bearer Authorization based authentication
+          const authHeader = request.headers.get("Authorization");
+          if (authHeader && authHeader.startsWith("Bearer ")) {
+            const authToken = authHeader.slice("Bearer ".length);
+            if (authToken === spaceServer.authToken) {
+              // All good, let's proceed
+              return next();
+            } else {
+              console.log(
+                "Unauthorized token access, redirecting to auth page",
+              );
+              response.status = 401;
+              response.body = "Unauthorized";
+              return;
+            }
+          }
+        }
+        if (!authToken) {
           console.log("Unauthorized access, redirecting to auth page");
           return response.redirect("/.auth");
         }
-        const [expectedUser] = spaceServer.auth!.split(
-          ":",
-        );
+        const { user: expectedUser } = spaceServer.auth!;
 
         try {
           const verifiedJwt = await spaceServer.jwtIssuer.verifyAndDecodeJWT(
-            authCookie,
+            authToken,
           );
           if (verifiedJwt.username !== expectedUser) {
             throw new Error("Username mismatch");
@@ -327,7 +334,7 @@ export class HttpServer {
           return response.redirect("/.auth");
         }
       }
-      await next();
+      return next();
     });
   }
 

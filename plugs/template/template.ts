@@ -215,7 +215,16 @@ export async function applyPageTemplateCommand() {
   }
 }
 
-export async function loadPageObject(pageName: string): Promise<PageMeta> {
+export async function loadPageObject(pageName?: string): Promise<PageMeta> {
+  if (!pageName) {
+    return {
+      ref: "",
+      name: "",
+      tags: ["page"],
+      lastModified: "",
+      created: "",
+    } as PageMeta;
+  }
   return (await getObjectByRef<PageMeta>(
     pageName,
     "page",
