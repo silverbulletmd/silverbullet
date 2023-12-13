@@ -14,4 +14,4 @@ node_modules
 *.db*
 test_space
 silverbullet
-.silverbullet.db*
+deploy.json

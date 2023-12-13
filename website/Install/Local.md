@@ -7,6 +7,8 @@ You have two options here:
 1. Installation via [[$deno|Deno]] (the awesome JavaScript runtime)
 2. Installation via [[$docker|Docker]] (the awesome container runtime)
 
+After choose either, be sure to checkout all [[Install/Configuration]] options as well.
+
 # Installing using Deno
 $deno
 This consists of two steps (unless [Deno](https://deno.com/) is already installed — in which case we’re down to one):
@@ -126,19 +128,3 @@ docker-compose logs -f
 
 ## Building the docker image
 To build your own version of the docker image, run `./scripts/build_docker.sh`.
-
-# Configuration
-SilverBullet is partially configured via flags (run it with `--help`) or alternatively via environment variables and partially via a [[SETTINGS]] page in your space.
-
-## Environment variables
-$env
-You can configure SB with environment variables instead of flags, which is probably what you want to do in a docker setup. The following environment variables are supported:
-
-* `PID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
-* `GID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)
-* `SB_USER`: Sets single-user credentials (like `--user`), e.g. `SB_USER=pete:1234`
-* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections)
-* `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`
-* `SB_FOLDER`: Sets the folder to expose, e.g. `SB_FOLDER=/space`
-* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to "local" (enabled), set to "off" to disable
-* `SB_SYNC_ONLY`: Runs the server in a "dumb" space store-only mode (not indexing content or keeping other state), e.g. `SB_SYNC_ONLY=1`. This will disable the Online [[Client Modes]] altogether (and not even show the sync icon in the top bar). Conceptually, [silverbullet.md](https://silverbullet.md) runs in this mode.

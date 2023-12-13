@@ -3,7 +3,7 @@ import { MemoryKvPrimitives } from "../../plugos/lib/memory_kv_primitives.ts";
 import { testSpacePrimitives } from "./space_primitives.test.ts";
 
 Deno.test("s3_space_primitives", async () => {
-  // return;
+  return;
   const options = {
     accessKey: Deno.env.get("AWS_ACCESS_KEY_ID")!,
     secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,

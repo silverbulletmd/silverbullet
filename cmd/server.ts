@@ -11,7 +11,6 @@ import { sleep } from "$sb/lib/async.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
-import { path } from "../common/deps.ts";
 
 export async function serveCommand(
   options: {

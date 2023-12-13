@@ -3,3 +3,4 @@ There’s a progressive path in how people tend to install and deploy SilverBull
 Instructions:
 * [[Install/Local]]: how to set up SilverBullet on your local machine
 * [[Install/Network and Internet]]: how to set up SilverBullet and expose it to your network or via the Internet
+* [[Install/Configuration]] of your instance

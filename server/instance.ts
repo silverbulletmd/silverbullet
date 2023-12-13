@@ -5,7 +5,6 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
-import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
@@ -92,6 +91,8 @@ export class SpaceServer {
     if (this.serverSystem) {
       await this.serverSystem.init();
       this.system = this.serverSystem.system;
+      // Swap in the space primitives from the server system
+      this.spacePrimitives = this.serverSystem.spacePrimitives;
     }
 
     await this.reloadSettings();

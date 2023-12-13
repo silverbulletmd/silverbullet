@@ -1,18 +1,20 @@
-**Note:** This is a experimental setup, take this into account.
+> **warning** Experimental
+> This setup is not battle tested, use at your own risk
 
-You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store your meta data as well as space content in [Deno KV](https://deno.com/kv).
+You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store space content in [Deno KV](https://deno.com/kv).
 
 # Steps
-Sign up for a (free) [Deno Deploy account](https://dash.deno.com/projects) and create a new “deployctl” project there.
+Sign up for a (free) [Deno Deploy account](https://dash.deno.com/projects) and “Create an empty project” there.
 
-Set these environment variables in the project (under “Settings”):
+Jump to the “Settings”, give your project a nicer name and configure the following environment variables:
 
 * `SB_FOLDER`: `db://`
 * `SB_PORT`: `8000`
 * `SB_SYNC_ONLY`: `1` (Deno Deploy does not currently supports Workers, so running indexing etc. on the server will not work)
-* `SB_USER`: (e.g. `pete:letmein`) — this is **super important** otherwise your space will be open without any authentication
+* `SB_USER`: (e.g. `pete:letmein`) — this is **super important** otherwise your space will be open to anybody without any authentication
+* `SB_AUTH_TOKEN`: (Optional) If you would like to migrate existing content from elsewhere (e.g. a local folder) using [[Sync]], you will want to configure an authentication token here (pick something secure).
 
-Make sure you [install Deno locally](https://docs.deno.com/runtime/manual/getting_started/installation) on your machine.
+Make sure you have [installed Deno locally](https://docs.deno.com/runtime/manual/getting_started/installation) on your machine.
 
 Then, install `deployctl` via:
 
@@ -26,4 +28,7 @@ To deploy, run:
 deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
 ```
 
-And that’s it!
+# Migrating and backing up content
+If you want to migrate content _from_ or _to_ your new Deploy-based space, you can use [[Sync]]. For this be sure to also configure a `SB_AUTH_TOKEN` variable.
+
+For backup purposes, it may be wise to synchronize your content regularly this way.

@@ -8,6 +8,7 @@ import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { plugRunCommand } from "./cmd/plug_run.ts";
+import { syncCommand } from "./cmd/sync.ts";
 
 await new Command()
   .name("silverbullet")
@@ -27,10 +28,6 @@ await new Command()
   .option(
     "--user <user:string>",
     "'username:password' combo for authentication",
-  )
-  .option(
-    "--auth <auth.json:string>",
-    "User authentication file to use for authentication",
   )
   .option(
     "--cert <certFile:string>",
@@ -83,6 +80,18 @@ await new Command()
   // upgrade
   .command("upgrade", "Upgrade SilverBullet")
   .action(upgradeCommand)
+  // sync
+  .command("sync", "Synchronize two spaces")
+  .option(
+    "--snapshot <snapshot:string>",
+    "Path to state file to use",
+  )
+  .option(
+    "--wipe-secondary",
+    "Wipe secondary and perform a full sync",
+  )
+  .arguments("<primary:string> <secondary:string>")
+  .action(syncCommand)
   // version
   .command("version", "Get current version")
   .action(versionCommand)

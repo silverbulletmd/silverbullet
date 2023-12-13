@@ -4,14 +4,17 @@ release.
 ---
 
 ## Next
-* Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported, use `--user` or `SB_USER` instead, or an authentication layer such as [[Authelia]]
+* Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported, use `--user` or `SB_USER` instead, or an authentication layer such as [[Authelia]].
+* Work on supporting multiple database as well as storage back-ends, reviving [[Install/Deno Deploy]] support.
+* This is now documented on the brand new [[Install/Configuration]] page.
+* A new `silverbullet sync` command to [[Sync]] spaces.
 * Technical refactoring in preparation of multi-tenant deployment support (allowing you to run a single SB instance and serve multiple spaces and users at the same time)
   * Lazy everything: plugs are now lazily loaded (after a first load,  manifests are cached). On the server side, a whole lot of infrastructure is now only booted once the first HTTP request comes in
 
 ---
 
 ## 0.5.8
-* Various bugfixes, primarily related to the new way of running docker containers, which broke things for some people. Be sure to have a look at the new [[Install/Local$env|environment variable]] configuration options
+* Various bugfixes, primarily related to the new way of running docker containers, which broke things for some people. Be sure to have a look at the new [[Install/Configuration]] configuration options
 
 ---
 
