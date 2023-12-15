@@ -1,16 +1,16 @@
 > **warning** Experimental
-> This setup is not battle tested, use at your own risk
+> This setup is not battle-tested, use it at your own risk
 
 You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store space content in [Deno KV](https://deno.com/kv).
 
 # Steps
 Sign up for a (free) [Deno Deploy account](https://dash.deno.com/projects) and “Create an empty project” there.
 
-Jump to the “Settings”, give your project a nicer name and configure the following environment variables:
+Jump to the “Settings”, give your project a nicer name, and configure the following environment variables:
 
 * `SB_FOLDER`: `db://`
 * `SB_PORT`: `8000`
-* `SB_SYNC_ONLY`: `1` (Deno Deploy does not currently supports Workers, so running indexing etc. on the server will not work)
+* `SB_SYNC_ONLY`: `1` (Deno Deploy does not currently support Workers, so running indexing etc. on the server will not work)
 * `SB_USER`: (e.g. `pete:letmein`) — this is **super important** otherwise your space will be open to anybody without any authentication
 * `SB_AUTH_TOKEN`: (Optional) If you would like to migrate existing content from elsewhere (e.g. a local folder) using [[Sync]], you will want to configure an authentication token here (pick something secure).
 
