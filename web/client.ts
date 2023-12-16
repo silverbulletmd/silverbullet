@@ -359,18 +359,16 @@ export class Client {
     if (window.silverBulletConfig.clientEncryption) {
       console.log("Enabling encryption");
 
-      remoteSpacePrimitives = new EncryptedSpacePrimitives(
+      const encryptedSpacePrimitives = new EncryptedSpacePrimitives(
         this.httpSpacePrimitives,
       );
+      remoteSpacePrimitives = encryptedSpacePrimitives;
       let loggedIn = false;
       // First figure out if we're online & if the key file exists, if not we need to initialize the space
       try {
-        const allEncryptedFiles =
-          (await this.httpSpacePrimitives.fetchFileList())
-            .filter((meta) => !meta.name.endsWith(encryptedFileExt));
-        if (allEncryptedFiles.length === 0) {
+        if (!await encryptedSpacePrimitives.init()) {
           console.log(
-            "No encrypted files in space, assuming encryption space is not initialized",
+            "Space not initialized, will ask for password to initialize",
           );
           alert(
             "You appear to be accessing a new space with encryption enabled, you will now be asked to create a password",
@@ -387,22 +385,33 @@ export class Client {
             location.reload();
             throw new Error("Not initialized");
           }
-          await (remoteSpacePrimitives as EncryptedSpacePrimitives).createKey(
-            password,
+          await encryptedSpacePrimitives.setup(password);
+          // this.stateDataStore.set(["encryptionKey"], password);
+          await this.stateDataStore.set(
+            ["spaceSalt"],
+            encryptedSpacePrimitives.spaceSalt,
           );
-          this.stateDataStore.set(["encryptionKey"], password);
           loggedIn = true;
         }
       } catch (e: any) {
         if (e.message === "Offline") {
-          console.log("Offline, will assume encryption space is initialized");
+          console.log(
+            "Offline, will assume encryption space is initialized, fetching salt from data store",
+          );
+          await encryptedSpacePrimitives.init(
+            await this.stateDataStore.get(["spaceSalt"]),
+          );
         }
       }
       if (!loggedIn) {
         // Let's ask for the password
         try {
-          await (remoteSpacePrimitives as EncryptedSpacePrimitives).loadKey(
+          await encryptedSpacePrimitives.login(
             prompt("Password")!,
+          );
+          await this.stateDataStore.set(
+            ["spaceSalt"],
+            encryptedSpacePrimitives.spaceSalt,
           );
         } catch (e: any) {
           console.log("Got this error", e);

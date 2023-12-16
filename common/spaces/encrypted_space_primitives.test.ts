@@ -13,13 +13,14 @@ Deno.test("Encrypted Space Primitives", async () => {
       1024 * 1024,
     ),
   );
-  await spacePrimitives.createKey("password");
+  assertEquals(false, await spacePrimitives.init());
+  await spacePrimitives.setup("password");
   assertEquals(await spacePrimitives.fetchFileList(), []);
   await testSpacePrimitives(spacePrimitives);
 
   // Let's try an incorrect password
   try {
-    await spacePrimitives.loadKey("wronk");
+    await spacePrimitives.login("wronk");
     assert(false);
   } catch (e: any) {
     assertEquals(e.message, "Incorrect password");
@@ -40,6 +41,8 @@ Deno.test("Encrypted Space Primitives", async () => {
     new TextEncoder().encode("Hello World"),
   );
 
+  //   console.log(spacePrimitives);
+
   // Let's do this again with the new password
 
   const spacePrimitives2 = new EncryptedSpacePrimitives(
@@ -48,7 +51,8 @@ Deno.test("Encrypted Space Primitives", async () => {
       1024 * 1024,
     ),
   );
-  await spacePrimitives2.loadKey("password2");
+  assertEquals(true, await spacePrimitives2.init());
+  await spacePrimitives2.login("password2");
   assertEquals(
     new TextDecoder().decode(
       (await spacePrimitives2.readFile("test.txt")).data,
@@ -57,4 +61,25 @@ Deno.test("Encrypted Space Primitives", async () => {
   );
   await spacePrimitives2.deleteFile("test.txt");
   await testSpacePrimitives(spacePrimitives2);
+
+  //   console.log("Stuff");
+  //   console.log(
+  //     await spacePrimitives.encryptPath(spacePrimitives.masterKey!, "test.txt"),
+  //   );
+  //   console.log(
+  //     await spacePrimitives.encryptPath(spacePrimitives.masterKey!, "test2.txt"),
+  //   );
+
+  //   console.log(
+  //     await spacePrimitives.encryptPath(
+  //       spacePrimitives.masterKey!,
+  //       "henkie/bla.txt",
+  //     ),
+  //   );
+  //   console.log(
+  //     await spacePrimitives.encryptPath(
+  //       spacePrimitives.masterKey!,
+  //       "benkie/bla2.txt",
+  //     ),
+  //   );
 });
