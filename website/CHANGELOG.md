@@ -4,11 +4,11 @@ release.
 ---
 
 ## Next
-* Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported, use `--user` or `SB_USER` instead, or an authentication layer such as [[Authelia]].
-* Work on supporting multiple database as well as storage back-ends, reviving [[Install/Deno Deploy]] support.
-* This is now documented on the brand new [[Install/Configuration]] page.
+* Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported; use `--user` or `SB_USER` instead or an authentication layer such as [[Authelia]].
+* Work on supporting multiple database and storage backends, reviving [[Install/Deno Deploy]] support.
+* This is now documented on the brand-new [[Install/Configuration]] page.
 * A new `silverbullet sync` command to [[Sync]] spaces.
-* Technical refactoring in preparation of multi-tenant deployment support (allowing you to run a single SB instance and serve multiple spaces and users at the same time)
+* Technical refactoring in preparation for multi-tenant deployment support (allowing you to run a single SB instance and serve multiple spaces and users at the same time)
   * Lazy everything: plugs are now lazily loaded (after a first load,  manifests are cached). On the server side, a whole lot of infrastructure is now only booted once the first HTTP request comes in
 
 ---
@@ -23,10 +23,10 @@ release.
 * General support for highlighting errors (underlined) in the editor. Currently implemented for:
   * All YAML fenced code blocks (and [[Frontmatter]]): will now highlight YAML parse errors
   * [[Live Queries]]: will highlight non-existing query sources and non-existing template references in `render` clauses
-* Basic [[Table of Contents]] support: any page _with 3 headers or more_, now has a “Table of Contents” widget appear (see this very page). You can toggle this feature using the {[Table of Contents: Toggle]} command.
+* Basic [[Table of Contents]] support: any page _with 3 headers or more_ now has a “Table of Contents” widget appear (see this very page). You can toggle this feature using the {[Table of Contents: Toggle]} command.
 * Tapping/clicking the top bar (outside of the page name and action buttons) now scrolls your page to the very top.
-* Slightly more gracious error reporting on load, when using the Online [[Client Modes]] and the server is offline.
-* Any page tagged with `#template` is no longer indexed (beside as a `template`)
+* Slightly more gracious error reporting on load when using the Online [[Client Modes]] and the server is offline.
+* Any page tagged with `#template` is no longer indexed (besides as a `template`)
 * Upgraded set of emoji (completed via the :thinking_face: syntax) to 15.1 (so more emoji)
 * Various bug fixes
 
