@@ -9,7 +9,7 @@ import {
 } from "../common/deps.ts";
 import { fileMetaToPageMeta, Space } from "./space.ts";
 import { FilterOption } from "./types.ts";
-import { parseYamlSettings } from "../common/util.ts";
+import { ensureSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { AppCommand } from "./hooks/command.ts";
 import { PathPageNavigator } from "./navigator.ts";
@@ -37,13 +37,16 @@ import { createEditorState } from "./editor_state.ts";
 import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { expandPropertyNames } from "$sb/lib/json.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { FileMeta, PageMeta } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
+import {
+  encryptedFileExt,
+  EncryptedSpacePrimitives,
+} from "../common/spaces/encrypted_space_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -54,6 +57,7 @@ declare global {
     silverBulletConfig: {
       spaceFolderPath: string;
       syncOnly: boolean;
+      clientEncryption: boolean;
     };
     client: Client;
   }
@@ -69,7 +73,7 @@ export class Client {
 
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
   // localSpacePrimitives!: FilteredSpacePrimitives;
-  remoteSpacePrimitives!: HttpSpacePrimitives;
+  httpSpacePrimitives!: HttpSpacePrimitives;
   space!: Space;
 
   saveTimeout?: number;
@@ -177,15 +181,14 @@ export class Client {
 
     this.focus();
 
-    // This constructor will always be followed by an (async) invocatition of init()
     await this.system.init();
 
     // Load settings
-    this.settings = await this.loadSettings();
+    this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
 
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
-      await this.remoteSpacePrimitives.ping();
+      await this.httpSpacePrimitives.ping();
     } catch (e: any) {
       if (e.message === "Not authenticated") {
         console.warn("Not authenticated, redirecting to auth page");
@@ -346,13 +349,74 @@ export class Client {
   }
 
   async initSpace(): Promise<SpacePrimitives> {
-    this.remoteSpacePrimitives = new HttpSpacePrimitives(
+    this.httpSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       window.silverBulletConfig.spaceFolderPath,
     );
 
+    let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
+
+    if (window.silverBulletConfig.clientEncryption) {
+      console.log("Enabling encryption");
+
+      remoteSpacePrimitives = new EncryptedSpacePrimitives(
+        this.httpSpacePrimitives,
+      );
+      let loggedIn = false;
+      // First figure out if we're online & if the key file exists, if not we need to initialize the space
+      try {
+        const allEncryptedFiles =
+          (await this.httpSpacePrimitives.fetchFileList())
+            .filter((meta) => !meta.name.endsWith(encryptedFileExt));
+        if (allEncryptedFiles.length === 0) {
+          console.log(
+            "No encrypted files in space, assuming encryption space is not initialized",
+          );
+          alert(
+            "You appear to be accessing a new space with encryption enabled, you will now be asked to create a password",
+          );
+          const password = prompt("Choose a password");
+          if (!password) {
+            alert("Cannot do anything without a password, reloading");
+            location.reload();
+            throw new Error("Not initialized");
+          }
+          const password2 = prompt("Confirm password");
+          if (password !== password2) {
+            alert("Passwords don't match, reloading");
+            location.reload();
+            throw new Error("Not initialized");
+          }
+          await (remoteSpacePrimitives as EncryptedSpacePrimitives).createKey(
+            password,
+          );
+          this.stateDataStore.set(["encryptionKey"], password);
+          loggedIn = true;
+        }
+      } catch (e: any) {
+        if (e.message === "Offline") {
+          console.log("Offline, will assume encryption space is initialized");
+        }
+      }
+      if (!loggedIn) {
+        // Let's ask for the password
+        try {
+          await (remoteSpacePrimitives as EncryptedSpacePrimitives).loadKey(
+            prompt("Password")!,
+          );
+        } catch (e: any) {
+          console.log("Got this error", e);
+          if (e.message === "Incorrect password") {
+            alert("Incorrect password");
+            location.reload();
+          }
+          throw e;
+        }
+      }
+    }
+
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
-      this.remoteSpacePrimitives,
+      remoteSpacePrimitives,
       this.system.namespaceHook,
       this.syncMode ? undefined : "client",
     );
@@ -380,7 +444,10 @@ export class Client {
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved
         async () => {
-          await this.loadSettings();
+          if (!this.settings) {
+            this.settings = await ensureSettingsAndIndex(localSpacePrimitives!);
+          }
+
           if (typeof this.settings?.spaceIgnore === "string") {
             fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
           } else {
@@ -437,27 +504,6 @@ export class Client {
     this.space.watch();
 
     return localSpacePrimitives;
-  }
-
-  async loadSettings(): Promise<BuiltinSettings> {
-    let settingsText: string | undefined;
-
-    try {
-      settingsText = (await this.space.readPage("SETTINGS")).text;
-    } catch (e: any) {
-      console.info("No SETTINGS page, falling back to default", e);
-      settingsText = '```yaml\nindexPage: "[[index]]"\n```\n';
-    }
-    let settings = parseYamlSettings(settingsText!) as BuiltinSettings;
-
-    settings = expandPropertyNames(settings);
-
-    // console.log("Settings", settings);
-
-    if (!settings.indexPage) {
-      settings.indexPage = "[[index]]";
-    }
-    return settings;
   }
 
   get currentPage(): string | undefined {

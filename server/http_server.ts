@@ -14,6 +14,7 @@ import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
+import { base64Encode } from "../plugos/asset_bundle/base64.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -24,7 +25,6 @@ export type ServerOptions = {
   clientAssetBundle: AssetBundle;
   plugAssetBundle: AssetBundle;
   baseKvPrimitives: KvPrimitives;
-  syncOnly: boolean;
   certFile?: string;
   keyFile?: string;
 
@@ -42,7 +42,6 @@ export class HttpServer {
   certFile: string | undefined;
 
   spaceServers = new Map<string, Promise<SpaceServer>>();
-  syncOnly: boolean;
   baseKvPrimitives: KvPrimitives;
   configs: Map<string, SpaceServerConfig>;
 
@@ -54,7 +53,6 @@ export class HttpServer {
     this.app = options.app;
     this.keyFile = options.keyFile;
     this.certFile = options.certFile;
-    this.syncOnly = options.syncOnly;
     this.baseKvPrimitives = options.baseKvPrimitives;
     this.configs = options.configs;
   }
@@ -67,7 +65,6 @@ export class HttpServer {
       new PrefixedKvPrimitives(this.baseKvPrimitives, [
         config.namespace,
       ]),
-      this.syncOnly,
     );
     await spaceServer.init();
 
@@ -114,15 +111,18 @@ export class HttpServer {
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
-  renderIndexHtml(pagesPath: string) {
+  renderIndexHtml(spaceServer: SpaceServer) {
     return this.clientAssetBundle.readTextFileSync(".client/index.html")
       .replaceAll(
         "{{SPACE_PATH}}",
-        pagesPath.replaceAll("\\", "\\\\"),
+        spaceServer.pagesPath.replaceAll("\\", "\\\\"),
         // );
       ).replaceAll(
         "{{SYNC_ONLY}}",
-        this.syncOnly ? "true" : "false",
+        spaceServer.syncOnly ? "true" : "false",
+      ).replaceAll(
+        "{{CLIENT_ENCRYPTION}}",
+        spaceServer.clientEncryption ? "true" : "false",
       );
   }
 
@@ -149,7 +149,7 @@ export class HttpServer {
       response.headers.set("Content-type", "text/html");
       response.headers.set("Cache-Control", "no-cache");
       const spaceServer = await this.ensureSpaceServer(request);
-      response.body = this.renderIndexHtml(spaceServer.pagesPath);
+      response.body = this.renderIndexHtml(spaceServer);
     });
 
     this.abortController = new AbortController();
@@ -181,6 +181,7 @@ export class HttpServer {
     { request, response }: Context<Record<string, any>, Record<string, any>>,
     next: Next,
   ) {
+    const spaceServer = await this.ensureSpaceServer(request);
     if (
       request.url.pathname === "/"
     ) {
@@ -188,8 +189,7 @@ export class HttpServer {
       // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
       response.headers.set("Content-type", "text/html");
       response.headers.set("Cache-Control", "no-cache");
-      const spaceServer = await this.ensureSpaceServer(request);
-      response.body = this.renderIndexHtml(spaceServer.pagesPath);
+      response.body = this.renderIndexHtml(spaceServer);
       return;
     }
     try {
@@ -197,7 +197,8 @@ export class HttpServer {
       if (
         this.clientAssetBundle.has(assetName) &&
         request.headers.get("If-Modified-Since") ===
-          utcDateString(this.clientAssetBundle.getMtime(assetName))
+          utcDateString(this.clientAssetBundle.getMtime(assetName)) &&
+        assetName !== "service_worker.js"
       ) {
         response.status = 304;
         return;
@@ -207,17 +208,34 @@ export class HttpServer {
         "Content-type",
         this.clientAssetBundle.getMimeType(assetName),
       );
-      const data = this.clientAssetBundle.readFileSync(
+      let data: Uint8Array | string = this.clientAssetBundle.readFileSync(
         assetName,
       );
       response.headers.set("Cache-Control", "no-cache");
       response.headers.set("Content-length", "" + data.length);
-      response.headers.set(
-        "Last-Modified",
-        utcDateString(this.clientAssetBundle.getMtime(assetName)),
-      );
+      if (assetName !== "service_worker.js") {
+        response.headers.set(
+          "Last-Modified",
+          utcDateString(this.clientAssetBundle.getMtime(assetName)),
+        );
+      }
 
       if (request.method === "GET") {
+        if (assetName === "service_worker.js") {
+          const textData = new TextDecoder().decode(data);
+          // console.log(
+          //   "Swapping out config hash in service worker",
+          // );
+          data = textData.replaceAll(
+            "{{CONFIG_HASH}}",
+            base64Encode(
+              JSON.stringify([
+                spaceServer.clientEncryption,
+                spaceServer.syncOnly,
+              ]),
+            ),
+          );
+        }
         response.body = data;
       }
     } catch {
@@ -384,7 +402,7 @@ export class HttpServer {
             return;
           }
           case "syscall": {
-            if (this.syncOnly) {
+            if (spaceServer.syncOnly) {
               response.headers.set("Content-Type", "text/plain");
               response.status = 400;
               response.body = "Unknown operation";

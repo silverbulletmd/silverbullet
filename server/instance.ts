@@ -21,6 +21,8 @@ export type SpaceServerConfig = {
   // Additional API auth token
   authToken?: string;
   pagesPath: string;
+  syncOnly?: boolean;
+  clientEncryption?: boolean;
 };
 
 export class SpaceServer {
@@ -37,18 +39,26 @@ export class SpaceServer {
   // Only set when syncOnly == false
   private serverSystem?: ServerSystem;
   system?: System<SilverBulletHooks>;
+  clientEncryption: boolean;
+  syncOnly: boolean;
 
   constructor(
     config: SpaceServerConfig,
     public shellBackend: ShellBackend,
     private plugAssetBundle: AssetBundle,
     private kvPrimitives: KvPrimitives,
-    private syncOnly: boolean,
   ) {
     this.pagesPath = config.pagesPath;
     this.hostname = config.hostname;
     this.auth = config.auth;
     this.authToken = config.authToken;
+    this.clientEncryption = !!config.clientEncryption;
+    this.syncOnly = !!config.syncOnly;
+    if (this.clientEncryption) {
+      // Sync only will forced on when encryption is enabled
+      this.syncOnly = true;
+    }
+
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
   }
 
@@ -100,7 +110,13 @@ export class SpaceServer {
   }
 
   async reloadSettings() {
-    // TODO: Throttle this?
-    this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
+    if (!this.clientEncryption) {
+      // Only attempt this when the space is not encrypted
+      this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
+    } else {
+      this.settings = {
+        indexPage: "index",
+      };
+    }
   }
 }

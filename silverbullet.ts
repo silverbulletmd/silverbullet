@@ -42,6 +42,10 @@ await new Command()
     "Run the server as a pure space (file) store only without any backend processing (this disables 'online mode' in the client)",
   )
   .option(
+    "--client-encryption",
+    "Enable client-side encryption for spaces",
+  )
+  .option(
     "--reindex",
     "Reindex space on startup",
   )

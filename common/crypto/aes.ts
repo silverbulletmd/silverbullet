@@ -1,14 +1,37 @@
-import {
-  base64Decode,
-  base64Encode,
-} from "../../plugos/asset_bundle/base64.ts";
-
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+// This is against security recommendations, but we need a way to consistently encrypt and decrypt from the same password, and this needs to be transferrable between servers
+const salt = new Uint8Array(12); // 12 bytes of 0
+
+export function generateKey(): Promise<CryptoKey> {
+  return window.crypto.subtle.generateKey(
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"],
+  );
+}
+
+export async function exportKey(key: CryptoKey): Promise<Uint8Array> {
+  const arrayBuffer = await window.crypto.subtle.exportKey("raw", key);
+  return new Uint8Array(arrayBuffer);
+}
+
+export function importKey(key: Uint8Array): Promise<CryptoKey> {
+  return window.crypto.subtle.importKey(
+    "raw",
+    key,
+    { name: "AES-GCM" },
+    true,
+    ["encrypt", "decrypt"],
+  );
+}
+
 export async function deriveKeyFromPassword(
   password: string,
-  salt: string,
 ): Promise<CryptoKey> {
   const baseKey = encoder.encode(password);
   const importedKey = await window.crypto.subtle.importKey(
@@ -21,7 +44,7 @@ export async function deriveKeyFromPassword(
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: encoder.encode(salt),
+      salt: salt,
       iterations: 10000,
       hash: "SHA-256",
     },
@@ -37,25 +60,24 @@ export async function deriveKeyFromPassword(
 
 export async function encryptAES(
   key: CryptoKey,
-  message: string,
-): Promise<ArrayBuffer> {
+  message: Uint8Array,
+): Promise<Uint8Array> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encodedMessage = encoder.encode(message);
   const ciphertext = await window.crypto.subtle.encrypt(
     {
       name: "AES-GCM",
       iv: iv,
     },
     key,
-    encodedMessage,
+    message,
   );
-  return appendBuffer(iv, ciphertext);
+  return appendBuffer(iv, new Uint8Array(ciphertext));
 }
 
 export async function decryptAES(
   key: CryptoKey,
-  data: ArrayBuffer,
-): Promise<string> {
+  data: Uint8Array,
+): Promise<Uint8Array> {
   const iv = data.slice(0, 12);
   const ciphertext = data.slice(12);
   const decrypted = await window.crypto.subtle.decrypt(
@@ -66,19 +88,17 @@ export async function decryptAES(
     key,
     ciphertext,
   );
-  return decoder.decode(decrypted);
+  return new Uint8Array(decrypted);
 }
 
-function appendBuffer(buffer1: ArrayBuffer, buffer2: ArrayBuffer): ArrayBuffer {
+function appendBuffer(buffer1: Uint8Array, buffer2: Uint8Array): Uint8Array {
   const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
   tmp.set(new Uint8Array(buffer1), 0);
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
+  return tmp;
 }
 
-// This is against security recommendations, but we need a way to always generate the same encrypted path for the same path and password
-const pathIv = new Uint8Array(12); // 12 bytes of 0
-
+// Paths are encrypted using AES-GCM, base32 encoded, injecting a slash after the fifth character to avoid generating too many files in a folder
 export async function encryptPath(
   key: CryptoKey,
   path: string,
@@ -87,25 +107,63 @@ export async function encryptPath(
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: pathIv,
+      iv: salt,
     },
     key,
     encodedMessage,
   );
-  return base64Encode(new Uint8Array(ciphertext));
+  const encodedPath = base32Encode(new Uint8Array(ciphertext));
+  return encodedPath.slice(0, 5) + "/" + encodedPath.slice(5);
+}
+
+function base32Encode(data: Uint8Array): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let result = "";
+  let bits = 0;
+  let value = 0;
+  for (const byte of data) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      result += alphabet[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) {
+    result += alphabet[(value << (5 - bits)) & 31];
+  }
+  return result;
+}
+
+function base32Decode(data: string): Uint8Array {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const result = new Uint8Array(Math.floor(data.length * 5 / 8));
+  let bits = 0;
+  let value = 0;
+  let index = 0;
+  for (const char of data) {
+    value = (value << 5) | alphabet.indexOf(char);
+    bits += 5;
+    if (bits >= 8) {
+      result[index++] = (value >>> (bits - 8)) & 255;
+      bits -= 8;
+    }
+  }
+  return result;
 }
 
 export async function decryptPath(
   key: CryptoKey,
-  data: string,
+  encryptedPath: string,
 ): Promise<string> {
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: pathIv,
+      iv: salt,
     },
     key,
-    base64Decode(data),
+    // Strip out all slashes
+    base32Decode(encryptedPath.replaceAll("/", "")),
   );
   return decoder.decode(decrypted);
 }

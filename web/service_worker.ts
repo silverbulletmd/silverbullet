@@ -3,7 +3,7 @@ import { simpleHash } from "../common/crypto.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 
-const CACHE_NAME = "{{CACHE_NAME}}";
+const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 
 const precacheFiles = Object.fromEntries([
   "/",
@@ -61,7 +61,6 @@ self.addEventListener("activate", (event: any) => {
 });
 
 let ds: DataStore | undefined;
-const filesMetaPrefix = ["file", "meta"];
 const filesContentPrefix = ["file", "content"];
 
 self.addEventListener("fetch", (event: any) => {

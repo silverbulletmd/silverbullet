@@ -39,12 +39,14 @@
       // These {{VARIABLES}} are replaced by http_server.ts
       spaceFolderPath: "{{SPACE_PATH}}",
       syncOnly: "{{SYNC_ONLY}}" === "true",
+      clientEncryption: "{{CLIENT_ENCRYPTION}}" === "true",
     };
     // But in case these variables aren't replaced by the server, fall back sync only mode
     if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
       window.silverBulletConfig = {
         spaceFolderPath: "",
         syncOnly: true,
+        clientEncryption: false,
       };
     }
   </script>

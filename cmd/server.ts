@@ -22,6 +22,7 @@ export async function serveCommand(
     key?: string;
     reindex?: boolean;
     syncOnly?: boolean;
+    clientEncryption?: boolean;
   },
   folder?: string,
 ) {
@@ -29,7 +30,22 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
+
+  const clientEncryption = options.clientEncryption ||
+    !!Deno.env.get("SB_CLIENT_ENCRYPTION");
+
+  if (clientEncryption) {
+    console.log(
+      "Running in client encryption mode, this will implicitly enable sync-only mode",
+    );
+  }
+
   const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
+
+  if (syncOnly) {
+    console.log("Running in sync-only mode (no backend processing)");
+  }
+
   const app = new Application();
 
   if (!folder) {
@@ -69,6 +85,8 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     namespace: "*",
     auth: userCredentials,
     authToken: Deno.env.get("SB_AUTH_TOKEN"),
+    syncOnly,
+    clientEncryption,
     pagesPath: folder,
   });
 
@@ -79,7 +97,6 @@ To allow outside connections, pass -L 0.0.0.0 as a flag, and put a TLS terminato
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
     plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
     baseKvPrimitives,
-    syncOnly,
     keyFile: options.key,
     certFile: options.cert,
     configs,

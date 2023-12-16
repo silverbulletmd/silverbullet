@@ -9,10 +9,9 @@ import {
 
 Deno.test("AES encryption and decryption", async () => {
   const password = "YourPassword";
-  const salt = "UniquePerUserSalt";
-  const message = "Hello, World!";
+  const message = new TextEncoder().encode("Hello, World!");
 
-  const key = await deriveKeyFromPassword(password, salt);
+  const key = await deriveKeyFromPassword(password);
   const encrypted = await encryptAES(key, message);
 
   const decrypted = await decryptAES(key, encrypted);

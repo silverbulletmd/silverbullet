@@ -35,8 +35,8 @@ export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
   buf.set([1, 2, 3, 4, 5]);
   // Write binary file
   await spacePrimitives.writeFile("test.bin", buf);
-  const fMeta = await spacePrimitives.getFileMeta("test.bin");
-  assertEquals(fMeta.size, 1024 * 1024);
+  const fileData = await spacePrimitives.readFile("test.bin");
+  assertEquals(fileData.data.length, 1024 * 1024);
   assertEquals((await spacePrimitives.fetchFileList()).length, 2);
   //   console.log(spacePrimitives);
 

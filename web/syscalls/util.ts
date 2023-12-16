@@ -7,7 +7,7 @@ export function proxySyscalls(client: Client, names: string[]): SysCallMapping {
   const syscalls: SysCallMapping = {};
   for (const name of names) {
     syscalls[name] = (ctx, ...args: any[]) => {
-      return proxySyscall(ctx, client.remoteSpacePrimitives, name, args);
+      return proxySyscall(ctx, client.httpSpacePrimitives, name, args);
     };
   }
   return syscalls;

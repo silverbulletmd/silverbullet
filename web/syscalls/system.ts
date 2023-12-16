@@ -43,7 +43,7 @@ export function systemSyscalls(
         // Proxy to another environment
         return proxySyscall(
           ctx,
-          client.remoteSpacePrimitives,
+          client.httpSpacePrimitives,
           "system.invokeFunction",
           [fullName, ...args],
         );
