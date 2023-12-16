@@ -1,4 +1,4 @@
-How to setup SilverBullet with Authelia
+How to set up SilverBullet with Authelia
 
 For SilverBullet to work as intended, some files will need to be excluded from your authentication method of choice. These files always need to be accessible, for example for offline or [[PWA]] support.
 

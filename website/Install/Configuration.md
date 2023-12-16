@@ -9,35 +9,35 @@ $network
 # Run mode
 $runmode
 
-* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store, and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]].
+* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]].
 
 # Security
 $security
 
-SilverBullet enables plugs to run shell commands. This is used by e.g. the [[🔌 Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this you can disable this functionality:
+SilverBullet enables plugs to run shell commands. This is used by e.g. the [[🔌 Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 
-* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. Only enabled when using a local folder for [[$storage]].
+* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[$storage]].
 
 # Authentication
 $authentication
 SilverBullet supports basic authentication for a single user.
 
 * `SB_USER`: Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[API]] (useful for [[Sync]] and remote HTTP storage back-ends).
+* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[API]] (useful for [[Sync]] and remote HTTP storage backends).
 
 # Storage
 $storage
-SilverBullet support multiple storage back-ends for keeping your [[Space]] content.
+SilverBullet supports multiple storage backends for keeping your [[Space]] content.
 
 ## Disk storage
-This is default and simplest back-end to use: a folder on disk. It is configured as follows:
+This is the default and simplest backend to use: a folder on disk. It is configured as follows:
 
-* `SB_FOLDER`: Sets the folder to expose. In the docker container this defaults to `/space`.
+* `SB_FOLDER`: Sets the folder to expose. In the docker container, this defaults to `/space`.
 
 ## AWS S3 bucket storage
 It is also possible to use an S3 bucket as storage. For this, you need to create a bucket, create an IAM user and configure access to it appropriately.
 
-Since S3 doesn’t support an efficient way to store custom meta data, this mode does require a [[$database]] configuration (see below) to keep all file meta data.
+Since S3 doesn’t support an efficient way to store custom metadata, this mode does require a [[$database]] configuration (see below) to keep all file metadata.
 
 S3 is configured as follows:
 
@@ -49,7 +49,7 @@ S3 is configured as follows:
 * `AWS_REGION`: e.g. `eu-central-1`
 
 ## Database storage
-It is also possible to store space content in the [[$database]]. While not necessarily recommended, it is a viable way to setup a simple deployment of SilverBullet on e.g. [[Install/Deno Deploy]]. Large files will automatically be chunked to avoid limits the used database may have on value size.
+It is also possible to store space content in the [[$database]]. While not necessarily recommended, it is a viable way to set up a simple deployment of SilverBullet on e.g. [[Install/Deno Deploy]]. Large files will automatically be chunked to avoid limits the used database may have on value size.
 
 This mode is configured as follows:
 
@@ -67,16 +67,16 @@ This mode is configured as follows:
 
 # Database
 $database
-SilverBullet requires a database back-end to (potentially) keep various types of data:
+SilverBullet requires a database backend to (potentially) keep various types of data:
 
 * Indexes for e.g. [[Objects]]
-* Storing some encryption related secrets (for [[Authentication]])
-* Space content, when the “Database storage” storage back-end is used
+* Storing some encryption-related secrets (for [[Authentication]])
+* Space content, when the “Database storage” storage backend is used
 
-Currently only two databases are supported: [Deno KV](https://deno.com/kv), and a dummy in-memory database.
+Currently, only two databases are supported: [Deno KV](https://deno.com/kv) and a dummy in-memory database.
 
 ## Deno KV database
-When self-hosting SilverBullet (that is: on any other server than on [[Install/Deno Deploy]]), KV uses a local SQLite file to keep data. This efficient and performant.
+When self-hosting SilverBullet (that is, on any server other than on [[Install/Deno Deploy]]), KV uses a local SQLite file to keep data. This is efficient and performant.
 
 KV can be configured as follows:
 

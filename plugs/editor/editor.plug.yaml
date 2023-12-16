@@ -227,6 +227,30 @@ functions:
     command:
       name: "Upload: File"
 
+  outlineMoveUp:
+    path: ./outline.ts:moveItemUp
+    command:
+      name: "Outline: Move Up"
+      key: "Alt-ArrowUp"
+
+  outlineMoveDown:
+    path: ./outline.ts:moveItemDown
+    command:
+      name: "Outline: Move Down"
+      key: "Alt-ArrowDown"
+
+  outlineIndent:
+    path: ./outline.ts:indentItem
+    command:
+      name: "Outline: Move Right"
+      key: "Alt-ArrowRight"
+
+  outlineOutdent:
+    path: ./outline.ts:outdentItem
+    command:
+      name: "Outline: Move Left"
+      key: "Alt-ArrowLeft"
+
   customFlashMessage:
     path: editor.ts:customFlashMessage
     command:
