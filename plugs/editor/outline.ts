@@ -223,3 +223,23 @@ function determineItemBounds(
     indentLevel,
   };
 }
+
+export async function foldCommand() {
+  await editor.fold();
+}
+
+export async function unfoldCommand() {
+  await editor.unfold();
+}
+
+export async function toggleFoldCommand() {
+  await editor.toggleFold();
+}
+
+export async function foldAllCommand() {
+  await editor.foldAll();
+}
+
+export async function unfoldAllCommand() {
+  await editor.unfoldAll();
+}

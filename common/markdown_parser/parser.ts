@@ -68,7 +68,8 @@ const WikiLink: MarkdownConfig = {
   ],
 };
 
-export const commandLinkRegex =  /^\{\[([^\]\|]+)(\|([^\]]+))?\](\(([^\)]+)\))?\}/;
+export const commandLinkRegex =
+  /^\{\[([^\]\|]+)(\|([^\]]+))?\](\(([^\)]+)\))?\}/;
 
 const CommandLink: MarkdownConfig = {
   defineNodes: [
@@ -107,7 +108,8 @@ const CommandLink: MarkdownConfig = {
 
         let argsElts: any[] = [];
         if (argsPart) {
-          const argsStartPos = pos + 2 + command.length + (pipePart?.length ?? 0);
+          const argsStartPos = pos + 2 + command.length +
+            (pipePart?.length ?? 0);
           argsElts = [
             cx.elt("CommandLinkMark", argsStartPos, argsStartPos + 2),
             cx.elt(
@@ -270,6 +272,8 @@ const directiveEnd = /^\s*<!--\s*\/(.*?)-->\s*/;
 import { parser as directiveParser } from "./parse-query.js";
 import { parser as expressionParser } from "./parse-expression.js";
 import { Table } from "./table_parser.ts";
+import { foldNodeProp } from "@codemirror/language";
+import { lezerToParseTree } from "./parse_tree.ts";
 
 export const highlightingDirectiveParser = directiveParser.configure({
   props: [
@@ -453,9 +457,19 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       Strikethrough,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),
-
       {
         props: [
+          foldNodeProp.add({
+            // Don't fold at the list level
+            BulletList: () => null,
+            OrderedList: () => null,
+            // Fold list items
+            ListItem: (tree, state) => ({
+              from: state.doc.lineAt(tree.from).to,
+              to: tree.to,
+            }),
+          }),
+
           styleTags({
             Task: ct.TaskTag,
             TaskMark: ct.TaskMarkTag,

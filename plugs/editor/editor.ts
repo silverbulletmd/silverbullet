@@ -17,26 +17,6 @@ export async function toggleDarkMode() {
   await editor.reloadUI();
 }
 
-export async function foldCommand() {
-  await editor.fold();
-}
-
-export async function unfoldCommand() {
-  await editor.unfold();
-}
-
-export async function toggleFoldCommand() {
-  await editor.toggleFold();
-}
-
-export async function foldAllCommand() {
-  await editor.foldAll();
-}
-
-export async function unfoldAllCommand() {
-  await editor.unfoldAll();
-}
-
 export async function centerCursorCommand() {
   const pos = await editor.getCursor();
   await editor.moveCursor(pos, true);
