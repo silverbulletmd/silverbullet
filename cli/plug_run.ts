@@ -7,6 +7,7 @@ import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
+import { determineShellBackend } from "../server/shell_backend.ts";
 
 export async function runPlug(
   spacePath: string,
@@ -34,6 +35,7 @@ export async function runPlug(
       builtinAssetBundle,
     ),
     dbBackend,
+    determineShellBackend(spacePath),
   );
   await serverSystem.init(true);
   app.use((context, next) => {

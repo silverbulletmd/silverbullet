@@ -87,6 +87,7 @@ export class SpaceServer {
       const serverSystem = new ServerSystem(
         this.spacePrimitives,
         this.kvPrimitives,
+        this.shellBackend,
       );
       this.serverSystem = serverSystem;
     }

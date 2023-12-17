@@ -19,7 +19,7 @@ import { spaceSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "../web/syscalls/system.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
-import { shellSyscalls } from "../plugos/syscalls/shell.deno.ts";
+import { shellSyscalls } from "./syscalls/shell.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
@@ -32,6 +32,7 @@ import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { ShellBackend } from "./shell_backend.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -47,6 +48,7 @@ export class ServerSystem {
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
     readonly kvPrimitives: KvPrimitives,
+    private shellBackend: ShellBackend,
   ) {
   }
 
@@ -123,7 +125,7 @@ export class ServerSystem {
 
     this.system.registerSyscalls(
       ["shell"],
-      shellSyscalls("."),
+      shellSyscalls(this.shellBackend),
     );
 
     await this.loadPlugs();
