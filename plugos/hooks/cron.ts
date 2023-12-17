@@ -52,7 +52,9 @@ export class CronHook implements Hook<CronHookT> {
               // console.log("Now acting on cron", cronDef);
               (async () => {
                 try {
-                  await plug.invoke(name, [cronDef]);
+                  if (await plug.canInvoke(name)) {
+                    await plug.invoke(name, [cronDef]);
+                  }
                 } catch (e: any) {
                   console.error("Execution of cron function failed", e);
                 }

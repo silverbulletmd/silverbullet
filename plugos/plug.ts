@@ -47,7 +47,9 @@ export class Plug<HookT> {
     return this.system.syscallWithContext({ plug: this }, name, args);
   }
 
-  // Checks if a function can be invoked (it may be restricted on its execution environment)
+  /**
+   * Checks if a function can be invoked (it may be restricted on its execution environment)
+   */
   async canInvoke(name: string) {
     await this.ready;
     const funDef = this.manifest!.functions[name];
