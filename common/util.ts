@@ -1,6 +1,7 @@
 import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
+import { expandPropertyNames } from "$sb/lib/json.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -43,6 +44,7 @@ export async function ensureSettingsAndIndex(
     );
   } catch (e: any) {
     if (e.message === "Not found") {
+      console.log("No settings found, creating default settings");
       await space.writeFile(
         "SETTINGS.md",
         new TextEncoder().encode(SETTINGS_TEMPLATE),
@@ -56,7 +58,11 @@ export async function ensureSettingsAndIndex(
     // Ok, then let's also check the index page
     try {
       await space.getFileMeta("index.md");
-    } catch {
+    } catch (e: any) {
+      console.log(
+        "No index page found, creating default index page",
+        e.message,
+      );
       await space.writeFile(
         "index.md",
         new TextEncoder().encode(
@@ -71,5 +77,7 @@ page: "[[!silverbullet.md/Getting Started]]"
     }
   }
 
-  return parseYamlSettings(settingsText);
+  const settings = parseYamlSettings(settingsText);
+  expandPropertyNames(settings);
+  return settings;
 }

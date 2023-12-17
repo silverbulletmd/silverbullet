@@ -166,6 +166,7 @@ export function createEditorState(
         { selector: "FrontMatter", class: "sb-frontmatter" },
       ]),
       keymap.of([
+        ...commandKeyBindings,
         ...smartQuoteKeymap,
         ...closeBracketsKeymap,
         ...standardKeymap,
@@ -173,7 +174,6 @@ export function createEditorState(
         ...historyKeymap,
         ...completionKeymap,
         indentWithTab,
-        ...commandKeyBindings,
         {
           key: "Ctrl-k",
           mac: "Cmd-k",

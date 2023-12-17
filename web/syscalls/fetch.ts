@@ -28,15 +28,15 @@ export function sandboxFetchSyscalls(
           body: options.base64Body && base64Decode(options.base64Body),
         }
         : {};
-      if (!client.remoteSpacePrimitives) {
+      if (!client.httpSpacePrimitives) {
         // No SB server to proxy the fetch available so let's execute the request directly
         return performLocalFetch(url, fetchOptions);
       }
       fetchOptions.headers = fetchOptions.headers
         ? { ...fetchOptions.headers, "X-Proxy-Request": "true" }
         : { "X-Proxy-Request": "true" };
-      const resp = await client.remoteSpacePrimitives.authenticatedFetch(
-        `${client.remoteSpacePrimitives.url}/!${url}`,
+      const resp = await client.httpSpacePrimitives.authenticatedFetch(
+        `${client.httpSpacePrimitives.url}/!${url}`,
         fetchOptions,
       );
       const body = await resp.arrayBuffer();
