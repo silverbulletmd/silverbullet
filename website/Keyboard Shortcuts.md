@@ -10,9 +10,6 @@ Particularly useful keyboard shortcuts (that you may not know about).
 | Ctrl-Alt-t | Toggle table of contents|
 | Ctrl-Alt-m | Toggle mentions | 
 | Cmd-Shift-f/Ctrl-Shift-f | Search for text across your entire space |
-| Cmd-Alt-[/Ctrl-Shift-[ | Fold the content at the cursor position |
-| Cmd-Alt-]/Ctrl-Shift-] | Unfold the content at the cursor position
-
 # System
 | Combination (Mac/Win-Linux) | Action |
 |----------|----------|
@@ -47,10 +44,10 @@ Particularly useful keyboard shortcuts (that you may not know about).
 | Alt-t | Toggle the state of the task at the cursor position |
 | Cmd-z/Ctrl-z | Undo the latest change |
 | Cmd-u/Ctrl-u | Go one change ahead |
-| Cmd-Alt-[/Ctrl-Shift-[ | Fold the content at the cursor position |
-| Cmd-Alt-]/Ctrl-Shift-] | Unfold the content at the cursor position
-| Ctrl-Alt-[ | Fold the entire page by headers |
-| Ctrl-Alt-] | Unfold the entire page by headers |
+| Alt-Shift-Left | Fold the content at the cursor position |
+| Alt-Shift-Right | Unfold the content at the cursor position
+| Alt-Shift-Up | Fold the entire page by headers |
+| Alt-Shift-Down | Unfold the entire page by headers |
 
 # Text
 | Combination (Mac/Win-Linux) | Text formatting |

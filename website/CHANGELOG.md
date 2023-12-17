@@ -4,10 +4,11 @@ release.
 ---
 
 ## Next
+* Added new commands to manage [[Manual/Outlines]]. Note this resulted in changing names and keyboard shortcuts for managing folds as well, to be more consistent with the other outline commands.
 * Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported; use `--user` or `SB_USER` instead or an authentication layer such as [[Authelia]].
 * Work on supporting multiple database and storage backends, reviving [[Install/Deno Deploy]] support.
 * This is now documented on the brand-new [[Install/Configuration]] page.
-* A new `silverbullet sync` command to [[Sync]] spaces.
+* A new `silverbullet sync` command to [[Sync]] spaces (early days, use with caution)
 * Technical refactoring in preparation for multi-tenant deployment support (allowing you to run a single SB instance and serve multiple spaces and users at the same time)
   * Lazy everything: plugs are now lazily loaded (after a first load,  manifests are cached). On the server side, a whole lot of infrastructure is now only booted once the first HTTP request comes in
 

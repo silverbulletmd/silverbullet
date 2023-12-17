@@ -25,3 +25,4 @@ However, that is unlikely to happen unless you understand some of the basics. So
   * [[Frontmatter]]
   * [[Attributes]]
 * [[SETTINGS]]: A few settings you can tweak
+* [[Manual/Outlines]]
