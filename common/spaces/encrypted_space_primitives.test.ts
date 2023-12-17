@@ -41,8 +41,6 @@ Deno.test("Encrypted Space Primitives", async () => {
     new TextEncoder().encode("Hello World"),
   );
 
-  //   console.log(spacePrimitives);
-
   // Let's do this again with the new password
 
   const spacePrimitives2 = new EncryptedSpacePrimitives(
@@ -61,25 +59,4 @@ Deno.test("Encrypted Space Primitives", async () => {
   );
   await spacePrimitives2.deleteFile("test.txt");
   await testSpacePrimitives(spacePrimitives2);
-
-  //   console.log("Stuff");
-  //   console.log(
-  //     await spacePrimitives.encryptPath(spacePrimitives.masterKey!, "test.txt"),
-  //   );
-  //   console.log(
-  //     await spacePrimitives.encryptPath(spacePrimitives.masterKey!, "test2.txt"),
-  //   );
-
-  //   console.log(
-  //     await spacePrimitives.encryptPath(
-  //       spacePrimitives.masterKey!,
-  //       "henkie/bla.txt",
-  //     ),
-  //   );
-  //   console.log(
-  //     await spacePrimitives.encryptPath(
-  //       spacePrimitives.masterKey!,
-  //       "benkie/bla2.txt",
-  //     ),
-  //   );
 });
