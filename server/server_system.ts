@@ -36,7 +36,7 @@ import { ShellBackend } from "./shell_backend.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
-const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
+const plugNameExtractRegex = /([^/]+)\.plug\.js$/;
 
 export class ServerSystem {
   system!: System<SilverBulletHooks>;
@@ -181,7 +181,7 @@ export class ServerSystem {
 
   async loadPlugs() {
     for (const { name } of await this.spacePrimitives.fetchFileList()) {
-      if (name.endsWith(".plug.js")) {
+      if (plugNameExtractRegex.test(name)) {
         await this.loadPlugFromSpace(name);
       }
     }
