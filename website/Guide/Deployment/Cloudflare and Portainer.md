@@ -1,6 +1,6 @@
 In this guide we will show you how to deploy silverbullet and cloudflare in containers, making them "talk/communicate" in the same private network just for them.
 
-This guide assumes that you have already deployed Portainer. If not, see [this official guide](https://docs.portainer.io/start/install-ce/server/docker/linux) from Portainer to deploy it on Linux. 
+This guide assumes that you have already deployed Portainer. If not, see [this official guide](https://docs.portainer.io/start/install-ce/server/docker/linux) from Portainer to deploy it on Linux.
 
 ### Brief
 
@@ -87,6 +87,15 @@ Once you have this, go to the bottom of the page and click **Actions** > **Creat
 
 Now we have to build the network before we can deploy it.
 
+**NOTE***: If you got a *Error code 8: Attempt to write a readonly database* when running `docker compose up`.
+
+Ensure that the directory on the host system that is mounted as /space in your container has the correct permissions. For example:
+
+```shell
+sudo chown -R 1000:1000 /path/to/space
+sudo chmod -R 755 /path/to/space
+```
+
 ## Create the network for silverbullet
 
 Go to **Home** > **Networks** > **Add Network**.
@@ -169,7 +178,7 @@ Next, go to **Stacks** and click on the stack “**silverbullet-docker**”, or 
 ![](Guide/Deployment/Cloudflare%20and%20Portainer/remove-stack-1.png)
 Click **Remove** to confirm. Don't worry, this will only remove the stack and the containers attached to it, not the template.
 ![](Guide/Deployment/Cloudflare%20and%20Portainer/remove-stack-2.png)
-Then go to **App Templates**. 
+Then go to **App Templates**.
 
 Go into the **silverbullet-docker** and click on **Edit**.
 ![](Guide/Deployment/Cloudflare%20and%20Portainer/deploy-stack-3.png)
@@ -199,7 +208,7 @@ Leave the rest of the page as default and click **Next** at the bottom of the pa
 
 Now it's time to select the name of the policy, the action and the duration of the session.
 
-Select a descriptive **Name** for future troubleshooting, select **Allow** for the **Action** and leave the session duration at its default. 
+Select a descriptive **Name** for future troubleshooting, select **Allow** for the **Action** and leave the session duration at its default.
 
 In the **Configure rules** section, select **Emails** if you want to use emails (or you can use a range of IPs, specific countries...) for verification, and enter the emails you want to allow access to Silverbullet.
 ![](Guide/Deployment/Cloudflare%20and%20Portainer/add-application-clodflare-5.png)
