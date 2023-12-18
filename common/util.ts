@@ -2,6 +2,7 @@ import { SETTINGS_TEMPLATE } from "./settings_template.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
+import type { BuiltinSettings } from "../web/types.ts";
 
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
@@ -36,7 +37,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
 
 export async function ensureSettingsAndIndex(
   space: SpacePrimitives,
-): Promise<any> {
+): Promise<BuiltinSettings> {
   let settingsText: string | undefined;
   try {
     settingsText = new TextDecoder().decode(
@@ -52,7 +53,10 @@ export async function ensureSettingsAndIndex(
       );
     } else {
       console.error("Error reading settings", e.message);
-      console.error("Falling back to default settings");
+      console.warn("Falling back to default settings");
+      return {
+        indexPage: "index",
+      };
     }
     settingsText = SETTINGS_TEMPLATE;
     // Ok, then let's also check the index page
@@ -77,7 +81,7 @@ page: "[[!silverbullet.md/Getting Started]]"
     }
   }
 
-  const settings = parseYamlSettings(settingsText);
+  const settings: any = parseYamlSettings(settingsText);
   expandPropertyNames(settings);
   return settings;
 }
