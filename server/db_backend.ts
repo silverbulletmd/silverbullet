@@ -28,7 +28,7 @@ export async function determineDatabaseBackend(
       }
       const denoDb = await Deno.openKv(dbFile);
       console.info(
-        `Using DenoKV as a database backend (${dbFile || "cloud"}.`,
+        `Using DenoKV as a database backend (${dbFile || "cloud"}).`,
       );
       return new DenoKvPrimitives(denoDb);
     }

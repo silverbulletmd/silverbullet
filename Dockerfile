@@ -1,4 +1,4 @@
-FROM lukechannings/deno:v1.38.5
+FROM lukechannings/deno:v1.39.0
 # The volume that will keep the space data
 
 # Either create a volume:
@@ -17,7 +17,7 @@ ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
 
 # Make sure the deno user has access to the space volume
-RUN mkdir -p -m 770 /space \
+RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
     && apt update \
     && apt install -y git ssh-client \
