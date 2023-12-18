@@ -6,27 +6,52 @@ export async function moveItemUp() {
 
   try {
     const currentItemBounds = determineItemBounds(text, cursorPos);
-    const previousItemBounds = determineItemBounds(
-      text,
-      currentItemBounds.from - 1,
-      currentItemBounds.indentLevel,
-    );
+    let previousItemBounds: ReturnType<typeof determineItemBounds> | undefined;
 
-    if (currentItemBounds.from === previousItemBounds.from) {
-      throw new Error("Already at the top");
+    try {
+      previousItemBounds = determineItemBounds(
+        text,
+        currentItemBounds.from - 1,
+        currentItemBounds.indentLevel,
+      );
+      if (currentItemBounds.from === previousItemBounds.from) {
+        throw new Error("Already at the top");
+      }
+    } catch {
+      // Ok, top of the list, let's find the previous item at any other indent level and adapt
+      previousItemBounds = determineItemBounds(
+        text,
+        currentItemBounds.from - 1,
+      );
+    }
+
+    let newPreviousText = text.slice(
+      previousItemBounds.from,
+      previousItemBounds.to,
+    );
+    // If the current item is embedded inside the previous item, we need to strip it out
+    if (
+      currentItemBounds.from >= previousItemBounds.from &&
+      currentItemBounds.to <= previousItemBounds.to
+    ) {
+      newPreviousText =
+        text.slice(previousItemBounds.from, currentItemBounds.from) +
+        text.slice(currentItemBounds.to, previousItemBounds.to);
     }
 
     const newText =
       ensureNewLine(text.slice(currentItemBounds.from, currentItemBounds.to)) +
-      text.slice(previousItemBounds.from, previousItemBounds.to);
+      newPreviousText;
     const newCursorPos = (cursorPos - currentItemBounds.from) +
       previousItemBounds.from;
+
+    // console.log("New replacement text", newText);
 
     await editor.dispatch({
       changes: [
         {
-          from: previousItemBounds.from,
-          to: currentItemBounds.to,
+          from: Math.min(previousItemBounds.from, currentItemBounds.from),
+          to: Math.max(currentItemBounds.to, previousItemBounds.to),
           insert: newText,
         },
       ],
@@ -45,19 +70,34 @@ export async function moveItemDown() {
 
   try {
     const currentItemBounds = determineItemBounds(text, cursorPos);
-    const nextItemBounds = determineItemBounds(
-      text,
-      currentItemBounds.to + 1,
-      currentItemBounds.indentLevel,
-    );
+    let nextItemBounds: ReturnType<typeof determineItemBounds> | undefined;
+    try {
+      nextItemBounds = determineItemBounds(
+        text,
+        currentItemBounds.to + 1,
+        currentItemBounds.indentLevel,
+      );
 
-    if (currentItemBounds.from === nextItemBounds.from) {
+      if (currentItemBounds.from === nextItemBounds.from) {
+        throw new Error("Already at the bottom");
+      }
+    } catch {
+      nextItemBounds = determineItemBounds(
+        text,
+        currentItemBounds.to + 1,
+        undefined,
+        false,
+      );
+    }
+
+    if (currentItemBounds.to === nextItemBounds.to) {
       throw new Error("Already at the bottom");
     }
 
     const nextItemText = ensureNewLine(
       text.slice(nextItemBounds.from, nextItemBounds.to),
     );
+    // console.log("Next item text", nextItemText);
     const newText = nextItemText +
       text.slice(currentItemBounds.from, currentItemBounds.to);
     const newCursorPos = (cursorPos - currentItemBounds.from) +
@@ -65,8 +105,8 @@ export async function moveItemDown() {
     await editor.dispatch({
       changes: [
         {
-          from: currentItemBounds.from,
-          to: nextItemBounds.to,
+          from: Math.min(nextItemBounds.from, currentItemBounds.from),
+          to: Math.max(nextItemBounds.to, currentItemBounds.to),
           insert: newText,
         },
       ],
@@ -152,6 +192,7 @@ function determineItemBounds(
   text: string,
   pos: number,
   minIndentLevel?: number,
+  withChildren = true,
 ): { from: number; to: number; indentLevel: number } {
   // Find the start of the item marked with a bullet
   let currentItemStart = pos;
@@ -198,6 +239,10 @@ function determineItemBounds(
     // Let's traverse to the end of the line
     while (currentItemEnd < text.length && text[currentItemEnd - 1] !== "\n") {
       currentItemEnd++;
+    }
+    if (!withChildren) {
+      // We're not interested in the children, so let's stop here
+      break;
     }
     // Check the indent level of the next line
     let nextIndentLevel = 0;
