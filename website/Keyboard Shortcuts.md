@@ -1,3 +1,5 @@
+This page lists some potentially useful keyboard shortcuts. Also have a look at [[Manual/Outlines]] for outline specific keyboard shortcuts.
+
 # Highlights
 Particularly useful keyboard shortcuts (that you may not know about).
 | Combination (Mac/Win-Linux) | Action |
@@ -44,10 +46,6 @@ Particularly useful keyboard shortcuts (that you may not know about).
 | Alt-t | Toggle the state of the task at the cursor position |
 | Cmd-z/Ctrl-z | Undo the latest change |
 | Cmd-u/Ctrl-u | Go one change ahead |
-| Alt-Shift-Left | Fold the content at the cursor position |
-| Alt-Shift-Right | Unfold the content at the cursor position
-| Alt-Shift-Up | Fold the entire page by headers |
-| Alt-Shift-Down | Unfold the entire page by headers |
 
 # Text
 | Combination (Mac/Win-Linux) | Text formatting |
