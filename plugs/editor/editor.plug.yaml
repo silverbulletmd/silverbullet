@@ -215,42 +215,40 @@ functions:
     path: ./outline.ts:indentItem
     command:
       name: "Outline: Move Right"
-      key: "Alt-ArrowRight"
+      key: "Alt->"
 
   outlineOutdent:
     path: ./outline.ts:outdentItem
     command:
       name: "Outline: Move Left"
-      key: "Alt-ArrowLeft"
+      key: "Alt-<"
 
   # Outline folding commands
   foldCommand:
     path: ./outline.ts:foldCommand
     command:
       name: "Outline: Fold"
-      key: "Alt-Shift-ArrowLeft"
+      key: "Ctrl-Alt-["
   unfoldCommand:
     path: ./outline.ts:unfoldCommand
     command:
       name: "Outline: Unfold"
-      key: "Alt-Shift-ArrowRight"
+      key: "Ctrl-Alt-]"
   toggleFoldCommand:
     path: ./outline.ts:toggleFoldCommand
     command:
       name: "Outline: Toggle Fold"
-      mac: "Alt-Shift-f"
       key: "Alt-Shift-f"
   foldAllCommand:
     path: ./outline.ts:foldAllCommand
     command:
       name: "Outline: Fold All"
-      key: "Alt-Shift-ArrowUp"
+      key: "Ctrl-Alt-Shift-["
   unfoldAllCommand:
     path: ./outline.ts:unfoldAllCommand
     command:
       name: "Outline: Unfold All"
-      key: "Alt-Shift-ArrowDown"
-
+      key: "Ctrl-Alt-Shift-]"
 
   # Demo
   customFlashMessage:
