@@ -10,7 +10,7 @@ Generally this setup involves a few steps:
 
 It is **absolutely key** to enable [[Authentication]] on SilverBullet, otherwise anybody who can guess the URL ngrok gives you, and view and edit your files at will (or worse).
 
-So generally the steps are to run SilverBullet (e.g. via Deno) (see [[Install]] for more options) — note the port here (`3000`):
+Generally the steps are to run SilverBullet (e.g. via Deno) (see [[Install]] for more options) — note the port here (`3000`):
 
 ```bash
 $ silverbullet -p 3000 --user mysuser:mypassword path/to/space

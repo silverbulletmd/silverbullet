@@ -1,7 +1,7 @@
 > **warning** Experimental
 > This setup is not battle-tested, use it at your own risk
 
-You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store space content in [Deno KV](https://deno.com/kv).
+You can deploy SilverBullet to [Deno Deploy](https://deno.com/deploy) for free, and store space content in [Deno KV](https://deno.com/kv). This is a convenient option to deploy SilverBullet in the cloud, without having to run or pay for a server.
 
 # Steps
 Sign up for a (free) [Deno Deploy account](https://dash.deno.com/projects) and “Create an empty project” there.
@@ -25,10 +25,12 @@ $ deno install -Arf https://deno.land/x/deploy/deployctl.ts
 To deploy, run:
 
 ```shell
-deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
+$ deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
 ```
 
-# Migrating and backing up content
-If you want to migrate content _from_ or _to_ your new Deploy-based space, you can use [[Sync]]. For this be sure to also configure a `SB_AUTH_TOKEN` variable.
+This will ask you to authenticate with your Deno Deploy account, and then deploy SilverBullet.
 
-For backup purposes, it may be wise to synchronize your content regularly this way.
+# Migrating and backing up content
+This setup stores you [[Spaces]] content in Deno’s KV database, which is still a beta feature and not specifically designed for this purpose. Therefore it’s recommended to use something like [[Sync]] to make backups elsewhere.
+
+For this, be sure to also configure a `SB_AUTH_TOKEN` variable.

@@ -1,22 +1,11 @@
-SilverBullet is primarily configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Local$docker|docker-compose file]].
+SilverBullet is primarily configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
 
 # Network
 $network
+Note: these options are primarily useful for [[Install/Deno]] deployments, not so much for [[Install/Docker]].
 
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
-
-# Run mode
-$runmode
-
-* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]].
-
-# Security
-$security
-
-SilverBullet enables plugs to run shell commands. This is used by e.g. the [[🔌 Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
-
-* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[$storage]].
 
 # Authentication
 $authentication
@@ -27,7 +16,7 @@ SilverBullet supports basic authentication for a single user.
 
 # Storage
 $storage
-SilverBullet supports multiple storage backends for keeping your [[Space]] content.
+SilverBullet supports multiple storage backends for keeping your [[Spaces]] content.
 
 ## Disk storage
 This is the default and simplest backend to use: a folder on disk. It is configured as follows:
@@ -89,6 +78,19 @@ When SilverBullet runs on [[Install/Deno Deploy]] it automatically uses its clou
 The in-memory database is only useful for testing. 
 
 * `SB_DB_BACKEND`: `memory`
+
+# Run mode
+$runmode
+
+* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]].
+
+# Security
+$security
+
+SilverBullet enables plugs to run shell commands. This is used by e.g. the [[🔌 Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
+
+* `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[$storage]].
+
 
 # Docker
 Configuration only relevant to docker deployments:

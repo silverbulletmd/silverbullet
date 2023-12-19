@@ -8,7 +8,7 @@ silverbullet --user pete:1234 .
 
 Will let `pete` authenticate with password `1234`. 
 
-Alternative, the same information can be passed in via the `SB_USER` environment variable, e.g. 
+Alternatively, the same information can be passed in via the `SB_USER` environment variable, e.g. 
 
 ```shell
 SB_USER=pete:1234 silverbullet .
