@@ -240,7 +240,7 @@ export class MainUI {
               : [],
             {
               icon: HomeIcon,
-              description: `Go home (Alt-h)`,
+              description: `Go to the index page (Alt-h)`,
               callback: () => {
                 editor.navigate("");
               },

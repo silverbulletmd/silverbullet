@@ -1,3 +1,9 @@
+html,
+html {
+  overflow-y: scroll !important;
+  width: 90% !important
+}
+
 body {
   font-family: georgia, times, serif;
   font-size: 14pt;
