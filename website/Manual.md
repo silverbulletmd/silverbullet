@@ -45,7 +45,7 @@ These are the core concepts used in SilverBullet:
     * [[Markdown/Syntax Highlighting]]
     * [[Markdown/Code Widgets]]
 * [[Slash Commands]]
-* [[Manual/Outlines]]
+* [[Outlines]]
 
 # Navigation
 The main ways to roam your space, beside following page links, are:

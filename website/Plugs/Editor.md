@@ -34,7 +34,7 @@ The `editor` plug implements foundational editor functionality for SilverBullet.
 
 # Outlines
 ```template
-page: "[[Manual/Outlines]]"
+page: "[[Outlines]]"
 ```
 # Debug
 Commands you shouldn’t need, but are nevertheless there:
