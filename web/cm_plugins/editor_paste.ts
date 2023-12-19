@@ -204,8 +204,6 @@ export function attachmentExtension(editor: Client) {
       return;
     }
 
-    suggestedName = resolve(folderName(editor.currentPage!), suggestedName);
-
     const finalFileName = await editor.prompt(
       "File name for pasted attachment",
       suggestedName,
@@ -214,7 +212,7 @@ export function attachmentExtension(editor: Client) {
       return;
     }
     await editor.space.writeAttachment(
-      finalFileName,
+      resolve(folderName(editor.currentPage!), finalFileName),
       new Uint8Array(data),
     );
     let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;

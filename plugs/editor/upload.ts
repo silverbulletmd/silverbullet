@@ -23,17 +23,16 @@ async function saveFile(file: UploadFile) {
     // root folder case
     prefix = "";
   }
-  const suggestedName = prefix + file.name;
 
   const finalFileName = await editor.prompt(
     "File name for pasted attachment",
-    suggestedName,
+    file.name,
   );
   if (!finalFileName) {
     return;
   }
   await space.writeAttachment(
-    finalFileName,
+    prefix + finalFileName,
     file.content,
   );
   let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
