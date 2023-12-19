@@ -1,3 +1,5 @@
+import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
+import { Client } from "../client.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import {
   decoratorStateField,
@@ -5,7 +7,7 @@ import {
   isCursorInRange,
 } from "./util.ts";
 
-export function linkPlugin() {
+export function linkPlugin(client: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
 
@@ -31,7 +33,14 @@ export function linkPlugin() {
           return;
         }
         const cleanAnchor = anchorPart.substring(1); // cut off the initial [
-        const cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
+        let cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
+
+        if (!cleanLink.includes("://")) {
+          cleanLink = resolveAttachmentPath(
+            client.currentPage!,
+            decodeURI(cleanLink),
+          );
+        }
 
         // Hide the start [
         widgets.push(

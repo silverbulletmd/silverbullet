@@ -8,8 +8,7 @@ import {
 import { decoratorStateField } from "./util.ts";
 
 import type { Client } from "../client.ts";
-import { resolvePath } from "$sb/lib/resolve.ts";
-import { folderName, resolve } from "../../common/path.ts";
+import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -77,11 +76,8 @@ export function inlineImagesPlugin(client: Client) {
         let url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
 
-        const currentPage = client.currentPage!;
-        const currentFolder = folderName(currentPage);
-
         if (url.indexOf("://") === -1 && !url.startsWith("/")) {
-          url = resolve(currentFolder, decodeURI(url));
+          url = resolveAttachmentPath(client.currentPage!, decodeURI(url));
         }
         widgets.push(
           Decoration.widget({

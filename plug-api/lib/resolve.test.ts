@@ -1,6 +1,7 @@
 import {
   cleanPageRef,
   federatedPathToUrl,
+  resolveAttachmentPath,
   resolvePath,
   rewritePageRefs,
 } from "$sb/lib/resolve.ts";
@@ -89,5 +90,23 @@ This is a [[!silverbullet.md/local link]] and [[!silverbullet.md/local link|with
   assertEquals(
     rewrittenText,
     `This is a [[local link]] and [[local link|with alias]].`,
+  );
+
+  assertEquals("test.jpg", resolveAttachmentPath("test", "test.jpg"));
+  assertEquals(
+    "folder/test.jpg",
+    resolveAttachmentPath("folder/test", "test.jpg"),
+  );
+  assertEquals(
+    "test.jpg",
+    resolveAttachmentPath("folder/test", "/test.jpg"),
+  );
+  assertEquals(
+    "https://silverbullet.md/something/test.jpg",
+    resolveAttachmentPath("!silverbullet.md/something/bla", "test.jpg"),
+  );
+  assertEquals(
+    "https://silverbullet.md/test.jpg",
+    resolveAttachmentPath("!silverbullet.md/something/bla", "/test.jpg"),
   );
 });

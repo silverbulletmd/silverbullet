@@ -16,7 +16,7 @@ import { fencedCodePlugin } from "./fenced_code.ts";
 
 export function cleanModePlugins(editor: Client) {
   return [
-    linkPlugin(),
+    linkPlugin(editor),
     directivePlugin(),
     blockquotePlugin(),
     admonitionPlugin(editor),

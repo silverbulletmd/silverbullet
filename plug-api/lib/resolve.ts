@@ -16,7 +16,24 @@ export function resolvePath(
   }
 }
 
+export function resolveAttachmentPath(
+  currentPage: string,
+  pathToResolve: string,
+): string {
+  const folder = folderName(currentPage);
+  if (folder && !pathToResolve.startsWith("/")) {
+    pathToResolve = folder + "/" + pathToResolve;
+  }
+  if (pathToResolve.startsWith("/")) {
+    pathToResolve = pathToResolve.slice(1);
+  }
+  return federatedPathToUrl(resolvePath(currentPage, pathToResolve));
+}
+
 export function federatedPathToUrl(path: string): string {
+  if (!path.startsWith("!")) {
+    return path;
+  }
   path = path.substring(1);
   if (path.startsWith("localhost")) {
     path = "http://" + path;
@@ -100,4 +117,8 @@ export function cleanPageRef(pageRef: string) {
   } else {
     return pageRef;
   }
+}
+
+export function folderName(path: string) {
+  return path.split("/").slice(0, -1).join("/");
 }
