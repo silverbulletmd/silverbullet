@@ -103,9 +103,9 @@ Due to significant changes in how data is stored, likely your space will be resy
 The big change in this release is that SilverBullet now supports two [[Client Modes|client modes]]: _online_ mode and _sync_ mode. Read more about them here: [[Client Modes]].
 
 Other notable changes:
-* Massive reshuffling of built-in [[🔌 Plugs]], splitting the old “core” plug into [[🔌 Editor]], [[🔌 Template]] and [[🔌 Index]].
+* Massive reshuffling of built-in [[🔌 Plugs]], splitting the old “core” plug into [[Plugs/Editor]], [[Plugs/Template]] and [[Plugs/Index]].
 * Directives in [[Live Preview]] now always take up a single line height.
-* [[🔌 Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
+* [[Plugs/Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
   * [IN PROGRESS] An in progress task
   * [BLOCKED] A task that’s blocked
   [[🔌 Tasks|Read more]]

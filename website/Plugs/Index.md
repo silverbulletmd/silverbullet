@@ -2,10 +2,10 @@
 
 SilverBullet has a generic indexing infrastructure for [[Objects]]. Pages are automatically index upon save, so about every second. 
 
-The [[🔌 Index]] plug also defines syntax for [[Tags]].
+The [[Plugs/Index]] plug also defines syntax for [[Tags]].
 
 ## Content indexing
-The [[🔌 Index]] plug indexes the following:
+The [[Plugs/Index]] plug indexes the following:
 
 * [[Metadata]]
 * [[Tags]]

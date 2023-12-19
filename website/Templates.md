@@ -5,7 +5,7 @@ Templates are used in a few different contexts:
 1. To render [[Live Queries]]
 2. To render [[Live Templates]]
 3. To be included using [[Slash Templates]]
-4. Some legacy use cases described in [[🔌 Template]]
+4. Some legacy use cases described in [[Plugs/Template]]
 
 ## Creating templates
 Templates are defined as any other page. It’s convenient, although not required, to use a `template/` prefix when naming templates. It is also _recommended_ to tag templates with a `#template` tag. Note that this tag will be removed when the template is instantiated.

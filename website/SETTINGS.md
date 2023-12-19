@@ -1,4 +1,4 @@
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these in most cases will go into effect immediately, except for `indexPage` which requires a reload.
+This page contains settings for configuring SilverBullet and its Plugs. Changing any of these in most cases will go into effect immediately, except `indexPage` and `customStyles` which require a reload.
 
 ```yaml
 # Initial page to load when launching SB

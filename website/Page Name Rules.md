@@ -1,4 +1,4 @@
-A few rules regarding page names:
+There are a few rules regarding page names:
 
 * Page names cannot be empty
 * Page names cannot start with a `.`

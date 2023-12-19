@@ -1,11 +1,11 @@
 # Introduction
-SilverBullet aims to be your **workshop for the mind**: a creative [[Spaces]] where you collect, create and expand your personal knowledge, while also letting you constantly evolve the tools you use to do so.
+SilverBullet aims to be a **workshop for the mind**: a creative [[Spaces|space]] where you collect, create and expand your personal knowledge, while also letting you constantly evolve the tools you use to do so.
 
-So yes, it’s basically a somewhat geeky note taking application.
+So yeah, it’s basically a somewhat geeky note taking application or personal wiki.
 
-While you _can_ use SilverBullet as just a note taking application that stores notes in plain [[Markdown]] files on disk, it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], SilverBullet becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
+While you _can_ use SilverBullet as just a note taking application that stores notes in plain [[Markdown]] files on disk; it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], it becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
 
-SilverBullet is implemented as an _open-source_, _self-hosted_, _offline-capable_ web application (PWA). In order to use it, you have to self host it: that is, you need to run the web server either on your own machine or in the cloud somewhere. See [[Install]] for instructions.
+SilverBullet is implemented as an _open-source_, _self-hosted_, _offline-capable_ web application ([[PWA]]). In order to use it, you have to self host it: that is, you need to run the web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]].
 
 You may have been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
 
@@ -13,7 +13,7 @@ You were told wrong.
 
 # Links for the impatient
 * [[Install]]: how to install and deploy SilverBullet
-* [[Manual]]: the beginnings of a user manual
+* [[Manual]]: how to use this thing
 * [[CHANGELOG]]: SilverBullet is in active development, so things change rapidly. Watch this to see what’s new and changed.
 * Development:
   * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities
@@ -24,13 +24,12 @@ You were told wrong.
   * [Discord](https://discord.gg/EvXbFucTxn): For more real-time support and discussion, join our Discord!
 
 # Features
-Alright then. Beyond the fancy, aspirational vision-y talk. What does this thing actually do and how does it work? You know... features, we need a feature list!
+Alright then. Beyond the fancy, aspirational vision-y talk. What does this thing actually do, and how does it work? You know... features, we need a feature list!
 
-SilverBullet...
-* Runs in any modern browser (including on mobile) as a [[PWA]] in two [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
-* Provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
-* Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to thereby providing _bi-directional linking_.
-* Optimized for **keyboard-based operation**:
+* SilverBullet runs in any modern browser (including mobile ones) as a [[PWA]] in two [[Client Modes]] (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
+* SilverBullet provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
+* SilverBullet supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to thereby providing _bi-directional linking_.
+* SilverBullet is optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[Slash Commands]] to perform common text editing operations.

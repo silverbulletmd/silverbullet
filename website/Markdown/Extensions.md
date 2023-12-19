@@ -7,10 +7,11 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
     * [[Live Queries]]
     * [[Live Templates]]
 * [[Anchors]]
+* [[Markdown/Admonitions]]
 * Hashtags, e.g. `#mytag`.
 * [[Markdown/Command links]] syntax
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)
 * [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)
 * [Automatic URL linking](https://www.markdownguide.org/extended-syntax/#automatic-url-linking)
-* Any addition custom markdown extensions provided by [[🔌 Plugs]]
+* Any addition custom markdown extensions provided by [[Plugs]]

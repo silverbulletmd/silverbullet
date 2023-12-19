@@ -1,1 +1,0 @@
-All pages are indexed using SQLite’s FTS5 mechanism. This functionality can be much improved, but it works. You can use it via the {[Search Space]} command.

@@ -55,7 +55,7 @@ upnext render [[template/task]]
 ```
 
 ## taskstate
-[[🔌 Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
+[[Plugs/Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
 * [NOT STARTED] Task 1
 * [IN PROGRESS] Task 2

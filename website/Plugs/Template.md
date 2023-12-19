@@ -1,6 +1,6 @@
 #plug
 
-The [[🔌 Template]] plug implements a few templating mechanisms.
+The [[Plugs/Template]] plug implements a few templating mechanisms.
 
 ### Page Templates
 > **Warning** Deprecated

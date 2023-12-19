@@ -2,11 +2,8 @@ Welcome to wonderful world of SilverBullet. The goal of this manual is to give y
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let’s give you a bit of a sense.
 
-> **warning** Warning
-> This manual is **very** much a work in progress.
-
 # Keeping up-to-date
-* [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page, especially if something broke for you.
+* [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page.
 
 # Installation and deployment
 The biggest hurdle to get over with SilverBullet is that you need to get this thing running. And as of yet, the only way to do that is to install and deploy it yourself. 🤷
@@ -17,28 +14,59 @@ The biggest hurdle to get over with SilverBullet is that you need to get this th
 * [[Guide/Deployment/Cloudflare and Portainer]]: configuring SilverBullet with a Cloudflare tunnel, portainer and optional Cloudflare zero trust authentication.
 
 # User interface
-* [[Manual/Page Picker]]
-* [[Manual/Command Palette]]
-* [[Client Modes]] (that sync button)
+SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.
+
+* The [[Top Bar]] contains:
+  * [[Page Namer]]
+  * [[Client Modes]] (the 🔄 button)
+  * [[Index Page]] (the 🏠 button)
+  * [[Page Picker]]
+  * [[Command Palette]]
+* The main [[Editor]] component contains your page’s text, as well as potentially:
+  * [[Table of Contents]] 
+  * [[Linked Mentions]]
 
 # Core Concepts
-These are some 
+These are the core concepts used in SilverBullet:
 * [[Spaces]]
 * [[Pages]]
   * [[Frontmatter]]
+  * [[Page Name Rules]]
 * [[Folders]]
 * [[Attachments]]
 * [[Templates]]
 
 # Editing and Formatting
-* [[Markdown]]
-  * [[Markdown/Syntax Highlighting]]
-  * [[Markdown/Code Widgets]]
+* Content is written using [[Markdown]] and rendered using [[Live Preview]]
+  * Markdown [[Markdown/Basics]]
+  * Markdown [[Markdown/Extensions]]
+    * [[Markdown/Admonitions]]
+    * [[Plugs/Tasks]]
+    * [[Markdown/Syntax Highlighting]]
+    * [[Markdown/Code Widgets]]
+* [[Slash Commands]]
 * [[Manual/Outlines]]
-* [[End-User Programming]]
-  * [[Objects]]
-    * [[Frontmatter]]
-    * [[Attributes]]
-  * [[Live Queries]]
-  * [[Live Templates]]
-* [[SETTINGS]]: A few settings you can tweak
+
+# Navigation
+The main ways to roam your space, beside following page links, are:
+* [[Page Picker]]
+* [[Linked Mentions]]
+* [[Full Text Search]]
+
+# End-User Programming
+[[End-User Programming]] functionality allows you to be creative with the content you have in your space.
+* [[Objects]]
+  * [[Frontmatter]]
+  * [[Attributes]]
+* [[Templates]]
+* [[Live Queries]]
+* [[Live Templates]]
+
+# Extending SilverBullet
+A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].
+
+# Contributing
+SilverBullet is free and open source software. You can contribute to it [via Github](https://github.com/silverbulletmd/silverbullet). For some details on how to do this, have a look at [[Development]].
+
+# Personalization
+Want to tweak something? [[SETTINGS]] gives you a few settings you can tweak.

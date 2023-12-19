@@ -5,7 +5,7 @@ Currently, SilverBullet provides two code widgets as part of its built-in [[🔌
 * `embed`
 * `markdown`
 
-In addition, plugs like [[🔌 KaTeX]] and [[🔌 Mermaid]] add additional ones.
+In addition, plugs like [[Plugs/KaTeX]] and [[Plugs/Mermaid]] add additional ones.
 
 ## Embed
 This allows you to embed internet content into your page inside of an iframe. This is useful to, for instance, embed youtube videos. In fact, there is specific support for those.
