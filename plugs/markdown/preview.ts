@@ -2,6 +2,7 @@ import { asset, clientStore, editor, markdown, system } from "$sb/syscalls.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { expandCodeWidgets } from "./api.ts";
+import { folderName, resolve } from "../../common/path.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await clientStore.get("enableMarkdownPreview"))) {
@@ -18,9 +19,14 @@ export async function updateMarkdownPreview() {
   const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,
-    translateUrls: (url) => {
+    translateUrls: (url, type) => {
       if (!url.includes("://")) {
-        url = resolvePath(currentPage, decodeURI(url), true);
+        if (type === "image" && !url.startsWith("/")) {
+          // Make relative to current folder
+          url = resolve(folderName(currentPage), decodeURI(url));
+        } else if (type === "link") { // link
+          url = resolvePath(currentPage, decodeURI(url), true);
+        }
       }
       return url;
     },

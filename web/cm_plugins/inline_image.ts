@@ -9,6 +9,7 @@ import { decoratorStateField } from "./util.ts";
 
 import type { Client } from "../client.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
+import { folderName, resolve } from "../../common/path.ts";
 
 class InlineImageWidget extends WidgetType {
   constructor(
@@ -34,7 +35,6 @@ class InlineImageWidget extends WidgetType {
     const img = document.createElement("img");
     let url = this.url;
     url = resolvePath(this.client.currentPage!, url, true);
-    console.log("Resolving image to", url);
     // console.log("Creating DOM", this.url);
     const cachedImageHeight = this.client.space.getCachedImageHeight(url);
     img.onload = () => {
@@ -76,8 +76,12 @@ export function inlineImagesPlugin(client: Client) {
 
         let url = imageRexexResult.groups.url;
         const title = imageRexexResult.groups.title;
-        if (url.indexOf("://") === -1) {
-          url = decodeURI(url);
+
+        const currentPage = client.currentPage!;
+        const currentFolder = folderName(currentPage);
+
+        if (url.indexOf("://") === -1 && !url.startsWith("/")) {
+          url = resolve(currentFolder, decodeURI(url));
         }
         widgets.push(
           Decoration.widget({

@@ -11,6 +11,12 @@ export default function reducer(
         ...state,
         isLoading: true,
         currentPage: action.name,
+        panels: {
+          ...state.panels,
+          // Hide these by default to avoid flickering
+          top: {},
+          bottom: {},
+        },
       };
     case "page-loaded":
       return {

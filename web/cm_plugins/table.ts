@@ -10,6 +10,7 @@ import { ParseTree } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
+import { folderName, resolve } from "../../common/path.ts";
 
 class TableViewWidget extends WidgetType {
   constructor(
@@ -38,10 +39,16 @@ class TableViewWidget extends WidgetType {
       // Annotate every element with its position so we can use it to put
       // the cursor there when the user clicks on the table.
       annotationPositions: true,
-      translateUrls: (url) => {
+      translateUrls: (url, type) => {
         if (!url.includes("://")) {
-          url = resolvePath(this.editor.currentPage!, decodeURI(url), true);
+          if (type === "image" && !url.startsWith("/")) {
+            // Make relative to current folder
+            url = resolve(folderName(this.editor.currentPage!), decodeURI(url));
+          } else if (type === "link") { // link
+            url = resolvePath(this.editor.currentPage!, decodeURI(url), true);
+          }
         }
+
         return url;
       },
       preserveAttributes: true,

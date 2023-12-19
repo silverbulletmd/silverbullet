@@ -16,7 +16,7 @@ export type MarkdownRenderOptions = {
   attachmentUrlPrefix?: string;
   preserveAttributes?: true;
   // When defined, use to inline images as data: urls
-  translateUrls?: (url: string) => string;
+  translateUrls?: (url: string, type: "link" | "image") => string;
 };
 
 function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
@@ -466,11 +466,11 @@ export function renderMarkdownToHtml(
         return;
       }
       if (t.name === "img") {
-        t.attrs!.src = options.translateUrls!(t.attrs!.src!);
+        t.attrs!.src = options.translateUrls!(t.attrs!.src!, "image");
       }
 
       if (t.name === "a" && t.attrs!.href) {
-        t.attrs!.href = options.translateUrls!(t.attrs!.href);
+        t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
       }
     });
   }
