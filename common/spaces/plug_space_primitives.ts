@@ -32,10 +32,18 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     for (
       const { operation, pattern, plug, name, env } of this.hook.spaceFunctions
     ) {
-      // console.log("Going to match agains pattern", pattern, path);
+      // console.log(
+      //   "Going to match agains pattern",
+      //   operation,
+      //   pattern,
+      //   path,
+      //   this.env,
+      //   env,
+      // );
       if (
         operation === type && path.match(pattern) &&
-        (!this.env || (env && env === this.env))
+        // Both envs are set, and they don't match
+        (!this.env || !env || env === this.env)
       ) {
         return plug.invoke(name, [path, ...args]);
       }
