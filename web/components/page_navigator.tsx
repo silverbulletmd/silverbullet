@@ -4,6 +4,8 @@ import { CompletionContext, CompletionResult } from "../deps.ts";
 import { PageMeta } from "$sb/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 
+const tagRegex = /#[^#\d\s\[\]]+\w+/g;
+
 export function PageNavigator({
   allPages,
   onNavigate,
@@ -74,6 +76,26 @@ export function PageNavigator({
       vimMode={vimMode}
       darkMode={darkMode}
       completer={completer}
+      phrasePreprocessor={(phrase) => {
+        phrase = phrase.replaceAll(tagRegex, "").trim();
+        return phrase;
+      }}
+      preFilter={(options, phrase) => {
+        const allTags = phrase.match(tagRegex);
+        if (allTags) {
+          // Search phrase contains hash tags, let's pre-filter the results based on this
+          const filterTags = allTags.map((t) => t.slice(1));
+          options = options.filter((pageMeta) => {
+            if (!pageMeta.tags) {
+              return false;
+            }
+            return filterTags.every((tag) =>
+              pageMeta.tags.find((itemTag: string) => itemTag.startsWith(tag))
+            );
+          });
+        }
+        return options;
+      }}
       allowNew={true}
       helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page with this exact name."
       newHint="Create page"

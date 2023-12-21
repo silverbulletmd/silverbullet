@@ -21,6 +21,8 @@ export function FilterList({
   completer,
   vimMode,
   darkMode,
+  preFilter,
+  phrasePreprocessor,
   allowNew = false,
   helpText = "",
   completePrefix,
@@ -32,6 +34,8 @@ export function FilterList({
   label: string;
   onKeyPress?: (key: string, currentText: string) => void;
   onSelect: (option: FilterOption | undefined) => void;
+  preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
+  phrasePreprocessor?: (phrase: string) => string;
   vimMode: boolean;
   darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
@@ -50,7 +54,13 @@ export function FilterList({
   const selectedElementRef = useRef<HTMLDivElement>(null);
 
   function updateFilter(originalPhrase: string) {
-    const results = fuzzySearchAndSort(options, originalPhrase);
+    const prefilteredOptions = preFilter
+      ? preFilter(options, originalPhrase)
+      : options;
+    if (phrasePreprocessor) {
+      originalPhrase = phrasePreprocessor(originalPhrase);
+    }
+    const results = fuzzySearchAndSort(prefilteredOptions, originalPhrase);
     const foundExactMatch = !!results.find((result) =>
       result.name === originalPhrase
     );
@@ -74,7 +84,6 @@ export function FilterList({
 
   useEffect(() => {
     function closer() {
-      // console.log("Invoking closer");
       onSelect(undefined);
     }
 

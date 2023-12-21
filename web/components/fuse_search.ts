@@ -13,6 +13,7 @@ export const fuzzySearchAndSort = (
   if (!searchPhrase) {
     return arr.sort((a, b) => (a.orderId || 0) - (b.orderId || 0));
   }
+
   const enrichedArr: FuseOption[] = arr.map((item) => {
     return {
       ...item,
@@ -31,9 +32,6 @@ export const fuzzySearchAndSort = (
     }, {
       name: "displayName",
       weight: 0.3,
-    }, {
-      name: "tags",
-      weight: 0.1,
     }, {
       name: "aliases",
       weight: 0.7,

@@ -4,6 +4,8 @@ The page picker can be invoked by clicking the 📔 icon in the top bar, or by p
 
 The main input is the **filter phrase** and can be used to narrow down the list of page results.
 
+If the filter phrase contains `#tags` the results will be filtered based on matching those tags. That means to quickly see a list of all `#template`s you can use `#template` as a filter phrase. 
+
 Pressing the `Enter` key will open/create the selected page. Pressing `Shift-Enter` will always open or the page _exactly matching_ the filter phrase. Therefore, if you intend to create a new page, simply type the name of the new page and hit `Shift-Enter`.
 
 # Result ordering
