@@ -6,7 +6,6 @@ import {
   DecorationSet,
   EditorState,
   EditorView,
-  foldedRanges,
   StateField,
   Transaction,
   WidgetType,
@@ -146,34 +145,3 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  * Decoration to simply hide anything.
  */
 export const invisibleDecoration = Decoration.replace({});
-
-/**
- * Returns the lines of the editor that are in the given range and not folded.
- * This function is of use when you need to get the lines of a particular
- * block node and add line decorations to each line of it.
- *
- * @param view - Editor view
- * @param from - Start of the range
- * @param to - End of the range
- * @returns A list of line blocks that are in the range
- */
-export function editorLines(view: EditorView, from: number, to: number) {
-  let lines = view.viewportLineBlocks.filter((block) =>
-    // Keep lines that are in the range
-    checkRangeOverlap([block.from, block.to], [from, to])
-  );
-
-  const folded = foldedRanges(view.state).iter();
-  while (folded.value) {
-    lines = lines.filter(
-      (line) =>
-        !checkRangeOverlap(
-          [folded.from, folded.to],
-          [line.from, line.to],
-        ),
-    );
-    folded.next();
-  }
-
-  return lines;
-}

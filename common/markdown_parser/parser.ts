@@ -468,6 +468,11 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
               from: state.doc.lineAt(tree.from).to,
               to: tree.to,
             }),
+            // Fold frontmatter
+            FrontMatter: (tree) => ({
+              from: tree.from,
+              to: tree.to,
+            }),
           }),
 
           styleTags({
