@@ -30,7 +30,7 @@ The `editor` plug implements foundational editor functionality for SilverBullet.
 * {[Text: Bold]}: make text **bold**
 * {[Text: Italic]}: make text _italic_
 * {[Text: Marker]}: mark text with a ==marker color==
-* {[Link: Unfurl]}: “Unfurl” a link, see [[🔌 Editor/Link Unfurl]]
+* {[Link: Unfurl]}: “Unfurl” a link, see [[Link Unfurl]]
 
 # Outlines
 ```template

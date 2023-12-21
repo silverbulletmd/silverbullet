@@ -87,7 +87,7 @@ $runmode
 # Security
 $security
 
-SilverBullet enables plugs to run shell commands. This is used by e.g. the [[🔌 Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
+SilverBullet enables plugs to run shell commands. This is used by e.g. the [[Plugs/Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 
 * `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[$storage]].
 
