@@ -97,6 +97,7 @@ export type QueryExpression =
   | ["string", string]
   | ["boolean", boolean]
   | ["null"]
+  | ["not", QueryExpression]
   | ["array", QueryExpression[]]
   | ["object", Record<string, any>]
   | ["regexp", string, string] // regex, modifier
@@ -145,4 +146,4 @@ export type UploadFile = {
   name: string;
   contentType: string;
   content: Uint8Array;
-}
+};

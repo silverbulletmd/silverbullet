@@ -25,6 +25,9 @@ export function evalQueryExpression(
     // Value types
     case "null":
       return null;
+    // TODO: Add this to the actualy query syntax
+    case "not":
+      return !evalQueryExpression(op1, obj, functionMap);
     case "number":
     case "string":
     case "boolean":
