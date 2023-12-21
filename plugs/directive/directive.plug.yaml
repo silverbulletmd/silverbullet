@@ -23,11 +23,6 @@ functions:
     path: ./complete.ts:queryComplete
     events:
       - editor:complete
-  handlebarHelperComplete:
-    path: ./complete.ts:templateVariableComplete
-    events:
-      - editor:complete
-
   # Conversion
   convertToLiveQuery:
     path: command.ts:convertToLive

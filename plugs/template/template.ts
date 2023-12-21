@@ -1,96 +1,40 @@
 import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
-import {
-  extractFrontmatter,
-  prepareFrontmatterDispatch,
-} from "$sb/lib/frontmatter.ts";
-import { renderToText } from "$sb/lib/tree.ts";
 import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { PageMeta } from "$sb/types.ts";
-import { CompleteEvent, SlashCompletion } from "$sb/app_event.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import { TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
 
-export async function templateSlashComplete(
-  completeEvent: CompleteEvent,
-): Promise<SlashCompletion[]> {
-  const allTemplates = await queryObjects<TemplateObject>("template", {
-    // Only return templates that have a trigger
-    filter: ["!=", ["attr", "trigger"], ["null"]],
-  });
-  return allTemplates.map((template) => ({
-    label: template.trigger!,
-    detail: "template",
-    templatePage: template.ref,
-    pageName: completeEvent.pageName,
-    invoke: "template.insertSlashTemplate",
-  }));
-}
+export async function newPageCommand(
+  _cmdDef: any,
+  templateName?: string,
+  askName = true,
+) {
+  if (!templateName) {
+    const allPageTemplates = await queryObjects<TemplateObject>("template", {
+      // Only return templates that have a trigger
+      filter: ["=", ["attr", "type"], ["string", "page"]],
+    });
+    const selectedTemplate = await editor.filterBox(
+      "Page template",
+      allPageTemplates
+        .map((pageMeta) => ({
+          ...pageMeta,
+          name: pageMeta.displayName || pageMeta.ref,
+        })),
+      `Select the template to create a new page from (listing any page tagged with <tt>#template</tt> and 'page' set as 'type')`,
+    );
 
-export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
-  const pageObject = await loadPageObject(slashCompletion.pageName);
-
-  const templateText = await space.readPage(slashCompletion.templatePage);
-  let { frontmatter, text } = await renderTemplate(templateText, pageObject);
-
-  let cursorPos = await editor.getCursor();
-
-  if (frontmatter) {
-    frontmatter = frontmatter.trim();
-    const pageText = await editor.getText();
-    const tree = await markdown.parseMarkdown(pageText);
-
-    const dispatch = await prepareFrontmatterDispatch(tree, frontmatter);
-    if (cursorPos === 0) {
-      dispatch.selection = { anchor: frontmatter.length + 9 };
+    if (!selectedTemplate) {
+      return;
     }
-    await editor.dispatch(dispatch);
+    templateName = selectedTemplate.ref;
   }
+  console.log("Selected template", templateName);
 
-  cursorPos = await editor.getCursor();
-  const carretPos = text.indexOf("|^|");
-  text = text.replace("|^|", "");
-  await editor.insertAtCursor(text);
-  if (carretPos !== -1) {
-    await editor.moveCursor(cursorPos + carretPos);
-  }
-}
-
-export async function instantiateTemplateCommand() {
-  const allPages = await space.listPages();
-  const { pageTemplatePrefix } = await readSettings({
-    pageTemplatePrefix: "template/page/",
-  });
-
-  const selectedTemplate = await editor.filterBox(
-    "Template",
-    allPages
-      .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
-      .map((pageMeta) => ({
-        ...pageMeta,
-        name: pageMeta.name.slice(pageTemplatePrefix.length),
-      })),
-    `Select the template to create a new page from (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`,
-  );
-
-  if (!selectedTemplate) {
-    return;
-  }
-  console.log("Selected template", selectedTemplate);
-
-  const text = await space.readPage(
-    `${pageTemplatePrefix}${selectedTemplate.name}`,
-  );
-
-  const parseTree = await markdown.parseMarkdown(text);
-  const additionalPageMeta = await extractFrontmatter(parseTree, {
-    removeKeys: [
-      "$name",
-      "$disableDirectives",
-    ],
-  });
+  const templateText = await space.readPage(templateName!);
 
   const tempPageMeta: PageMeta = {
     tags: ["page"],
@@ -100,20 +44,25 @@ export async function instantiateTemplateCommand() {
     lastModified: "",
     perm: "rw",
   };
-
-  if (additionalPageMeta.$name) {
-    additionalPageMeta.$name = await replaceTemplateVars(
-      additionalPageMeta.$name,
-      tempPageMeta,
-    );
-  }
-
-  const pageName = await editor.prompt(
-    "Name of new page",
-    additionalPageMeta.$name,
+  // Just used to extract the frontmatter
+  const { frontmatter } = await renderTemplate(
+    templateText,
+    tempPageMeta,
   );
-  if (!pageName) {
-    return;
+
+  let pageName: string | undefined = await replaceTemplateVars(
+    frontmatter?.pageName || "",
+    tempPageMeta,
+  );
+
+  if (askName) {
+    pageName = await editor.prompt(
+      "Name of new page",
+      await replaceTemplateVars(frontmatter?.pageName || "", tempPageMeta),
+    );
+    if (!pageName) {
+      return;
+    }
   }
   tempPageMeta.name = pageName;
 
@@ -127,92 +76,27 @@ export async function instantiateTemplateCommand() {
         `Page ${pageName} already exists, are you sure you want to override it?`,
       )
     ) {
-      return;
+      // Just navigate there without instantiating
+      return editor.navigate(pageName);
     }
   } catch {
     // The preferred scenario, let's keep going
   }
 
-  const pageText = await replaceTemplateVars(
-    renderToText(parseTree),
+  const { text: pageText, renderedFrontmatter } = await renderTemplate(
+    templateText,
     tempPageMeta,
   );
-  await space.writePage(pageName, pageText);
-  await editor.navigate(pageName);
-}
-
-export async function insertSnippet() {
-  const allPages = await space.listPages();
-  const { snippetPrefix } = await readSettings({
-    snippetPrefix: "snippet/",
-  });
-  const cursorPos = await editor.getCursor();
-  const page = await editor.getCurrentPage();
-  const pageMeta = await space.getPageMeta(page);
-  const allSnippets = allPages
-    .filter((pageMeta) => pageMeta.name.startsWith(snippetPrefix))
-    .map((pageMeta) => ({
-      ...pageMeta,
-      name: pageMeta.name.slice(snippetPrefix.length),
-    }));
-
-  const selectedSnippet = await editor.filterBox(
-    "Snippet",
-    allSnippets,
-    `Select the snippet to insert (listing any page starting with <tt>${snippetPrefix}</tt>)`,
+  let fullPageText = renderedFrontmatter
+    ? "---\n" + renderedFrontmatter + "---\n" + pageText
+    : pageText;
+  const carretPos = fullPageText.indexOf("|^|");
+  fullPageText = fullPageText.replace("|^|", "");
+  await space.writePage(
+    pageName,
+    fullPageText,
   );
-
-  if (!selectedSnippet) {
-    return;
-  }
-
-  const text = await space.readPage(`${snippetPrefix}${selectedSnippet.name}`);
-  let templateText = await replaceTemplateVars(text, pageMeta);
-  const carretPos = templateText.indexOf("|^|");
-  templateText = templateText.replace("|^|", "");
-  templateText = await replaceTemplateVars(templateText, pageMeta);
-  await editor.insertAtCursor(templateText);
-  if (carretPos !== -1) {
-    await editor.moveCursor(cursorPos + carretPos);
-  }
-}
-
-export async function applyPageTemplateCommand() {
-  const allPages = await space.listPages();
-  const { pageTemplatePrefix } = await readSettings({
-    pageTemplatePrefix: "template/page/",
-  });
-  const cursorPos = await editor.getCursor();
-  const page = await editor.getCurrentPage();
-  const pageMeta = await space.getPageMeta(page);
-  const allSnippets = allPages
-    .filter((pageMeta) => pageMeta.name.startsWith(pageTemplatePrefix))
-    .map((pageMeta) => ({
-      ...pageMeta,
-      name: pageMeta.name.slice(pageTemplatePrefix.length),
-    }));
-
-  const selectedPage = await editor.filterBox(
-    "Page template",
-    allSnippets,
-    `Select the page template to apply (listing any page starting with <tt>${pageTemplatePrefix}</tt>)`,
-  );
-
-  if (!selectedPage) {
-    return;
-  }
-
-  const text = await space.readPage(
-    `${pageTemplatePrefix}${selectedPage.name}`,
-  );
-  let templateText = await replaceTemplateVars(text, pageMeta);
-  const carretPos = templateText.indexOf("|^|");
-  templateText = templateText.replace("|^|", "");
-  templateText = await replaceTemplateVars(templateText, pageMeta);
-  await editor.insertAtCursor(templateText);
-  if (carretPos !== -1) {
-    await editor.moveCursor(cursorPos + carretPos);
-  }
+  await editor.navigate(pageName, carretPos !== -1 ? carretPos : undefined);
 }
 
 export async function loadPageObject(pageName?: string): Promise<PageMeta> {

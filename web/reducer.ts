@@ -11,7 +11,7 @@ export default function reducer(
         ...state,
         isLoading: true,
         currentPage: action.name,
-        panels: {
+        panels: state.currentPage === action.name ? state.panels : {
           ...state.panels,
           // Hide these by default to avoid flickering
           top: {},
@@ -45,19 +45,7 @@ export default function reducer(
         ...state,
         syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
-    case "start-navigate":
-      return {
-        ...state,
-        showPageNavigator: true,
-        showCommandPalette: false,
-        showFilterBox: false,
-      };
-    case "stop-navigate":
-      return {
-        ...state,
-        showPageNavigator: false,
-      };
-    case "pages-listed": {
+    case "start-navigate": {
       // Let's move over any "lastOpened" times to the "allPages" list
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
@@ -71,8 +59,17 @@ export default function reducer(
       return {
         ...state,
         allPages: action.pages,
+        showPageNavigator: true,
+        showCommandPalette: false,
+        showFilterBox: false,
       };
     }
+    case "stop-navigate":
+      return {
+        ...state,
+        showPageNavigator: false,
+      };
+
     case "show-palette": {
       return {
         ...state,

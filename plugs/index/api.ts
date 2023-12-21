@@ -72,6 +72,7 @@ export async function indexObjects<T>(
   const allAttributes = new Map<string, string>(); // tag:name -> attributeType
   for (const obj of objects) {
     for (const tag of obj.tags) {
+      // The object itself
       kvs.push({
         key: [tag, cleanKey(obj.ref, page)],
         value: obj,
@@ -79,14 +80,26 @@ export async function indexObjects<T>(
       // Index attributes
       const builtinAttributes = builtins[tag];
       if (!builtinAttributes) {
-        // For non-builtin tags, index all attributes
-        for (
+        // This is not a builtin tag, so we index all attributes (almost, see below)
+        attributeLabel: for (
           const [attrName, attrValue] of Object.entries(
             obj as Record<string, any>,
           )
         ) {
           if (attrName.startsWith("$")) {
             continue;
+          }
+          // Check for all tags attached to this object if they're builtins
+          // If so: if `attrName` is defined in the builtin, use the attributeType from there (mostly to preserve readOnly aspects)
+          for (const otherTag of obj.tags) {
+            const builtinAttributes = builtins[otherTag];
+            if (builtinAttributes && builtinAttributes[attrName]) {
+              allAttributes.set(
+                `${tag}:${attrName}`,
+                builtinAttributes[attrName],
+              );
+              continue attributeLabel;
+            }
           }
           allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
         }
@@ -112,12 +125,16 @@ export async function indexObjects<T>(
       page,
       [...allAttributes].map(([key, value]) => {
         const [tag, name] = key.split(":");
+        const attributeType = value.startsWith("!")
+          ? value.substring(1)
+          : value;
         return {
           ref: key,
           tags: ["attribute"],
           tag,
           name,
-          attributeType: value,
+          attributeType,
+          readOnly: value.startsWith("!"),
           page,
         };
       }),

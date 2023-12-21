@@ -1,6 +1,6 @@
-Slash templates allow you to define custom [[Slash Commands]] that expand “snippet style” templates inline. They’re like [[🔌 Template$snippets]], but appear immediately as slash commands.
+Slash templates allow you to define custom [[Slash Commands]] that expand “snippet style” templates inline.
 
-## Definition
+# Definition
 You can define a slash template by creating a [[Templates|template page]] with a template tag and `trigger` attribute. 
 
 Example:
@@ -13,11 +13,8 @@ Example:
 
     |^|
 
-## Use
-You can _trigger_ the slash template by typing `/meeting-notes` in any page. That’s it.
-
 ## Frontmatter
-A template’s [[Frontmatter]] is interpreted by SilverBullet’s template engine and removed when instantiated. However, to still include frontmatter after instantiation, you can use the `frontmatter` attribute.
+A template’s [[Frontmatter]] is interpreted by SilverBullet’s [[Templates|template]] engine and removed when instantiated. However, to still include frontmatter after instantiation, you can use the `frontmatter` attribute.
 
 Example:
 
@@ -40,3 +37,7 @@ Which will expand into e.g.
 
     .
 
+When the page already contains frontmatter before invoking the slash command, it will be augmented with the additional frontmatter specified by the template.
+
+# Use
+You can _trigger_ the slash template by typing `/<trigger>` (e.g. `/meeting-notes`) in any page.

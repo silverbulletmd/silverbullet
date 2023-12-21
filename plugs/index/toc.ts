@@ -59,7 +59,7 @@ export async function renderTOC(reload = false) {
   }
   cachedTOC = JSON.stringify(headers);
   if (headers.length < headerThreshold) {
-    console.log("Not enough headers, not showing TOC", headers.length);
+    // console.log("Not enough headers, not showing TOC", headers.length);
     await editor.hidePanel("top");
     return;
   }

@@ -178,9 +178,7 @@ export function createEditorState(
           key: "Ctrl-k",
           mac: "Cmd-k",
           run: (): boolean => {
-            client.ui.viewDispatch({ type: "start-navigate" });
-            client.space.updatePageList();
-
+            client.startPageNavigate().catch(console.error);
             return true;
           },
         },

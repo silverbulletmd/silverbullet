@@ -45,14 +45,3 @@ export async function copyPage() {
   console.log("Navigating to new page");
   await editor.navigate(newName);
 }
-
-export async function newPageCommand() {
-  const allPages = await space.listPages();
-  let pageName = `Untitled`;
-  let i = 1;
-  while (allPages.find((p) => p.name === pageName)) {
-    pageName = `Untitled ${i}`;
-    i++;
-  }
-  await editor.navigate(pageName);
-}

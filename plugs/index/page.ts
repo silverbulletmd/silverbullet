@@ -26,10 +26,10 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   pageMeta.tags = [...new Set(["page", ...pageMeta.tags || []])];
 
-  if (pageMeta.tags.includes("template")) {
-    // If this is a template, we don't want to index it as a page or anything else, just a template
-    pageMeta.tags = ["template"];
-  }
+  // if (pageMeta.tags.includes("template")) {
+  //   // If this is a template, we don't want to index it as a page or anything else, just a template
+  //   pageMeta.tags = ["template"];
+  // }
 
   // console.log("Page object", pageObj);
   await indexObjects<PageMeta>(name, [pageMeta]);

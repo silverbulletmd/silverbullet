@@ -44,7 +44,7 @@ export class MainUI {
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        this.viewDispatch({ type: "start-navigate" });
+        client.startPageNavigate().catch(console.error);
       }
       // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
@@ -63,7 +63,7 @@ export class MainUI {
     this.viewState = viewState;
     this.viewDispatch = dispatch;
 
-    const editor = this.client;
+    const client = this.client;
 
     useEffect(() => {
       if (viewState.currentPage) {
@@ -72,8 +72,8 @@ export class MainUI {
     }, [viewState.currentPage]);
 
     useEffect(() => {
-      editor.tweakEditorDOM(
-        editor.editorView.contentDOM,
+      client.tweakEditorDOM(
+        client.editorView.contentDOM,
       );
     }, [viewState.uiOptions.forcedROMode]);
 
@@ -98,18 +98,18 @@ export class MainUI {
         {viewState.showPageNavigator && (
           <PageNavigator
             allPages={viewState.allPages}
-            currentPage={editor.currentPage}
-            completer={editor.miniEditorComplete.bind(editor)}
+            currentPage={client.currentPage}
+            completer={client.miniEditorComplete.bind(client)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
-                editor.focus();
+                client.focus();
               });
               if (page) {
                 safeRun(async () => {
-                  await editor.navigate(page);
+                  await client.navigate(page);
                 });
               }
             }}
@@ -120,7 +120,7 @@ export class MainUI {
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
               setTimeout(() => {
-                editor.focus();
+                client.focus();
               });
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
@@ -131,14 +131,14 @@ export class MainUI {
                   })
                   .then(() => {
                     // Always be focusing the editor after running a command
-                    editor.focus();
+                    client.focus();
                   });
               }
             }}
-            commands={editor.getCommandsByContext(viewState)}
+            commands={client.getCommandsByContext(viewState)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
-            completer={editor.miniEditorComplete.bind(editor)}
+            completer={client.miniEditorComplete.bind(client)}
             recentCommands={viewState.recentCommands}
           />
         )}
@@ -150,7 +150,7 @@ export class MainUI {
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             allowNew={false}
-            completer={editor.miniEditorComplete.bind(editor)}
+            completer={client.miniEditorComplete.bind(client)}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
           />
@@ -161,7 +161,7 @@ export class MainUI {
             defaultValue={viewState.promptDefaultValue}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
-            completer={editor.miniEditorComplete.bind(editor)}
+            completer={client.miniEditorComplete.bind(client)}
             callback={(value) => {
               dispatch({ type: "hide-prompt" });
               viewState.promptCallback!(value);
@@ -186,25 +186,25 @@ export class MainUI {
           vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
           progressPerc={viewState.progressPerc}
-          completer={editor.miniEditorComplete.bind(editor)}
+          completer={client.miniEditorComplete.bind(client)}
           onClick={() => {
-            editor.editorView.scrollDOM.scrollTop = 0;
+            client.editorView.scrollDOM.scrollTop = 0;
           }}
           onRename={async (newName) => {
             if (!newName) {
               // Always move cursor to the start of the page
-              editor.editorView.dispatch({
+              client.editorView.dispatch({
                 selection: { anchor: 0 },
               });
-              editor.focus();
+              client.focus();
               return;
             }
             console.log("Now renaming page to...", newName);
-            await editor.system.system.loadedPlugs.get("index")!.invoke(
+            await client.system.system.loadedPlugs.get("index")!.invoke(
               "renamePageCommand",
               [{ page: newName }],
             );
-            editor.focus();
+            client.focus();
           }}
           actionButtons={[
             ...!window.silverBulletConfig.syncOnly
@@ -242,7 +242,7 @@ export class MainUI {
               icon: HomeIcon,
               description: `Go to the index page (Alt-h)`,
               callback: () => {
-                editor.navigate("");
+                client.navigate("");
               },
               href: "",
             },
@@ -250,8 +250,7 @@ export class MainUI {
               icon: BookIcon,
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
-                dispatch({ type: "start-navigate" });
-                editor.space.updatePageList();
+                client.startPageNavigate().catch(console.error);
               },
             },
             {
@@ -260,7 +259,7 @@ export class MainUI {
               callback: () => {
                 dispatch({
                   type: "show-palette",
-                  context: editor.getContext(),
+                  context: client.getContext(),
                 });
               },
             },
@@ -280,11 +279,11 @@ export class MainUI {
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
-            <Panel config={viewState.panels.lhs} editor={editor} />
+            <Panel config={viewState.panels.lhs} editor={client} />
           )}
           <div id="sb-editor" />
           {!!viewState.panels.rhs.mode && (
-            <Panel config={viewState.panels.rhs} editor={editor} />
+            <Panel config={viewState.panels.rhs} editor={client} />
           )}
         </div>
         {!!viewState.panels.modal.mode && (
@@ -292,12 +291,12 @@ export class MainUI {
             className="sb-modal"
             style={{ inset: `${viewState.panels.modal.mode}px` }}
           >
-            <Panel config={viewState.panels.modal} editor={editor} />
+            <Panel config={viewState.panels.modal} editor={client} />
           </div>
         )}
         {!!viewState.panels.bhs.mode && (
           <div className="sb-bhs">
-            <Panel config={viewState.panels.bhs} editor={editor} />
+            <Panel config={viewState.panels.bhs} editor={client} />
           </div>
         )}
       </>

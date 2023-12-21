@@ -7,10 +7,6 @@ indexPage: "[[SilverBullet]]"
 # Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
 
-# Template related settings
-pageTemplatePrefix: "template/page/"
-snippetPrefix: "snippet/"
-
 quickNotePrefix: "📥 "
 
 dailyNotePrefix: "📅 "

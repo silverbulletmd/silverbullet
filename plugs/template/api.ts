@@ -16,7 +16,7 @@ export async function renderTemplate(
   templateText: string,
   pageMeta: PageMeta,
   data: any = {},
-): Promise<{ frontmatter?: string; text: string }> {
+): Promise<{ renderedFrontmatter?: string; frontmatter: any; text: string }> {
   const tree = await markdown.parseMarkdown(templateText);
   const frontmatter: Partial<TemplateObject> = await extractFrontmatter(tree, {
     removeFrontmatterSection: true,
@@ -36,7 +36,8 @@ export async function renderTemplate(
     });
   }
   return {
-    frontmatter: frontmatterText,
+    frontmatter,
+    renderedFrontmatter: frontmatterText,
     text: await handlebars.renderTemplate(templateText, data, {
       page: pageMeta,
     }),

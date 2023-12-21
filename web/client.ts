@@ -7,7 +7,7 @@ import {
   SyntaxNode,
   syntaxTree,
 } from "../common/deps.ts";
-import { fileMetaToPageMeta, Space } from "./space.ts";
+import { Space } from "./space.ts";
 import { FilterOption } from "./types.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
@@ -44,7 +44,6 @@ import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts"
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
 import {
-  encryptedFileExt,
   EncryptedSpacePrimitives,
 } from "../common/spaces/encrypted_space_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
@@ -63,7 +62,6 @@ declare global {
   }
 }
 
-// TODO: Oh my god, need to refactor this
 export class Client {
   system!: ClientSystem;
   editorView!: EditorView;
@@ -501,14 +499,14 @@ export class Client {
       },
     );
 
-    this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
-      this.ui.viewDispatch({
-        type: "pages-listed",
-        pages: fileList.filter(this.space.isListedPage).map(
-          fileMetaToPageMeta,
-        ),
-      });
-    });
+    // this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
+    //   this.ui.viewDispatch({
+    //     type: "update-all-pages",
+    //     pages: fileList.filter(this.space.isListedPage).map(
+    //       fileMetaToPageMeta,
+    //     ),
+    //   });
+    // });
 
     this.space.watch();
 
@@ -591,6 +589,13 @@ export class Client {
       },
       type === "info" ? 4000 : 5000,
     );
+  }
+
+  async startPageNavigate() {
+    // Fetch all pages from the index
+    const pages = await this.system.queryObjects<PageMeta>("page", {});
+    // Then show the page navigator
+    this.ui.viewDispatch({ type: "start-navigate", pages });
   }
 
   private progressTimeout?: number;
@@ -719,9 +724,9 @@ export class Client {
     if (currentNode) {
       let node: SyntaxNode | null = currentNode;
       do {
-        if (node.name === "FencedCode") {
+        if (node.name === "FencedCode" || node.name === "FrontMatter") {
           const body = editorState.sliceDoc(node.from + 3, node.to - 3);
-          parentNodes.push(`FencedCode:${body}`);
+          parentNodes.push(`${node.name}:${body}`);
         } else {
           parentNodes.push(node.name);
         }

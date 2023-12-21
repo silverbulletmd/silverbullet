@@ -186,15 +186,11 @@ export function FilterList({
                     <Icon width={16} height={16} />
                   </span>
                 )}
-                <span className="sb-name" // dangerouslySetInnerHTML={{
-                  //   __html: option?.result?.indexes
-                  //     ? fuzzysort.highlight(option.result, "<b>", "</b>")!
-                  //     : escapeHtml(option.name),
-                  // }}
-                >
+                <span className="sb-name">
                   {option.name}
                 </span>
                 {option.hint && <span className="sb-hint">{option.hint}</span>}
+                <div className="sb-description">{option.description}</div>
               </div>
             ))
             : null}

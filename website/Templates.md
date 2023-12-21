@@ -1,25 +1,55 @@
-Templates are _reusable_ pieces of markdown content, usually with placeholders that are replaced once instantiated.
+Templates are reusable pieces of markdown content, usually with placeholders that are replaced once instantiated.
 
-Templates are used in a few different contexts:
+There are two general uses for templates:
 
-1. To render [[Live Queries]]
-2. To render [[Live Templates]]
-3. To be included using [[Slash Templates]]
-4. Some legacy use cases described in [[Plugs/Template]]
+1. _Live_ uses, where page content is dynamically updated based on templates:
+  * [[Live Queries]]
+  * [[Live Templates]]
+2. _One-off_ uses, where a template is instantiated once and inserted into an existing or new page:
+  * [[Slash Templates]]
+  * [[Page Templates]]
 
-## Creating templates
-Templates are defined as any other page. It’s convenient, although not required, to use a `template/` prefix when naming templates. It is also _recommended_ to tag templates with a `#template` tag. Note that this tag will be removed when the template is instantiated.
+# Creating templates
+Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that, when tagged inline (by putting `#template` at the beginning of the page), the tag will be removed when the template is instantiated.
 
-Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does two things:
+**Naming**: it’s common, although not required, to use a `template/` prefix when naming templates.
 
-1. It excludes the page from being indexed for [[Objects]], that is: any tasks, items, paragraphs etc. will not appear in your space’s object database. Which is usually what you want.
-2. It allows you to register your templates to be used as [[Slash Templates]].
+Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does a few things:
 
+1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in [[Live Templates]].
+2. It excludes the page from being indexed for [[Objects]], that is: any tasks, items, paragraphs etc. will not appear in your space’s object database. Which is usually what you want.
+3. It registers your templates to be used as [[Slash Templates]] as well as [[Page Templates]].
+
+## Frontmatter
+[[Frontmatter]] has special meaning in templates. The following attributes are used:
+
+* `tags`: should always be set to `template`
+* `type` (optional): should be set to `page` for [[Page Templates]]
+* `trigger` (optional): defines the slash command name for [[Slash Templates]]
+* `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
+* `pageName` (optional, [[Page Templates]] only): specify a (template for a) page name.
+* `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the rendered template. This can either be specified as a string or as an object.
+
+An example:
+
+    ---
+    tags: template
+    type: page
+    trigger: one-on-one
+    displayName: "1:1 template"
+    pageName: "1-1s/"
+    frontmatter:
+       dateCreated: "{{today}}"
+    ---
+    # {{today}}
+    * |^|
+
+# Template content
 Templates consist of markdown, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
 
-In addition the special `|^|` marker can be used to specify the desired cursor position after the template is included (relevant mostly to [[Slash Templates]]).
+The special `|^|` marker can be used to specify the desired cursor position after the template is included.
 
-### Template helpers
+## Handlebar helpers
 There are a number of built-in handlebars helpers you can use:
 
 - `{{today}}`: Today’s date in the usual YYYY-MM-DD format

@@ -36,8 +36,26 @@ export function PageNavigator({
     if (isFederationPath(pageMeta.name)) {
       orderId = Math.round(orderId / 10); // Just 10x lower the timestamp to push them down, should work
     }
+    let description: string | undefined;
+    let aliases: string[] = [];
+    if (pageMeta.displayName) {
+      aliases.push(pageMeta.displayName);
+    }
+    if (Array.isArray(pageMeta.aliases)) {
+      aliases = aliases.concat(pageMeta.aliases);
+    }
+    if (aliases.length > 0) {
+      description = "(a.k.a. " + aliases.join(", ") + ") ";
+    }
+    if (pageMeta.tags.length > 1) {
+      // Every page has the "page" tag, so it only gets interesting beyond that
+      const interestingTags = pageMeta.tags.filter((tag) => tag !== "page");
+      description = (description || "") +
+        interestingTags.map((tag) => `#${tag}`).join(" ");
+    }
     options.push({
       ...pageMeta,
+      description,
       orderId: orderId,
     });
   }

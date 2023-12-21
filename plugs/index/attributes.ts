@@ -1,14 +1,15 @@
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { events } from "$sb/syscalls.ts";
-import { getObjectByRef, queryObjects } from "./api.ts";
+import { queryObjects } from "./api.ts";
 import { ObjectValue, QueryExpression } from "$sb/types.ts";
-import { builtinPseudoPage } from "./builtins.ts";
+import { determineTags } from "./cheap_yaml.ts";
 
 export type AttributeObject = ObjectValue<{
   name: string;
   attributeType: string;
   tag: string;
   page: string;
+  readOnly: boolean;
 }>;
 
 export type AttributeCompleteEvent = {
@@ -20,7 +21,7 @@ export type AttributeCompletion = {
   name: string;
   source: string;
   attributeType: string;
-  builtin?: boolean;
+  readOnly: boolean;
 };
 
 export function determineType(v: any): string {
@@ -33,31 +34,53 @@ export function determineType(v: any): string {
   return t;
 }
 
+/**
+ * Triggered by the `attribute:complete:*` event (that is: gimme all attribute completions)
+ * @param attributeCompleteEvent
+ * @returns
+ */
 export async function objectAttributeCompleter(
   attributeCompleteEvent: AttributeCompleteEvent,
 ): Promise<AttributeCompletion[]> {
+  const prefixFilter: QueryExpression = ["call", "startsWith", [[
+    "attr",
+    "name",
+  ], ["string", attributeCompleteEvent.prefix]]];
   const attributeFilter: QueryExpression | undefined =
     attributeCompleteEvent.source === ""
-      ? undefined
-      : ["=", ["attr", "tag"], ["string", attributeCompleteEvent.source]];
+      ? prefixFilter
+      : ["and", prefixFilter, ["=", ["attr", "tag"], [
+        "string",
+        attributeCompleteEvent.source,
+      ]]];
   const allAttributes = await queryObjects<AttributeObject>("attribute", {
     filter: attributeFilter,
+    distinct: true,
+    select: [{ name: "name" }, { name: "attributeType" }, { name: "tag" }, {
+      name: "readOnly",
+    }],
   });
   return allAttributes.map((value) => {
     return {
       name: value.name,
       source: value.tag,
       attributeType: value.attributeType,
-      builtin: value.page === builtinPseudoPage,
+      readOnly: value.readOnly,
     } as AttributeCompletion;
   });
 }
 
+/**
+ * Offer completions for _setting_ attributes on objects (either in frontmatter or inline)
+ * Triggered by `editor:complete` events from the editor
+ */
 export async function attributeComplete(completeEvent: CompleteEvent) {
   if (/([\-\*]\s+\[)([^\]]+)$/.test(completeEvent.linePrefix)) {
     // Don't match task states, which look similar
     return null;
   }
+
+  // Inline attribute completion (e.g. [myAttr: 10])
   const inlineAttributeMatch = /([^\[\{}]|^)\[(\w+)$/.exec(
     completeEvent.linePrefix,
   );
@@ -79,22 +102,24 @@ export async function attributeComplete(completeEvent: CompleteEvent) {
     return {
       from: completeEvent.pos - inlineAttributeMatch[2].length,
       options: attributeCompletionsToCMCompletion(
-        completions.filter((completion) => !completion.builtin),
+        // Filter out read-only attributes
+        completions.filter((completion) => !completion.readOnly),
       ),
     };
   }
+
+  // Frontmatter attribute completion
   const attributeMatch = /^(\w+)$/.exec(completeEvent.linePrefix);
   if (attributeMatch) {
-    if (completeEvent.parentNodes.includes("FrontMatter")) {
-      const pageMeta = await getObjectByRef(
-        completeEvent.pageName,
+    const frontmatterParent = completeEvent.parentNodes.find((node) =>
+      node.startsWith("FrontMatter:")
+    );
+    if (frontmatterParent) {
+      const tags = [
         "page",
-        completeEvent.pageName,
-      );
-      let tags = ["page"];
-      if (pageMeta?.tags) {
-        tags = pageMeta.tags;
-      }
+        ...determineTags(frontmatterParent.slice("FrontMatter:".length)),
+      ];
+
       const completions = (await Promise.all(tags.map((tag) =>
         events.dispatchEvent(
           `attribute:complete:${tag}`,
@@ -109,7 +134,7 @@ export async function attributeComplete(completeEvent: CompleteEvent) {
         from: completeEvent.pos - attributeMatch[1].length,
         options: attributeCompletionsToCMCompletion(
           completions.filter((completion) =>
-            !completion.builtin
+            !completion.readOnly
           ),
         ),
       };

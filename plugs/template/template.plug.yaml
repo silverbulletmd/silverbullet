@@ -6,24 +6,30 @@ functions:
   cleanTemplate:
     path: api.ts:cleanTemplate
 
+  # Used by various slash commands
   insertTemplateText:
     path: template.ts:insertTemplateText
-
 
   indexTemplate:
     path: ./index.ts:indexTemplate
     events:
+    # Special event only triggered for template pages
     - page:indexTemplate
 
+  # Completion
   templateSlashCommand:
-    path: ./template.ts:templateSlashComplete
+    path: ./complete.ts:templateSlashComplete
     events:
     - slash:complete
 
   insertSlashTemplate:
-    path: ./template.ts:insertSlashTemplate
+    path: ./complete.ts:insertSlashTemplate
 
-  # Template commands
+  handlebarHelperComplete:
+    path: ./complete.ts:templateVariableComplete
+    events:
+      - editor:complete
+
   applyLineReplace:
     path: ./template.ts:applyLineReplace
   insertFrontMatter:
@@ -79,6 +85,7 @@ functions:
       name: hr
       description: Insert a horizontal rule
       value: "---"
+
   insertTable:
     redirect: insertTemplateText
     slashCommand:
@@ -89,44 +96,38 @@ functions:
         | Header A | Header B |
         |----------|----------|
         | Cell A|^| | Cell B |
+
   quickNoteCommand:
     path: ./template.ts:quickNoteCommand
     command:
       name: "Quick Note"
       key: "Alt-Shift-n"
+
   dailyNoteCommand:
     path: ./template.ts:dailyNoteCommand
     command:
       name: "Open Daily Note"
       key: "Alt-Shift-d"
+
   weeklyNoteCommand:
     path: ./template.ts:weeklyNoteCommand
     command:
       name: "Open Weekly Note"
       key: "Alt-Shift-w"
 
-  instantiateTemplateCommand:
-    path: ./template.ts:instantiateTemplateCommand
+  newPageCommand:
+    path: ./template.ts:newPageCommand
     command:
-      name: "Template: Instantiate Page"
-  insertSnippet:
-    path: ./template.ts:insertSnippet
-    command:
-      name: "Template: Insert Snippet"
-    slashCommand:
-      name: snippet
-      description: Insert a snippet
-  applyPageTemplateCommand:
-    path: ./template.ts:applyPageTemplateCommand
-    slashCommand:
-      name: page-template
-      description: Apply a page template
+      name: "Page: From Template"
+      key: "Alt-Shift-t"
+
   insertTodayCommand:
     path: "./template.ts:insertTemplateText"
     slashCommand:
       name: today
       description: Insert today's date
       value: "{{today}}"
+
   insertTomorrowCommand:
     path: "./template.ts:insertTemplateText"
     slashCommand:

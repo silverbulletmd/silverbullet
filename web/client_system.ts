@@ -40,6 +40,7 @@ import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
+import { Query } from "$sb/types.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -238,6 +239,14 @@ export class ClientSystem {
   }
 
   localSyscall(name: string, args: any[]) {
-    return this.system.localSyscall("[local]", name, args);
+    return this.system.localSyscall("editor", name, args);
+  }
+
+  queryObjects<T>(tag: string, query: Query): Promise<T[]> {
+    return this.system.localSyscall(
+      "index",
+      "system.invokeFunction",
+      ["queryObjects", tag, query],
+    );
   }
 }
