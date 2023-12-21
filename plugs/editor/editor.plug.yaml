@@ -24,10 +24,6 @@ functions:
     path: "./page.ts:copyPage"
     command:
       name: "Page: Copy"
-  newPage:
-    path: ./page.ts:newPageCommand
-    command:
-      name: "Page: New"
 
   # Completion
   pageComplete:
