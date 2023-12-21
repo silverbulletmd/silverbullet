@@ -14,6 +14,12 @@ export const builtinFunctions: FunctionMap = {
   toJSON(obj: any) {
     return JSON.stringify(obj);
   },
+  startsWith(str: string, prefix: string) {
+    return str.startsWith(prefix);
+  },
+  endsWith(str: string, suffix: string) {
+    return str.endsWith(suffix);
+  },
   // Note: these assume Monday as the first day of the week
   firstDayOfWeek(dateString: string): string {
     const date = new Date(dateString);
