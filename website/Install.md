@@ -9,8 +9,8 @@ The basic setup is simple: you run the SilverBullet server process on your machi
 
 You have a few options here:
 
-1. Installation via [[Install/Deno]] (the awesome JavaScript runtime)
-2. Installation via [[Install/Docker]] (the awesome container runtime)
+1. Installation via [[Install/Docker]] (the awesome container runtime): recommended if you already have Docker installed
+2. Installation via [[Install/Deno]] (the awesome JavaScript runtime): recommended if you intend to hack on SilverBullet itself later on
 3. More advanced: deploy directly to the cloud via [[Install/Deno Deploy]]
 
 # Non-local access
