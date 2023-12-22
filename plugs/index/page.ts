@@ -22,7 +22,9 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   const toplevelAttributes = await extractAttributes(tree, false);
 
   // Push them all into the page object
-  pageMeta = { ...pageMeta, ...frontmatter, ...toplevelAttributes };
+  // Note the order here, making sure that the actual page meta data overrules
+  // any attempt to manually set built-in attributes like 'name' or 'lastModified'
+  pageMeta = { ...frontmatter, ...toplevelAttributes, ...pageMeta };
 
   pageMeta.tags = [...new Set(["page", ...pageMeta.tags || []])];
 

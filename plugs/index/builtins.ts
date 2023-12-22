@@ -48,6 +48,7 @@ export const builtins: Record<string, Record<string, string>> = {
     attributeType: "!string",
     type: "!string",
     page: "!string",
+    readOnly: "!boolean",
   },
   anchor: {
     ref: "!string",

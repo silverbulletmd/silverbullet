@@ -192,7 +192,11 @@ export async function objectSourceProvider({
 }
 
 export async function discoverSources() {
-  return (await datastore.query({ prefix: [indexKey, "tag"] })).map((
+  return (await datastore.query({
+    prefix: [indexKey, "tag"],
+    select: [{ name: "name" }],
+    distinct: true,
+  })).map((
     { value },
   ) => value.name);
 }

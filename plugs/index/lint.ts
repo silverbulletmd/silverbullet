@@ -13,11 +13,12 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   const frontmatter = await extractFrontmatter(tree);
+  const tags = ["page", ...frontmatter.tags || []];
   // Query all readOnly attributes for pages with this tag set
   const readOnlyAttributes = await queryObjects<AttributeObject>("attribute", {
     filter: ["and", ["=", ["attr", "tag"], [
       "array",
-      frontmatter.tags.map((tag): QueryExpression => ["string", tag]),
+      tags.map((tag): QueryExpression => ["string", tag]),
     ]], [
       "=",
       ["attr", "readOnly"],
@@ -26,7 +27,6 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
     distinct: true,
     select: [{ name: "name" }],
   });
-  // console.log("All read only attributes", readOnlyAttributes);
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
       const lintResult = await lintYaml(
@@ -75,17 +75,17 @@ const errorRegex = /\((\d+):(\d+)\)/;
 async function lintYaml(
   yamlText: string,
   from: number,
-  disallowedKeys: string[] = [],
+  readOnlyKeys: string[] = [],
 ): Promise<LintDiagnostic | undefined> {
   try {
     const parsed = await YAML.parse(yamlText);
-    for (const key of disallowedKeys) {
+    for (const key of readOnlyKeys) {
       if (parsed[key]) {
         return {
           from,
           to: from + yamlText.length,
           severity: "error",
-          message: `Disallowed key "${key}"`,
+          message: `Cannot set read-only attribute "${key}"`,
         };
       }
     }

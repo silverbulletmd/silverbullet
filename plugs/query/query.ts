@@ -167,5 +167,7 @@ async function allQuerySources(): Promise<string[]> {
   const allObjectTypes: string[] = (await events.dispatchEvent("query_", {}))
     .flat();
 
+  // console.log("All object types", allObjectTypes);
+
   return [...allSources, ...allObjectTypes];
 }

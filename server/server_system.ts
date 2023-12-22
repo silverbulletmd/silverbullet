@@ -137,7 +137,7 @@ export class ServerSystem {
     );
 
     this.listInterval = setInterval(() => {
-      space.updatePageList().catch(console.error);
+      space.updatePageListCache().catch(console.error);
     }, fileListInterval);
 
     eventHook.addLocalListener("file:changed", (path, localChange) => {

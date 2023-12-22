@@ -382,7 +382,7 @@ export class NoSyncSyncService implements ISyncService {
   start() {
     setInterval(() => {
       // Trigger a page upload for change events
-      this.space.updatePageList().catch(console.error);
+      this.space.updatePageListCache().catch(console.error);
     }, spaceSyncInterval);
   }
 

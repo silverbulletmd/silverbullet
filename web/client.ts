@@ -235,7 +235,7 @@ export class Client {
       // console.log("Operations", operations);
       if (operations > 0) {
         // Update the page list
-        await this.space.updatePageList();
+        await this.space.updatePageListCache();
       }
       if (operations !== undefined) {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
@@ -498,15 +498,6 @@ export class Client {
         }
       },
     );
-
-    // this.eventHook.addLocalListener("file:listed", (fileList: FileMeta[]) => {
-    //   this.ui.viewDispatch({
-    //     type: "update-all-pages",
-    //     pages: fileList.filter(this.space.isListedPage).map(
-    //       fileMetaToPageMeta,
-    //     ),
-    //   });
-    // });
 
     this.space.watch();
 

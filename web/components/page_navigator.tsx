@@ -23,6 +23,10 @@ export function PageNavigator({
 }) {
   const options: FilterOption[] = [];
   for (const pageMeta of allPages) {
+    // Sanitize the page name
+    if (!pageMeta.name) {
+      pageMeta.name = pageMeta.ref;
+    }
     // Order by last modified date in descending order
     let orderId = -new Date(pageMeta.lastModified).getTime();
     // Unless it was opened in this session

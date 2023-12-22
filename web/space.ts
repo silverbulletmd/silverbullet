@@ -13,7 +13,9 @@ const pageWatchInterval = 5000;
 export class Space {
   imageHeightCache = new LimitedMap<number>(100); // url -> height
   widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
-  cachedPageList: PageMeta[] = [];
+
+  // Note: this is "clean" PageMeta, it doesn't contain custom attributes (it's fetched from the store)
+  private cachedPageList: PageMeta[] = [];
 
   debouncedImageCacheFlush = throttle(() => {
     this.ds.set(["cache", "imageHeight"], this.imageHeightCache).catch(
@@ -57,7 +59,7 @@ export class Space {
   constructor(
     readonly spacePrimitives: SpacePrimitives,
     private ds: DataStore,
-    private eventHook: EventHook,
+    eventHook: EventHook,
   ) {
     // super();
     this.ds.batchGet([["cache", "imageHeight"], ["cache", "widgetHeight"]])
@@ -70,23 +72,25 @@ export class Space {
           this.widgetHeightCache = new LimitedMap(100, widgetCache);
         }
       });
-    eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
-      // console.log("Files listed", files);
-      this.cachedPageList = files.filter(this.isListedPage).map(
-        fileMetaToPageMeta,
-      );
-    });
+    // eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
+    //   // console.log("Files listed", files);
+    //   this.cachedPageList = files.filter(this.isListedPage).map(
+    //     fileMetaToPageMeta,
+    //   );
+    // });
     eventHook.addLocalListener("page:deleted", (pageName: string) => {
       if (this.watchedPages.has(pageName)) {
         // Stop watching deleted pages already
         this.watchedPages.delete(pageName);
       }
     });
+    this.updatePageListCache().catch(console.error);
   }
 
-  public async updatePageList() {
+  public async updatePageListCache() {
+    console.log("Updating page list cache");
     // This will trigger appropriate events automatically
-    await this.fetchPageList();
+    this.cachedPageList = await this.fetchPageList();
   }
 
   async deletePage(name: string): Promise<void> {
@@ -224,7 +228,6 @@ export class Space {
         }
       });
     }, pageWatchInterval);
-    this.updatePageList().catch(console.error);
   }
 
   unwatch() {

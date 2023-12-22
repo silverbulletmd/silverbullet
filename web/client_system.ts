@@ -140,23 +140,6 @@ export class ClientSystem {
         }
       },
     );
-
-    // Debugging
-    // this.eventHook.addLocalListener("file:listed", (files) => {
-    //   console.log("New file list", files);
-    // });
-
-    // this.eventHook.addLocalListener("file:changed", (file) => {
-    //   console.log("File changed", file);
-    // });
-
-    // this.eventHook.addLocalListener("file:created", (file) => {
-    //   console.log("File created", file);
-    // });
-
-    // this.eventHook.addLocalListener("file:deleted", (file) => {
-    //   console.log("File deleted", file);
-    // });
   }
 
   async init() {
@@ -205,7 +188,7 @@ export class ClientSystem {
 
   async reloadPlugsFromSpace(space: Space) {
     console.log("Loading plugs");
-    await space.updatePageList();
+    // await space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await space.listPlugs()).map(async (plugMeta) => {
