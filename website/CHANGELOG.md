@@ -9,6 +9,7 @@ release.
 * It is now even more recommended to tag your [[Templates]] with the “template” tag, because completion in [[Live Queries]] and [[Live Templates]] will now only suggest `#template` tagged pages.
 * New [[Frontmatter]] attributes with special meaning: `displayName` and `aliases` (allowing to specify alternative names for pages)
 * The [[Page Picker]] now also shows (and matches against) tags, aliases and display names for pages.
+* It is now possible to filter pages based on tags in the [[Page Picker]] by typing a hashtag in the filter phrase, e.g. `#template` to filter pages that have a `template` tag.
 * Added new commands to manage [[Outlines]]. Note this resulted in changing names and keyboard shortcuts for managing folds as well, to be more consistent with the other outline commands.
 * Removed built-in multi-user [[Authentication]], `SB_AUTH` is no longer supported; use `--user` or `SB_USER` instead or an authentication layer such as [[Authelia]].
 * Background and more experimental work:
