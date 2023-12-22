@@ -69,7 +69,7 @@ When self-hosting SilverBullet (that is, on any server other than on [[Install/D
 
 KV can be configured as follows:
 
-* `SB_DB_BACKEND`: `denokv` (default, so can be omitted)
+* `SB_DB_BACKEND`: `kv` (default, so can be omitted)
 * `SB_KV_DB`: path to the file name of the (SQLite) database to store data in, defaults to `.silverbullet.db` in the space’s folder (when kept on disk).
 
 When SilverBullet runs on [[Install/Deno Deploy]] it automatically uses its cloud implementation of KV.

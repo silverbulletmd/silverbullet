@@ -5,16 +5,16 @@ import { path } from "./deps.ts";
 
 /**
  * Environment variables:
- * - SB_DB_BACKEND: "denokv" or "memory" (default: denokv)
- * - SB_KV_DB (denokv only): path to the database file (default .silverbullet.db)
+ * - SB_DB_BACKEND: "kv" or "memory" (default: kv)
+ * - SB_KV_DB (kv only): path to the database file (default .silverbullet.db)
  */
 
 export async function determineDatabaseBackend(
   singleTenantFolder?: string,
 ): Promise<KvPrimitives> {
-  const backendConfig = Deno.env.get("SB_DB_BACKEND") || "denokv";
+  const backendConfig = Deno.env.get("SB_DB_BACKEND") || "kv";
   switch (backendConfig) {
-    case "denokv": {
+    case "kv": {
       let dbFile: string | undefined = Deno.env.get("SB_KV_DB") ||
         ".silverbullet.db";
 
@@ -28,7 +28,7 @@ export async function determineDatabaseBackend(
       }
       const denoDb = await Deno.openKv(dbFile);
       console.info(
-        `Using DenoKV as a database backend (${dbFile || "cloud"}).`,
+        `Using KV as a database backend (${dbFile || "cloud"}).`,
       );
       return new DenoKvPrimitives(denoDb);
     }
