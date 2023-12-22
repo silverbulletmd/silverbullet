@@ -16,17 +16,28 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     // Don't index pages starting with _
     return;
   }
-  let pageMeta = await space.getPageMeta(name);
-
+  const pageMeta = await space.getPageMeta(name);
   const frontmatter = await extractFrontmatter(tree);
   const toplevelAttributes = await extractAttributes(tree, false);
 
   // Push them all into the page object
   // Note the order here, making sure that the actual page meta data overrules
   // any attempt to manually set built-in attributes like 'name' or 'lastModified'
-  pageMeta = { ...frontmatter, ...toplevelAttributes, ...pageMeta };
+  // pageMeta appears at the beginning and the end due to the ordering behavior of ojects in JS (making builtin attributes appear first)
+  const combinedPageMeta = {
+    ...pageMeta,
+    ...frontmatter,
+    ...toplevelAttributes,
+    ...pageMeta,
+  };
 
-  pageMeta.tags = [...new Set(["page", ...pageMeta.tags || []])];
+  combinedPageMeta.tags = [
+    ...new Set([
+      "page",
+      ...frontmatter.tags || [],
+      ...toplevelAttributes.tags || [],
+    ]),
+  ];
 
   // if (pageMeta.tags.includes("template")) {
   //   // If this is a template, we don't want to index it as a page or anything else, just a template
@@ -34,7 +45,7 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   // }
 
   // console.log("Page object", pageObj);
-  await indexObjects<PageMeta>(name, [pageMeta]);
+  await indexObjects<PageMeta>(name, [combinedPageMeta]);
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {
