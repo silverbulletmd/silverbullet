@@ -54,7 +54,7 @@ export async function renderTOC(reload = false) {
   });
   // console.log("All headers", headers);
   if (!reload && cachedTOC === JSON.stringify(headers)) {
-    console.log("TOC is the same, not updating");
+    // TOC is the same, not updating
     return;
   }
   cachedTOC = JSON.stringify(headers);

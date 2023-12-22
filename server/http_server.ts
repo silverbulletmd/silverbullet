@@ -455,10 +455,22 @@ export class HttpServer {
         async ({ params, response, request }) => {
           const name = params[0];
           const spaceServer = await this.ensureSpaceServer(request);
-          console.log("Requested file", name);
-          if (!request.headers.has("X-Sync-Mode") && name.endsWith(".md")) {
+          console.log(
+            "Requested file",
+            name,
+          );
+          if (
+            name.endsWith(".md") && !request.headers.has("X-Sync-Mode") &&
+            request.headers.get("sec-fetch-mode") !== "cors"
+          ) {
             // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
-            console.log("Request was without X-Sync-Mode, redirecting to page");
+            console.warn(
+              "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
+            );
+            // Log all request headers
+            // for (const [key, value] of request.headers.entries()) {
+            //   console.log("Header", key, value);
+            // }
             response.redirect(`/${name.slice(0, -3)}`);
             return;
           }
