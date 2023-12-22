@@ -140,6 +140,7 @@ export class MainUI {
             darkMode={viewState.uiOptions.darkMode}
             completer={client.miniEditorComplete.bind(client)}
             recentCommands={viewState.recentCommands}
+            settings={this.client.settings}
           />
         )}
         {viewState.showFilterBox && (

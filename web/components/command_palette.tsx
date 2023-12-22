@@ -2,7 +2,8 @@ import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
 import { CompletionContext, CompletionResult, TerminalIcon } from "../deps.ts";
 import { AppCommand } from "../hooks/command.ts";
-import { FilterOption } from "../types.ts";
+import { BuiltinSettings, FilterOption } from "../types.ts";
+import { commandLinkRegex } from "../../common/markdown_parser/parser.ts";
 
 export function CommandPalette({
   commands,
@@ -11,6 +12,7 @@ export function CommandPalette({
   vimMode,
   darkMode,
   completer,
+  settings,
 }: {
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
@@ -18,13 +20,28 @@ export function CommandPalette({
   darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   onTrigger: (command: AppCommand | undefined) => void;
+  settings: BuiltinSettings;
 }) {
   const options: FilterOption[] = [];
   const isMac = isMacLike();
   for (const [name, def] of commands.entries()) {
+    let shortcut: { key?: string; mac?: string } = def.command;
+    // Let's see if there's a keyboard shortcut override
+    if (settings.keyboardShortcuts) {
+      const commandKeyboardOverride = settings.keyboardShortcuts.find((
+        shortcut,
+      ) => {
+        const commandMatch = commandLinkRegex.exec(shortcut.command);
+        return commandMatch && commandMatch[1] === name ||
+          shortcut.command === name;
+      });
+      if (commandKeyboardOverride) {
+        shortcut = commandKeyboardOverride;
+      }
+    }
     options.push({
       name: name,
-      hint: isMac && def.command.mac ? def.command.mac : def.command.key,
+      hint: isMac && shortcut.mac ? shortcut.mac : shortcut.key,
       orderId: recentCommands.has(name)
         ? -recentCommands.get(name)!.getTime()
         : 0,
