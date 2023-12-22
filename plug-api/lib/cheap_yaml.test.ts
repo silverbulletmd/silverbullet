@@ -7,4 +7,10 @@ Deno.test("cheap yaml", () => {
   assertEquals(["template"], determineTags("tags: template"));
   assertEquals(["bla", "template"], determineTags("tags: bla,template"));
   assertEquals(["bla", "template"], determineTags("tags:\n- bla\n- template"));
+  assertEquals(["bla", "template"], determineTags(`tags: "#bla,#template"`));
+  assertEquals(["bla", "template"], determineTags(`tags: '#bla, #template'`));
+  assertEquals(
+    ["bla", "template"],
+    determineTags(`tags:\n- "#bla"\n- template`),
+  );
 });

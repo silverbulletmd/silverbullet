@@ -62,16 +62,27 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
   const tagPrefix = match[0].substring(1);
   let parent = "page";
-  if (taskPrefixRegex.test(completeEvent.linePrefix)) {
-    parent = "task";
-  } else if (itemPrefixRegex.test(completeEvent.linePrefix)) {
-    parent = "item";
+  if (!completeEvent.parentNodes.find((n) => n.startsWith("FrontMatter:"))) {
+    if (taskPrefixRegex.test(completeEvent.linePrefix)) {
+      parent = "task";
+    } else if (itemPrefixRegex.test(completeEvent.linePrefix)) {
+      parent = "item";
+    }
   }
 
-  // Query all tags
-  const allTags = await queryObjects<TagObject>("tag", {
+  // Query all tags with a matching parent
+  const allTags: any[] = await queryObjects<TagObject>("tag", {
     filter: ["=", ["attr", "parent"], ["string", parent]],
+    select: [{ name: "name" }],
+    distinct: true,
   });
+
+  if (parent === "page") {
+    // Also add template, even though that would otherwise not appear because has "builtin" as a parent
+    allTags.push({
+      name: "template",
+    });
+  }
 
   return {
     from: completeEvent.pos - tagPrefix.length,

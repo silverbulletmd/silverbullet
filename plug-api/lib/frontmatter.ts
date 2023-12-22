@@ -62,10 +62,14 @@ export async function extractFrontmatter(
         if (!data.tags) {
           data.tags = [];
         }
-        // Normalize tags to an array and support a "tag1, tag2" notation
+        // Normalize tags to an array
+        // support "tag1, tag2" as well as "tag1 tag2" as well as "#tag1 #tag2" notations
         if (typeof data.tags === "string") {
-          data.tags = (data.tags as string).split(/,\s*/);
+          data.tags = (data.tags as string).split(/,\s*|\s+/);
         }
+
+        // Strip # from tags
+        data.tags = data.tags.map((t) => t.replace(/^#/, ""));
         if (options.removeKeys && options.removeKeys.length > 0) {
           let removedOne = false;
 

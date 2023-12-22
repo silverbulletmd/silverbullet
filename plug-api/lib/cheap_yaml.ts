@@ -1,5 +1,5 @@
-const yamlKvRegex = /^\s*(\w+):\s*(.*)/;
-const yamlListItemRegex = /^\s*-\s+(.+)/;
+const yamlKvRegex = /^\s*(\w+):\s*["']?([^'"]*)["']?$/;
+const yamlListItemRegex = /^\s*-\s+["']?([^'"]+)["']?$/;
 
 /**
  * Cheap YAML parser to determine tags (ugly, regex based but fast)
@@ -19,7 +19,9 @@ export function determineTags(yamlText: string): string[] {
         inTagsSection = true;
         // 'template' there? Yay!
         if (value) {
-          tags.push(...value.split(/,\s*/));
+          tags.push(
+            ...value.split(/,\s*|\s+/).map((t) => t.replace(/^#/, "")),
+          );
         }
       } else {
         inTagsSection = false;
@@ -27,7 +29,7 @@ export function determineTags(yamlText: string): string[] {
     }
     const yamlListem = yamlListItemRegex.exec(line);
     if (yamlListem && inTagsSection) {
-      tags.push(yamlListem[1]);
+      tags.push(yamlListem[1].replace(/^#/, ""));
     }
   }
   return tags;
