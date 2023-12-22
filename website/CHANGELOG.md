@@ -3,7 +3,7 @@ release.
 
 ---
 
-## Next
+## 0.5.9
 * **Breaking change**: Local attachment URLs (`[page](url)` syntax and `![alt](url)` image syntax) are now interpreted to relative to the page's folder, unless their URL starts with a `/` then they're relative to the space root (as per [this issue](https://github.com/silverbulletmd/silverbullet/issues/363))
 * **Breaking change:** Revamped [[Templates]], specifically changed the format of [[Page Templates]]. The “Template: Instantiate Page” has been renamed to {[Page: From Template]}.
 * It is now even more recommended to tag your [[Templates]] with the “template” tag, because completion in [[Live Queries]] and [[Live Templates]] will now only suggest `#template` tagged pages.
