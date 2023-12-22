@@ -1,4 +1,4 @@
-This page lists some potentially useful keyboard shortcuts. Also have a look at [[Manual/Outlines]] for outline specific keyboard shortcuts.
+This page lists some potentially useful keyboard shortcuts. Also have a look at [[Outlines]] for outline specific keyboard shortcuts.
 
 # Highlights
 Particularly useful keyboard shortcuts (that you may not know about).
@@ -17,7 +17,7 @@ Particularly useful keyboard shortcuts (that you may not know about).
 |----------|----------|
 | Cmd-/ / Ctrl-/ | Run command |
 | Cmd-k/Ctrl-k | Open page |
-| Cmd-Shift-p/Ctrl-Shift-p | Update plugs (from the [[PLUGS]] file) |
+| Cmd-Shift-p/Ctrl-Shift-p | Update plugs (from the `PLUGS` file) |
 | Alt-q | Refresh all live queries and templates on this page |
 | Cmd-p/Ctrl-p | Toggle markdown preview |
 | Ctrl-Alt-t | Toggle table of contents|

@@ -53,14 +53,13 @@ The main ways to roam your space, beside following page links, are:
 * [[Linked Mentions]]
 * [[Full Text Search]]
 
-# End-User Programming
-[[End-User Programming]] functionality allows you to be creative with the content you have in your space.
+# Advanced topics
 * [[Objects]]
   * [[Frontmatter]]
   * [[Attributes]]
-* [[Templates]]
 * [[Live Queries]]
-* [[Live Templates]]
+* [[Templates]] and [[Live Templates]]
+* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Template Sets]]
 
 # Extending SilverBullet
 A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].

@@ -1,4 +1,4 @@
-The SilverBullet CLI has a `sync` command that can be used to synchronize local as well as remote [[Space|spaces]]. This can be useful when migrating between different [[Install/Configuration$storage|storage implementations]]. It can also be used to back up content elsewhere. Under the hood, this sync mechanism uses the exact same sync engine used for the Sync [[Client Modes]].
+The SilverBullet CLI has a `sync` command that can be used to synchronize local as well as remote [[Spaces]]. This can be useful when migrating between different [[Install/Configuration$storage|storage implementations]]. It can also be used to back up content elsewhere. Under the hood, this sync mechanism uses the exact same sync engine used for the Sync [[Client Modes]].
 
 # Use cases
 * **Migration**: you hosted SilverBullet on your local device until now, but have since set up an instance via [[Install/Deno Deploy]] and want to migrate your content there.

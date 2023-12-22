@@ -15,13 +15,13 @@ Every object has a set of [[Attributes]].
 
 At the very least:
 * `ref`: a unique _identifier_ (unique to the page, at least), often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
-* `tags`: an array of type(s) of an object, see [[@tags]].
+* `tags`: an array of type(s) of an object, see [[$tags]].
 
 In addition, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
 $tags
-Every object has one or more tags, defining the types of an object. Some tags are built-in (as described below), but you can easily define new tags by simply using the #hashtag notation in strategic locations (more on these locations later).
+Every object has one or more tags, defining the _types_ of an object. Some tags are built-in (as described below), but you can easily define new tags by simply using the #hashtag notation in strategic locations (more on these locations later).
 
 Here are the currently built-in tags:
 
@@ -48,7 +48,7 @@ The following query shows all attributes available for tasks:
 ```query
 upnext
 ```
-Although you may want to render it using a template such as [[template/tasks/task] instead:
+Although you may want to render it using a template such as [[template/task]] instead:
 
 ```query
 upnext render [[template/task]]
@@ -68,10 +68,10 @@ taskstate where page = "{{@page.name}}"
 
 ## template
 $template
-Indexes all pages tagged with `#template`. Technically this is not a built-in, but we’ll list it here anyway. See [[Templates]] for more information on templates.
+Indexes all pages tagged with `#template`. See [[Templates]] for more information on templates.
 
 ```query
-template
+template select name
 ```
 
 
@@ -149,7 +149,7 @@ The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which
 Here are the tags used/defined in this page:
 
 ```query
-tag where page = "{{@page.name}}" 
+tag where page = "{{@page.name}}" select name, parent
 ```
 
 ## attribute

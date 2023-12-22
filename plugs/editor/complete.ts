@@ -51,7 +51,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           apply: isInTemplateContext
             ? pageMeta.name
             : `${pageMeta.name}|${pageMeta.displayName}`,
-          detail: `displayName: ${pageMeta.name}`,
+          detail: `displayName for: ${pageMeta.name}`,
           type: "page",
         });
       }
@@ -63,7 +63,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             apply: isInTemplateContext
               ? pageMeta.name
               : `${pageMeta.name}|${alias}`,
-            detail: `alias: ${pageMeta.name}`,
+            detail: `alias to: ${pageMeta.name}`,
             type: "page",
           });
         }

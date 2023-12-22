@@ -5,5 +5,5 @@ All special pages except [[SETTINGS]] are optional: if they don’t exist, well,
 Here are the current list of “special pages” known to humankind:
 
 * [[SETTINGS]] for setting various settings
-* [[PLUGS]] as a source for the plug manager to decide what plugs to load and where from
+* `PLUGS` as a source for the plug manager to decide what plugs to load and where from
 * [[VIMRC]] for tweaking [[Vim]] mode

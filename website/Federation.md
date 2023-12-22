@@ -1,10 +1,10 @@
-Federation enables _browsing_, and _synchronizing_ (parts of) spaces outside of the user’s space into your SilverBullet client.
+Federation enables _browsing_, and _synchronizing_ (parts of) spaces _outside_ the user’s space into your SilverBullet client.
 
 This enables a few things:
 
-* Linking and browsing publicly hosted SilverBullet spaces (or websites adhering to its [[API]]). For instance the [[!silverbullet.md/CHANGELOG|SilverBullet CHANGELOG]] without leaving the comfort of your own SilverBullet client.
-* Reusing content from externally hosted sources, such as:
-  * _Templates_, e.g. by federating with `silverbullet.md/template` will give you access to the example templates hosted there without manually copying and pasting them and automatically pull in the latest version. So you can, for instance, use `render [[!silverbullet.md/template/page]]` to use the [[template/page]] template.
+* **Linking and browsing** to other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]). For instance the [[!silverbullet.md/CHANGELOG|SilverBullet CHANGELOG]] without leaving the comfort of your own SilverBullet client.
+* **Reusing** content from externally hosted sources, such as:
+  * _Templates_, e.g. by federating with `silverbullet.md/template` will give you access to the example templates hosted there without manually copying and pasting them and automatically pull in the latest version. So you can, for instance, use `render [[!silverbullet.md/template/page]]` to use the [[template/page]] template. See [[Template Sets]] for more on this use case.
   * _Data_: such as tasks, item, data hosted elsewhere that you want to query from your own space.
 
 **Note:** Federation does not support authentication yet, so all federated spaces need to be unauthenticated and will be _read-only_.

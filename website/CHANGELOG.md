@@ -79,7 +79,7 @@ release.
 * The {[Directive: Convert to Live Query/Template]} now also converts `#use` and `#include` directives
 * Styling improvements for Linked Mentions
 * SilverBullet now fully works when added as PWA on Safari 17 (via the “Add to Dock” option).
-* Fix support for handlebars variables in [[Live Queries]] and [[live]]
+* Fix support for handlebars variables in [[Live Queries]] and [[Live Templates]]
 * Plug robustness improvements (SB shouldn’t fully break when loading plugs that rely on disabled syscalls)
 * Various other bug fixes
 

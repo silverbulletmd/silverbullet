@@ -1,6 +1,6 @@
 Code widgets are a SilverBullet-specific “extension” to [[Markdown]]. Technically, it’s not an extension — it just gives new meaning to markdown’s native fenced code blocks — code blocks that start with a triple backtick, specifying a programming language.
 
-Currently, SilverBullet provides two code widgets as part of its built-in [[🔌 Plugs]]:
+Currently, SilverBullet provides two code widgets as part of its built-in [[Plugs]]:
 
 * `embed`
 * `markdown`
