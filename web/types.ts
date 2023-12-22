@@ -19,10 +19,17 @@ export type Notification = {
 
 export type PanelMode = number;
 
+export type KeyboardShortcut = {
+  command: string;
+  key?: string;
+  mac?: string;
+};
+
 export type BuiltinSettings = {
   indexPage: string;
   customStyles?: string | string[];
   plugOverrides?: Record<string, Partial<Manifest>>;
+  keyboardShortcuts?: KeyboardShortcut[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
 };

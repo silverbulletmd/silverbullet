@@ -1,4 +1,6 @@
-import buildMarkdown from "../common/markdown_parser/parser.ts";
+import buildMarkdown, {
+  commandLinkRegex,
+} from "../common/markdown_parser/parser.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
@@ -51,6 +53,40 @@ export function createEditorState(
   readOnly: boolean,
 ): EditorState {
   const commandKeyBindings: KeyBinding[] = [];
+
+  // Keyboard shortcuts from SETTINGS take precedense
+  if (client.settings?.keyboardShortcuts) {
+    for (const shortcut of client.settings.keyboardShortcuts) {
+      console.info("Configuring keyboard shortcut", shortcut);
+      commandKeyBindings.push({
+        key: shortcut.key,
+        mac: shortcut.mac,
+        run: (): boolean => {
+          const commandMatch = commandLinkRegex.exec(shortcut.command);
+
+          let cleanCommandName = shortcut.command;
+          let args: any[] = [];
+          if (commandMatch) {
+            cleanCommandName = commandMatch[1];
+            args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
+          }
+          client.runCommandByName(cleanCommandName, args).catch((e: any) => {
+            console.error(e);
+            client.flashNotification(
+              `Error running command: ${e.message}`,
+              "error",
+            );
+          }).then(() => {
+            // Always be focusing the editor after running a command
+            client.focus();
+          });
+          return true;
+        },
+      });
+    }
+  }
+
+  // Then add bindings for plug commands
   for (const def of client.system.commandHook.editorCommands.values()) {
     if (def.command.key) {
       commandKeyBindings.push({
@@ -81,6 +117,7 @@ export function createEditorState(
       });
     }
   }
+
   let touchCount = 0;
 
   const markdownLanguage = buildMarkdown(client.system.mdExtensions);

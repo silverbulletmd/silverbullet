@@ -7,29 +7,29 @@ indexPage: "[[SilverBullet]]"
 # Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
 
+# Template settings
 quickNotePrefix: "📥 "
-
 dailyNotePrefix: "📅 "
 dailyNoteTemplate: "[[template/page/Daily Note]]"
-
 weeklyNotePrefix: "🗓️ "
 weeklyNoteTemplate: "[[template/page/Weekly Note]]"
 weeklyNoteMonday: false
 
-# Markdown
-previewOnRHS: true
+# Keyboard shortcut overrides take presedence over built-in shortcuts
+keyboardShortcuts:
+  # Using the command-link syntax
+  - command: "{[Stats: Show]}"
+    # Mac-specific keyboard
+    mac: "Cmd-s"
+    # Key binding for Windows/Linux (and Mac if not defined)
+    key: "Ctrl-s"
+  - command: "Navigate: Center Cursor"
+    key: "Alt-x"
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |
    dist
    largefolder
    *.mp4
-# Plug overrides allow you to override any property in a plug manifest at runtime
-# The primary use case of this is to override or define keyboard shortcuts. You can use the . notation, to quickly "dive deep" into the structure
-plugOverrides:
-  editor:
-    # Matching this YAML structure:
-    # https://github.com/silverbulletmd/silverbullet/blob/main/plugs/editor/editor.plug.yaml
-    # and overriding the "key" for centering the cursor
-    functions.centerCursor.command.key: Ctrl-Alt-p
+
 ```

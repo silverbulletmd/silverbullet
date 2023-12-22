@@ -930,7 +930,7 @@ export class Client {
     }
   }
 
-  async runCommandByName(name: string, args?: string[]) {
+  async runCommandByName(name: string, args?: any[]) {
     const cmd = this.ui.viewState.commands.get(name);
     if (cmd) {
       if (args) {
