@@ -44,7 +44,7 @@ export class MainUI {
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        client.startPageNavigate().catch(console.error);
+        client.startPageNavigate();
       }
       // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
@@ -251,7 +251,7 @@ export class MainUI {
               icon: BookIcon,
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
-                client.startPageNavigate().catch(console.error);
+                client.startPageNavigate();
               },
             },
             {

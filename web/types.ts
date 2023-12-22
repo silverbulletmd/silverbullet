@@ -122,7 +122,8 @@ export type Action =
   | { type: "page-changed" }
   | { type: "page-saved" }
   | { type: "sync-change"; syncSuccess: boolean }
-  | { type: "start-navigate"; pages: PageMeta[] }
+  | { type: "update-page-list"; allPages: PageMeta[] }
+  | { type: "start-navigate" }
   | { type: "stop-navigate" }
   | {
     type: "update-commands";

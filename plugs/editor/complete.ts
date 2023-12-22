@@ -46,31 +46,31 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       const completions: any[] = [];
       if (pageMeta.displayName) {
         completions.push({
-          label: pageMeta.displayName,
-          boost: pageMeta.lastModified,
+          label: `${pageMeta.displayName}`,
+          boost: new Date(pageMeta.lastModified).getTime(),
           apply: isInTemplateContext
             ? pageMeta.name
             : `${pageMeta.name}|${pageMeta.displayName}`,
-          detail: "alias",
+          detail: `displayName: ${pageMeta.name}`,
           type: "page",
         });
       }
       if (Array.isArray(pageMeta.aliases)) {
         for (const alias of pageMeta.aliases) {
           completions.push({
-            label: alias,
-            boost: pageMeta.lastModified,
+            label: `${alias}`,
+            boost: new Date(pageMeta.lastModified).getTime(),
             apply: isInTemplateContext
               ? pageMeta.name
               : `${pageMeta.name}|${alias}`,
-            detail: "alias",
+            detail: `alias: ${pageMeta.name}`,
             type: "page",
           });
         }
       }
       completions.push({
-        label: pageMeta.name,
-        boost: pageMeta.lastModified,
+        label: `${pageMeta.name}`,
+        boost: new Date(pageMeta.lastModified).getTime(),
         type: "page",
       });
       return completions;

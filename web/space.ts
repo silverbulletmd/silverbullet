@@ -14,9 +14,6 @@ export class Space {
   imageHeightCache = new LimitedMap<number>(100); // url -> height
   widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
 
-  // Note: this is "clean" PageMeta, it doesn't contain custom attributes (it's fetched from the store)
-  private cachedPageList: PageMeta[] = [];
-
   debouncedImageCacheFlush = throttle(() => {
     this.ds.set(["cache", "imageHeight"], this.imageHeightCache).catch(
       console.error,
@@ -72,25 +69,18 @@ export class Space {
           this.widgetHeightCache = new LimitedMap(100, widgetCache);
         }
       });
-    // eventHook.addLocalListener("file:listed", (files: FileMeta[]) => {
-    //   // console.log("Files listed", files);
-    //   this.cachedPageList = files.filter(this.isListedPage).map(
-    //     fileMetaToPageMeta,
-    //   );
-    // });
     eventHook.addLocalListener("page:deleted", (pageName: string) => {
       if (this.watchedPages.has(pageName)) {
         // Stop watching deleted pages already
         this.watchedPages.delete(pageName);
       }
     });
-    this.updatePageListCache().catch(console.error);
+    this.updatePageList().catch(console.error);
   }
 
-  public async updatePageListCache() {
-    console.log("Updating page list cache");
-    // This will trigger appropriate events automatically
-    this.cachedPageList = await this.fetchPageList();
+  public async updatePageList() {
+    // The only reason to do this is to trigger events
+    await this.fetchPageList();
   }
 
   async deletePage(name: string): Promise<void> {
@@ -102,10 +92,6 @@ export class Space {
     return fileMetaToPageMeta(
       await this.spacePrimitives.getFileMeta(`${name}.md`),
     );
-  }
-
-  listPages(): PageMeta[] {
-    return this.cachedPageList;
   }
 
   async listPlugs(): Promise<FileMeta[]> {
@@ -139,10 +125,6 @@ export class Space {
           selfUpdate,
         ),
       );
-      if (!this.cachedPageList.find((page) => page.name === pageMeta.name)) {
-        // New page, let's cache it
-        this.cachedPageList.push(pageMeta);
-      }
       // Note: we don't do very elaborate cache invalidation work here, quite quickly the cache will be flushed anyway
       return pageMeta;
     } finally {

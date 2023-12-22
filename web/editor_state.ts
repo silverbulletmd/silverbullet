@@ -57,7 +57,7 @@ export function createEditorState(
   // Keyboard shortcuts from SETTINGS take precedense
   if (client.settings?.keyboardShortcuts) {
     for (const shortcut of client.settings.keyboardShortcuts) {
-      console.info("Configuring keyboard shortcut", shortcut);
+      // console.info("Configuring keyboard shortcut", shortcut);
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,
@@ -215,7 +215,7 @@ export function createEditorState(
           key: "Ctrl-k",
           mac: "Cmd-k",
           run: (): boolean => {
-            client.startPageNavigate().catch(console.error);
+            client.startPageNavigate();
             return true;
           },
         },

@@ -107,6 +107,9 @@ export class Client {
   spaceDataStore!: DataStore;
   mq!: DataStoreMQ;
 
+  // Used by the "wiki link" highlighter to check if a page exists
+  public allKnownPages = new Set<string>();
+
   constructor(
     private parent: Element,
     public syncMode = false,
@@ -226,6 +229,8 @@ export class Client {
         console.error("Interval sync error", e);
       }
     }, pageSyncInterval);
+
+    this.updatePageListCache().catch(console.error);
   }
 
   private initSync() {
@@ -235,7 +240,7 @@ export class Client {
       // console.log("Operations", operations);
       if (operations > 0) {
         // Update the page list
-        await this.space.updatePageListCache();
+        await this.space.updatePageList();
       }
       if (operations !== undefined) {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
@@ -499,6 +504,28 @@ export class Client {
       },
     );
 
+    // Caching a list of known pages for the wiki_link highlighter (that checks if a page exists)
+    this.eventHook.addLocalListener("page:saved", (pageName: string) => {
+      // Make sure this page is in the list of known pages
+      this.allKnownPages.add(pageName);
+    });
+
+    this.eventHook.addLocalListener("page:deleted", (pageName: string) => {
+      this.allKnownPages.delete(pageName);
+    });
+
+    this.eventHook.addLocalListener(
+      "file:listed",
+      (allFiles: FileMeta[]) => {
+        // Update list of known pages
+        this.allKnownPages = new Set(
+          allFiles.filter((f) => f.name.endsWith(".md")).map((f) =>
+            f.name.slice(0, -3)
+          ),
+        );
+      },
+    );
+
     this.space.watch();
 
     return localSpacePrimitives;
@@ -582,11 +609,19 @@ export class Client {
     );
   }
 
-  async startPageNavigate() {
-    // Fetch all pages from the index
-    const pages = await this.system.queryObjects<PageMeta>("page", {});
+  startPageNavigate() {
     // Then show the page navigator
-    this.ui.viewDispatch({ type: "start-navigate", pages });
+    this.ui.viewDispatch({ type: "start-navigate" });
+    this.updatePageListCache().catch(console.error);
+  }
+
+  async updatePageListCache() {
+    console.log("Updating page list cache");
+    const allPages = await this.system.queryObjects<PageMeta>("page", {});
+    this.ui.viewDispatch({
+      type: "update-page-list",
+      allPages,
+    });
   }
 
   private progressTimeout?: number;
@@ -744,6 +779,7 @@ export class Client {
         actualResult = result;
       }
     }
+    // console.log("Compeltion result", actualResult);
     return actualResult;
   }
 

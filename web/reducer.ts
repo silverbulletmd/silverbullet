@@ -45,20 +45,26 @@ export default function reducer(
         ...state,
         syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
-    case "start-navigate": {
+    case "update-page-list": {
       // Let's move over any "lastOpened" times to the "allPages" list
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
       );
-      for (const pageMeta of action.pages) {
+      for (const pageMeta of action.allPages) {
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
       }
+
       return {
         ...state,
-        allPages: action.pages,
+        allPages: action.allPages,
+      };
+    }
+    case "start-navigate": {
+      return {
+        ...state,
         showPageNavigator: true,
         showCommandPalette: false,
         showFilterBox: false,

@@ -97,11 +97,6 @@ export async function extractFrontmatter(
     return undefined;
   });
 
-  if (data.name) {
-    data.displayName = data.name;
-    delete data.name;
-  }
-
   return data;
 }
 
