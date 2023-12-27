@@ -54,22 +54,27 @@ export function createEditorState(
 ): EditorState {
   const commandKeyBindings: KeyBinding[] = [];
 
+  // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
+  const overriddenCommands = new Set<string>();
   // Keyboard shortcuts from SETTINGS take precedense
-  if (client.settings?.keyboardShortcuts) {
-    for (const shortcut of client.settings.keyboardShortcuts) {
-      // console.info("Configuring keyboard shortcut", shortcut);
+  if (client.settings?.shortcuts) {
+    for (const shortcut of client.settings.shortcuts) {
+      // Figure out if we're using the command link syntax here, if so: parse it out
+      const commandMatch = commandLinkRegex.exec(shortcut.command);
+      let cleanCommandName = shortcut.command;
+      let args: any[] = [];
+      if (commandMatch) {
+        cleanCommandName = commandMatch[1];
+        args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
+      }
+      if (args.length === 0) {
+        // If there was no "specialization" of this command (that is, we effectively created a keybinding for an existing command but with arguments), let's add it to the overridden command set:
+        overriddenCommands.add(cleanCommandName);
+      }
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,
         run: (): boolean => {
-          const commandMatch = commandLinkRegex.exec(shortcut.command);
-
-          let cleanCommandName = shortcut.command;
-          let args: any[] = [];
-          if (commandMatch) {
-            cleanCommandName = commandMatch[1];
-            args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
-          }
           client.runCommandByName(cleanCommandName, args).catch((e: any) => {
             console.error(e);
             client.flashNotification(
@@ -89,6 +94,10 @@ export function createEditorState(
   // Then add bindings for plug commands
   for (const def of client.system.commandHook.editorCommands.values()) {
     if (def.command.key) {
+      // If we've already overridden this command, skip it
+      if (overriddenCommands.has(def.command.key)) {
+        continue;
+      }
       commandKeyBindings.push({
         key: def.command.key,
         mac: def.command.mac,

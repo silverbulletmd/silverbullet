@@ -15,16 +15,13 @@ weeklyNotePrefix: "🗓️ "
 weeklyNoteTemplate: "[[template/page/Weekly Note]]"
 weeklyNoteMonday: false
 
-# Keyboard shortcut overrides take presedence over built-in shortcuts
-keyboardShortcuts:
-  # Using the command-link syntax
-  - command: "{[Stats: Show]}"
-    # Mac-specific keyboard
-    mac: "Cmd-s"
-    # Key binding for Windows/Linux (and Mac if not defined)
-    key: "Ctrl-s"
-  - command: "Navigate: Center Cursor"
-    key: "Alt-x"
+# (Keyboard) shortcut overrides take presedence over built-in shortcuts
+shortcuts:
+  - mac: "Cmd-s" # Mac-specific keyboard shortcut
+    key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
+    command: "{[Stats: Show]}" # Using the command link syntax here
+  - key: "Alt-x"
+    command: "Navigate: Center Cursor" # But a command name is also supported
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |

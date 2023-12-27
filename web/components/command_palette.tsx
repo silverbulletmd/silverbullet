@@ -26,13 +26,15 @@ export function CommandPalette({
   const isMac = isMacLike();
   for (const [name, def] of commands.entries()) {
     let shortcut: { key?: string; mac?: string } = def.command;
-    // Let's see if there's a keyboard shortcut override
-    if (settings.keyboardShortcuts) {
-      const commandKeyboardOverride = settings.keyboardShortcuts.find((
+    // Let's see if there's a shortcut override
+    if (settings.shortcuts) {
+      const commandKeyboardOverride = settings.shortcuts.find((
         shortcut,
       ) => {
         const commandMatch = commandLinkRegex.exec(shortcut.command);
-        return commandMatch && commandMatch[1] === name ||
+        // If this is a command link, we want to match the command name but also make sure no arguments were set
+        return commandMatch && commandMatch[1] === name && !commandMatch[5] ||
+          // or if it's not a command link, let's match exactly
           shortcut.command === name;
       });
       if (commandKeyboardOverride) {
