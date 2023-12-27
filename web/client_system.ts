@@ -41,6 +41,7 @@ import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
 import { Query } from "$sb/types.ts";
+import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -51,6 +52,7 @@ export class ClientSystem {
   codeWidgetHook: CodeWidgetHook;
   mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
+  panelWidgetHook: PanelWidgetHook;
 
   constructor(
     private client: Client,
@@ -82,6 +84,10 @@ export class ClientSystem {
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
     this.system.addHook(this.codeWidgetHook);
+
+    // Panel widget hook
+    this.panelWidgetHook = new PanelWidgetHook();
+    this.system.addHook(this.panelWidgetHook);
 
     // MQ hook
     if (client.syncMode) {

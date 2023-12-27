@@ -70,10 +70,10 @@ export function fencedCodePlugin(editor: Client) {
             const widget = renderMode === "markdown"
               ? new MarkdownWidget(
                 from + lineStrings[0].length + 1,
-                to - lineStrings[lineStrings.length - 1].length - 1,
                 editor,
                 lineStrings.slice(1, lineStrings.length - 1).join("\n"),
                 codeWidgetCallback,
+                "sb-markdown-widget",
               )
               : new IFrameWidget(
                 from + lineStrings[0].length + 1,

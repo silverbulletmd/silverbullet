@@ -80,7 +80,7 @@ export function filterBox(
 }
 
 export function showPanel(
-  id: "lhs" | "rhs" | "bhs" | "modal" | "bottom" | "top",
+  id: "lhs" | "rhs" | "bhs" | "modal",
   mode: number,
   html: string,
   script = "",
@@ -89,7 +89,7 @@ export function showPanel(
 }
 
 export function hidePanel(
-  id: "lhs" | "rhs" | "bhs" | "modal" | "bottom" | "top",
+  id: "lhs" | "rhs" | "bhs" | "modal",
 ): Promise<void> {
   return syscall("editor.hidePanel", id);
 }

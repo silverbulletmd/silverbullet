@@ -444,8 +444,31 @@
   }
 
   .sb-markdown-widget {
-    overflow-y: scroll;
     margin: 0 0 -4ch 0;
+  }
+
+  .sb-markdown-top-widget h1,
+  .sb-markdown-bottom-widget h1 {
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    margin: 0;
+    padding: 10px !important;
+    background-color: var(--editor-directive-background-color);
+    font-size: 1.2em;
+  }
+
+  .sb-markdown-top-widget {
+    margin-bottom: 10px;
+  }
+
+  .sb-markdown-bottom-widget {
+    margin-top: 10px;
+  }
+
+  .sb-markdown-widget,
+  .sb-markdown-top-widget:has(*),
+  .sb-markdown-bottom-widget:has(*) {
+    overflow-y: scroll;
     border: 1px solid var(--editor-directive-background-color);
     border-radius: 5px;
     white-space: nowrap;

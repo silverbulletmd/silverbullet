@@ -11,21 +11,25 @@ export class MarkdownWidget extends WidgetType {
   renderedMarkdown?: string;
 
   constructor(
-    readonly from: number,
-    readonly to: number,
+    readonly from: number | undefined,
     readonly client: Client,
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
+    readonly className: string,
   ) {
     super();
   }
 
   toDOM(): HTMLElement {
     const div = document.createElement("div");
-    div.className = "sb-markdown-widget";
+    div.className = this.className;
     const cacheItem = this.client.getWidgetCache(this.bodyText);
     if (cacheItem) {
-      div.innerHTML = this.wrapHtml(cacheItem.html);
+      div.innerHTML = this.wrapHtml(
+        cacheItem.html,
+        this.from !== undefined,
+        this.from !== undefined,
+      );
       this.attachListeners(div);
     }
 
@@ -43,6 +47,11 @@ export class MarkdownWidget extends WidgetType {
       this.bodyText,
       this.client.currentPage!,
     );
+    if (!widgetContent) {
+      div.innerHTML = "";
+      // div.style.display = "none";
+      return;
+    }
     const lang = buildMarkdown(this.client.system.mdExtensions);
     let mdTree = parse(
       lang,
@@ -80,7 +89,11 @@ export class MarkdownWidget extends WidgetType {
       // HTML still same as in cache, no need to re-render
       return;
     }
-    div.innerHTML = this.wrapHtml(html);
+    div.innerHTML = this.wrapHtml(
+      html,
+      this.from !== undefined,
+      this.from !== undefined,
+    );
     this.attachListeners(div);
 
     // Let's give it a tick, then measure and cache
@@ -93,12 +106,20 @@ export class MarkdownWidget extends WidgetType {
     });
   }
 
-  private wrapHtml(html: string) {
+  private wrapHtml(html: string, editButton = true, sourceButton = true) {
     return `
     <div class="button-bar">
-       <button class="source-button" title="Show Markdown source"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-code"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></button>
+    ${
+      sourceButton
+        ? `<button class="source-button" title="Show Markdown source"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-code"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></button>`
+        : ""
+    }
        <button class="reload-button" title="Reload"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
-       <button class="edit-button" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+       ${
+      editButton
+        ? `<button class="edit-button" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`
+        : ""
+    }
        </div>
     ${html}`;
   }
@@ -109,7 +130,12 @@ export class MarkdownWidget extends WidgetType {
       // Override default click behavior with a local navigate (faster)
       el.addEventListener("click", (e) => {
         e.preventDefault();
-        this.client.navigate(el.dataset.ref!);
+        const [pageName, pos] = el.dataset.ref!.split(/[$@]/);
+        if (pos && pos.match(/^\d+$/)) {
+          this.client.navigate(pageName, +pos);
+        } else {
+          this.client.navigate(pageName, pos);
+        }
       });
     });
 
@@ -134,17 +160,19 @@ export class MarkdownWidget extends WidgetType {
       );
     });
 
-    div.querySelector(".edit-button")!.addEventListener("click", () => {
-      this.client.editorView.dispatch({
-        selection: { anchor: this.from },
+    if (this.from !== undefined) {
+      div.querySelector(".edit-button")!.addEventListener("click", () => {
+        this.client.editorView.dispatch({
+          selection: { anchor: this.from! },
+        });
+        this.client.focus();
       });
-      this.client.focus();
-    });
+      div.querySelector(".source-button")!.addEventListener("click", () => {
+        div.innerText = this.renderedMarkdown!;
+      });
+    }
     div.querySelector(".reload-button")!.addEventListener("click", () => {
       this.renderContent(div, undefined).catch(console.error);
-    });
-    div.querySelector(".source-button")!.addEventListener("click", () => {
-      div.innerText = this.renderedMarkdown!;
     });
   }
 

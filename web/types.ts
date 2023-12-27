@@ -98,8 +98,6 @@ export const initialViewState: AppViewState = {
     rhs: {},
     bhs: {},
     modal: {},
-    top: {},
-    bottom: {},
   },
   allPages: [],
   commands: new Map(),
