@@ -4,10 +4,12 @@ import { CodeWidgetCallback } from "$sb/types.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;
+  renderMode?: "markdown" | "iframe";
 };
 
 export class CodeWidgetHook implements Hook<CodeWidgetT> {
   codeWidgetCallbacks = new Map<string, CodeWidgetCallback>();
+  codeWidgetModes = new Map<string, "markdown" | "iframe">();
 
   constructor() {
   }
@@ -23,6 +25,10 @@ export class CodeWidgetHook implements Hook<CodeWidgetT> {
         if (!functionDef.codeWidget) {
           continue;
         }
+        this.codeWidgetModes.set(
+          functionDef.codeWidget,
+          functionDef.renderMode || "iframe",
+        );
         this.codeWidgetCallbacks.set(
           functionDef.codeWidget,
           (bodyText, pageName) => {

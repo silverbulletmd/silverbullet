@@ -3,6 +3,7 @@ functions:
   queryWidget:
     path: query.ts:widget
     codeWidget: query
+    renderMode: markdown
 
   lintQuery:
     path: query.ts:lintQuery
@@ -12,6 +13,7 @@ functions:
   templateWidget:
     path: template.ts:widget
     codeWidget: template
+    renderMode: markdown
 
   queryComplete:
     path: complete.ts:queryComplete

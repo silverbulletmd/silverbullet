@@ -46,6 +46,7 @@ import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primi
 import {
   EncryptedSpacePrimitives,
 } from "../common/spaces/encrypted_space_primitives.ts";
+import { LimitedMap } from "../common/limited_map.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -186,6 +187,13 @@ export class Client {
 
     // Load settings
     this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
+
+    // Load widget cache
+    this.widgetCache = new LimitedMap(
+      100,
+      await this.stateDataStore.get(["cache", "widgets"]) ||
+        {},
+    );
 
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
@@ -1004,4 +1012,28 @@ export class Client {
     }
     return;
   }
+
+  private widgetCache = new LimitedMap<WidgetCacheItem>(100);
+
+  debouncedWidgetCacheFlush = throttle(() => {
+    this.stateDataStore.set(["cache", "widgets"], this.widgetCache.toJSON())
+      .catch(
+        console.error,
+      );
+    console.log("Flushed widget cache to store");
+  }, 5000);
+
+  setWidgetCache(key: string, height: number, html: string) {
+    this.widgetCache.set(key, { height, html });
+    this.debouncedWidgetCacheFlush();
+  }
+
+  getWidgetCache(key: string): WidgetCacheItem | undefined {
+    return this.widgetCache.get(key);
+  }
 }
+
+type WidgetCacheItem = {
+  height: number;
+  html: string;
+};
