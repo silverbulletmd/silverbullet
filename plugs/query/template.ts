@@ -59,16 +59,10 @@ export async function widget(
       rendered = renderToText(parsedMarkdown);
     }
 
-    return system.invokeFunction(
-      "markdown.markdownContentWidget",
-      rendered,
-      pageName,
-    );
+    return { markdown: rendered };
   } catch (e: any) {
-    return system.invokeFunction(
-      "markdown.markdownContentWidget",
-      `**Error:** ${e.message}`,
-      pageName,
-    );
+    return {
+      markdown: `**Error:** ${e.message}`,
+    };
   }
 }

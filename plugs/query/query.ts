@@ -1,5 +1,5 @@
 import type { LintEvent, WidgetContent } from "$sb/app_event.ts";
-import { events, language, space, system } from "$sb/syscalls.ts";
+import { events, language, space } from "$sb/syscalls.ts";
 import {
   findNodeOfType,
   parseTreeToAST,
@@ -70,16 +70,11 @@ export async function widget(
       }
     }
 
-    return system.invokeFunction(
-      "markdown.markdownContentWidget",
-      resultMarkdown,
-      pageName,
-    );
+    return {
+      markdown: resultMarkdown,
+    };
   } catch (e: any) {
-    return system.invokeFunction(
-      "markdown.markdownContentWidget",
-      `**Error:** ${e.message}`,
-    );
+    return { markdown: `**Error:** ${e.message}` };
   }
 }
 
@@ -166,8 +161,6 @@ async function allQuerySources(): Promise<string[]> {
 
   const allObjectTypes: string[] = (await events.dispatchEvent("query_", {}))
     .flat();
-
-  // console.log("All object types", allObjectTypes);
 
   return [...allSources, ...allObjectTypes];
 }
