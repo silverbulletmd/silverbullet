@@ -1,4 +1,4 @@
-import { Decoration, EditorState, WidgetType } from "../deps.ts";
+import { Decoration, EditorState } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";

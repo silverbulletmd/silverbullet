@@ -11,40 +11,6 @@ import { LimitedMap } from "../common/limited_map.ts";
 const pageWatchInterval = 5000;
 
 export class Space {
-  imageHeightCache = new LimitedMap<number>(100); // url -> height
-  widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
-
-  debouncedImageCacheFlush = throttle(() => {
-    this.ds.set(["cache", "imageHeight"], this.imageHeightCache).catch(
-      console.error,
-    );
-    console.log("Flushed image height cache to store");
-  }, 5000);
-
-  setCachedImageHeight(url: string, height: number) {
-    this.imageHeightCache.set(url, height);
-    this.debouncedImageCacheFlush();
-  }
-  getCachedImageHeight(url: string): number {
-    return this.imageHeightCache.get(url) ?? -1;
-  }
-
-  debouncedWidgetCacheFlush = throttle(() => {
-    this.ds.set(["cache", "widgetHeight"], this.widgetHeightCache.toJSON())
-      .catch(
-        console.error,
-      );
-    // console.log("Flushed widget height cache to store");
-  }, 5000);
-
-  setCachedWidgetHeight(bodyText: string, height: number) {
-    this.widgetHeightCache.set(bodyText, height);
-    this.debouncedWidgetCacheFlush();
-  }
-  getCachedWidgetHeight(bodyText: string): number {
-    return this.widgetHeightCache.get(bodyText) ?? -1;
-  }
-
   // We do watch files in the background to detect changes
   // This set of pages should only ever contain 1 page
   watchedPages = new Set<string>();
@@ -55,20 +21,8 @@ export class Space {
 
   constructor(
     readonly spacePrimitives: SpacePrimitives,
-    private ds: DataStore,
     eventHook: EventHook,
   ) {
-    // super();
-    this.ds.batchGet([["cache", "imageHeight"], ["cache", "widgetHeight"]])
-      .then(([imageCache, widgetCache]) => {
-        if (imageCache) {
-          this.imageHeightCache = new LimitedMap(100, imageCache);
-        }
-        if (widgetCache) {
-          // console.log("Loaded widget cache from store", widgetCache);
-          this.widgetHeightCache = new LimitedMap(100, widgetCache);
-        }
-      });
     eventHook.addLocalListener("page:deleted", (pageName: string) => {
       if (this.watchedPages.has(pageName)) {
         // Stop watching deleted pages already

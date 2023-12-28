@@ -98,7 +98,7 @@ export class ServerSystem {
       ),
       eventHook,
     );
-    const space = new Space(this.spacePrimitives, this.ds, eventHook);
+    const space = new Space(this.spacePrimitives, eventHook);
 
     // Add syscalls
     this.system.registerSyscalls(

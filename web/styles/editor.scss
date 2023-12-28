@@ -451,13 +451,13 @@
   .sb-markdown-bottom-widget h1 {
     border-top-right-radius: 5px;
     border-top-left-radius: 5px;
-    margin: 0;
+    margin: 0 0 5px 0;
     padding: 10px !important;
     background-color: var(--editor-directive-background-color);
     font-size: 1.2em;
   }
 
-  .sb-markdown-top-widget {
+  .sb-markdown-top-widget:has(*) {
     margin-bottom: 10px;
   }
 
@@ -471,7 +471,7 @@
     overflow-y: scroll;
     border: 1px solid var(--editor-directive-background-color);
     border-radius: 5px;
-    white-space: nowrap;
+    white-space: wrap;
     position: relative;
 
     ul,
@@ -482,7 +482,7 @@
 
     ul {
       list-style: none;
-      padding-left: 1ch;
+      // padding-left: 1ch;
     }
 
     ul li::before {
@@ -493,7 +493,7 @@
       /* Needed to add space between the bullet and the text */
       width: 1em;
       /* Also needed for space (tweak if needed) */
-      // margin-left: -1em;
+      margin-left: -1em;
     }
 
     h1,
@@ -528,27 +528,24 @@
 
     .button-bar {
       position: absolute;
-      right: 6px;
-      top: 6px;
+      right: 10px;
+      top: 10px;
       display: none;
       background: var(--editor-directive-background-color);
       padding-inline: 3px;
       padding-bottom: 1px;
       border-radius: 5px;
 
+
       button {
         border: none;
         background: none;
         cursor: pointer;
         color: var(--root-color);
+        margin-right: -8px;
       }
-    }
 
-    .edit-button,
-    .reload-button {
-      margin-left: -10px;
     }
-
   }
 
   .sb-fenced-code-iframe {

@@ -1,14 +1,17 @@
 import { WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
-import type { CodeWidgetCallback } from "$sb/types.ts";
+import type { CodeWidgetButton, CodeWidgetCallback } from "$sb/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 
+const activeWidgets = new Set<MarkdownWidget>();
+
 export class MarkdownWidget extends WidgetType {
   renderedMarkdown?: string;
+  public dom?: HTMLElement;
 
   constructor(
     readonly from: number | undefined,
@@ -27,19 +30,20 @@ export class MarkdownWidget extends WidgetType {
     if (cacheItem) {
       div.innerHTML = this.wrapHtml(
         cacheItem.html,
-        this.from !== undefined,
-        this.from !== undefined,
+        cacheItem.buttons,
       );
-      this.attachListeners(div);
+      this.attachListeners(div, cacheItem.buttons);
     }
 
     // Async kick-off of content renderer
     this.renderContent(div, cacheItem?.html).catch(console.error);
 
+    this.dom = div;
+
     return div;
   }
 
-  private async renderContent(
+  async renderContent(
     div: HTMLElement,
     cachedHtml: string | undefined,
   ) {
@@ -47,6 +51,7 @@ export class MarkdownWidget extends WidgetType {
       this.bodyText,
       this.client.currentPage!,
     );
+    activeWidgets.add(this);
     if (!widgetContent) {
       div.innerHTML = "";
       // div.style.display = "none";
@@ -89,42 +94,30 @@ export class MarkdownWidget extends WidgetType {
       // HTML still same as in cache, no need to re-render
       return;
     }
-    div.innerHTML = this.wrapHtml(
-      html,
-      this.from !== undefined,
-      this.from !== undefined,
-    );
-    this.attachListeners(div);
+    div.innerHTML = this.wrapHtml(html, widgetContent.buttons);
+    this.attachListeners(div, widgetContent.buttons);
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
       this.client.setWidgetCache(
         this.bodyText,
-        div.clientHeight,
-        html,
+        { height: div.clientHeight, html, buttons: widgetContent.buttons },
       );
     });
   }
 
-  private wrapHtml(html: string, editButton = true, sourceButton = true) {
-    return `
-    <div class="button-bar">
-    ${
-      sourceButton
-        ? `<button class="source-button" title="Show Markdown source"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-code"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></button>`
-        : ""
+  private wrapHtml(html: string, buttons?: CodeWidgetButton[]) {
+    if (!buttons) {
+      return html;
     }
-       <button class="reload-button" title="Reload"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
-       ${
-      editButton
-        ? `<button class="edit-button" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>`
-        : ""
-    }
-       </div>
-    ${html}`;
+    return `<div class="button-bar">${
+      buttons.map((button, idx) =>
+        `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
+      ).join("")
+    }</div>${html}`;
   }
 
-  private attachListeners(div: HTMLElement) {
+  private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
     div.querySelectorAll("a[data-ref]").forEach((el_) => {
       const el = el_ as HTMLElement;
       // Override default click behavior with a local navigate (faster)
@@ -160,20 +153,30 @@ export class MarkdownWidget extends WidgetType {
       );
     });
 
-    if (this.from !== undefined) {
-      div.querySelector(".edit-button")!.addEventListener("click", () => {
-        this.client.editorView.dispatch({
-          selection: { anchor: this.from! },
-        });
-        this.client.focus();
-      });
-      div.querySelector(".source-button")!.addEventListener("click", () => {
-        div.innerText = this.renderedMarkdown!;
-      });
+    if (!buttons) {
+      buttons = [];
     }
-    div.querySelector(".reload-button")!.addEventListener("click", () => {
-      this.renderContent(div, undefined).catch(console.error);
-    });
+
+    for (let i = 0; i < buttons.length; i++) {
+      const button = buttons[i];
+      div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
+        "click",
+        () => {
+          this.client.system.localSyscall("system.invokeFunction", [
+            button.invokeFunction,
+            this.from,
+          ]).then((newContent: string | undefined) => {
+            if (newContent) {
+              div.innerText = newContent;
+            }
+            this.client.focus();
+          }).catch(console.error);
+        },
+      );
+    }
+    // div.querySelectorAll("ul > li").forEach((el) => {
+    //   el.classList.add("sb-line-li-1", "sb-line-ul");
+    // });
   }
 
   get estimatedHeight(): number {
@@ -189,3 +192,25 @@ export class MarkdownWidget extends WidgetType {
     );
   }
 }
+
+export function reloadAllMarkdownWidgets() {
+  for (const widget of activeWidgets) {
+    // Garbage collect as we go
+    if (!widget.dom || !widget.dom.parentNode) {
+      activeWidgets.delete(widget);
+      continue;
+    }
+    widget.renderContent(widget.dom!, undefined).catch(console.error);
+  }
+}
+
+function garbageCollectWidgets() {
+  for (const widget of activeWidgets) {
+    if (!widget.dom || !widget.dom.parentNode) {
+      // console.log("Garbage collecting widget", widget.bodyText);
+      activeWidgets.delete(widget);
+    }
+  }
+}
+
+setInterval(garbageCollectWidgets, 5000);

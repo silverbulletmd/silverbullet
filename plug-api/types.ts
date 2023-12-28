@@ -133,6 +133,13 @@ export type CodeWidgetContent = {
   html?: string;
   markdown?: string;
   script?: string;
+  buttons?: CodeWidgetButton[];
+};
+
+export type CodeWidgetButton = {
+  description: string;
+  svg: string;
+  invokeFunction: string;
 };
 
 export type LintDiagnostic = {

@@ -178,6 +178,9 @@ functions:
     env: client
     panelWidget: top
 
+  refreshTOC:
+    path: toc.ts:refreshTOC
+
   lintYAML:
     path: lint.ts:lintYAML
     events:

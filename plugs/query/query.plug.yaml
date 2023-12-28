@@ -26,10 +26,14 @@ functions:
     - editor:complete
 
   refreshAllWidgets:
-    path: widget.ts:refreshAll
+    path: widget.ts:refreshAllWidgets
     command:
       name: "Live Queries and Templates: Refresh All"
       key: "Alt-q"
+
+  # Query widget buttons
+  editButton:
+    path: widget.ts:editButton
 
   # Slash commands
   insertQuery:

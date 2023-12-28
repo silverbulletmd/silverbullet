@@ -149,7 +149,7 @@ export function mountIFrame(
           case "setHeight":
             iframe.height = data.height + "px";
             if (widgetHeightCacheKey) {
-              client.space.setCachedWidgetHeight(
+              client.setCachedWidgetHeight(
                 widgetHeightCacheKey,
                 data.height,
               );

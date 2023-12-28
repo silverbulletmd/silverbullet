@@ -38,7 +38,7 @@ import { OpenPages } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { FileMeta, PageMeta } from "$sb/types.ts";
+import { CodeWidgetButton, FileMeta, PageMeta } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
@@ -188,13 +188,7 @@ export class Client {
     // Load settings
     this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
 
-    // Load widget cache
-    this.widgetCache = new LimitedMap(
-      100,
-      await this.stateDataStore.get(["cache", "widgets"]) ||
-        {},
-    );
-
+    await this.loadCaches();
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
       await this.httpSpacePrimitives.ping();
@@ -484,7 +478,6 @@ export class Client {
 
     this.space = new Space(
       localSpacePrimitives,
-      this.stateDataStore,
       this.eventHook,
     );
 
@@ -1013,7 +1006,56 @@ export class Client {
     return;
   }
 
-  private widgetCache = new LimitedMap<WidgetCacheItem>(100);
+  // Widget and image height caching
+  private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
+  private imageHeightCache = new LimitedMap<number>(100); // url -> height
+  private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
+
+  async loadCaches() {
+    const [imageHeightCache, widgetHeightCache, widgetCache] = await this
+      .stateDataStore.batchGet([["cache", "imageHeight"], [
+        "cache",
+        "widgetHeight",
+      ], ["cache", "widgets"]]);
+    this.imageHeightCache = new LimitedMap(100, imageHeightCache || {});
+    this.widgetHeightCache = new LimitedMap(100, widgetHeightCache || {});
+    this.widgetCache = new LimitedMap(100, widgetCache || {});
+  }
+
+  debouncedImageCacheFlush = throttle(() => {
+    this.stateDataStore.set(["cache", "imageHeight"], this.imageHeightCache)
+      .catch(
+        console.error,
+      );
+    console.log("Flushed image height cache to store");
+  }, 5000);
+
+  setCachedImageHeight(url: string, height: number) {
+    this.imageHeightCache.set(url, height);
+    this.debouncedImageCacheFlush();
+  }
+  getCachedImageHeight(url: string): number {
+    return this.imageHeightCache.get(url) ?? -1;
+  }
+
+  debouncedWidgetHeightCacheFlush = throttle(() => {
+    this.stateDataStore.set(
+      ["cache", "widgetHeight"],
+      this.widgetHeightCache.toJSON(),
+    )
+      .catch(
+        console.error,
+      );
+    // console.log("Flushed widget height cache to store");
+  }, 5000);
+
+  setCachedWidgetHeight(bodyText: string, height: number) {
+    this.widgetHeightCache.set(bodyText, height);
+    this.debouncedWidgetHeightCacheFlush();
+  }
+  getCachedWidgetHeight(bodyText: string): number {
+    return this.widgetHeightCache.get(bodyText) ?? -1;
+  }
 
   debouncedWidgetCacheFlush = throttle(() => {
     this.stateDataStore.set(["cache", "widgets"], this.widgetCache.toJSON())
@@ -1023,8 +1065,8 @@ export class Client {
     console.log("Flushed widget cache to store");
   }, 5000);
 
-  setWidgetCache(key: string, height: number, html: string) {
-    this.widgetCache.set(key, { height, html });
+  setWidgetCache(key: string, cacheItem: WidgetCacheItem) {
+    this.widgetCache.set(key, cacheItem);
     this.debouncedWidgetCacheFlush();
   }
 
@@ -1036,4 +1078,5 @@ export class Client {
 type WidgetCacheItem = {
   height: number;
   html: string;
+  buttons?: CodeWidgetButton[];
 };
