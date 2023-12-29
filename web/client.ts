@@ -1028,7 +1028,7 @@ export class Client {
         console.error,
       );
     console.log("Flushed image height cache to store");
-  }, 5000);
+  }, 2000);
 
   setCachedImageHeight(url: string, height: number) {
     this.imageHeightCache.set(url, height);
@@ -1047,7 +1047,7 @@ export class Client {
         console.error,
       );
     // console.log("Flushed widget height cache to store");
-  }, 5000);
+  }, 2000);
 
   setCachedWidgetHeight(bodyText: string, height: number) {
     this.widgetHeightCache.set(bodyText, height);
@@ -1063,7 +1063,7 @@ export class Client {
         console.error,
       );
     console.log("Flushed widget cache to store");
-  }, 5000);
+  }, 2000);
 
   setWidgetCache(key: string, cacheItem: WidgetCacheItem) {
     this.widgetCache.set(key, cacheItem);

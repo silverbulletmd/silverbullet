@@ -468,7 +468,7 @@
   .sb-markdown-widget,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
-    overflow-y: scroll;
+    overflow-y: auto;
     border: 1px solid var(--editor-directive-background-color);
     border-radius: 5px;
     white-space: wrap;

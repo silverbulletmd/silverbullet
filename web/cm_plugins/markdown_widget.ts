@@ -54,7 +54,10 @@ export class MarkdownWidget extends WidgetType {
     activeWidgets.add(this);
     if (!widgetContent) {
       div.innerHTML = "";
-      // div.style.display = "none";
+      this.client.setWidgetCache(
+        this.bodyText,
+        { height: div.clientHeight, html: "" },
+      );
       return;
     }
     const lang = buildMarkdown(this.client.system.mdExtensions);
