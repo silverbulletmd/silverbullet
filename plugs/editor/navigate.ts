@@ -40,7 +40,7 @@ async function actionClickOrActionEnter(
   switch (mdTree.type) {
     case "WikiLink": {
       let pageLink = mdTree.children![1]!.children![0].text!;
-      let pos;
+      let pos: string | number = 0;
       if (pageLink.includes("@") || pageLink.includes("$")) {
         [pageLink, pos] = pageLink.split(/[@$]/);
         if (pos.match(/^\d+$/)) {

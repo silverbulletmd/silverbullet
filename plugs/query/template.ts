@@ -1,4 +1,4 @@
-import { markdown, space,, YAML } from "$sb/syscalls.ts";
+import { markdown, space, YAML } from "$sb/syscalls.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { CodeWidgetContent, PageMeta } from "$sb/types.ts";
 import { renderTemplate } from "../template/plug_api.ts";
