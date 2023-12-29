@@ -1,4 +1,4 @@
-import { editor, handlebars, markdown, space, YAML } from "$sb/syscalls.ts";
+import { editor, handlebars, space } from "$sb/syscalls.ts";
 import { niceDate, niceTime } from "$sb/lib/dates.ts";
 import { readSettings } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";

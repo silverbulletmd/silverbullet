@@ -162,6 +162,7 @@ export class MarkdownWidget extends WidgetType {
       div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
         "click",
         () => {
+          console.log("Button clicked:", button.description);
           this.client.system.localSyscall("system.invokeFunction", [
             button.invokeFunction,
             this.from,
