@@ -1,11 +1,11 @@
 # Introduction
 SilverBullet aims to be a **workshop for the mind**: a creative [[Spaces|space]] where you collect, create and expand your personal knowledge, while simultaneously letting you evolve the tools you use to do so.
 
-So yeah, SilverBullet is basically a geeky note taking application and personal wiki.
+So yeah, SilverBullet is basically a geeky note-taking application and personal wiki.
 
-While you _can_ use SilverBullet as just a note taking application that stores notes in plain [[Markdown]] files on disk; it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], it becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
+While you _can_ use SilverBullet as just a note-taking application that stores notes in plain [[Markdown]] files on disk; it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], it becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
 
-SilverBullet is _open source_ and implemented as an _offline-capable_ web application ([[PWA]]). In order to use it, you have to _self host_ it: that is, you need to run the web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]].
+SilverBullet is _open source_ and implemented as an _offline-capable_ web application ([[PWA]]). In order to use it, you have to _self-host_ it: that is, you need to run the web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]].
 
 You may have been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
 
@@ -52,7 +52,7 @@ Here’s the kicker:
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally. It’s not a perfect rendition of the actual SilverBullet experience, but pretty close.
+On this site, everything is editable just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally. It’s not a perfect rendition of the actual SilverBullet experience, but it's pretty close.
 
 Don’t just sit there, try it!
 
@@ -87,7 +87,7 @@ function helloWorld() {
 # Beyond Markdown
 Where things get slightly more interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Spaces]]. 
 
-Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we would want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this as follows:
+Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this as follows:
 
 ```query
 plug render [[template/plug]]

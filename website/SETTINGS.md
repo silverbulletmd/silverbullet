@@ -1,4 +1,4 @@
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these in most cases will go into effect immediately, except `indexPage` and `customStyles` which require a reload.
+This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` and `customStyles`, which require a reload.
 
 ```yaml
 # Initial page to load when launching SB
@@ -15,7 +15,7 @@ weeklyNotePrefix: "🗓️ "
 weeklyNoteTemplate: "[[template/page/Weekly Note]]"
 weeklyNoteMonday: false
 
-# (Keyboard) shortcut overrides take presedence over built-in shortcuts
+# (Keyboard) shortcut overrides take precedence over built-in shortcuts
 shortcuts:
   - mac: "Cmd-s" # Mac-specific keyboard shortcut
     key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
