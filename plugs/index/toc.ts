@@ -52,10 +52,15 @@ export async function renderTOC(): Promise<CodeWidgetContent | null> {
     return null;
   }
   // console.log("Headers", headers);
+  // Adjust level down if only sub-headers are used
+  const minLevel = headers.reduce(
+    (min, header) => Math.min(min, header.level),
+    6,
+  );
   const renderedMd = "# Table of Contents\n" +
     headers.map((header) =>
       `${
-        " ".repeat((header.level - 1) * 2)
+        " ".repeat((header.level - minLevel) * 2)
       }* [[${page}@${header.pos}|${header.name}]]`
     ).join("\n");
   // console.log("Markdown", renderedMd);
