@@ -19,11 +19,11 @@ export async function renderMentions(): Promise<CodeWidgetContent | null> {
 
   const page = await editor.getCurrentPage();
   const linksResult = await queryObjects<LinkObject>("link", {
-    // Query all links that point to this page, excluding those that are inside directives and self pointers.
-    filter: ["and", ["!=", ["attr", "page"], ["string", page]], ["and", ["=", [
+    // Query all links that point to this page
+    filter: ["and", ["!=", ["attr", "page"], ["string", page]], ["=", [
       "attr",
       "toPage",
-    ], ["string", page]], ["=", ["attr", "inDirective"], ["boolean", false]]]],
+    ], ["string", page]]],
   });
   if (linksResult.length === 0) {
     // Don't show the panel if there are no links here.

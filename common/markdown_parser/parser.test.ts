@@ -51,28 +51,6 @@ Deno.test("Test parser", () => {
   assertEquals(node, undefined);
 });
 
-const directiveSample = `
-Before
-<!-- #query page -->
-Body line 1
-
-Body line 2
-<!-- /query -->
-End
-`;
-
-const nestedDirectiveExample = `
-Before
-<!-- #query page -->
-1
-<!-- #eval 10 * 10 -->
-100
-<!-- /eval -->
-3
-<!-- /query -->
-End
-`;
-
 const inlineAttributeSample = `
 Hello there [a link](http://zef.plus)
 [age: 100]
@@ -152,9 +130,9 @@ Deno.test("Test command link arguments", () => {
   const commands = collectNodesOfType(tree, "CommandLink");
   assertEquals(commands.length, 2);
 
-  const args1 = findNodeOfType(commands[0], "CommandLinkArgs")
+  const args1 = findNodeOfType(commands[0], "CommandLinkArgs");
   assertEquals(args1!.children![0].text, '"with", "args"');
 
-  const args2 = findNodeOfType(commands[1], "CommandLinkArgs")
+  const args2 = findNodeOfType(commands[1], "CommandLinkArgs");
   assertEquals(args2!.children![0].text, '"other", "args", 123');
 });

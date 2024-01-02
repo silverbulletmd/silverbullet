@@ -101,10 +101,7 @@ html {
   --editor-frontmatter-background-color: rgba(255, 246, 189, 0.5);
   --editor-frontmatter-color: var(--subtle-color);
   --editor-frontmatter-marker-color: #89000080;
-  --editor-directive-background-color: rgb(238, 238, 238);
-  --editor-directive-border-color: #0000000f;
-  --editor-directive-color: #5b5b5b;
-  --editor-directive-info-color: var(--subtle-color);
+  --editor-widget-background-color: rgb(238, 238, 238);
   --editor-task-marker-color: var(--subtle-color);
   --editor-task-state-color: var(--subtle-color);
 
@@ -219,9 +216,6 @@ html[data-theme="dark"] {
   --editor-frontmatter-background-color: rgb(41, 40, 35, 0.5);
   --editor-frontmatter-color: var(--subtle-color);
   --editor-frontmatter-marker-color: #fff;
-  --editor-directive-background-color: rgba(72, 72, 72, 0.5);
-  --editor-directive-border-color: #0000000f;
-  --editor-directive-color: #5b5b5b;
-  --editor-directive-info-color: var(--subtle-color);
+  --editor-widget-background-color: rgba(72, 72, 72, 0.5);
   --editor-task-marker-color: var(--subtle-color);
 }

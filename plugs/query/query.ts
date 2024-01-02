@@ -1,4 +1,4 @@
-import type { LintEvent, WidgetContent } from "$sb/app_event.ts";
+import type { LintEvent } from "$sb/app_event.ts";
 import { events, language, space } from "$sb/syscalls.ts";
 import {
   findNodeOfType,
@@ -6,10 +6,10 @@ import {
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-import { jsonToMDTable, renderQueryTemplate } from "../directive/util.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
 import { CodeWidgetContent, LintDiagnostic } from "$sb/types.ts";
+import { jsonToMDTable, renderQueryTemplate } from "../template/util.ts";
 
 export async function widget(
   bodyText: string,

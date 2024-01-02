@@ -5,7 +5,6 @@ export const builtinPlugNames = [
   "sync",
   "template",
   "plug-manager",
-  "directive",
   "emoji",
   "query",
   "markdown",

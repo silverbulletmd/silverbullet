@@ -1,12 +1,6 @@
 import { ParseTree, renderToText, replaceNodesMatching } from "$sb/lib/tree.ts";
 import { FunctionMap, KV, Query, QueryExpression } from "$sb/types.ts";
 
-export const queryRegex =
-  /(<!--\s*#query\s+(.+?)-->)(.+?)(<!--\s*\/query\s*-->)/gs;
-
-export const directiveStartRegex = /<!--\s*#([\w\-]+)\s+(.+?)-->/s;
-export const directiveEndRegex = /<!--\s*\/([\w\-]+)\s*-->/s;
-
 export function evalQueryExpression(
   val: QueryExpression,
   obj: any,
@@ -245,18 +239,4 @@ export function applyQueryNoFilterKV(
     }
   }
   return allItems;
-}
-
-export function removeQueries(pt: ParseTree) {
-  replaceNodesMatching(pt, (t) => {
-    if (t.type !== "Directive") {
-      return;
-    }
-    const renderedText = renderToText(t);
-    return {
-      from: t.from,
-      to: t.to,
-      text: new Array(renderedText.length + 1).join(" "),
-    };
-  });
 }

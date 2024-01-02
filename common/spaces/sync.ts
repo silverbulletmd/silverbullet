@@ -1,6 +1,3 @@
-import { renderToText, replaceNodesMatching } from "../../plug-api/lib/tree.ts";
-import buildMarkdown from "../markdown_parser/parser.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../../plugos/event.ts";
 import { FileMeta } from "$sb/types.ts";
@@ -305,56 +302,32 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     const pageData1 = await primary.readFile(name);
     const pageData2 = await secondary.readFile(name);
 
-    if (name.endsWith(".md")) {
-      console.log(
-        "[sync]",
-        "File is markdown, using smart conflict resolution",
-      );
-      // Let's use a smartert check for markdown files, ignoring directive bodies
-      const pageText1 = removeDirectiveBody(
-        new TextDecoder().decode(pageData1.data),
-      );
-      const pageText2 = removeDirectiveBody(
-        new TextDecoder().decode(pageData2.data),
-      );
-      if (pageText1 === pageText2) {
-        console.log(
-          "[sync]",
-          "Files are the same (eliminating the directive bodies), no conflict",
-        );
+    let byteWiseMatch = true;
+    const arrayBuffer1 = pageData1.data;
+    const arrayBuffer2 = pageData2.data;
+    if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
+      byteWiseMatch = false;
+    }
+    if (byteWiseMatch) {
+      // Byte-wise comparison
+      for (let i = 0; i < arrayBuffer1.byteLength; i++) {
+        if (arrayBuffer1[i] !== arrayBuffer2[i]) {
+          byteWiseMatch = false;
+          break;
+        }
+      }
+      // Byte wise they're still the same, so no confict
+      if (byteWiseMatch) {
+        console.log("[sync]", "Files are the same, no conflict");
+
         snapshot.set(name, [
           pageData1.meta.lastModified,
           pageData2.meta.lastModified,
         ]);
         return 0;
       }
-    } else {
-      let byteWiseMatch = true;
-      const arrayBuffer1 = pageData1.data;
-      const arrayBuffer2 = pageData2.data;
-      if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
-        byteWiseMatch = false;
-      }
-      if (byteWiseMatch) {
-        // Byte-wise comparison
-        for (let i = 0; i < arrayBuffer1.byteLength; i++) {
-          if (arrayBuffer1[i] !== arrayBuffer2[i]) {
-            byteWiseMatch = false;
-            break;
-          }
-        }
-        // Byte wise they're still the same, so no confict
-        if (byteWiseMatch) {
-          console.log("[sync]", "Files are the same, no conflict");
-
-          snapshot.set(name, [
-            pageData1.meta.lastModified,
-            pageData2.meta.lastModified,
-          ]);
-          return 0;
-        }
-      }
     }
+
     let operations = 0;
     const revisionFileName = filePieces.length === 1
       ? `${name}.conflicted.${pageData2.meta.lastModified}`
@@ -402,19 +375,4 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       return files;
     }
   }
-}
-
-const markdownLanguage = buildMarkdown([]);
-
-export function removeDirectiveBody(text: string): string {
-  // Parse
-  const tree = parse(markdownLanguage, text);
-  // Remove bodies
-  replaceNodesMatching(tree, (node) => {
-    if (node.type === "DirectiveBody") {
-      return null;
-    }
-  });
-  // Turn back into text
-  return renderToText(tree);
 }

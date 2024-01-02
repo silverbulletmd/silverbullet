@@ -317,27 +317,6 @@
     color: var(--editor-frontmatter-marker-color);
   }
 
-  // Directives
-
-  .sb-directive-body {
-    border-left: 1px solid var(--editor-directive-border-color);
-    border-right: 1px solid var(--editor-directive-border-color);
-  }
-
-  .cm-line.sb-directive-start,
-  .cm-line.sb-directive-end {
-    color: var(--editor-directive-color);
-    border-color: var(--editor-directive-border-color);
-    background-color: var(--editor-directive-background-color);
-  }
-
-  .sb-directive-start-outside,
-  .sb-directive-end-outside {
-    &>span.sb-directive-placeholder {
-      color: var(--editor-directive-info-color);
-    }
-  }
-
   .sb-emphasis {
     font-style: italic;
   }

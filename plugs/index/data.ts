@@ -1,7 +1,6 @@
 import type { IndexTreeEvent } from "$sb/app_event.ts";
 import { YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
-import { removeQueries } from "$sb/lib/query.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 import { TagObject } from "./tags.ts";
@@ -15,8 +14,6 @@ type DataObject = ObjectValue<
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: ObjectValue<DataObject>[] = [];
-
-  removeQueries(tree);
 
   await Promise.all(
     collectNodesOfType(tree, "FencedCode").map(async (t) => {

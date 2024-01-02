@@ -3,7 +3,6 @@ import type { Extension } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { blockquotePlugin } from "./block_quote.ts";
 import { admonitionPlugin } from "./admonition.ts";
-import { directivePlugin } from "./directive.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
 import { linkPlugin } from "./link.ts";
@@ -17,7 +16,6 @@ import { fencedCodePlugin } from "./fenced_code.ts";
 export function cleanModePlugins(editor: Client) {
   return [
     linkPlugin(editor),
-    directivePlugin(),
     blockquotePlugin(),
     admonitionPlugin(editor),
     hideMarksPlugin(),

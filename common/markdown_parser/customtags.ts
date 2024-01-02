@@ -13,11 +13,6 @@ export const OrderedList = Tag.define();
 export const Highlight = Tag.define();
 export const HorizontalRuleTag = Tag.define();
 
-export const DirectiveTag = Tag.define();
-export const DirectiveStartTag = Tag.define();
-export const DirectiveEndTag = Tag.define();
-export const DirectiveProgramTag = Tag.define();
-
 export const AttributeTag = Tag.define();
 export const AttributeNameTag = Tag.define();
 export const AttributeValueTag = Tag.define();

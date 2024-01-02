@@ -43,11 +43,6 @@ export async function brokenLinksCommand() {
         }
       }
 
-      if (tree.type === "DirectiveBody") {
-        // Don't look inside directive bodies
-        return true;
-      }
-
       return false;
     });
   }

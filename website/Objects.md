@@ -128,7 +128,7 @@ _Note_: this is the data source used for the {[Mentions: Toggle]} feature as wel
 Here is a query that shows all links that appear in this particular page:
 
 ```query
-link where page = "{{@page.name}}" and inDirective = false 
+link where page = "{{@page.name}}"
 ```
 
 ## anchor
