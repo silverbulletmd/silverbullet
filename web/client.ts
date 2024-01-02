@@ -287,57 +287,59 @@ export class Client {
       cleanPageRef(this.settings.indexPage),
     );
 
-    this.pageNavigator.subscribe(async (pageName, pos: number | string) => {
-      console.log("Now navigating to", pageName);
+    this.pageNavigator.subscribe(
+      async (pageName, pos: number | string | undefined) => {
+        console.log("Now navigating to", pageName, pos);
 
-      const stateRestored = await this.loadPage(pageName);
-      if (pos) {
-        if (typeof pos === "string") {
-          console.log("Navigating to anchor", pos);
+        const stateRestored = await this.loadPage(pageName, pos === undefined);
+        if (pos) {
+          if (typeof pos === "string") {
+            console.log("Navigating to anchor", pos);
 
-          // We're going to look up the anchor through a API invocation
-          const matchingAnchor = await this.system.system.localSyscall(
-            "index",
-            "system.invokeFunction",
-            ["getObjectByRef", pageName, "anchor", `${pageName}$${pos}`],
-          );
-
-          if (!matchingAnchor) {
-            return this.flashNotification(
-              `Could not find anchor $${pos}`,
-              "error",
+            // We're going to look up the anchor through a API invocation
+            const matchingAnchor = await this.system.system.localSyscall(
+              "index",
+              "system.invokeFunction",
+              ["getObjectByRef", pageName, "anchor", `${pageName}$${pos}`],
             );
-          } else {
-            pos = matchingAnchor.pos as number;
-          }
-        }
-        setTimeout(() => {
-          this.editorView.dispatch({
-            selection: { anchor: pos as number },
-            effects: EditorView.scrollIntoView(pos as number, { y: "start" }),
-          });
-        });
-      } else if (!stateRestored) {
-        // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
-        const pageText = this.editorView.state.sliceDoc();
 
-        // Default the cursor to be at position 0
-        let initialCursorPos = 0;
-        const match = frontMatterRegex.exec(pageText);
-        if (match) {
-          // Frontmatter found, put cursor after it
-          initialCursorPos = match[0].length;
+            if (!matchingAnchor) {
+              return this.flashNotification(
+                `Could not find anchor $${pos}`,
+                "error",
+              );
+            } else {
+              pos = matchingAnchor.pos as number;
+            }
+          }
+          setTimeout(() => {
+            this.editorView.dispatch({
+              selection: { anchor: pos as number },
+              effects: EditorView.scrollIntoView(pos as number, { y: "start" }),
+            });
+          });
+        } else if (!stateRestored) {
+          // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
+          const pageText = this.editorView.state.sliceDoc();
+
+          // Default the cursor to be at position 0
+          let initialCursorPos = 0;
+          const match = frontMatterRegex.exec(pageText);
+          if (match) {
+            // Frontmatter found, put cursor after it
+            initialCursorPos = match[0].length;
+          }
+          // By default scroll to the top
+          this.editorView.scrollDOM.scrollTop = 0;
+          this.editorView.dispatch({
+            selection: { anchor: initialCursorPos },
+            // And then scroll down if required
+            scrollIntoView: true,
+          });
         }
-        // By default scroll to the top
-        this.editorView.scrollDOM.scrollTop = 0;
-        this.editorView.dispatch({
-          selection: { anchor: initialCursorPos },
-          // And then scroll down if required
-          scrollIntoView: true,
-        });
-      }
-      await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
-    });
+        await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
+      },
+    );
 
     if (location.hash === "#boot") {
       (async () => {
@@ -846,10 +848,12 @@ export class Client {
     await this.pageNavigator!.navigate(name, pos, replaceState);
   }
 
-  async loadPage(pageName: string): Promise<boolean> {
+  async loadPage(pageName: string, restoreState = true): Promise<boolean> {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
     const previousPage = this.currentPage;
+
+    // console.log("Navigating to", pageName, restoreState);
 
     // Persist current page state and nicely close page
     if (previousPage) {
@@ -915,7 +919,7 @@ export class Client {
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM);
     }
-    const stateRestored = this.openPages.restoreState(pageName);
+    const stateRestored = restoreState && this.openPages.restoreState(pageName);
     this.space.watchPage(pageName);
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)

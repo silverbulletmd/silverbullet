@@ -471,7 +471,7 @@
     overflow-y: auto;
     border: 1px solid var(--editor-directive-background-color);
     border-radius: 5px;
-    white-space: wrap;
+    white-space: normal;
     position: relative;
 
     ul,
@@ -520,21 +520,27 @@
       background-color: var(--editor-code-background-color);
     }
 
-    // Button bar
-    &:hover .button-bar,
-    &:active .button-bar {
+    // Only show the button bar on hover on non-touch devices
+    &:hover .button-bar {
       display: block;
+    }
+
+    // Always show button bar on touch devices
+    @media (hover: none) and (pointer: coarse) {
+      .button-bar {
+        display: block !important;
+      }
     }
 
     .button-bar {
       position: absolute;
-      right: 10px;
-      top: 10px;
+      right: 0;
+      top: 0;
       display: none;
       background: var(--editor-directive-background-color);
       padding-inline: 3px;
-      padding-bottom: 1px;
-      border-radius: 5px;
+      padding: 4px 0;
+      // border-radius: 0 5px;
 
 
       button {
@@ -543,6 +549,10 @@
         cursor: pointer;
         color: var(--root-color);
         margin-right: -8px;
+      }
+
+      button:last-of-type {
+        margin-right: 2px;
       }
 
     }

@@ -13,20 +13,24 @@ export class PathPageNavigator {
 
   constructor(readonly indexPage: string, readonly root: string = "") {}
 
-  async navigate(page: string, pos?: number | string, replaceState = false) {
+  async navigate(
+    page: string,
+    pos?: number | string | undefined,
+    replaceState = false,
+  ) {
     let encodedPage = encodePageUrl(page);
     if (page === this.indexPage) {
       encodedPage = "";
     }
     if (replaceState) {
       window.history.replaceState(
-        { page, pos },
+        { page },
         page,
         `${this.root}/${encodedPage}`,
       );
     } else {
       window.history.pushState(
-        { page, pos },
+        { page },
         page,
         `${this.root}/${encodedPage}`,
       );
@@ -43,7 +47,10 @@ export class PathPageNavigator {
   }
 
   subscribe(
-    pageLoadCallback: (pageName: string, pos: number | string) => Promise<void>,
+    pageLoadCallback: (
+      pageName: string,
+      pos: number | string | undefined,
+    ) => Promise<void>,
   ): void {
     const cb = (event?: PopStateEvent) => {
       const gotoPage = this.getCurrentPage();
@@ -53,7 +60,7 @@ export class PathPageNavigator {
       safeRun(async () => {
         await pageLoadCallback(
           this.getCurrentPage(),
-          event?.state?.pos || this.getCurrentPos(),
+          event?.state?.pos,
         );
         if (this.navigationResolve) {
           this.navigationResolve();
