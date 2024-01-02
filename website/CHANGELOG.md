@@ -2,6 +2,12 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## Next
+_Not yet released, this will likely become 0.6.0._
+
+* **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
+
+---
 
 ## 0.5.11
 * Keyboard shortcuts as well as priority (order in which they appear in the [[Command Palette]]) can now be configured for [[Commands]] in [[SETTINGS]]. The `priority` enables you to put frequently used commands at the top.
