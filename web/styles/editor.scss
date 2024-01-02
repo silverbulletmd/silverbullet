@@ -429,7 +429,28 @@
     margin-top: 10px;
   }
 
+  .sb-frontmatter-first-line {
+    display: none;
+  }
+
+  .sb-frontmatter-last-line {
+    background-color: transparent;
+    line-height: 0;
+  }
+
+  .sb-markdown-frontmatter-widget {
+    margin-top: -2ch;
+
+    span.hashtag {
+      border-radius: 6px;
+      padding: 0 3px;
+      margin: 0 1px 0 0;
+      font-size: 0.9em;
+    }
+  }
+
   .sb-markdown-widget,
+  .sb-markdown-frontmatter-widget,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
     overflow-y: auto;

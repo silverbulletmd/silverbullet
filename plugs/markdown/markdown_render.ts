@@ -267,7 +267,10 @@ function render(
     }
     case "Hashtag":
       return {
-        name: "strong",
+        name: "span",
+        attrs: {
+          class: "hashtag",
+        },
         body: t.children![0].text!,
       };
 
