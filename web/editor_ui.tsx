@@ -243,7 +243,7 @@ export class MainUI {
               icon: HomeIcon,
               description: `Go to the index page (Alt-h)`,
               callback: () => {
-                client.navigate("");
+                client.navigate("", 0);
               },
               href: "",
             },
