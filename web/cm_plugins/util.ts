@@ -28,10 +28,26 @@ export class LinkWidget extends WidgetType {
     const anchor = document.createElement("a");
     anchor.className = this.options.cssClass;
     anchor.textContent = this.options.text;
-    anchor.addEventListener("click", (e) => {
+
+    // Mouse handling
+    anchor.addEventListener("mousedown", (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.options.callback(e);
+    });
+
+    // Touch handling
+    let touchCount = 0;
+    anchor.addEventListener("touchmove", () => {
+      touchCount++;
+    });
+    anchor.addEventListener("touchend", (e) => {
+      if (touchCount === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.options.callback(new MouseEvent("click", e));
+      }
+      touchCount = 0;
     });
     anchor.setAttribute("title", this.options.title);
     anchor.href = this.options.href || "#";

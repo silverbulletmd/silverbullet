@@ -10,7 +10,7 @@
     "@codemirror/state": "https://esm.sh/@codemirror/state@6.3.3&target=es2022",
     "@codemirror/language": "https://esm.sh/@codemirror/language@6.9.3?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.2.4?external=@codemirror/state,@codemirror/view&target=es2022",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.9.0?external=@codemirror/state,@lezer/common&target=es2022",
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.23.0?external=@codemirror/state,@lezer/common&target=es2022",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.7.1?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view&target=es2022",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.4.1?external=@codemirror/state,@codemirror/view,@lezer/common&target=es2022",
     "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/lr,@lezer/html&target=es2022",

@@ -104,7 +104,7 @@ export class MarkdownWidget extends WidgetType {
     setTimeout(() => {
       this.client.setWidgetCache(
         this.bodyText,
-        { height: div.clientHeight, html, buttons: widgetContent.buttons },
+        { height: div.offsetHeight, html, buttons: widgetContent.buttons },
       );
     });
   }
@@ -185,7 +185,7 @@ export class MarkdownWidget extends WidgetType {
 
   get estimatedHeight(): number {
     const cacheItem = this.client.getWidgetCache(this.bodyText);
-    // console.log("Calling estimated height", cacheItem);
+    console.log("Calling estimated height", this.bodyText, cacheItem);
     return cacheItem ? cacheItem.height : -1;
   }
 

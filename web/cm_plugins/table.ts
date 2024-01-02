@@ -63,7 +63,7 @@ class TableViewWidget extends WidgetType {
     const height = this.client.getCachedWidgetHeight(
       `table:${this.tableBodyText}`,
     );
-    console.log("Calling estimated height for table", height);
+    // console.log("Calling estimated height for table", height);
     return height;
   }
 

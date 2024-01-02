@@ -185,6 +185,12 @@ export function mountIFrame(
       iframe.contentWindow!.location.href = resolvedContent.url;
       if (resolvedContent.height) {
         iframe.height = resolvedContent.height + "px";
+        if (widgetHeightCacheKey) {
+          client.setCachedWidgetHeight(
+            widgetHeightCacheKey!,
+            resolvedContent.height,
+          );
+        }
       }
       if (resolvedContent.width) {
         iframe.width = resolvedContent.width + "px";
