@@ -9,9 +9,9 @@ release.
 ---
 
 ## 0.5.10
-* **Breaking change**: Local attachment URLs (`[page](url)` syntax and `![alt](url)` image syntax) are now interpreted to relative to the page's folder, unless their URL starts with a `/` then they're relative to the space root (as per [this issue](https://github.com/silverbulletmd/silverbullet/issues/363))
+* **Breaking change**: Local attachment URLs (`[page](url)` syntax and `![alt](url)` image syntax) are now interpreted relative to the page's folder unless their URL starts with a `/`, then they're relative to the space root (as per [this issue](https://github.com/silverbulletmd/silverbullet/issues/363))
 * **Breaking change:** Revamped [[Templates]], specifically changed the format of [[Page Templates]]. The “Template: Instantiate Page” has been renamed to {[Page: From Template]}.
-* It is now even more recommended to tag your [[Templates]] with the “template” tag, because completion in [[Live Queries]] and [[Live Templates]] will now only suggest `#template` tagged pages.
+* It is now even more recommended to tag your [[Templates]] with the “template” tag because completion in [[Live Queries]] and [[Live Templates]] will now only suggest `#template` tagged pages.
 * New [[Frontmatter]] attributes with special meaning: `displayName` and `aliases` (allowing to specify alternative names for pages)
 * The [[Page Picker]] now also shows (and matches against) tags, aliases and display names for pages.
 * It is now possible to filter pages based on tags in the [[Page Picker]] by typing a hashtag in the filter phrase, e.g. `#template` to filter pages that have a `template` tag.
@@ -48,7 +48,7 @@ release.
 * Various optimization and bug fixes
 * Experimental idea: [[Template Sets]]
 * The `Alt-Shift-n` key was previously bound to both {[Page: New]} and {[Quick Note]}. That won’t work, so now it’s just bound to {[Quick Note]}
-* The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
+* The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command, refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
 * It’s likely that version 0.6.0 **will remove directives**, so please switch over to live queries and templates, e.g. using...
   * The new {[Directive: Convert Entire Space to Live/Templates]} command, which will (attempt) to convert all uses of directives in your space automatically (backup your space before, though, just in case)
 
@@ -97,11 +97,11 @@ release.
 ## 0.5.0
 Oh boy, this is a big one. This release brings you the following:
 
-* [[Objects]]: a more generic system to indexing and querying content in your space, including the ability to define your own custom object “types” (dubbed [[Tags]]). See the referenced pages for examples.
+* [[Objects]]: a more generic system for indexing and querying content in your space, including the ability to define your own custom object “types” (dubbed [[Tags]]). See the referenced pages for examples.
 * [[Live Queries]] and [[Live Templates]]: ultimately will replace [[🔌 Directive]] in future versions and **[[🔌 Directive]] is now deprecated.** They differ from directives in that they don’t materialize their output into the page itself, but rather render them on the fly so only the query/template instantiation is kept on disk. All previous directive examples on this website how now been replaced with [[Live Templates]] and [[Live Queries]]. To ease the conversion there is {[Directive: Convert Query to Live Query]} command: just put your cursor inside of an existing (query) directive and run it to auto-convert.
 * The query syntax used in [[Live Queries]] (but also used in [[🔌 Directive]]) has been significantly expanded, although there may still be bugs. There’s still more value to be unlocked here in future releases.
 * The previous “backlinks” plug is now built into SilverBullet as [[Linked Mentions]] and appears at the bottom of every page (if there are incoming links). You can toggle linked mentions via {[Mentions: Toggle]}.
-* A whole bunch of [[PlugOS]] syscalls have been updated, I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
+* A whole bunch of [[PlugOS]] syscalls have been updated. I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
 * This release effectively already removes the `#eval` [[🔌 Directive]] (it’s still there, but likely not working), this directive needs some rethinking. Join us on [Discord](https://discord.gg/EvXbFucTxn) if you have a use case for it and how you use/want to use it.
 
 **Important**:
