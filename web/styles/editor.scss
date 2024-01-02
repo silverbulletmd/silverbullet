@@ -403,6 +403,11 @@
     font-weight: bold;
   }
 
+  thead tr td {
+    // Primarily to make the column headers look reasonable with the button bar that may be put on top
+    padding: 11px 8px;
+  }
+
   th,
   td {
     padding: 8px;
@@ -549,6 +554,7 @@
         cursor: pointer;
         color: var(--root-color);
         margin-right: -8px;
+        padding: 11px 8px;
       }
 
       button:last-of-type {

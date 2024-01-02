@@ -15,13 +15,15 @@ weeklyNotePrefix: "🗓️ "
 weeklyNoteTemplate: "[[template/page/Weekly Note]]"
 weeklyNoteMonday: false
 
-# (Keyboard) shortcut overrides take precedence over built-in shortcuts
+# It is possible to override keyboard shortcuts and command priority
 shortcuts:
-  - mac: "Cmd-s" # Mac-specific keyboard shortcut
-    key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
-    command: "{[Stats: Show]}" # Using the command link syntax here
-  - key: "Alt-x"
-    command: "Navigate: Center Cursor" # But a command name is also supported
+- command: "{[Stats: Show]}" # Using the command link syntax here
+  mac: "Cmd-s" # Mac-specific keyboard shortcut
+  key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
+- command: "Navigate: Center Cursor" # But a command name is also supported 
+  key: "Alt-x"
+- command: "{[Upload: File]}"
+  priority: 1 # Make sure this appears at the top of the list in the command palette
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |
