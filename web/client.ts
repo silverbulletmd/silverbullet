@@ -1016,30 +1016,13 @@ export class Client {
   private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
 
   async loadCaches() {
-    const [imageHeightCache, widgetHeightCache, widgetCache] = await this
-      .stateDataStore.batchGet([["cache", "imageHeight"], [
+    const [widgetHeightCache, widgetCache] = await this
+      .stateDataStore.batchGet([[
         "cache",
         "widgetHeight",
       ], ["cache", "widgets"]]);
-    this.imageHeightCache = new LimitedMap(100, imageHeightCache || {});
     this.widgetHeightCache = new LimitedMap(100, widgetHeightCache || {});
     this.widgetCache = new LimitedMap(100, widgetCache || {});
-  }
-
-  debouncedImageCacheFlush = throttle(() => {
-    this.stateDataStore.set(["cache", "imageHeight"], this.imageHeightCache)
-      .catch(
-        console.error,
-      );
-    console.log("Flushed image height cache to store");
-  }, 2000);
-
-  setCachedImageHeight(url: string, height: number) {
-    this.imageHeightCache.set(url, height);
-    this.debouncedImageCacheFlush();
-  }
-  getCachedImageHeight(url: string): number {
-    return this.imageHeightCache.get(url) ?? -1;
   }
 
   debouncedWidgetHeightCacheFlush = throttle(() => {

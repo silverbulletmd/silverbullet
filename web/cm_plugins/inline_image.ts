@@ -25,7 +25,7 @@ class InlineImageWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedImageHeight(this.url);
+    const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
     // console.log("Estimated height requested", this.url, cachedHeight);
     return cachedHeight;
   }
@@ -35,11 +35,13 @@ class InlineImageWidget extends WidgetType {
     let url = this.url;
     url = resolvePath(this.client.currentPage!, url, true);
     // console.log("Creating DOM", this.url);
-    const cachedImageHeight = this.client.getCachedImageHeight(url);
+    const cachedImageHeight = this.client.getCachedWidgetHeight(
+      `image:${this.url}`,
+    );
     img.onload = () => {
       // console.log("Loaded", this.url, "with height", img.height);
       if (img.height !== cachedImageHeight) {
-        this.client.setCachedImageHeight(url, img.height);
+        this.client.setCachedWidgetHeight(`image:${this.url}`, img.height);
       }
     };
     img.src = url;

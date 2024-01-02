@@ -6,18 +6,20 @@ import {
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
-import { ParseTree } from "$sb/lib/tree.ts";
+import { ParseTree, renderToText } from "$sb/lib/tree.ts";
 import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 
 class TableViewWidget extends WidgetType {
+  tableBodyText: string;
   constructor(
     readonly pos: number,
-    readonly editor: Client,
+    readonly client: Client,
     readonly t: ParseTree,
   ) {
     super();
+    this.tableBodyText = renderToText(t);
   }
 
   toDOM(): HTMLElement {
@@ -27,7 +29,7 @@ class TableViewWidget extends WidgetType {
       // Pulling data-pos to put the cursor in the right place, falling back
       // to the start of the table.
       const dataAttributes = (e.target as any).dataset;
-      this.editor.editorView.dispatch({
+      this.client.editorView.dispatch({
         selection: {
           anchor: dataAttributes.pos ? +dataAttributes.pos : this.pos,
         },
@@ -40,14 +42,36 @@ class TableViewWidget extends WidgetType {
       annotationPositions: true,
       translateUrls: (url) => {
         if (!url.includes("://")) {
-          url = resolveAttachmentPath(this.editor.currentPage!, decodeURI(url));
+          url = resolveAttachmentPath(this.client.currentPage!, decodeURI(url));
         }
 
         return url;
       },
       preserveAttributes: true,
     });
+
+    setTimeout(() => {
+      this.client.setCachedWidgetHeight(
+        `table:${this.tableBodyText}`,
+        dom.clientHeight,
+      );
+    });
     return dom;
+  }
+
+  get estimatedHeight(): number {
+    const height = this.client.getCachedWidgetHeight(
+      `table:${this.tableBodyText}`,
+    );
+    console.log("Calling estimated height for table", height);
+    return height;
+  }
+
+  eq(other: WidgetType): boolean {
+    return (
+      other instanceof TableViewWidget &&
+      other.tableBodyText === this.tableBodyText
+    );
   }
 }
 
