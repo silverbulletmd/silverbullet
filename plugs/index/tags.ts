@@ -1,5 +1,4 @@
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
-import { removeQueries } from "$sb/lib/query.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import {
@@ -16,7 +15,6 @@ export type TagObject = ObjectValue<{
 }>;
 
 export async function indexTags({ name, tree }: IndexTreeEvent) {
-  removeQueries(tree);
   const tags = new Set<string>(); // name:parent
   addParentPointers(tree);
   const pageTags: string[] = (await extractFrontmatter(tree)).tags;

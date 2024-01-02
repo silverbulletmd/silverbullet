@@ -25,7 +25,7 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "./deps.ts";
-import { highlightingDirectiveParser } from "./markdown_parser/parser.ts";
+import { highlightingQueryParser } from "./markdown_parser/parser.ts";
 
 export const builtinLanguages: Record<string, Language> = {
   "meta": StreamLanguage.define(yamlLanguage),
@@ -79,7 +79,7 @@ export const builtinLanguages: Record<string, Language> = {
   "dart": StreamLanguage.define(dartLanguage),
   "query": LRLanguage.define({
     name: "query",
-    parser: highlightingDirectiveParser,
+    parser: highlightingQueryParser,
   }),
 };
 

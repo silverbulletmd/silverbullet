@@ -49,29 +49,6 @@ export function isFederationPath(path: string) {
 
 export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
   traverseTree(tree, (n): boolean => {
-    if (n.type === "DirectiveStart") {
-      const pageRef = findNodeOfType(n, "PageRef")!;
-      if (pageRef) {
-        const pageRefName = pageRef.children![0].text!.slice(2, -2);
-        pageRef.children![0].text = `[[${
-          resolvePath(containerPageName, pageRefName)
-        }]]`;
-      }
-      const directiveText = n.children![0].text;
-      // #use or #import
-      if (directiveText) {
-        const match = /\[\[(.+)\]\]/.exec(directiveText);
-        if (match) {
-          const pageRefName = match[1];
-          n.children![0].text = directiveText.replace(
-            match[0],
-            `[[${resolvePath(containerPageName, pageRefName)}]]`,
-          );
-        }
-      }
-
-      return true;
-    }
     if (n.type === "FencedCode") {
       const codeInfo = findNodeOfType(n, "CodeInfo");
       if (!codeInfo) {

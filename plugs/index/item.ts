@@ -1,7 +1,6 @@
 import type { IndexTreeEvent } from "$sb/app_event.ts";
 
 import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { removeQueries } from "$sb/lib/query.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$sb/types.ts";
@@ -17,7 +16,6 @@ export type ItemObject = ObjectValue<
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items: ObjectValue<ItemObject>[] = [];
-  removeQueries(tree);
 
   // console.log("Indexing items", name);
 

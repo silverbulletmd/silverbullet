@@ -48,7 +48,6 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.invalid, class: "sb-invalid" },
     { tag: t.processingInstruction, class: "sb-meta" },
     { tag: t.punctuation, class: "sb-punctuation" },
-    { tag: ct.DirectiveTag, class: "sb-directive" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
     ...mdExtension.map((mdExt) => {
       return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };

@@ -29,7 +29,7 @@ cp -r dist_plug_bundle/_plug/* website_build/_plug/
 #echo "And additional ones"
 curl https://raw.githubusercontent.com/silverbulletmd/silverbullet-mermaid/main/mermaid.plug.js > website_build/_plug/mermaid.plug.js
 echo "But remove some plugs"
-rm -rf website_build/_plug/{plugmd,directive}.plug.js
+rm -rf website_build/_plug/{plugmd}.plug.js
 
 
 # Generate random modified date, and replace in _headers too

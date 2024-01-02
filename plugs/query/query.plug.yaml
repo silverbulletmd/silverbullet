@@ -45,15 +45,6 @@ functions:
         ```query
         |^|
         ```
-  insertInclude:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: include
-      description: Include another page
-      value: |
-        <!-- #include [[|^|]] -->
-
-        <!-- /include -->
   insertUseTemplate:
     redirect: template.insertTemplateText
     slashCommand:

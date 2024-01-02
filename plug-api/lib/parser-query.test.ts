@@ -1,17 +1,16 @@
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import buildMarkdown from "../../common/markdown_parser/parser.ts";
-import { AST, findNodeOfType, parseTreeToAST } from "$sb/lib/tree.ts";
+import { AST, parseTreeToAST } from "$sb/lib/tree.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
-
-const lang = buildMarkdown([]);
+import { languageFor } from "../../common/languages.ts";
 
 function wrapQueryParse(query: string): AST | null {
-  const tree = parse(lang, `<!-- #query ${query} -->\n$\n<!-- /query -->`);
-  return parseTreeToAST(findNodeOfType(tree, "Query")!);
+  const tree = parse(languageFor("query")!, query);
+  // console.log("tree", tree);
+  return parseTreeToAST(tree.children![0]);
 }
 
-Deno.test("Test directive parser", () => {
+Deno.test("Test query parser", () => {
   // const query = ;
   // console.log("query", query);
   assertEquals(

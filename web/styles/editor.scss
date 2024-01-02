@@ -316,47 +316,6 @@
     font-size: 91%;
   }
 
-  .sb-directive-start {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    border-style: solid;
-    border-width: 1px 1px 0 1px;
-    padding: 3px;
-  }
-
-  .sb-directive-end {
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    border-style: solid;
-    border-width: 0 1px 1px 1px;
-    padding: 3px;
-  }
-
-  .sb-directive-start .sb-comment,
-  .sb-directive-end .sb-comment {
-    position: relative;
-    left: -12px;
-  }
-
-  .sb-directive-start-outside,
-  .sb-directive-end-outside {
-    color: transparent;
-    pointer-events: none;
-    height: 1.3em;
-
-    .sb-directive-placeholder {
-      padding-right: 7px;
-      float: right;
-      font-size: 80%;
-    }
-
-    &>span,
-    &.sb-directive-start,
-    &.sb-directive-end {
-      color: transparent;
-    }
-  }
-
   .sb-line-frontmatter-outside,
   .sb-line-code-outside {
     .sb-meta {
@@ -458,7 +417,7 @@
     border-top-left-radius: 5px;
     margin: 0 0 5px 0;
     padding: 10px !important;
-    background-color: var(--editor-directive-background-color);
+    background-color: var(--editor-widget-background-color);
     font-size: 1.2em;
   }
 
@@ -474,7 +433,7 @@
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
     overflow-y: auto;
-    border: 1px solid var(--editor-directive-background-color);
+    border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     white-space: normal;
     position: relative;
@@ -542,7 +501,7 @@
       right: 0;
       top: 0;
       display: none;
-      background: var(--editor-directive-background-color);
+      background: var(--editor-widget-background-color);
       padding-inline: 3px;
       padding: 4px 0;
       // border-radius: 0 5px;
@@ -573,7 +532,7 @@
       max-width: 100%;
       padding: 0;
       margin: 0 0 -2ch 0;
-      border: 1px solid var(--editor-directive-background-color);
+      border: 1px solid var(--editor-widget-background-color);
       border-radius: 5px;
     }
   }
@@ -609,14 +568,3 @@
 div:not(.cm-focused).cm-fat-cursor {
   outline: none !important;
 }
-
-
-// @media only screen and (max-width: 600px) {
-//   #sb-editor {
-
-//     .sb-directive-start-outside,
-//     .sb-directive-end-outside {
-//       height: 22px;
-//     }
-//   }
-// }

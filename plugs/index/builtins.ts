@@ -62,7 +62,6 @@ export const builtins: Record<string, Record<string, string>> = {
     page: "!string",
     pos: "!number",
     alias: "!string",
-    inDirective: "!boolean",
     asTemplate: "!boolean",
   },
   paragraph: {

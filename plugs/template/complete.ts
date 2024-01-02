@@ -1,7 +1,6 @@
 import { CompleteEvent, SlashCompletion } from "$sb/app_event.ts";
 import { PageMeta } from "$sb/types.ts";
 import { editor, events, markdown, space } from "$sb/syscalls.ts";
-import { buildHandebarOptions } from "../directive/util.ts";
 import type {
   AttributeCompleteEvent,
   AttributeCompletion,
@@ -11,6 +10,7 @@ import { TemplateObject } from "./types.ts";
 import { loadPageObject } from "./template.ts";
 import { renderTemplate } from "./api.ts";
 import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
+import { buildHandebarOptions } from "./util.ts";
 
 export async function templateVariableComplete(completeEvent: CompleteEvent) {
   const match = /\{\{([\w@]*)$/.exec(completeEvent.linePrefix);

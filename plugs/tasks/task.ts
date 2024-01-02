@@ -13,7 +13,6 @@ import {
   replaceNodesMatching,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
-import { removeQueries } from "$sb/lib/query.ts";
 import { niceDate } from "$sb/lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
@@ -47,7 +46,6 @@ const incompleteStates = [" "];
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const tasks: ObjectValue<TaskObject>[] = [];
   const taskStates = new Map<string, { count: number; firstPos: number }>();
-  removeQueries(tree);
   addParentPointers(tree);
   // const allAttributes: AttributeObject[] = [];
   // const allTags = new Set<string>();

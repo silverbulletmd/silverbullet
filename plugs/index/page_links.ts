@@ -16,7 +16,6 @@ export type LinkObject = {
   pos: number;
   snippet: string;
   alias?: string;
-  inDirective: boolean;
   asTemplate: boolean;
 };
 
@@ -51,55 +50,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 
   const pageText = renderToText(tree);
 
-  let directiveDepth = 0;
   traverseTree(tree, (n): boolean => {
-    if (n.type === "DirectiveStart") {
-      directiveDepth++;
-      const pageRef = findNodeOfType(n, "PageRef")!;
-      if (pageRef) {
-        const pageRefName = resolvePath(
-          name,
-          pageRef.children![0].text!.slice(2, -2),
-        );
-        const pos = pageRef.from! + 2;
-        links.push({
-          ref: `${name}@${pos}`,
-          tags: ["link"],
-          toPage: pageRefName,
-          pos: pos,
-          snippet: extractSnippet(pageText, pos),
-          page: name,
-          asTemplate: true,
-          inDirective: false,
-        });
-      }
-      const directiveText = n.children![0].text;
-      // #use or #import
-      if (directiveText) {
-        const match = /\[\[(.+)\]\]/.exec(directiveText);
-        if (match) {
-          const pageRefName = resolvePath(name, match[1]);
-          const pos = n.from! + match.index! + 2;
-          links.push({
-            ref: `${name}@${pos}`,
-            tags: ["link"],
-            toPage: pageRefName,
-            page: name,
-            snippet: extractSnippet(pageText, pos),
-            pos: pos,
-            asTemplate: true,
-            inDirective: false,
-          });
-        }
-      }
-
-      return true;
-    }
-    if (n.type === "DirectiveEnd") {
-      directiveDepth--;
-      return true;
-    }
-
     if (n.type === "WikiLink") {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
@@ -113,12 +64,8 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         snippet: extractSnippet(pageText, pos),
         pos,
         page: name,
-        inDirective: false,
         asTemplate: false,
       };
-      if (directiveDepth > 0) {
-        link.inDirective = true;
-      }
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
@@ -151,7 +98,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             snippet: extractSnippet(pageText, pos),
             pos: pos,
             asTemplate: true,
-            inDirective: false,
           });
         }
       }
