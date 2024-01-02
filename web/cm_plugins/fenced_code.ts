@@ -4,6 +4,7 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
+  shouldRenderAsCode,
 } from "./util.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
@@ -14,7 +15,10 @@ export function fencedCodePlugin(editor: Client) {
     syntaxTree(state).iterate({
       enter({ from, to, name, node }) {
         if (name === "FencedCode") {
-          if (isCursorInRange(state, [from, to])) return;
+          if (shouldRenderAsCode(state, [from, to])) {
+            // Don't render the widget if the cursor is inside the fenced code
+            return;
+          }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^```(\w+)?/)!;
           const codeWidgetCallback = editor.system.codeWidgetHook

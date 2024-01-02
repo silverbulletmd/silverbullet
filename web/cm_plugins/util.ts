@@ -157,6 +157,20 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
   );
 }
 
+export function shouldRenderAsCode(
+  state: EditorState,
+  range: [number, number],
+) {
+  const mainSelection = state.selection.main;
+  // When the selection is empty, we need to check if the cursor is inside the fenced code
+  if (mainSelection.empty) {
+    return checkRangeOverlap(range, [mainSelection.from, mainSelection.to]);
+  } else {
+    // If the selection is encompassing the fenced code we render as code
+    return checkRangeSubset([mainSelection.from, mainSelection.to], range);
+  }
+}
+
 /**
  * Decoration to simply hide anything.
  */
