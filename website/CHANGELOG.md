@@ -4,7 +4,8 @@ release.
 ---
 
 ## Next
-* Keyboard shortcuts can now be configured in [[SETTINGS]]
+* Keyboard shortcuts as well as priority (order in which they appear in the [[Command Palette]]) can now be configured for [[Commands]] in [[SETTINGS]]. The `priority` enables you to put frequently used commands at the top.
+* The rendering of [[Live Templates]], [[Live Queries]], [[Table of Contents]] and [[Linked Mentions]] has been re-implemented. Rendering should now be near-instant and the “flappy” behavior should be largely gone, especially after an initial load (results are cached). There may still be some visual regressions. Please report them if you find them.
 
 ---
 

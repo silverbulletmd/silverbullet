@@ -25,10 +25,11 @@ export function CommandPalette({
   const options: FilterOption[] = [];
   const isMac = isMacLike();
   for (const [name, def] of commands.entries()) {
-    let shortcut: { key?: string; mac?: string } = def.command;
+    let shortcut: { key?: string; mac?: string; priority?: number } =
+      def.command;
     // Let's see if there's a shortcut override
     if (settings.shortcuts) {
-      const commandKeyboardOverride = settings.shortcuts.find((
+      const commandOverride = settings.shortcuts.find((
         shortcut,
       ) => {
         const commandMatch = commandLinkRegex.exec(shortcut.command);
@@ -37,8 +38,9 @@ export function CommandPalette({
           // or if it's not a command link, let's match exactly
           shortcut.command === name;
       });
-      if (commandKeyboardOverride) {
-        shortcut = commandKeyboardOverride;
+      if (commandOverride) {
+        shortcut = commandOverride;
+        console.log(`Shortcut override for ${name}:`, shortcut);
       }
     }
     options.push({
@@ -46,8 +48,9 @@ export function CommandPalette({
       hint: isMac && shortcut.mac ? shortcut.mac : shortcut.key,
       orderId: recentCommands.has(name)
         ? -recentCommands.get(name)!.getTime()
-        : 0,
+        : shortcut.priority || Infinity,
     });
+    // console.log("Options", options);
   }
   return (
     <FilterList

@@ -1,0 +1,3 @@
+Commands define actions that SilverBullet can perform. They range from simple edit commands, such as {[Text: Bold]}, but may be more elaborate such as {[Page: Rename]}. At a technical level, all commands are implemented via [[Plugs]].
+
+All available commands appear in the [[Command Palette]] but may have key bindings as well (these key bindings appear in the [[Command Palette]] and are configurable in [[SETTINGS]]).

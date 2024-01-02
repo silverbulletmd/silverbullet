@@ -161,6 +161,7 @@ functions:
     command:
       name: "Mentions: Toggle"
       key: ctrl-alt-m
+      priority: 5
 
   renderMentions:
     path: "./linked_mentions.ts:renderMentions"
@@ -172,6 +173,7 @@ functions:
     command:
       name: "Table of Contents: Toggle"
       key: ctrl-alt-t
+      priority: 5
 
   renderTOC:
     path: toc.ts:renderTOC

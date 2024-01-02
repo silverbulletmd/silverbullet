@@ -7,6 +7,9 @@ export type CommandDef = {
 
   contexts?: string[];
 
+  // Default 0, higher is higher priority = higher in the list
+  priority?: number;
+
   // Bind to keyboard shortcut
   key?: string;
   mac?: string;

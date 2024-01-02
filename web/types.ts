@@ -22,6 +22,7 @@ export type PanelMode = number;
 export type Shortcut = {
   key?: string;
   mac?: string;
+  priority?: number;
   command: string;
 };
 
