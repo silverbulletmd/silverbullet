@@ -1012,7 +1012,6 @@ export class Client {
 
   // Widget and image height caching
   private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
-  private imageHeightCache = new LimitedMap<number>(100); // url -> height
   private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
 
   async loadCaches() {

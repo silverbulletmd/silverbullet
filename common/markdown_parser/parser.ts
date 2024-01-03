@@ -135,6 +135,38 @@ const CommandLink: MarkdownConfig = {
   ],
 };
 
+export const templateDirectiveRegex = /^\{\{([^\}]+)\}\}/;
+
+const TemplateDirective: MarkdownConfig = {
+  defineNodes: [
+    { name: "TemplateDirective", style: t.monospace },
+    { name: "TemplateDirectiveMark", style: t.monospace },
+  ],
+  parseInline: [
+    {
+      name: "TemplateDirective",
+      parse(cx, next, pos) {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 123 /* '{' */ ||
+          !(match = templateDirectiveRegex.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        const fullMatch = match[0];
+        const endPos = pos + fullMatch.length;
+        return cx.addElement(
+          cx.elt("TemplateDirective", pos, endPos, [
+            cx.elt("TemplateDirectiveMark", pos, pos + 2),
+            cx.elt("TemplateDirectiveMark", endPos - 2, endPos),
+          ]),
+        );
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
 const HighlightDelim = { resolve: "Highlight", mark: "HighlightMark" };
 
 export const Highlight: MarkdownConfig = {
@@ -355,6 +387,7 @@ export default function buildMarkdown(mdExtensions: MDExt[]): Language {
       TaskList,
       Comment,
       Highlight,
+      TemplateDirective,
       Strikethrough,
       Table,
       ...mdExtensions.map(mdExtensionSyntaxConfig),

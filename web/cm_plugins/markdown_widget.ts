@@ -16,6 +16,7 @@ export class MarkdownWidget extends WidgetType {
   constructor(
     readonly from: number | undefined,
     readonly client: Client,
+    readonly cacheKey: string,
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
     readonly className: string,
@@ -26,7 +27,7 @@ export class MarkdownWidget extends WidgetType {
   toDOM(): HTMLElement {
     const div = document.createElement("div");
     div.className = this.className;
-    const cacheItem = this.client.getWidgetCache(this.bodyText);
+    const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
       div.innerHTML = this.wrapHtml(
         cacheItem.html,
@@ -55,7 +56,7 @@ export class MarkdownWidget extends WidgetType {
     if (!widgetContent) {
       div.innerHTML = "";
       this.client.setWidgetCache(
-        this.bodyText,
+        this.cacheKey,
         { height: div.clientHeight, html: "" },
       );
       return;
@@ -103,7 +104,7 @@ export class MarkdownWidget extends WidgetType {
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
       this.client.setWidgetCache(
-        this.bodyText,
+        this.cacheKey,
         { height: div.offsetHeight, html, buttons: widgetContent.buttons },
       );
     });
@@ -184,7 +185,7 @@ export class MarkdownWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const cacheItem = this.client.getWidgetCache(this.bodyText);
+    const cacheItem = this.client.getWidgetCache(this.cacheKey);
     // console.log("Calling estimated height", this.bodyText, cacheItem);
     return cacheItem ? cacheItem.height : -1;
   }

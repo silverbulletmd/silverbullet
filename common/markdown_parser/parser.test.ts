@@ -136,3 +136,9 @@ Deno.test("Test command link arguments", () => {
   const args2 = findNodeOfType(commands[1], "CommandLinkArgs");
   assertEquals(args2!.children![0].text, '"other", "args", 123');
 });
+
+Deno.test("Test template directives", () => {
+  const lang = buildMarkdown([]);
+  const tree = parse(lang, `Hello there {{name}}!`);
+  console.log("Template directive", JSON.stringify(tree, null, 2));
+});

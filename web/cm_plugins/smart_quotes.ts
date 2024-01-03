@@ -8,6 +8,7 @@ const straightQuoteContexts = [
   "FrontMatterCode",
   "Attribute",
   "CommandLink",
+  "TemplateDirective",
 ];
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)

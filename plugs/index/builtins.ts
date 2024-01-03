@@ -11,13 +11,13 @@ export const builtins: Record<string, Record<string, string>> = {
     ref: "!string",
     name: "!string",
     displayName: "string",
-    aliases: "array",
+    aliases: "string[]",
     created: "!date",
     lastModified: "!date",
     perm: "!rw|ro",
     contentType: "!string",
     size: "!number",
-    tags: "array",
+    tags: "string[]",
   },
   task: {
     ref: "!string",
@@ -27,11 +27,11 @@ export const builtins: Record<string, Record<string, string>> = {
     state: "!string",
     deadline: "string",
     pos: "!number",
-    tags: "array",
+    tags: "string[]",
   },
   taskstate: {
     ref: "!string",
-    tags: "!array",
+    tags: "!string[]",
     state: "!string",
     count: "!number",
     page: "!string",
@@ -76,6 +76,7 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "!number",
     type: "string",
     trigger: "string",
+    forTags: "string[]",
   },
 };
 

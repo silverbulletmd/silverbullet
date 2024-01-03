@@ -429,17 +429,8 @@
     margin-top: 10px;
   }
 
-  .sb-frontmatter-first-line {
-    display: none;
-  }
-
-  .sb-frontmatter-last-line {
-    background-color: transparent;
-    line-height: 0;
-  }
-
   .sb-markdown-frontmatter-widget {
-    margin-top: -2ch;
+    margin-bottom: -1.3ch;
 
     span.hashtag {
       border-radius: 6px;
@@ -447,6 +438,11 @@
       margin: 0 1px 0 0;
       font-size: 0.9em;
     }
+  }
+
+  .sb-markdown-frontmatter-widget+.sb-frontmatter {
+    background-color: transparent;
+    color: transparent;
   }
 
   .sb-markdown-widget,

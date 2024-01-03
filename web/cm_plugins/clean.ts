@@ -12,6 +12,7 @@ import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
 import { cleanCommandLinkPlugin } from "./command_link.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
+import { frontmatterPlugin } from "./frontmatter.ts";
 
 export function cleanModePlugins(client: Client) {
   return [
@@ -20,7 +21,8 @@ export function cleanModePlugins(client: Client) {
     admonitionPlugin(client),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
-    cleanBlockPlugin(client),
+    cleanBlockPlugin(),
+    frontmatterPlugin(client),
     fencedCodePlugin(client),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
