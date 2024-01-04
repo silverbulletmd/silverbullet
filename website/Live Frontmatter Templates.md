@@ -7,11 +7,11 @@ Live Frontmatter Templates follow the same pattern as other [[Templates]] with a
 
 * `tags`: should be set to `template` as for any other template
 * `type`: should be set to `frontmatter`
-* `selector`: should contain an [[Live Queries$expression]] that evaluates to true for the _pages_ you would like to apply this Live Frontmatter Template to, usually this checks for a specific tag, but it can be any expression. Think of this as a `where` clause that should match for the pages this template is applied to.
-* `priority` (optional): in case you have multiple Live Frontmatter Templates that have matching selectors, the one with the priority set to the lowest number wins.
+* `where`: should contain an [[Live Queries$expression]] that evaluates to true for the _pages_ you would like to apply this Live Frontmatter Template to, usually this checks for a specific tag, but it can be any expression. Think of this as a `where` clause that should match for the pages this template is applied to.
+* `priority` (optional): in case you have multiple Live Frontmatter Templates that have matching `where` expression, the one with the priority set to the lowest number wins.
 
 # Example
-The following Frontmatter Template applies to all pages tagged with `person` (see the `selector`). It first lists all [[Frontmatter]] attributes, followed by a use of the [[!silverbullet.md/template/live/incoming]] template, showing all incomplete tasks that reference this particular page.
+The following Frontmatter Template applies to all pages tagged with `person` (see the `where`). It first lists all [[Frontmatter]] attributes, followed by a use of the [[!silverbullet.md/template/live/incoming]] template, showing all incomplete tasks that reference this particular page.
 
 Indeed, you can use [[Live Queries]] and [[Live Templates]] here as well.
 
