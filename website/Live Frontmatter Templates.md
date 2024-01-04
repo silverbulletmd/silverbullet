@@ -18,7 +18,7 @@ Indeed, you can use [[Live Queries]] and [[Live Templates]] here as well.
     ---
     tags: template
     type: frontmatter
-    selector: 'tags = "person"'
+    where: 'tags = "person"'
     ---
     {{#each .}}**{{@key}}**: {{.}}
     {{/each}}

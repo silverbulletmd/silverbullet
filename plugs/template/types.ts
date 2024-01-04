@@ -10,7 +10,7 @@ export type TemplateFrontmatter = {
   trigger?: string;
 
   // Specific for frontmatter templates
-  selector?: string; // SB query
+  where?: string; // expression (SB query style)
   priority?: number; // When multiple templates match, the one with the highest priority is used
 };
 

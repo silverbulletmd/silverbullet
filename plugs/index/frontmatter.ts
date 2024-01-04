@@ -32,10 +32,10 @@ export async function renderFrontmatterWidget(): Promise<
     },
   );
   let templateText = fallbackTemplate;
-  // Strategy: walk through all matching templates, evaluate the selector, and pick the first one that matches
+  // Strategy: walk through all matching templates, evaluate the 'where' expression, and pick the first one that matches
   for (const template of allFrontMatterTemplates) {
     const exprAST = parseTreeToAST(
-      await language.parseLanguage("expression", template.selector!),
+      await language.parseLanguage("expression", template.where!),
     );
     const parsedExpression = expressionToKvQueryExpression(exprAST[1]);
     if (evalQueryExpression(parsedExpression, pageMeta)) {
