@@ -289,7 +289,7 @@ export class Client {
 
     this.pageNavigator.subscribe(
       async (pageName, pos: number | string | undefined) => {
-        console.log("Now navigating to", pageName, pos);
+        console.log("Now navigating to", pageName);
 
         const stateRestored = await this.loadPage(pageName, pos === undefined);
         if (pos) {
@@ -1065,4 +1065,5 @@ type WidgetCacheItem = {
   height: number;
   html: string;
   buttons?: CodeWidgetButton[];
+  banner?: string;
 };

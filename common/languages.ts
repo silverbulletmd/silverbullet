@@ -25,7 +25,10 @@ import {
   xmlLanguage,
   yamlLanguage,
 } from "./deps.ts";
-import { highlightingQueryParser } from "./markdown_parser/parser.ts";
+import {
+  expressionParser,
+  highlightingQueryParser,
+} from "./markdown_parser/parser.ts";
 
 export const builtinLanguages: Record<string, Language> = {
   "meta": StreamLanguage.define(yamlLanguage),
@@ -80,6 +83,10 @@ export const builtinLanguages: Record<string, Language> = {
   "query": LRLanguage.define({
     name: "query",
     parser: highlightingQueryParser,
+  }),
+  "expression": LRLanguage.define({
+    name: "expression",
+    parser: expressionParser,
   }),
 };
 

@@ -188,7 +188,11 @@ functions:
     events:
     - editor:lint
 
-  renderFrontmatter:
-    path: frontmatter.ts:renderFrontmatter
+  renderFrontmatterWidget:
+    path: frontmatter.ts:renderFrontmatterWidget
     env: client
     panelWidget: frontmatter
+
+  editFrontmatter:
+    path: frontmatter.ts:editFrontmatter
+  

@@ -166,8 +166,9 @@ export function shouldRenderAsCode(
   if (mainSelection.empty) {
     return checkRangeOverlap(range, [mainSelection.from, mainSelection.to]);
   } else {
-    // If the selection is encompassing the fenced code we render as code
-    return checkRangeSubset([mainSelection.from, mainSelection.to], range);
+    // If the selection is encompassing the fenced code we render as code, or vice versa
+    return checkRangeSubset([mainSelection.from, mainSelection.to], range) ||
+      checkRangeSubset(range, [mainSelection.from, mainSelection.to]);
   }
 }
 

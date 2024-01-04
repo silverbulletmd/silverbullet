@@ -4,12 +4,20 @@ import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import type { BuiltinSettings } from "../web/types.ts";
 
+/**
+ * Runs a function safely by catching any errors and logging them to the console.
+ * @param fn - The function to run.
+ */
 export function safeRun(fn: () => Promise<void>) {
   fn().catch((e) => {
     console.error(e);
   });
 }
 
+/**
+ * Checks if the current platform is Mac-like (Mac, iPhone, iPod, iPad).
+ * @returns A boolean indicating if the platform is Mac-like.
+ */
 export function isMacLike() {
   return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 }
@@ -17,6 +25,11 @@ export function isMacLike() {
 // TODO: This is naive, may be better to use a proper parser
 const yamlSettingsRegex = /```yaml([^`]+)```/;
 
+/**
+ * Parses YAML settings from a Markdown string.
+ * @param settingsMarkdown - The Markdown string containing the YAML settings.
+ * @returns An object representing the parsed YAML settings.
+ */
 export function parseYamlSettings(settingsMarkdown: string): {
   [key: string]: any;
 } {
@@ -35,6 +48,12 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
 }
 
+/**
+ * Ensures that the settings and index page exist in the given space.
+ * If they don't exist, default settings and index page will be created.
+ * @param space - The SpacePrimitives object representing the space.
+ * @returns A promise that resolves to the built-in settings.
+ */
 export async function ensureSettingsAndIndex(
   space: SpacePrimitives,
 ): Promise<BuiltinSettings> {

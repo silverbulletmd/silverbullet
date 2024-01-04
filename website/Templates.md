@@ -5,6 +5,7 @@ There are two general uses for templates:
 1. _Live_ uses, where page content is dynamically updated based on templates:
   * [[Live Queries]]
   * [[Live Templates]]
+  * [[Live Frontmatter Templates]]
 2. _One-off_ uses, where a template is instantiated once and inserted into an existing or new page:
   * [[Slash Templates]]
   * [[Page Templates]]
@@ -24,7 +25,7 @@ Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a 
 [[Frontmatter]] has special meaning in templates. The following attributes are used:
 
 * `tags`: should always be set to `template`
-* `type` (optional): should be set to `page` for [[Page Templates]]
+* `type` (optional): should be set to `page` for [[Page Templates]] and to `frontmatter` for [[Live Frontmatter Templates]]
 * `trigger` (optional): defines the slash command name for [[Slash Templates]]
 * `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
 * `pageName` (optional, [[Page Templates]] only): specify a (template for a) page name.

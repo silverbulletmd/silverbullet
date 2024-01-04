@@ -50,7 +50,6 @@ export function frontmatterPlugin(client: Client) {
                       frontmatterCallback,
                       "sb-markdown-frontmatter-widget",
                     ),
-                    // side: -1,
                     block: true,
                   }).range(lines[lines.length - 1].from),
                 );

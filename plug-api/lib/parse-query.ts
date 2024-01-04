@@ -1,5 +1,6 @@
-import type { AST } from "$sb/lib/tree.ts";
+import { type AST, parseTreeToAST } from "$sb/lib/tree.ts";
 import type { Query, QueryExpression } from "$sb/types.ts";
+import { language } from "$sb/syscalls.ts";
 
 export function astToKvQuery(
   node: AST,
@@ -20,10 +21,10 @@ export function astToKvQuery(
           query.filter = [
             "and",
             query.filter,
-            expressionToKvQueryFilter(clause[2]),
+            expressionToKvQueryExpression(clause[2]),
           ];
         } else {
-          query.filter = expressionToKvQueryFilter(clause[2]);
+          query.filter = expressionToKvQueryExpression(clause[2]);
         }
         break;
       }
@@ -123,18 +124,18 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
-      const binOp = (node[2] as string).trim();
+      const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
       const val = expressionToKvQueryExpression(node[3]);
       return [binOp as any, lval, val];
     }
     case "LogicalExpression": {
-      const op1 = expressionToKvQueryFilter(node[1]);
+      const op1 = expressionToKvQueryExpression(node[1]);
       const op = node[2];
-      const op2 = expressionToKvQueryFilter(node[3]);
+      const op2 = expressionToKvQueryExpression(node[3]);
       return [op[1] as any, op1, op2];
     }
     case "ParenthesizedExpression": {
-      return expressionToKvQueryFilter(node[2]);
+      return expressionToKvQueryExpression(node[2]);
     }
     case "Call": {
       // console.log("Call", node);
@@ -151,33 +152,12 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
       throw new Error(`Not supported: ${node[0]}`);
   }
 }
-
-function expressionToKvQueryFilter(
-  node: AST,
-): QueryExpression {
-  const [expressionType] = node;
-  if (expressionType === "Expression") {
-    return expressionToKvQueryFilter(node[1]);
-  }
-  switch (expressionType) {
-    case "BinExpression": {
-      const lval = expressionToKvQueryExpression(node[1]);
-      const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
-      const val = expressionToKvQueryExpression(node[3]);
-      return [binOp as any, lval, val];
-    }
-    case "LogicalExpression": {
-      //   console.log("Logical expression", node);
-      // 0 = first operand, 1 = whitespace, 2 = operator, 3 = whitespace, 4 = second operand
-      const op1 = expressionToKvQueryFilter(node[1]);
-      const op = node[2]; // 1 is whitespace
-      const op2 = expressionToKvQueryFilter(node[3]);
-      return [op[1] as any, op1, op2];
-    }
-    case "ParenthesizedExpression": {
-      return expressionToKvQueryFilter(node[2]);
-    }
-    default:
-      throw new Error(`Unknown expression type: ${expressionType}`);
-  }
+export async function parseQuery(query: string): Promise<Query> {
+  const queryAST = parseTreeToAST(
+    await language.parseLanguage(
+      "query",
+      query,
+    ),
+  );
+  return astToKvQuery(queryAST[1]);
 }

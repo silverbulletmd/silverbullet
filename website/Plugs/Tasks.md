@@ -1,5 +1,6 @@
-#plug
-
+---
+tags: plug
+---
 The Tasks plug implements task support in SilverBullet.
 
 ## Task states

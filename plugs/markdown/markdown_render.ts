@@ -417,6 +417,16 @@ function render(
     case "Entity":
       return t.children![0].text!;
 
+    case "TemplateDirective": {
+      return {
+        name: "span",
+        attrs: {
+          class: "template-directive",
+        },
+        body: renderToText(t),
+      };
+    }
+
     // Text
     case undefined:
       return t.text!;

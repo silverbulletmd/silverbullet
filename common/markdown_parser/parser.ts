@@ -207,6 +207,8 @@ export const highlightingQueryParser = queryParser.configure({
   ],
 });
 
+export { parser as expressionParser } from "./parse-expression.js";
+
 export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {

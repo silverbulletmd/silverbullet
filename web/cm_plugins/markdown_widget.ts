@@ -5,12 +5,10 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import buildMarkdown from "../../common/markdown_parser/parser.ts";
-import { renderToText } from "$sb/lib/tree.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
 export class MarkdownWidget extends WidgetType {
-  renderedMarkdown?: string;
   public dom?: HTMLElement;
 
   constructor(
@@ -31,7 +29,8 @@ export class MarkdownWidget extends WidgetType {
     if (cacheItem) {
       div.innerHTML = this.wrapHtml(
         cacheItem.html,
-        cacheItem.buttons,
+        cacheItem.buttons || [],
+        cacheItem.banner,
       );
       this.attachListeners(div, cacheItem.buttons);
     }
@@ -74,8 +73,6 @@ export class MarkdownWidget extends WidgetType {
         this.client.currentPage,
       ],
     );
-    // Used for the source button
-    this.renderedMarkdown = renderToText(mdTree);
 
     const html = renderMarkdownToHtml(mdTree, {
       // Annotate every element with its position so we can use it to put
@@ -98,27 +95,48 @@ export class MarkdownWidget extends WidgetType {
       // HTML still same as in cache, no need to re-render
       return;
     }
-    div.innerHTML = this.wrapHtml(html, widgetContent.buttons);
+    div.innerHTML = this.wrapHtml(
+      html,
+      widgetContent.buttons || [],
+      widgetContent.banner,
+    );
     this.attachListeners(div, widgetContent.buttons);
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
       this.client.setWidgetCache(
         this.cacheKey,
-        { height: div.offsetHeight, html, buttons: widgetContent.buttons },
+        {
+          height: div.offsetHeight,
+          html,
+          buttons: widgetContent.buttons,
+          banner: widgetContent.banner,
+        },
       );
+      // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
+      this.client.editorView.dispatch({
+        selection: {
+          anchor: this.client.editorView.state.selection.main.anchor,
+        },
+      });
     });
   }
 
-  private wrapHtml(html: string, buttons?: CodeWidgetButton[]) {
-    if (!buttons) {
-      return html;
+  private wrapHtml(
+    html: string,
+    buttons: CodeWidgetButton[],
+    banner?: string,
+  ) {
+    if (!html) {
+      return "";
     }
     return `<div class="button-bar">${
-      buttons.map((button, idx) =>
+      buttons.filter((button) => !button.widgetTarget).map((button, idx) =>
         `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
       ).join("")
-    }</div>${html}`;
+    }</div>${
+      banner ? `<div class="sb-banner">${escapeHtml(banner)}</div>` : ""
+    }${html}`;
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
@@ -127,6 +145,7 @@ export class MarkdownWidget extends WidgetType {
       // Override default click behavior with a local navigate (faster)
       el.addEventListener("click", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const [pageName, pos] = el.dataset.ref!.split(/[$@]/);
         if (pos && pos.match(/^\d+$/)) {
           this.client.navigate(pageName, +pos);
@@ -139,9 +158,18 @@ export class MarkdownWidget extends WidgetType {
     // Implement task toggling
     div.querySelectorAll("span[data-external-task-ref]").forEach((el: any) => {
       const taskRef = el.dataset.externalTaskRef;
-      el.querySelector("input[type=checkbox]").addEventListener(
+      const input = el.querySelector("input[type=checkbox]")!;
+      input.addEventListener(
+        "click",
+        (e: any) => {
+          // Avoid triggering the click on the parent
+          e.stopPropagation();
+        },
+      );
+      input.addEventListener(
         "change",
         (e: any) => {
+          e.stopPropagation();
           const oldState = e.target.dataset.state;
           const newState = oldState === " " ? "x" : " ";
           // Update state in DOM as well for future toggles
@@ -163,25 +191,33 @@ export class MarkdownWidget extends WidgetType {
 
     for (let i = 0; i < buttons.length; i++) {
       const button = buttons[i];
-      div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
-        "click",
-        () => {
-          console.log("Button clicked:", button.description);
+      if (button.widgetTarget) {
+        div.addEventListener("click", () => {
+          console.log("Widget clicked");
           this.client.system.localSyscall("system.invokeFunction", [
             button.invokeFunction,
             this.from,
-          ]).then((newContent: string | undefined) => {
-            if (newContent) {
-              div.innerText = newContent;
-            }
-            this.client.focus();
-          }).catch(console.error);
-        },
-      );
+          ]).catch(console.error);
+        });
+      } else {
+        div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
+          "click",
+          (e) => {
+            e.stopPropagation();
+            console.log("Button clicked:", button.description);
+            this.client.system.localSyscall("system.invokeFunction", [
+              button.invokeFunction,
+              this.from,
+            ]).then((newContent: string | undefined) => {
+              if (newContent) {
+                div.innerText = newContent;
+              }
+              this.client.focus();
+            }).catch(console.error);
+          },
+        );
+      }
     }
-    // div.querySelectorAll("ul > li").forEach((el) => {
-    //   el.classList.add("sb-line-li-1", "sb-line-ul");
-    // });
   }
 
   get estimatedHeight(): number {
@@ -193,7 +229,7 @@ export class MarkdownWidget extends WidgetType {
   eq(other: WidgetType): boolean {
     return (
       other instanceof MarkdownWidget &&
-      other.bodyText === this.bodyText
+      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
     );
   }
 }
@@ -219,3 +255,10 @@ function garbageCollectWidgets() {
 }
 
 setInterval(garbageCollectWidgets, 5000);
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
+    />/g,
+    "&gt;",
+  );
+}

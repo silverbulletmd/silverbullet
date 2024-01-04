@@ -134,9 +134,11 @@ export type CodeWidgetContent = {
   markdown?: string;
   script?: string;
   buttons?: CodeWidgetButton[];
+  banner?: string;
 };
 
 export type CodeWidgetButton = {
+  widgetTarget?: boolean;
   description: string;
   svg: string;
   invokeFunction: string;
