@@ -187,3 +187,12 @@ functions:
     path: lint.ts:lintYAML
     events:
     - editor:lint
+
+  renderFrontmatterWidget:
+    path: frontmatter.ts:renderFrontmatterWidget
+    env: client
+    panelWidget: frontmatter
+
+  editFrontmatter:
+    path: frontmatter.ts:editFrontmatter
+  

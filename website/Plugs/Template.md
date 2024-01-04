@@ -1,5 +1,6 @@
-#plug
-
+---
+tags: plug
+---
 The [[Plugs/Template]] plug implements a few templating mechanisms.
 
 # Daily Note

@@ -40,5 +40,17 @@ export function handlebarHelpers() {
       nextWeek.setDate(nextWeek.getDate() + 7);
       return niceDate(nextWeek);
     },
+    ifEq: function (v1: any, v2: any, options: any) {
+      if (v1 === v2) {
+        return options.fn(this);
+      }
+      return options.inverse(this);
+    },
+    ifNeq: function (v1: any, v2: any, options: any) {
+      if (v1 !== v2) {
+        return options.fn(this);
+      }
+      return options.inverse(this);
+    },
   };
 }

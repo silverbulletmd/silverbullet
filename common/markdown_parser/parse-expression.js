@@ -13,6 +13,6 @@ export const parser = LRParser.deserialize({
   tokenData: "/j~RuX^#fpq#fqr$Zrs$nuv%fxy%kyz%pz{%u{|%z|}&P}!O&U!O!P&Z!P!Q&`!Q![)Q!^!_)Y!_!`)g!`!a)t!c!}*R!}#O*g#P#Q*l#T#Y*R#Y#Z*q#Z#]*R#]#^-b#^#h*R#h#i.d#i#o*R#y#z#f$f$g#f#BY#BZ#f$IS$I_#f$Ip$Iq$n$Iq$Ir$n$I|$JO#f$JT$JU#f$KV$KW#f&FU&FV#f~#kYh~X^#fpq#f#y#z#f$f$g#f#BY#BZ#f$IS$I_#f$I|$JO#f$JT$JU#f$KV$KW#f&FU&FV#f~$^P!_!`$a~$fPs~#r#s$i~$nOw~~$qWOr$nrs%Zs$Ip$n$Ip$Iq%Z$Iq$Ir%Z$Ir;'S$n;'S;=`%`<%lO$n~%`OT~~%cP;=`<%l$n~%kOz~~%pOn~~%uOo~~%zOx~~&PO{~~&UOk~~&ZO|~~&`Om~R&gXyQWPOY'SZ]'S^!P'S!P!Q't!Q#O'S#O#P'y#P;'S'S;'S;=`(z<%lO'SP'XXWPOY'SZ]'S^!P'S!P!Q't!Q#O'S#O#P'y#P;'S'S;'S;=`(z<%lO'SP'yOWPP'|RO;'S'S;'S;=`(V;=`O'SP([YWPOY'SZ]'S^!P'S!P!Q't!Q#O'S#O#P'y#P;'S'S;'S;=`(z;=`<%l'S<%lO'SP(}P;=`<%l'S~)VPS~!Q![)Q~)_Pp~!_!`)b~)gOq~~)lPr~#r#s)o~)tOv~~)yPu~!_!`)|~*ROt~~*WTX~}!O*R!Q![*R!c!}*R#R#S*R#T#o*R~*lOi~~*qOl~~*vUX~}!O*R!Q![*R!c!}*R#R#S*R#T#U+Y#U#o*R~+_VX~}!O*R!Q![*R!c!}*R#R#S*R#T#`*R#`#a+t#a#o*R~+yVX~}!O*R!Q![*R!c!}*R#R#S*R#T#g*R#g#h,`#h#o*R~,eVX~}!O*R!Q![*R!c!}*R#R#S*R#T#X*R#X#Y,z#Y#o*R~-RTV~X~}!O*R!Q![*R!c!}*R#R#S*R#T#o*R~-gVX~}!O*R!Q![*R!c!}*R#R#S*R#T#b*R#b#c-|#c#o*R~.TTc~X~}!O*R!Q![*R!c!}*R#R#S*R#T#o*R~.iVX~}!O*R!Q![*R!c!}*R#R#S*R#T#f*R#f#g/O#g#o*R~/TVX~}!O*R!Q![*R!c!}*R#R#S*R#T#i*R#i#j,`#j#o*R",
   tokenizers: [0, 1],
   topRules: {"Program":[0,1]},
-  specialized: [{term: 9, get: value => spec_Identifier[value] || -1}],
+  specialized: [{term: 9, get: (value) => spec_Identifier[value] || -1}],
   tokenPrec: 431
 })

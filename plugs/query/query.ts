@@ -1,11 +1,7 @@
 import type { LintEvent } from "$sb/app_event.ts";
-import { events, language, space } from "$sb/syscalls.ts";
-import {
-  findNodeOfType,
-  parseTreeToAST,
-  traverseTreeAsync,
-} from "$sb/lib/tree.ts";
-import { astToKvQuery } from "$sb/lib/parse-query.ts";
+import { events, space } from "$sb/syscalls.ts";
+import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
+import { parseQuery } from "$sb/lib/parse-query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
 import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
 import { CodeWidgetContent, LintDiagnostic } from "$sb/types.ts";
@@ -18,13 +14,9 @@ export async function widget(
   const pageObject = await loadPageObject(pageName);
 
   try {
-    const queryAST = parseTreeToAST(
-      await language.parseLanguage(
-        "query",
-        await replaceTemplateVars(bodyText, pageObject),
-      ),
+    const parsedQuery = await parseQuery(
+      await replaceTemplateVars(bodyText, pageObject),
     );
-    const parsedQuery = astToKvQuery(queryAST[1]);
 
     if (!parsedQuery.limit) {
       parsedQuery.limit = ["number", 1000];
@@ -115,13 +107,10 @@ export async function lintQuery(
       }
       const bodyText = codeText.children![0].text!;
       try {
-        const queryAST = parseTreeToAST(
-          await language.parseLanguage(
-            "query",
-            await replaceTemplateVars(bodyText, pageObject),
-          ),
+        const parsedQuery = await parseQuery(
+          await replaceTemplateVars(bodyText, pageObject),
         );
-        const parsedQuery = astToKvQuery(queryAST[1]);
+
         const allSources = await allQuerySources();
         if (
           parsedQuery.querySource &&
@@ -141,7 +130,7 @@ export async function lintQuery(
           );
           try {
             await space.getPageMeta(templatePage);
-          } catch (e: any) {
+          } catch {
             diagnostics.push({
               from: codeText.from!,
               to: codeText.to!,

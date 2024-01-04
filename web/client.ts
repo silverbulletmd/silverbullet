@@ -289,7 +289,7 @@ export class Client {
 
     this.pageNavigator.subscribe(
       async (pageName, pos: number | string | undefined) => {
-        console.log("Now navigating to", pageName, pos);
+        console.log("Now navigating to", pageName);
 
         const stateRestored = await this.loadPage(pageName, pos === undefined);
         if (pos) {
@@ -1012,7 +1012,6 @@ export class Client {
 
   // Widget and image height caching
   private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
-  private imageHeightCache = new LimitedMap<number>(100); // url -> height
   private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
 
   async loadCaches() {
@@ -1066,4 +1065,5 @@ type WidgetCacheItem = {
   height: number;
   html: string;
   buttons?: CodeWidgetButton[];
+  banner?: string;
 };

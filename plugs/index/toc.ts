@@ -48,7 +48,7 @@ export async function renderTOC(): Promise<CodeWidgetContent | null> {
     return false;
   });
   if (headers.length < headerThreshold) {
-    console.log("Not enough headers, not showing TOC", headers.length);
+    // Not enough headers, not showing TOC
     return null;
   }
   // console.log("Headers", headers);

@@ -267,7 +267,10 @@ function render(
     }
     case "Hashtag":
       return {
-        name: "strong",
+        name: "span",
+        attrs: {
+          class: "hashtag",
+        },
         body: t.children![0].text!,
       };
 
@@ -413,6 +416,16 @@ function render(
     }
     case "Entity":
       return t.children![0].text!;
+
+    case "TemplateDirective": {
+      return {
+        name: "span",
+        attrs: {
+          class: "template-directive",
+        },
+        body: renderToText(t),
+      };
+    }
 
     // Text
     case undefined:

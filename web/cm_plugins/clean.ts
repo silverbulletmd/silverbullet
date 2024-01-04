@@ -12,33 +12,35 @@ import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
 import { cleanCommandLinkPlugin } from "./command_link.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
+import { frontmatterPlugin } from "./frontmatter.ts";
 
-export function cleanModePlugins(editor: Client) {
+export function cleanModePlugins(client: Client) {
   return [
-    linkPlugin(editor),
+    linkPlugin(client),
     blockquotePlugin(),
-    admonitionPlugin(editor),
+    admonitionPlugin(client),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),
-    fencedCodePlugin(editor),
+    frontmatterPlugin(client),
+    fencedCodePlugin(client),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {
         const clickEvent: ClickEvent = {
-          page: editor.currentPage!,
+          page: client.currentPage!,
           altKey: false,
           ctrlKey: false,
           metaKey: false,
           pos: pos,
         };
         // Propagate click event from checkbox
-        editor.dispatchAppEvent("page:click", clickEvent);
+        client.dispatchAppEvent("page:click", clickEvent);
       },
     }),
     listBulletPlugin(),
-    tablePlugin(editor),
-    cleanWikiLinkPlugin(editor),
-    cleanCommandLinkPlugin(editor),
+    tablePlugin(client),
+    cleanWikiLinkPlugin(client),
+    cleanCommandLinkPlugin(client),
   ] as Extension[];
 }

@@ -71,11 +71,15 @@ export function fencedCodePlugin(editor: Client) {
               );
             });
 
+            const bodyText = lineStrings.slice(1, lineStrings.length - 1).join(
+              "\n",
+            );
             const widget = renderMode === "markdown"
               ? new MarkdownWidget(
                 from + lineStrings[0].length + 1,
                 editor,
-                lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+                `widget:${editor.currentPage}:${bodyText}`,
+                bodyText,
                 codeWidgetCallback,
                 "sb-markdown-widget",
               )

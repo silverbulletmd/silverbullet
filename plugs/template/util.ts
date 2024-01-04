@@ -36,12 +36,19 @@ export function buildHandebarOptions(pageMeta: PageMeta) {
   };
 }
 
-export function defaultJsonTransformer(_k: string, v: any) {
+export function defaultJsonTransformer(v: any): string {
   if (v === undefined) {
     return "";
   }
   if (typeof v === "string") {
     return v.replaceAll("\n", " ").replaceAll("|", "\\|");
+  }
+  if (Array.isArray(v)) {
+    return v.map(defaultJsonTransformer).join(", ");
+  } else if (typeof v === "object") {
+    return Object.entries(v).map(([k, v]: [string, any]) =>
+      `${k}: ${defaultJsonTransformer(v)}`
+    ).join(", ");
   }
   return "" + v;
 }
@@ -49,7 +56,7 @@ export function defaultJsonTransformer(_k: string, v: any) {
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer: (k: string, v: any) => string = defaultJsonTransformer,
+  valueTransformer: (v: any) => string = defaultJsonTransformer,
 ): string {
   const headers = new Set<string>();
   for (const entry of jsonArray) {
@@ -79,7 +86,7 @@ export function jsonToMDTable(
   for (const val of jsonArray) {
     const el = [];
     for (const prop of headerList) {
-      const s = valueTransformer(prop, val[prop]);
+      const s = valueTransformer(val[prop]);
       el.push(s);
     }
     lines.push("|" + el.join("|") + "|");
