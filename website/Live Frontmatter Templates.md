@@ -1,5 +1,8 @@
 Live Frontmatter Templates allow you to override the default rendering of [[Frontmatter]] at the top of your pages with a custom template.
 
+> **warning** Warning
+> This feature is still _experimental_, aspects of it may change, or it could be removed altogether.
+
 If you have no idea what that means or what you would use this for; you probably don’t need this feature. Don’t worry about it.
 
 # Defining
