@@ -6,7 +6,8 @@ release.
 _Not yet released, this will likely become 0.6.0._
 
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
-* [[Live Frontmatter Templates]] enable you to specify custom rendering (using [[Templates]] of course) of the [[Frontmatter]] section of specific pages.
+* Custom renderer for [[Frontmatter]], enabling... [[Live Frontmatter Templates]] to specify custom rendering (using [[Templates]] of course) — see some of the plugs pages (e.g. [[Plugs/Editor]], [[Plugs/Git]]) to see what you can do with this (template here: [[internal-template/plug-frontmatter]]).
+* Somewhat nicer rendering of {{templateVars}}.
 
 ---
 
