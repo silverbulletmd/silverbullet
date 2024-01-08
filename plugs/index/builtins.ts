@@ -76,7 +76,8 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "!number",
     type: "string",
     trigger: "string",
-    forTags: "string[]",
+    where: "string",
+    priority: "number",
   },
 };
 

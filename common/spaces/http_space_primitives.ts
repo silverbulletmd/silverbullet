@@ -66,9 +66,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   async fetchFileList(): Promise<FileMeta[]> {
     const resp = await this.authenticatedFetch(`${this.url}/index.json`, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
     });
 
     if (
@@ -94,6 +91,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       `${this.url}/${encodeURI(name)}`,
       {
         method: "GET",
+        headers: {
+          // This header won't trigger CORS preflight requests but can be interpreted on the server
+          Accept: "application/octet-stream",
+        },
       },
     );
     if (res.status === 404) {

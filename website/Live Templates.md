@@ -1,4 +1,4 @@
-Live templates rendering [[Templates]] inline in a page.
+Live templates render [[Templates]] inline in a page. They’re called “Live” because their content updates dynamically.
 
 ## Syntax
 Live Templates are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the code block specifies the template to use, as well as any arguments to pass to it.
@@ -16,12 +16,23 @@ template: |
    Today is {{today}}!
 ```
 
-To pass in a value to the template, you can specify the optional `value` attribute:
+To pass a literal value to the template, you can specify the optional `value` attribute:
 ```template
 template: |
    Hello, {{name}}! Today is _{{today}}_
 value:
    name: Pete
+```
+
+You can also pass in the result of a [[Live Queries|query]] as a value by setting the `query` attribute:
+
+```template
+template: |
+   {{#each .}}
+   * #{{name}}
+   {{/each}}
+query: |
+   tag where parent = "page" select name
 ```
 
 If you just want to render the raw markdown without handling it as a handlebars template, set `raw` to true:

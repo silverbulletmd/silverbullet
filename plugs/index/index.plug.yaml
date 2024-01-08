@@ -155,44 +155,27 @@ functions:
     command:
       name: "Page: Extract"
 
-  # Mentions panel (postscript)
-  toggleMentions:
-    path: "./linked_mentions.ts:toggleMentions"
-    command:
-      name: "Mentions: Toggle"
-      key: ctrl-alt-m
-      priority: 5
-
-  renderMentions:
-    path: "./linked_mentions.ts:renderMentions"
-    panelWidget: bottom
-
   # TOC
-  toggleTOC:
-    path: toc.ts:toggleTOC
-    command:
-      name: "Table of Contents: Toggle"
-      key: ctrl-alt-t
-      priority: 5
+  tocWidget:
+    path: toc.ts:widget
+    codeWidget: toc
+    renderMode: markdown
 
-  renderTOC:
-    path: toc.ts:renderTOC
+  # Template Widgets
+  renderTemplateWidgetsTop:
+    path: template_widget.ts:renderTemplateWidgets
     env: client
     panelWidget: top
 
+  renderTemplateWidgetsBottom:
+    path: template_widget.ts:renderTemplateWidgets
+    env: client
+    panelWidget: bottom
+
   refreshWidgets:
-    path: toc.ts:refreshWidgets
+    path: template_widget.ts:refreshWidgets
 
   lintYAML:
     path: lint.ts:lintYAML
     events:
     - editor:lint
-
-  renderFrontmatterWidget:
-    path: frontmatter.ts:renderFrontmatterWidget
-    env: client
-    panelWidget: frontmatter
-
-  editFrontmatter:
-    path: frontmatter.ts:editFrontmatter
-  

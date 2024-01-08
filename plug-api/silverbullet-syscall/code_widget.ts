@@ -5,7 +5,7 @@ export function render(
   lang: string,
   body: string,
   pageName: string,
-): Promise<CodeWidgetContent> {
+): Promise<CodeWidgetContent | null> {
   return syscall("codeWidget.render", lang, body, pageName);
 }
 

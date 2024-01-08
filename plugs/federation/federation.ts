@@ -120,7 +120,12 @@ export async function readFile(
 ): Promise<{ data: Uint8Array; meta: FileMeta } | undefined> {
   const url = federatedPathToUrl(name);
   console.log("Fetching federated file", url);
-  const r = await nativeFetch(url);
+  const r = await nativeFetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/octet-stream",
+    },
+  });
   if (r.status === 503) {
     throw new Error("Offline");
   }

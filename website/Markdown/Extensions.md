@@ -6,6 +6,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
     * Generically via [[Markdown/Code Widgets]]
     * [[Live Queries]]
     * [[Live Templates]]
+    * [[Table of Contents]]
 * [[Anchors]]
 * [[Markdown/Admonitions]]
 * Hashtags, e.g. `#mytag`.

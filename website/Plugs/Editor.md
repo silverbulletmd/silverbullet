@@ -1,6 +1,4 @@
----
-tags: plug
----
+#plug
 
 The `editor` plug implements foundational editor functionality for SilverBullet.
 

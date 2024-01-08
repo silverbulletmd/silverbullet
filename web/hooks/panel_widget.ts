@@ -48,7 +48,7 @@ export class PanelWidgetHook implements Hook<PanelWidgetT> {
       if (!functionDef.panelWidget) {
         continue;
       }
-      if (!["top", "bottom", "frontmatter"].includes(functionDef.panelWidget)) {
+      if (!["top", "bottom"].includes(functionDef.panelWidget)) {
         errors.push(
           `Panel widgets must be attached to either 'top' or 'bottom'.`,
         );

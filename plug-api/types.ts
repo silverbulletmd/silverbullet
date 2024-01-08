@@ -127,14 +127,13 @@ export type ObjectQuery = Omit<Query, "prefix">;
 export type CodeWidgetCallback = (
   bodyText: string,
   pageName: string,
-) => Promise<CodeWidgetContent>;
+) => Promise<CodeWidgetContent | null>;
 
 export type CodeWidgetContent = {
   html?: string;
   markdown?: string;
   script?: string;
   buttons?: CodeWidgetButton[];
-  banner?: string;
 };
 
 export type CodeWidgetButton = {

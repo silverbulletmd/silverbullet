@@ -29,7 +29,3 @@ functions:
     path: "./preview.ts:previewClickHandler"
     events:
       - preview:click
-
-  markdownWidget:
-    path: ./widget.ts:markdownWidget
-    codeWidget: markdown

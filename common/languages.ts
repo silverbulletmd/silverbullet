@@ -36,6 +36,7 @@ export const builtinLanguages: Record<string, Language> = {
   "template": StreamLanguage.define(yamlLanguage),
   "embed": StreamLanguage.define(yamlLanguage),
   "data": StreamLanguage.define(yamlLanguage),
+  "toc": StreamLanguage.define(yamlLanguage),
   "javascript": javascriptLanguage,
   "js": javascriptLanguage,
   "typescript": typescriptLanguage,

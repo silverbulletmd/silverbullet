@@ -315,7 +315,10 @@ export class Client {
           setTimeout(() => {
             this.editorView.dispatch({
               selection: { anchor: pos as number },
-              effects: EditorView.scrollIntoView(pos as number, { y: "start" }),
+              effects: EditorView.scrollIntoView(pos as number, {
+                y: "start",
+                yMargin: 5,
+              }),
             });
           });
         } else if (!stateRestored) {

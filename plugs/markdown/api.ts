@@ -36,8 +36,13 @@ export async function expandCodeWidgets(
           renderToText(codeTextNode!),
           pageName,
         );
+        if (!result) {
+          return {
+            text: "",
+          };
+        }
         // Only do this for "markdown" widgets, that is: that can render to markdown
-        if (result.markdown) {
+        if (result.markdown !== undefined) {
           const parsedBody = await parseMarkdown(result.markdown);
           // Recursively process
           return expandCodeWidgets(

@@ -27,12 +27,10 @@ export class MarkdownWidget extends WidgetType {
     div.className = this.className;
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
-      div.innerHTML = this.wrapHtml(
-        cacheItem.html,
-        cacheItem.buttons || [],
-        cacheItem.banner,
-      );
-      this.attachListeners(div, cacheItem.buttons);
+      div.innerHTML = this.wrapHtml(cacheItem.html, cacheItem.buttons);
+      if (cacheItem.html) {
+        this.attachListeners(div, cacheItem.buttons);
+      }
     }
 
     // Async kick-off of content renderer
@@ -90,6 +88,7 @@ export class MarkdownWidget extends WidgetType {
       },
       preserveAttributes: true,
     });
+    // console.log("Got html", html);
 
     if (cachedHtml === html) {
       // HTML still same as in cache, no need to re-render
@@ -97,10 +96,11 @@ export class MarkdownWidget extends WidgetType {
     }
     div.innerHTML = this.wrapHtml(
       html,
-      widgetContent.buttons || [],
-      widgetContent.banner,
+      widgetContent.buttons,
     );
-    this.attachListeners(div, widgetContent.buttons);
+    if (html) {
+      this.attachListeners(div, widgetContent.buttons);
+    }
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
@@ -110,7 +110,6 @@ export class MarkdownWidget extends WidgetType {
           height: div.offsetHeight,
           html,
           buttons: widgetContent.buttons,
-          banner: widgetContent.banner,
         },
       );
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
@@ -124,8 +123,7 @@ export class MarkdownWidget extends WidgetType {
 
   private wrapHtml(
     html: string,
-    buttons: CodeWidgetButton[],
-    banner?: string,
+    buttons: CodeWidgetButton[] = [],
   ) {
     if (!html) {
       return "";
@@ -134,9 +132,7 @@ export class MarkdownWidget extends WidgetType {
       buttons.filter((button) => !button.widgetTarget).map((button, idx) =>
         `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
       ).join("")
-    }</div>${
-      banner ? `<div class="sb-banner">${escapeHtml(banner)}</div>` : ""
-    }${html}`;
+    }</div>${html}`;
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
@@ -255,10 +251,3 @@ function garbageCollectWidgets() {
 }
 
 setInterval(garbageCollectWidgets, 5000);
-
-function escapeHtml(text: string) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(
-    />/g,
-    "&gt;",
-  );
-}

@@ -8,6 +8,7 @@ import {
 } from "./util.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
+import { isTemplate } from "$sb/lib/cheap_yaml.ts";
 
 export function fencedCodePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -27,7 +28,8 @@ export function fencedCodePlugin(editor: Client) {
           const renderMode = editor.system.codeWidgetHook.codeWidgetModes.get(
             lang,
           );
-          if (codeWidgetCallback) {
+          // Only custom render when we have a custom renderer, and the current page is not a template
+          if (codeWidgetCallback && !isTemplate(state.sliceDoc(0, from))) {
             // We got a custom renderer!
             const lineStrings = text.split("\n");
 

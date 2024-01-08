@@ -54,3 +54,13 @@ where type = "query"
 order by order
 render [[template/documented-template]]
 ```
+
+# Live Widget Templates
+Use these to add [[Table of Contents]] and [[Linked Mentions]] to your pages.
+
+```query
+template
+where type =~ /^widget:/ and name =~ /^template\//
+order by order
+render [[template/documented-template]]
+```

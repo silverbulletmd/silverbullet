@@ -6,8 +6,14 @@ release.
 _Not yet released, this will likely become 0.6.0._
 
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
-* Custom renderer for [[Frontmatter]], enabling... [[Live Frontmatter Templates]] to specify custom rendering (using [[Templates]] of course) — see some of the plugs pages (e.g. [[Plugs/Editor]], [[Plugs/Git]]) to see what you can do with this (template here: [[internal-template/plug-frontmatter]]).
-* Somewhat nicer rendering of {{templateVars}}.
+* New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
+* New template type: [[Live Template Widgets]] allowing you to automatically add templates to the top or bottom of your pages (based on some criteria). Using this feature it possible to implement [[Table of Contents]] and [[Linked Mentions]] without having “hard coded” into SilverBullet itself.
+* **“Breaking” change:** Two features are now no longer hardcoded into SilverBullet, but can be activated quite easily using [[Live Template Widgets]] (see their respective documentation pages on instructions on how to do this):
+  * [[Table of Contents]]
+  * [[Linked Mentions]]
+* Templates:
+  * Somewhat nicer rendering of {{templateVars}} (notice the gray background)
+  * Rendering of [[Markdown/Code Widgets]] (such as live queries and templates) **are now disabled** on template pages, which should make them less confusing to read and interpret.
 
 ---
 
@@ -129,6 +135,6 @@ Other notable changes:
 * [[Plugs/Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
   * [IN PROGRESS] An in progress task
   * [BLOCKED] A task that’s blocked
-  [[🔌 Tasks|Read more]]
+  [[Plugs/Tasks|Read more]]
 * Removed [[Cloud Links]] support in favor of [[Federation]]. If you still have legacy cloud links, simply replace the 🌩️ with a `!` and things should work as before.
 

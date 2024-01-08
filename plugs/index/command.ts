@@ -2,7 +2,7 @@ import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { IndexEvent } from "$sb/app_event.ts";
 import { MQMessage } from "$sb/types.ts";
-import { isTemplate } from "../template/util.ts";
+import { isTemplate } from "$sb/lib/cheap_yaml.ts";
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");
@@ -64,6 +64,7 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
       tree: parsed,
     });
   } else {
+    console.log("Indexing", name, "as page");
     await events.dispatchEvent("page:index", {
       name,
       tree: parsed,

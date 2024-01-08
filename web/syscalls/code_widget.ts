@@ -11,7 +11,7 @@ export function codeWidgetSyscalls(
       lang: string,
       body: string,
       pageName: string,
-    ): Promise<CodeWidgetContent> => {
+    ): Promise<CodeWidgetContent | null> => {
       const langCallback = codeWidgetHook.codeWidgetCallbacks.get(
         lang,
       );

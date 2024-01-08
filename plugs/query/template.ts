@@ -4,14 +4,20 @@ import { CodeWidgetContent, PageMeta } from "$sb/types.ts";
 import { renderTemplate } from "../template/plug_api.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { rewritePageRefs, rewritePageRefsInString } from "$sb/lib/resolve.ts";
+import { performQuery } from "./query.ts";
+import { parseQuery } from "$sb/lib/parse-query.ts";
 
 type TemplateConfig = {
   // Pull the template from a page
   page?: string;
   // Or use a string directly
   template?: string;
-  // Optional argument to pass
+  // To feed data into the template you can either use a concrete value
   value?: any;
+
+  // Or a query
+  query?: string;
+
   // If true, don't render the template, just use it as-is
   raw?: boolean;
 };
@@ -38,11 +44,20 @@ export async function widget(
       templateText = await space.readPage(templatePage);
     }
 
-    const value = config.value
-      ? JSON.parse(
+    let value: any;
+
+    if (config.value) {
+      value = JSON.parse(
         await replaceTemplateVars(JSON.stringify(config.value), pageMeta),
-      )
-      : undefined;
+      );
+    }
+
+    if (config.query) {
+      const parsedQuery = await parseQuery(
+        await replaceTemplateVars(config.query, pageMeta),
+      );
+      value = await performQuery(parsedQuery, pageMeta);
+    }
 
     let { text: rendered } = config.raw
       ? { text: templateText }

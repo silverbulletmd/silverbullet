@@ -460,17 +460,18 @@ export class HttpServer {
             name,
           );
           if (
-            name.endsWith(".md") && !request.headers.has("X-Sync-Mode") &&
+            name.endsWith(".md") &&
+            // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
+            !request.headers.has("X-Sync-Mode") &&
+            // This Accept header is used by federation to still work with CORS
+            request.headers.get("Accept") !==
+              "application/octet-stream" &&
             request.headers.get("sec-fetch-mode") !== "cors"
           ) {
             // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
             console.warn(
               "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
             );
-            // Log all request headers
-            // for (const [key, value] of request.headers.entries()) {
-            //   console.log("Header", key, value);
-            // }
             response.redirect(`/${name.slice(0, -3)}`);
             return;
           }

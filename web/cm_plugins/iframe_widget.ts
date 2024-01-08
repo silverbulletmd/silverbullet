@@ -35,14 +35,23 @@ export class IFrameWidget extends WidgetType {
           case "reload":
             this.codeWidgetCallback(this.bodyText, this.client.currentPage!)
               .then(
-                (widgetContent: WidgetContent) => {
-                  iframe.contentWindow!.postMessage({
-                    type: "html",
-                    html: widgetContent.html,
-                    script: widgetContent.script,
-                    theme:
-                      document.getElementsByTagName("html")[0].dataset.theme,
-                  });
+                (widgetContent: WidgetContent | null) => {
+                  if (widgetContent === null) {
+                    iframe.contentWindow!.postMessage({
+                      type: "html",
+                      html: "",
+                      theme:
+                        document.getElementsByTagName("html")[0].dataset.theme,
+                    });
+                  } else {
+                    iframe.contentWindow!.postMessage({
+                      type: "html",
+                      html: widgetContent.html,
+                      script: widgetContent.script,
+                      theme:
+                        document.getElementsByTagName("html")[0].dataset.theme,
+                    });
+                  }
                 },
               );
             break;
