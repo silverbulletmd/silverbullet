@@ -28,6 +28,12 @@ Indeed, you can use [[Live Queries]] and [[Live Templates]] here as well.
     page: "[[!silverbullet.md/template/live/incoming]]"
     ```
 
+## Table of contents
+The [[Table of Contents]] as it appears on this site is implemented using a template: [[template/widget/toc]].
+
+## Linked Mentions
+The [[Linked Mentions]] as they appear on this site are also implemented using a template: [[template/widget/linked-mentions]].
+
 ## Plug widget template
 This site uses the [[internal-template/plug-widget]] template for pages tagged with `plug`, such as [[Plugs/Editor]], [[Plugs/Github]] and [[Plugs/Mermaid]].
 
