@@ -429,33 +429,9 @@
     margin-top: 10px;
   }
 
-  .sb-markdown-frontmatter-widget {
-    margin-bottom: -1.3ch;
-    padding: 8px;
 
-    .sb-banner {
-      position: absolute;
-      right: 5px;
-      bottom: 5px;
-      font-size: 80%;
-      color: var(--editor-frontmatter-marker-color);
-    }
-
-    span.hashtag {
-      border-radius: 6px;
-      padding: 0 3px;
-      margin: 0 1px 0 0;
-      font-size: 0.9em;
-    }
-  }
-
-  .sb-markdown-frontmatter-widget+.sb-frontmatter {
-    background-color: transparent;
-    color: transparent;
-  }
 
   .sb-markdown-widget,
-  .sb-markdown-frontmatter-widget,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
     overflow-y: auto;
@@ -577,6 +553,12 @@
     vertical-align: middle;
     padding-left: 16px;
     padding-right: 8px;
+  }
+
+  .sb-frontmatter-marker {
+    float: right;
+    font-size: 80%;
+    padding-right: 7px;
   }
 
   .cm-scroller {

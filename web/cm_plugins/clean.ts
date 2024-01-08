@@ -22,7 +22,7 @@ export function cleanModePlugins(client: Client) {
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),
-    frontmatterPlugin(client),
+    frontmatterPlugin(),
     fencedCodePlugin(client),
     taskListPlugin({
       // TODO: Move this logic elsewhere?

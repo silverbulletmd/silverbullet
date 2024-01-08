@@ -172,8 +172,7 @@
     color: var(--editor-heading-meta-color);
   }
 
-  .sb-hashtag,
-  .sb-markdown-frontmatter-widget span.hashtag {
+  .sb-hashtag {
     color: var(--editor-hashtag-color);
     background-color: var(--editor-hashtag-background-color);
     border: 1px solid var(--editor-hashtag-border-color);
@@ -312,10 +311,6 @@
   .sb-frontmatter {
     background-color: var(--editor-frontmatter-background-color);
     color: var(--editor-frontmatter-color);
-  }
-
-  .sb-markdown-frontmatter-widget {
-    background-color: var(--editor-frontmatter-background-color);
   }
 
   .sb-frontmatter-marker {
