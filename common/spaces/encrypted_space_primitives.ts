@@ -1,4 +1,14 @@
 import { FileMeta } from "../../plug-api/types.ts";
+import {
+  base32Decode,
+  base32Encode,
+  decryptAES,
+  deriveKeyFromPassword,
+  encryptAES,
+  exportKey,
+  generateSalt,
+  importKey,
+} from "../crypto.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export const encryptedFileExt = ".crypt";
@@ -51,7 +61,7 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
     if (this.spaceSalt) {
       throw new Error("Space already initialized");
     }
-    this.spaceSalt = this.generateSalt();
+    this.spaceSalt = generateSalt();
     await this.wrapped.writeFile(saltFile, this.spaceSalt);
     await this.createKey(password);
   }
@@ -65,15 +75,18 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
       throw new Error("Space not initialized");
     }
     // First derive an encryption key solely used for encrypting the key file from the user's password
-    const keyEncryptionKey = await this.deriveKeyFromPassword(password);
+    const keyEncryptionKey = await deriveKeyFromPassword(
+      this.spaceSalt!,
+      password,
+    );
     const encryptedKeyFileName = await this.encryptPath(
       keyEncryptionKey,
       keyPath,
     );
 
     try {
-      this.masterKey = await this.importKey(
-        await this.decryptAES(
+      this.masterKey = await importKey(
+        await decryptAES(
           keyEncryptionKey,
           (await this.wrapped.readFile(
             encryptedKeyFileName,
@@ -102,7 +115,10 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
   }
 
   private async createKey(password: string): Promise<void> {
-    const keyEncryptionKey = await this.deriveKeyFromPassword(password);
+    const keyEncryptionKey = await deriveKeyFromPassword(
+      this.spaceSalt!,
+      password,
+    );
     this.encryptedKeyFileName = await this.encryptPath(
       keyEncryptionKey,
       keyPath,
@@ -111,9 +127,9 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
     // And write it
     await this.wrapped.writeFile(
       this.encryptedKeyFileName,
-      await this.encryptAES(
+      await encryptAES(
         keyEncryptionKey,
-        await this.exportKey(this.masterKey),
+        await exportKey(this.masterKey),
       ),
     );
   }
@@ -123,7 +139,7 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
       throw new Error("No key loaded");
     }
     const oldPasswordKeyFileName = await this.encryptPath(
-      await this.deriveKeyFromPassword(oldPassword),
+      await deriveKeyFromPassword(this.spaceSalt!, oldPassword),
       keyPath,
     );
 
@@ -139,7 +155,10 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
     }
 
     // First derive an encryption key solely used for encrypting the key file from the user's password
-    const keyEncryptionKey = await this.deriveKeyFromPassword(newPasword);
+    const keyEncryptionKey = await deriveKeyFromPassword(
+      this.spaceSalt!,
+      newPasword,
+    );
 
     this.encryptedKeyFileName = await this.encryptPath(
       keyEncryptionKey,
@@ -148,9 +167,9 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
     // And write it
     await this.wrapped.writeFile(
       this.encryptedKeyFileName,
-      await this.encryptAES(
+      await encryptAES(
         keyEncryptionKey,
-        await this.exportKey(this.masterKey),
+        await exportKey(this.masterKey),
       ),
     );
 
@@ -160,98 +179,6 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
 
   isUnencryptedPath(name: string) {
     return name.startsWith("_plug/");
-  }
-
-  private generateSalt(): Uint8Array {
-    return crypto.getRandomValues(new Uint8Array(16));
-  }
-
-  private async exportKey(key: CryptoKey): Promise<Uint8Array> {
-    const arrayBuffer = await window.crypto.subtle.exportKey("raw", key);
-    return new Uint8Array(arrayBuffer);
-  }
-
-  private importKey(key: Uint8Array): Promise<CryptoKey> {
-    return window.crypto.subtle.importKey(
-      "raw",
-      key,
-      { name: "AES-GCM" },
-      true,
-      ["encrypt", "decrypt"],
-    );
-  }
-
-  private async deriveKeyFromPassword(
-    password: string,
-  ): Promise<CryptoKey> {
-    const baseKey = new TextEncoder().encode(password);
-    const importedKey = await window.crypto.subtle.importKey(
-      "raw",
-      baseKey,
-      { name: "PBKDF2" },
-      false,
-      ["deriveKey"],
-    );
-    return crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: this.spaceSalt!,
-        iterations: 10000,
-        hash: "SHA-256",
-      },
-      importedKey,
-      {
-        name: "AES-GCM",
-        length: 256,
-      },
-      true,
-      ["encrypt", "decrypt"],
-    );
-  }
-
-  /**
-   * Encrypts using AES-GCM and prepends the IV to the ciphertext
-   * @param key
-   * @param message
-   * @returns
-   */
-  private async encryptAES(
-    key: CryptoKey,
-    message: Uint8Array,
-  ): Promise<Uint8Array> {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await window.crypto.subtle.encrypt(
-      {
-        name: "AES-GCM",
-        iv: iv,
-      },
-      key,
-      message,
-    );
-    return appendBuffer(iv, new Uint8Array(ciphertext));
-  }
-
-  /**
-   * Decrypts using AES-GCM and expects the IV to be prepended to the ciphertext
-   * @param key
-   * @param data
-   * @returns
-   */
-  async decryptAES(
-    key: CryptoKey,
-    data: Uint8Array,
-  ): Promise<Uint8Array> {
-    const iv = data.slice(0, 12);
-    const ciphertext = data.slice(12);
-    const decrypted = await window.crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: iv,
-      },
-      key,
-      ciphertext,
-    );
-    return new Uint8Array(decrypted);
   }
 
   /**
@@ -359,7 +286,7 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
       await this.encryptPath(this.masterKey!, name),
     );
     return {
-      data: await this.decryptAES(this.masterKey!, data),
+      data: await decryptAES(this.masterKey!, data),
       meta: {
         ...meta,
         name,
@@ -378,7 +305,7 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
     }
     const newMeta = await this.wrapped.writeFile(
       await this.encryptPath(this.masterKey!, name),
-      await this.encryptAES(this.masterKey!, data),
+      await encryptAES(this.masterKey!, data),
       selfUpdate,
       meta,
     );
@@ -409,47 +336,4 @@ function removePadding(str: string, paddingChar: string): string {
     endIndex--;
   }
   return str.substring(0, endIndex + 1);
-}
-
-function base32Encode(data: Uint8Array): string {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let result = "";
-  let bits = 0;
-  let value = 0;
-  for (const byte of data) {
-    value = (value << 8) | byte;
-    bits += 8;
-    while (bits >= 5) {
-      result += alphabet[(value >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  if (bits > 0) {
-    result += alphabet[(value << (5 - bits)) & 31];
-  }
-  return result;
-}
-
-function base32Decode(data: string): Uint8Array {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  const result = new Uint8Array(Math.floor(data.length * 5 / 8));
-  let bits = 0;
-  let value = 0;
-  let index = 0;
-  for (const char of data) {
-    value = (value << 5) | alphabet.indexOf(char);
-    bits += 5;
-    if (bits >= 8) {
-      result[index++] = (value >>> (bits - 8)) & 255;
-      bits -= 8;
-    }
-  }
-  return result;
-}
-
-function appendBuffer(buffer1: Uint8Array, buffer2: Uint8Array): Uint8Array {
-  const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp;
 }
