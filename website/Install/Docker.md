@@ -70,7 +70,7 @@ services:
     image: zefhemel/silverbullet
     restart: unless-stopped
     environment:
-    - SB_USER="admin:admin"
+    - SB_USER=admin:admin
     volumes:
       - ./space:/space
     ports:
