@@ -20,7 +20,7 @@ Indeed, you can use [[Live Queries]] and [[Live Templates]] here as well.
 
     ---
     tags: template
-    type: frontmatter
+    type: widget:top
     where: 'tags = "person"'
     ---
     ## Incoming tasks
