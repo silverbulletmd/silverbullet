@@ -4,7 +4,7 @@
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
     "install": "deno install -f --unstable -A --importmap import_map.json silverbullet.ts",
     "check": "find . -name '*.ts*' | xargs deno check",
-    "test": "deno test -A --unstable",
+    "test": "deno task check && deno test -A --unstable",
     "build": "deno run -A build_plugs.ts && deno run -A --unstable build_web.ts",
     "plugs": "deno run -A build_plugs.ts",
     "server": "deno run -A --unstable --check silverbullet.ts",
