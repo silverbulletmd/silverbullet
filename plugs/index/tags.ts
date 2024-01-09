@@ -41,7 +41,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
       const [tagName, parent] = tag.split(":");
       return {
         ref: tag,
-        tags: ["tag"],
+        rootTag: "tag",
         name: tagName,
         page: name,
         parent,

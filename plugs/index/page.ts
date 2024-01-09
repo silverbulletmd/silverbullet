@@ -24,7 +24,7 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   // Note the order here, making sure that the actual page meta data overrules
   // any attempt to manually set built-in attributes like 'name' or 'lastModified'
   // pageMeta appears at the beginning and the end due to the ordering behavior of ojects in JS (making builtin attributes appear first)
-  const combinedPageMeta = {
+  const combinedPageMeta: PageMeta = {
     ...pageMeta,
     ...frontmatter,
     ...toplevelAttributes,
@@ -33,18 +33,14 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   combinedPageMeta.tags = [
     ...new Set([
-      "page",
       ...frontmatter.tags || [],
       ...toplevelAttributes.tags || [],
     ]),
   ];
 
-  // if (pageMeta.tags.includes("template")) {
-  //   // If this is a template, we don't want to index it as a page or anything else, just a template
-  //   pageMeta.tags = ["template"];
-  // }
+  combinedPageMeta.rootTag = "page";
 
-  // console.log("Page object", pageObj);
+  // console.log("Page object", combinedPageMeta);
   await indexObjects<PageMeta>(name, [combinedPageMeta]);
 }
 
@@ -109,13 +105,6 @@ async function lintYaml(
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {
       console.log("YAML error", e.message);
-      // const line = parseInt(errorMatch[1], 10) - 1;
-      // const yamlLines = yamlText.split("\n");
-      // let pos = posOffset;
-      // for (let i = 0; i < line; i++) {
-      //   pos += yamlLines[i].length + 1;
-      // }
-      // const endPos = pos + yamlLines[line].length;
 
       return {
         from,

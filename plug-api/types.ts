@@ -118,7 +118,8 @@ export type FunctionMap = Record<string, (...args: any[]) => any>;
  */
 export type ObjectValue<T> = {
   ref: string;
-  tags: string[];
+  rootTag: string;
+  tags?: string[];
 } & T;
 
 export type ObjectQuery = Omit<Query, "prefix">;

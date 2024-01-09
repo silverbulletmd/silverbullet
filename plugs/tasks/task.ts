@@ -65,7 +65,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     const complete = completeStates.includes(state);
     const task: TaskObject = {
       ref: `${name}@${n.from}`,
-      tags: [],
+      rootTag: "task",
       name: "",
       done: complete,
       page: name,
@@ -84,10 +84,12 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       if (tree.type === "Hashtag") {
         // Push the tag to the list, removing the initial #
         const tagName = tree.children![0].text!.substring(1);
+        if (!task.tags) {
+          task.tags = [];
+        }
         task.tags.push(tagName);
       }
     });
-    task.tags = ["task", ...task.tags];
 
     // Extract attributes and remove from tree
     const extractedAttributes = await extractAttributes(n, true);
@@ -107,7 +109,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       name,
       Array.from(taskStates.entries()).map(([state, { firstPos, count }]) => ({
         ref: `${name}@${firstPos}`,
-        tags: ["taskstate"],
+        rootTag: "taskstate",
         state,
         count,
         page: name,

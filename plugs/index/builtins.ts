@@ -29,6 +29,12 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "!number",
     tags: "string[]",
   },
+  item: {
+    ref: "!string",
+    name: "!string",
+    page: "!string",
+    tags: "string[]",
+  },
   taskstate: {
     ref: "!string",
     tags: "!string[]",
@@ -87,7 +93,7 @@ export async function loadBuiltinsIntoIndex() {
   for (const [tag, attributes] of Object.entries(builtins)) {
     allTags.push({
       ref: tag,
-      tags: ["tag"],
+      rootTag: "tag",
       name: tag,
       page: builtinPseudoPage,
       parent: "builtin",
@@ -97,7 +103,7 @@ export async function loadBuiltinsIntoIndex() {
       Object.entries(attributes).map(([name, attributeType]) => {
         return {
           ref: `${tag}:${name}`,
-          tags: ["attribute"],
+          rootTag: "attribute",
           tag,
           name,
           attributeType: attributeType.startsWith("!")

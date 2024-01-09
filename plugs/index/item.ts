@@ -30,11 +30,10 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
       continue;
     }
 
-    const tags = new Set<string>(["item"]);
-
+    const tags = new Set<string>();
     const item: ItemObject = {
       ref: `${name}@${n.from}`,
-      tags: [],
+      rootTag: "item",
       name: "", // to be replaced
       page: name,
       pos: n.from!,
@@ -62,7 +61,9 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     }
 
     item.name = textNodes.map(renderToText).join("").trim();
-    item.tags = [...tags.values()];
+    if (tags.size > 0) {
+      item.tags = [...tags];
+    }
 
     items.push(item);
   }

@@ -19,7 +19,7 @@ export function defaultJsonTransformer(v: any): string {
   }
   if (Array.isArray(v)) {
     return v.map(defaultJsonTransformer).join(", ");
-  } else if (typeof v === "object") {
+  } else if (v && typeof v === "object") {
     return Object.entries(v).map(([k, v]: [string, any]) =>
       `${k}: ${defaultJsonTransformer(v)}`
     ).join(", ");

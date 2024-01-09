@@ -6,9 +6,7 @@ import { ObjectValue } from "$sb/types.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
-export type LinkObject = {
-  ref: string;
-  tags: string[];
+export type LinkObject = ObjectValue<{
   // The page the link points to
   toPage: string;
   // The page the link occurs in
@@ -17,7 +15,7 @@ export type LinkObject = {
   snippet: string;
   alias?: string;
   asTemplate: boolean;
-};
+}>;
 
 export function extractSnippet(text: string, pos: number): string {
   let prefix = "";
@@ -59,7 +57,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       toPage = toPage.split(/[@$]/)[0];
       const link: LinkObject = {
         ref: `${name}@${pos}`,
-        tags: ["link"],
+        rootTag: "link",
         toPage: toPage,
         snippet: extractSnippet(pageText, pos),
         pos,
@@ -92,7 +90,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           const pos = codeText.from! + match.index! + 2;
           links.push({
             ref: `${name}@${pos}`,
-            tags: ["link"],
+            rootTag: "link",
             toPage: pageRefName,
             page: name,
             snippet: extractSnippet(pageText, pos),

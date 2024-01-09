@@ -43,7 +43,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           const pos = t.from! + i;
           dataObjects.push({
             ref: `${name}@${pos}`,
-            tags: [dataType],
+            rootTag: dataType,
             ...doc,
             pos,
             page: name,
@@ -53,7 +53,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
         await indexObjects<TagObject>(name, [
           {
             ref: dataType,
-            tags: ["tag"],
+            rootTag: "tag",
             name: dataType,
             page: name,
             parent: "data",

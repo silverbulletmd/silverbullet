@@ -87,13 +87,13 @@ functions:
   indexParagraphs:
     path: "./paragraph.ts:indexParagraphs"
     events:
-      - page:index
+    - page:index
 
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
     events:
-      - page:index
+    - page:index
 
   attributeComplete:
     path: "./attributes.ts:attributeComplete"
@@ -109,13 +109,13 @@ functions:
   indexItem:
     path: "./item.ts:indexItems"
     events:
-      - page:index
+    - page:index
 
   # Anchors
   indexAnchors:
     path: "./anchor.ts:indexAnchors"
     events:
-      - page:index
+    - page:index
   anchorComplete:
     path: "./anchor.ts:anchorComplete"
     events:
@@ -125,13 +125,13 @@ functions:
   indexData:
     path: data.ts:indexData
     events:
-      - page:index
+    - page:index
 
   # Hashtags
   indexTags:
     path: tags.ts:indexTags
     events:
-      - page:index
+    - page:index
   tagComplete:
     path: tags.ts:tagComplete
     events:
