@@ -234,7 +234,6 @@ export class MarkdownWidget extends WidgetType {
 
   get estimatedHeight(): number {
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
-    // console.log("Calling estimated height", this.bodyText, cacheItem);
     return cacheItem ? cacheItem.height : -1;
   }
 

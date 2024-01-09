@@ -429,6 +429,16 @@
     margin-top: 10px;
   }
 
+  .sb-markdown-top-widget:has(*) {
+    max-height: 500px;
+  }
+
+  @media screen and (max-height: 1000px) {
+    .sb-markdown-top-widget:has(*) {
+      max-height: 300px;
+    }
+  }
+
   .sb-markdown-widget,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
