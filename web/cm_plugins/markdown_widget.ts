@@ -136,6 +136,7 @@ export class MarkdownWidget extends WidgetType {
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
+    // Override wiki links with local navigate (faster)
     div.querySelectorAll("a[data-ref]").forEach((el_) => {
       const el = el_ as HTMLElement;
       // Override default click behavior with a local navigate (faster)
@@ -149,6 +150,21 @@ export class MarkdownWidget extends WidgetType {
           this.client.navigate(pageName, pos);
         }
       });
+    });
+
+    div.querySelectorAll("button[data-onclick]").forEach((el_) => {
+      const el = el_ as HTMLElement;
+      const onclick = el.dataset.onclick!;
+      const parsedOnclick = JSON.parse(onclick);
+      if (parsedOnclick[0] === "command") {
+        const command = parsedOnclick[1];
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.info("Command link clicked in widget, running", command);
+          this.client.runCommandByName(command).catch(console.error);
+        });
+      }
     });
 
     // Implement task toggling

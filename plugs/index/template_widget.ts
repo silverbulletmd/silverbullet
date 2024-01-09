@@ -38,6 +38,14 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
   const templateBits: string[] = [];
   // Strategy: walk through all matching templates, evaluate the 'where' expression, and pick the first one that matches
   for (const template of allFrontMatterTemplates) {
+    if (!template.where) {
+      console.warn(
+        "Skipping template",
+        template.ref,
+        "because it has no 'where' expression",
+      );
+      continue;
+    }
     const exprAST = parseTreeToAST(
       await language.parseLanguage("expression", template.where!),
     );
@@ -45,7 +53,6 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
     if (evalQueryExpression(parsedExpression, pageMeta)) {
       // Match! We're happy
       const templateText = await space.readPage(template.ref);
-      // templateBits.push(await space.readPage(template.ref));
       let renderedTemplate = (await renderTemplate(
         templateText,
         pageMeta,
@@ -56,10 +63,10 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       rewritePageRefs(parsedMarkdown, template.ref);
       renderedTemplate = renderToText(parsedMarkdown);
 
-      templateBits.push(renderedTemplate);
+      templateBits.push(renderedTemplate.trim());
     }
   }
-  const summaryText = templateBits.join("");
+  const summaryText = templateBits.join("\n");
   // console.log("Rendered", summaryText);
   return {
     markdown: summaryText,
