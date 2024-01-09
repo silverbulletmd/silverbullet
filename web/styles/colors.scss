@@ -172,7 +172,8 @@
     color: var(--editor-heading-meta-color);
   }
 
-  .sb-hashtag {
+  .sb-hashtag,
+  .hashtag {
     color: var(--editor-hashtag-color);
     background-color: var(--editor-hashtag-background-color);
     border: 1px solid var(--editor-hashtag-border-color);
