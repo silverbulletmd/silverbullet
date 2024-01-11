@@ -4,6 +4,8 @@ import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 import { TagObject } from "./tags.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { updateITags } from "$sb/lib/tags.ts";
 
 type DataObject = ObjectValue<
   {
@@ -14,6 +16,7 @@ type DataObject = ObjectValue<
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: ObjectValue<DataObject>[] = [];
+  const frontmatter = await extractFrontmatter(tree);
 
   await Promise.all(
     collectNodesOfType(tree, "FencedCode").map(async (t) => {
@@ -41,19 +44,21 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
             continue;
           }
           const pos = t.from! + i;
-          dataObjects.push({
+          const dataObj = {
             ref: `${name}@${pos}`,
-            rootTag: dataType,
+            tag: dataType,
             ...doc,
             pos,
             page: name,
-          });
+          };
+          updateITags(dataObj, frontmatter);
+          dataObjects.push(dataObj);
         }
         // console.log("Parsed data", parsedData);
         await indexObjects<TagObject>(name, [
           {
             ref: dataType,
-            rootTag: "tag",
+            tag: "tag",
             name: dataType,
             page: name,
             parent: "data",

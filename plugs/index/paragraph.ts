@@ -9,6 +9,9 @@ import {
 } from "$sb/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { ObjectValue } from "$sb/types.ts";
+import a from "https://esm.sh/v135/node_process.js";
+import { updateITags } from "$sb/lib/tags.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -21,7 +24,8 @@ export type ParagraphObject = ObjectValue<
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];
-  addParentPointers(tree);
+
+  const frontmatter = await extractFrontmatter(tree);
 
   await traverseTreeAsync(tree, async (p) => {
     if (p.type !== "Paragraph") {
@@ -55,14 +59,17 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     const paragraph: ParagraphObject = {
       ref: `${page}@${pos}`,
       text,
-      rootTag: "paragraph",
+      tag: "paragraph",
       page,
       pos,
       ...attrs,
     };
     if (tags.size > 0) {
       paragraph.tags = [...tags];
+      paragraph.itags = [...tags];
     }
+
+    updateITags(paragraph, frontmatter);
     objects.push(paragraph);
 
     // stop on every element except document, including paragraphs

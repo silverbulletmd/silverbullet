@@ -37,7 +37,7 @@ export async function newPageCommand(
   const templateText = await space.readPage(templateName!);
 
   const tempPageMeta: PageMeta = {
-    rootTag: "page",
+    tag: "page",
     ref: "",
     name: "",
     created: "",
@@ -169,7 +169,7 @@ export async function dailyNoteCommand() {
     await space.writePage(
       pageName,
       await replaceTemplateVars(dailyNoteTemplateText, {
-        rootTag: "page",
+        tag: "page",
         ref: pageName,
         name: pageName,
         created: "",
@@ -218,7 +218,7 @@ export async function weeklyNoteCommand() {
         await replaceTemplateVars(weeklyNoteTemplateText, {
           name: pageName,
           ref: pageName,
-          rootTag: "page",
+          tag: "page",
           created: "",
           lastModified: "",
           perm: "rw",

@@ -71,12 +71,12 @@ export async function indexObjects<T>(
   const kvs: KV<T>[] = [];
   const allAttributes = new Map<string, string>(); // tag:name -> attributeType
   for (const obj of objects) {
-    if (!obj.rootTag) {
-      console.error("Object has no rootTag", obj);
+    if (!obj.tag) {
+      console.error("Object has no tag", obj, "this shouldn't happen");
       continue;
     }
-    // Index as all the rootTag + any additional tags specified
-    const allTags = [obj.rootTag, ...obj.tags || []];
+    // Index as all the tag + any additional tags specified
+    const allTags = [obj.tag, ...obj.tags || []];
     for (const tag of allTags) {
       // The object itself
       kvs.push({
@@ -130,14 +130,14 @@ export async function indexObjects<T>(
     await indexObjects<AttributeObject>(
       page,
       [...allAttributes].map(([key, value]) => {
-        const [tag, name] = key.split(":");
+        const [tagName, name] = key.split(":");
         const attributeType = value.startsWith("!")
           ? value.substring(1)
           : value;
         return {
           ref: key,
-          rootTag: "attribute",
-          tag,
+          tag: "attribute",
+          tagName,
           name,
           attributeType,
           readOnly: value.startsWith("!"),

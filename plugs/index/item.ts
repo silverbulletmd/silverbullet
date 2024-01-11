@@ -5,6 +5,8 @@ import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
+import { updateITags } from "$sb/lib/tags.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 export type ItemObject = ObjectValue<
   {
@@ -17,7 +19,7 @@ export type ItemObject = ObjectValue<
 export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items: ObjectValue<ItemObject>[] = [];
 
-  // console.log("Indexing items", name);
+  const frontmatter = await extractFrontmatter(tree);
 
   const coll = collectNodesOfType(tree, "ListItem");
 
@@ -33,7 +35,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     const tags = new Set<string>();
     const item: ItemObject = {
       ref: `${name}@${n.from}`,
-      rootTag: "item",
+      tag: "item",
       name: "", // to be replaced
       page: name,
       pos: n.from!,
@@ -64,6 +66,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     if (tags.size > 0) {
       item.tags = [...tags];
     }
+
+    updateITags(item, frontmatter);
 
     items.push(item);
   }

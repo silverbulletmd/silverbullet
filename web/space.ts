@@ -187,7 +187,7 @@ export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
     return {
       ...fileMeta,
       ref: name,
-      rootTag: "page",
+      tag: "page",
       name,
       created: new Date(fileMeta.created).toISOString(),
       lastModified: new Date(fileMeta.lastModified).toISOString(),

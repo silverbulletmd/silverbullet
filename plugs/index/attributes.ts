@@ -7,7 +7,7 @@ import { determineTags } from "../../plug-api/lib/cheap_yaml.ts";
 export type AttributeObject = ObjectValue<{
   name: string;
   attributeType: string;
-  tag: string;
+  tagName: string;
   page: string;
   readOnly: boolean;
 }>;
@@ -49,7 +49,7 @@ export async function objectAttributeCompleter(
   const attributeFilter: QueryExpression | undefined =
     attributeCompleteEvent.source === ""
       ? prefixFilter
-      : ["and", prefixFilter, ["=", ["attr", "tag"], [
+      : ["and", prefixFilter, ["=", ["attr", "tagName"], [
         "string",
         attributeCompleteEvent.source,
       ]]];
@@ -63,7 +63,7 @@ export async function objectAttributeCompleter(
   return allAttributes.map((value) => {
     return {
       name: value.name,
-      source: value.tag,
+      source: value.tagName,
       attributeType: value.attributeType,
       readOnly: value.readOnly,
     } as AttributeCompletion;

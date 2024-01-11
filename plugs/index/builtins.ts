@@ -52,7 +52,7 @@ export const builtins: Record<string, Record<string, string>> = {
     ref: "!string",
     name: "!string",
     attributeType: "!string",
-    type: "!string",
+    tagName: "!string",
     page: "!string",
     readOnly: "!boolean",
   },
@@ -90,11 +90,11 @@ export const builtins: Record<string, Record<string, string>> = {
 export async function loadBuiltinsIntoIndex() {
   console.log("Loading builtins attributes into index");
   const allTags: ObjectValue<TagObject>[] = [];
-  for (const [tag, attributes] of Object.entries(builtins)) {
+  for (const [tagName, attributes] of Object.entries(builtins)) {
     allTags.push({
-      ref: tag,
-      rootTag: "tag",
-      name: tag,
+      ref: tagName,
+      tag: "tag",
+      name: tagName,
       page: builtinPseudoPage,
       parent: "builtin",
     });
@@ -102,9 +102,9 @@ export async function loadBuiltinsIntoIndex() {
       builtinPseudoPage,
       Object.entries(attributes).map(([name, attributeType]) => {
         return {
-          ref: `${tag}:${name}`,
-          rootTag: "attribute",
-          tag,
+          ref: `${tagName}:${name}`,
+          tag: "attribute",
+          tagName,
           name,
           attributeType: attributeType.startsWith("!")
             ? attributeType.substring(1)

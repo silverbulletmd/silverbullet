@@ -18,6 +18,8 @@ import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
+import { updateITags } from "$sb/lib/tags.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 export type TaskObject = ObjectValue<
   {
@@ -46,9 +48,8 @@ const incompleteStates = [" "];
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
   const tasks: ObjectValue<TaskObject>[] = [];
   const taskStates = new Map<string, { count: number; firstPos: number }>();
-  addParentPointers(tree);
-  // const allAttributes: AttributeObject[] = [];
-  // const allTags = new Set<string>();
+  const frontmatter = await extractFrontmatter(tree);
+
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {
       return false;
@@ -65,7 +66,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     const complete = completeStates.includes(state);
     const task: TaskObject = {
       ref: `${name}@${n.from}`,
-      rootTag: "task",
+      tag: "task",
       name: "",
       done: complete,
       page: name,
@@ -99,6 +100,8 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
+    updateITags(task, frontmatter);
+
     tasks.push(task);
     return true;
   });
@@ -109,7 +112,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       name,
       Array.from(taskStates.entries()).map(([state, { firstPos, count }]) => ({
         ref: `${name}@${firstPos}`,
-        rootTag: "taskstate",
+        tag: "taskstate",
         state,
         count,
         page: name,

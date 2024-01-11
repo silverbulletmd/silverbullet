@@ -83,7 +83,7 @@ function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
   return {
     ...fileMeta,
     ref: fileMeta.name,
-    rootTag: "page",
+    tag: "page",
     name,
     created: new Date(fileMeta.created).toISOString(),
     lastModified: new Date(fileMeta.lastModified).toISOString(),

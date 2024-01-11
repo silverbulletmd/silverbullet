@@ -17,7 +17,7 @@ export type TagObject = ObjectValue<{
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   const tags = new Set<string>(); // name:parent
   addParentPointers(tree);
-  const pageTags: string[] = (await extractFrontmatter(tree)).tags;
+  const pageTags: string[] = (await extractFrontmatter(tree)).tags || [];
   for (const pageTag of pageTags) {
     tags.add(`${pageTag}:page`);
   }
@@ -41,7 +41,7 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
       const [tagName, parent] = tag.split(":");
       return {
         ref: tag,
-        rootTag: "tag",
+        tag: "tag",
         name: tagName,
         page: name,
         parent,

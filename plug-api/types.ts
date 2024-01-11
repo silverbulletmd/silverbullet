@@ -118,8 +118,9 @@ export type FunctionMap = Record<string, (...args: any[]) => any>;
  */
 export type ObjectValue<T> = {
   ref: string;
-  rootTag: string;
+  tag: string; // main tag
   tags?: string[];
+  itags?: string[]; // implicit or inherited tags (inherited from the page for instance)
 } & T;
 
 export type ObjectQuery = Omit<Query, "prefix">;

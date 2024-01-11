@@ -16,7 +16,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const tags = ["page", ...frontmatter.tags || []];
   // Query all readOnly attributes for pages with this tag set
   const readOnlyAttributes = await queryObjects<AttributeObject>("attribute", {
-    filter: ["and", ["=", ["attr", "tag"], [
+    filter: ["and", ["=", ["attr", "tagName"], [
       "array",
       tags.map((tag): QueryExpression => ["string", tag]),
     ]], [

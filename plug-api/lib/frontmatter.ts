@@ -2,14 +2,13 @@ import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
-  collectNodesOfType,
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 
-export type FrontMatter = { tags: string[] } & Record<string, any>;
+export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
 export type FrontmatterExtractOptions = {
   removeKeys?: string[];
@@ -17,8 +16,11 @@ export type FrontmatterExtractOptions = {
   removeFrontmatterSection?: boolean;
 };
 
-// Extracts front matter from a markdown document
-// optionally removes certain keys from the front matter
+/**
+ * Extracts front matter from a markdown document, as well as extracting tags that are to apply to the page
+ * optionally removes certain keys from the front matter
+ * Side effect: will add parent pointers
+ */
 export async function extractFrontmatter(
   tree: ParseTree,
   options: FrontmatterExtractOptions = {},

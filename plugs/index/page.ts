@@ -10,6 +10,7 @@ import {
   renderToText,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
+import { updateITags } from "$sb/lib/tags.ts";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {
@@ -38,7 +39,9 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     ]),
   ];
 
-  combinedPageMeta.rootTag = "page";
+  combinedPageMeta.tag = "page";
+
+  updateITags(combinedPageMeta, frontmatter);
 
   // console.log("Page object", combinedPageMeta);
   await indexObjects<PageMeta>(name, [combinedPageMeta]);
