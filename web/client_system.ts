@@ -29,9 +29,8 @@ import {
 } from "../common/markdown_parser/markdown_ext.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
-import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
+import { DataStore, IDataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
@@ -56,7 +55,8 @@ export class ClientSystem {
   constructor(
     private client: Client,
     private mq: MessageQueue,
-    private ds: DataStore,
+    private clientDs: DataStore,
+    private dataStore: IDataStore,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
@@ -65,7 +65,7 @@ export class ClientSystem {
       undefined,
       {
         manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
-          ds.kv,
+          clientDs.kv,
           "manifest",
         ),
       },
@@ -165,12 +165,10 @@ export class ClientSystem {
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
       mqSyscalls(this.mq),
-      this.client.syncMode
-        ? dataStoreSyscalls(this.ds)
-        : dataStoreProxySyscalls(this.client),
+      dataStoreSyscalls(this.dataStore),
       debugSyscalls(),
       syncSyscalls(this.client),
-      clientStoreSyscalls(this.ds),
+      clientStoreSyscalls(this.clientDs),
     );
 
     // Syscalls that require some additional permissions

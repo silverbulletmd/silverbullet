@@ -1,5 +1,5 @@
 import { KV, KvKey, KvQuery } from "$sb/types.ts";
-import type { DataStore } from "../lib/datastore.ts";
+import type { DataStore, IDataStore } from "../lib/datastore.ts";
 import type { SyscallContext, SysCallMapping } from "../system.ts";
 
 /**
@@ -8,7 +8,7 @@ import type { SyscallContext, SysCallMapping } from "../system.ts";
  * @param prefix prefix to scope all keys to to which the plug name will be appended
  */
 export function dataStoreSyscalls(
-  ds: DataStore,
+  ds: IDataStore,
   prefix: KvKey = ["ds"],
 ): SysCallMapping {
   return {

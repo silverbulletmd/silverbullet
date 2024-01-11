@@ -8,7 +8,12 @@ import {
 } from "./deps.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { FileMeta } from "$sb/types.ts";
-import { ShellRequest, SyscallRequest, SyscallResponse } from "./rpc.ts";
+import {
+  handleRpc,
+  ShellRequest,
+  SyscallRequest,
+  SyscallResponse,
+} from "./rpc.ts";
 import { determineShellBackend } from "./shell_backend.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
@@ -131,13 +136,6 @@ export class HttpServer {
     // First check if auth string (username:password) has changed
     // Serve static files (javascript, css, html)
     this.app.use(this.serveStatic.bind(this));
-
-    const endpointHook = new EndpointHook("/_/");
-
-    this.app.use(async (context, next) => {
-      const spaceServer = await this.ensureSpaceServer(context.request);
-      return endpointHook.handleRequest(spaceServer.system!, context, next);
-    });
 
     this.addAuth(this.app);
     const fsRouter = this.addFsRoutes();
@@ -395,45 +393,9 @@ export class HttpServer {
         limit: 100 * 1024 * 1024,
       }).value;
       try {
-        if (operation === "shell") {
-          const shellCommand: ShellRequest = body;
-          const shellResponse = await spaceServer.shellBackend.handle(
-            shellCommand,
-          );
-          response.headers.set("Content-Type", "application/json");
-          response.body = JSON.stringify(shellResponse);
-          return;
-        } else {
-          // Syscall
-          if (spaceServer.syncOnly) {
-            response.headers.set("Content-Type", "text/plain");
-            response.status = 400;
-            response.body = "Unknown operation";
-            return;
-          }
-          const [plugName, syscall] = operation.split("/");
-          const args: any[] = body;
-          try {
-            // console.log("Now invoking", operation, "with", args);
-            const result = await spaceServer.system!.localSyscall(
-              plugName,
-              syscall,
-              args,
-            );
-            response.headers.set("Content-type", "application/json");
-            response.status = 200;
-            response.body = JSON.stringify({
-              result: result,
-            } as SyscallResponse);
-          } catch (e: any) {
-            response.headers.set("Content-type", "application/json");
-            response.status = 500;
-            response.body = JSON.stringify({
-              error: e.message,
-            } as SyscallResponse);
-          }
-          return;
-        }
+        const resp = await handleRpc(spaceServer, operation, body);
+        response.headers.set("Content-Type", "application/json");
+        response.body = JSON.stringify({ r: resp });
       } catch (e: any) {
         console.log("Error", e);
         response.status = 500;

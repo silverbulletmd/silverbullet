@@ -32,9 +32,10 @@ export class DataStoreMQ implements MessageQueue {
       };
     });
 
-    if (messages.length > 0) {
-      await this.ds.batchSet(messages);
+    if (messages.length === 0) {
+      return;
     }
+    await this.ds.batchSet(messages);
 
     // See if we can immediately process the message with a local subscription
     const localSubscriptions = this.localSubscriptions.get(queue);
@@ -50,6 +51,8 @@ export class DataStoreMQ implements MessageQueue {
   }
 
   async poll(queue: string, maxItems: number): Promise<MQMessage[]> {
+    // console.log("Polling", queue, maxItems);
+    // console.trace();
     // Note: this is not happening in a transactional way, so we may get duplicate message delivery
     // Retrieve a batch of messages
     const messages = await this.ds.query<MQMessage>({

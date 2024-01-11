@@ -109,12 +109,12 @@ export class Client {
 
   ui!: MainUI;
   openPages!: OpenPages;
-  stateDataStore!: DataStore;
-  mq!: DataStoreMQ;
 
   // Used by the "wiki link" highlighter to check if a page exists
   public allKnownPages = new Set<string>();
-  remoteDataStore!: IDataStore;
+  clientDS!: DataStore;
+  mq!: DataStoreMQ;
+  ds!: IDataStore;
 
   constructor(
     private parent: Element,
@@ -140,15 +140,15 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives);
+    this.clientDS = new DataStore(stateKvPrimitives);
 
-    // Only used in online mode
-    this.remoteDataStore = new RemoteDataStore(this.httpSpacePrimitives);
+    // In sync mode, reuse the clientDS, otherwise talk to a remote data store (over HTTP)
+    this.ds = this.syncMode
+      ? this.clientDS
+      : new RemoteDataStore(this.httpSpacePrimitives);
 
     // Setup message queue
-    this.mq = new DataStoreMQ(
-      this.syncMode ? this.stateDataStore : this.remoteDataStore,
-    );
+    this.mq = new DataStoreMQ(this.ds);
 
     setInterval(() => {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
@@ -162,7 +162,8 @@ export class Client {
     this.system = new ClientSystem(
       this,
       this.mq,
-      this.stateDataStore,
+      this.clientDS,
+      this.ds,
       this.eventHook,
     );
 
@@ -172,7 +173,7 @@ export class Client {
       ? new SyncService(
         localSpacePrimitives,
         this.plugSpaceRemotePrimitives,
-        this.stateDataStore,
+        this.clientDS,
         this.eventHook,
         (path) => {
           // TODO: At some point we should remove the data.db exception here
@@ -252,6 +253,12 @@ export class Client {
   private async initSync() {
     this.syncService.start();
 
+    if (!this.syncMode) {
+      ensureSpaceIndex(this.ds, this.system.system).catch(
+        console.error,
+      );
+    }
+
     // We're still booting, if a initial sync has already been completed we know this is the initial sync
     const initialSync = !await this.syncService.hasInitialSyncCompleted();
 
@@ -270,12 +277,12 @@ export class Client {
         // A full sync just completed
         if (!initialSync) {
           // If this was NOT the initial sync let's check if we need to perform a space reindex
-          ensureSpaceIndex(this.stateDataStore, this.system.system).catch(
+          ensureSpaceIndex(this.ds, this.system.system).catch(
             console.error,
           );
         } else {
           // This was the initial sync, let's mark a full index as completed
-          await markFullSpaceIndexComplete(this.stateDataStore);
+          await markFullSpaceIndexComplete(this.ds);
         }
       }
       if (operations) {
@@ -368,14 +375,14 @@ export class Client {
             scrollIntoView: true,
           });
         }
-        await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
+        await this.clientDS.set(["client", "lastOpenedPage"], pageName);
       },
     );
 
     if (location.hash === "#boot") {
       (async () => {
         // Cold start PWA load
-        const lastPage = await this.stateDataStore.get([
+        const lastPage = await this.clientDS.get([
           "client",
           "lastOpenedPage",
         ]);
@@ -420,7 +427,7 @@ export class Client {
           }
           await encryptedSpacePrimitives.setup(password);
           // this.stateDataStore.set(["encryptionKey"], password);
-          await this.stateDataStore.set(
+          await this.ds.set(
             ["spaceSalt"],
             encryptedSpacePrimitives.spaceSalt,
           );
@@ -432,7 +439,7 @@ export class Client {
             "Offline, will assume encryption space is initialized, fetching salt from data store",
           );
           await encryptedSpacePrimitives.init(
-            await this.stateDataStore.get(["spaceSalt"]),
+            await this.ds.get(["spaceSalt"]),
           );
         }
       }
@@ -442,7 +449,7 @@ export class Client {
           await encryptedSpacePrimitives.login(
             prompt("Password")!,
           );
-          await this.stateDataStore.set(
+          await this.ds.set(
             ["spaceSalt"],
             encryptedSpacePrimitives.spaceSalt,
           );
@@ -1042,7 +1049,7 @@ export class Client {
 
   async loadCaches() {
     const [widgetHeightCache, widgetCache] = await this
-      .stateDataStore.batchGet([[
+      .clientDS.batchGet([[
         "cache",
         "widgetHeight",
       ], ["cache", "widgets"]]);
@@ -1051,7 +1058,7 @@ export class Client {
   }
 
   debouncedWidgetHeightCacheFlush = throttle(() => {
-    this.stateDataStore.set(
+    this.clientDS.set(
       ["cache", "widgetHeight"],
       this.widgetHeightCache.toJSON(),
     )
@@ -1070,7 +1077,7 @@ export class Client {
   }
 
   debouncedWidgetCacheFlush = throttle(() => {
-    this.stateDataStore.set(["cache", "widgets"], this.widgetCache.toJSON())
+    this.clientDS.set(["cache", "widgets"], this.widgetCache.toJSON())
       .catch(
         console.error,
       );

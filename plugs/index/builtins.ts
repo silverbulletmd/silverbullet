@@ -90,31 +90,28 @@ export const builtins: Record<string, Record<string, string>> = {
 
 export async function loadBuiltinsIntoIndex() {
   console.log("Loading builtins attributes into index");
-  const allTags: ObjectValue<TagObject>[] = [];
+  const allObjects: ObjectValue<any>[] = [];
   for (const [tagName, attributes] of Object.entries(builtins)) {
-    allTags.push({
+    allObjects.push({
       ref: tagName,
       tag: "tag",
       name: tagName,
       page: builtinPseudoPage,
       parent: "builtin",
     });
-    await indexObjects<AttributeObject>(
-      builtinPseudoPage,
-      Object.entries(attributes).map(([name, attributeType]) => {
-        return {
-          ref: `${tagName}:${name}`,
-          tag: "attribute",
-          tagName,
-          name,
-          attributeType: attributeType.startsWith("!")
-            ? attributeType.substring(1)
-            : attributeType,
-          readOnly: attributeType.startsWith("!"),
-          page: builtinPseudoPage,
-        };
-      }),
+    allObjects.push(
+      ...Object.entries(attributes).map(([name, attributeType]) => ({
+        ref: `${tagName}:${name}`,
+        tag: "attribute",
+        tagName,
+        name,
+        attributeType: attributeType.startsWith("!")
+          ? attributeType.substring(1)
+          : attributeType,
+        readOnly: attributeType.startsWith("!"),
+        page: builtinPseudoPage,
+      })),
     );
   }
-  await indexObjects(builtinPseudoPage, allTags);
+  await indexObjects(builtinPseudoPage, allObjects);
 }
