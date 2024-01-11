@@ -36,18 +36,18 @@ export function systemSyscalls(
       if (!functionDef) {
         throw Error(`Function ${name} not found`);
       }
-      if (
-        client && functionDef.env && system.env &&
-        functionDef.env !== system.env
-      ) {
-        // Proxy to another environment
-        return proxySyscall(
-          ctx,
-          client.httpSpacePrimitives,
-          "system.invokeFunction",
-          [fullName, ...args],
-        );
-      }
+      // if (
+      //   client && functionDef.env && system.env &&
+      //   functionDef.env !== system.env
+      // ) {
+      //   // Proxy to another environment
+      //   return proxySyscall(
+      //     ctx,
+      //     client.httpSpacePrimitives,
+      //     "system.invokeFunction",
+      //     [fullName, ...args],
+      //   );
+      // }
       return plug.invoke(name, args);
     },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {

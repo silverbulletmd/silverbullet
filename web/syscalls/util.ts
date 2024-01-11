@@ -20,15 +20,10 @@ export async function proxySyscall(
   args: any[],
 ): Promise<any> {
   const resp = await httpSpacePrimitives.authenticatedFetch(
-    `${httpSpacePrimitives.url}/.rpc`,
+    `${httpSpacePrimitives.url}/.rpc/${ctx.plug.name}/${name}`,
     {
       method: "POST",
-      body: JSON.stringify({
-        ctx: ctx.plug.name,
-        operation: "syscall",
-        name,
-        args,
-      }),
+      body: JSON.stringify(args),
     },
   );
   const result: SyscallResponse = await resp.json();

@@ -39,7 +39,7 @@ import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { CodeWidgetButton, FileMeta, PageMeta } from "$sb/types.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
+import { DataStore, IDataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
@@ -51,6 +51,7 @@ import {
   ensureSpaceIndex,
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
+import { RemoteDataStore } from "./remote_datastore.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -76,7 +77,7 @@ export class Client {
 
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
   // localSpacePrimitives!: FilteredSpacePrimitives;
-  httpSpacePrimitives!: HttpSpacePrimitives;
+  httpSpacePrimitives: HttpSpacePrimitives;
   space!: Space;
 
   saveTimeout?: number;
@@ -109,11 +110,11 @@ export class Client {
   ui!: MainUI;
   openPages!: OpenPages;
   stateDataStore!: DataStore;
-  spaceDataStore!: DataStore;
   mq!: DataStoreMQ;
 
   // Used by the "wiki link" highlighter to check if a page exists
   public allKnownPages = new Set<string>();
+  remoteDataStore!: IDataStore;
 
   constructor(
     private parent: Element,
@@ -124,6 +125,10 @@ export class Client {
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
+    this.httpSpacePrimitives = new HttpSpacePrimitives(
+      location.origin,
+      window.silverBulletConfig.spaceFolderPath,
+    );
   }
 
   /**
@@ -137,8 +142,13 @@ export class Client {
     await stateKvPrimitives.init();
     this.stateDataStore = new DataStore(stateKvPrimitives);
 
+    // Only used in online mode
+    this.remoteDataStore = new RemoteDataStore(this.httpSpacePrimitives);
+
     // Setup message queue
-    this.mq = new DataStoreMQ(this.stateDataStore);
+    this.mq = new DataStoreMQ(
+      this.syncMode ? this.stateDataStore : this.remoteDataStore,
+    );
 
     setInterval(() => {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
@@ -377,11 +387,6 @@ export class Client {
   }
 
   async initSpace(): Promise<SpacePrimitives> {
-    this.httpSpacePrimitives = new HttpSpacePrimitives(
-      location.origin,
-      window.silverBulletConfig.spaceFolderPath,
-    );
-
     let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
 
     if (window.silverBulletConfig.clientEncryption) {

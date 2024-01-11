@@ -29,7 +29,6 @@ import {
 } from "../common/markdown_parser/markdown_ext.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
-import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
@@ -62,7 +61,8 @@ export class ClientSystem {
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(
-      client.syncMode ? undefined : "client",
+      // client.syncMode ? undefined : "client",
+      undefined,
       {
         manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
           ds.kv,
@@ -90,10 +90,7 @@ export class ClientSystem {
     this.system.addHook(this.panelWidgetHook);
 
     // MQ hook
-    if (client.syncMode) {
-      // Process MQ messages locally
-      this.system.addHook(new MQHook(this.system, this.mq));
-    }
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Command hook
     this.commandHook = new CommandHook();
@@ -167,11 +164,7 @@ export class ClientSystem {
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
-      this.client.syncMode
-        // In sync mode handle locally
-        ? mqSyscalls(this.mq)
-        // In non-sync mode proxy to server
-        : mqProxySyscalls(this.client),
+      mqSyscalls(this.mq),
       this.client.syncMode
         ? dataStoreSyscalls(this.ds)
         : dataStoreProxySyscalls(this.client),

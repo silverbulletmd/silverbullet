@@ -146,7 +146,9 @@ export async function indexObjects<T>(
       }),
     );
   }
-  return batchSet(page, kvs);
+  if (kvs.length > 0) {
+    return batchSet(page, kvs);
+  }
 }
 
 function cleanKey(ref: string, page: string) {

@@ -387,57 +387,52 @@ export class HttpServer {
     );
 
     // RPC
-    fsRouter.post("/.rpc", async ({ request, response }) => {
+    fsRouter.post("/.rpc/(.+)", async ({ request, response, params }) => {
+      const operation = params[0];
       const spaceServer = await this.ensureSpaceServer(request);
-      const body = await request.body({ type: "json" }).value;
+      const body = await request.body({
+        type: "json",
+        limit: 100 * 1024 * 1024,
+      }).value;
       try {
-        switch (body.operation) {
-          case "shell": {
-            const shellCommand: ShellRequest = body;
-            const shellResponse = await spaceServer.shellBackend.handle(
-              shellCommand,
-            );
-            response.headers.set("Content-Type", "application/json");
-            response.body = JSON.stringify(shellResponse);
-            return;
-          }
-          case "syscall": {
-            if (spaceServer.syncOnly) {
-              response.headers.set("Content-Type", "text/plain");
-              response.status = 400;
-              response.body = "Unknown operation";
-              return;
-            }
-            const syscallCommand: SyscallRequest = body;
-            try {
-              const plug = spaceServer.system!.loadedPlugs.get(
-                syscallCommand.ctx,
-              );
-              if (!plug) {
-                throw new Error(`Plug ${syscallCommand.ctx} not found`);
-              }
-              const result = await plug.syscall(
-                syscallCommand.name,
-                syscallCommand.args,
-              );
-              response.headers.set("Content-type", "application/json");
-              response.status = 200;
-              response.body = JSON.stringify({
-                result: result,
-              } as SyscallResponse);
-            } catch (e: any) {
-              response.headers.set("Content-type", "application/json");
-              response.status = 500;
-              response.body = JSON.stringify({
-                error: e.message,
-              } as SyscallResponse);
-            }
-            return;
-          }
-          default:
+        if (operation === "shell") {
+          const shellCommand: ShellRequest = body;
+          const shellResponse = await spaceServer.shellBackend.handle(
+            shellCommand,
+          );
+          response.headers.set("Content-Type", "application/json");
+          response.body = JSON.stringify(shellResponse);
+          return;
+        } else {
+          // Syscall
+          if (spaceServer.syncOnly) {
             response.headers.set("Content-Type", "text/plain");
             response.status = 400;
             response.body = "Unknown operation";
+            return;
+          }
+          const [plugName, syscall] = operation.split("/");
+          const args: any[] = body;
+          try {
+            // console.log("Now invoking", operation, "with", args);
+            const result = await spaceServer.system!.localSyscall(
+              plugName,
+              syscall,
+              args,
+            );
+            response.headers.set("Content-type", "application/json");
+            response.status = 200;
+            response.body = JSON.stringify({
+              result: result,
+            } as SyscallResponse);
+          } catch (e: any) {
+            response.headers.set("Content-type", "application/json");
+            response.status = 500;
+            response.body = JSON.stringify({
+              error: e.message,
+            } as SyscallResponse);
+          }
+          return;
         }
       } catch (e: any) {
         console.log("Error", e);

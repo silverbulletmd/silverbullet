@@ -1,6 +1,6 @@
 import { KV, MQMessage, MQStats, MQSubscribeOptions } from "$sb/types.ts";
 import { MessageQueue } from "./mq.ts";
-import { DataStore } from "./datastore.ts";
+import { IDataStore } from "./datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -15,7 +15,7 @@ export class DataStoreMQ implements MessageQueue {
   localSubscriptions = new Map<string, Set<() => void>>();
 
   constructor(
-    private ds: DataStore,
+    private ds: IDataStore,
   ) {
   }
 
@@ -32,7 +32,9 @@ export class DataStoreMQ implements MessageQueue {
       };
     });
 
-    await this.ds.batchSet(messages);
+    if (messages.length > 0) {
+      await this.ds.batchSet(messages);
+    }
 
     // See if we can immediately process the message with a local subscription
     const localSubscriptions = this.localSubscriptions.get(queue);
@@ -54,6 +56,9 @@ export class DataStoreMQ implements MessageQueue {
       prefix: [...queuedPrefix, queue],
       limit: ["number", maxItems],
     });
+    if (messages.length === 0) {
+      return [];
+    }
     // Put them in the processing queue
     await this.ds.batchSet(
       messages.map((m) => ({
@@ -137,9 +142,11 @@ export class DataStoreMQ implements MessageQueue {
   }
 
   async batchAck(queue: string, ids: string[]) {
-    await this.ds.batchDelete(
-      ids.map((id) => [...processingPrefix, queue, id]),
-    );
+    if (ids.length > 0) {
+      await this.ds.batchDelete(
+        ids.map((id) => [...processingPrefix, queue, id]),
+      );
+    }
   }
 
   async requeueTimeouts(
@@ -152,6 +159,9 @@ export class DataStoreMQ implements MessageQueue {
       prefix: processingPrefix,
       filter: ["<", ["attr", "ts"], ["number", now - timeout]],
     });
+    if (messages.length === 0) {
+      return;
+    }
     await this.ds.batchDelete(messages.map((m) => m.key));
     const newMessages: KV<ProcessingMessage>[] = [];
     for (const { value: m } of messages) {
