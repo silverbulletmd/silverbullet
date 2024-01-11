@@ -84,6 +84,7 @@ export const builtins: Record<string, Record<string, string>> = {
     trigger: "string",
     where: "string",
     priority: "number",
+    enabled: "boolean",
   },
 };
 

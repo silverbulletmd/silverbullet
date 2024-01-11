@@ -1,7 +1,7 @@
 Slash templates allow you to define custom [[Slash Commands]] that expand “snippet style” templates inline.
 
 # Definition
-You can define a slash template by creating a [[Templates|template page]] with a template tag and `trigger` attribute. 
+You can define a slash template by creating a [[Templates|template page]] with a template tag and `trigger` attribute. If you’d like to (temporarily) disable the template, you can set the `enabled` attribute to `false`.
 
 Example:
 

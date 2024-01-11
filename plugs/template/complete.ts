@@ -51,8 +51,11 @@ export async function templateSlashComplete(
   completeEvent: CompleteEvent,
 ): Promise<SlashCompletion[]> {
   const allTemplates = await queryObjects<TemplateObject>("template", {
-    // Only return templates that have a trigger
-    filter: ["attr", "trigger"],
+    // Only return templates that have a trigger and are not expliclty disabled
+    filter: ["and", ["attr", "trigger"], ["!=", ["attr", "enabled"], [
+      "boolean",
+      false,
+    ]]],
   });
   return allTemplates.map((template) => ({
     label: template.trigger!,

@@ -1,4 +1,5 @@
 import { editor, space } from "$sb/syscalls.ts";
+import { isFederationPath } from "$sb/lib/resolve.ts";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
@@ -13,9 +14,15 @@ export async function deletePage() {
   await space.deletePage(pageName);
 }
 
-export async function copyPage() {
+export async function copyPage(_def: any, predefinedNewName: string) {
   const oldName = await editor.getCurrentPage();
-  const newName = await editor.prompt(`New page title:`, `${oldName} (copy)`);
+  let suggestedName = predefinedNewName || oldName;
+
+  if (isFederationPath(oldName)) {
+    const pieces = oldName.split("/");
+    suggestedName = pieces.slice(1).join("/");
+  }
+  const newName = await editor.prompt(`Copy to new page:`, suggestedName);
 
   if (!newName) {
     return;
@@ -26,7 +33,7 @@ export async function copyPage() {
     await space.getPageMeta(newName);
     // So when we get to this point, we error out
     throw new Error(
-      `Page ${newName} already exists, cannot rename to existing page.`,
+      `"${newName}" already exists, cannot copy to existing page.`,
     );
   } catch (e: any) {
     if (e.message === "Not found") {

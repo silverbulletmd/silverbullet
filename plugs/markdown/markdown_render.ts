@@ -326,12 +326,17 @@ function render(
       };
     case "CommandLink": {
       // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
-      const commandText = t.children![1].children![0].text!;
+      const command = t.children![1].children![0].text!;
+      let commandText = command;
+      const aliasNode = findNodeOfType(t, "CommandLinkAlias");
+      if (aliasNode) {
+        commandText = aliasNode.children![0].text!;
+      }
 
       return {
         name: "button",
         attrs: {
-          "data-onclick": JSON.stringify(["command", commandText]),
+          "data-onclick": JSON.stringify(["command", command]),
         },
         body: commandText,
       };

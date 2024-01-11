@@ -5,7 +5,7 @@ This is an attempt at collecting useful, reusable templates so you don’t have 
 
 While you may just copy & paste these templates to your own space, the most convenient ways to use them is using [[Federation]]. This will synchronize these templates into your space and make them available for use instantly.
 
-To set this up, add the following this to your [[SETTINGS]]:
+To set this up, add the following to your [[SETTINGS]]:
 
 ```yaml
 federate:
@@ -56,7 +56,7 @@ render [[template/documented-template]]
 ```
 
 # Live Widget Templates
-Use these to add [[Table of Contents]] and [[Linked Mentions]] to your pages.
+Use these to add various useful [[Live Template Widgets]] to your pages.
 
 ```query
 template

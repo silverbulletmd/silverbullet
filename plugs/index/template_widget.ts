@@ -31,7 +31,12 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
   const allFrontMatterTemplates = await queryObjects<TemplateObject>(
     "template",
     {
-      filter: ["=", ["attr", "type"], ["string", `widget:${side}`]],
+      // where type = "widget:X" and enabled != false
+      filter: ["and", ["=", ["attr", "type"], ["string", `widget:${side}`]], [
+        "!=",
+        ["attr", "enabled"],
+        ["boolean", false],
+      ]],
       orderBy: [{ expr: ["attr", "priority"], desc: false }],
     },
   );

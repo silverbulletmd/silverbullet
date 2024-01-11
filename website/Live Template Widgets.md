@@ -12,6 +12,7 @@ Live Template Widgets follow the same pattern as other [[Templates]] with a few 
 * `type`: should be set to `widget:top` or `widget:bottom` depending on where you would like it to appear
 * `where`: should contain an [[Live Queries$expression]] that evaluates to true for the _pages_ you would like to apply this template to, usually this checks for a specific tag, but it can be any expression. Think of this as a `where` clause that should match for the pages this template is applied to.
 * `priority` (optional): in case you have multiple templates that have matching `where` expression, the one with the priority set to the lowest number wins.
+* `enabled` (defaults to `true`): in case you want to (temporarily) disable this template, set this to `false`.
 
 # Example
 The following widget template applies to all pages tagged with `person` (see the `where`). It uses the [[!silverbullet.md/template/live/incoming]] template, to show all incomplete tasks that reference this particular page.
