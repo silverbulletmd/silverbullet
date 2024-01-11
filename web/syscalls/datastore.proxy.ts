@@ -12,6 +12,9 @@ export function dataStoreProxySyscalls(
       ]);
     },
     "datastore.batchDelete": (ctx, keys: KvKey[]) => {
+      if (keys.length === 0) {
+        return Promise.resolve();
+      }
       return rpcCall(
         httpSpacePrimitives,
         "datastore.batchDelete",
@@ -24,6 +27,9 @@ export function dataStoreProxySyscalls(
       ]);
     },
     "datastore.batchSet": (ctx, entries: KV[]) => {
+      if (entries.length === 0) {
+        return Promise.resolve();
+      }
       return rpcCall(
         httpSpacePrimitives,
         "datastore.batchSet",
@@ -41,6 +47,9 @@ export function dataStoreProxySyscalls(
       return result;
     },
     "datastore.batchGet": (ctx, keys: KvKey[]) => {
+      if (keys.length === 0) {
+        return Promise.resolve([]);
+      }
       return rpcCall(
         httpSpacePrimitives,
         "datastore.batchGet",

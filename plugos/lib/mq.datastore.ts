@@ -51,8 +51,6 @@ export class DataStoreMQ implements MessageQueue {
   }
 
   async poll(queue: string, maxItems: number): Promise<MQMessage[]> {
-    // console.log("Polling", queue, maxItems);
-    // console.trace();
     // Note: this is not happening in a transactional way, so we may get duplicate message delivery
     // Retrieve a batch of messages
     const messages = await this.ds.query<MQMessage>({
@@ -109,7 +107,7 @@ export class DataStoreMQ implements MessageQueue {
         if (timeout) {
           clearTimeout(timeout);
         }
-        timeout = setTimeout(run, options.pollInterval || 5000);
+        // timeout = setTimeout(run, options.pollInterval || 5000);
       } catch (e: any) {
         console.error("Error in MQ subscription handler", e);
       }

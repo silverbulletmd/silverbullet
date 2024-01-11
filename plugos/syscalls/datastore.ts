@@ -1,5 +1,5 @@
 import { KV, KvKey, KvQuery } from "$sb/types.ts";
-import type { DataStore, IDataStore } from "../lib/datastore.ts";
+import type { IDataStore } from "../lib/datastore.ts";
 import type { SyscallContext, SysCallMapping } from "../system.ts";
 
 /**
@@ -9,7 +9,6 @@ import type { SyscallContext, SysCallMapping } from "../system.ts";
  */
 export function dataStoreSyscalls(
   ds: IDataStore,
-  prefix: KvKey = ["ds"],
 ): SysCallMapping {
   return {
     "datastore.delete": (ctx, key: KvKey) => {
@@ -66,10 +65,10 @@ export function dataStoreSyscalls(
   };
 
   function applyPrefix(ctx: SyscallContext, key?: KvKey): KvKey {
-    return [...prefix, ctx.plug.name!, ...(key ? key : [])];
+    return [ctx.plug.name!, ...(key ? key : [])];
   }
 
   function stripPrefix(key: KvKey): KvKey {
-    return key.slice(prefix.length + 1);
+    return key.slice(1);
   }
 }
