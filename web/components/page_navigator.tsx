@@ -53,11 +53,9 @@ export function PageNavigator({
     if (aliases.length > 0) {
       description = "(a.k.a. " + aliases.join(", ") + ") ";
     }
-    if (pageMeta.tags.length > 1) {
-      // Every page has the "page" tag, so it only gets interesting beyond that
-      const interestingTags = pageMeta.tags.filter((tag) => tag !== "page");
+    if (pageMeta.tags) {
       description = (description || "") +
-        interestingTags.map((tag) => `#${tag}`).join(" ");
+        pageMeta.tags.map((tag) => `#${tag}`).join(" ");
     }
     options.push({
       ...pageMeta,

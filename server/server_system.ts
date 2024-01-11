@@ -33,6 +33,7 @@ import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
+import { ensureSpaceIndex } from "../common/space_index.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -161,19 +162,10 @@ export class ServerSystem {
       })().catch(console.error);
     });
 
-    // Check if this space was ever indexed before
-    if (!await this.ds.get(["$initialIndexDone"])) {
-      console.log("Indexing space for the first time (in the background)");
-      const indexPromise = this.system.loadedPlugs.get("index")!.invoke(
-        "reindexSpace",
-        [],
-      ).then(() => {
-        console.log("Initial index completed!");
-        this.ds.set(["$initialIndexDone"], true);
-      }).catch(console.error);
-      if (awaitIndex) {
-        await indexPromise;
-      }
+    // Ensure a valid index
+    const indexPromise = ensureSpaceIndex(this.ds, this.system);
+    if (awaitIndex) {
+      await indexPromise;
     }
 
     await eventHook.dispatchEvent("system:ready");

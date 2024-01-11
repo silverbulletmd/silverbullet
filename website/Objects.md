@@ -1,38 +1,42 @@
-#core
-
 SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries|query]] this database in (potentially) useful ways.
 
-Some examples of things you can query for:
-* Give me a list of all books that I have marked as _want to read_
-* Give me a list of all tasks not yet completed that have today as a due date
-* Give me a list of items tagged with `#quote`
-* Give me a list of not-completed tasks that reference the current page
-
-By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. The index can be flushed at any time and be rebuilt from its source markdown files kept in your space.
+By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the {[Space: Reindex]} command).
 
 # Object representation
-Every object has a set of [[Attributes]].
+Every object has a set of [[Attributes]], some predefined, but you can add any additional custom attributes that you like.
 
-At the very least:
-* `ref`: a unique _identifier_ (unique to the page, at least), often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
-* `tags`: an array of type(s) of an object, see [[$tags]].
+The following attributes are predefined, and you can expect all objects to have them:
+* `ref`: a globally unique _identifier_, often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
+* `tag`: the main type, or “tag” of the page, usually a built-in type of the object (see below).
 
-In addition, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
+In addition, many objects will also contain:
+* `tags`: an optional set of additional, explicitly assigned tags.
+* `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `task where itags = "person"` (although technically that would also match any tags that have the `#person` explicitly assigned).
+
+Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
 $tags
-Every object has one or more tags, defining the _types_ of an object. Some tags are built-in (as described below), but you can easily define new tags by simply using the #hashtag notation in strategic locations (more on these locations later).
+Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Live Queries]] — examples below.
 
 Here are the currently built-in tags:
 
 ## page
 $page
-Every page in your space is available via the `page` tag. You can attach _additional tags_ to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in the _first paragraph of your page_, as is done with the #core tag at the beginning of this page.
+Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, e.g.:
+
+#example-tag #another-tag
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
 ```query
 page where name = "{{@page.name}}"
+```
+
+Note that you can also query this page using the `example-tag` directly:
+
+```query
+example-tag
 ```
 
 ## task
@@ -48,6 +52,7 @@ The following query shows all attributes available for tasks:
 ```query
 upnext
 ```
+
 Although you may want to render it using a template such as [[template/task]] instead:
 
 ```query
@@ -71,13 +76,13 @@ $template
 Indexes all pages tagged with `#template`. See [[Templates]] for more information on templates.
 
 ```query
-template select name
+template select name limit 5
 ```
 
 
 ## item
 $item
-List items (both bullet point and numbered items) are indexed by default with the `item` tag, and additional tags can be added using [[Tags]].
+List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
 
 Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 
@@ -86,7 +91,7 @@ Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 And then queried via the #quote tag:
 
 ```query 
-quote where tags = "item" select name, by
+quote where page = "{{@page.name}}" and tag = "item" select name, by
 ```
 
 ## paragraph

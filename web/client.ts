@@ -47,6 +47,10 @@ import {
   EncryptedSpacePrimitives,
 } from "../common/spaces/encrypted_space_primitives.ts";
 import { LimitedMap } from "../common/limited_map.ts";
+import {
+  ensureSpaceIndex,
+  markFullSpaceIndexComplete,
+} from "../common/space_index.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -216,7 +220,7 @@ export class Client {
 
     await this.loadPlugs();
     this.initNavigator();
-    this.initSync();
+    await this.initSync();
 
     this.loadCustomStyles().catch(console.error);
 
@@ -235,8 +239,11 @@ export class Client {
     this.updatePageListCache().catch(console.error);
   }
 
-  private initSync() {
+  private async initSync() {
     this.syncService.start();
+
+    // We're still booting, if a initial sync has already been completed we know this is the initial sync
+    const initialSync = !await this.syncService.hasInitialSyncCompleted();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -247,13 +254,24 @@ export class Client {
       if (operations !== undefined) {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
         this.fullSyncCompleted = true;
+
+        console.log("Full sync completed");
+
+        // A full sync just completed
+        if (!initialSync) {
+          // If this was NOT the initial sync let's check if we need to perform a space reindex
+          ensureSpaceIndex(this.stateDataStore, this.system.system).catch(
+            console.error,
+          );
+        } else {
+          // This was the initial sync, let's mark a full index as completed
+          await markFullSpaceIndexComplete(this.stateDataStore);
+        }
       }
-      // if (this.system.plugsUpdated) {
       if (operations) {
         // Likely initial sync so let's show visually that we're synced now
         this.showProgress(100);
       }
-      // }
 
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
