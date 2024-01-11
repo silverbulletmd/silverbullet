@@ -1,5 +1,6 @@
 const yamlKvRegex = /^\s*(\w+):\s*["']?([^'"]*)["']?$/;
 const yamlListItemRegex = /^\s*-\s+["']?([^'"]+)["']?$/;
+const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 /**
  * Cheap YAML parser to determine tags (ugly, regex based but fast)
@@ -34,8 +35,6 @@ export function determineTags(yamlText: string): string[] {
   }
   return tags;
 }
-
-const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 /**
  * Quick and dirty way to check if a page is a template or not

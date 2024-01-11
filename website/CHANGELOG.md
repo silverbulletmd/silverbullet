@@ -6,6 +6,11 @@ release.
 _Not yet released, this will likely become 0.6.0._
 
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
+* (Hopefully subtle) **breaking change** in how tags work (see [[Objects]]):
+  * Every object now has a `tag` attribute, signifying the “main” tag for that object (e.g. `page`, `item`)
+  * The `tags` attribute will now _only_ contain explicitly assigned tags (so not the built-in tag, which moved to `tag`)
+  * The new `itags` attribute (available in many objects) includes both the `tag`, `tags` as well as any tags inherited from the page the object appears in.
+  * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text, see [[Objects$page]].
 * New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
 * New template type: [[Live Template Widgets]] allowing you to automatically add templates to the top or bottom of your pages (based on some criteria). Using this feature it possible to implement [[Table of Contents]] and [[Linked Mentions]] without having “hard coded” into SilverBullet itself.
 * **“Breaking” change:** Two features are now no longer hardcoded into SilverBullet, but can be activated quite easily using [[Live Template Widgets]] (see their respective documentation pages on instructions on how to do this):

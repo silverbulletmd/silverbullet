@@ -3,12 +3,12 @@ import { IndexTreeEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$sb/types.ts";
+import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { updateITags } from "$sb/lib/tags.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
-export type LinkObject = {
-  ref: string;
-  tags: string[];
+export type LinkObject = ObjectValue<{
   // The page the link points to
   toPage: string;
   // The page the link occurs in
@@ -17,7 +17,7 @@ export type LinkObject = {
   snippet: string;
   alias?: string;
   asTemplate: boolean;
-};
+}>;
 
 export function extractSnippet(text: string, pos: number): string {
   let prefix = "";
@@ -47,7 +47,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
-
+  const frontmatter = await extractFrontmatter(tree);
   const pageText = renderToText(tree);
 
   traverseTree(tree, (n): boolean => {
@@ -59,7 +59,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       toPage = toPage.split(/[@$]/)[0];
       const link: LinkObject = {
         ref: `${name}@${pos}`,
-        tags: ["link"],
+        tag: "link",
         toPage: toPage,
         snippet: extractSnippet(pageText, pos),
         pos,
@@ -69,6 +69,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
+      updateITags(link, frontmatter);
       links.push(link);
       return true;
     }
@@ -90,15 +91,17 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         for (const match of matches) {
           const pageRefName = resolvePath(name, match[1]);
           const pos = codeText.from! + match.index! + 2;
-          links.push({
+          const link = {
             ref: `${name}@${pos}`,
-            tags: ["link"],
+            tag: "link",
             toPage: pageRefName,
             page: name,
             snippet: extractSnippet(pageText, pos),
             pos: pos,
             asTemplate: true,
-          });
+          };
+          updateITags(link, frontmatter);
+          links.push(link);
         }
       }
     }

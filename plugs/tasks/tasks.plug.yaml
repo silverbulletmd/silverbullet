@@ -35,15 +35,11 @@ functions:
   indexTasks:
     path: "./task.ts:indexTasks"
     events:
-      - page:index
+    - page:index
   taskToggle:
     path: "./task.ts:taskToggle"
     events:
       - page:click
-  # itemQueryProvider:
-  #   path: ./task.ts:queryProvider
-  #   events:
-  #     - query:task
   taskToggleCommand:
     path: ./task.ts:taskCycleCommand
     command:

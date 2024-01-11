@@ -71,7 +71,13 @@ export async function indexObjects<T>(
   const kvs: KV<T>[] = [];
   const allAttributes = new Map<string, string>(); // tag:name -> attributeType
   for (const obj of objects) {
-    for (const tag of obj.tags) {
+    if (!obj.tag) {
+      console.error("Object has no tag", obj, "this shouldn't happen");
+      continue;
+    }
+    // Index as all the tag + any additional tags specified
+    const allTags = [obj.tag, ...obj.tags || []];
+    for (const tag of allTags) {
       // The object itself
       kvs.push({
         key: [tag, cleanKey(obj.ref, page)],
@@ -91,7 +97,7 @@ export async function indexObjects<T>(
           }
           // Check for all tags attached to this object if they're builtins
           // If so: if `attrName` is defined in the builtin, use the attributeType from there (mostly to preserve readOnly aspects)
-          for (const otherTag of obj.tags) {
+          for (const otherTag of allTags) {
             const builtinAttributes = builtins[otherTag];
             if (builtinAttributes && builtinAttributes[attrName]) {
               allAttributes.set(
@@ -124,14 +130,14 @@ export async function indexObjects<T>(
     await indexObjects<AttributeObject>(
       page,
       [...allAttributes].map(([key, value]) => {
-        const [tag, name] = key.split(":");
+        const [tagName, name] = key.split(":");
         const attributeType = value.startsWith("!")
           ? value.substring(1)
           : value;
         return {
           ref: key,
-          tags: ["attribute"],
-          tag,
+          tag: "attribute",
+          tagName,
           name,
           attributeType,
           readOnly: value.startsWith("!"),

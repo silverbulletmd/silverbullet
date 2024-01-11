@@ -2,14 +2,13 @@ import { YAML } from "$sb/plugos-syscall/mod.ts";
 
 import {
   addParentPointers,
-  collectNodesOfType,
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
 
-export type FrontMatter = { tags: string[] } & Record<string, any>;
+export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
 export type FrontmatterExtractOptions = {
   removeKeys?: string[];
@@ -17,8 +16,11 @@ export type FrontmatterExtractOptions = {
   removeFrontmatterSection?: boolean;
 };
 
-// Extracts front matter from a markdown document
-// optionally removes certain keys from the front matter
+/**
+ * Extracts front matter from a markdown document, as well as extracting tags that are to apply to the page
+ * optionally removes certain keys from the front matter
+ * Side effect: will add parent pointers
+ */
 export async function extractFrontmatter(
   tree: ParseTree,
   options: FrontmatterExtractOptions = {},
@@ -26,29 +28,44 @@ export async function extractFrontmatter(
   let data: FrontMatter = {
     tags: [],
   };
+  const tags: string[] = [];
   addParentPointers(tree);
-  let paragraphCounter = 0;
 
   await replaceNodesMatchingAsync(tree, async (t) => {
-    // Find tags in the first paragraph to attach to the page
-    if (t.type === "Paragraph") {
-      paragraphCounter++;
-      // Only attach hashtags in the first paragraph to the page
-      if (paragraphCounter !== 1) {
-        return;
+    // Find tags in paragraphs directly nested under the document where the only content is tags
+    if (t.type === "Paragraph" && t.parent?.type === "Document") {
+      let onlyTags = true;
+      const collectedTags = new Set<string>();
+      for (const child of t.children!) {
+        if (child.text) {
+          if (child.text.startsWith("\n") && child.text !== "\n") {
+            // Multi line paragraph, cut it off here
+            break;
+          }
+          if (child.text.trim()) {
+            // Text node with actual text (not just whitespace): not a page tag line!
+            onlyTags = false;
+            break;
+          }
+        } else if (child.type === "Hashtag") {
+          const tagname = child.children![0].text!.substring(1);
+          collectedTags.add(tagname);
+
+          if (
+            options.removeTags === true || options.removeTags?.includes(tagname)
+          ) {
+            // Ugly hack to remove the hashtag
+            child.children![0].text = "";
+          }
+        } else if (child.type) {
+          // Found something else than tags, so... nope!
+          onlyTags = false;
+          break;
+        }
       }
-      collectNodesOfType(t, "Hashtag").forEach((h) => {
-        const tagname = h.children![0].text!.substring(1);
-        if (!data.tags.includes(tagname)) {
-          data.tags.push(tagname);
-        }
-        if (
-          options.removeTags === true || options.removeTags?.includes(tagname)
-        ) {
-          // Ugly hack to remove the hashtag
-          h.children![0].text = "";
-        }
-      });
+      if (onlyTags) {
+        tags.push(...collectedTags);
+      }
     }
     // Find FrontMatter and parse it
     if (t.type === "FrontMatter") {
@@ -65,11 +82,9 @@ export async function extractFrontmatter(
         // Normalize tags to an array
         // support "tag1, tag2" as well as "tag1 tag2" as well as "#tag1 #tag2" notations
         if (typeof data.tags === "string") {
-          data.tags = (data.tags as string).split(/,\s*|\s+/);
+          tags.push(...(data.tags as string).split(/,\s*|\s+/));
         }
 
-        // Strip # from tags
-        data.tags = data.tags.map((t) => t.replace(/^#/, ""));
         if (options.removeKeys && options.removeKeys.length > 0) {
           let removedOne = false;
 
@@ -96,6 +111,11 @@ export async function extractFrontmatter(
 
     return undefined;
   });
+
+  // Strip # from tags
+  data.tags = [...new Set([...tags.map((t) => t.replace(/^#/, ""))])];
+
+  // console.log("Extracted tags", data.tags);
 
   return data;
 }

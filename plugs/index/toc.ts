@@ -2,8 +2,6 @@ import { editor, markdown, YAML } from "$sb/syscalls.ts";
 import { CodeWidgetContent } from "$sb/types.ts";
 import { renderToText, traverseTree } from "$sb/lib/tree.ts";
 
-const defaultHeaderThreshold = 0;
-
 type Header = {
   name: string;
   pos: number;
@@ -11,7 +9,10 @@ type Header = {
 };
 
 type TocConfig = {
+  // Only show the TOC if there are at least this many headers
   minHeaders?: number;
+  // Don't show the TOC if there are more than this many headers
+  maxHeaders?: number;
   header?: boolean;
 };
 
@@ -40,12 +41,12 @@ export async function widget(
     return false;
   });
 
-  let headerThreshold = defaultHeaderThreshold;
-  if (config.minHeaders) {
-    headerThreshold = config.minHeaders;
-  }
-  if (headers.length < headerThreshold) {
+  if (config.minHeaders && headers.length < config.minHeaders) {
     // Not enough headers, not showing TOC
+    return null;
+  }
+  if (config.maxHeaders && headers.length > config.maxHeaders) {
+    // Too many headers, not showing TOC
     return null;
   }
   let headerText = "# Table of Contents\n";
