@@ -30,7 +30,7 @@ import {
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
-import { DataStore, IDataStore } from "../plugos/lib/datastore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
@@ -56,7 +56,7 @@ export class ClientSystem {
     private client: Client,
     private mq: MessageQueue,
     private clientDs: DataStore,
-    private dataStore: IDataStore,
+    private dataStore: DataStore,
     private eventHook: EventHook,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
@@ -65,7 +65,7 @@ export class ClientSystem {
       undefined,
       {
         manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
-          clientDs.kv,
+          clientDs,
           "manifest",
         ),
       },
@@ -145,7 +145,7 @@ export class ClientSystem {
     );
   }
 
-  async init() {
+  init() {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);

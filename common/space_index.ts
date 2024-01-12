@@ -1,4 +1,4 @@
-import { IDataStore } from "../plugos/lib/datastore.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { System } from "../plugos/system.ts";
 
 const indexVersionKey = ["$indexVersion"];
@@ -8,7 +8,7 @@ const desiredIndexVersion = 1;
 
 let indexOngoing = false;
 
-export async function ensureSpaceIndex(ds: IDataStore, system: System<any>) {
+export async function ensureSpaceIndex(ds: DataStore, system: System<any>) {
   const currentIndexVersion = await ds.get(indexVersionKey);
 
   console.info("Current space index version", currentIndexVersion);
@@ -25,6 +25,6 @@ export async function ensureSpaceIndex(ds: IDataStore, system: System<any>) {
   }
 }
 
-export async function markFullSpaceIndexComplete(ds: IDataStore) {
+export async function markFullSpaceIndexComplete(ds: DataStore) {
   await ds.set(indexVersionKey, desiredIndexVersion);
 }

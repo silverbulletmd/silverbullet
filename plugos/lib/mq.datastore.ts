@@ -1,6 +1,6 @@
 import { KV, MQMessage, MQStats, MQSubscribeOptions } from "$sb/types.ts";
 import { MessageQueue } from "./mq.ts";
-import { IDataStore } from "./datastore.ts";
+import { DataStore } from "./datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -15,7 +15,7 @@ export class DataStoreMQ implements MessageQueue {
   localSubscriptions = new Map<string, Set<() => void>>();
 
   constructor(
-    private ds: IDataStore,
+    private ds: DataStore,
   ) {
   }
 

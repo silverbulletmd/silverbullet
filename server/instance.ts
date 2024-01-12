@@ -1,14 +1,11 @@
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { ensureSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
+import type { DataStore } from "../plugos/lib/datastore.ts";
+import { KvDataStore } from "../plugos/lib/kv_datastore.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
-import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
-import { gitIgnoreCompiler } from "./deps.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 
@@ -57,7 +54,7 @@ export class SpaceServer {
     }
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
-    this.ds = new DataStore(new PrefixedKvPrimitives(kvPrimitives, ["ds"]));
+    this.ds = new KvDataStore(new PrefixedKvPrimitives(kvPrimitives, ["ds"]));
   }
 
   async init() {

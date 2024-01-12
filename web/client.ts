@@ -39,7 +39,7 @@ import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { CodeWidgetButton, FileMeta, PageMeta } from "$sb/types.ts";
-import { DataStore, IDataStore } from "../plugos/lib/datastore.ts";
+import type { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
@@ -52,6 +52,7 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { RemoteDataStore } from "./remote_datastore.ts";
+import { KvDataStore } from "../plugos/lib/kv_datastore.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -114,7 +115,7 @@ export class Client {
   public allKnownPages = new Set<string>();
   clientDS!: DataStore;
   mq!: DataStoreMQ;
-  ds!: IDataStore;
+  ds!: DataStore;
 
   constructor(
     private parent: Element,
@@ -140,7 +141,7 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.clientDS = new DataStore(stateKvPrimitives);
+    this.clientDS = new KvDataStore(stateKvPrimitives);
 
     // In sync mode, reuse the clientDS, otherwise talk to a remote data store (over HTTP)
     this.ds = this.syncMode
@@ -198,7 +199,7 @@ export class Client {
 
     this.focus();
 
-    await this.system.init();
+    this.system.init();
 
     // Load settings
     this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
@@ -485,7 +486,7 @@ export class Client {
         new EventedSpacePrimitives(
           // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
           new FallbackSpacePrimitives(
-            new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
+            new DataStoreSpacePrimitives(new KvDataStore(spaceKvPrimitives)),
             this.plugSpaceRemotePrimitives,
           ),
           this.eventHook,

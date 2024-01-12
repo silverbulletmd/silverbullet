@@ -6,7 +6,6 @@ import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
 import { PlugNamespaceHookT } from "./hooks/plug_namespace.ts";
 import { CodeWidgetT } from "../web/hooks/code_widget.ts";
 import { MQHookT } from "../plugos/hooks/mq.ts";
-import { EndpointHookT } from "../plugos/hooks/endpoint.ts";
 import { PanelWidgetT } from "../web/hooks/panel_widget.ts";
 
 /** Silverbullet hooks give plugs access to silverbullet core systems.
@@ -24,7 +23,6 @@ export type SilverBulletHooks =
   & EventHookT
   & CodeWidgetT
   & PanelWidgetT
-  & EndpointHookT
   & PlugNamespaceHookT;
 
 /** Syntax extension allow plugs to declaratively add new *inline* parse tree nodes to the markdown parser. */

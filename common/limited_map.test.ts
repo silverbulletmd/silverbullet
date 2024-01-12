@@ -5,7 +5,7 @@ import { LimitedMap } from "./limited_map.ts";
 Deno.test("limited map", async () => {
   const mp = new LimitedMap<string>(3);
   mp.set("a", "a");
-  mp.set("b", "b");
+  mp.set("b", "b", 10);
   mp.set("c", "c");
   await sleep(2);
   assertEquals(mp.get("a"), "a");
@@ -15,6 +15,11 @@ Deno.test("limited map", async () => {
   assertEquals(mp.get("c"), "c");
   // Drops the first key
   mp.set("d", "d");
-  await sleep(2);
   assertEquals(mp.get("a"), undefined);
+  await sleep(20);
+  // "b" should have been dropped
+  assertEquals(mp.get("b"), undefined);
+  assertEquals(mp.get("c"), "c");
+
+  console.log(mp.toJSON());
 });

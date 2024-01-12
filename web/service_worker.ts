@@ -2,6 +2,7 @@ import type { FileContent } from "../common/spaces/datastore_space_primitives.ts
 import { simpleHash } from "../common/crypto.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
+import { KvDataStore } from "../plugos/lib/kv_datastore.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 
@@ -182,7 +183,7 @@ self.addEventListener("message", (event: any) => {
     // Setup space
     const kv = new IndexedDBKvPrimitives(`${dbPrefix}_synced_space`);
     kv.init().then(() => {
-      ds = new DataStore(kv);
+      ds = new KvDataStore(kv);
       console.log("Datastore in service worker initialized...");
     });
   }
