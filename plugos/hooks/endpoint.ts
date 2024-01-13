@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { Application, Context, Next } from "../../server/deps.ts";
+import { Context, Next } from "../../server/deps.ts";
 
 export type EndpointRequest = {
   method: string;
@@ -37,8 +37,9 @@ export class EndpointHook implements Hook<EndpointHookT> {
     ctx: Context,
     next: Next,
   ) {
-    const req = ctx.request;
-    const requestPath = ctx.request.url.pathname;
+    const req = ctx.req;
+    const url = new URL(req.url);
+    const requestPath = url.pathname;
     if (!requestPath.startsWith(this.prefix)) {
       return next();
     }
@@ -73,13 +74,13 @@ export class EndpointHook implements Hook<EndpointHookT> {
             try {
               const response: EndpointResponse = await plug.invoke(name, [
                 {
-                  path: req.url.pathname,
+                  path: url.pathname,
                   method: req.method,
-                  body: req.body(),
+                  body: await req.text(),
                   query: Object.fromEntries(
-                    req.url.searchParams.entries(),
+                    url.searchParams.entries(),
                   ),
-                  headers: Object.fromEntries(req.headers.entries()),
+                  headers: req.header(),
                 } as EndpointRequest,
               ]);
               if (response.headers) {
@@ -88,18 +89,21 @@ export class EndpointHook implements Hook<EndpointHookT> {
                     response.headers,
                   )
                 ) {
-                  ctx.response.headers.set(key, value);
+                  ctx.header(key, value);
                 }
               }
-              ctx.response.status = response.status;
-              ctx.response.body = response.body;
-              // console.log("Sent result");
-              return;
+              ctx.status(response.status);
+              console.log("Going to return", response.body);
+              if (typeof response.body === "string") {
+                return ctx.text(response.body);
+              } else if (response.body instanceof Uint8Array) {
+                return ctx.body(response.body);
+              } else {
+                return ctx.json(response.body);
+              }
             } catch (e: any) {
               console.error("Error executing function", e);
-              ctx.response.status = 500;
-              ctx.response.body = e.message;
-              return;
+              return ctx.body(e.message, 500);
             }
           }
         }

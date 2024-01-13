@@ -1,6 +1,5 @@
 import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
 import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
-import { SyscallResponse } from "../../server/rpc.ts";
 import { Client } from "../client.ts";
 
 export function proxySyscalls(client: Client, names: string[]): SysCallMapping {
@@ -20,18 +19,13 @@ export async function proxySyscall(
   args: any[],
 ): Promise<any> {
   const resp = await httpSpacePrimitives.authenticatedFetch(
-    `${httpSpacePrimitives.url}/.rpc`,
+    `${httpSpacePrimitives.url}/.rpc/${ctx.plug.name}/${name}`,
     {
       method: "POST",
-      body: JSON.stringify({
-        ctx: ctx.plug.name,
-        operation: "syscall",
-        name,
-        args,
-      }),
+      body: JSON.stringify(args),
     },
   );
-  const result: SyscallResponse = await resp.json();
+  const result = await resp.json();
   if (result.error) {
     console.error("Remote syscall error", result.error);
     throw new Error(result.error);
