@@ -245,10 +245,11 @@ function render(
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
       }
+      const [pageName] = ref.split(/[@$]/);
       return {
         name: "a",
         attrs: {
-          href: `/${ref.replace("@", "#")}`,
+          href: `/${pageName}`,
           class: "wiki-link",
           "data-ref": ref,
         },

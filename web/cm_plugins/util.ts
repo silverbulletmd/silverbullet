@@ -31,6 +31,9 @@ export class LinkWidget extends WidgetType {
 
     // Mouse handling
     anchor.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       this.options.callback(e);

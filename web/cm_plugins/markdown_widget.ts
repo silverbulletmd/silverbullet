@@ -141,6 +141,10 @@ export class MarkdownWidget extends WidgetType {
       const el = el_ as HTMLElement;
       // Override default click behavior with a local navigate (faster)
       el.addEventListener("click", (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          // Don't do anything special for ctrl/meta clicks
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         const [pageName, pos] = el.dataset.ref!.split(/[$@]/);

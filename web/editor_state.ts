@@ -298,11 +298,14 @@ export function createEditorState(
         },
 
         mousedown: (event: MouseEvent, view: EditorView) => {
+          const pos = view.posAtCoords(event);
+          if (event.button !== 0) {
+            return;
+          }
+          if (!pos) {
+            return;
+          }
           safeRun(async () => {
-            const pos = view.posAtCoords(event);
-            if (!pos) {
-              return;
-            }
             const potentialClickEvent: ClickEvent = {
               page: pageName,
               ctrlKey: event.ctrlKey,

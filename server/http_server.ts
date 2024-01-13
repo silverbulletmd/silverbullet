@@ -183,7 +183,6 @@ export class HttpServer {
         if (!this.clientAssetBundle.has(assetName)) {
           return next();
         }
-        console.log("Asset name", assetName);
         if (
           this.clientAssetBundle.has(assetName) &&
           req.header("If-Modified-Since") ===
@@ -205,7 +204,6 @@ export class HttpServer {
             utcDateString(this.clientAssetBundle.getMtime(assetName)),
           );
         }
-        // console.log("Serving it now", assetName);
 
         if (req.method === "GET") {
           if (assetName === "service_worker.js") {
