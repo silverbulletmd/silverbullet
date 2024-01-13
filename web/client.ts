@@ -135,7 +135,7 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives);
+    this.stateDataStore = new DataStore(stateKvPrimitives, true);
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);

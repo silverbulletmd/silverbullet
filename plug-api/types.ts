@@ -73,6 +73,11 @@ export type Query = {
   render?: string;
   renderAll?: boolean;
   distinct?: boolean;
+
+  /**
+   * When set, the DS implementation _may_ cache the result for the given number of seconds.
+   */
+  cacheSecs?: number;
 };
 
 export type KvQuery = Omit<Query, "querySource"> & {

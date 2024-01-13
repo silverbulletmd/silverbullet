@@ -56,6 +56,7 @@ export async function templateSlashComplete(
       "boolean",
       false,
     ]]],
+    cacheSecs: 5,
   });
   return allTemplates.map((template) => ({
     label: template.trigger!,

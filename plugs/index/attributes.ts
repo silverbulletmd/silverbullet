@@ -42,23 +42,17 @@ export function determineType(v: any): string {
 export async function objectAttributeCompleter(
   attributeCompleteEvent: AttributeCompleteEvent,
 ): Promise<AttributeCompletion[]> {
-  const prefixFilter: QueryExpression = ["call", "startsWith", [[
-    "attr",
-    "name",
-  ], ["string", attributeCompleteEvent.prefix]]];
   const attributeFilter: QueryExpression | undefined =
     attributeCompleteEvent.source === ""
-      ? prefixFilter
-      : ["and", prefixFilter, ["=", ["attr", "tagName"], [
-        "string",
-        attributeCompleteEvent.source,
-      ]]];
+      ? undefined
+      : ["=", ["attr", "tagName"], ["string", attributeCompleteEvent.source]];
   const allAttributes = await queryObjects<AttributeObject>("attribute", {
     filter: attributeFilter,
     distinct: true,
     select: [{ name: "name" }, { name: "attributeType" }, { name: "tag" }, {
       name: "readOnly",
     }],
+    cacheSecs: 5,
   });
   return allAttributes.map((value) => {
     return {

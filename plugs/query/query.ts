@@ -91,7 +91,6 @@ export async function performQuery(parsedQuery: Query, pageObject: PageMeta) {
 export async function lintQuery(
   { name, tree }: LintEvent,
 ): Promise<LintDiagnostic[]> {
-  const pageObject = await loadPageObject(name);
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FencedCode") {
@@ -111,6 +110,7 @@ export async function lintQuery(
       }
       const bodyText = codeText.children![0].text!;
       try {
+        const pageObject = await loadPageObject(name);
         const parsedQuery = await parseQuery(
           await replaceTemplateVars(bodyText, pageObject),
         );

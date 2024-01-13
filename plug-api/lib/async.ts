@@ -67,3 +67,25 @@ export class PromiseQueue {
     this.run(); // Continue processing the next promise in the queue
   }
 }
+
+export async function batchRequests<I, O>(
+  values: I[],
+  fn: (batch: I[]) => Promise<O[]>,
+  batchSize: number,
+): Promise<O[]> {
+  const results: O[] = [];
+  // Split values into batches of batchSize
+  const batches: I[][] = [];
+  for (let i = 0; i < values.length; i += batchSize) {
+    batches.push(values.slice(i, i + batchSize));
+  }
+  // Run fn on them in parallel
+  const batchResults = await Promise.all(batches.map(fn));
+  // Flatten the results
+  for (const batchResult of batchResults) {
+    if (Array.isArray(batchResult)) { // If fn returns an array, collect them
+      results.push(...batchResult);
+    }
+  }
+  return results;
+}

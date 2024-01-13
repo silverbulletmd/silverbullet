@@ -1,20 +1,36 @@
-type LimitedMapRecord<V> = Record<string, { value: V; la: number }>;
+type LimitedMapRecord<V> = { value: V; la: number };
 
 export class LimitedMap<V> {
-  constructor(private maxSize: number, private map: LimitedMapRecord<V> = {}) {
+  private map: Map<string, LimitedMapRecord<V>>;
+
+  constructor(
+    private maxSize: number,
+    initialJson: Record<string, LimitedMapRecord<V>> = {},
+  ) {
+    this.map = new Map(Object.entries(initialJson));
   }
 
-  set(key: string, value: V) {
-    if (Object.keys(this.map).length >= this.maxSize) {
+  /**
+   * @param key
+   * @param value
+   * @param ttl time to live (in ms)
+   */
+  set(key: string, value: V, ttl?: number) {
+    if (ttl) {
+      setTimeout(() => {
+        this.map.delete(key);
+      }, ttl);
+    }
+    if (this.map.size >= this.maxSize) {
       // Remove the oldest key before adding a new one
       const oldestKey = this.getOldestKey();
-      delete this.map[oldestKey!];
+      this.map.delete(oldestKey!);
     }
-    this.map[key] = { value, la: Date.now() };
+    this.map.set(key, { value, la: Date.now() });
   }
 
   get(key: string): V | undefined {
-    const entry = this.map[key];
+    const entry = this.map.get(key);
     if (entry) {
       // Update the last accessed timestamp
       entry.la = Date.now();
@@ -24,24 +40,21 @@ export class LimitedMap<V> {
   }
 
   remove(key: string) {
-    delete this.map[key];
+    this.map.delete(key);
   }
 
   toJSON() {
-    return this.map;
+    return Object.fromEntries(this.map.entries());
   }
 
   private getOldestKey(): string | undefined {
     let oldestKey: string | undefined;
     let oldestTimestamp: number | undefined;
 
-    for (const key in this.map) {
-      if (Object.prototype.hasOwnProperty.call(this.map, key)) {
-        const entry = this.map[key];
-        if (!oldestTimestamp || entry.la < oldestTimestamp) {
-          oldestKey = key;
-          oldestTimestamp = entry.la;
-        }
+    for (const [key, entry] of this.map.entries()) {
+      if (!oldestTimestamp || entry.la < oldestTimestamp) {
+        oldestKey = key;
+        oldestTimestamp = entry.la;
       }
     }
 

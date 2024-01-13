@@ -64,7 +64,7 @@ export async function clearIndex(): Promise<void> {
 /**
  * Indexes entities in the data store
  */
-export async function indexObjects<T>(
+export function indexObjects<T>(
   page: string,
   objects: ObjectValue<T>[],
 ): Promise<void> {
@@ -127,14 +127,12 @@ export async function indexObjects<T>(
     }
   }
   if (allAttributes.size > 0) {
-    await indexObjects<AttributeObject>(
-      page,
-      [...allAttributes].map(([key, value]) => {
-        const [tagName, name] = key.split(":");
-        const attributeType = value.startsWith("!")
-          ? value.substring(1)
-          : value;
-        return {
+    [...allAttributes].forEach(([key, value]) => {
+      const [tagName, name] = key.split(":");
+      const attributeType = value.startsWith("!") ? value.substring(1) : value;
+      kvs.push({
+        key: ["attribute", cleanKey(key, page)],
+        value: {
           ref: key,
           tag: "attribute",
           tagName,
@@ -142,11 +140,15 @@ export async function indexObjects<T>(
           attributeType,
           readOnly: value.startsWith("!"),
           page,
-        };
-      }),
-    );
+        } as T,
+      });
+    });
   }
-  return batchSet(page, kvs);
+  if (kvs.length > 0) {
+    return batchSet(page, kvs);
+  } else {
+    return Promise.resolve();
+  }
 }
 
 function cleanKey(ref: string, page: string) {

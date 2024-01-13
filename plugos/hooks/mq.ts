@@ -3,6 +3,7 @@ import { System } from "../system.ts";
 import { fullQueueName } from "../lib/mq_util.ts";
 import { MQMessage } from "$sb/types.ts";
 import { MessageQueue } from "../lib/mq.ts";
+import { throttle } from "$sb/lib/async.ts";
 
 type MQSubscription = {
   queue: string;
@@ -24,14 +25,14 @@ export class MQHook implements Hook<MQHookT> {
     this.system = system;
     system.on({
       plugLoaded: () => {
-        this.reloadQueues();
+        this.throttledReloadQueues();
       },
       plugUnloaded: () => {
-        this.reloadQueues();
+        this.throttledReloadQueues();
       },
     });
 
-    this.reloadQueues();
+    this.throttledReloadQueues();
   }
 
   stop() {
@@ -39,6 +40,10 @@ export class MQHook implements Hook<MQHookT> {
     this.subscriptions.forEach((sub) => sub());
     this.subscriptions = [];
   }
+
+  throttledReloadQueues = throttle(() => {
+    this.reloadQueues();
+  }, 1000);
 
   reloadQueues() {
     this.stop();

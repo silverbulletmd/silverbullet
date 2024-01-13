@@ -46,6 +46,7 @@ export class EventHook implements Hook<EventHookT> {
       throw new Error("Event hook is not initialized");
     }
     const responses: any[] = [];
+    const promises: Promise<void>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       const manifest = plug.manifest;
       for (
@@ -60,16 +61,19 @@ export class EventHook implements Hook<EventHookT> {
             ) {
               // Only dispatch functions that can run in this environment
               if (await plug.canInvoke(name)) {
-                try {
-                  const result = await plug.invoke(name, args);
-                  if (result !== undefined) {
-                    responses.push(result);
+                // Queue the promise
+                promises.push((async () => {
+                  try {
+                    const result = await plug.invoke(name, args);
+                    if (result !== undefined) {
+                      responses.push(result);
+                    }
+                  } catch (e: any) {
+                    console.error(
+                      `Error dispatching event ${eventName} to plug ${plug.name}: ${e.message}`,
+                    );
                   }
-                } catch (e: any) {
-                  console.error(
-                    `Error dispatching event ${eventName} to plug ${plug.name}: ${e.message}`,
-                  );
-                }
+                })());
               }
             }
           }
@@ -79,12 +83,18 @@ export class EventHook implements Hook<EventHookT> {
     const localListeners = this.localListeners.get(eventName);
     if (localListeners) {
       for (const localListener of localListeners) {
-        const result = await Promise.resolve(localListener(...args));
-        if (result) {
-          responses.push(result);
-        }
+        // Queue the promise
+        promises.push((async () => {
+          const result = await Promise.resolve(localListener(...args));
+          if (result) {
+            responses.push(result);
+          }
+        })());
       }
     }
+
+    // Wait for all promises to resolve
+    await Promise.all(promises);
 
     return responses;
   }

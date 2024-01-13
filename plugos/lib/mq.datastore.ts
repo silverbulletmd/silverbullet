@@ -23,6 +23,9 @@ export class DataStoreMQ implements MessageQueue {
   seq = 0;
 
   async batchSend(queue: string, bodies: any[]): Promise<void> {
+    if (bodies.length === 0) {
+      return;
+    }
     const messages: KV<MQMessage>[] = bodies.map((body) => {
       const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
       const key = [...queuedPrefix, queue, id];
@@ -54,6 +57,9 @@ export class DataStoreMQ implements MessageQueue {
       prefix: [...queuedPrefix, queue],
       limit: ["number", maxItems],
     });
+    if (messages.length === 0) {
+      return [];
+    }
     // Put them in the processing queue
     await this.ds.batchSet(
       messages.map((m) => ({
@@ -137,6 +143,9 @@ export class DataStoreMQ implements MessageQueue {
   }
 
   async batchAck(queue: string, ids: string[]) {
+    if (ids.length === 0) {
+      return;
+    }
     await this.ds.batchDelete(
       ids.map((id) => [...processingPrefix, queue, id]),
     );
@@ -152,6 +161,9 @@ export class DataStoreMQ implements MessageQueue {
       prefix: processingPrefix,
       filter: ["<", ["attr", "ts"], ["number", now - timeout]],
     });
+    if (messages.length === 0) {
+      return;
+    }
     await this.ds.batchDelete(messages.map((m) => m.key));
     const newMessages: KV<ProcessingMessage>[] = [];
     for (const { value: m } of messages) {

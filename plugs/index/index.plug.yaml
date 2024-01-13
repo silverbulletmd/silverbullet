@@ -23,13 +23,12 @@ functions:
     env: server
   query:
     path: api.ts:query
-    env: server
   indexObjects:
     path: api.ts:indexObjects
     env: server
   queryObjects:
     path: api.ts:queryObjects
-    env: server
+    # Note: not setting env: server to allow for client-side datastore query caching
   getObjectByRef:
     path: api.ts:getObjectByRef
     env: server
