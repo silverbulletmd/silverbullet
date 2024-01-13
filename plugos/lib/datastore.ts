@@ -23,6 +23,9 @@ export class DataStore {
   }
 
   batchGet<T = any>(keys: KvKey[]): Promise<(T | null)[]> {
+    if (keys.length === 0) {
+      return Promise.resolve([]);
+    }
     return this.kv.batchGet(keys);
   }
 
@@ -31,6 +34,9 @@ export class DataStore {
   }
 
   batchSet<T = any>(entries: KV<T>[]): Promise<void> {
+    if (entries.length === 0) {
+      return Promise.resolve();
+    }
     const allKeyStrings = new Set<string>();
     const uniqueEntries: KV[] = [];
     for (const { key, value } of entries) {
@@ -50,6 +56,9 @@ export class DataStore {
   }
 
   batchDelete(keys: KvKey[]): Promise<void> {
+    if (keys.length === 0) {
+      return Promise.resolve();
+    }
     return this.kv.batchDelete(keys);
   }
 
