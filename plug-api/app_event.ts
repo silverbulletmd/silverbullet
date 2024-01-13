@@ -1,6 +1,6 @@
 import type { ParseTree } from "$sb/lib/tree.ts";
 import { TextChange } from "$sb/lib/change.ts";
-import { Query } from "$sb/types.ts";
+import { PageMeta, Query } from "$sb/types.ts";
 
 export type AppEvent =
   | "page:click"
@@ -32,11 +32,13 @@ export type ClickEvent = {
 
 export type IndexEvent = {
   name: string;
+  meta: PageMeta;
   text: string;
 };
 
 export type IndexTreeEvent = {
   name: string;
+  meta: PageMeta;
   tree: ParseTree;
 };
 

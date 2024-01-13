@@ -9,7 +9,9 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = await queryObjects<TaskStateObject>("taskstate", {});
+  const allStates = await queryObjects<TaskStateObject>("taskstate", {
+    cacheSecs: 5,
+  });
   const states = [...new Set(allStates.map((s) => s.state))];
 
   return {

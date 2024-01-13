@@ -1,7 +1,9 @@
 import { FileMeta } from "$sb/types.ts";
+import { IndexEvent } from "$sb/app_event.ts";
 import { EventHook } from "../../plugos/hooks/event.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
+import { fileMetaToPageMeta } from "../../web/space.ts";
 
 /**
  * Events exposed:
@@ -135,8 +137,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         await this.dispatchEvent("page:saved", pageName, newMeta);
         await this.dispatchEvent("page:index_text", {
           name: pageName,
+          meta: fileMetaToPageMeta(newMeta),
           text,
-        });
+        } as IndexEvent);
       }
       return newMeta;
     } finally {

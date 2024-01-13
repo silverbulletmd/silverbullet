@@ -73,6 +73,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     filter: ["=", ["attr", "parent"], ["string", parent]],
     select: [{ name: "name" }],
     distinct: true,
+    cacheSecs: 5,
   });
 
   if (parent === "page") {

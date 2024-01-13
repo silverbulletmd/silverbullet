@@ -3,6 +3,9 @@ import { KV, KvKey, KvQuery } from "$sb/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { rpcCall } from "./syscalls/datastore.proxy.ts";
 import { LimitedMap } from "../common/limited_map.ts";
+import { batchRequests } from "$sb/lib/async.ts";
+
+const batchSize = 1000;
 
 export class RemoteDataStore implements DataStore {
   private cache = new LimitedMap<any>(20);
@@ -29,6 +32,7 @@ export class RemoteDataStore implements DataStore {
     return results[0];
   }
 
+  // TODO: Batch these up
   batchGet<T = any>(keys: KvKey[]): Promise<(T | null)[]> {
     return this.proxy("datastore.batchGet", keys);
   }
@@ -37,16 +41,26 @@ export class RemoteDataStore implements DataStore {
     return this.batchSet([{ key, value }]);
   }
 
-  batchSet<T = any>(entries: KV<T>[]): Promise<void> {
-    return this.proxy("datastore.batchSet", entries);
+  // TODO: Batch these up
+  async batchSet<T = any>(entries: KV<T>[]): Promise<void> {
+    await batchRequests(
+      entries,
+      (entries) => this.proxy("datastore.batchSet", entries),
+      batchSize,
+    );
   }
 
   delete(key: KvKey): Promise<void> {
     return this.batchDelete([key]);
   }
 
-  batchDelete(keys: KvKey[]): Promise<void> {
-    return this.proxy("datastore.batchDelete", keys);
+  // TODO: batch these up
+  async batchDelete(keys: KvKey[]): Promise<void> {
+    await batchRequests(
+      keys,
+      (keys) => this.proxy("datastore.batchDelete", keys),
+      batchSize,
+    );
   }
 
   /**

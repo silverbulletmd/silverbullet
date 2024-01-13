@@ -1,6 +1,6 @@
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
 import { sleep } from "$sb/lib/async.ts";
-import { IndexEvent } from "$sb/app_event.ts";
+import { IndexEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { MQMessage } from "$sb/types.ts";
 import { isTemplate } from "$sb/lib/cheap_yaml.ts";
 
@@ -44,30 +44,34 @@ export async function processIndexQueue(messages: MQMessage[]) {
       await events.dispatchEvent("page:indexTemplate", {
         name,
         tree: parsed,
-      });
+      } as IndexTreeEvent);
     } else {
       await events.dispatchEvent("page:index", {
         name,
         tree: parsed,
-      });
+      } as IndexTreeEvent);
     }
   }
 }
 
-export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
+export async function parseIndexTextRepublish(
+  { name, text, meta }: IndexEvent,
+) {
   const parsed = await markdown.parseMarkdown(text);
 
   if (isTemplate(text)) {
     console.log("Indexing", name, "as template");
     await events.dispatchEvent("page:indexTemplate", {
       name,
+      meta,
       tree: parsed,
-    });
+    } as IndexTreeEvent);
   } else {
     console.log("Indexing", name, "as page");
     await events.dispatchEvent("page:index", {
       name,
+      meta,
       tree: parsed,
-    });
+    } as IndexTreeEvent);
   }
 }

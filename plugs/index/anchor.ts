@@ -43,7 +43,10 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
     // "bare" anchor, match any page for completion purposes
     filter = undefined;
   }
-  const allAnchors = await queryObjects<AnchorObject>("anchor", { filter });
+  const allAnchors = await queryObjects<AnchorObject>("anchor", {
+    filter,
+    cacheSecs: 5,
+  });
   return {
     from: completeEvent.pos - match[1].length,
     options: allAnchors.map((a) => ({
