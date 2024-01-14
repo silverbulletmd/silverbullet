@@ -127,7 +127,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
    */
   async loadNoSandbox(
     name: string,
-    plugExport: PlugExport<HookT>,
+    plugExport: PlugExport<any>,
   ): Promise<Plug<HookT>> {
     const plug = new Plug(
       this,

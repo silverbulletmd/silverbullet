@@ -24,7 +24,7 @@ let activeSystem:
 // @ts-ignore: globalThis
 globalThis.syscall = (name: string, ...args: any[]): Promise<any> => {
   if (!activeSystem) {
-    throw new Error("No currently active system, can't invoke syscalls");
+    throw new Error(`No currently active system, can't invoke syscall ${name}`);
   }
   return activeSystem.syscall(name, args);
 };

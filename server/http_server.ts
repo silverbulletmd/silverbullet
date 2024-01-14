@@ -14,6 +14,7 @@ import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
 import { base64Encode } from "../plugos/asset_bundle/base64.ts";
+import { runWithSystemLock } from "../plugos/sandboxes/no_sandbox.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -344,13 +345,14 @@ export class HttpServer {
       }),
     );
 
-    // this.app.use("*", async (c, next) => {
-    //   if (["POST", "PUT", "DELETE"].includes(c.req.method)) {
-    //     const spaceServer = await this.ensureSpaceServer(c.req);
-    //     TODO: Wrap in runWIthSystemLock
-    //     next();
-    //   }
-    // });
+    this.app.use("*", async (c, next) => {
+      // if (["POST", "PUT", "DELETE"].includes(c.req.method)) {
+      const spaceServer = await this.ensureSpaceServer(c.req);
+      return runWithSystemLock(spaceServer.system!, async () => {
+        await next();
+      });
+      // }
+    });
 
     // File list
     this.app.get(

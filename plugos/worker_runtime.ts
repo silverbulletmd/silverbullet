@@ -175,10 +175,10 @@ export async function sandboxFetch(
   return syscall("sandboxFetch.fetch", reqInfo, options);
 }
 
+// @ts-ignore: monkey patching fetch
+globalThis.nativeFetch = globalThis.fetch;
 // Monkey patch fetch()
 export function monkeyPatchFetch() {
-  // @ts-ignore: monkey patching fetch
-  globalThis.nativeFetch = globalThis.fetch;
   // @ts-ignore: monkey patching fetch
   globalThis.fetch = async function (
     reqInfo: RequestInfo,
