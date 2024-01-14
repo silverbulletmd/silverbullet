@@ -35,15 +35,19 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
 
-// Load list of builtin plugs
+// Important: load this before the actual plugs
+import {
+  noSandboxFactory,
+  runWithSystemLock,
+} from "../plugos/sandboxes/no_sandbox.ts";
 
+// Load list of builtin plugs
 import { plug as plugIndex } from "../dist_plug_bundle/_plug/index.plug.js";
 import { plug as plugFederation } from "../dist_plug_bundle/_plug/federation.plug.js";
 import { plug as plugQuery } from "../dist_plug_bundle/_plug/query.plug.js";
 import { plug as plugSearch } from "../dist_plug_bundle/_plug/search.plug.js";
 import { plug as plugTasks } from "../dist_plug_bundle/_plug/tasks.plug.js";
 import { plug as plugTemplate } from "../dist_plug_bundle/_plug/template.plug.js";
-import { runWithSystemLock } from "../plugos/sandboxes/no_sandbox.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -185,12 +189,12 @@ export class ServerSystem {
   }
 
   async loadPlugs() {
-    await this.system.loadNoSandbox("index", plugIndex);
-    await this.system.loadNoSandbox("federation", plugFederation);
-    await this.system.loadNoSandbox("query", plugQuery);
-    await this.system.loadNoSandbox("search", plugSearch);
-    await this.system.loadNoSandbox("tasks", plugTasks);
-    await this.system.loadNoSandbox("template", plugTemplate);
+    await this.system.load("index", noSandboxFactory(plugIndex));
+    await this.system.load("federation", noSandboxFactory(plugFederation));
+    await this.system.load("query", noSandboxFactory(plugQuery));
+    await this.system.load("search", noSandboxFactory(plugSearch));
+    await this.system.load("tasks", noSandboxFactory(plugTasks));
+    await this.system.load("template", noSandboxFactory(plugTemplate));
 
     // for (const { name } of await this.spacePrimitives.fetchFileList()) {
     //   if (plugNameExtractRegex.test(name)) {
@@ -203,11 +207,11 @@ export class ServerSystem {
     const { meta, data } = await this.spacePrimitives.readFile(path);
     const plugName = path.match(plugNameExtractRegex)![1];
     return this.system.load(
+      plugName,
+      createSandbox,
       // Base64 encoding this to support `deno compile` mode
       new URL(base64EncodedDataUrl("application/javascript", data)),
-      plugName,
       meta.lastModified,
-      createSandbox,
     );
   }
 

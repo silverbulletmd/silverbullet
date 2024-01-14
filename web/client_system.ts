@@ -133,10 +133,10 @@ export class ClientSystem {
           console.log("Plug updated, reloading", plugName, "from", path);
           this.system.unload(path);
           const plug = await this.system.load(
-            new URL(`/${path}`, location.href),
             plugName,
-            newHash,
             createSandbox,
+            new URL(`/${path}`, location.href),
+            newHash,
           );
           if ((plug.manifest! as Manifest).syntax) {
             // If there are syntax extensions, rebuild the markdown parser immediately
@@ -201,10 +201,10 @@ export class ClientSystem {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
-          new URL(plugMeta.name, location.origin),
           plugName,
-          plugMeta.lastModified,
           createSandbox,
+          new URL(plugMeta.name, location.origin),
+          plugMeta.lastModified,
         );
       } catch (e: any) {
         console.error(

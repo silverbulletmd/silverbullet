@@ -21,7 +21,7 @@ const runningAsWebWorker = typeof window === "undefined" &&
   // @ts-ignore: globalThis
   typeof globalThis.WebSocketPair === "undefined";
 
-console.log("Running as web worker:", runningAsWebWorker);
+// console.log("Running as web worker:", runningAsWebWorker);
 
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack

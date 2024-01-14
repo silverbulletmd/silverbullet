@@ -3,7 +3,6 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
-import { noSandboxFactory, PlugExport } from "./sandboxes/no_sandbox.ts";
 
 export interface SysCallMapping {
   [key: string]: (...args: any) => Promise<any> | any;
@@ -88,10 +87,10 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   async load(
-    workerUrl: URL,
     name: string,
-    hash: number,
     sandboxFactory: SandboxFactory<HookT>,
+    workerUrl: URL | undefined = undefined,
+    hash = -1,
   ): Promise<Plug<HookT>> {
     const plug = new Plug(this, workerUrl, name, hash, sandboxFactory);
 
@@ -125,37 +124,37 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
    * @param plugExport extracted via e.g. `import { plug } from "./some.plug.js`
    * @returns Plug instance
    */
-  async loadNoSandbox(
-    name: string,
-    plugExport: PlugExport<any>,
-  ): Promise<Plug<HookT>> {
-    const plug = new Plug(
-      this,
-      undefined,
-      name,
-      -1,
-      noSandboxFactory(plugExport),
-    );
+  // async loadNoSandbox(
+  //   name: string,
+  //   plugExport: PlugExport<any>,
+  // ): Promise<Plug<HookT>> {
+  //   const plug = new Plug(
+  //     this,
+  //     undefined,
+  //     name,
+  //     -1,
+  //     noSandboxFactory(plugExport),
+  //   );
 
-    const manifest = plugExport.manifest;
+  //   const manifest = plugExport.manifest;
 
-    // Validate the manifest
-    let errors: string[] = [];
-    for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
-    }
-    if (errors.length > 0) {
-      throw new Error(`Invalid manifest: ${errors.join(", ")}`);
-    }
-    if (this.plugs.has(manifest.name)) {
-      this.unload(manifest.name);
-    }
-    console.log("Activated plug without sandbox", manifest.name);
-    this.plugs.set(manifest.name, plug);
+  //   // Validate the manifest
+  //   let errors: string[] = [];
+  //   for (const feature of this.enabledHooks) {
+  //     errors = [...errors, ...feature.validateManifest(plug.manifest!)];
+  //   }
+  //   if (errors.length > 0) {
+  //     throw new Error(`Invalid manifest: ${errors.join(", ")}`);
+  //   }
+  //   if (this.plugs.has(manifest.name)) {
+  //     this.unload(manifest.name);
+  //   }
+  //   console.log("Activated plug without sandbox", manifest.name);
+  //   this.plugs.set(manifest.name, plug);
 
-    await this.emit("plugLoaded", plug);
-    return plug;
-  }
+  //   await this.emit("plugLoaded", plug);
+  //   return plug;
+  // }
 
   unload(name: string) {
     const plug = this.plugs.get(name);

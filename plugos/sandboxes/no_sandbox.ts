@@ -4,23 +4,41 @@ import { Sandbox } from "./sandbox.ts";
 import { Manifest } from "../types.ts";
 import { System } from "../system.ts";
 
+/**
+ * This implements a "no sandbox" sandbox that actually runs code the main thread, without any isolation.
+ * This is useful for (often serverless) environments like CloudFlare workers and Deno Deploy that do not support workers.
+ * Since these environments often also don't allow dynamic loading (or even eval'ing) of code, plug code needs to be
+ * imported as a regular ESM module (which is possible).
+ *
+ * To make this work, a global `syscall` function needs to be injected into the global scope.
+ * Since a syscall relies on a System, we need to track the active System in a global variable.
+ * The issue with this is that it means that only a single System can be active at a given time per JS process.
+ * To enforce this, we have a runWithSystemLock function that can be used to run code in a System-locked context, effectively queuing the execution of tasks sequentially.
+ * This isn't great, but it's the best we can do.
+ *
+ * Luckily, in the only contexts in which you need to run plugs this way are serverless, where code will be
+ * run in a bunch of isolates with hopefully low parallelism of requests per isolate.
+ */
+
+/**
+ * A type representing the `plug` export of a plug, used via e.g. `import { plug } from "./some.plug.js`
+ */
+export type PlugExport = {
+  manifest: Manifest<any>;
+  functionMapping: Record<string, (...args: any[]) => any>;
+};
+
+// The global variable tracking the currently active system (if any)
+let activeSystem:
+  | System<any>
+  | undefined;
+
 // We need to hard inject the syscall function into the global scope
 declare global {
   interface globalThis {
     syscall(name: string, ...args: any[]): Promise<any>;
   }
 }
-
-export type PlugExport<HookT> = {
-  manifest: Manifest<HookT>;
-  // @ts-ignore: Function whatever
-  functionMapping: Record<string, Function>;
-};
-
-let activeSystem:
-  | System<any>
-  | undefined;
-
 // @ts-ignore: globalThis
 globalThis.syscall = (name: string, ...args: any[]): Promise<any> => {
   if (!activeSystem) {
@@ -57,7 +75,7 @@ export class NoSandbox<HookT> implements Sandbox<HookT> {
   manifest?: Manifest<HookT> | undefined;
   constructor(
     readonly plug: Plug<HookT>,
-    readonly plugExport: PlugExport<HookT>,
+    readonly plugExport: PlugExport,
   ) {
     this.manifest = plugExport.manifest;
     plug.manifest = this.manifest;
@@ -67,20 +85,22 @@ export class NoSandbox<HookT> implements Sandbox<HookT> {
     return Promise.resolve();
   }
 
-  async invoke(name: string, args: any[]): Promise<any> {
+  invoke(name: string, args: any[]): Promise<any> {
     const fn = this.plugExport.functionMapping[name];
     if (!fn) {
-      throw new Error(`Function not loaded: ${name}`);
+      throw new Error(`Function not defined: ${name}`);
     }
-    return await fn(...args);
+    return Promise.resolve(fn(...args));
   }
 
   stop() {
+    // Nothing to do
   }
 }
 
-export function noSandboxFactory<HookT>(
-  plugExport: PlugExport<HookT>,
-): (plug: Plug<HookT>) => Sandbox<HookT> {
-  return (plug: Plug<HookT>) => new NoSandbox(plug, plugExport);
+// Matches the createSandbox signature wrapping a PlugExport
+export function noSandboxFactory(
+  plugExport: PlugExport,
+): (plug: Plug<any>) => Sandbox<any> {
+  return (plug: Plug<any>) => new NoSandbox(plug, plugExport);
 }

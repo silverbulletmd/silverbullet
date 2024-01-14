@@ -35,10 +35,9 @@ Deno.test("Run a deno sandbox", async () => {
   );
 
   const plug = await system.load(
-    new URL(`file://${workerPath}`),
     "test",
-    0,
     createSandbox,
+    new URL(`file://${workerPath}`),
   );
 
   assertEquals({
@@ -53,7 +52,7 @@ Deno.test("Run a deno sandbox", async () => {
     `file://${workerPath}`
   );
 
-  const plug2 = await system.loadNoSandbox("test", plugExport);
+  const plug2 = await system.load("test", plugExport);
 
   let running = false;
   await Promise.all([
