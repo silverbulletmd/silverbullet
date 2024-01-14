@@ -1,4 +1,4 @@
-import { createSandbox } from "../environments/deno_sandbox.ts";
+import { createSandbox } from "../sandboxes/deno_worker_sandbox.ts";
 import { EndpointHook, EndpointHookT } from "./endpoint.ts";
 import { System } from "../system.ts";
 

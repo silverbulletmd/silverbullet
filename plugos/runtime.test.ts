@@ -1,4 +1,4 @@
-import { createSandbox } from "./environments/deno_sandbox.ts";
+import { createSandbox } from "./sandboxes/deno_worker_sandbox.ts";
 import { System } from "./system.ts";
 import { assertEquals } from "../test_deps.ts";
 import { compileManifest } from "./compile.ts";
@@ -8,6 +8,7 @@ Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
   system.registerSyscalls([], {
     addNumbers: (_ctx, a, b) => {
+      console.log("This is the context", _ctx.plug.name);
       return a + b;
     },
     failingSyscall: () => {
@@ -39,9 +40,24 @@ Deno.test("Run a deno sandbox", async () => {
     createSandbox,
   );
 
-  console.log("Plug", plug.manifest);
+  assertEquals({
+    addedNumbers: 3,
+    yamlMessage: "hello: world\n",
+  }, await plug.invoke("boot", []));
 
-  assertEquals("hello", await plug.invoke("boot", []));
+  await system.unloadAll();
+
+  // Now load directly from module
+  const { plug: plugExport } = await import(
+    `file://${workerPath}`
+  );
+
+  const plug2 = await system.loadNoSandbox("test", plugExport);
+
+  assertEquals({
+    addedNumbers: 3,
+    yamlMessage: "hello: world\n",
+  }, await plug2.invoke("boot", []));
 
   await system.unloadAll();
 

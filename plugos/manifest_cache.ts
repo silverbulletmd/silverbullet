@@ -37,15 +37,16 @@ export class InMemoryManifestCache<T> implements ManifestCache<T> {
   }>();
 
   async getManifest(plug: Plug<T>, hash: number): Promise<Manifest<T>> {
-    const cached = this.cache.get(plug.workerUrl.href);
+    const cached = this.cache.get(plug.name);
     if (cached && cached.hash === hash) {
       // console.log("Using memory cached manifest for", plug.name);
       return cached.manifest;
     }
     await plug.sandbox.init();
     const manifest = plug.sandbox.manifest!;
+
     // Deliverately removing the assets from the manifest to preserve space, will be re-added upon load of actual worker
-    this.cache.set(plug.name!, {
+    this.cache.set(plug.name, {
       manifest: { ...manifest, assets: undefined },
       hash,
     });

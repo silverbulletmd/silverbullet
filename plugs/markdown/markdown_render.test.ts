@@ -2,7 +2,7 @@ import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { System } from "../../plugos/system.ts";
 
-import { createSandbox } from "../../plugos/environments/deno_sandbox.ts";
+import { createSandbox } from "../../plugos/sandboxes/deno_worker_sandbox.ts";
 import { loadMarkdownExtensions } from "../../common/markdown_parser/markdown_ext.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 

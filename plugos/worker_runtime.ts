@@ -35,28 +35,37 @@ const pendingRequests = new Map<
 
 let syscallReqId = 0;
 
+const workerMode = typeof window === "undefined";
+
 function workerPostMessage(msg: ControllerMessage) {
   self.postMessage(msg);
 }
 
-self.syscall = async (name: string, ...args: any[]) => {
-  return await new Promise((resolve, reject) => {
-    syscallReqId++;
-    pendingRequests.set(syscallReqId, { resolve, reject });
-    workerPostMessage({
-      type: "sys",
-      id: syscallReqId,
-      name,
-      args,
+if (workerMode) {
+  globalThis.syscall = async (name: string, ...args: any[]) => {
+    return await new Promise((resolve, reject) => {
+      syscallReqId++;
+      pendingRequests.set(syscallReqId, { resolve, reject });
+      workerPostMessage({
+        type: "sys",
+        id: syscallReqId,
+        name,
+        args,
+      });
     });
-  });
-};
+  };
+}
 
 export function setupMessageListener(
   // deno-lint-ignore ban-types
   functionMapping: Record<string, Function>,
   manifest: any,
 ) {
+  if (!workerMode) {
+    // Don't do any of this stuff if this is not a web worker
+    // This caters to the NoSandbox run mode
+    return;
+  }
   self.addEventListener("message", (event: { data: WorkerMessage }) => {
     (async () => {
       const data = event.data;

@@ -1,7 +1,7 @@
 import { Manifest } from "./types.ts";
-import { Sandbox } from "./sandbox.ts";
 import { System } from "./system.ts";
 import { AssetBundle } from "./asset_bundle/bundle.ts";
+import { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
 
 export class Plug<HookT> {
   readonly runtimeEnv?: string;
@@ -21,10 +21,10 @@ export class Plug<HookT> {
 
   constructor(
     private system: System<HookT>,
-    public workerUrl: URL,
+    public workerUrl: URL | undefined,
     readonly name: string,
     private hash: number,
-    private sandboxFactory: (plug: Plug<HookT>) => Sandbox<HookT>,
+    private sandboxFactory: SandboxFactory<HookT>,
   ) {
     this.runtimeEnv = system.env;
 

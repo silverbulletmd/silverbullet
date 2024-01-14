@@ -3,7 +3,7 @@ import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
+import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
 
 import assetSyscalls from "../plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../plugos/syscalls/event.ts";

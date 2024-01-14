@@ -4,9 +4,9 @@ import { bundleAssets } from "./asset_bundle/builder.ts";
 import { Manifest } from "./types.ts";
 import { version } from "../version.ts";
 
-// const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);
-const workerRuntimeUrl =
-  `https://deno.land/x/silverbullet@${version}/plugos/worker_runtime.ts`;
+const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);
+// const workerRuntimeUrl =
+//   `https://deno.land/x/silverbullet@${version}/plugos/worker_runtime.ts`;
 
 export type CompileOptions = {
   debug?: boolean;
@@ -64,7 +64,7 @@ ${
   }
 
 // Function mapping
-export const functionMapping = {
+const functionMapping = {
 ${
     Object.entries(manifest.functions).map(([funcName, def]) => {
       if (!def.path) {
@@ -75,7 +75,10 @@ ${
   }
 };
 
+// Manifest
 const manifest = ${JSON.stringify(manifest, null, 2)};
+
+export const plug = {manifest, functionMapping};
 
 setupMessageListener(functionMapping, manifest);
 `;
@@ -89,7 +92,7 @@ setupMessageListener(functionMapping, manifest);
   const result = await esbuild.build({
     entryPoints: [path.basename(inFile)],
     bundle: true,
-    format: "iife",
+    format: "esm",
     globalName: "mod",
     platform: "browser",
     sourcemap: options.debug ? "linked" : false,

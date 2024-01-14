@@ -1,8 +1,9 @@
 import { Hook } from "./types.ts";
 import { EventEmitter } from "./event.ts";
-import type { SandboxFactory } from "./sandbox.ts";
+import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
+import { noSandboxFactory, PlugExport } from "./sandboxes/no_sandbox.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -132,6 +133,44 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
       this.unload(manifest.name);
     }
     console.log("Activated plug", manifest.name);
+    this.plugs.set(manifest.name, plug);
+
+    await this.emit("plugLoaded", plug);
+    return plug;
+  }
+
+  /**
+   * Loads a plug without a sandbox, which means it will run in the same context as the caller
+   * @param name
+   * @param plugExport extracted via e.g. `import { plug } from "./some.plug.js`
+   * @returns Plug instance
+   */
+  async loadNoSandbox(
+    name: string,
+    plugExport: PlugExport<HookT>,
+  ): Promise<Plug<HookT>> {
+    const plug = new Plug(
+      this,
+      undefined,
+      name,
+      -1,
+      noSandboxFactory(plugExport),
+    );
+
+    const manifest = plugExport.manifest;
+
+    // Validate the manifest
+    let errors: string[] = [];
+    for (const feature of this.enabledHooks) {
+      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
+    }
+    if (errors.length > 0) {
+      throw new Error(`Invalid manifest: ${errors.join(", ")}`);
+    }
+    if (this.plugs.has(manifest.name)) {
+      this.unload(manifest.name);
+    }
+    console.log("Activated plug without sandbox", manifest.name);
     this.plugs.set(manifest.name, plug);
 
     await this.emit("plugLoaded", plug);

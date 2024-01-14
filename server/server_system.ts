@@ -4,7 +4,7 @@ import { loadMarkdownExtensions } from "../common/markdown_parser/markdown_ext.t
 import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { createSandbox } from "../plugos/environments/webworker_sandbox.ts";
+import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";

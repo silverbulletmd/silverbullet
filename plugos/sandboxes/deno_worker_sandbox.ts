@@ -1,9 +1,10 @@
-import { Sandbox } from "../sandbox.ts";
+import { WorkerSandbox } from "./worker_sandbox.ts";
 import { Plug } from "../plug.ts";
+import { Sandbox } from "./sandbox.ts";
 
 // Uses Deno's permissions to lock the worker down significantly
 export function createSandbox<HookT>(plug: Plug<HookT>): Sandbox<HookT> {
-  return new Sandbox(plug, {
+  return new WorkerSandbox(plug, {
     deno: {
       permissions: {
         // Allow network access

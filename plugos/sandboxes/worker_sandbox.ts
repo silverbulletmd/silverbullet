@@ -1,15 +1,14 @@
-import { Manifest } from "./types.ts";
-import { ControllerMessage, WorkerMessage } from "./protocol.ts";
-import { Plug } from "./plug.ts";
-import { AssetBundle, AssetJson } from "./asset_bundle/bundle.ts";
-
-export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
+import { Manifest } from "../types.ts";
+import { ControllerMessage, WorkerMessage } from "../protocol.ts";
+import { Plug } from "../plug.ts";
+import { AssetBundle, AssetJson } from "../asset_bundle/bundle.ts";
+import { Sandbox } from "./sandbox.ts";
 
 /**
  * Represents a "safe" execution environment for plug code
  * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
  */
-export class Sandbox<HookT> {
+export class WorkerSandbox<HookT> implements Sandbox<HookT> {
   private worker?: Worker;
   private reqId = 0;
   private outstandingInvocations = new Map<
@@ -36,7 +35,7 @@ export class Sandbox<HookT> {
       console.warn("Double init of sandbox, ignoring");
       return Promise.resolve();
     }
-    this.worker = new Worker(this.plug.workerUrl, {
+    this.worker = new Worker(this.plug.workerUrl!, {
       ...this.workerOptions,
       type: "module",
     });
