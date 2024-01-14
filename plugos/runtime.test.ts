@@ -1,8 +1,10 @@
 import { createSandbox } from "./sandboxes/deno_worker_sandbox.ts";
 import { System } from "./system.ts";
-import { assertEquals } from "../test_deps.ts";
+import { assert, assertEquals } from "../test_deps.ts";
 import { compileManifest } from "./compile.ts";
 import { esbuild } from "./deps.ts";
+import { runWithSystemLock } from "./sandboxes/no_sandbox.ts";
+import { sleep } from "$sb/lib/async.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
@@ -53,10 +55,29 @@ Deno.test("Run a deno sandbox", async () => {
 
   const plug2 = await system.loadNoSandbox("test", plugExport);
 
-  assertEquals({
-    addedNumbers: 3,
-    yamlMessage: "hello: world\n",
-  }, await plug2.invoke("boot", []));
+  let running = false;
+  await Promise.all([
+    runWithSystemLock(system, async () => {
+      console.log("Starting first run");
+      running = true;
+      await sleep(5);
+      assertEquals({
+        addedNumbers: 3,
+        yamlMessage: "hello: world\n",
+      }, await plug2.invoke("boot", []));
+      console.log("Done first run");
+      running = false;
+    }),
+    runWithSystemLock(system, async () => {
+      assert(!running);
+      console.log("Starting second run");
+      assertEquals({
+        addedNumbers: 3,
+        yamlMessage: "hello: world\n",
+      }, await plug2.invoke("boot", []));
+      console.log("Done second run");
+    }),
+  ]);
 
   await system.unloadAll();
 

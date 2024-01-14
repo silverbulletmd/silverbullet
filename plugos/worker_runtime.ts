@@ -9,6 +9,20 @@ declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
 }
 
+// Are we running in a (web) worker?
+
+// Determines if we're running in a web worker environment (Deno or browser)
+// - in a browser's main threads, typeof window is "object"
+// - in a browser's worker threads, typeof window === "undefined"
+// - in Deno's main thread typeof window === "object"
+// - in Deno's workers typeof window === "undefined
+// - in Cloudflare workers typeof window === "undefined", but typeof globalThis.WebSocketPair is defined
+const runningAsWebWorker = typeof window === "undefined" &&
+  // @ts-ignore: globalThis
+  typeof globalThis.WebSocketPair === "undefined";
+
+console.log("Running as web worker:", runningAsWebWorker);
+
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack
   self.Deno = {
@@ -35,13 +49,11 @@ const pendingRequests = new Map<
 
 let syscallReqId = 0;
 
-const workerMode = typeof window === "undefined";
-
 function workerPostMessage(msg: ControllerMessage) {
   self.postMessage(msg);
 }
 
-if (workerMode) {
+if (runningAsWebWorker) {
   globalThis.syscall = async (name: string, ...args: any[]) => {
     return await new Promise((resolve, reject) => {
       syscallReqId++;
@@ -61,7 +73,7 @@ export function setupMessageListener(
   functionMapping: Record<string, Function>,
   manifest: any,
 ) {
-  if (!workerMode) {
+  if (!runningAsWebWorker) {
     // Don't do any of this stuff if this is not a web worker
     // This caters to the NoSandbox run mode
     return;
@@ -164,8 +176,8 @@ export async function sandboxFetch(
 }
 
 // Monkey patch fetch()
-
 export function monkeyPatchFetch() {
+  // @ts-ignore: monkey patching fetch
   globalThis.nativeFetch = globalThis.fetch;
   // @ts-ignore: monkey patching fetch
   globalThis.fetch = async function (
@@ -192,4 +204,6 @@ export function monkeyPatchFetch() {
   };
 }
 
-monkeyPatchFetch();
+if (runningAsWebWorker) {
+  monkeyPatchFetch();
+}

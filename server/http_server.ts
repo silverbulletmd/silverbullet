@@ -344,6 +344,14 @@ export class HttpServer {
       }),
     );
 
+    // this.app.use("*", async (c, next) => {
+    //   if (["POST", "PUT", "DELETE"].includes(c.req.method)) {
+    //     const spaceServer = await this.ensureSpaceServer(c.req);
+    //     TODO: Wrap in runWIthSystemLock
+    //     next();
+    //   }
+    // });
+
     // File list
     this.app.get(
       "/index.json",

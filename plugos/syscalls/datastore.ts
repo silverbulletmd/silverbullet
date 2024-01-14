@@ -7,10 +7,7 @@ import type { SysCallMapping } from "../system.ts";
  * @param ds the datastore to wrap
  * @param prefix prefix to scope all keys to to which the plug name will be appended
  */
-export function dataStoreSyscalls(
-  ds: DataStore,
-  prefix: KvKey = ["ds"],
-): SysCallMapping {
+export function dataStoreSyscalls(ds: DataStore): SysCallMapping {
   return {
     "datastore.delete": (key: KvKey) => {
       return ds.delete(key);

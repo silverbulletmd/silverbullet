@@ -2,6 +2,7 @@ import { PromiseQueue } from "$sb/lib/async.ts";
 import { Plug } from "../plug.ts";
 import { Sandbox } from "./sandbox.ts";
 import { Manifest } from "../types.ts";
+import { System } from "../system.ts";
 
 // We need to hard inject the syscall function into the global scope
 declare global {
@@ -12,31 +13,51 @@ declare global {
 
 export type PlugExport<HookT> = {
   manifest: Manifest<HookT>;
+  // @ts-ignore: Function whatever
   functionMapping: Record<string, Function>;
 };
 
-const functionQueue = new PromiseQueue();
-
-let activePlug: Plug<any> | undefined;
-
-// const callStack: { plug: Plug<any>; queue: PromiseQueue }[] = [];
-
-// const requestQueue = new PromiseQueue();
+let activeSystem:
+  | System<any>
+  | undefined;
 
 // @ts-ignore: globalThis
 globalThis.syscall = (name: string, ...args: any[]): Promise<any> => {
-  if (!activePlug) {
-    throw new Error("No active plug");
+  if (!activeSystem) {
+    throw new Error("No currently active system, can't invoke syscalls");
   }
-  console.log("Calling syscall", name, args);
-  return activePlug.syscall(name, args);
+  return activeSystem.syscall(name, args);
 };
 
+const taskQueue = new PromiseQueue();
+
+export function runWithSystemLock(
+  system: System<any>,
+  fn: () => Promise<any>,
+): Promise<any> {
+  return taskQueue.runInQueue(async () => {
+    // Set the global active system, which is used by the syscall function
+    activeSystem = system;
+    try {
+      // Run the logic
+      return await fn();
+    } finally {
+      // And then reset the global active system
+      activeSystem = undefined;
+    }
+  });
+}
+
+/**
+ * Executes a plug in a no-sandbox environment
+ * This requires there either to only be a single System to be active at a given time (set via setGlobalActiveNoSandboxSystem).
+ * If multiple systems need to be supported, requests should be run in sequence, never in parallel
+ */
 export class NoSandbox<HookT> implements Sandbox<HookT> {
   manifest?: Manifest<HookT> | undefined;
   constructor(
-    private plug: Plug<HookT>,
-    private plugExport: PlugExport<HookT>,
+    readonly plug: Plug<HookT>,
+    readonly plugExport: PlugExport<HookT>,
   ) {
     this.manifest = plugExport.manifest;
     plug.manifest = this.manifest;
@@ -46,19 +67,12 @@ export class NoSandbox<HookT> implements Sandbox<HookT> {
     return Promise.resolve();
   }
 
-  invoke(name: string, args: any[]): Promise<any> {
-    activePlug = this.plug;
-    return functionQueue.runInQueue(async () => {
-      try {
-        const fn = this.plugExport.functionMapping[name];
-        if (!fn) {
-          throw new Error(`Function not loaded: ${name}`);
-        }
-        return await fn(...args);
-      } finally {
-        activePlug = undefined;
-      }
-    });
+  async invoke(name: string, args: any[]): Promise<any> {
+    const fn = this.plugExport.functionMapping[name];
+    if (!fn) {
+      throw new Error(`Function not loaded: ${name}`);
+    }
+    return await fn(...args);
   }
 
   stop() {
