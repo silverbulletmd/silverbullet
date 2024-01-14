@@ -382,9 +382,8 @@ export class HttpServer {
     });
 
     // RPC syscall
-    this.app.post("/.rpc/:plug/:syscall", async (c) => {
+    this.app.post("/.rpc/:syscall", async (c) => {
       const req = c.req;
-      const plugName = req.param("plug")!;
       const syscall = req.param("syscall")!;
       const spaceServer = await this.ensureSpaceServer(req);
       const body = await req.json();
@@ -394,11 +393,7 @@ export class HttpServer {
         }
         const args: string[] = body;
         try {
-          const plug = spaceServer.system!.loadedPlugs.get(plugName);
-          if (!plug) {
-            throw new Error(`Plug ${plugName} not found`);
-          }
-          const result = await plug.syscall(syscall, args);
+          const result = await spaceServer.system!.syscall(syscall, args);
           return c.json({
             result: result,
           });

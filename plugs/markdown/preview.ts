@@ -11,8 +11,8 @@ export async function updateMarkdownPreview() {
   const text = await editor.getText();
   const mdTree = await markdown.parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
-  const css = await asset.readAsset("assets/preview.css");
-  const js = await asset.readAsset("assets/preview.js");
+  const css = await asset.readAsset("markdown", "assets/preview.css");
+  const js = await asset.readAsset("markdown", "assets/preview.js");
 
   await expandCodeWidgets(mdTree, currentPage);
   const html = renderMarkdownToHtml(mdTree, {

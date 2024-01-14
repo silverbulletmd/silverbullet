@@ -32,7 +32,6 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       return editor.save(true);
     },
     "editor.navigate": async (
-      _ctx,
       name: string,
       pos: number | string,
       replaceState = false,
@@ -46,7 +45,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     "editor.reloadUI": () => {
       location.reload();
     },
-    "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
+    "editor.openUrl": (url: string, existingWindow = false) => {
       if (!existingWindow) {
         const win = window.open(url, "_blank");
         if (win) {
@@ -56,14 +55,13 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         location.href = url;
       }
     },
-    "editor.downloadFile": (_ctx, filename: string, dataUrl: string) => {
+    "editor.downloadFile": (filename: string, dataUrl: string) => {
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = filename;
       link.click();
     },
     "editor.uploadFile": (
-      _ctx,
       accept?: string,
       capture?: string,
     ): Promise<UploadFile> => {
@@ -109,14 +107,12 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.flashNotification": (
-      _ctx,
       message: string,
       type: "error" | "info" = "info",
     ) => {
       editor.flashNotification(message, type);
     },
     "editor.filterBox": (
-      _ctx,
       label: string,
       options: FilterOption[],
       helpText = "",
@@ -125,7 +121,6 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       return editor.filterBox(label, options, helpText, placeHolder);
     },
     "editor.showPanel": (
-      _ctx,
       id: string,
       mode: number,
       html: string,
@@ -141,7 +136,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         editor.editorView.dispatch({});
       });
     },
-    "editor.hidePanel": (_ctx, id: string) => {
+    "editor.hidePanel": (id: string) => {
       editor.ui.viewDispatch({
         type: "hide-panel",
         id: id as any,
@@ -151,7 +146,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         editor.editorView.dispatch({});
       });
     },
-    "editor.insertAtPos": (_ctx, text: string, pos: number) => {
+    "editor.insertAtPos": (text: string, pos: number) => {
       editor.editorView.dispatch({
         changes: {
           insert: text,
@@ -159,7 +154,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         },
       });
     },
-    "editor.replaceRange": (_ctx, from: number, to: number, text: string) => {
+    "editor.replaceRange": (from: number, to: number, text: string) => {
       editor.editorView.dispatch({
         changes: {
           insert: text,
@@ -168,7 +163,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         },
       });
     },
-    "editor.moveCursor": (_ctx, pos: number, center = false) => {
+    "editor.moveCursor": (pos: number, center = false) => {
       editor.editorView.dispatch({
         selection: {
           anchor: pos,
@@ -188,7 +183,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       }
       editor.editorView.focus();
     },
-    "editor.setSelection": (_ctx, from: number, to: number) => {
+    "editor.setSelection": (from: number, to: number) => {
       editor.editorView.dispatch({
         selection: {
           anchor: from,
@@ -197,7 +192,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
 
-    "editor.insertAtCursor": (_ctx, text: string) => {
+    "editor.insertAtCursor": (text: string) => {
       const editorView = editor.editorView;
       const from = editorView.state.selection.main.from;
       editorView.dispatch({
@@ -210,33 +205,31 @@ export function editorSyscalls(editor: Client): SysCallMapping {
         },
       });
     },
-    "editor.dispatch": (_ctx, change: Transaction) => {
+    "editor.dispatch": (change: Transaction) => {
       editor.editorView.dispatch(change);
     },
     "editor.prompt": (
-      _ctx,
       message: string,
       defaultValue = "",
     ): Promise<string | undefined> => {
       return editor.prompt(message, defaultValue);
     },
     "editor.confirm": (
-      _ctx,
       message: string,
     ): Promise<boolean> => {
       return editor.confirm(message);
     },
-    "editor.getUiOption": (_ctx, key: string): any => {
+    "editor.getUiOption": (key: string): any => {
       return (editor.ui.viewState.uiOptions as any)[key];
     },
-    "editor.setUiOption": (_ctx, key: string, value: any) => {
+    "editor.setUiOption": (key: string, value: any) => {
       editor.ui.viewDispatch({
         type: "set-ui-option",
         key,
         value,
       });
     },
-    "editor.vimEx": (_ctx, exCommand: string) => {
+    "editor.vimEx": (exCommand: string) => {
       const cm = vimGetCm(editor.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },

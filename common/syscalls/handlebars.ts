@@ -1,11 +1,9 @@
-import { SysCallMapping } from "../../plugos/system.ts";
 import { handlebarHelpers } from "./handlebar_helpers.ts";
 import Handlebars from "handlebars";
 
-export function handlebarsSyscalls(): SysCallMapping {
+export function handlebarsSyscalls() {
   return {
     "handlebars.renderTemplate": (
-      _ctx,
       template: string,
       obj: any,
       globals: Record<string, any> = {},

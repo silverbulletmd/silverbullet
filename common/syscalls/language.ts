@@ -6,7 +6,6 @@ import { builtinLanguages, languageFor } from "../languages.ts";
 export function languageSyscalls(): SysCallMapping {
   return {
     "language.parseLanguage": (
-      _ctx,
       language: string,
       code: string,
     ): ParseTree => {
@@ -16,9 +15,7 @@ export function languageSyscalls(): SysCallMapping {
       }
       return parse(lang, code);
     },
-    "language.listLanguages": (
-      _ctx,
-    ): string[] => {
+    "language.listLanguages": (): string[] => {
       return Object.keys(builtinLanguages);
     },
   };

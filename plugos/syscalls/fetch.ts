@@ -8,7 +8,6 @@ import { base64Encode } from "../asset_bundle/base64.ts";
 export function sandboxFetchSyscalls(): SysCallMapping {
   return {
     "sandboxFetch.fetch": async (
-      _ctx,
       url: string,
       options: ProxyFetchRequest,
     ): Promise<ProxyFetchResponse> => {

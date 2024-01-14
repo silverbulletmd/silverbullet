@@ -47,7 +47,7 @@ export function Panel({
           break;
         case "syscall": {
           const { id, name, args } = data;
-          editor.system.localSyscall(name, args).then(
+          editor.system.syscall(name, args).then(
             (result) => {
               if (!iFrameRef.current?.contentWindow) {
                 // iFrame already went away

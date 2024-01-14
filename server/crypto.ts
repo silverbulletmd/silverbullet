@@ -17,6 +17,7 @@ export class JWTIssuer {
   async init(authString: string) {
     const [secret] = await this.kv.batchGet([[jwtSecretKey]]);
     if (!secret) {
+      console.log("Generating new JWT secret key");
       return this.generateNewKey();
     } else {
       this.key = await crypto.subtle.importKey(
@@ -34,6 +35,9 @@ export class JWTIssuer {
     ]]);
     const newAuthHash = await this.hashSHA256(authString);
     if (currentAuthHash && currentAuthHash !== newAuthHash) {
+      console.log(
+        "Authentication has changed since last run, so invalidating all existing tokens",
+      );
       // It has, so we need to generate a new key to invalidate all existing tokens
       await this.generateNewKey();
     }

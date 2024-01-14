@@ -1,25 +1,24 @@
 import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
-import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../plugos/system.ts";
 import { Client } from "../client.ts";
 
 export function proxySyscalls(client: Client, names: string[]): SysCallMapping {
   const syscalls: SysCallMapping = {};
   for (const name of names) {
-    syscalls[name] = (ctx, ...args: any[]) => {
-      return proxySyscall(ctx, client.httpSpacePrimitives, name, args);
+    syscalls[name] = (...args: any[]) => {
+      return proxySyscall(client.httpSpacePrimitives, name, args);
     };
   }
   return syscalls;
 }
 
 export async function proxySyscall(
-  ctx: SyscallContext,
   httpSpacePrimitives: HttpSpacePrimitives,
   name: string,
   args: any[],
 ): Promise<any> {
   const resp = await httpSpacePrimitives.authenticatedFetch(
-    `${httpSpacePrimitives.url}/.rpc/${ctx.plug.name}/${name}`,
+    `${httpSpacePrimitives.url}/.rpc/${name}`,
     {
       method: "POST",
       body: JSON.stringify(args),

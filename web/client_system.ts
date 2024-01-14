@@ -227,15 +227,14 @@ export class ClientSystem {
     );
   }
 
-  localSyscall(name: string, args: any[]) {
-    return this.system.localSyscall("editor", name, args);
+  syscall(name: string, args: any[]) {
+    return this.system.syscall(name, args);
   }
 
   queryObjects<T>(tag: string, query: Query): Promise<T[]> {
-    return this.system.localSyscall(
-      "index",
+    return this.system.syscall(
       "system.invokeFunction",
-      ["queryObjects", tag, query],
+      ["index.queryObjects", tag, query],
     );
   }
 }

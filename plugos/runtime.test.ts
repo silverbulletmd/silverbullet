@@ -7,8 +7,7 @@ import { esbuild } from "./deps.ts";
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
   system.registerSyscalls([], {
-    addNumbers: (_ctx, a, b) => {
-      console.log("This is the context", _ctx.plug.name);
+    addNumbers: (a, b) => {
       return a + b;
     },
     failingSyscall: () => {

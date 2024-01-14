@@ -44,7 +44,7 @@ export class Plug<HookT> {
 
   // Invoke a syscall
   syscall(name: string, args: any[]): Promise<any> {
-    return this.system.syscallWithContext({ plug: this }, name, args);
+    return this.system.syscall(name, args);
   }
 
   /**

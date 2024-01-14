@@ -315,10 +315,14 @@ export class Client {
             console.log("Navigating to anchor", pos);
 
             // We're going to look up the anchor through a API invocation
-            const matchingAnchor = await this.system.system.localSyscall(
-              "index",
+            const matchingAnchor = await this.system.system.syscall(
               "system.invokeFunction",
-              ["getObjectByRef", pageName, "anchor", `${pageName}$${pos}`],
+              [
+                "index.getObjectByRef",
+                pageName,
+                "anchor",
+                `${pageName}$${pos}`,
+              ],
             );
 
             if (!matchingAnchor) {

@@ -6,7 +6,6 @@ export function shellSyscalls(
 ): SysCallMapping {
   return {
     "shell.run": async (
-      _ctx,
       cmd: string,
       args: string[],
     ): Promise<{ stdout: string; stderr: string; code: number }> => {

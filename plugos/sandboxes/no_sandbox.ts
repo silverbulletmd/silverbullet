@@ -19,6 +19,10 @@ const functionQueue = new PromiseQueue();
 
 let activePlug: Plug<any> | undefined;
 
+// const callStack: { plug: Plug<any>; queue: PromiseQueue }[] = [];
+
+// const requestQueue = new PromiseQueue();
+
 // @ts-ignore: globalThis
 globalThis.syscall = (name: string, ...args: any[]): Promise<any> => {
   if (!activePlug) {

@@ -6,7 +6,7 @@ import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
 import { noSandboxFactory, PlugExport } from "./sandboxes/no_sandbox.ts";
 
 export interface SysCallMapping {
-  [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
+  [key: string]: (...args: any) => Promise<any> | any;
 }
 
 export type SystemEvents<HookT> = {
@@ -14,13 +14,7 @@ export type SystemEvents<HookT> = {
   plugUnloaded: (name: string) => void | Promise<void>;
 };
 
-// Passed to every syscall, allows to pass in additional context that the syscall may use
-export type SyscallContext = {
-  plug: Plug<any>;
-};
-
 type SyscallSignature = (
-  ctx: SyscallContext,
   ...args: any[]
 ) => Promise<any> | any;
 
@@ -38,6 +32,8 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
+
+  private grantedPermissions: string[] = [];
 
   /**
    * @param env either an environment or undefined for hybrid mode
@@ -75,8 +71,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
   }
 
-  syscallWithContext(
-    ctx: SyscallContext,
+  syscall(
     name: string,
     args: any[],
   ): Promise<any> {
@@ -85,26 +80,11 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
       throw Error(`Unregistered syscall ${name}`);
     }
     for (const permission of syscall.requiredPermissions) {
-      if (!ctx.plug) {
-        throw Error(`Syscall ${name} requires permission and no plug is set`);
-      }
-      if (!ctx.plug.grantedPermissions.includes(permission)) {
+      if (!this.grantedPermissions.includes(permission)) {
         throw Error(`Missing permission '${permission}' for syscall ${name}`);
       }
     }
-    return Promise.resolve(syscall.callback(ctx, ...args));
-  }
-
-  localSyscall(
-    contextPlugName: string,
-    syscallName: string,
-    args: any[],
-  ): Promise<any> {
-    return this.syscallWithContext(
-      { plug: this.plugs.get(contextPlugName)! },
-      syscallName,
-      args,
-    );
+    return Promise.resolve(syscall.callback(...args));
   }
 
   async load(
