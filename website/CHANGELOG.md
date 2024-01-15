@@ -16,9 +16,16 @@ _Not yet released, this will likely become 0.6.0._
 * **“Breaking” change:** Two features are now no longer hardcoded into SilverBullet, but can be activated quite easily using [[Live Template Widgets]] (see their respective documentation pages on instructions on how to do this):
   * [[Table of Contents]]
   * [[Linked Mentions]]
+* Filter list (used by [[Page Picker]] and [[Command Palette]]) improvements:
+  * Better ranking
+  * Better positioning of modal (especially on mobile)
+  * Better mouse behavior
 * Templates:
   * Somewhat nicer rendering of {{templateVars}} (notice the gray background)
   * Rendering of [[Markdown/Code Widgets]] (such as live queries and templates) **are now disabled** on template pages, which should make them less confusing to read and interpret.
+* Backend work in preparation for supporting more “serverless” deployments (e.g. Cloudflare workers and Deno Deploy) in the future
+  * Move from [Oak](https://oakserver.github.io/oak/) to [Hono](https://hono.dev/)
+  * Support for in-process plug loading (without workers)
 
 ---
 
