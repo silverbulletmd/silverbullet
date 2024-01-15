@@ -2,7 +2,7 @@ import { HttpServer } from "../server/http_server.ts";
 import clientAssetBundle from "../dist/client_asset_bundle.json" with {
   type: "json",
 };
-import plugAssetBundle from "../dist/plug_asset_bundle.json" with {
+import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
