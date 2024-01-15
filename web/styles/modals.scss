@@ -1,20 +1,16 @@
-.sb-modal-wrapper {
-  position: absolute;
-  margin: auto;
-  max-width: 500px;
-  height: 600px;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  max-height: 290px;
-  z-index: 100;
-}
-
 .sb-modal-box {
+  position: absolute;
+  // At the toppest of the toppest
+  z-index: 1000;
+
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  max-width: 90%;
+
   border-radius: 8px;
   overflow: hidden;
-  margin: 10px;
 
   .cm-content {
     padding: 0;
@@ -53,7 +49,7 @@
   }
 
   .sb-result-list {
-    max-height: 216px;
+    max-height: 250px;
     overflow-y: scroll;
 
     .sb-icon {

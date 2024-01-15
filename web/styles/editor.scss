@@ -428,12 +428,12 @@
     margin-top: 10px;
   }
 
-  .sb-markdown-top-widget:has(*) {
+  .sb-markdown-top-widget:has(*) .content {
     max-height: 500px;
   }
 
   @media screen and (max-height: 1000px) {
-    .sb-markdown-top-widget:has(*) {
+    .sb-markdown-top-widget:has(*) .content {
       max-height: 300px;
     }
   }

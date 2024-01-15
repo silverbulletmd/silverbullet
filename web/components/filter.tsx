@@ -95,115 +95,113 @@ export function FilterList({
   }, []);
 
   const returnEl = (
-    <div className="sb-modal-wrapper">
-      <div className="sb-modal-box">
-        <div
-          className="sb-header"
-          onClick={(e) => {
-            // Allow tapping/clicking the header without closing it
-            e.stopPropagation();
+    <div className="sb-modal-box">
+      <div
+        className="sb-header"
+        onClick={(e) => {
+          // Allow tapping/clicking the header without closing it
+          e.stopPropagation();
+        }}
+      >
+        <label>{label}</label>
+        <MiniEditor
+          text={text}
+          vimMode={vimMode}
+          vimStartInInsertMode={true}
+          focus={true}
+          darkMode={darkMode}
+          completer={completer}
+          placeholderText={placeholder}
+          onEnter={(_newText, shiftDown) => {
+            onSelect(
+              shiftDown ? { name: text } : matchingOptions[selectedOption],
+            );
+            return true;
           }}
-        >
-          <label>{label}</label>
-          <MiniEditor
-            text={text}
-            vimMode={vimMode}
-            vimStartInInsertMode={true}
-            focus={true}
-            darkMode={darkMode}
-            completer={completer}
-            placeholderText={placeholder}
-            onEnter={(_newText, shiftDown) => {
-              onSelect(
-                shiftDown ? { name: text } : matchingOptions[selectedOption],
-              );
-              return true;
-            }}
-            onEscape={() => {
-              onSelect(undefined);
-            }}
-            onChange={(text) => {
-              setText(text);
-            }}
-            onKeyUp={(view, e) => {
-              // This event is triggered after the key has been processed by CM already
-              if (onKeyPress) {
-                onKeyPress(e.key, view.state.sliceDoc());
-              }
-              return false;
-            }}
-            onKeyDown={(view, e) => {
-              switch (e.key) {
-                case "ArrowUp":
-                  setSelectionOption(Math.max(0, selectedOption - 1));
+          onEscape={() => {
+            onSelect(undefined);
+          }}
+          onChange={(text) => {
+            setText(text);
+          }}
+          onKeyUp={(view, e) => {
+            // This event is triggered after the key has been processed by CM already
+            if (onKeyPress) {
+              onKeyPress(e.key, view.state.sliceDoc());
+            }
+            return false;
+          }}
+          onKeyDown={(view, e) => {
+            switch (e.key) {
+              case "ArrowUp":
+                setSelectionOption(Math.max(0, selectedOption - 1));
+                return true;
+              case "ArrowDown":
+                setSelectionOption(
+                  Math.min(matchingOptions.length - 1, selectedOption + 1),
+                );
+                return true;
+              case "PageUp":
+                setSelectionOption(Math.max(0, selectedOption - 5));
+                return true;
+              case "PageDown":
+                setSelectionOption(Math.max(0, selectedOption + 5));
+                return true;
+              case "Home":
+                setSelectionOption(0);
+                return true;
+              case "End":
+                setSelectionOption(matchingOptions.length - 1);
+                return true;
+              case " ": {
+                const text = view.state.sliceDoc();
+                if (completePrefix && text === "") {
+                  setText(completePrefix);
+                  // updateFilter(completePrefix);
                   return true;
-                case "ArrowDown":
-                  setSelectionOption(
-                    Math.min(matchingOptions.length - 1, selectedOption + 1),
-                  );
-                  return true;
-                case "PageUp":
-                  setSelectionOption(Math.max(0, selectedOption - 5));
-                  return true;
-                case "PageDown":
-                  setSelectionOption(Math.max(0, selectedOption + 5));
-                  return true;
-                case "Home":
-                  setSelectionOption(0);
-                  return true;
-                case "End":
-                  setSelectionOption(matchingOptions.length - 1);
-                  return true;
-                case " ": {
-                  const text = view.state.sliceDoc();
-                  if (completePrefix && text === "") {
-                    setText(completePrefix);
-                    // updateFilter(completePrefix);
-                    return true;
-                  }
-                  break;
                 }
+                break;
               }
-              return false;
-            }}
-          />
-        </div>
-        <div
-          className="sb-help-text"
-          dangerouslySetInnerHTML={{ __html: helpText }}
-        >
-        </div>
-        <div className="sb-result-list">
-          {matchingOptions && matchingOptions.length > 0
-            ? matchingOptions.map((option, idx) => (
-              <div
-                key={"" + idx}
-                ref={selectedOption === idx ? selectedElementRef : undefined}
-                className={selectedOption === idx
-                  ? "sb-selected-option"
-                  : "sb-option"}
-                onMouseOver={(e) => {
-                  setSelectionOption(idx);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(option);
-                }}
-              >
-                {Icon && (
-                  <span className="sb-icon">
-                    <Icon width={16} height={16} />
-                  </span>
-                )}
-                <span className="sb-name">
-                  {option.name}
+            }
+            return false;
+          }}
+        />
+      </div>
+      <div
+        className="sb-help-text"
+        dangerouslySetInnerHTML={{ __html: helpText }}
+      >
+      </div>
+      <div className="sb-result-list">
+        {matchingOptions && matchingOptions.length > 0
+          ? matchingOptions.map((option, idx) => (
+            <div
+              key={"" + idx}
+              ref={selectedOption === idx ? selectedElementRef : undefined}
+              className={selectedOption === idx
+                ? "sb-selected-option"
+                : "sb-option"}
+              onMouseOver={(e) => {
+                setSelectionOption(idx);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(option);
+              }}
+            >
+              {Icon && (
+                <span className="sb-icon">
+                  <Icon width={16} height={16} />
                 </span>
-                {option.hint && <span className="sb-hint">{option.hint}</span>}
-                <div className="sb-description">{option.description}</div>
-              </div>
-            ))
-            : null}
-        </div>
+              )}
+              <span className="sb-name">
+                {option.name}
+              </span>
+              {option.hint && <span className="sb-hint">{option.hint}</span>}
+              <div className="sb-description">{option.description}</div>
+            </div>
+          ))
+          : null}
       </div>
     </div>
   );

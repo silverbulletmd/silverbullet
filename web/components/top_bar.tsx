@@ -142,8 +142,8 @@ export function TopBar({
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      actionButton.callback();
                       e.stopPropagation();
+                      actionButton.callback();
                     }}
                     title={actionButton.description}
                     className={actionButton.class}
