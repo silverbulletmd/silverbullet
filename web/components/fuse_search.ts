@@ -28,17 +28,18 @@ export const fuzzySearchAndSort = (
       weight: 0.3,
     }, {
       name: "baseName",
-      weight: 0.7,
+      weight: 1,
     }, {
       name: "displayName",
-      weight: 0.3,
+      weight: 0.7,
     }, {
       name: "aliases",
-      weight: 0.7,
+      weight: 0.5,
     }],
     includeScore: true,
     shouldSort: true,
     isCaseSensitive: false,
+    ignoreLocation: true,
     threshold: 0.6,
     sortFn: (a, b): number => {
       if (a.score === b.score) {
