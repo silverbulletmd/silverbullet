@@ -181,8 +181,10 @@ export function FilterList({
               className={selectedOption === idx
                 ? "sb-selected-option"
                 : "sb-option"}
-              onMouseOver={(e) => {
-                setSelectionOption(idx);
+              onMouseMove={(e) => {
+                if (selectedOption !== idx) {
+                  setSelectionOption(idx);
+                }
               }}
               onClick={(e) => {
                 e.stopPropagation();
