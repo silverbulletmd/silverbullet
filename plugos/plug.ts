@@ -1,5 +1,5 @@
 import { Manifest } from "./types.ts";
-import { SyscallContext, System } from "./system.ts";
+import { System } from "./system.ts";
 import { AssetBundle } from "./asset_bundle/bundle.ts";
 import { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
 

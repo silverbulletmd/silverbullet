@@ -35,19 +35,19 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
 
-// Important: load this before the actual plugs
-import {
-  createSandbox as noSandboxFactory,
-  runWithSystemLock,
-} from "../plugos/sandboxes/no_sandbox.ts";
+// // Important: load this before the actual plugs
+// import {
+//   createSandbox as noSandboxFactory,
+//   runWithSystemLock,
+// } from "../plugos/sandboxes/no_sandbox.ts";
 
-// Load list of builtin plugs
-import { plug as plugIndex } from "../dist_plug_bundle/_plug/index.plug.js";
-import { plug as plugFederation } from "../dist_plug_bundle/_plug/federation.plug.js";
-import { plug as plugQuery } from "../dist_plug_bundle/_plug/query.plug.js";
-import { plug as plugSearch } from "../dist_plug_bundle/_plug/search.plug.js";
-import { plug as plugTasks } from "../dist_plug_bundle/_plug/tasks.plug.js";
-import { plug as plugTemplate } from "../dist_plug_bundle/_plug/template.plug.js";
+// // Load list of builtin plugs
+// import { plug as plugIndex } from "../dist_plug_bundle/_plug/index.plug.js";
+// import { plug as plugFederation } from "../dist_plug_bundle/_plug/federation.plug.js";
+// import { plug as plugQuery } from "../dist_plug_bundle/_plug/query.plug.js";
+// import { plug as plugSearch } from "../dist_plug_bundle/_plug/search.plug.js";
+// import { plug as plugTasks } from "../dist_plug_bundle/_plug/tasks.plug.js";
+// import { plug as plugTemplate } from "../dist_plug_bundle/_plug/template.plug.js";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -152,10 +152,10 @@ export class ServerSystem {
     );
 
     this.listInterval = setInterval(() => {
-      runWithSystemLock(this.system, async () => {
-        await space.updatePageList();
-      });
-      // space.updatePageList().catch(console.error);
+      // runWithSystemLock(this.system, async () => {
+      //   await space.updatePageList();
+      // });
+      space.updatePageList().catch(console.error);
     }, fileListInterval);
 
     eventHook.addLocalListener("file:changed", async (path, localChange) => {
@@ -183,24 +183,24 @@ export class ServerSystem {
       await indexPromise;
     }
 
-    await runWithSystemLock(this.system, async () => {
-      await eventHook.dispatchEvent("system:ready");
-    });
+    // await runWithSystemLock(this.system, async () => {
+    await eventHook.dispatchEvent("system:ready");
+    // });
   }
 
   async loadPlugs() {
-    await this.system.load("index", noSandboxFactory(plugIndex));
-    await this.system.load("federation", noSandboxFactory(plugFederation));
-    await this.system.load("query", noSandboxFactory(plugQuery));
-    await this.system.load("search", noSandboxFactory(plugSearch));
-    await this.system.load("tasks", noSandboxFactory(plugTasks));
-    await this.system.load("template", noSandboxFactory(plugTemplate));
+    // await this.system.load("index", noSandboxFactory(plugIndex));
+    // await this.system.load("federation", noSandboxFactory(plugFederation));
+    // await this.system.load("query", noSandboxFactory(plugQuery));
+    // await this.system.load("search", noSandboxFactory(plugSearch));
+    // await this.system.load("tasks", noSandboxFactory(plugTasks));
+    // await this.system.load("template", noSandboxFactory(plugTemplate));
 
-    // for (const { name } of await this.spacePrimitives.fetchFileList()) {
-    //   if (plugNameExtractRegex.test(name)) {
-    //     await this.loadPlugFromSpace(name);
-    //   }
-    // }
+    for (const { name } of await this.spacePrimitives.fetchFileList()) {
+      if (plugNameExtractRegex.test(name)) {
+        await this.loadPlugFromSpace(name);
+      }
+    }
   }
 
   async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {

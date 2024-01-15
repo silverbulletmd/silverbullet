@@ -1,4 +1,3 @@
-import type { Plug } from "../../plugos/plug.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { Client } from "../client.ts";
 import { CommandDef } from "../hooks/command.ts";

@@ -8,17 +8,18 @@ import {
   runWithSystemLock,
 } from "./sandboxes/no_sandbox.ts";
 import { sleep } from "$sb/lib/async.ts";
+import { SysCallMapping } from "./system.ts";
 
 Deno.test("Run a deno sandbox", async () => {
   const system = new System("server");
   system.registerSyscalls([], {
-    addNumbers: (a, b) => {
+    addNumbers: (_ctx, a, b) => {
       return a + b;
     },
     failingSyscall: () => {
       throw new Error("#fail");
     },
-  });
+  } as SysCallMapping);
   system.registerSyscalls(["restricted"], {
     restrictedSyscall: () => {
       return "restricted";
