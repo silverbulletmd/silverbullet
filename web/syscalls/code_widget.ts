@@ -7,6 +7,7 @@ export function codeWidgetSyscalls(
 ): SysCallMapping {
   return {
     "codeWidget.render": (
+      _ctx,
       lang: string,
       body: string,
       pageName: string,

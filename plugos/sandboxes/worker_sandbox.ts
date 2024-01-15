@@ -21,6 +21,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
 
   constructor(
     readonly plug: Plug<HookT>,
+    public workerUrl: URL,
     private workerOptions = {},
   ) {
   }
@@ -35,7 +36,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
       console.warn("Double init of sandbox, ignoring");
       return Promise.resolve();
     }
-    this.worker = new Worker(this.plug.workerUrl!, {
+    this.worker = new Worker(this.workerUrl, {
       ...this.workerOptions,
       type: "module",
     });

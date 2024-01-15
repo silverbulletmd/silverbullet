@@ -9,41 +9,38 @@ import type { SysCallMapping } from "../system.ts";
  */
 export function dataStoreSyscalls(ds: DataStore): SysCallMapping {
   return {
-    "datastore.delete": (key: KvKey) => {
+    "datastore.delete": (_ctx, key: KvKey) => {
       return ds.delete(key);
     },
 
-    "datastore.set": (key: KvKey, value: any) => {
+    "datastore.set": (_ctx, key: KvKey, value: any) => {
       return ds.set(key, value);
     },
 
-    "datastore.batchSet": (kvs: KV[]) => {
+    "datastore.batchSet": (_ctx, kvs: KV[]) => {
       return ds.batchSet(kvs);
     },
 
-    "datastore.batchDelete": (keys: KvKey[]) => {
+    "datastore.batchDelete": (_ctx, keys: KvKey[]) => {
       return ds.batchDelete(keys);
     },
 
     "datastore.batchGet": (
+      _ctx,
       keys: KvKey[],
     ): Promise<(any | undefined)[]> => {
       return ds.batchGet(keys);
     },
 
-    "datastore.get": (key: KvKey): Promise<any | null> => {
+    "datastore.get": (_ctx, key: KvKey): Promise<any | null> => {
       return ds.get(key);
     },
 
-    "datastore.query": async (
-      query: KvQuery,
-    ): Promise<KV[]> => {
+    "datastore.query": async (_ctx, query: KvQuery): Promise<KV[]> => {
       return (await ds.query(query));
     },
 
-    "datastore.queryDelete": (
-      query: KvQuery,
-    ): Promise<void> => {
+    "datastore.queryDelete": (_ctx, query: KvQuery): Promise<void> => {
       return ds.queryDelete(query);
     },
   };

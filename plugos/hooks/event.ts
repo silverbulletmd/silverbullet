@@ -70,7 +70,7 @@ export class EventHook implements Hook<EventHookT> {
                     }
                   } catch (e: any) {
                     console.error(
-                      `Error dispatching event ${eventName} to plug ${plug.name}: ${e.message}`,
+                      `Error dispatching event ${eventName} to ${plug.name}.${name}: ${e.message}`,
                     );
                   }
                 })());

@@ -10,6 +10,7 @@ export function systemSyscalls(
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
+      ctx,
       fullName: string, // plug.function
       ...args: any[]
     ) => {
@@ -21,7 +22,7 @@ export function systemSyscalls(
       if (!plug) {
         throw Error(`Plug ${plugName} not found`);
       }
-      const functionDef = plug?.manifest!.functions[functionName];
+      const functionDef = plug.manifest!.functions[functionName];
       if (!functionDef) {
         throw Error(`Function ${functionName} not found`);
       }
@@ -31,6 +32,7 @@ export function systemSyscalls(
       ) {
         // Proxy to another environment
         return proxySyscall(
+          ctx,
           client.httpSpacePrimitives,
           "system.invokeFunction",
           [fullName, ...args],
@@ -38,7 +40,7 @@ export function systemSyscalls(
       }
       return plug.invoke(functionName, args);
     },
-    "system.invokeCommand": (name: string, args?: string[]) => {
+    "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
         throw new Error("Not supported");
       }

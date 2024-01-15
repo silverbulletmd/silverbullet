@@ -9,6 +9,7 @@ Deno.test("Test FS operations", async () => {
   );
   const syscalls = fileSystemSyscalls(thisFolder);
   const allFiles: FileMeta[] = await syscalls["fs.listFiles"](
+    {},
     thisFolder,
     true,
   );

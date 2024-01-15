@@ -134,8 +134,7 @@ export class ClientSystem {
           this.system.unload(path);
           const plug = await this.system.load(
             plugName,
-            createSandbox,
-            new URL(`/${path}`, location.href),
+            createSandbox(new URL(`/${path}`, location.href)),
             newHash,
           );
           if ((plug.manifest! as Manifest).syntax) {
@@ -202,8 +201,7 @@ export class ClientSystem {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
           plugName,
-          createSandbox,
-          new URL(plugMeta.name, location.origin),
+          createSandbox(new URL(plugMeta.name, location.origin)),
           plugMeta.lastModified,
         );
       } catch (e: any) {
@@ -227,12 +225,12 @@ export class ClientSystem {
     );
   }
 
-  syscall(name: string, args: any[]) {
-    return this.system.syscall(name, args);
+  localSyscall(name: string, args: any[]) {
+    return this.system.localSyscall(name, args);
   }
 
   queryObjects<T>(tag: string, query: Query): Promise<T[]> {
-    return this.system.syscall(
+    return this.localSyscall(
       "system.invokeFunction",
       ["index.queryObjects", tag, query],
     );

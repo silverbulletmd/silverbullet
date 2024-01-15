@@ -5,12 +5,19 @@ import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
 
 export interface SysCallMapping {
-  [key: string]: (...args: any) => Promise<any> | any;
+  [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
 }
 
 export type SystemEvents<HookT> = {
   plugLoaded: (plug: Plug<HookT>) => void | Promise<void>;
   plugUnloaded: (name: string) => void | Promise<void>;
+};
+
+// Passed to every syscall, allows to pass in additional context that the syscall may use
+export type SyscallContext = {
+  // This is the plug that is invoking the syscall,
+  // which may be undefined where this cannot be determined (e.g. when running in a NoSandbox)
+  plug?: string;
 };
 
 type SyscallSignature = (
@@ -31,8 +38,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
   protected registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
-
-  private grantedPermissions: string[] = [];
 
   /**
    * @param env either an environment or undefined for hybrid mode
@@ -70,7 +75,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
   }
 
+  localSyscall(name: string, args: any): Promise<any> {
+    return this.syscall({}, name, args);
+  }
+
   syscall(
+    ctx: SyscallContext,
     name: string,
     args: any[],
   ): Promise<any> {
@@ -78,21 +88,27 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     if (!syscall) {
       throw Error(`Unregistered syscall ${name}`);
     }
-    for (const permission of syscall.requiredPermissions) {
-      if (!this.grantedPermissions.includes(permission)) {
-        throw Error(`Missing permission '${permission}' for syscall ${name}`);
+    if (ctx.plug) {
+      // Only when running in a plug context do we check permissions
+      const plug = this.loadedPlugs.get(ctx.plug!);
+      if (!plug) {
+        throw new Error(`Plug ${ctx.plug} not found`);
+      }
+      for (const permission of syscall.requiredPermissions) {
+        if (!plug.grantedPermissions.includes(permission)) {
+          throw Error(`Missing permission '${permission}' for syscall ${name}`);
+        }
       }
     }
-    return Promise.resolve(syscall.callback(...args));
+    return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
   async load(
     name: string,
     sandboxFactory: SandboxFactory<HookT>,
-    workerUrl: URL | undefined = undefined,
     hash = -1,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, workerUrl, name, hash, sandboxFactory);
+    const plug = new Plug(this, name, hash, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
     await plug.ready;
@@ -117,44 +133,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     await this.emit("plugLoaded", plug);
     return plug;
   }
-
-  /**
-   * Loads a plug without a sandbox, which means it will run in the same context as the caller
-   * @param name
-   * @param plugExport extracted via e.g. `import { plug } from "./some.plug.js`
-   * @returns Plug instance
-   */
-  // async loadNoSandbox(
-  //   name: string,
-  //   plugExport: PlugExport<any>,
-  // ): Promise<Plug<HookT>> {
-  //   const plug = new Plug(
-  //     this,
-  //     undefined,
-  //     name,
-  //     -1,
-  //     noSandboxFactory(plugExport),
-  //   );
-
-  //   const manifest = plugExport.manifest;
-
-  //   // Validate the manifest
-  //   let errors: string[] = [];
-  //   for (const feature of this.enabledHooks) {
-  //     errors = [...errors, ...feature.validateManifest(plug.manifest!)];
-  //   }
-  //   if (errors.length > 0) {
-  //     throw new Error(`Invalid manifest: ${errors.join(", ")}`);
-  //   }
-  //   if (this.plugs.has(manifest.name)) {
-  //     this.unload(manifest.name);
-  //   }
-  //   console.log("Activated plug without sandbox", manifest.name);
-  //   this.plugs.set(manifest.name, plug);
-
-  //   await this.emit("plugLoaded", plug);
-  //   return plug;
-  // }
 
   unload(name: string) {
     const plug = this.plugs.get(name);

@@ -5,19 +5,19 @@ export function mqSyscalls(
   mq: MessageQueue,
 ): SysCallMapping {
   return {
-    "mq.send": (queue: string, body: any) => {
+    "mq.send": (_ctx, queue: string, body: any) => {
       return mq.send(queue, body);
     },
-    "mq.batchSend": (queue: string, bodies: any[]) => {
+    "mq.batchSend": (_ctx, queue: string, bodies: any[]) => {
       return mq.batchSend(queue, bodies);
     },
-    "mq.ack": (queue: string, id: string) => {
+    "mq.ack": (_ctx, queue: string, id: string) => {
       return mq.ack(queue, id);
     },
-    "mq.batchAck": (queue: string, ids: string[]) => {
+    "mq.batchAck": (_ctx, queue: string, ids: string[]) => {
       return mq.batchAck(queue, ids);
     },
-    "mq.getQueueStats": (queue: string) => {
+    "mq.getQueueStats": (_ctx, queue: string) => {
       return mq.getQueueStats(queue);
     },
   };

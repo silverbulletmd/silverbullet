@@ -1,4 +1,4 @@
-import emojiBlob from "./emoji.json" with { type: "json" };
+import emojiBlob from "./emoji.json" assert { type: "json" };
 import type { CompleteEvent } from "$sb/app_event.ts";
 
 const emojis = emojiBlob.split("|").map((line) => line.split(" "));

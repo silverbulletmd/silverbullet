@@ -31,10 +31,11 @@ type YamlStringifyOptions = {
 
 export function yamlSyscalls(): SysCallMapping {
   return {
-    "yaml.parse": (text: string): any => {
+    "yaml.parse": (_ctx, text: string): any => {
       return YAML.load(text);
     },
     "yaml.stringify": (
+      _ctx,
       obj: any,
       options: YamlStringifyOptions = {},
     ): string => {

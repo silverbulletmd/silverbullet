@@ -37,7 +37,7 @@ import { ensureSpaceIndex } from "../common/space_index.ts";
 
 // Important: load this before the actual plugs
 import {
-  noSandboxFactory,
+  createSandbox as noSandboxFactory,
   runWithSystemLock,
 } from "../plugos/sandboxes/no_sandbox.ts";
 
@@ -208,9 +208,10 @@ export class ServerSystem {
     const plugName = path.match(plugNameExtractRegex)![1];
     return this.system.load(
       plugName,
-      createSandbox,
-      // Base64 encoding this to support `deno compile` mode
-      new URL(base64EncodedDataUrl("application/javascript", data)),
+      createSandbox(
+        // Base64 encoding this to support `deno compile` mode
+        new URL(base64EncodedDataUrl("application/javascript", data)),
+      ),
       meta.lastModified,
     );
   }

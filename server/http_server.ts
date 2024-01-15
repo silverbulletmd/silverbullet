@@ -392,9 +392,10 @@ export class HttpServer {
     });
 
     // RPC syscall
-    this.app.post("/.rpc/:syscall", async (c) => {
+    this.app.post("/.rpc/:plugName/:syscall", async (c) => {
       const req = c.req;
       const syscall = req.param("syscall")!;
+      const plugName = req.param("plugName")!;
       const spaceServer = await this.ensureSpaceServer(req);
       const body = await req.json();
       try {
@@ -403,7 +404,11 @@ export class HttpServer {
         }
         const args: string[] = body;
         try {
-          const result = await spaceServer.system!.syscall(syscall, args);
+          const result = await spaceServer.system!.syscall(
+            { plug: plugName },
+            syscall,
+            args,
+          );
           return c.json({
             result: result,
           });

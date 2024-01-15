@@ -3,7 +3,10 @@ import { System } from "./system.ts";
 import { assert, assertEquals } from "../test_deps.ts";
 import { compileManifest } from "./compile.ts";
 import { esbuild } from "./deps.ts";
-import { runWithSystemLock } from "./sandboxes/no_sandbox.ts";
+import {
+  createSandbox as createNoSandbox,
+  runWithSystemLock,
+} from "./sandboxes/no_sandbox.ts";
 import { sleep } from "$sb/lib/async.ts";
 
 Deno.test("Run a deno sandbox", async () => {
@@ -36,8 +39,7 @@ Deno.test("Run a deno sandbox", async () => {
 
   const plug = await system.load(
     "test",
-    createSandbox,
-    new URL(`file://${workerPath}`),
+    createSandbox(new URL(`file://${workerPath}`)),
   );
 
   assertEquals({
@@ -52,7 +54,7 @@ Deno.test("Run a deno sandbox", async () => {
     `file://${workerPath}`
   );
 
-  const plug2 = await system.load("test", plugExport);
+  const plug2 = await system.load("test", createNoSandbox(plugExport));
 
   let running = false;
   await Promise.all([

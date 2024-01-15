@@ -1,5 +1,5 @@
 import { Manifest } from "./types.ts";
-import { System } from "./system.ts";
+import { SyscallContext, System } from "./system.ts";
 import { AssetBundle } from "./asset_bundle/bundle.ts";
 import { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
 
@@ -21,7 +21,6 @@ export class Plug<HookT> {
 
   constructor(
     private system: System<HookT>,
-    public workerUrl: URL | undefined,
     readonly name: string,
     private hash: number,
     private sandboxFactory: SandboxFactory<HookT>,
@@ -44,7 +43,7 @@ export class Plug<HookT> {
 
   // Invoke a syscall
   syscall(name: string, args: any[]): Promise<any> {
-    return this.system.syscall(name, args);
+    return this.system.syscall({ plug: this.name }, name, args);
   }
 
   /**

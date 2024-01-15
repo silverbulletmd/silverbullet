@@ -14,6 +14,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
 
   return {
     "fs.readFile": async (
+      _ctx,
       filePath: string,
       encoding: "utf8" | "dataurl" = "utf8",
     ): Promise<string> => {
@@ -28,7 +29,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       }
       return text;
     },
-    "fs.getFileMeta": async (filePath: string): Promise<FileMeta> => {
+    "fs.getFileMeta": async (_ctx, filePath: string): Promise<FileMeta> => {
       const p = resolvedPath(filePath);
       const s = await Deno.stat(p);
       return {
@@ -41,6 +42,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       };
     },
     "fs.writeFile": async (
+      _ctx,
       filePath: string,
       text: string,
       encoding: "utf8" | "dataurl" = "utf8",
@@ -62,10 +64,11 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
         perm: "rw",
       };
     },
-    "fs.deleteFile": async (filePath: string): Promise<void> => {
+    "fs.deleteFile": async (_ctx, filePath: string): Promise<void> => {
       await Deno.remove(resolvedPath(filePath));
     },
     "fs.listFiles": async (
+      _ctx,
       dirPath: string,
       recursive: boolean,
     ): Promise<FileMeta[]> => {

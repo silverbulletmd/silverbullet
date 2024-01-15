@@ -10,21 +10,20 @@ export function spaceSyscalls(space: Space): SysCallMapping {
     "space.listPages": (): Promise<PageMeta[]> => {
       return space.fetchPageList();
     },
-    "space.readPage": async (
-      name: string,
-    ): Promise<string> => {
+    "space.readPage": async (_ctx, name: string): Promise<string> => {
       return (await space.readPage(name)).text;
     },
-    "space.getPageMeta": (name: string): Promise<PageMeta> => {
+    "space.getPageMeta": (_ctx, name: string): Promise<PageMeta> => {
       return space.getPageMeta(name);
     },
     "space.writePage": (
+      _ctx,
       name: string,
       text: string,
     ): Promise<PageMeta> => {
       return space.writePage(name, text);
     },
-    "space.deletePage": async (name: string) => {
+    "space.deletePage": async (_ctx, name: string) => {
       await space.deletePage(name);
     },
     "space.listPlugs": (): Promise<FileMeta[]> => {
@@ -33,23 +32,23 @@ export function spaceSyscalls(space: Space): SysCallMapping {
     "space.listAttachments": async (): Promise<AttachmentMeta[]> => {
       return await space.fetchAttachmentList();
     },
-    "space.readAttachment": async (
-      name: string,
-    ): Promise<Uint8Array> => {
+    "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
       return (await space.readAttachment(name)).data;
     },
     "space.getAttachmentMeta": async (
+      _ctx,
       name: string,
     ): Promise<AttachmentMeta> => {
       return await space.getAttachmentMeta(name);
     },
     "space.writeAttachment": (
+      _ctx,
       name: string,
       data: Uint8Array,
     ): Promise<AttachmentMeta> => {
       return space.writeAttachment(name, data);
     },
-    "space.deleteAttachment": async (name: string) => {
+    "space.deleteAttachment": async (_ctx, name: string) => {
       await space.deleteAttachment(name);
     },
 
@@ -57,19 +56,20 @@ export function spaceSyscalls(space: Space): SysCallMapping {
     "space.listFiles": (): Promise<FileMeta[]> => {
       return space.spacePrimitives.fetchFileList();
     },
-    "space.getFileMeta": (name: string): Promise<FileMeta> => {
+    "space.getFileMeta": (_ctx, name: string): Promise<FileMeta> => {
       return space.spacePrimitives.getFileMeta(name);
     },
-    "space.readFile": async (name: string): Promise<Uint8Array> => {
+    "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
       return (await space.spacePrimitives.readFile(name)).data;
     },
     "space.writeFile": (
+      _ctx,
       name: string,
       data: Uint8Array,
     ): Promise<FileMeta> => {
       return space.spacePrimitives.writeFile(name, data);
     },
-    "space.deleteFile": (name: string) => {
+    "space.deleteFile": (_ctx, name: string) => {
       return space.spacePrimitives.deleteFile(name);
     },
   };

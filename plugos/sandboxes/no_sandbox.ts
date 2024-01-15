@@ -3,6 +3,7 @@ import { Plug } from "../plug.ts";
 import { Sandbox } from "./sandbox.ts";
 import { Manifest } from "../types.ts";
 import { System } from "../system.ts";
+import { SandboxFactory } from "./sandbox.ts";
 
 /**
  * This implements a "no sandbox" sandbox that actually runs code the main thread, without any isolation.
@@ -22,6 +23,7 @@ import { System } from "../system.ts";
 
 /**
  * A type representing the `plug` export of a plug, used via e.g. `import { plug } from "./some.plug.js`
+ * Values of this type are passed into the `noSandboxFactory` function when called on a system.load
  */
 export type PlugExport = {
   manifest: Manifest<any>;
@@ -44,35 +46,43 @@ globalThis.syscall = (name: string, ...args: any[]): Promise<any> => {
   if (!activeSystem) {
     throw new Error(`No currently active system, can't invoke syscall ${name}`);
   }
-  return activeSystem.syscall(name, args);
+  // Invoke syscall with no active plug set (because we don't know which plug is invoking the syscall)
+  return activeSystem.syscall({}, name, args);
 };
 
+// Global sequential task queue for running tasks in a System-locked context
 const taskQueue = new PromiseQueue();
 
+/**
+ * Schedules a task to run in a System-locked context
+ * in effect this will ensure only one such context is active at a given time allowing for no parallelism
+ * @param system to activate while running the task
+ * @param task callback to run
+ * @returns the result of the task once it completes
+ */
 export function runWithSystemLock(
   system: System<any>,
-  fn: () => Promise<any>,
+  task: () => Promise<any>,
 ): Promise<any> {
   return taskQueue.runInQueue(async () => {
     // Set the global active system, which is used by the syscall function
     activeSystem = system;
     try {
-      // Run the logic
-      return await fn();
+      // Run the logic, note putting the await here is crucial to make sure the `finally` block runs at the right time
+      return await task();
     } finally {
-      // And then reset the global active system
+      // And then reset the global active system whether the thing blew up or not
       activeSystem = undefined;
     }
   });
 }
 
 /**
- * Executes a plug in a no-sandbox environment
- * This requires there either to only be a single System to be active at a given time (set via setGlobalActiveNoSandboxSystem).
- * If multiple systems need to be supported, requests should be run in sequence, never in parallel
+ * Implements a no-sandbox sandbox that runs code in the main thread
  */
 export class NoSandbox<HookT> implements Sandbox<HookT> {
-  manifest?: Manifest<HookT> | undefined;
+  manifest: Manifest<HookT>;
+
   constructor(
     readonly plug: Plug<HookT>,
     readonly plugExport: PlugExport,
@@ -82,6 +92,7 @@ export class NoSandbox<HookT> implements Sandbox<HookT> {
   }
 
   init(): Promise<void> {
+    // Nothing to do
     return Promise.resolve();
   }
 
@@ -98,9 +109,8 @@ export class NoSandbox<HookT> implements Sandbox<HookT> {
   }
 }
 
-// Matches the createSandbox signature wrapping a PlugExport
-export function noSandboxFactory(
+export function createSandbox<HookT>(
   plugExport: PlugExport,
-): (plug: Plug<any>) => Sandbox<any> {
+): SandboxFactory<HookT> {
   return (plug: Plug<any>) => new NoSandbox(plug, plugExport);
 }

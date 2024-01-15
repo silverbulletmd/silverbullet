@@ -15,7 +15,7 @@ export function dataStoreProxySyscalls(client: Client): SysCallMapping {
   ]);
   // Add a cache for datastore.query
   const queryCache = new LimitedMap<any>(5);
-  syscalls["datastore.query"] = async (query: KvQuery) => {
+  syscalls["datastore.query"] = async (ctx, query: KvQuery) => {
     let cacheKey: string | undefined;
     const cacheSecs = query.cacheSecs;
     // Should we do caching?
@@ -31,6 +31,7 @@ export function dataStoreProxySyscalls(client: Client): SysCallMapping {
     }
 
     const result = await proxySyscall(
+      ctx,
       client.httpSpacePrimitives,
       "datastore.query",
       [

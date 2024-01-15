@@ -10,13 +10,15 @@ Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
   await system.load(
     "editor",
-    createSandbox,
-    new URL("../../dist_plug_bundle/_plug/editor.plug.js", import.meta.url),
+    createSandbox(
+      new URL("../../dist_plug_bundle/_plug/editor.plug.js", import.meta.url),
+    ),
   );
   await system.load(
     "tasks",
-    createSandbox,
-    new URL("../../dist_plug_bundle/_plug/tasks.plug.js", import.meta.url),
+    createSandbox(
+      new URL("../../dist_plug_bundle/_plug/tasks.plug.js", import.meta.url),
+    ),
   );
   const lang = buildMarkdown(loadMarkdownExtensions(system));
   const testFile = Deno.readTextFileSync(

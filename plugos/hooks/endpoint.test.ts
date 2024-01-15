@@ -16,7 +16,7 @@ Deno.test("Run a plugos endpoint server", async () => {
     tempDir,
   );
 
-  await system.load("test", createSandbox, new URL(`file://${workerPath}`));
+  await system.load("test", createSandbox(new URL(`file://${workerPath}`)));
 
   const app = new Hono();
   const port = 3123;
