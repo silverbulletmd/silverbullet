@@ -46,11 +46,12 @@ import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primi
 import {
   EncryptedSpacePrimitives,
 } from "../common/spaces/encrypted_space_primitives.ts";
-import { LimitedMap } from "../common/limited_map.ts";
+
 import {
   ensureSpaceIndex,
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
+import { LimitedMap } from "$sb/lib/limited_map.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -135,7 +136,7 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives, true);
+    this.stateDataStore = new DataStore(stateKvPrimitives);
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);

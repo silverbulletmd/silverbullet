@@ -1,5 +1,6 @@
 import { KV, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { ttlCache } from "$sb/lib/memory_cache.ts";
 
 export function indexObjects<T>(
   page: string,
@@ -21,8 +22,13 @@ export function query(
 export function queryObjects<T>(
   tag: string,
   query: ObjectQuery,
+  ttlSecs?: number,
 ): Promise<ObjectValue<T>[]> {
-  return invokeFunction("index.queryObjects", tag, query);
+  return ttlCache(
+    query,
+    () => invokeFunction("index.queryObjects", tag, query),
+    ttlSecs, // no-op when undefined
+  );
 }
 
 export function getObjectByRef<T>(

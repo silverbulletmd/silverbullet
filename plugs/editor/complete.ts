@@ -18,9 +18,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       completeEvent.linePrefix,
     );
   const tagToQuery = isInTemplateContext ? "template" : "page";
-  let allPages: PageMeta[] = await queryObjects<PageMeta>(tagToQuery, {
-    cacheSecs: 5,
-  });
+  let allPages: PageMeta[] = await queryObjects<PageMeta>(tagToQuery, {}, 5);
   const prefix = match[1];
   if (prefix.startsWith("!")) {
     // Federation prefix, let's first see if we're matching anything from federation that is locally synced

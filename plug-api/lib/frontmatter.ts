@@ -7,6 +7,7 @@ import {
   replaceNodesMatchingAsync,
   traverseTreeAsync,
 } from "$sb/lib/tree.ts";
+import { expandPropertyNames } from "$sb/lib/json.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
@@ -116,6 +117,8 @@ export async function extractFrontmatter(
   data.tags = [...new Set([...tags.map((t) => t.replace(/^#/, ""))])];
 
   // console.log("Extracted tags", data.tags);
+  // Expand property names (e.g. "foo.bar" => { foo: { bar: true } })
+  data = expandPropertyNames(data);
 
   return data;
 }

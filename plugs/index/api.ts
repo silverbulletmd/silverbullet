@@ -3,6 +3,7 @@ import { KV, KvKey, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { builtins } from "./builtins.ts";
 import { AttributeObject, determineType } from "./attributes.ts";
+import { ttlCache } from "$sb/lib/memory_cache.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -159,15 +160,18 @@ function cleanKey(ref: string, page: string) {
   }
 }
 
-export async function queryObjects<T>(
+export function queryObjects<T>(
   tag: string,
   query: ObjectQuery,
+  ttlSecs?: number,
 ): Promise<ObjectValue<T>[]> {
-  return (await datastore.query({
-    ...query,
-    prefix: [indexKey, tag],
-    distinct: true,
-  })).map(({ value }) => value);
+  return ttlCache(query, async () => {
+    return (await datastore.query({
+      ...query,
+      prefix: [indexKey, tag],
+      distinct: true,
+    })).map(({ value }) => value);
+  }, ttlSecs);
 }
 
 export async function query(

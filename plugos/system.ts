@@ -92,7 +92,9 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
       // Only when running in a plug context do we check permissions
       const plug = this.loadedPlugs.get(ctx.plug!);
       if (!plug) {
-        throw new Error(`Plug ${ctx.plug} not found`);
+        throw new Error(
+          `Plug ${ctx.plug} not found while attempting to invoke ${name}}`,
+        );
       }
       for (const permission of syscall.requiredPermissions) {
         if (!plug.grantedPermissions.includes(permission)) {

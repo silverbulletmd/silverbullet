@@ -73,8 +73,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     filter: ["=", ["attr", "parent"], ["string", parent]],
     select: [{ name: "name" }],
     distinct: true,
-    cacheSecs: 5,
-  });
+  }, 5);
 
   if (parent === "page") {
     // Also add template, even though that would otherwise not appear because has "builtin" as a parent

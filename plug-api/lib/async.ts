@@ -48,18 +48,7 @@ export class PromiseQueue {
     });
   }
 
-  /**
-   * Queue a promise, but don't run it until explicitly requested via process()
-   * @param fn
-   * @returns
-   */
-  queueOnly(fn: () => Promise<any>): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ fn, resolve, reject });
-    });
-  }
-
-  async process(): Promise<void> {
+  private async process(): Promise<void> {
     if (this.queue.length === 0) {
       this.processing = false;
       return;

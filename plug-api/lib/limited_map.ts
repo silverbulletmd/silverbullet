@@ -1,4 +1,8 @@
-type LimitedMapRecord<V> = { value: V; la: number };
+type LimitedMapRecord<V> = {
+  value: V;
+  la: number;
+  expTimer?: number;
+};
 
 export class LimitedMap<V> {
   private map: Map<string, LimitedMapRecord<V>>;
@@ -16,8 +20,13 @@ export class LimitedMap<V> {
    * @param ttl time to live (in ms)
    */
   set(key: string, value: V, ttl?: number) {
+    const entry: LimitedMapRecord<V> = { value, la: Date.now() };
     if (ttl) {
-      setTimeout(() => {
+      const existingEntry = this.map.get(key);
+      if (existingEntry?.expTimer) {
+        clearTimeout(existingEntry.expTimer);
+      }
+      entry.expTimer = setTimeout(() => {
         this.map.delete(key);
       }, ttl);
     }
@@ -26,7 +35,7 @@ export class LimitedMap<V> {
       const oldestKey = this.getOldestKey();
       this.map.delete(oldestKey!);
     }
-    this.map.set(key, { value, la: Date.now() });
+    this.map.set(key, entry);
   }
 
   get(key: string): V | undefined {
