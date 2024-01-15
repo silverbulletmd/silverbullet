@@ -132,7 +132,7 @@ export class MarkdownWidget extends WidgetType {
       buttons.filter((button) => !button.widgetTarget).map((button, idx) =>
         `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
       ).join("")
-    }</div>${html}`;
+    }</div><div class="content">${html}</div>`;
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {

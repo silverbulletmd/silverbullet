@@ -1,4 +1,3 @@
-import { shell } from "$sb/syscalls.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { ShellResponse } from "../../server/rpc.ts";
 import { ShellBackend } from "../shell_backend.ts";

@@ -3,7 +3,6 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
-import { noSandboxFactory, PlugExport } from "./sandboxes/no_sandbox.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -16,11 +15,12 @@ export type SystemEvents<HookT> = {
 
 // Passed to every syscall, allows to pass in additional context that the syscall may use
 export type SyscallContext = {
-  plug: Plug<any>;
+  // This is the plug that is invoking the syscall,
+  // which may be undefined where this cannot be determined (e.g. when running in a NoSandbox)
+  plug?: string;
 };
 
 type SyscallSignature = (
-  ctx: SyscallContext,
   ...args: any[]
 ) => Promise<any> | any;
 
@@ -75,7 +75,11 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
   }
 
-  syscallWithContext(
+  localSyscall(name: string, args: any): Promise<any> {
+    return this.syscall({}, name, args);
+  }
+
+  syscall(
     ctx: SyscallContext,
     name: string,
     args: any[],
@@ -84,36 +88,29 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     if (!syscall) {
       throw Error(`Unregistered syscall ${name}`);
     }
-    for (const permission of syscall.requiredPermissions) {
-      if (!ctx.plug) {
-        throw Error(`Syscall ${name} requires permission and no plug is set`);
+    if (ctx.plug) {
+      // Only when running in a plug context do we check permissions
+      const plug = this.loadedPlugs.get(ctx.plug!);
+      if (!plug) {
+        throw new Error(
+          `Plug ${ctx.plug} not found while attempting to invoke ${name}}`,
+        );
       }
-      if (!ctx.plug.grantedPermissions.includes(permission)) {
-        throw Error(`Missing permission '${permission}' for syscall ${name}`);
+      for (const permission of syscall.requiredPermissions) {
+        if (!plug.grantedPermissions.includes(permission)) {
+          throw Error(`Missing permission '${permission}' for syscall ${name}`);
+        }
       }
     }
     return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
-  localSyscall(
-    contextPlugName: string,
-    syscallName: string,
-    args: any[],
-  ): Promise<any> {
-    return this.syscallWithContext(
-      { plug: this.plugs.get(contextPlugName)! },
-      syscallName,
-      args,
-    );
-  }
-
   async load(
-    workerUrl: URL,
     name: string,
-    hash: number,
     sandboxFactory: SandboxFactory<HookT>,
+    hash = -1,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, workerUrl, name, hash, sandboxFactory);
+    const plug = new Plug(this, name, hash, sandboxFactory);
 
     // Wait for worker to boot, and pass back its manifest
     await plug.ready;
@@ -133,44 +130,6 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
       this.unload(manifest.name);
     }
     console.log("Activated plug", manifest.name);
-    this.plugs.set(manifest.name, plug);
-
-    await this.emit("plugLoaded", plug);
-    return plug;
-  }
-
-  /**
-   * Loads a plug without a sandbox, which means it will run in the same context as the caller
-   * @param name
-   * @param plugExport extracted via e.g. `import { plug } from "./some.plug.js`
-   * @returns Plug instance
-   */
-  async loadNoSandbox(
-    name: string,
-    plugExport: PlugExport<HookT>,
-  ): Promise<Plug<HookT>> {
-    const plug = new Plug(
-      this,
-      undefined,
-      name,
-      -1,
-      noSandboxFactory(plugExport),
-    );
-
-    const manifest = plugExport.manifest;
-
-    // Validate the manifest
-    let errors: string[] = [];
-    for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
-    }
-    if (errors.length > 0) {
-      throw new Error(`Invalid manifest: ${errors.join(", ")}`);
-    }
-    if (this.plugs.has(manifest.name)) {
-      this.unload(manifest.name);
-    }
-    console.log("Activated plug without sandbox", manifest.name);
     this.plugs.set(manifest.name, plug);
 
     await this.emit("plugLoaded", plug);

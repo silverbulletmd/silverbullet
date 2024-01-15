@@ -16,9 +16,7 @@ export function languageSyscalls(): SysCallMapping {
       }
       return parse(lang, code);
     },
-    "language.listLanguages": (
-      _ctx,
-    ): string[] => {
+    "language.listLanguages": (): string[] => {
       return Object.keys(builtinLanguages);
     },
   };

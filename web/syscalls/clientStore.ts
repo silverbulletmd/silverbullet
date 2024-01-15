@@ -7,14 +7,14 @@ export function clientStoreSyscalls(
   prefix: KvKey = ["client"],
 ): SysCallMapping {
   return {
-    "clientStore.get": (ctx, key: string): Promise<any> => {
-      return ds.get([...prefix, ctx.plug!.name!, key]);
+    "clientStore.get": (_ctx, key: string): Promise<any> => {
+      return ds.get([...prefix, key]);
     },
-    "clientStore.set": (ctx, key: string, val: any): Promise<void> => {
-      return ds.set([...prefix, ctx.plug!.name!, key], val);
+    "clientStore.set": (_ctx, key: string, val: any): Promise<void> => {
+      return ds.set([...prefix, key], val);
     },
-    "clientStore.delete": (ctx, key: string): Promise<void> => {
-      return ds.delete([...prefix, ctx.plug!.name!, key]);
+    "clientStore.delete": (_ctx, key: string): Promise<void> => {
+      return ds.delete([...prefix, key]);
     },
   };
 }

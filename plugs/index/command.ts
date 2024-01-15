@@ -6,7 +6,7 @@ import { isTemplate } from "$sb/lib/cheap_yaml.ts";
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");
-  await system.invokeFunction("reindexSpace");
+  await system.invokeFunction("index.reindexSpace");
   await editor.flashNotification("Done with page index!");
 }
 

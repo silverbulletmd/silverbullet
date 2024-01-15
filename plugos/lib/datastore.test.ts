@@ -7,7 +7,7 @@ import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
 import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 
 async function test(db: KvPrimitives) {
-  const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), false, {
+  const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), {
     count: (arr: any[]) => arr.length,
   });
   await datastore.set(["user", "peter"], { name: "Peter" });

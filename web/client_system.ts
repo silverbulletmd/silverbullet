@@ -133,10 +133,9 @@ export class ClientSystem {
           console.log("Plug updated, reloading", plugName, "from", path);
           this.system.unload(path);
           const plug = await this.system.load(
-            new URL(`/${path}`, location.href),
             plugName,
+            createSandbox(new URL(`/${path}`, location.href)),
             newHash,
-            createSandbox,
           );
           if ((plug.manifest! as Manifest).syntax) {
             // If there are syntax extensions, rebuild the markdown parser immediately
@@ -201,10 +200,9 @@ export class ClientSystem {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
-          new URL(plugMeta.name, location.origin),
           plugName,
+          createSandbox(new URL(plugMeta.name, location.origin)),
           plugMeta.lastModified,
-          createSandbox,
         );
       } catch (e: any) {
         console.error(
@@ -228,14 +226,13 @@ export class ClientSystem {
   }
 
   localSyscall(name: string, args: any[]) {
-    return this.system.localSyscall("editor", name, args);
+    return this.system.localSyscall(name, args);
   }
 
   queryObjects<T>(tag: string, query: Query): Promise<T[]> {
-    return this.system.localSyscall(
-      "index",
+    return this.localSyscall(
       "system.invokeFunction",
-      ["queryObjects", tag, query],
+      ["index.queryObjects", tag, query],
     );
   }
 }

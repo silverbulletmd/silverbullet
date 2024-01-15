@@ -52,8 +52,7 @@ export async function objectAttributeCompleter(
     select: [{ name: "name" }, { name: "attributeType" }, { name: "tag" }, {
       name: "readOnly",
     }],
-    cacheSecs: 5,
-  });
+  }, 5);
   return allAttributes.map((value) => {
     return {
       name: value.name,

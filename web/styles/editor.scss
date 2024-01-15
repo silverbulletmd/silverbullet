@@ -428,12 +428,12 @@
     margin-top: 10px;
   }
 
-  .sb-markdown-top-widget:has(*) {
+  .sb-markdown-top-widget:has(*) .content {
     max-height: 500px;
   }
 
   @media screen and (max-height: 1000px) {
-    .sb-markdown-top-widget:has(*) {
+    .sb-markdown-top-widget:has(*) .content {
       max-height: 300px;
     }
   }
@@ -441,12 +441,15 @@
   .sb-markdown-widget,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
-    overflow-y: auto;
     border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     white-space: normal;
     position: relative;
     min-height: 48px;
+
+    .content {
+      overflow-y: auto;
+    }
 
     ul,
     ol {

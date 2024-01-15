@@ -4,9 +4,6 @@ import { safeRun } from "../common/util.ts";
 
 import { AttachmentMeta, FileMeta, PageMeta } from "$sb/types.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { throttle } from "$sb/lib/async.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
-import { LimitedMap } from "../common/limited_map.ts";
 
 const pageWatchInterval = 5000;
 

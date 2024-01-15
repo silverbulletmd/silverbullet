@@ -344,6 +344,16 @@ export class HttpServer {
       }),
     );
 
+    // For when the day comes...
+    // this.app.use("*", async (c, next) => {
+    //   // if (["POST", "PUT", "DELETE"].includes(c.req.method)) {
+    //   const spaceServer = await this.ensureSpaceServer(c.req);
+    //   return runWithSystemLock(spaceServer.system!, async () => {
+    //     await next();
+    //   });
+    //   // }
+    // });
+
     // File list
     this.app.get(
       "/index.json",
@@ -382,10 +392,10 @@ export class HttpServer {
     });
 
     // RPC syscall
-    this.app.post("/.rpc/:plug/:syscall", async (c) => {
+    this.app.post("/.rpc/:plugName/:syscall", async (c) => {
       const req = c.req;
-      const plugName = req.param("plug")!;
       const syscall = req.param("syscall")!;
+      const plugName = req.param("plugName")!;
       const spaceServer = await this.ensureSpaceServer(req);
       const body = await req.json();
       try {
@@ -394,11 +404,11 @@ export class HttpServer {
         }
         const args: string[] = body;
         try {
-          const plug = spaceServer.system!.loadedPlugs.get(plugName);
-          if (!plug) {
-            throw new Error(`Plug ${plugName} not found`);
-          }
-          const result = await plug.syscall(syscall, args);
+          const result = await spaceServer.system!.syscall(
+            { plug: plugName },
+            syscall,
+            args,
+          );
           return c.json({
             result: result,
           });

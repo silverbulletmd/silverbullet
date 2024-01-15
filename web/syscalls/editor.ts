@@ -220,10 +220,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     ): Promise<string | undefined> => {
       return editor.prompt(message, defaultValue);
     },
-    "editor.confirm": (
-      _ctx,
-      message: string,
-    ): Promise<boolean> => {
+    "editor.confirm": (_ctx, message: string): Promise<boolean> => {
       return editor.confirm(message);
     },
     "editor.getUiOption": (_ctx, key: string): any => {

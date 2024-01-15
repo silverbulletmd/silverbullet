@@ -1,6 +1,5 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { fullQueueName } from "../lib/mq_util.ts";
 import { MQMessage } from "$sb/types.ts";
 import { MessageQueue } from "../lib/mq.ts";
 import { throttle } from "$sb/lib/async.ts";
@@ -61,7 +60,7 @@ export class MQHook implements Hook<MQHookT> {
         }
         const subscriptions = functionDef.mqSubscriptions;
         for (const subscriptionDef of subscriptions) {
-          const queue = fullQueueName(plug.name!, subscriptionDef.queue);
+          const queue = subscriptionDef.queue;
           // console.log("Subscribing to queue", queue);
           this.subscriptions.push(
             this.mq.subscribe(

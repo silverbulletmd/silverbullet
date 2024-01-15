@@ -35,6 +35,20 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
 
+// // Important: load this before the actual plugs
+// import {
+//   createSandbox as noSandboxFactory,
+//   runWithSystemLock,
+// } from "../plugos/sandboxes/no_sandbox.ts";
+
+// // Load list of builtin plugs
+// import { plug as plugIndex } from "../dist_plug_bundle/_plug/index.plug.js";
+// import { plug as plugFederation } from "../dist_plug_bundle/_plug/federation.plug.js";
+// import { plug as plugQuery } from "../dist_plug_bundle/_plug/query.plug.js";
+// import { plug as plugSearch } from "../dist_plug_bundle/_plug/search.plug.js";
+// import { plug as plugTasks } from "../dist_plug_bundle/_plug/tasks.plug.js";
+// import { plug as plugTemplate } from "../dist_plug_bundle/_plug/template.plug.js";
+
 const fileListInterval = 30 * 1000; // 30s
 
 const plugNameExtractRegex = /([^/]+)\.plug\.js$/;
@@ -138,28 +152,29 @@ export class ServerSystem {
     );
 
     this.listInterval = setInterval(() => {
+      // runWithSystemLock(this.system, async () => {
+      //   await space.updatePageList();
+      // });
       space.updatePageList().catch(console.error);
     }, fileListInterval);
 
-    eventHook.addLocalListener("file:changed", (path, localChange) => {
-      (async () => {
-        if (!localChange && path.endsWith(".md")) {
-          const pageName = path.slice(0, -3);
-          const data = await this.spacePrimitives.readFile(path);
-          console.log("Outside page change: reindexing", pageName);
-          // Change made outside of editor, trigger reindex
-          await eventHook.dispatchEvent("page:index_text", {
-            name: pageName,
-            text: new TextDecoder().decode(data.data),
-          });
-        }
+    eventHook.addLocalListener("file:changed", async (path, localChange) => {
+      if (!localChange && path.endsWith(".md")) {
+        const pageName = path.slice(0, -3);
+        const data = await this.spacePrimitives.readFile(path);
+        console.log("Outside page change: reindexing", pageName);
+        // Change made outside of editor, trigger reindex
+        await eventHook.dispatchEvent("page:index_text", {
+          name: pageName,
+          text: new TextDecoder().decode(data.data),
+        });
+      }
 
-        if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
-          console.log("Plug updated, reloading:", path);
-          this.system.unload(path);
-          await this.loadPlugFromSpace(path);
-        }
-      })().catch(console.error);
+      if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
+        console.log("Plug updated, reloading:", path);
+        this.system.unload(path);
+        await this.loadPlugFromSpace(path);
+      }
     });
 
     // Ensure a valid index
@@ -168,10 +183,19 @@ export class ServerSystem {
       await indexPromise;
     }
 
+    // await runWithSystemLock(this.system, async () => {
     await eventHook.dispatchEvent("system:ready");
+    // });
   }
 
   async loadPlugs() {
+    // await this.system.load("index", noSandboxFactory(plugIndex));
+    // await this.system.load("federation", noSandboxFactory(plugFederation));
+    // await this.system.load("query", noSandboxFactory(plugQuery));
+    // await this.system.load("search", noSandboxFactory(plugSearch));
+    // await this.system.load("tasks", noSandboxFactory(plugTasks));
+    // await this.system.load("template", noSandboxFactory(plugTemplate));
+
     for (const { name } of await this.spacePrimitives.fetchFileList()) {
       if (plugNameExtractRegex.test(name)) {
         await this.loadPlugFromSpace(name);
@@ -183,11 +207,12 @@ export class ServerSystem {
     const { meta, data } = await this.spacePrimitives.readFile(path);
     const plugName = path.match(plugNameExtractRegex)![1];
     return this.system.load(
-      // Base64 encoding this to support `deno compile` mode
-      new URL(base64EncodedDataUrl("application/javascript", data)),
       plugName,
+      createSandbox(
+        // Base64 encoding this to support `deno compile` mode
+        new URL(base64EncodedDataUrl("application/javascript", data)),
+      ),
       meta.lastModified,
-      createSandbox,
     );
   }
 
