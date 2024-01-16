@@ -25,22 +25,40 @@ To reference a template, use the [[Federation]] syntax, e.g. `[[!silverbullet.md
 Use these [[Page Templates]] with the {[Page: From Template]} command.
 
 ```query
-template where type = "page" render [[template/documented-template]]
+template where hooks.pageTemplate render [[template/documented-template]]
 ```
 
 # Slash Templates
 These can be used as [[Slash Templates]]:
 
 ```query
-template where type = "slash" render [[template/documented-template]]
+template where hooks.slashTemplate render [[template/documented-template]]
 ```
 
-# Live Templates
-Use these as `page` in [[Live Templates]].
+# Blocks
+## Top Blocks
+```query
+template
+where hooks.topBlock
+order by order
+render [[template/documented-template]]
+```
+
+## Bottom Blocks
+```query
+template
+where hooks.bottomBlock
+order by order
+render [[template/documented-template]]
+```
+
+
+## Inline
+Use these as `page` in [[Live Templates]] to render useful things in your pages:
 
 ```query
 template
-where type = "live"
+where name =~ /^template\/block/ and hooks.topBlock = null and hooks.bottomBlock = null
 order by order
 render [[template/documented-template]]
 ```
@@ -50,17 +68,7 @@ Use these in your `render` clauses in [[Live Queries]].
 
 ```query
 template
-where type = "query"
-order by order
-render [[template/documented-template]]
-```
-
-# Live Widget Templates
-Use these to add various useful [[Live Template Widgets]] to your pages.
-
-```query
-template
-where type =~ /^widget:/ and name =~ /^template\//
+where name =~ /^template\/query/
 order by order
 render [[template/documented-template]]
 ```

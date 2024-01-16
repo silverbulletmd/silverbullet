@@ -40,6 +40,15 @@ export function handlebarHelpers() {
       nextWeek.setDate(nextWeek.getDate() + 7);
       return niceDate(nextWeek);
     },
+    weekStart: (startOnMonday = true) => {
+      const d = new Date();
+      const day = d.getDay();
+      let diff = d.getDate() - day;
+      if (startOnMonday) {
+        diff += day == 0 ? -6 : 1;
+      }
+      return niceDate(new Date(d.setDate(diff)));
+    },
     ifEq: function (v1: any, v2: any, options: any) {
       if (v1 === v2) {
         return options.fn(this);

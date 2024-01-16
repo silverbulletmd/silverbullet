@@ -1,11 +1,13 @@
 ---
-tags: template
-type: page
 displayName: Page Template
-pageName: "template/page/"
 description: Define a new Page Template
+tags: template
+hooks.pageTemplate:
+  suggestedName: "template/page/"
+  confirm: true
 frontmatter:
   tags: template
   displayName: "|^|"
-  type: page
+  hooks.pageTemplate:
+    suggestedName: "template/page/"
 ---

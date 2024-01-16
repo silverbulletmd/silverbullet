@@ -7,14 +7,6 @@ indexPage: "[[SilverBullet]]"
 # Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
 
-# Template settings
-quickNotePrefix: "📥 "
-dailyNotePrefix: "📅 "
-dailyNoteTemplate: "[[template/page/Daily Note]]"
-weeklyNotePrefix: "🗓️ "
-weeklyNoteTemplate: "[[template/page/Weekly Note]]"
-weeklyNoteMonday: false
-
 # It is possible to override keyboard shortcuts and command priority
 shortcuts:
 - command: "{[Stats: Show]}" # Using the command link syntax here

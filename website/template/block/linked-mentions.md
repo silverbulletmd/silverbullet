@@ -1,8 +1,8 @@
 ---
 description: Adds Linked Mentions to all pages
 tags: template
-type: widget:bottom
-where: 'true'
+hooks.bottomBlock:
+  where: 'true'
 ---
 ```template
 # We need to escape handlebars directives here, since we're embedding

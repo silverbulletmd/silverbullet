@@ -1,5 +1,6 @@
 // Third party web dependencies
 import {
+  Compartment,
   CompletionContext,
   CompletionResult,
   EditorView,
@@ -71,6 +72,8 @@ declare global {
 export class Client {
   system!: ClientSystem;
   editorView!: EditorView;
+  keyHandlerCompartment?: Compartment;
+
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;

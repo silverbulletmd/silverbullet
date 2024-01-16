@@ -1,8 +1,9 @@
 ---
 description: Adds a Table of Contents to all pages
 tags: template
-type: widget:top
-where: 'true'
+hooks.topBlock:
+  where: 'true'
+  priority: 0
 ---
 ```toc
 minHeaders: 3

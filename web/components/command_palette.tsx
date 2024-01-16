@@ -40,7 +40,7 @@ export function CommandPalette({
       });
       if (commandOverride) {
         shortcut = commandOverride;
-        console.log(`Shortcut override for ${name}:`, shortcut);
+        // console.log(`Shortcut override for ${name}:`, shortcut);
       }
     }
     options.push({

@@ -23,15 +23,6 @@ functions:
   updateTaskState:
     path: task.ts:updateTaskState
 
-
-  turnIntoTask:
-    redirect: template.applyLineReplace
-    slashCommand:
-      name: task
-      description: Turn into task
-      match: "^(\\s*)[\\-\\*]?\\s*(\\[[ xX]\\])?\\s*"
-      replace: "$1* [ ] "
-
   indexTasks:
     path: "./task.ts:indexTasks"
     events:

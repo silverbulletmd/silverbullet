@@ -53,10 +53,10 @@ The following query shows all attributes available for tasks:
 upnext
 ```
 
-Although you may want to render it using a template such as [[template/task]] instead:
+Although you may want to render it using a template such as [[template/query/task]] instead:
 
 ```query
-upnext render [[template/task]]
+upnext render [[template/query/task]]
 ```
 
 ## taskstate

@@ -165,8 +165,13 @@ export class MarkdownWidget extends WidgetType {
         el.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.info("Command link clicked in widget, running", command);
-          this.client.runCommandByName(command).catch(console.error);
+          console.info(
+            "Command link clicked in widget, running",
+            parsedOnclick,
+          );
+          this.client.runCommandByName(command, parsedOnclick[2]).catch(
+            console.error,
+          );
         });
       }
     });

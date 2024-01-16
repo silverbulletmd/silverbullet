@@ -1,10 +1,12 @@
 ---
 tags: template
-type: page
 displayName: Slash Template
-pageName: "template/slash/"
+hooks.pageTemplate:
+  suggestedName: "template/slash/"
+  confirm: true
 description: Define a new Slash Template
-frontmatter:
+frontmatter: |
   tags: template
-  trigger: "|^|"
+  hooks.slashTemplate:
+    name: "|^|"
 ---

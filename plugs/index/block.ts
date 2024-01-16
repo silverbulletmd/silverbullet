@@ -9,7 +9,7 @@ import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
 import { CodeWidgetContent } from "$sb/types.ts";
 import { loadPageObject } from "../template/template.ts";
 import { queryObjects } from "./api.ts";
-import { TemplateObject } from "../template/types.ts";
+import { SideBlock, TemplateObject } from "../template/types.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { evalQueryExpression } from "$sb/lib/query.ts";
 import { renderTemplate } from "../template/plug_api.ts";
@@ -24,26 +24,42 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
   CodeWidgetContent | null
 > {
   const text = await editor.getText();
-  const pageMeta = await loadPageObject(await editor.getCurrentPage());
+  let pageMeta = await loadPageObject(await editor.getCurrentPage());
   const parsedMd = await markdown.parseMarkdown(text);
   const frontmatter = await extractFrontmatter(parsedMd);
 
-  const allFrontMatterTemplates = await queryObjects<TemplateObject>(
+  pageMeta = { ...pageMeta, ...frontmatter };
+
+  const blockTemplates = await queryObjects<TemplateObject>(
     "template",
     {
-      // where type = "widget:X" and enabled != false
-      filter: ["and", ["=", ["attr", "type"], ["string", `widget:${side}`]], [
+      // where hooks.topBlock and hooks.topBlock.enabled != false
+      filter: ["and", ["attr", ["attr", "hooks"], `${side}Block`], [
         "!=",
-        ["attr", "enabled"],
+        ["attr", ["attr", ["attr", "hooks"], `${side}Block`], "enabled"],
         ["boolean", false],
       ]],
-      orderBy: [{ expr: ["attr", "priority"], desc: false }],
+      orderBy: [{
+        // order by hooks.topBlock.priority asc
+        expr: ["attr", ["attr", ["attr", "hooks"], `${side}Block`], "priority"],
+        desc: false,
+      }],
     },
   );
+  // console.log(`Found the following ${side} templates`, blockTemplates);
   const templateBits: string[] = [];
   // Strategy: walk through all matching templates, evaluate the 'where' expression, and pick the first one that matches
-  for (const template of allFrontMatterTemplates) {
-    if (!template.where) {
+  for (const template of blockTemplates) {
+    if (!template.hooks) {
+      console.warn(
+        "No hooks specified for template",
+        template.ref,
+        "this should never happen",
+      );
+      continue;
+    }
+    const blockDef: SideBlock = template.hooks[`${side}Block`]!;
+    if (!blockDef.where) {
       console.warn(
         "Skipping template",
         template.ref,
@@ -52,7 +68,7 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       continue;
     }
     const exprAST = parseTreeToAST(
-      await language.parseLanguage("expression", template.where!),
+      await language.parseLanguage("expression", blockDef.where!),
     );
     const parsedExpression = expressionToKvQueryExpression(exprAST[1]);
     if (evalQueryExpression(parsedExpression, pageMeta)) {
@@ -68,11 +84,11 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       rewritePageRefs(parsedMarkdown, template.ref);
       renderedTemplate = renderToText(parsedMarkdown);
 
+      // console.log("Rendering template", template.ref, renderedTemplate);
       templateBits.push(renderedTemplate.trim());
     }
   }
   const summaryText = templateBits.join("\n");
-  // console.log("Rendered", summaryText);
   return {
     markdown: summaryText,
     buttons: [

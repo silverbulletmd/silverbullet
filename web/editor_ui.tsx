@@ -8,6 +8,7 @@ import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
 import {
   BookIcon,
+  Compartment,
   HomeIcon,
   preactRender,
   RefreshCwIcon,

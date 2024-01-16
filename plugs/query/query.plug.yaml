@@ -15,6 +15,12 @@ functions:
     codeWidget: template
     renderMode: markdown
 
+  blockWidget:
+    path: template.ts:widget
+    codeWidget: block
+    renderMode: markdown
+
+
   queryComplete:
     path: complete.ts:queryComplete
     events:

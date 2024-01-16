@@ -1,7 +1,9 @@
 ---
 tags: template
-trigger: "table"
+description: Insert a table
+hooks.slashTemplate:
+  name: "table"
 ---
 | Header A | Header B |
 |----------|----------|
-| |^| | Cell B |
+| Cell A|^| | Cell B |

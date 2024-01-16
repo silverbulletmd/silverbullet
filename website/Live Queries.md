@@ -8,7 +8,7 @@ order by lastModified desc
 where size > 100
 select name
 limit 10
-render [[template/page]]
+render [[template/query/page]]
 ```
 It’s most convenient to use `/query` [[Slash Commands]] to insert a query in a page.
 

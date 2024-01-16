@@ -71,7 +71,12 @@ export {
   Text,
   Transaction,
 } from "@codemirror/state";
-export type { ChangeSpec, Extension, StateCommand } from "@codemirror/state";
+export type {
+  ChangeSpec,
+  Compartment,
+  Extension,
+  StateCommand,
+} from "@codemirror/state";
 export {
   codeFolding,
   defaultHighlightStyle,

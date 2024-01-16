@@ -1,6 +1,5 @@
 ---
 tags: template
-type: live
 description: Lists all pages with ".conflicted" in the name, created as a result of a synchronization conflict.
 ---
 

@@ -131,9 +131,12 @@ export function attachmentExtension(editor: Client) {
         if (currentNode) {
           const fencedParentNode = findParentMatching(
             currentNode,
-            (t) => t.type === "FencedCode",
+            (t) => ["FrontMatter", "FencedCode"].includes(t.type!),
           );
-          if (fencedParentNode || currentNode.type === "FencedCode") {
+          if (
+            fencedParentNode ||
+            ["FrontMatter", "FencedCode"].includes(currentNode.type!)
+          ) {
             console.log("Inside of fenced code block, not pasting rich text");
             return false;
           }
