@@ -345,25 +345,6 @@ export function createKeyBindings(client: Client): Extension {
     ...completionKeymap,
     indentWithTab,
     {
-      key: "Ctrl-k",
-      mac: "Cmd-k",
-      run: (): boolean => {
-        client.startPageNavigate();
-        return true;
-      },
-    },
-    {
-      key: "Ctrl-/",
-      mac: "Cmd-/",
-      run: (): boolean => {
-        client.ui.viewDispatch({
-          type: "show-palette",
-          context: client.getContext(),
-        });
-        return true;
-      },
-    },
-    {
       key: "Ctrl-.",
       mac: "Cmd-.",
       run: (): boolean => {

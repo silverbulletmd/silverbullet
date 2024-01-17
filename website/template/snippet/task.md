@@ -1,7 +1,7 @@
 ---
 tags: template
 description: Turn the current line into a task
-hooks.slashTemplate:
+hooks.snippetTemplate:
   name: "task"
   match: "^(\\s*)[\\-\\*]?\\s*(\\[[ xX]\\])?\\s*"
 ---

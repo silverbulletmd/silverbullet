@@ -2,7 +2,7 @@ import type { LintEvent } from "$sb/app_event.ts";
 import { events, space } from "$sb/syscalls.ts";
 import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
-import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
+import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
 import {
   CodeWidgetContent,

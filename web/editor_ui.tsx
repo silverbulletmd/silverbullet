@@ -45,7 +45,7 @@ export class MainUI {
       if (ev.touches.length === 2) {
         ev.stopPropagation();
         ev.preventDefault();
-        client.startPageNavigate();
+        client.startPageNavigate("page");
       }
       // Launch the command palette using a three-finger tap
       if (ev.touches.length === 3) {
@@ -100,6 +100,7 @@ export class MainUI {
           <PageNavigator
             allPages={viewState.allPages}
             currentPage={client.currentPage}
+            mode={viewState.pageNavigatorMode}
             completer={client.miniEditorComplete.bind(client)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
@@ -252,7 +253,7 @@ export class MainUI {
               icon: BookIcon,
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
-                client.startPageNavigate();
+                client.startPageNavigate("page");
               },
             },
             {

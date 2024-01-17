@@ -3,35 +3,34 @@ functions:
   # API
   renderTemplate:
     path: api.ts:renderTemplate
+
   cleanTemplate:
     path: api.ts:cleanTemplate
 
-  # Used by various slash commands
-  insertTemplateText:
-    path: template.ts:insertTemplateText
-
+  # Indexing
   indexTemplate:
-    path: ./index.ts:indexTemplate
+    path: index.ts:indexTemplate
     events:
     # Special event only triggered for template pages
     - page:indexTemplate
 
   # Completion
   templateSlashCommand:
-    path: ./slash.ts:templateSlashComplete
+    path: snippet.ts:snippetSlashComplete
     events:
     - slash:complete
 
-  insertSlashTemplate:
-    path: ./slash.ts:insertSlashTemplate
+  insertSnippetTemplate:
+    path: snippet.ts:insertSnippetTemplate
 
   handlebarHelperComplete:
-    path: ./var.ts:templateVariableComplete
+    path: var.ts:templateVariableComplete
     events:
       - editor:complete
 
+  # Commands
   newPageCommand:
-    path: ./template.ts:newPageCommand
+    path: page.ts:newPageCommand
     command:
       name: "Page: From Template"
       key: "Alt-Shift-t"

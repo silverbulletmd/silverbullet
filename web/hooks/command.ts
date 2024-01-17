@@ -74,12 +74,12 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
     }
 
     // Query all page templates that have a command configured
-    const pageTemplateCommands: ObjectValue<TemplateFrontmatter>[] =
-      await indexPlug.invoke(
+    const templateCommands: ObjectValue<TemplateFrontmatter>[] = await indexPlug
+      .invoke(
         "queryObjects",
         ["template", {
-          // where hooks.pageTemplate.command.name and hooks.pageTemplate.enabled != false
-          filter: ["and", ["attr", [
+          // where (hooks.pageTemplate.command and hooks.pageTemplate.enabled != false) or (hooks.snippetTemplate.command and hooks.snippetTemplate.enabled != false)
+          filter: ["or", ["and", ["attr", [
             "attr",
             ["attr", ["attr", "hooks"], "pageTemplate"],
             "command",
@@ -87,19 +87,41 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
             "attr",
             ["attr", ["attr", "hooks"], "pageTemplate"],
             "enabled",
-          ], ["boolean", false]]],
+          ], ["boolean", false]]], ["and", ["attr", [
+            "attr",
+            ["attr", ["attr", "hooks"], "snippetTemplate"],
+            "command",
+          ], "name"], ["!=", [
+            "attr",
+            ["attr", ["attr", "hooks"], "snippetTemplate"],
+            "enabled",
+          ], ["boolean", false]]]],
         }],
       );
 
-    for (const page of pageTemplateCommands) {
-      const pageTemplate = page.hooks!.pageTemplate!;
-      const cmdDef = pageTemplate.command!;
-      this.editorCommands.set(pageTemplate.command!.name!, {
-        command: cmdDef as any,
-        run: () => {
-          return templatePlug.invoke("newPageCommand", [cmdDef, page.ref]);
-        },
-      });
+    for (const page of templateCommands) {
+      if (page.hooks!.pageTemplate) {
+        const pageTemplate = page.hooks!.pageTemplate;
+        const cmdDef = pageTemplate.command!;
+        this.editorCommands.set(pageTemplate.command!.name!, {
+          command: cmdDef as any,
+          run: () => {
+            return templatePlug.invoke("newPageCommand", [cmdDef, page.ref]);
+          },
+        });
+      }
+      if (page.hooks!.snippetTemplate) {
+        const snippetTemplate = page.hooks!.snippetTemplate;
+        const cmdDef = snippetTemplate.command!;
+        this.editorCommands.set(snippetTemplate.command!.name!, {
+          command: cmdDef as any,
+          run: () => {
+            return templatePlug.invoke("insertSnippetTemplate", [
+              { templatePage: page.ref },
+            ]);
+          },
+        });
+      }
     }
 
     // console.log("Page template commands", pageTemplateCommands);

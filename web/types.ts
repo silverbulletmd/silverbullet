@@ -63,6 +63,9 @@ export type AppViewState = {
     forcedROMode: boolean;
   };
 
+  // Page navigator mode
+  pageNavigatorMode: "page" | "template";
+
   // Filter box
   showFilterBox: boolean;
   filterBoxLabel: string;
@@ -87,6 +90,7 @@ export const initialViewState: AppViewState = {
   isLoading: false,
   showPageNavigator: false,
   showCommandPalette: false,
+  pageNavigatorMode: "page",
   unsavedChanges: false,
   syncFailures: 0,
   uiOptions: {
@@ -122,7 +126,7 @@ export type Action =
   | { type: "page-saved" }
   | { type: "sync-change"; syncSuccess: boolean }
   | { type: "update-page-list"; allPages: PageMeta[] }
-  | { type: "start-navigate" }
+  | { type: "start-navigate"; mode: "page" | "template" }
   | { type: "stop-navigate" }
   | {
     type: "update-commands";

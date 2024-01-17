@@ -32,7 +32,7 @@ template where hooks.pageTemplate render [[template/documented-template]]
 These can be used as [[Slash Templates]]:
 
 ```query
-template where hooks.slashTemplate render [[template/documented-template]]
+template where hooks.snippetTemplate render [[template/documented-template]]
 ```
 
 # Blocks

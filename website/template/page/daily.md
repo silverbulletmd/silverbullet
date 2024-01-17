@@ -7,7 +7,7 @@ hooks.pageTemplate:
   confirm: false
   openIfExists: true
   command:
-    name: "Open Daily Note 2"
+    name: "Open Daily Note"
     key: "Alt-Shift-d"
 ---
 * |^|

@@ -3,19 +3,19 @@ import { editor, markdown, space } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { TemplateObject } from "./types.ts";
-import { loadPageObject } from "./template.ts";
+import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
 import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
-import { SlashTemplate } from "./types.ts";
+import { SnippetTemplate } from "./types.ts";
 
-export async function templateSlashComplete(
+export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
 ): Promise<SlashCompletion[]> {
   const allTemplates = await queryObjects<TemplateObject>("template", {
     // Only return templates that have a trigger and are not expliclty disabled
-    filter: ["and", ["attr", ["attr", "hooks"], "slashTemplate"], ["!=", [
+    filter: ["and", ["attr", ["attr", "hooks"], "snippetTemplate"], ["!=", [
       "attr",
-      ["attr", ["attr", "hooks"], "slashTemplate"],
+      ["attr", ["attr", "hooks"], "snippetTemplate"],
       "enabled",
     ], [
       "boolean",
@@ -23,25 +23,25 @@ export async function templateSlashComplete(
     ]]],
   }, 5);
   return allTemplates.map((template) => {
-    const slashTemplate = template.hooks!.slashTemplate!;
-    if (!slashTemplate.name) {
+    const snippetTemplate = template.hooks!.snippetTemplate!;
+    if (!snippetTemplate.name) {
       console.error(
-        "Slash template",
+        "Snippet template",
         template.ref,
-        "has no name specified under hooks.slashTemplate",
+        "has no name specified under hooks.snippetTemplate",
       );
     }
     return {
-      label: slashTemplate.name || "ERROR",
+      label: snippetTemplate.name || "ERROR",
       detail: template.description,
       templatePage: template.ref,
       pageName: completeEvent.pageName,
-      invoke: "template.insertSlashTemplate",
+      invoke: "template.insertSnippetTemplate",
     };
   });
 }
 
-export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
+export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
   const pageObject = await loadPageObject(
     slashCompletion.pageName,
   );
@@ -52,7 +52,7 @@ export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
       templateText,
       pageObject,
     );
-  const slashTemplate: SlashTemplate = frontmatter.hooks!.slashTemplate!;
+  const snippetTemplate: SnippetTemplate = frontmatter.hooks!.snippetTemplate!;
 
   let cursorPos = await editor.getCursor();
 
@@ -69,14 +69,47 @@ export async function insertSlashTemplate(slashCompletion: SlashCompletion) {
       dispatch.selection = { anchor: renderedFrontmatter.length + 9 };
     }
     await editor.dispatch(dispatch);
+    // update cursor position
+    cursorPos = await editor.getCursor();
+  }
+
+  if (snippetTemplate.insertAt) {
+    switch (snippetTemplate.insertAt) {
+      case "page-start":
+        await editor.moveCursor(0);
+        break;
+      case "page-end":
+        await editor.moveCursor((await editor.getText()).length);
+        break;
+      case "line-start": {
+        const pageText = await editor.getText();
+        let startOfLine = cursorPos;
+        while (startOfLine > 0 && pageText[startOfLine - 1] !== "\n") {
+          startOfLine--;
+        }
+        await editor.moveCursor(startOfLine);
+        break;
+      }
+      case "line-end": {
+        const pageText = await editor.getText();
+        let endOfLine = cursorPos;
+        while (endOfLine < pageText.length && pageText[endOfLine] !== "\n") {
+          endOfLine++;
+        }
+        await editor.moveCursor(endOfLine);
+        break;
+      }
+      default:
+        // Deliberate no-op
+    }
   }
 
   cursorPos = await editor.getCursor();
 
-  if (slashTemplate.match) {
+  if (snippetTemplate.matchRegex) {
     const pageText = await editor.getText();
     // Regex matching mode
-    const matchRegex = new RegExp(slashTemplate.match);
+    const matchRegex = new RegExp(snippetTemplate.matchRegex);
 
     let startOfLine = cursorPos;
     while (startOfLine > 0 && pageText[startOfLine - 1] !== "\n") {

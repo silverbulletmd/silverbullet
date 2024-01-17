@@ -237,6 +237,17 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       const cm = vimGetCm(editor.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
+    "editor.openPageNavigator": (_ctx, mode: "page" | "template" = "page") => {
+      editor.ui.viewDispatch({
+        type: "start-navigate",
+        mode,
+      });
+    },
+    "editor.openCommandPalette": () => {
+      editor.ui.viewDispatch({
+        type: "show-palette",
+      });
+    },
     // Folding
     "editor.fold": () => {
       foldCode(editor.editorView);

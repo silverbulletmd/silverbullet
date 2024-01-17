@@ -1,5 +1,5 @@
 import { markdown, space, YAML } from "$sb/syscalls.ts";
-import { loadPageObject, replaceTemplateVars } from "../template/template.ts";
+import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { CodeWidgetContent, PageMeta } from "$sb/types.ts";
 import { renderTemplate } from "../template/plug_api.ts";
 import { renderToText } from "$sb/lib/tree.ts";

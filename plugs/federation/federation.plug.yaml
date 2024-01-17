@@ -28,3 +28,9 @@ functions:
     pageNamespace:
       pattern: "!.+"
       operation: getFileMeta
+
+  # Onboarding
+  importTemplateSet:
+    path: ./onboarding.ts:importTemplateSet
+    command:
+      name: "Import Template Set"

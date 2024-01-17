@@ -7,9 +7,9 @@ import {
 } from "$sb/silverbullet-syscall/mod.ts";
 import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
 import { CodeWidgetContent } from "$sb/types.ts";
-import { loadPageObject } from "../template/template.ts";
+import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
-import { SideBlock, TemplateObject } from "../template/types.ts";
+import { BlockTemplate, TemplateObject } from "../template/types.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { evalQueryExpression } from "$sb/lib/query.ts";
 import { renderTemplate } from "../template/plug_api.ts";
@@ -58,7 +58,7 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       );
       continue;
     }
-    const blockDef: SideBlock = template.hooks[`${side}Block`]!;
+    const blockDef: BlockTemplate = template.hooks[`${side}Block`]!;
     if (!blockDef.where) {
       console.warn(
         "Skipping template",

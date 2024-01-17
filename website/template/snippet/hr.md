@@ -1,7 +1,7 @@
 ---
 tags: template
 description: Insert a horizontal rule
-hooks.slashTemplate:
+hooks.snippetTemplate:
   name: "hr"
 ---
 ---

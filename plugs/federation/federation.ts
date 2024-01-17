@@ -117,7 +117,7 @@ export async function cacheFileListing(uri: string): Promise<FileMeta[]> {
 
 export async function readFile(
   name: string,
-): Promise<{ data: Uint8Array; meta: FileMeta } | undefined> {
+): Promise<{ data: Uint8Array; meta: FileMeta }> {
   const url = federatedPathToUrl(name);
   console.log("Fetching federated file", url);
   const r = await nativeFetch(url, {

@@ -1,7 +1,7 @@
 ---
 description: Insert a fenced code block
 tags: template
-hooks.slashTemplate:
+hooks.snippetTemplate:
   name: "code"
 ---
 ```|^|

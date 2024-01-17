@@ -40,23 +40,3 @@ functions:
   # Query widget buttons
   editButton:
     path: widget.ts:editButton
-
-  # Slash commands
-  insertQuery:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: query
-      description: Insert a query
-      value: |
-        ```query
-        |^|
-        ```
-  insertUseTemplate:
-    redirect: template.insertTemplateText
-    slashCommand:
-      name: template
-      description: Use a template
-      value: |
-        ```template
-        page: "[[|^|]]"
-        ```

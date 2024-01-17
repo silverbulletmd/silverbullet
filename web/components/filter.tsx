@@ -47,7 +47,10 @@ export function FilterList({
 }) {
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    fuzzySearchAndSort(options, ""),
+    fuzzySearchAndSort(
+      preFilter ? preFilter(options, "") : options,
+      "",
+    ),
   );
   const [selectedOption, setSelectionOption] = useState(0);
 

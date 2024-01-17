@@ -1,7 +1,7 @@
 ---
 tags: template
 description: "Today's date"
-hooks.slashTemplate:
+hooks.snippetTemplate:
   name: "today"
 ---
 {{today}}

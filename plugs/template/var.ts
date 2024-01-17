@@ -6,7 +6,7 @@ import {
   AttributeCompleteEvent,
   AttributeCompletion,
 } from "../index/attributes.ts";
-import { attributeCompletionsToCMCompletion } from "./slash.ts";
+import { attributeCompletionsToCMCompletion } from "./snippet.ts";
 
 export async function templateVariableComplete(completeEvent: CompleteEvent) {
   const match = /\{\{([\w@]*)$/.exec(completeEvent.linePrefix);

@@ -66,6 +66,7 @@ export default function reducer(
       return {
         ...state,
         showPageNavigator: true,
+        pageNavigatorMode: action.mode,
         showCommandPalette: false,
         showFilterBox: false,
       };

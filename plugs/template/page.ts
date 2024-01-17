@@ -1,7 +1,4 @@
 import { editor, handlebars, space } from "$sb/syscalls.ts";
-import { niceDate, niceTime } from "$sb/lib/dates.ts";
-import { readSettings } from "$sb/lib/settings_page.ts";
-import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { PageMeta } from "$sb/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import { TemplateFrontmatter, TemplateObject } from "./types.ts";
@@ -24,7 +21,7 @@ export async function newPageCommand(
         false,
       ]]],
     });
-    console.log("All page templates", allPageTemplates);
+    // console.log("All page templates", allPageTemplates);
     const selectedTemplate = await editor.filterBox(
       "Page template",
       allPageTemplates
@@ -149,68 +146,4 @@ export function replaceTemplateVars(
   pageMeta: PageMeta,
 ): Promise<string> {
   return handlebars.renderTemplate(s, {}, { page: pageMeta });
-}
-
-function getWeekStartDate(monday = false) {
-  const d = new Date();
-  const day = d.getDay();
-  let diff = d.getDate() - day;
-  if (monday) {
-    diff += day == 0 ? -6 : 1;
-  }
-  return new Date(d.setDate(diff));
-}
-
-export async function weeklyNoteCommand() {
-  const { weeklyNoteTemplate, weeklyNotePrefix, weeklyNoteMonday } =
-    await readSettings({
-      weeklyNoteTemplate: "[[template/page/Weekly Note]]",
-      weeklyNotePrefix: "🗓️ ",
-      weeklyNoteMonday: false,
-    });
-  let weeklyNoteTemplateText = "";
-  try {
-    weeklyNoteTemplateText = await space.readPage(
-      cleanPageRef(weeklyNoteTemplate),
-    );
-  } catch {
-    console.warn(`No weekly note template found at ${weeklyNoteTemplate}`);
-  }
-  const date = niceDate(getWeekStartDate(weeklyNoteMonday));
-  const pageName = `${weeklyNotePrefix}${date}`;
-  if (weeklyNoteTemplateText) {
-    try {
-      await space.getPageMeta(pageName);
-    } catch {
-      // Doesn't exist, let's create
-      await space.writePage(
-        pageName,
-        await replaceTemplateVars(weeklyNoteTemplateText, {
-          name: pageName,
-          ref: pageName,
-          tag: "page",
-          created: "",
-          lastModified: "",
-          perm: "rw",
-        }),
-      );
-    }
-    await editor.navigate(pageName);
-  } else {
-    await editor.navigate(pageName);
-  }
-}
-
-export async function insertTemplateText(cmdDef: any) {
-  const cursorPos = await editor.getCursor();
-  const page = await editor.getCurrentPage();
-  const pageMeta = await loadPageObject(page);
-  let templateText: string = cmdDef.value;
-  const carretPos = templateText.indexOf("|^|");
-  templateText = templateText.replace("|^|", "");
-  templateText = await replaceTemplateVars(templateText, pageMeta);
-  await editor.insertAtCursor(templateText);
-  if (carretPos !== -1) {
-    await editor.moveCursor(cursorPos + carretPos);
-  }
 }
