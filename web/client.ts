@@ -53,6 +53,7 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
+import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -306,7 +307,7 @@ export class Client {
 
   private initNavigator() {
     this.pageNavigator = new PathPageNavigator(
-      cleanPageRef(this.settings.indexPage),
+      cleanPageRef(renderHandlebarsTemplate(this.settings.indexPage, {}, {})),
     );
 
     this.pageNavigator.subscribe(
@@ -857,7 +858,9 @@ export class Client {
     newWindow = false,
   ) {
     if (!name) {
-      name = cleanPageRef(this.settings.indexPage);
+      name = cleanPageRef(
+        renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
+      );
     }
 
     try {
@@ -906,6 +909,7 @@ export class Client {
       if (e.message.includes("Not found")) {
         // Not found, new page
         console.log("Page doesn't exist, creating new page:", pageName);
+        // Initialize page
         doc = {
           text: "",
           meta: {
@@ -917,6 +921,13 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
+        this.system.system.invokeFunction("template.newPage", [pageName]).then(
+          () => {
+            this.focus();
+          },
+        ).catch(
+          console.error,
+        );
       } else {
         this.flashNotification(
           `Could not load page ${pageName}: ${e.message}`,

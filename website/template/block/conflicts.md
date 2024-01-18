@@ -5,5 +5,5 @@ description: Lists all pages with ".conflicted" in the name, created as a result
 
 ### Conflicting pages
 ```query
-page where name =~ /\.conflicted/ render [[template/pages/page]]
+page where name =~ /\.conflicted/ render [[template/query/page]]
 ```

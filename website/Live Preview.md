@@ -2,4 +2,4 @@ SilverBullet uses a “live preview” markdown editor. This mechanism is heavil
 
 It reduces visual noise by not constantly showing [[Markdown]] codes such as `[SilverBullet website](https://silverbullet.md)`, only showing the underlying Markdown when the cursor is placed inside.
 
-In addition, live preview is also heavily leveraged to implement [[Live Queries]] and [[Live Templates]].
+In addition, live preview is also heavily leveraged to implement [[Live Queries]] and [[Blocks]].

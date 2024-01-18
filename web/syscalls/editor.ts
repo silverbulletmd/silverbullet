@@ -238,10 +238,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       return Vim.handleEx(cm, exCommand);
     },
     "editor.openPageNavigator": (_ctx, mode: "page" | "template" = "page") => {
-      editor.ui.viewDispatch({
-        type: "start-navigate",
-        mode,
-      });
+      editor.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {
       editor.ui.viewDispatch({

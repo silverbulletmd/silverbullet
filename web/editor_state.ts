@@ -141,7 +141,11 @@ export function createEditorState(
         { selector: "BulletList", class: "sb-line-ul" },
         { selector: "OrderedList", class: "sb-line-ol" },
         { selector: "TableHeader", class: "sb-line-tbl-header" },
-        { selector: "FrontMatter", class: "sb-frontmatter" },
+        {
+          selector: "FrontMatter",
+          class: "sb-frontmatter",
+          disableSpellCheck: true,
+        },
       ]),
       keyBindings,
       EditorView.domEventHandlers({

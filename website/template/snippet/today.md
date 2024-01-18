@@ -1,7 +1,6 @@
 ---
 tags: template
 description: "Today's date"
-hooks.snippetTemplate:
-  name: "today"
+hooks.snippet.slashCommand: today
 ---
 {{today}}

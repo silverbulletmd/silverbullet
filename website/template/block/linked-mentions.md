@@ -1,8 +1,7 @@
 ---
-description: Adds Linked Mentions to all pages
+description: Adds Linked Mentions to pages
 tags: template
-hooks.bottomBlock:
-  where: 'true'
+hooks.bottom.where: 'true'
 ---
 ```template
 # We need to escape handlebars directives here, since we're embedding

@@ -84,7 +84,7 @@ export function MiniEditor(
         }
       };
     }
-  }, [editorDiv]);
+  }, [editorDiv, placeholderText]);
 
   useEffect(() => {
     callbacksRef.current = {

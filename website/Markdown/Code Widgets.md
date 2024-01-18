@@ -4,7 +4,7 @@ Currently, SilverBullet provides a few code widgets out of the box:
 
 * `toc`: [[Table of Contents]]
 * `query`: [[Live Queries]]
-* `template`: [[Live Templates]]
+* `template`: [[Blocks]]
 * `embed`
 * `markdown`
 

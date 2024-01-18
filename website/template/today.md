@@ -1,1 +1,0 @@
-#template Today is {{today}}!

@@ -1,13 +1,13 @@
 import { markdown, space, YAML } from "$sb/syscalls.ts";
-import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
+import { loadPageObject, replaceTemplateVars } from "./page.ts";
 import { CodeWidgetContent, PageMeta } from "$sb/types.ts";
-import { renderTemplate } from "../template/plug_api.ts";
+import { renderTemplate } from "./plug_api.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { rewritePageRefs, rewritePageRefsInString } from "$sb/lib/resolve.ts";
-import { performQuery } from "./query.ts";
+import { performQuery } from "../query/widget.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 
-type TemplateConfig = {
+type TemplateWidgetConfig = {
   // Pull the template from a page
   page?: string;
   // Or use a string directly
@@ -29,7 +29,7 @@ export async function widget(
   const pageMeta: PageMeta = await loadPageObject(pageName);
 
   try {
-    const config: TemplateConfig = await YAML.parse(bodyText);
+    const config: TemplateWidgetConfig = await YAML.parse(bodyText);
     let templateText = config.template || "";
     let templatePage = config.page;
     if (templatePage) {
@@ -41,7 +41,13 @@ export async function widget(
       if (!templatePage) {
         throw new Error("No template page specified");
       }
-      templateText = await space.readPage(templatePage);
+      try {
+        templateText = await space.readPage(templatePage);
+      } catch (e: any) {
+        if (e.message === "Not found") {
+          throw new Error(`Template page ${templatePage} not found`);
+        }
+      }
     }
 
     let value: any;

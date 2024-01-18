@@ -1,9 +1,10 @@
 ---
-description: Adds a Table of Contents to all pages
+description: Adds a Table of Contents to pages
 tags: template
-hooks.topBlock:
+hooks.top:
   where: 'true'
-  priority: 0
+  # Show all the way to the top
+  order: 0
 ---
 ```toc
 minHeaders: 3

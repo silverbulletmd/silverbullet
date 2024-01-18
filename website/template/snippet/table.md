@@ -1,8 +1,7 @@
 ---
 tags: template
 description: Insert a table
-hooks.snippetTemplate:
-  name: "table"
+hooks.snippet.slashCommand: table
 ---
 | Header A | Header B |
 |----------|----------|

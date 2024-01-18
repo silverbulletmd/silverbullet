@@ -4,4 +4,4 @@ Page names are relatively free-form, but have to adhere to a few [[Page Name Rul
 
 There’s not much more to say about pages.
 
-Ah one thing, [[Templates]] are “special” types of page that can be used for various purposes (e.g. as a _template_ for a new page, or to render [[Live Queries]] and [[Live Templates]]).
+Ah one thing, [[Templates]] are “special” types of page that can be used for various purposes (e.g. as a _template_ for a new page, or to render [[Live Queries]] and [[Blocks]]).

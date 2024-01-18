@@ -2,12 +2,12 @@
 displayName: "Daily Note"
 description: "Open your daily note page"
 tags: template
-hooks.pageTemplate:
+hooks.newPage:
   suggestedName: "📅 {{today}}"
-  confirm: false
+  confirmName: false
   openIfExists: true
-  command:
-    name: "Open Daily Note"
-    key: "Alt-Shift-d"
+  forPrefix: "📅 "
+  command: "Open Daily Note"
+  key: "Alt-Shift-d"
 ---
 * |^|

@@ -63,7 +63,7 @@ By default, results are rendered as a table. To instead render results using [[T
 ```query
 person
 where page = "{{@page.name}}"
-render each [[template/person]]
+render each [[internal-template/person]]
 ```
 
 And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[template/people]] template, for instance):

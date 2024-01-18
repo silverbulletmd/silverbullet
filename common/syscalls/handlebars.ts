@@ -10,14 +10,22 @@ export function handlebarsSyscalls(): SysCallMapping {
       obj: any,
       globals: Record<string, any> = {},
     ): string => {
-      const templateFn = Handlebars.compile(
-        template,
-        { noEscape: true },
-      );
-      return templateFn(obj, {
-        helpers: handlebarHelpers(),
-        data: globals,
-      });
+      return renderHandlebarsTemplate(template, obj, globals);
     },
   };
+}
+
+export function renderHandlebarsTemplate(
+  template: string,
+  obj: any,
+  globals: Record<string, any>,
+) {
+  const templateFn = Handlebars.compile(
+    template,
+    { noEscape: true },
+  );
+  return templateFn(obj, {
+    helpers: handlebarHelpers(),
+    data: globals,
+  });
 }

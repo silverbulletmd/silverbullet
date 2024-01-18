@@ -104,7 +104,7 @@ export function PageNavigator({
           });
           return options;
         } else {
-          // Filter out non-template pages
+          // Filter on pages tagged with "template"
           options = options.filter((pageMeta) => {
             return pageMeta.tags?.includes("template");
           });
@@ -112,8 +112,8 @@ export function PageNavigator({
         }
       }}
       allowNew={true}
-      helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page with this exact name."
-      newHint="Create page"
+      helpText={`Press <code>Enter</code> to open the selected ${mode}, or <code>Shift-Enter</code> to create a new ${mode} with this exact name.`}
+      newHint={`Create ${mode}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
         onNavigate(opt?.name);

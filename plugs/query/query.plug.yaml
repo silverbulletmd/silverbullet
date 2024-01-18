@@ -1,25 +1,18 @@
 name: query
 functions:
   queryWidget:
-    path: query.ts:widget
+    path: widget.ts:widget
     codeWidget: query
     renderMode: markdown
 
+  # Query widget buttons
+  editButton:
+    path: widget.ts:editButton
+
   lintQuery:
-    path: query.ts:lintQuery
+    path: lint.ts:lintQuery
     events:
     - editor:lint
-
-  templateWidget:
-    path: template.ts:widget
-    codeWidget: template
-    renderMode: markdown
-
-  blockWidget:
-    path: template.ts:widget
-    codeWidget: block
-    renderMode: markdown
-
 
   queryComplete:
     path: complete.ts:queryComplete
@@ -37,6 +30,3 @@ functions:
       name: "Live Queries and Templates: Refresh All"
       key: "Alt-q"
 
-  # Query widget buttons
-  editButton:
-    path: widget.ts:editButton

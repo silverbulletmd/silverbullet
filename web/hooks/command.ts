@@ -2,8 +2,12 @@ import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
 import { EventEmitter } from "../../plugos/event.ts";
 import { ObjectValue } from "$sb/types.ts";
-import { TemplateFrontmatter } from "../../plugs/template/types.ts";
+import {
+  FrontmatterConfig,
+  SnippetConfig,
+} from "../../plugs/template/types.ts";
 import { throttle } from "$sb/lib/async.ts";
+import { NewPageConfig } from "../../plugs/template/types.ts";
 
 export type CommandDef = {
   name: string;
@@ -74,53 +78,59 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
     }
 
     // Query all page templates that have a command configured
-    const templateCommands: ObjectValue<TemplateFrontmatter>[] = await indexPlug
+    const templateCommands: ObjectValue<FrontmatterConfig>[] = await indexPlug
       .invoke(
         "queryObjects",
         ["template", {
-          // where (hooks.pageTemplate.command and hooks.pageTemplate.enabled != false) or (hooks.snippetTemplate.command and hooks.snippetTemplate.enabled != false)
-          filter: ["or", ["and", ["attr", [
+          // where hooks.newPage.command or hooks.snippet.command
+          filter: ["or", [
             "attr",
-            ["attr", ["attr", "hooks"], "pageTemplate"],
+            ["attr", ["attr", "hooks"], "newPage"],
             "command",
-          ], "name"], ["!=", [
+          ], [
             "attr",
-            ["attr", ["attr", "hooks"], "pageTemplate"],
-            "enabled",
-          ], ["boolean", false]]], ["and", ["attr", [
-            "attr",
-            ["attr", ["attr", "hooks"], "snippetTemplate"],
+            ["attr", ["attr", "hooks"], "snippet"],
             "command",
-          ], "name"], ["!=", [
-            "attr",
-            ["attr", ["attr", "hooks"], "snippetTemplate"],
-            "enabled",
-          ], ["boolean", false]]]],
+          ]],
         }],
       );
 
+    console.log("Template commands", templateCommands);
+
     for (const page of templateCommands) {
-      if (page.hooks!.pageTemplate) {
-        const pageTemplate = page.hooks!.pageTemplate;
-        const cmdDef = pageTemplate.command!;
-        this.editorCommands.set(pageTemplate.command!.name!, {
-          command: cmdDef as any,
-          run: () => {
-            return templatePlug.invoke("newPageCommand", [cmdDef, page.ref]);
-          },
-        });
-      }
-      if (page.hooks!.snippetTemplate) {
-        const snippetTemplate = page.hooks!.snippetTemplate;
-        const cmdDef = snippetTemplate.command!;
-        this.editorCommands.set(snippetTemplate.command!.name!, {
-          command: cmdDef as any,
-          run: () => {
-            return templatePlug.invoke("insertSnippetTemplate", [
-              { templatePage: page.ref },
-            ]);
-          },
-        });
+      try {
+        if (page.hooks!.newPage) {
+          const newPageConfig = NewPageConfig.parse(page.hooks!.newPage);
+          const cmdDef = {
+            name: newPageConfig.command!,
+            key: newPageConfig.key,
+            mac: newPageConfig.mac,
+          };
+          this.editorCommands.set(newPageConfig.command!, {
+            command: cmdDef,
+            run: () => {
+              return templatePlug.invoke("newPageCommand", [cmdDef, page.ref]);
+            },
+          });
+        }
+        if (page.hooks!.snippet) {
+          const snippetConfig = SnippetConfig.parse(page.hooks!.snippet);
+          const cmdDef = {
+            name: snippetConfig.command!,
+            key: snippetConfig.key,
+            mac: snippetConfig.mac,
+          };
+          this.editorCommands.set(snippetConfig.command!, {
+            command: cmdDef,
+            run: () => {
+              return templatePlug.invoke("insertSnippetTemplate", [
+                { templatePage: page.ref },
+              ]);
+            },
+          });
+        }
+      } catch (e: any) {
+        console.error("Error loading command from", page.ref, e);
       }
     }
 

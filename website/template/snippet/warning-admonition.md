@@ -1,9 +1,7 @@
 ---
-displayName: "/warning-admonition"
 description: Insert a "warning" admonition
 tags: template
-hooks.snippetTemplate:
-  name: "warning-admonition"
+hooks.snippet.slashCommand: warning-admonition
 ---
 > **warning** Warning
 > |^|

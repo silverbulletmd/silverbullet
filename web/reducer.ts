@@ -142,6 +142,8 @@ export default function reducer(
     case "hide-filterbox":
       return {
         ...state,
+        showCommandPalette: false,
+        showPageNavigator: false,
         showFilterBox: false,
         filterBoxOnSelect: () => {},
         filterBoxPlaceHolder: "",

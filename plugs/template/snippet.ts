@@ -6,33 +6,21 @@ import { TemplateObject } from "./types.ts";
 import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
 import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
-import { SnippetTemplate } from "./types.ts";
+import { SnippetConfig } from "./types.ts";
+import { snippet } from "@codemirror/autocomplete";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
 ): Promise<SlashCompletion[]> {
   const allTemplates = await queryObjects<TemplateObject>("template", {
-    // Only return templates that have a trigger and are not expliclty disabled
-    filter: ["and", ["attr", ["attr", "hooks"], "snippetTemplate"], ["!=", [
-      "attr",
-      ["attr", ["attr", "hooks"], "snippetTemplate"],
-      "enabled",
-    ], [
-      "boolean",
-      false,
-    ]]],
+    // where hooks.snippet.slashCommand exists
+    filter: ["attr", ["attr", ["attr", "hooks"], "snippet"], "slashCommand"],
   }, 5);
   return allTemplates.map((template) => {
-    const snippetTemplate = template.hooks!.snippetTemplate!;
-    if (!snippetTemplate.name) {
-      console.error(
-        "Snippet template",
-        template.ref,
-        "has no name specified under hooks.snippetTemplate",
-      );
-    }
+    const snippetTemplate = template.hooks!.snippet!;
+
     return {
-      label: snippetTemplate.name || "ERROR",
+      label: snippetTemplate.slashCommand,
       detail: template.description,
       templatePage: template.ref,
       pageName: completeEvent.pageName,
@@ -52,7 +40,20 @@ export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
       templateText,
       pageObject,
     );
-  const snippetTemplate: SnippetTemplate = frontmatter.hooks!.snippetTemplate!;
+  let snippetTemplate: SnippetConfig;
+  try {
+    snippetTemplate = SnippetConfig.parse(frontmatter.hooks!.snippet!);
+  } catch (e: any) {
+    console.error(
+      `Invalid template configuration for ${slashCompletion.templatePage}:`,
+      e.message,
+    );
+    await editor.flashNotification(
+      `Invalid template configuration for ${slashCompletion.templatePage}, won't insert snippet`,
+      "error",
+    );
+    return;
+  }
 
   let cursorPos = await editor.getCursor();
 

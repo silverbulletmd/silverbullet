@@ -25,14 +25,14 @@ To reference a template, use the [[Federation]] syntax, e.g. `[[!silverbullet.md
 Use these [[Page Templates]] with the {[Page: From Template]} command.
 
 ```query
-template where hooks.pageTemplate render [[template/documented-template]]
+template where hooks.newPage render [[template/documented-template]]
 ```
 
 # Slash Templates
 These can be used as [[Slash Templates]]:
 
 ```query
-template where hooks.snippetTemplate render [[template/documented-template]]
+template where hooks.snippet render [[template/documented-template]]
 ```
 
 # Blocks
@@ -54,7 +54,7 @@ render [[template/documented-template]]
 
 
 ## Inline
-Use these as `page` in [[Live Templates]] to render useful things in your pages:
+Use these as `page` in [[Blocks]] to render useful things in your pages:
 
 ```query
 template

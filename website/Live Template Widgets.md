@@ -17,7 +17,7 @@ Live Template Widgets follow the same pattern as other [[Templates]] with a few 
 # Example
 The following widget template applies to all pages tagged with `person` (see the `where`). It uses the [[!silverbullet.md/template/live/incoming]] template, to show all incomplete tasks that reference this particular page.
 
-Indeed, you can use [[Live Queries]] and [[Live Templates]] here as well.
+Indeed, you can use [[Live Queries]] and [[Blocks]] here as well.
 
     ---
     tags: template

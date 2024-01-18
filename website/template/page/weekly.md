@@ -2,13 +2,13 @@
 displayName: "Weekly Note"
 description: "Open your weekly note page"
 tags: template
-hooks.pageTemplate:
+hooks.newPage:
   suggestedName: "🗓️ {{weekStart}}"
-  confirm: false
+  forPrefix: "🗓️ "
+  confirmName: false
   openIfExists: true
-  command:
-    name: "Open Weekly Note"
-    key: "Alt-Shift-w"
+  command: "Open Weekly Note"
+  key: "Alt-Shift-w"
 ---
 # Goals
 * |^|

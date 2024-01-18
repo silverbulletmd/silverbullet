@@ -1,10 +1,10 @@
-Templates are reusable pieces of markdown content, usually with placeholders that are replaced once instantiated.
+Templates are reusable pieces of markdown content, often containing placeholders that are replaced once instantiated.
 
 There are two general uses for templates:
 
 1. _Live_ uses, where page content is dynamically updated based on templates:
   * [[Live Queries]]
-  * [[Live Templates]]
+  * [[Blocks]]
   * [[Live Template Widgets]]
 2. _One-off_ uses, where a template is instantiated once and inserted into an existing or new page:
   * [[Slash Templates]]
@@ -17,7 +17,7 @@ Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that,
 
 Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does a few things:
 
-1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in [[Live Templates]].
+1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in [[Blocks]].
 2. It excludes the page from being indexed for [[Objects]], that is: any tasks, items, paragraphs etc. will not appear in your space’s object database. Which is usually what you want.
 3. It registers your templates to be used as [[Slash Templates]] as well as [[Page Templates]].
 
@@ -27,7 +27,7 @@ Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a 
 * `tags`: should always be set to `template`
 * `type` (optional): should be set to `page` for [[Page Templates]] and to `frontmatter` for [[Live Template Widgets]]
 * `trigger` (optional): defines the slash command name for [[Slash Templates]]
-* `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
+* `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Blocks]].
 * `pageName` (optional, [[Page Templates]] only): specify a (template for a) page name.
 * `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the rendered template. This can either be specified as a string or as an object.
 

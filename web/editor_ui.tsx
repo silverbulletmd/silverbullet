@@ -8,11 +8,11 @@ import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
 import {
   BookIcon,
-  Compartment,
   HomeIcon,
   preactRender,
   RefreshCwIcon,
   runScopeHandlers,
+  TemplateIcon,
   TerminalIcon,
   useEffect,
   useReducer,
@@ -21,6 +21,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
 import { sleep } from "$sb/lib/async.ts";
+import { template } from "https://esm.sh/v132/handlebars@4.7.7/runtime.d.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -203,8 +204,8 @@ export class MainUI {
               return;
             }
             console.log("Now renaming page to...", newName);
-            await client.system.system.loadedPlugs.get("index")!.invoke(
-              "renamePageCommand",
+            await client.system.system.invokeFunction(
+              "index.renamePageCommand",
               [{ page: newName }],
             );
             client.focus();
@@ -246,6 +247,8 @@ export class MainUI {
               description: `Go to the index page (Alt-h)`,
               callback: () => {
                 client.navigate("", 0);
+                // And let's make sure all panels are closed
+                dispatch({ type: "hide-filterbox" });
               },
               href: "",
             },
@@ -254,6 +257,15 @@ export class MainUI {
               description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
               callback: () => {
                 client.startPageNavigate("page");
+              },
+            },
+            {
+              icon: TemplateIcon,
+              description: `Open template (${
+                isMacLike() ? "Cmd-Shift-t" : "Ctrl-Shift-t"
+              })`,
+              callback: () => {
+                client.startPageNavigate("template");
               },
             },
             {

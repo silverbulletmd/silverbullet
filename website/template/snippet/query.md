@@ -1,8 +1,7 @@
 ---
 description: Insert a live query
 tags: template
-hooks.snippetTemplate:
-  name: "query"
+hooks.snippet.slashCommand: query
 ---
 ```query
 |^|

@@ -1,12 +1,13 @@
 ---
 tags: template
 displayName: Snippet Template
-hooks.pageTemplate:
+hooks.newPage:
   suggestedName: "template/snippet/"
-  confirm: true
+  confirmName: true
+  forPrefix: template/snippet/
 description: Define a new Snippet Template
 frontmatter: |
   tags: template
-  hooks.snippetTemplate:
+  hooks.snippet:
     name: "|^|"
 ---

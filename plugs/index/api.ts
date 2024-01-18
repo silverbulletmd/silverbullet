@@ -60,7 +60,7 @@ export async function clearIndex(): Promise<void> {
   console.log("Deleted", allKeys.length, "keys from the index");
 }
 
-// ENTITIES API
+// OBJECTS API
 
 /**
  * Indexes entities in the data store

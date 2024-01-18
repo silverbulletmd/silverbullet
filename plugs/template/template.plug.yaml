@@ -28,6 +28,16 @@ functions:
     events:
       - editor:complete
 
+  # Widget
+  templateWidget: # Legacy
+    path: template_block.ts:widget
+    codeWidget: template
+    renderMode: markdown
+
+  # API invoked when a new page is created
+  newPage:
+    path: page.ts:newPage
+
   # Commands
   newPageCommand:
     path: page.ts:newPageCommand
@@ -35,3 +45,9 @@ functions:
       name: "Page: From Template"
       key: "Alt-Shift-t"
 
+
+  # Lint
+  lintTemplateFrontmatter:
+    path: lint.ts:lintTemplateFrontmatter
+    events:
+    - editor:lint

@@ -3,7 +3,7 @@ SilverBullet aims to be a **workshop for the mind**: a creative [[Spaces|space]]
 
 So yeah, SilverBullet is basically a geeky note-taking application and personal wiki.
 
-While you _can_ use SilverBullet as just a note-taking application that stores notes in plain [[Markdown]] files on disk; it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Live Templates]], it becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
+While you _can_ use SilverBullet as just a note-taking application that stores notes in plain [[Markdown]] files on disk; it becomes truly powerful in the hands of more technical power users. By leveraging [[Metadata]] annotations, its [[Objects]] infrastructure, [[Live Queries]] and [[Blocks]], it becomes a powerful [[End-User Programming]] tool, enabling you to quickly develop various types of ad-hoc knowledge systems.
 
 SilverBullet is _open source_ and implemented as an _offline-capable_ web application ([[PWA]]). In order to use it, you have to _self-host_ it: that is, you need to run the web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]].
 
@@ -34,7 +34,7 @@ Some highlights:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[Slash Commands]] to perform common text editing operations.
-* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]] and [[Live Templates]], allowing to make parts of your pages _dynamic_.
+* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]] and [[Blocks]], allowing to make parts of your pages _dynamic_.
 * SilverBullet can be extended using [[Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk (if you so choose). Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.

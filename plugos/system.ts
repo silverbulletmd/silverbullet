@@ -75,6 +75,24 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
   }
 
+  /**
+   * Invokes a function named using the "plug.functionName" pattern, for convenience
+   * @param name name of the function (e.g. plug.doSomething)
+   * @param args an array of arguments to pass to the function
+   */
+  invokeFunction(name: string, args: any[]): Promise<any> {
+    const [plugName, functionName] = name.split(".");
+    if (!functionName) {
+      // Sanity check
+      throw new Error(`Missing function name: ${name}`);
+    }
+    const plug = this.loadedPlugs.get(plugName);
+    if (!plug) {
+      throw new Error(`Plug ${plugName} not found invoking ${name}`);
+    }
+    return plug.invoke(functionName, args);
+  }
+
   localSyscall(name: string, args: any): Promise<any> {
     return this.syscall({}, name, args);
   }
@@ -90,7 +108,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     }
     if (ctx.plug) {
       // Only when running in a plug context do we check permissions
-      const plug = this.loadedPlugs.get(ctx.plug!);
+      const plug = this.loadedPlugs.get(ctx.plug);
       if (!plug) {
         throw new Error(
           `Plug ${ctx.plug} not found while attempting to invoke ${name}}`,

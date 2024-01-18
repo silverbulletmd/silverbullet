@@ -1,7 +1,6 @@
 ---
 tags: template
 description: "Tomorrow's date"
-hooks.snippetTemplate:
-  name: "tomorrow"
+hooks.snippet.slashCommand: tomorrow
 ---
 {{tomorrow}}

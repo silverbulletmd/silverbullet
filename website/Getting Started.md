@@ -18,7 +18,7 @@ Notice that as you move your cursor around on this page and you get close to or 
 
 Hadn’t we mentioned [[Markdown]] yet? Yeah, that’s the markup language you’ll use to add that dash of markup to your documents. It’s pretty simple to learn if you don’t know it already.
 
-You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[Live Templates]], which embeds another (sometime external) page into the existing one. If you hover over this section, you’ll notice a small _refresh_ and _edit_ button. Hit that edit button to reveal the underlying source that renders this content.
+You will notice this whole page section is wrapped in a strange type of block. This is a SilverBullet specific feature called a [[Blocks]], which embeds another (sometime external) page into the existing one. If you hover over this section, you’ll notice a small _refresh_ and _edit_ button. Hit that edit button to reveal the underlying source that renders this content.
 
 SilverBullet has even more tricks up its sleeve. Consider [[Live Queries]] which allow you to query [[Objects]] in your space easily.
 

@@ -2,10 +2,9 @@
 displayName: "Quick Note"
 description: "Create a quick note"
 tags: template
-hooks.pageTemplate:
+hooks.newPage:
   suggestedName: "📥 {{today}} {{time}}"
-  confirm: false
-  command:
-    name: "Quick Note"
-    key: "Alt-Shift-n"
+  confirmName: false
+  command: "Quick Note"
+  key: "Alt-Shift-n"
 ---

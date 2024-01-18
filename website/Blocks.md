@@ -1,13 +1,13 @@
-Live templates render [[Templates]] inline in a page. They’re called “Live” because their content updates dynamically.
+Blocks render [[Templates]] on a page. They may appear in-line in the page itself, or can automatically be added to the top or bottom of specific pages based on certain criteria.
 
-## Syntax
-Live Templates are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the code block specifies the template to use, as well as any arguments to pass to it.
+## Template Blocks
+Template blocks are specified using [[Markdown]]‘s fenced code block notation using `block` as a language. The body of the code block specifies the template to use, as well as any arguments to pass to it.
 
 Generally you’d use it in one of two ways, either using a `page` [[Templates|template]] reference, or an inline `template`:
 
 Here’s an example using `page`:
 ```template
-page: "[[template/today]]"
+page: "[[internal-template/today]]"
 ```
 
 And here’s an example using `template`:
@@ -41,4 +41,6 @@ template: |
    This is not going to be {{processed}} by Handlebars
 raw: true
 ```
+
+# Top and bottom blocks
 

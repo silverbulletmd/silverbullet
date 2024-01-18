@@ -9,7 +9,7 @@ import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
 import { CodeWidgetContent } from "$sb/types.ts";
 import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
-import { BlockTemplate, TemplateObject } from "../template/types.ts";
+import { TemplateObject, WidgetConfig } from "../template/types.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { evalQueryExpression } from "$sb/lib/query.ts";
 import { renderTemplate } from "../template/plug_api.ts";
@@ -33,15 +33,11 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
   const blockTemplates = await queryObjects<TemplateObject>(
     "template",
     {
-      // where hooks.topBlock and hooks.topBlock.enabled != false
-      filter: ["and", ["attr", ["attr", "hooks"], `${side}Block`], [
-        "!=",
-        ["attr", ["attr", ["attr", "hooks"], `${side}Block`], "enabled"],
-        ["boolean", false],
-      ]],
+      // where hooks.top/bottom exists
+      filter: ["attr", ["attr", "hooks"], side],
       orderBy: [{
-        // order by hooks.topBlock.priority asc
-        expr: ["attr", ["attr", ["attr", "hooks"], `${side}Block`], "priority"],
+        // order by hooks.top/bottom.order asc
+        expr: ["attr", ["attr", ["attr", "hooks"], side], "order"],
         desc: false,
       }],
     },
@@ -58,7 +54,7 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       );
       continue;
     }
-    const blockDef: BlockTemplate = template.hooks[`${side}Block`]!;
+    const blockDef = WidgetConfig.parse(template.hooks[side]!);
     if (!blockDef.where) {
       console.warn(
         "Skipping template",
