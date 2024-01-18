@@ -87,10 +87,10 @@ function helloWorld() {
 # Beyond Markdown
 Where things get slightly more interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Spaces]]. 
 
-Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this as follows:
+Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[internal-template/plug]] template, we can simply do this as follows:
 
 ```query
-plug render [[template/plug]]
+plug render [[internal-template/plug]]
 ```
 
 Hover over that list and click the edit button to see the query that generates this view.

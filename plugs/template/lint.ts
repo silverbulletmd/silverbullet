@@ -13,7 +13,6 @@ export async function lintTemplateFrontmatter(
   // Just looking this up again for the purposes of error reporting
   const frontmatterNode = findNodeOfType(tree, "FrontMatterCode")!;
   if (!frontmatter.tags?.includes("template")) {
-    console.log("Not a template");
     return [];
   }
   try {

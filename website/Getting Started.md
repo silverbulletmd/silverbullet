@@ -1,3 +1,9 @@
+Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off by importing some useful [[Templates]], you can import the core set of templates by pushing this button:
+
+{[Federation: Import Prefix|Import Core Template Library]("!localhost:3001/template/core/")}
+
+Did that? Alright, let’s proceed.
+
 ## Getting started
 The best way to get a good feel for what SilverBullet is to immediately start playing with it. Here are some things for you to try:
 

@@ -111,7 +111,7 @@ export class ButtonWidget extends WidgetType {
     const anchor = document.createElement("button");
     anchor.className = this.cssClass;
     anchor.textContent = this.text;
-    anchor.addEventListener("click", (e) => {
+    anchor.addEventListener("mouseup", (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.callback(e);

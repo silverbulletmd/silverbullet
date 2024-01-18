@@ -66,12 +66,12 @@ where page = "{{@page.name}}"
 render each [[internal-template/person]]
 ```
 
-And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[template/people]] template, for instance):
+And `render all` where the entire result set is passed to the template as a list so the template can do its own iteration using `#each`, which you could then use to e.g. build a table (using this [[internal-template/people]] template, for instance):
 
 ```query
 person
 where page = "{{@page.name}}"
-render all [[template/people]]
+render all [[internal-template/people]]
 ```
 # Expressions
 $expression

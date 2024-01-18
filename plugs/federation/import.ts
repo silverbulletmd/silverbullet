@@ -1,15 +1,24 @@
 import { editor, space } from "$sb/syscalls.ts";
 import { cacheFileListing, readFile } from "./federation.ts";
 
-const defaultUri = "!localhost:3001/template";
-
-export async function importTemplateSet(_def: any, uri = defaultUri) {
-  const allTemplates = await cacheFileListing(uri);
+export async function importPrefixCommand(_def: any, uri?: string) {
+  if (!uri) {
+    uri = await editor.prompt("Import from federation prefix:");
+  }
+  if (!uri) {
+    return;
+  }
+  const allTemplates = (await cacheFileListing(uri)).filter((f) =>
+    f.name.endsWith(".md")
+  );
+  if (
+    !await editor.confirm(
+      `You are about to import ${allTemplates.length} templates, want to do this?`,
+    )
+  ) {
+    return;
+  }
   for (const template of allTemplates) {
-    if (!template.name.endsWith(".md")) {
-      continue;
-    }
-
     // Clean up file path
     let pageName = template.name.replace(/\.md$/, "");
     // Remove the federation part
@@ -37,5 +46,6 @@ export async function importTemplateSet(_def: any, uri = defaultUri) {
     // Write to local space
     await space.writePage(pageName, new TextDecoder().decode(buf));
   }
+  await editor.reloadSettingsAndCommands();
   await editor.flashNotification("Import complete!");
 }

@@ -59,7 +59,7 @@ The main ways to roam your space, beside following page links, are:
   * [[Attributes]]
 * [[Live Queries]]
 * [[Templates]] and [[Blocks]]
-* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Template Sets]]
+* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Template Libraries]]
 
 # Extending SilverBullet
 A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].

@@ -16,13 +16,13 @@ Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.j
 # Core plugs
 These plugs are distributed with SilverBullet and are automatically enabled:
 ```query
-plug where uri = null order by name render [[template/plug]]
+plug where uri = null order by name render [[internal-template/plug]]
 ```
 
 # Third-party plugs
 These plugs are written either by third parties or distributed separately from the main SB distribution.
 ```query
-plug where uri != null order by name render [[template/plug]]
+plug where uri != null order by name render [[internal-template/plug]]
 ```
 
 Want to develop your own plugs? Have a look at [[Plugs/Development]].

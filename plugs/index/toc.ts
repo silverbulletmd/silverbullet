@@ -41,6 +41,11 @@ export async function widget(
     return false;
   });
 
+  console.log("HERE WITH HEADERS", headers);
+  if (headers.length === 0) {
+    return null;
+  }
+
   if (config.minHeaders && headers.length < config.minHeaders) {
     // Not enough headers, not showing TOC
     return null;

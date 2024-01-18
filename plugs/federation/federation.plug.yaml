@@ -30,7 +30,7 @@ functions:
       operation: getFileMeta
 
   # Onboarding
-  importTemplateSet:
-    path: ./onboarding.ts:importTemplateSet
+  importPrefixCommand:
+    path: import.ts:importPrefixCommand
     command:
-      name: "Import Template Set"
+      name: "Federation: Import Prefix"

@@ -75,7 +75,7 @@ _Not yet released, this will likely become 0.6.0._
 ---
 ## 0.5.6
 * Various optimization and bug fixes
-* Experimental idea: [[Template Sets]]
+* Experimental idea: [[Template Libraries]]
 * The `Alt-Shift-n` key was previously bound to both {[Page: New]} and {[Quick Note]}. That won’t work, so now it’s just bound to {[Quick Note]}
 * The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command, refreshing all [[Live Queries]] and [[Blocks]] on the page. This is to get y’all prepared to move away from directives.
 * It’s likely that version 0.6.0 **will remove directives**, so please switch over to live queries and templates, e.g. using...
