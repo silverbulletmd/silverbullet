@@ -95,7 +95,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
         }],
       );
 
-    console.log("Template commands", templateCommands);
+    // console.log("Template commands", templateCommands);
 
     for (const page of templateCommands) {
       try {

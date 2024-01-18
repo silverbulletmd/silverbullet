@@ -6,3 +6,11 @@ A list of built-in settings [[!silverbullet.md/SETTINGS|can be found here]].
 indexPage: index
 \`\`\`
 `;
+
+export const INDEX_TEMPLATE =
+  `Hello! And welcome to your brand new SilverBullet space!
+
+\`\`\`template
+page: "[[!silverbullet.md/Getting Started]]"
+\`\`\`
+`;

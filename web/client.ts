@@ -194,8 +194,7 @@ export class Client {
 
     await this.system.init();
 
-    // Load settings
-    this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
+    await this.loadSettings();
 
     await this.loadCaches();
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
@@ -242,6 +241,10 @@ export class Client {
     }, pageSyncInterval);
 
     this.updatePageListCache().catch(console.error);
+  }
+
+  async loadSettings() {
+    this.settings = await ensureSettingsAndIndex(this.space.spacePrimitives);
   }
 
   private async initSync() {
@@ -491,7 +494,7 @@ export class Client {
         // Run when a list of files has been retrieved
         async () => {
           if (!this.settings) {
-            this.settings = await ensureSettingsAndIndex(localSpacePrimitives!);
+            await this.loadSettings();
           }
 
           if (typeof this.settings?.spaceIgnore === "string") {

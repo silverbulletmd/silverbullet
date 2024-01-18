@@ -14,22 +14,22 @@ import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 import { UploadFile } from "../../plug-api/types.ts";
 
-export function editorSyscalls(editor: Client): SysCallMapping {
+export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
-      return editor.currentPage!;
+      return client.currentPage!;
     },
     "editor.getText": () => {
-      return editor.editorView.state.sliceDoc();
+      return client.editorView.state.sliceDoc();
     },
     "editor.getCursor": (): number => {
-      return editor.editorView.state.selection.main.from;
+      return client.editorView.state.selection.main.from;
     },
     "editor.getSelection": (): { from: number; to: number } => {
-      return editor.editorView.state.selection.main;
+      return client.editorView.state.selection.main;
     },
     "editor.save": () => {
-      return editor.save(true);
+      return client.save(true);
     },
     "editor.navigate": async (
       _ctx,
@@ -38,13 +38,17 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       replaceState = false,
       newWindow = false,
     ) => {
-      await editor.navigate(name, pos, replaceState, newWindow);
+      await client.navigate(name, pos, replaceState, newWindow);
     },
     "editor.reloadPage": async () => {
-      await editor.reloadPage();
+      await client.reloadPage();
     },
     "editor.reloadUI": () => {
       location.reload();
+    },
+    "editor.reloadSettingsAndCommands": async () => {
+      await client.loadSettings();
+      await client.system.commandHook.buildAllCommands();
     },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       if (!existingWindow) {
@@ -113,7 +117,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       message: string,
       type: "error" | "info" = "info",
     ) => {
-      editor.flashNotification(message, type);
+      client.flashNotification(message, type);
     },
     "editor.filterBox": (
       _ctx,
@@ -122,7 +126,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       helpText = "",
       placeHolder = "",
     ): Promise<FilterOption | undefined> => {
-      return editor.filterBox(label, options, helpText, placeHolder);
+      return client.filterBox(label, options, helpText, placeHolder);
     },
     "editor.showPanel": (
       _ctx,
@@ -131,28 +135,28 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       html: string,
       script: string,
     ) => {
-      editor.ui.viewDispatch({
+      client.ui.viewDispatch({
         type: "show-panel",
         id: id as any,
         config: { html, script, mode },
       });
       setTimeout(() => {
         // Dummy dispatch to rerender the editor and toggle the panel
-        editor.editorView.dispatch({});
+        client.editorView.dispatch({});
       });
     },
     "editor.hidePanel": (_ctx, id: string) => {
-      editor.ui.viewDispatch({
+      client.ui.viewDispatch({
         type: "hide-panel",
         id: id as any,
       });
       setTimeout(() => {
         // Dummy dispatch to rerender the editor and toggle the panel
-        editor.editorView.dispatch({});
+        client.editorView.dispatch({});
       });
     },
     "editor.insertAtPos": (_ctx, text: string, pos: number) => {
-      editor.editorView.dispatch({
+      client.editorView.dispatch({
         changes: {
           insert: text,
           from: pos,
@@ -160,7 +164,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.replaceRange": (_ctx, from: number, to: number, text: string) => {
-      editor.editorView.dispatch({
+      client.editorView.dispatch({
         changes: {
           insert: text,
           from: from,
@@ -169,13 +173,13 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.moveCursor": (_ctx, pos: number, center = false) => {
-      editor.editorView.dispatch({
+      client.editorView.dispatch({
         selection: {
           anchor: pos,
         },
       });
       if (center) {
-        editor.editorView.dispatch({
+        client.editorView.dispatch({
           effects: [
             EditorView.scrollIntoView(
               pos,
@@ -186,10 +190,10 @@ export function editorSyscalls(editor: Client): SysCallMapping {
           ],
         });
       }
-      editor.editorView.focus();
+      client.editorView.focus();
     },
     "editor.setSelection": (_ctx, from: number, to: number) => {
-      editor.editorView.dispatch({
+      client.editorView.dispatch({
         selection: {
           anchor: from,
           head: to,
@@ -198,7 +202,7 @@ export function editorSyscalls(editor: Client): SysCallMapping {
     },
 
     "editor.insertAtCursor": (_ctx, text: string) => {
-      const editorView = editor.editorView;
+      const editorView = client.editorView;
       const from = editorView.state.selection.main.from;
       editorView.dispatch({
         changes: {
@@ -211,55 +215,55 @@ export function editorSyscalls(editor: Client): SysCallMapping {
       });
     },
     "editor.dispatch": (_ctx, change: Transaction) => {
-      editor.editorView.dispatch(change);
+      client.editorView.dispatch(change);
     },
     "editor.prompt": (
       _ctx,
       message: string,
       defaultValue = "",
     ): Promise<string | undefined> => {
-      return editor.prompt(message, defaultValue);
+      return client.prompt(message, defaultValue);
     },
     "editor.confirm": (_ctx, message: string): Promise<boolean> => {
-      return editor.confirm(message);
+      return client.confirm(message);
     },
     "editor.getUiOption": (_ctx, key: string): any => {
-      return (editor.ui.viewState.uiOptions as any)[key];
+      return (client.ui.viewState.uiOptions as any)[key];
     },
     "editor.setUiOption": (_ctx, key: string, value: any) => {
-      editor.ui.viewDispatch({
+      client.ui.viewDispatch({
         type: "set-ui-option",
         key,
         value,
       });
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
-      const cm = vimGetCm(editor.editorView)!;
+      const cm = vimGetCm(client.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
     "editor.openPageNavigator": (_ctx, mode: "page" | "template" = "page") => {
-      editor.startPageNavigate(mode);
+      client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {
-      editor.ui.viewDispatch({
+      client.ui.viewDispatch({
         type: "show-palette",
       });
     },
     // Folding
     "editor.fold": () => {
-      foldCode(editor.editorView);
+      foldCode(client.editorView);
     },
     "editor.unfold": () => {
-      unfoldCode(editor.editorView);
+      unfoldCode(client.editorView);
     },
     "editor.toggleFold": () => {
-      toggleFold(editor.editorView);
+      toggleFold(client.editorView);
     },
     "editor.foldAll": () => {
-      foldAll(editor.editorView);
+      foldAll(client.editorView);
     },
     "editor.unfoldAll": () => {
-      unfoldAll(editor.editorView);
+      unfoldAll(client.editorView);
     },
   };
 

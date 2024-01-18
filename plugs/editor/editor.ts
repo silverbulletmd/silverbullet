@@ -46,3 +46,8 @@ export async function moveToPosCommand() {
 export async function customFlashMessage(_def: any, message: string) {
   await editor.flashNotification(message);
 }
+
+export async function reloadSettingsAndCommands() {
+  await editor.reloadSettingsAndCommands();
+  await editor.flashNotification("Reloaded settings and commands");
+}

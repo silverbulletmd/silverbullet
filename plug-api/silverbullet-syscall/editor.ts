@@ -57,6 +57,10 @@ export function reloadUI(): Promise<void> {
   return syscall("editor.reloadUI");
 }
 
+export function reloadSettingsAndCommands(): Promise<void> {
+  return syscall("editor.reloadSettingsAndCommands");
+}
+
 export function openUrl(url: string, existingWindow = false): Promise<void> {
   return syscall("editor.openUrl", url, existingWindow);
 }

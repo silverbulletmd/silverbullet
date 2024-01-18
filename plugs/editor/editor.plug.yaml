@@ -56,6 +56,11 @@ functions:
     events:
       - editor:complete
 
+  reloadSettingsAndCommands:
+    path: editor.ts:reloadSettingsAndCommands
+    command:
+      name: "System: Reload Settings and Commands"
+
   # Navigation
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
