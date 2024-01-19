@@ -15,13 +15,11 @@ You were told wrong.
 * [[Install]]: how to install and deploy SilverBullet.
 * [[Manual]]: how to use this thing.
 * [[CHANGELOG]]: we’re in active development, so things change rapidly, watch this page to keep up.
-* Development:
-  * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
-  * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them.
-  * [Discussions](https://github.com/silverbulletmd/silverbullet/discussions): got ideas for features or questions? Ask them here.
-* Socials:
-  * [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
-  * [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion, join our Discord!
+* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
+* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them.
+* [Community](https://community.silverbullet.md): join our discourse community!
+* [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion!
+* [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
 
 # Features
 Some highlights:
