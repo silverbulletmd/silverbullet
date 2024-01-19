@@ -10,7 +10,7 @@ The following configuration options are supported:
 
 * `suggestedName`: the proposed name for the new page, can use template placeholders such as `{{today}}`.
 * `confirmName`: Confirm the suggested page name before creating it (defaults to `true`).
-* `openIfExists`: If a page with the `suggestedName` already exists, open it instead of overwriting it. This is useful to implement page templates like [[Library/Core/New Page/Daily Note]].
+* `openIfExists`: If a page with the `suggestedName` already exists, open it instead of overwriting it. This is useful to implement page templates like [[Library/Journal/New Page/Daily Note]].
 * `forPrefix`: automatically apply (or offer, when multiple page templates match) this page template for page names that start with this prefix.
 * `command`: expose the snippet as a [[Commands|command]].
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
