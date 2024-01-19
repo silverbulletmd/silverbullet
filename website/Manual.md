@@ -21,10 +21,9 @@ SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements
   * [[Client Modes]] (the 🔄 button)
   * [[Index Page]] (the 🏠 button)
   * [[Page Picker]]
+  * [[Template Picker]]
   * [[Command Palette]]
-* The main [[Editor]] component contains your page’s text, as well as potentially:
-  * [[Table of Contents]] 
-  * [[Linked Mentions]]
+* The main [[Editor]] component contains your page’s text
 
 # Core Concepts
 These are the core concepts used in SilverBullet:
@@ -50,7 +49,7 @@ These are the core concepts used in SilverBullet:
 # Navigation
 The main ways to roam your space, beside following page links, are:
 * [[Page Picker]]
-* [[Linked Mentions]]
+* [[Template Picker]]
 * [[Full Text Search]]
 
 # Advanced topics
@@ -58,8 +57,8 @@ The main ways to roam your space, beside following page links, are:
   * [[Frontmatter]]
   * [[Attributes]]
 * [[Live Queries]]
-* [[Templates]] and [[Live Templates]]
-* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Template Libraries]]
+* [[Templates]]
+* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Library]]
 
 # Extending SilverBullet
 A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].

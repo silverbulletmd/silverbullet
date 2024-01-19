@@ -56,7 +56,7 @@ where page = "{{@page.name}}"
 select name, age, age + 1 as nextYear
 ```
 
-## render each [[template]] and render all [[template]]
+## render each `[[template]]` and render all `[[template]]`
 $render
 By default, results are rendered as a table. To instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
 

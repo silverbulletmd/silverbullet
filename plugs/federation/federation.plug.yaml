@@ -29,8 +29,8 @@ functions:
       pattern: "!.+"
       operation: getFileMeta
 
-  # Onboarding
-  importPrefixCommand:
-    path: import.ts:importPrefixCommand
+  # Library management
+  importLibraryCommand:
+    path: library.ts:importLibraryCommand
     command:
-      name: "Federation: Import Prefix"
+      name: "Import Library"

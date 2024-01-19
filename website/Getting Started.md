@@ -1,6 +1,6 @@
-Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off by importing some useful [[Templates]], you can import the core set of templates by pushing this button:
+Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off by the [[Library/Core]] library. You can do so easily with this button. Just push it — you know you want to!
 
-{[Federation: Import Prefix|Import Core Template Library]("!localhost:3001/Library/Core")}
+{[Import Library|Import Core Library]("!silverbullet.md/Library/Core/")}
 
 Did that? Alright, let’s proceed.
 

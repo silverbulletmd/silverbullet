@@ -1,12 +1,16 @@
 import { editor, space } from "$sb/syscalls.ts";
 import { cacheFileListing, readFile } from "./federation.ts";
 
-export async function importPrefixCommand(_def: any, uri?: string) {
+export async function importLibraryCommand(_def: any, uri?: string) {
   if (!uri) {
-    uri = await editor.prompt("Import from federation prefix:");
+    uri = await editor.prompt("Import library prefix (federation URL):");
   }
   if (!uri) {
     return;
+  }
+  uri = uri.trim();
+  if (!uri.startsWith("!")) {
+    uri = `!${uri}`;
   }
   const allTemplates = (await cacheFileListing(uri)).filter((f) =>
     f.name.endsWith(".md")

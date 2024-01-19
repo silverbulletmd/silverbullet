@@ -24,3 +24,5 @@ Example:
 header: false
 minHeaders: 1
 ```
+
+Want to add a table of contents to all your pages automatically? You can — that’s functionality available via the [[Library/Core]] library.

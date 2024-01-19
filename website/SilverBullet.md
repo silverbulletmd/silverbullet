@@ -29,13 +29,13 @@ Some highlights:
 * SilverBullet runs in any modern browser (including mobile ones) as a [[PWA]] in two [[Client Modes]] ([[Client Modes$online|online]] and [[Client Modes$sync|synced]] mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
 * SilverBullet provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * SilverBullet supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to thereby providing _bi-directional linking_.
-* SilverBullet allows you to boost your writing/knowledge collection productivity using its various [[Templates]] mechanism.
 * SilverBullet is optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[Slash Commands]] to perform common text editing operations.
-* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]] and [[Live Templates]], allowing to make parts of your pages _dynamic_.
-* SilverBullet can be extended using [[Plugs]].
+* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]], [[Live Templates]] and [[Live Template Widgets]], allowing to make parts of your pages and UI dynamic.
+* SilverBullet allows you to boost your writing/knowledge collection productivity using its various [[Templates]] mechanism.
+* SilverBullet can be extended using [[Library|Libraries]] and [[Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk (if you so choose). Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
