@@ -9,4 +9,4 @@ SilverBullet is working towards supporting more end-user programming features. S
 * [[Objects]]
 * [[Metadata]]
 * [[Live Queries]]
-* [[Blocks]]
+* [[Live Templates]]

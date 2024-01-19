@@ -8,4 +8,4 @@ The [[Plugs/Editor]] plug provides a few helpful ones:
 * `/today` to insert today’s date
 * `/tomorrow` to insert tomorrow’s date
 
-You can create custom slash commands using [[Slash Templates]].
+You can create custom slash commands using [[Snippets]].

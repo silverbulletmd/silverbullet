@@ -54,6 +54,7 @@ import {
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
 import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
+import { buildQueryFunctions } from "../common/query_functions.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -140,7 +141,10 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives);
+    this.stateDataStore = new DataStore(
+      stateKvPrimitives,
+      buildQueryFunctions(this.allKnownPages),
+    );
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
@@ -485,7 +489,12 @@ export class Client {
         new EventedSpacePrimitives(
           // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
           new FallbackSpacePrimitives(
-            new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
+            new DataStoreSpacePrimitives(
+              new DataStore(
+                spaceKvPrimitives,
+                buildQueryFunctions(this.allKnownPages),
+              ),
+            ),
             this.plugSpaceRemotePrimitives,
           ),
           this.eventHook,
@@ -554,11 +563,12 @@ export class Client {
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages
-        this.allKnownPages = new Set(
-          allFiles.filter((f) => f.name.endsWith(".md")).map((f) =>
-            f.name.slice(0, -3)
-          ),
-        );
+        this.allKnownPages.clear();
+        allFiles.forEach((f) => {
+          if (f.name.endsWith(".md")) {
+            this.allKnownPages.add(f.name.slice(0, -3));
+          }
+        });
       },
     );
 

@@ -1,3 +1,3 @@
 Linked Mentions are references from other pages to the current page. Technically, they’re not a built-in feature, but you can easily implement them using [[Live Template Widgets]].
 
-To enable linked mentions being added to your pages, include the [[template/block/linked-mentions]] template in your space, either through copy and pasting or through [[Federation]].
+To enable linked mentions being added to your pages, include the [[Library/Core/Widget/Linked Mentions]] template in your space.

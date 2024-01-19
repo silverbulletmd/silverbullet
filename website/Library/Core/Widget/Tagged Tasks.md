@@ -5,5 +5,5 @@ usage: Pass in the tag to filter on as the `value` of this template
 ---
 
 ```query
-task where tags = "{{.}}" and done = false render [[template/query/task]] 
+task where tags = "{{.}}" and done = false render [[Library/Core/Query/Task]] 
 ```

@@ -8,16 +8,16 @@ order by lastModified desc
 where size > 100
 select name
 limit 10
-render [[template/query/page]]
+render [[Library/Core/Query/Page]]
 ```
-It’s most convenient to use `/query` [[Slash Commands]] to insert a query in a page.
+It’s most convenient to use the `/query` [[Snippets|snippet]] to insert a query in a page.
 
 For those comfortable reading such things, [here you can find the full query grammar](https://github.com/silverbulletmd/silverbullet/blob/main/common/markdown_parser/query.grammar).
 
 The general syntax is to specify a `querySource` followed by a number of clauses that modify or restrict. If you haven’t already, check out how [[Objects]] work in SilverBullet.
 
 # Clauses
-## `where` [[@expression]]
+## where [[@expression]]
 A `where` clause filters out all objects that do not match a certain condition. You can have multiple `where` clauses if you like, which will have the same effect as combining them with the `and` keyword.
 
 Here is a simple example based on a custom tag `#person` (see [[Objects]] on how this works):
@@ -35,19 +35,19 @@ To query all `person`s that are above age 21, we can use the following `where` c
 ```query
 person where page = "{{@page.name}}" and age > 21
 ```
-## `order by` [[@expression]]
+## order by [[@expression]]
 To sort results, an `order by` clause can be used, optionally with `desc` to order in descending order (ascending is the default):
 
 ```query
 person where page = "{{@page.name}}" order by age desc
 ```
-## `limit` [[@expression]]
+## limit [[@expression]]
 To limit the number of results, you can use a `limit` clause:
 
 ```query
 person where page = "{{@page.name}}" limit 1
 ```
-## `select`
+## select
 You can use the `select` clause to select only specific attributes from the result set. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name via the `select age + 1 as nextYear` syntax:
 
 ```query
@@ -56,7 +56,7 @@ where page = "{{@page.name}}"
 select name, age, age + 1 as nextYear
 ```
 
-## `render each [[template]]` and `render all [[template]]`
+## render each [[template]] and render all [[template]]
 $render
 By default, results are rendered as a table. To instead render results using [[Templates|a template]], use the `render` clause, which comes in two shapes `render each` where the template is instantiated for _each_ result (the `each` keyword is optional):
 

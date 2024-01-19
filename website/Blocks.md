@@ -1,46 +1,16 @@
-Blocks render [[Templates]] on a page. They may appear in-line in the page itself, or can automatically be added to the top or bottom of specific pages based on certain criteria.
+Blocks use the fenced code block notation of [[Markdown]], and assign special behavior to it.
 
-## Template Blocks
-Template blocks are specified using [[Markdown]]‘s fenced code block notation using `block` as a language. The body of the code block specifies the template to use, as well as any arguments to pass to it.
+The general syntax is:
 
-Generally you’d use it in one of two ways, either using a `page` [[Templates|template]] reference, or an inline `template`:
+    ```block-type
+    block configuration
+    ```
 
-Here’s an example using `page`:
-```template
-page: "[[internal-template/today]]"
-```
+These are the block types that ship with SilverBullet, but [[Plugs]] can define their own:
 
-And here’s an example using `template`:
-```template
-template: |
-   Today is {{today}}!
-```
+* `template`: [[Live Templates]]
+* `query`: [[Live Queries]]
+* `toc`: [[Table of Contents]]
+* `embed`: [[Live Embeds]]
 
-To pass a literal value to the template, you can specify the optional `value` attribute:
-```template
-template: |
-   Hello, {{name}}! Today is _{{today}}_
-value:
-   name: Pete
-```
-
-You can also pass in the result of a [[Live Queries|query]] as a value by setting the `query` attribute:
-
-```template
-template: |
-   {{#each .}}
-   * #{{name}}
-   {{/each}}
-query: |
-   tag where parent = "page" select name
-```
-
-If you just want to render the raw markdown without handling it as a handlebars template, set `raw` to true:
-```template
-template: |
-   This is not going to be {{processed}} by Handlebars
-raw: true
-```
-
-# Top and bottom blocks
-
+The fenced code block syntax is also used to get [[Markdown/Syntax Highlighting]] for numerous programming languages.

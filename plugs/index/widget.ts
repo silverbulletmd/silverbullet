@@ -55,14 +55,6 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       continue;
     }
     const blockDef = WidgetConfig.parse(template.hooks[side]!);
-    if (!blockDef.where) {
-      console.warn(
-        "Skipping template",
-        template.ref,
-        "because it has no 'where' expression",
-      );
-      continue;
-    }
     const exprAST = parseTreeToAST(
       await language.parseLanguage("expression", blockDef.where!),
     );

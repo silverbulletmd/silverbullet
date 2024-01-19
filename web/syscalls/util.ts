@@ -18,11 +18,8 @@ export async function proxySyscall(
   name: string,
   args: any[],
 ): Promise<any> {
-  if (!ctx.plug) {
-    throw new Error(`Cannot proxy ${name} syscall without plug context`);
-  }
   const resp = await httpSpacePrimitives.authenticatedFetch(
-    `${httpSpacePrimitives.url}/.rpc/${ctx.plug}/${name}`,
+    `${httpSpacePrimitives.url}/.rpc/${ctx.plug || "_"}/${name}`,
     {
       method: "POST",
       body: JSON.stringify(args),

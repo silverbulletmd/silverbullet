@@ -34,6 +34,8 @@ import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
+import { FileMeta } from "$sb/types.ts";
+import { buildQueryFunctions } from "../common/query_functions.ts";
 
 // // Important: load this before the actual plugs
 // import {
@@ -59,6 +61,7 @@ export class ServerSystem {
   // denoKv!: Deno.Kv;
   listInterval?: number;
   ds!: DataStore;
+  allKnownPages = new Set<string>();
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
@@ -69,7 +72,10 @@ export class ServerSystem {
 
   // Always needs to be invoked right after construction
   async init(awaitIndex = false) {
-    this.ds = new DataStore(this.kvPrimitives);
+    this.ds = new DataStore(
+      this.kvPrimitives,
+      buildQueryFunctions(this.allKnownPages),
+    );
 
     this.system = new System(
       "server",
@@ -176,6 +182,19 @@ export class ServerSystem {
         await this.loadPlugFromSpace(path);
       }
     });
+
+    eventHook.addLocalListener(
+      "file:listed",
+      (allFiles: FileMeta[]) => {
+        // Update list of known pages
+        this.allKnownPages.clear();
+        allFiles.forEach((f) => {
+          if (f.name.endsWith(".md")) {
+            this.allKnownPages.add(f.name.slice(0, -3));
+          }
+        });
+      },
+    );
 
     // Ensure a valid index
     const indexPromise = ensureSpaceIndex(this.ds, this.system);

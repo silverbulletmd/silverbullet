@@ -1,5 +1,4 @@
 ---
-displayName: "Weekly Note"
 description: "Open your weekly note page"
 tags: template
 hooks.newPage:

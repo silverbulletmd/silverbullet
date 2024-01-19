@@ -1,6 +1,5 @@
 ---
-displayName: "Daily Note"
-description: "Open your daily note page"
+description: "Your daily note template"
 tags: template
 hooks.newPage:
   suggestedName: "📅 {{today}}"

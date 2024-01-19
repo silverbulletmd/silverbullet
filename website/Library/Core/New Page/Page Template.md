@@ -1,14 +1,13 @@
 ---
-displayName: Page Template
 description: Define a new Page Template
 tags: template
 hooks.newPage:
-  suggestedName: "template/page/"
-  forPrefix: template/page/
+  suggestedName: Library/Personal/Page/
+  forPrefix: Library/Personal/Page/
   confirmName: true
-frontmatter:
+frontmatter: |
   tags: template
   displayName: "|^|"
   hooks.newPage:
-    suggestedName: "template/page/"
+    suggestedName: Library/Personal/Page/
 ---

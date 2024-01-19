@@ -4,7 +4,10 @@ The page picker can be invoked by clicking the 📔 icon in the top bar, or by p
 
 The main input is the **filter phrase** and can be used to narrow down the list of page results.
 
-If the filter phrase contains `#tags` the results will be filtered based on matching those tags. That means to quickly see a list of all `#template`s you can use `#template` as a filter phrase. 
+If the filter phrase contains `#tags` the results will be filtered based on matching those tags.
+
+> **note** Note
+> [[Templates]], even though technically regular pages, do not appear in the page picker. To navigate to them, use the [[Template Picker]] instead.
 
 Pressing the `Enter` key will open/create the selected page. Pressing `Shift-Enter` will always open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase. Therefore, if you intend to create a new page, simply type the name of the new page and hit `Shift-Enter`.
 

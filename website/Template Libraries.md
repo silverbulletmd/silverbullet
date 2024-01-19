@@ -10,14 +10,14 @@ A lot of useful functionality in SilverBullet is implemented through various typ
 Use these [[Page Templates]] with the {[Page: From Template]} command.
 
 ```query
-template where hooks.newPage render [[internal-template/documented-template]]
+template where hooks.newPage render [[Library/Core/Query/Template]]
 ```
 
 # Slash Templates
-These can be used as [[Slash Templates]]:
+These can be used as [[Snippets]]:
 
 ```query
-template where hooks.snippet render [[internal-template/documented-template]]
+template where hooks.snippet render [[Library/Core/Query/Template]]
 ```
 
 # Blocks
@@ -26,7 +26,7 @@ template where hooks.snippet render [[internal-template/documented-template]]
 template
 where hooks.topBlock
 order by order
-render [[internal-template/documented-template]]
+render [[Library/Core/Query/Template]]
 ```
 
 ## Bottom Blocks
@@ -34,18 +34,18 @@ render [[internal-template/documented-template]]
 template
 where hooks.bottomBlock
 order by order
-render [[internal-template/documented-template]]
+render [[Library/Core/Query/Template]]
 ```
 
 
 ## Inline
-Use these as `page` in [[Blocks]] to render useful things in your pages:
+Use these as `page` in [[Live Templates]] to render useful things in your pages:
 
 ```query
 template
 where name =~ /^template\/block/ and hooks.topBlock = null and hooks.bottomBlock = null
 order by order
-render [[internal-template/documented-template]]
+render [[Library/Core/Query/Template]]
 ```
 
 # Live Query
@@ -55,5 +55,5 @@ Use these in your `render` clauses in [[Live Queries]].
 template
 where name =~ /^template\/query/
 order by order
-render [[internal-template/documented-template]]
+render [[Library/Core/Query/Template]]
 ```

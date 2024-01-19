@@ -41,7 +41,6 @@ export async function widget(
     return false;
   });
 
-  console.log("HERE WITH HEADERS", headers);
   if (headers.length === 0) {
     return null;
   }

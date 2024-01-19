@@ -40,7 +40,7 @@ export async function newPage(pageName: string) {
       return forPrefix && pageName.startsWith(forPrefix);
     },
   );
-  console.log("Matching templates", allPageTemplatesMatchingPrefix);
+  // console.log("Matching templates", allPageTemplatesMatchingPrefix);
   if (allPageTemplatesMatchingPrefix.length === 0) {
     // No matching templates, that's ok, we'll just start with an empty page, so let's just return
     return;
@@ -74,10 +74,14 @@ export async function newPage(pageName: string) {
 function selectPageTemplate(options: TemplateObject[]) {
   return editor.filterBox(
     "Page template",
-    options.map((templateObj) => ({
-      ...templateObj,
-      name: templateObj.displayName || templateObj.ref,
-    })),
+    options.map((templateObj) => {
+      const niceName = templateObj.ref.split("/").pop()!;
+      return {
+        ...templateObj,
+        description: templateObj.description || templateObj.ref,
+        name: templateObj.displayName || niceName,
+      };
+    }),
     `Select the template to create a new page from`,
   );
 }

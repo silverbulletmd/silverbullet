@@ -1,5 +1,4 @@
 ---
-displayName: "Quick Note"
 description: "Create a quick note"
 tags: template
 hooks.newPage:

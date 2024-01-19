@@ -11,6 +11,12 @@ export const builtinFunctions: FunctionMap = {
   min(...args: number[]) {
     return Math.min(...args);
   },
+  replace(str: string, match: [string, string] | string, replace: string) {
+    const matcher = Array.isArray(match)
+      ? new RegExp(match[0], match[1] + "g")
+      : match;
+    return str.replaceAll(matcher, replace);
+  },
   toJSON(obj: any) {
     return JSON.stringify(obj);
   },

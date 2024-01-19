@@ -58,7 +58,7 @@ The main ways to roam your space, beside following page links, are:
   * [[Frontmatter]]
   * [[Attributes]]
 * [[Live Queries]]
-* [[Templates]] and [[Blocks]]
+* [[Templates]] and [[Live Templates]]
 * [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Template Libraries]]
 
 # Extending SilverBullet

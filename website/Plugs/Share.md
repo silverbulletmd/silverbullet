@@ -8,5 +8,5 @@ See the [original RFC](https://github.com/silverbulletmd/silverbullet/discussion
 
 Specific implementations for sharing are implemented in other plugs, specifically:
 ```query
-plug where shareSupport = true render [[template/query/page]] 
+plug where shareSupport = true render [[Library/Core/Query/Page]] 
 ```
