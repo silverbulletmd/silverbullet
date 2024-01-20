@@ -13,6 +13,6 @@ export const INDEX_TEMPLATE =
 For your convenience we're including an on-boarding live template below. Enjoy!
 
 \`\`\`template
-page: "[[!localhost:3001/Getting Started]]"
+page: "[[!silverbullet.md/Getting Started]]"
 \`\`\`
 `;
