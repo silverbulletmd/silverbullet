@@ -1,23 +1,23 @@
-Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off by the [[Library/Core]] library. You can do so easily with this button. Just push it — you know you want to!
+Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off by importing the [[Library/Core]] [[Libraries|library]] of templates and pages. You can do so easily with the button below. Just push it — you know you want to!
 
-{[Import Library|Import Core Library]("!silverbullet.md/Library/Core/")}
+{[Library: Import|Import Core Library]("!silverbullet.md/Library/Core/")}
 
 Did that? Alright, let’s proceed.
 
 ## Getting started
 The best way to get a good feel for what SilverBullet is to immediately start playing with it. Here are some things for you to try:
 
-* Click on the page picker (book icon) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**.
+* Click on the page picker (book icon) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the [[Page Picker]].
   * Type the name of a non-existent page to create it.
   * You _can_ create pages in folders (if you’re into that type of thing) simply by putting slashes (`/`) in the name (even on Windows), e.g. `My Folder/My Page`. Don’t worry about that folder existing, we’ll automatically create it if it doesn’t.
-* Click on the terminal icon (top right), hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows), or tap the screen with 3 fingers at the same time (on mobile) to open the **command palette**. The {[Stats: Show]} one is a safe one to try.
+* Click on the terminal icon (top right), or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows), or tap the screen with 3 fingers at the same time (on mobile) to open the [[Command Palette]]. The {[Stats: Show]} one is a safe one to try.
+* Click on the “T” icon (top right), or hit `Cmd-Shift-t` (Mac) or `Ctrl-Shift-t` (Linux and Windows) to open the [[Template Picker]] and see what templates you have installed (which should be a few after importing the Core library)
 * Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` (Windows/Linux) to make it **bold**, or `Cmd-i` (Mac) or `Ctrl-i` (Windows/Linux) to make it _italic_.
 * Click a link somewhere on this page to navigate there. When you link to a new page it will initially show up in red (to indicate it does not yet exist), but once you click it — you will create the page automatically (only for real when you actually enter some text).
 * Start typing `[[` somewhere to insert your own page link (with completion).
 * [ ] Tap this box 👈 to mark this task as done.
 * Start typing `:party` to trigger the emoji picker 🎉
 * Type `/` somewhere in the text to invoke a **slash command**.
-* Hit `Cmd-p` (Mac) or `Ctrl-p` (Windows, Linux) to show a preview for the current page on the side.
 * If this is matching your personality type, you can click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode. If you cannot figure out how to exit it, just click that button again. _Phew!_
 
 Notice that as you move your cursor around on this page and you get close to or “inside” marked up text, you will get to see the underlying [[Markdown]] code. This experience is what we refer to as “live preview” — generally your text looks clean, but you still can see what’s under the covers and edit it directly, as opposed to [WYSIWYG](https://en.wikipedia.org/wiki/WYSIWYG) that some other applications use. To move your cursor somewhere using your mouse without navigating or activating (e.g. a wiki, regular link, or a button) hold `Alt` when you click. Holding `Cmd` or `Ctrl` when clicking a link will open it in a new tab or window.
@@ -42,4 +42,4 @@ Beyond that, you can find more information about SilverBullet on its official we
 1. Through its [regular website link](https://silverbullet.md/)
 2. Directly without leaving SilverBullet, through [[Federation]], just click on this: [[SilverBullet]] (note that all of these will be read-only, for obvious reasons)
 
-To keep up with the latest and greatest going-ons in SilverBullet land, keep an eye on the [[CHANGELOG]], and regularly update your SilverBullet instance (`silverbullet upgrade` if you’re running the Deno version). If you run into any issues or have ideas on how to make SilverBullet even awesomer (yes, that’s a word), [join the conversation on GitHub](https://github.com/silverbulletmd/silverbullet).
+To keep up with the latest and greatest going-ons in SilverBullet land, keep an eye on the [[CHANGELOG]].

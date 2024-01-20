@@ -1,4 +1,4 @@
-This page lists all templates active in your space.
+This page lists all templates currently available in your space.
 
 # New Page
 $newPage

@@ -1,6 +1,6 @@
-Templates are reusable pieces of markdown content, often containing placeholders that are replaced once instantiated.
+Templates are reusable pieces of (markdown) content, often containing placeholders that are replaced once instantiated.
 
-Templates are kept in your space. They’re effectively regular [[Pages]], but are [[Tags|tagged]] with the `template` tag.
+Templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
 
 Templates do not appear in the [[Page Picker]], but instead appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
 
@@ -28,7 +28,8 @@ Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a 
 
 * `tags`: should always be set to `template`
 * `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
-* `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the rendered template. This can either be specified as a string or as an object.
+* `description` (optional): may appear in various UIs to give more information about the template.
+* `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the _rendered_ template. This can either be specified as a string or as an object.
 * `hooks` (optional): hook the template into various parts of the system, look at [[Page Templates]], [[Snippets]] and [[Live Template Widgets]] for details.
 
 An example:
@@ -43,9 +44,9 @@ An example:
     * |^|
 
 # Content
-Templates consist of markdown, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
+Templates consist of plain markdown text, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
 
-The special `|^|` marker can be used to specify the desired cursor position after the template is included.
+A special `|^|` marker can be used to specify the desired cursor position after the template is included.
 
 ## Handlebar helpers
 There are a number of built-in handlebars helpers you can use:

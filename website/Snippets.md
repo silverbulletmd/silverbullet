@@ -8,7 +8,7 @@ You define a snippet by creating a [[Templates|template]] with a `hooks.snippet`
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
 * `matchRegex` (advanced use only): match the current line against a regular expression, and replace the match with the template’s body.
-* `insertAt`: by default a snippet is inserted at the cursor position (`insertAt: cursor`), but alternatively it can be inserted at: `line-start`, `line-end`, `page-start` or `page-end`.
+* `insertAt`: by default a snippet is inserted at the cursor position, but alternatively it can be inserted at: `line-start`, `line-end`, `page-start` or `page-end`.
 
 Minimal example:
 
@@ -22,7 +22,7 @@ Minimal example:
     |^|
 
 ## Frontmatter
-A template’s [[Frontmatter]] is interpreted by SilverBullet’s [[Templates|template]] engine and removed when instantiated. However, to still include frontmatter after instantiation, you can use the `frontmatter` attribute.
+A template’s [[Frontmatter]] is interpreted by SilverBullet’s [[Templates|template]] engine and removed when instantiated. However, to inject frontmatter after instantiation, you can use the `frontmatter` attribute.
 
 Example:
 
@@ -45,7 +45,7 @@ Which will expand into e.g.
 
     .
 
-When the page already contains frontmatter before inserting the snippet, it will be augmented with the additional frontmatter specified by the template.
+When the page already contained frontmatter before inserting the snippet, it will be augmented with the additional frontmatter specified by the template.
 
 # Use
 A snippet can be _triggered_ via the specified `slashCommand` via `/slashCommand` or via {[Open Command Palette]} and/or its associate key bindings when `command`, `key`/`mac` are specified.

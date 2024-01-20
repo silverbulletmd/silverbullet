@@ -21,4 +21,4 @@ The following widget template applies to all pages tagged with `person` (see the
     page: "[[!silverbullet.md/Library/Core/Widget/Linked Tasks]]"
     ```
 
-More examples can be found [[Library/Core/Page/Templates$widgets|here]].
+More examples can be found [[Library/Core/Page/Template Index$widgets|here]].

@@ -1,7 +1,7 @@
 This library contains some useful page templates for journalers. Want to easily create a daily or weekly note? These templates got your covered. Instantiate them via {[Page: From Template]}. 
 
 # Installation
-To import this library, run the {[Import Library]} command in your SilverBullet space and enter:
+To import this library, run the {[Library: Import]} command in your SilverBullet space and enter:
 
     !silverbullet.md/Library/Journal/
 

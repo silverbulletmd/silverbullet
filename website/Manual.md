@@ -11,7 +11,8 @@ The biggest hurdle to get over with SilverBullet is that you need to get this th
 * [[Install]]: Installation instructions for various setups
 * [[Deployments]]: various deployment options
 * [[Authelia]]: configuring SilverBullet with [Authelia](https://www.authelia.com/) authentication.
-* [[Guide/Deployment/Cloudflare and Portainer]]: configuring SilverBullet with a Cloudflare tunnel, portainer and optional Cloudflare zero trust authentication.
+
+For more additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).
 
 # User interface
 SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.
@@ -58,7 +59,7 @@ The main ways to roam your space, beside following page links, are:
   * [[Attributes]]
 * [[Live Queries]]
 * [[Templates]]
-* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Library]]
+* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Libraries]]
 
 # Extending SilverBullet
 A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].

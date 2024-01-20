@@ -33,7 +33,7 @@ Some highlights:
   * Use [[Slash Commands]] to perform common text editing operations.
 * SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]], [[Live Templates]] and [[Live Template Widgets]], allowing to make parts of your pages and UI dynamic.
 * SilverBullet allows you to boost your writing/knowledge collection productivity using its various [[Templates]] mechanism.
-* SilverBullet can be extended using [[Library|Libraries]] and [[Plugs]].
+* SilverBullet can be extended using [[Libraries]] and [[Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk (if you so choose). Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 

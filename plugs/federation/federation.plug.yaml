@@ -33,4 +33,4 @@ functions:
   importLibraryCommand:
     path: library.ts:importLibraryCommand
     command:
-      name: "Import Library"
+      name: "Library: Import"

@@ -3,7 +3,7 @@ import { cacheFileListing, readFile } from "./federation.ts";
 
 export async function importLibraryCommand(_def: any, uri?: string) {
   if (!uri) {
-    uri = await editor.prompt("Import library prefix (federation URL):");
+    uri = await editor.prompt("Import library (federation URL):");
   }
   if (!uri) {
     return;
