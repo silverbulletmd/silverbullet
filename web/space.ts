@@ -26,7 +26,10 @@ export class Space {
         this.watchedPages.delete(pageName);
       }
     });
-    this.updatePageList().catch(console.error);
+    setTimeout(() => {
+      // Next tick, to ensure that the space is initialized
+      this.updatePageList().catch(console.error);
+    });
   }
 
   public async updatePageList() {
