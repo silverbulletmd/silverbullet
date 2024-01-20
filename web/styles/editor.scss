@@ -410,6 +410,10 @@
 
   .sb-markdown-widget {
     margin: 0 0 -4ch 0;
+
+    ::selection {
+      background-color: var(--editor-selection-background-color) !important;
+    }
   }
 
   .sb-markdown-top-widget h1,

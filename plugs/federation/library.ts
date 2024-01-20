@@ -49,6 +49,8 @@ export async function importLibraryCommand(_def: any, uri?: string) {
 
     // Write to local space
     await space.writePage(pageName, new TextDecoder().decode(buf));
+
+    await editor.flashNotification(`Imported ${pageName}`);
   }
   await editor.reloadSettingsAndCommands();
   await editor.flashNotification("Import complete!");

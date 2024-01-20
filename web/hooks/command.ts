@@ -42,7 +42,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
 
   throttledBuildAllCommands = throttle(() => {
     this.buildAllCommands().catch(console.error);
-  }, 1000);
+  }, 200);
 
   async buildAllCommands() {
     this.editorCommands.clear();

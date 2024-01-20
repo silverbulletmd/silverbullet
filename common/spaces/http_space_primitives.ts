@@ -57,6 +57,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (
         errorMessage.includes("fetch") || errorMessage.includes("load failed")
       ) {
+        console.error(
+          "Got error fetching, throwing offline",
+          url,
+          e.errorMessage,
+        );
         throw new Error("Offline");
       }
       throw e;

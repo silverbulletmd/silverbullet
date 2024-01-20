@@ -1,3 +1,2 @@
-# /.fs     /index.json 200
 /.client/* /_client/:splat 200!
 /*         /_client/index.html 200

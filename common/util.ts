@@ -1,9 +1,8 @@
-import { SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
+import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import type { BuiltinSettings } from "../web/types.ts";
-import { INDEX_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 
 /**
  * Runs a function safely by catching any errors and logging them to the console.

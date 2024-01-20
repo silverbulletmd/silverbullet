@@ -8,9 +8,11 @@ indexPage: index
 `;
 
 export const INDEX_TEMPLATE =
-  `Hello! And welcome to your brand new SilverBullet space!
+  `This is the index page of your fresh SilverBullet space. It is the default page that is loaded when you open a space.
+
+For your convenience we're including an on-boarding live template below. Enjoy!
 
 \`\`\`template
-page: "[[!silverbullet.md/Getting Started]]"
+page: "[[!localhost:3001/Getting Started]]"
 \`\`\`
 `;

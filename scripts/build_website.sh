@@ -39,7 +39,6 @@ cat website/_headers | sed "s/12345/$LAST_MODIFIED_TIMESTAMP/g" > website_build/
 echo "Generating file listing"
 deno run -A scripts/generate_fs_list.ts > website_build/index.json
 
-echo > website_build/empty.md
 
 #echo "Bundling..."
 deno task bundle

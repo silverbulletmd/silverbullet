@@ -136,6 +136,11 @@ export class MarkdownWidget extends WidgetType {
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
+    div.addEventListener("mousedown", (e) => {
+      // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.
+      // That's nice, but not for markdown widgets, so let's not propagate the event to CodeMirror here.
+      e.stopPropagation();
+    });
     // Override wiki links with local navigate (faster)
     div.querySelectorAll("a[data-ref]").forEach((el_) => {
       const el = el_ as HTMLElement;
