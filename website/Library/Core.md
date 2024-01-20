@@ -3,7 +3,7 @@ This library is highly recommended for everybody to import immediately. It provi
 Some random examples:
 * [[Table of Contents]] and [[Linked Mentions]]
 * All the slash commands you know and love, ranging from `/h1` to `/task` to `/table` to `/code` to `/query` to `/template` to `/today` to...
-* Some useful general purpose pages such as [[Library/Core/Page/Maintenance]] and [[Library/Core/Page/Template Index]].
+* Some useful general purpose pages such as [[Library/Core/Page/Maintenance]], [[Library/Core/Quick Notes]] and [[Library/Core/Page/Template Index]].
 
 # Installation
 To import this library, run the {[Library: Import]} command in your SilverBullet space and enter:
