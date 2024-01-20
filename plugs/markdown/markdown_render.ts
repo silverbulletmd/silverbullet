@@ -330,6 +330,13 @@ function render(
       const command = t.children![1].children![0].text!;
       let commandText = command;
       const aliasNode = findNodeOfType(t, "CommandLinkAlias");
+      const argsNode = findNodeOfType(t, "CommandLinkArgs");
+      let args: any = [];
+
+      if (argsNode) {
+        args = JSON.parse(`[${argsNode.children![0].text!}]`);
+      }
+
       if (aliasNode) {
         commandText = aliasNode.children![0].text!;
       }
@@ -337,7 +344,7 @@ function render(
       return {
         name: "button",
         attrs: {
-          "data-onclick": JSON.stringify(["command", command]),
+          "data-onclick": JSON.stringify(["command", command, args]),
         },
         body: commandText,
       };

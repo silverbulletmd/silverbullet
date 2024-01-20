@@ -17,8 +17,14 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     /render\s+\[\[|page:\s*["']\[\[/.test(
       completeEvent.linePrefix,
     );
-  const tagToQuery = isInTemplateContext ? "template" : "page";
-  let allPages: PageMeta[] = await queryObjects<PageMeta>(tagToQuery, {}, 5);
+
+  // When in a template context, we only want to complete template pages
+  // When outside of a template context, we want to complete all pages except template pages
+  let allPages: PageMeta[] = isInTemplateContext
+    ? await queryObjects<PageMeta>("template", {}, 5)
+    : await queryObjects<PageMeta>("page", {
+      filter: ["!=", ["attr", "tags"], ["string", "template"]],
+    }, 5);
   const prefix = match[1];
   if (prefix.startsWith("!")) {
     // Federation prefix, let's first see if we're matching anything from federation that is locally synced

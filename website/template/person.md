@@ -1,1 +1,0 @@
-* Person **{{name}}** has {{age}}

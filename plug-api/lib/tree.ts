@@ -191,7 +191,10 @@ export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
 }
 
 // Turn ParseTree back into text
-export function renderToText(tree: ParseTree): string {
+export function renderToText(tree?: ParseTree): string {
+  if (!tree) {
+    return "";
+  }
   const pieces: string[] = [];
   if (tree.text !== undefined) {
     return tree.text;

@@ -30,13 +30,21 @@ export class LinkWidget extends WidgetType {
     anchor.textContent = this.options.text;
 
     // Mouse handling
-    anchor.addEventListener("mousedown", (e) => {
+    anchor.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    anchor.addEventListener("mouseup", (e) => {
       if (e.button !== 0) {
         return;
       }
       e.preventDefault();
       e.stopPropagation();
-      this.options.callback(e);
+      try {
+        this.options.callback(e);
+      } catch (e) {
+        console.error("Error handling wiki link click", e);
+      }
     });
 
     // Touch handling
@@ -111,7 +119,7 @@ export class ButtonWidget extends WidgetType {
     const anchor = document.createElement("button");
     anchor.className = this.cssClass;
     anchor.textContent = this.text;
-    anchor.addEventListener("click", (e) => {
+    anchor.addEventListener("mouseup", (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.callback(e);

@@ -48,13 +48,7 @@ export async function runPlug(
   }, app.fetch);
 
   if (functionName) {
-    const [plugName, funcName] = functionName.split(".");
-
-    const plug = serverSystem.system.loadedPlugs.get(plugName);
-    if (!plug) {
-      throw new Error(`Plug ${plugName} not found`);
-    }
-    const result = await plug.invoke(funcName, args);
+    const result = await serverSystem.system.invokeFunction(functionName, args);
     await serverSystem.close();
     serverSystem.kvPrimitives.close();
     serverController.abort();

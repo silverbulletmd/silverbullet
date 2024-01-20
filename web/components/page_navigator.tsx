@@ -11,12 +11,14 @@ export function PageNavigator({
   onNavigate,
   completer,
   vimMode,
+  mode,
   darkMode,
   currentPage,
 }: {
   allPages: PageMeta[];
   vimMode: boolean;
   darkMode: boolean;
+  mode: "page" | "template";
   onNavigate: (page: string | undefined) => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
@@ -72,7 +74,7 @@ export function PageNavigator({
   }
   return (
     <FilterList
-      placeholder="Page"
+      placeholder={mode === "page" ? "Page" : "Template"}
       label="Open"
       options={options}
       vimMode={vimMode}
@@ -83,24 +85,35 @@ export function PageNavigator({
         return phrase;
       }}
       preFilter={(options, phrase) => {
-        const allTags = phrase.match(tagRegex);
-        if (allTags) {
-          // Search phrase contains hash tags, let's pre-filter the results based on this
-          const filterTags = allTags.map((t) => t.slice(1));
+        if (mode === "page") {
+          const allTags = phrase.match(tagRegex);
+          if (allTags) {
+            // Search phrase contains hash tags, let's pre-filter the results based on this
+            const filterTags = allTags.map((t) => t.slice(1));
+            options = options.filter((pageMeta) => {
+              if (!pageMeta.tags) {
+                return false;
+              }
+              return filterTags.every((tag) =>
+                pageMeta.tags.find((itemTag: string) => itemTag.startsWith(tag))
+              );
+            });
+          }
           options = options.filter((pageMeta) => {
-            if (!pageMeta.tags) {
-              return false;
-            }
-            return filterTags.every((tag) =>
-              pageMeta.tags.find((itemTag: string) => itemTag.startsWith(tag))
-            );
+            return !pageMeta.tags?.includes("template");
           });
+          return options;
+        } else {
+          // Filter on pages tagged with "template"
+          options = options.filter((pageMeta) => {
+            return pageMeta.tags?.includes("template");
+          });
+          return options;
         }
-        return options;
       }}
       allowNew={true}
-      helpText="Press <code>Enter</code> to open the selected page, or <code>Shift-Enter</code> to create a new page with this exact name."
-      newHint="Create page"
+      helpText={`Press <code>Enter</code> to open the selected ${mode}, or <code>Shift-Enter</code> to create a new ${mode} with this exact name.`}
+      newHint={`Create ${mode}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
         onNavigate(opt?.name);

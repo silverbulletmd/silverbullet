@@ -45,6 +45,7 @@ import { TextChange } from "$sb/lib/change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "../common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
+import { Compartment, Extension } from "@codemirror/state";
 
 export function createEditorState(
   client: Client,
@@ -52,84 +53,15 @@ export function createEditorState(
   text: string,
   readOnly: boolean,
 ): EditorState {
-  const commandKeyBindings: KeyBinding[] = [];
-
-  // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
-  const overriddenCommands = new Set<string>();
-  // Keyboard shortcuts from SETTINGS take precedense
-  if (client.settings?.shortcuts) {
-    for (const shortcut of client.settings.shortcuts) {
-      // Figure out if we're using the command link syntax here, if so: parse it out
-      const commandMatch = commandLinkRegex.exec(shortcut.command);
-      let cleanCommandName = shortcut.command;
-      let args: any[] = [];
-      if (commandMatch) {
-        cleanCommandName = commandMatch[1];
-        args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
-      }
-      if (args.length === 0) {
-        // If there was no "specialization" of this command (that is, we effectively created a keybinding for an existing command but with arguments), let's add it to the overridden command set:
-        overriddenCommands.add(cleanCommandName);
-      }
-      commandKeyBindings.push({
-        key: shortcut.key,
-        mac: shortcut.mac,
-        run: (): boolean => {
-          client.runCommandByName(cleanCommandName, args).catch((e: any) => {
-            console.error(e);
-            client.flashNotification(
-              `Error running command: ${e.message}`,
-              "error",
-            );
-          }).then(() => {
-            // Always be focusing the editor after running a command
-            client.focus();
-          });
-          return true;
-        },
-      });
-    }
-  }
-
-  // Then add bindings for plug commands
-  for (const def of client.system.commandHook.editorCommands.values()) {
-    if (def.command.key) {
-      // If we've already overridden this command, skip it
-      if (overriddenCommands.has(def.command.key)) {
-        continue;
-      }
-      commandKeyBindings.push({
-        key: def.command.key,
-        mac: def.command.mac,
-        run: (): boolean => {
-          if (def.command.contexts) {
-            const context = client.getContext();
-            if (!context || !def.command.contexts.includes(context)) {
-              return false;
-            }
-          }
-          Promise.resolve([])
-            .then(def.run)
-            .catch((e: any) => {
-              console.error(e);
-              client.flashNotification(
-                `Error running command: ${e.message}`,
-                "error",
-              );
-            })
-            .then(() => {
-              // Always be focusing the editor after running a command
-              client.focus();
-            });
-          return true;
-        },
-      });
-    }
-  }
-
   let touchCount = 0;
 
   const markdownLanguage = buildMarkdown(client.system.mdExtensions);
+
+  // Ugly: keep the keyhandler compartment in the client, to be replaced later once more commands are loaded
+  client.keyHandlerCompartment = new Compartment();
+  const keyBindings = client.keyHandlerCompartment.of(
+    createKeyBindings(client),
+  );
 
   return EditorState.create({
     doc: text,
@@ -209,48 +141,13 @@ export function createEditorState(
         { selector: "BulletList", class: "sb-line-ul" },
         { selector: "OrderedList", class: "sb-line-ol" },
         { selector: "TableHeader", class: "sb-line-tbl-header" },
-        { selector: "FrontMatter", class: "sb-frontmatter" },
-      ]),
-      keymap.of([
-        ...commandKeyBindings,
-        ...smartQuoteKeymap,
-        ...closeBracketsKeymap,
-        ...standardKeymap,
-        ...searchKeymap,
-        ...historyKeymap,
-        ...completionKeymap,
-        indentWithTab,
         {
-          key: "Ctrl-k",
-          mac: "Cmd-k",
-          run: (): boolean => {
-            client.startPageNavigate();
-            return true;
-          },
-        },
-        {
-          key: "Ctrl-/",
-          mac: "Cmd-/",
-          run: (): boolean => {
-            client.ui.viewDispatch({
-              type: "show-palette",
-              context: client.getContext(),
-            });
-            return true;
-          },
-        },
-        {
-          key: "Ctrl-.",
-          mac: "Cmd-.",
-          run: (): boolean => {
-            client.ui.viewDispatch({
-              type: "show-palette",
-              context: client.getContext(),
-            });
-            return true;
-          },
+          selector: "FrontMatter",
+          class: "sb-frontmatter",
+          disableSpellCheck: true,
         },
       ]),
+      keyBindings,
       EditorView.domEventHandlers({
         // This may result in duplicated touch events on mobile devices
         touchmove: () => {
@@ -365,4 +262,102 @@ export function createEditorState(
       closeBrackets(),
     ],
   });
+}
+
+export function createKeyBindings(client: Client): Extension {
+  const commandKeyBindings: KeyBinding[] = [];
+
+  // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
+  const overriddenCommands = new Set<string>();
+  // Keyboard shortcuts from SETTINGS take precedense
+  if (client.settings?.shortcuts) {
+    for (const shortcut of client.settings.shortcuts) {
+      // Figure out if we're using the command link syntax here, if so: parse it out
+      const commandMatch = commandLinkRegex.exec(shortcut.command);
+      let cleanCommandName = shortcut.command;
+      let args: any[] = [];
+      if (commandMatch) {
+        cleanCommandName = commandMatch[1];
+        args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
+      }
+      if (args.length === 0) {
+        // If there was no "specialization" of this command (that is, we effectively created a keybinding for an existing command but with arguments), let's add it to the overridden command set:
+        overriddenCommands.add(cleanCommandName);
+      }
+      commandKeyBindings.push({
+        key: shortcut.key,
+        mac: shortcut.mac,
+        run: (): boolean => {
+          client.runCommandByName(cleanCommandName, args).catch((e: any) => {
+            console.error(e);
+            client.flashNotification(
+              `Error running command: ${e.message}`,
+              "error",
+            );
+          }).then(() => {
+            // Always be focusing the editor after running a command
+            client.focus();
+          });
+          return true;
+        },
+      });
+    }
+  }
+
+  // Then add bindings for plug commands
+  for (const def of client.system.commandHook.editorCommands.values()) {
+    if (def.command.key) {
+      // If we've already overridden this command, skip it
+      if (overriddenCommands.has(def.command.key)) {
+        continue;
+      }
+      commandKeyBindings.push({
+        key: def.command.key,
+        mac: def.command.mac,
+        run: (): boolean => {
+          if (def.command.contexts) {
+            const context = client.getContext();
+            if (!context || !def.command.contexts.includes(context)) {
+              return false;
+            }
+          }
+          Promise.resolve([])
+            .then(def.run)
+            .catch((e: any) => {
+              console.error(e);
+              client.flashNotification(
+                `Error running command: ${e.message}`,
+                "error",
+              );
+            })
+            .then(() => {
+              // Always be focusing the editor after running a command
+              client.focus();
+            });
+          return true;
+        },
+      });
+    }
+  }
+  return keymap.of([
+    ...commandKeyBindings,
+    ...smartQuoteKeymap,
+    ...closeBracketsKeymap,
+    ...standardKeymap,
+    ...searchKeymap,
+    ...historyKeymap,
+    ...completionKeymap,
+    indentWithTab,
+    {
+      key: "Ctrl-.",
+      mac: "Cmd-.",
+      run: (): boolean => {
+        client.ui.viewDispatch({
+          type: "show-palette",
+          context: client.getContext(),
+        });
+        return true;
+      },
+    },
+  ]);
 }

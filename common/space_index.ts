@@ -16,7 +16,7 @@ export async function ensureSpaceIndex(ds: DataStore, system: System<any>) {
   if (currentIndexVersion !== desiredIndexVersion && !indexOngoing) {
     console.info("Performing a full space reindex, this could take a while...");
     indexOngoing = true;
-    await system.loadedPlugs.get("index")!.invoke("reindexSpace", []);
+    await system.invokeFunction("index.reindexSpace", []);
     console.info("Full space index complete.");
     await markFullSpaceIndexComplete(ds);
     indexOngoing = false;

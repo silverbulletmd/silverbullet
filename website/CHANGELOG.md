@@ -2,9 +2,16 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
-## Next
-_Not yet released, this will likely become 0.6.0._
+## Edge
+_Not yet released, this will likely become 0.6.0. To try this out now, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
+* **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]].
+  A quick FAQ:
+  * **Where did my templates go!?** They have now moved to the [[Template Picker]], see that “T” button up there? Yeah, that’s new.
+  * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
+  * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
+  * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
+* The [[Getting Started]] page (that is embedded in the `index` page that is auto-generated when creating a new space) has been updated to include instructions on how to import the [[Library/Core]] library.
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
 * (Hopefully subtle) **breaking change** in how tags work (see [[Objects]]):
   * Every object now has a `tag` attribute, signifying the “main” tag for that object (e.g. `page`, `item`)
@@ -12,17 +19,14 @@ _Not yet released, this will likely become 0.6.0._
   * The new `itags` attribute (available in many objects) includes both the `tag`, `tags` as well as any tags inherited from the page the object appears in.
   * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text, see [[Objects$page]].
 * New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
-* New template type: [[Live Template Widgets]] allowing you to automatically add templates to the top or bottom of your pages (based on some criteria). Using this feature it possible to implement [[Table of Contents]] and [[Linked Mentions]] without having “hard coded” into SilverBullet itself.
-* **“Breaking” change:** Two features are now no longer hardcoded into SilverBullet, but can be activated quite easily using [[Live Template Widgets]] (see their respective documentation pages on instructions on how to do this):
-  * [[Table of Contents]]
-  * [[Linked Mentions]]
-* Filter list (used by [[Page Picker]] and [[Command Palette]]) improvements:
+* Filter list (used by [[Page Picker]], [[Template Picker]] and [[Command Palette]]) improvements:
   * Better ranking
   * Better positioning of modal (especially on mobile)
   * Better mouse behavior
 * Templates:
   * Somewhat nicer rendering of {{templateVars}} (notice the gray background)
   * Rendering of [[Markdown/Code Widgets]] (such as live queries and templates) **are now disabled** on template pages, which should make them less confusing to read and interpret.
+* The `indexPage` [[SETTINGS]] can now contain template variables, such as `{{today}}`
 * Backend work in preparation for supporting more “serverless” deployments (e.g. Cloudflare workers and Deno Deploy) in the future
   * Move from [Oak](https://oakserver.github.io/oak/) to [Hono](https://hono.dev/)
   * Support for in-process plug loading (without workers)
@@ -73,7 +77,7 @@ _Not yet released, this will likely become 0.6.0._
 ---
 ## 0.5.6
 * Various optimization and bug fixes
-* Experimental idea: [[Template Sets]]
+* Experimental idea: [[Libraries]]
 * The `Alt-Shift-n` key was previously bound to both {[Page: New]} and {[Quick Note]}. That won’t work, so now it’s just bound to {[Quick Note]}
 * The `Alt-q` command is now bound to the new {[Live Queries and Templates: Refresh All]} command, refreshing all [[Live Queries]] and [[Live Templates]] on the page. This is to get y’all prepared to move away from directives.
 * It’s likely that version 0.6.0 **will remove directives**, so please switch over to live queries and templates, e.g. using...
@@ -89,7 +93,7 @@ _Not yet released, this will likely become 0.6.0._
 ## 0.5.4
 * We’re on a journey to rethink [[Templates]]:
   * It is now _recommended_ you tag all your templates with a `#template` tag, this will exclude them from [[Objects]] indexing and may in the future be used to do better template name completion (but not yet).
-  * New feature: Introducing [[Slash Templates]], allowing you to create custom [[Slash Commands]]. This deprecates snippets and page templates, because [[Slash Templates]] are awesomer. 
+  * New feature: Introducing [[Snippets]], allowing you to create custom [[Slash Commands]]. This deprecates snippets and page templates, because [[Snippets]] are awesomer. 
 * Many styling fixes and improvements to [[Live Queries]] and [[Live Templates]]
 * Added a “source” button to [[Live Queries]] and [[Live Templates]] for better debugging (showing you the markdown code rendered by the template so you can more easily detect issues)
 * [[Live Queries]]:
@@ -125,14 +129,14 @@ _Not yet released, this will likely become 0.6.0._
 Oh boy, this is a big one. This release brings you the following:
 
 * [[Objects]]: a more generic system for indexing and querying content in your space, including the ability to define your own custom object “types” (dubbed [[Tags]]). See the referenced pages for examples.
-* [[Live Queries]] and [[Live Templates]]: ultimately will replace [[🔌 Directive]] in future versions and **[[🔌 Directive]] is now deprecated.** They differ from directives in that they don’t materialize their output into the page itself, but rather render them on the fly so only the query/template instantiation is kept on disk. All previous directive examples on this website how now been replaced with [[Live Templates]] and [[Live Queries]]. To ease the conversion there is {[Directive: Convert Query to Live Query]} command: just put your cursor inside of an existing (query) directive and run it to auto-convert.
-* The query syntax used in [[Live Queries]] (but also used in [[🔌 Directive]]) has been significantly expanded, although there may still be bugs. There’s still more value to be unlocked here in future releases.
+* [[Live Queries]] and [[Live Templates]]: ultimately will replace directives in future versions and **directives are now deprecated.** They differ from directives in that they don’t materialize their output into the page itself, but rather render them on the fly so only the query/template instantiation is kept on disk. All previous directive examples on this website how now been replaced with [[Live Templates]] and [[Live Queries]]. To ease the conversion there is {[Directive: Convert Query to Live Query]} command: just put your cursor inside of an existing (query) directive and run it to auto-convert.
+* The query syntax used in [[Live Queries]] (but also used in directives) has been significantly expanded, although there may still be bugs. There’s still more value to be unlocked here in future releases.
 * The previous “backlinks” plug is now built into SilverBullet as [[Linked Mentions]] and appears at the bottom of every page (if there are incoming links). You can toggle linked mentions via {[Mentions: Toggle]}.
 * A whole bunch of [[PlugOS]] syscalls have been updated. I’ll do my best update known existing plugs, but if you built existing ones some things may have broken. Please report anything broken in [Github issues](https://github.com/silverbulletmd/silverbullet/issues).
-* This release effectively already removes the `#eval` [[🔌 Directive]] (it’s still there, but likely not working), this directive needs some rethinking. Join us on [Discord](https://discord.gg/EvXbFucTxn) if you have a use case for it and how you use/want to use it.
+* This release effectively already removes the `#eval` (it’s still there, but likely not working), this directive needs some rethinking. Join us on [Discord](https://discord.gg/EvXbFucTxn) if you have a use case for it and how you use/want to use it.
 
 **Important**:
-* If you have plugs such as “backlinks” or “graphview” installed, please remove them (or to be safe: all plugs) from the `_plug` folder in your space after the upgrade. Then, also remove them from your [[PLUGS]] page. The backlinks plug is now included by default (named [[Linked Mentions]]), and GraphView still needs to be updated (although it’s been kind of abandoned by the author).
+* If you have plugs such as “backlinks” or “graphview” installed, please remove them (or to be safe: all plugs) from the `_plug` folder in your space after the upgrade. Then, also remove them from your `PLUGS` page. The backlinks plug is now included by default (named [[Linked Mentions]]), and GraphView still needs to be updated (although it’s been kind of abandoned by the author).
 
 Due to significant changes in how data is stored, likely your space will be resynced to all your clients once you upgrade. Just in case you may also want to {[Space: Reindex]} your space. If things are really broken, try the {[Debug: Reset Client]} command.
 
@@ -142,7 +146,7 @@ Due to significant changes in how data is stored, likely your space will be resy
 The big change in this release is that SilverBullet now supports two [[Client Modes|client modes]]: _online_ mode and _sync_ mode. Read more about them here: [[Client Modes]].
 
 Other notable changes:
-* Massive reshuffling of built-in [[🔌 Plugs]], splitting the old “core” plug into [[Plugs/Editor]], [[Plugs/Template]] and [[Plugs/Index]].
+* Massive reshuffling of built-in [[Plugs]], splitting the old “core” plug into [[Plugs/Editor]], [[Plugs/Template]] and [[Plugs/Index]].
 * Directives in [[Live Preview]] now always take up a single line height.
 * [[Plugs/Tasks]] now support custom states (not just `[x]` and `[ ]`), for example:
   * [IN PROGRESS] An in progress task

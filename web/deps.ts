@@ -14,6 +14,7 @@ export {
   Home as HomeIcon,
   RefreshCw as RefreshCwIcon,
   Terminal as TerminalIcon,
+  Type as TemplateIcon,
 } from "https://esm.sh/preact-feather@4.2.1?external=preact";
 
 // Vim mode

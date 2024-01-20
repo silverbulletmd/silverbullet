@@ -1,3 +1,3 @@
-Linked Mentions are references from other pages to the current page. Technically, they’re not a built-in feature, but you can easily implement them using [[Live Template Widgets]].
+On this site you see a section “Linked Mentions” appear along the bottom of every page that has incoming links. 👇🏻 This section lists all pages that contain a _link_ to the current page. This allows for easy navigation, and may help you discover linked concepts through these links.
 
-To enable linked mentions being added to your pages, include the [[template/widget/linked-mentions]] template in your space, either through copy and pasting or through [[Federation]].
+Linked Mentions are not a feature built into SilverBullet directly, but can easily be added by importing the [[Library/Core|core library]].

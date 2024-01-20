@@ -39,12 +39,26 @@ export function navigate(
   return syscall("editor.navigate", name, pos, replaceState, newWindow);
 }
 
+export function openPageNavigator(
+  mode: "page" | "template" = "page",
+): Promise<void> {
+  return syscall("editor.openPageNavigator", mode);
+}
+
+export function openCommandPalette(): Promise<void> {
+  return syscall("editor.openCommandPalette");
+}
+
 export function reloadPage(): Promise<void> {
   return syscall("editor.reloadPage");
 }
 
 export function reloadUI(): Promise<void> {
   return syscall("editor.reloadUI");
+}
+
+export function reloadSettingsAndCommands(): Promise<void> {
+  return syscall("editor.reloadSettingsAndCommands");
 }
 
 export function openUrl(url: string, existingWindow = false): Promise<void> {

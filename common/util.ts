@@ -1,8 +1,9 @@
-import { SETTINGS_TEMPLATE } from "./settings_template.ts";
+import { SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { YAML } from "./deps.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "$sb/lib/json.ts";
 import type { BuiltinSettings } from "../web/types.ts";
+import { INDEX_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 
 /**
  * Runs a function safely by catching any errors and logging them to the console.
@@ -88,14 +89,7 @@ export async function ensureSettingsAndIndex(
       );
       await space.writeFile(
         "index.md",
-        new TextEncoder().encode(
-          `Hello! And welcome to your brand new SilverBullet space!
-
-\`\`\`template
-page: "[[!silverbullet.md/Getting Started]]"
-\`\`\`
-`,
-        ),
+        new TextEncoder().encode(INDEX_TEMPLATE),
       );
     }
   }

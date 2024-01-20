@@ -66,7 +66,7 @@ export function TopBar({
 
         // Then calculate a new width
         currentPageElement.style.width = `${
-          Math.min(editorWidth - 170, innerDiv.clientWidth - 170)
+          Math.min(editorWidth - 200, innerDiv.clientWidth - 200)
         }px`;
       }
     }

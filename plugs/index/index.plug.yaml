@@ -162,17 +162,17 @@ functions:
 
   # Template Widgets
   renderTemplateWidgetsTop:
-    path: template_widget.ts:renderTemplateWidgets
+    path: widget.ts:renderTemplateWidgets
     env: client
     panelWidget: top
 
   renderTemplateWidgetsBottom:
-    path: template_widget.ts:renderTemplateWidgets
+    path: widget.ts:renderTemplateWidgets
     env: client
     panelWidget: bottom
 
   refreshWidgets:
-    path: template_widget.ts:refreshWidgets
+    path: widget.ts:refreshWidgets
 
   lintYAML:
     path: lint.ts:lintYAML

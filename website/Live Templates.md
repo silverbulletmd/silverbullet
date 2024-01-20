@@ -1,13 +1,12 @@
-Live templates render [[Templates]] inline in a page. They’re called “Live” because their content updates dynamically.
+Live Templates are a type of [[Blocks|block]] that render [[Templates]] inline in a page. 
 
-## Syntax
-Live Templates are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the code block specifies the template to use, as well as any arguments to pass to it.
+Template blocks are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the block specifies the template to use, as well as any arguments to pass to it.
 
 Generally you’d use it in one of two ways, either using a `page` [[Templates|template]] reference, or an inline `template`:
 
 Here’s an example using `page`:
 ```template
-page: "[[template/today]]"
+page: "[[internal-template/today]]"
 ```
 
 And here’s an example using `template`:
@@ -27,12 +26,12 @@ value:
 You can also pass in the result of a [[Live Queries|query]] as a value by setting the `query` attribute:
 
 ```template
+query: |
+   tag where parent = "page" select name
 template: |
    {{#each .}}
    * #{{name}}
    {{/each}}
-query: |
-   tag where parent = "page" select name
 ```
 
 If you just want to render the raw markdown without handling it as a handlebars template, set `raw` to true:
@@ -41,4 +40,3 @@ template: |
    This is not going to be {{processed}} by Handlebars
 raw: true
 ```
-

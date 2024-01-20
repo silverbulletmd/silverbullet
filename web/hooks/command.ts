@@ -1,6 +1,13 @@
 import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
 import { EventEmitter } from "../../plugos/event.ts";
+import { ObjectValue } from "$sb/types.ts";
+import {
+  FrontmatterConfig,
+  SnippetConfig,
+} from "../../plugs/template/types.ts";
+import { throttle } from "$sb/lib/async.ts";
+import { NewPageConfig } from "../../plugs/template/types.ts";
 
 export type CommandDef = {
   name: string;
@@ -31,10 +38,15 @@ export type CommandHookEvents = {
 export class CommandHook extends EventEmitter<CommandHookEvents>
   implements Hook<CommandHookT> {
   editorCommands = new Map<string, AppCommand>();
+  system!: System<CommandHookT>;
 
-  buildAllCommands(system: System<CommandHookT>) {
+  throttledBuildAllCommands = throttle(() => {
+    this.buildAllCommands().catch(console.error);
+  }, 1000);
+
+  async buildAllCommands() {
     this.editorCommands.clear();
-    for (const plug of system.loadedPlugs.values()) {
+    for (const plug of this.system.loadedPlugs.values()) {
       for (
         const [name, functionDef] of Object.entries(
           plug.manifest!.functions,
@@ -52,18 +64,89 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
         });
       }
     }
+    await this.loadPageTemplateCommands();
     this.emit("commandsUpdated", this.editorCommands);
   }
 
+  async loadPageTemplateCommands() {
+    // This relies on two plugs being loaded: index and template
+    const indexPlug = this.system.loadedPlugs.get("index");
+    const templatePlug = this.system.loadedPlugs.get("template");
+    if (!indexPlug || !templatePlug) {
+      // Index and template plugs not yet loaded, let's wait
+      return;
+    }
+
+    // Query all page templates that have a command configured
+    const templateCommands: ObjectValue<FrontmatterConfig>[] = await indexPlug
+      .invoke(
+        "queryObjects",
+        ["template", {
+          // where hooks.newPage.command or hooks.snippet.command
+          filter: ["or", [
+            "attr",
+            ["attr", ["attr", "hooks"], "newPage"],
+            "command",
+          ], [
+            "attr",
+            ["attr", ["attr", "hooks"], "snippet"],
+            "command",
+          ]],
+        }],
+      );
+
+    // console.log("Template commands", templateCommands);
+
+    for (const page of templateCommands) {
+      try {
+        if (page.hooks!.newPage) {
+          const newPageConfig = NewPageConfig.parse(page.hooks!.newPage);
+          const cmdDef = {
+            name: newPageConfig.command!,
+            key: newPageConfig.key,
+            mac: newPageConfig.mac,
+          };
+          this.editorCommands.set(newPageConfig.command!, {
+            command: cmdDef,
+            run: () => {
+              return templatePlug.invoke("newPageCommand", [cmdDef, page.ref]);
+            },
+          });
+        }
+        if (page.hooks!.snippet) {
+          const snippetConfig = SnippetConfig.parse(page.hooks!.snippet);
+          const cmdDef = {
+            name: snippetConfig.command!,
+            key: snippetConfig.key,
+            mac: snippetConfig.mac,
+          };
+          this.editorCommands.set(snippetConfig.command!, {
+            command: cmdDef,
+            run: () => {
+              return templatePlug.invoke("insertSnippetTemplate", [
+                { templatePage: page.ref },
+              ]);
+            },
+          });
+        }
+      } catch (e: any) {
+        console.error("Error loading command from", page.ref, e);
+      }
+    }
+
+    // console.log("Page template commands", pageTemplateCommands);
+  }
+
   apply(system: System<CommandHookT>): void {
+    this.system = system;
     system.on({
       plugLoaded: () => {
-        this.buildAllCommands(system);
+        this.throttledBuildAllCommands();
       },
     });
     // On next tick
     setTimeout(() => {
-      this.buildAllCommands(system);
+      this.throttledBuildAllCommands();
     });
   }
 

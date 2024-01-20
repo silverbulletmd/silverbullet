@@ -1,54 +1,52 @@
-Templates are reusable pieces of markdown content, usually with placeholders that are replaced once instantiated.
+Templates are reusable pieces of (markdown) content, often containing placeholders that are replaced once instantiated.
 
-There are two general uses for templates:
+Templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
+
+Templates do not appear in the [[Page Picker]], but instead appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
+
+In SilverBullet templates serve a few purposes:
 
 1. _Live_ uses, where page content is dynamically updated based on templates:
   * [[Live Queries]]
   * [[Live Templates]]
   * [[Live Template Widgets]]
 2. _One-off_ uses, where a template is instantiated once and inserted into an existing or new page:
-  * [[Slash Templates]]
+  * [[Snippets]]
   * [[Page Templates]]
 
-# Creating templates
+# Definition
 Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that, when tagged inline (by putting `#template` at the beginning of the page), the tag will be removed when the template is instantiated.
-
-**Naming**: it’s common, although not required, to use a `template/` prefix when naming templates.
 
 Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does a few things:
 
-1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in [[Live Templates]].
-2. It excludes the page from being indexed for [[Objects]], that is: any tasks, items, paragraphs etc. will not appear in your space’s object database. Which is usually what you want.
-3. It registers your templates to be used as [[Slash Templates]] as well as [[Page Templates]].
+1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in  [[Live Templates]].
+2. The template page no longer appear in the [[Page Picker]], instead you now navigate to it using the [[Template Picker]].
+4. It can register your templates to be used as [[Snippets]], [[Page Templates]] or [[Live Template Widgets]].
 
 ## Frontmatter
 [[Frontmatter]] has special meaning in templates. The following attributes are used:
 
 * `tags`: should always be set to `template`
-* `type` (optional): should be set to `page` for [[Page Templates]] and to `frontmatter` for [[Live Template Widgets]]
-* `trigger` (optional): defines the slash command name for [[Slash Templates]]
 * `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
-* `pageName` (optional, [[Page Templates]] only): specify a (template for a) page name.
-* `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the rendered template. This can either be specified as a string or as an object.
+* `description` (optional): may appear in various UIs to give more information about the template.
+* `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the _rendered_ template. This can either be specified as a string or as an object.
+* `hooks` (optional): hook the template into various parts of the system, look at [[Page Templates]], [[Snippets]] and [[Live Template Widgets]] for details.
 
 An example:
 
     ---
     tags: template
-    type: page
-    trigger: one-on-one
-    displayName: "1:1 template"
-    pageName: "1-1s/"
+    hooks.newPage.suggestedName: "Meetings/{{today}}"
     frontmatter:
        dateCreated: "{{today}}"
     ---
     # {{today}}
     * |^|
 
-# Template content
-Templates consist of markdown, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
+# Content
+Templates consist of plain markdown text, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
 
-The special `|^|` marker can be used to specify the desired cursor position after the template is included.
+A special `|^|` marker can be used to specify the desired cursor position after the template is included.
 
 ## Handlebar helpers
 There are a number of built-in handlebars helpers you can use:

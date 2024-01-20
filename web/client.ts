@@ -1,5 +1,6 @@
 // Third party web dependencies
 import {
+  Compartment,
   CompletionContext,
   CompletionResult,
   EditorView,
@@ -52,6 +53,8 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
+import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
+import { buildQueryFunctions } from "../common/query_functions.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -71,6 +74,8 @@ declare global {
 export class Client {
   system!: ClientSystem;
   editorView!: EditorView;
+  keyHandlerCompartment?: Compartment;
+
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
@@ -136,7 +141,10 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives);
+    this.stateDataStore = new DataStore(
+      stateKvPrimitives,
+      buildQueryFunctions(this.allKnownPages),
+    );
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
@@ -190,8 +198,7 @@ export class Client {
 
     await this.system.init();
 
-    // Load settings
-    this.settings = await ensureSettingsAndIndex(localSpacePrimitives);
+    await this.loadSettings();
 
     await this.loadCaches();
     // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
@@ -238,6 +245,10 @@ export class Client {
     }, pageSyncInterval);
 
     this.updatePageListCache().catch(console.error);
+  }
+
+  async loadSettings() {
+    this.settings = await ensureSettingsAndIndex(this.space.spacePrimitives);
   }
 
   private async initSync() {
@@ -303,7 +314,7 @@ export class Client {
 
   private initNavigator() {
     this.pageNavigator = new PathPageNavigator(
-      cleanPageRef(this.settings.indexPage),
+      cleanPageRef(renderHandlebarsTemplate(this.settings.indexPage, {}, {})),
     );
 
     this.pageNavigator.subscribe(
@@ -478,7 +489,12 @@ export class Client {
         new EventedSpacePrimitives(
           // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
           new FallbackSpacePrimitives(
-            new DataStoreSpacePrimitives(new DataStore(spaceKvPrimitives)),
+            new DataStoreSpacePrimitives(
+              new DataStore(
+                spaceKvPrimitives,
+                buildQueryFunctions(this.allKnownPages),
+              ),
+            ),
             this.plugSpaceRemotePrimitives,
           ),
           this.eventHook,
@@ -487,7 +503,7 @@ export class Client {
         // Run when a list of files has been retrieved
         async () => {
           if (!this.settings) {
-            this.settings = await ensureSettingsAndIndex(localSpacePrimitives!);
+            await this.loadSettings();
           }
 
           if (typeof this.settings?.spaceIgnore === "string") {
@@ -547,11 +563,12 @@ export class Client {
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages
-        this.allKnownPages = new Set(
-          allFiles.filter((f) => f.name.endsWith(".md")).map((f) =>
-            f.name.slice(0, -3)
-          ),
-        );
+        this.allKnownPages.clear();
+        allFiles.forEach((f) => {
+          if (f.name.endsWith(".md")) {
+            this.allKnownPages.add(f.name.slice(0, -3));
+          }
+        });
       },
     );
 
@@ -638,9 +655,9 @@ export class Client {
     );
   }
 
-  startPageNavigate() {
+  startPageNavigate(mode: "page" | "template") {
     // Then show the page navigator
-    this.ui.viewDispatch({ type: "start-navigate" });
+    this.ui.viewDispatch({ type: "start-navigate", mode });
     this.updatePageListCache().catch(console.error);
   }
 
@@ -854,7 +871,9 @@ export class Client {
     newWindow = false,
   ) {
     if (!name) {
-      name = cleanPageRef(this.settings.indexPage);
+      name = cleanPageRef(
+        renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
+      );
     }
 
     try {
@@ -903,6 +922,7 @@ export class Client {
       if (e.message.includes("Not found")) {
         // Not found, new page
         console.log("Page doesn't exist, creating new page:", pageName);
+        // Initialize page
         doc = {
           text: "",
           meta: {
@@ -914,6 +934,13 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
+        this.system.system.invokeFunction("template.newPage", [pageName]).then(
+          () => {
+            this.focus();
+          },
+        ).catch(
+          console.error,
+        );
       } else {
         this.flashNotification(
           `Could not load page ${pageName}: ${e.message}`,

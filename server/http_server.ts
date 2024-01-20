@@ -405,7 +405,7 @@ export class HttpServer {
         const args: string[] = body;
         try {
           const result = await spaceServer.system!.syscall(
-            { plug: plugName },
+            { plug: plugName === "_" ? undefined : plugName },
             syscall,
             args,
           );

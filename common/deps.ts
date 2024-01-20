@@ -71,7 +71,12 @@ export {
   Text,
   Transaction,
 } from "@codemirror/state";
-export type { ChangeSpec, Extension, StateCommand } from "@codemirror/state";
+export type {
+  ChangeSpec,
+  Compartment,
+  Extension,
+  StateCommand,
+} from "@codemirror/state";
 export {
   codeFolding,
   defaultHighlightStyle,
@@ -132,3 +137,5 @@ export {
 export { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
 
 export { compile as gitIgnoreCompiler } from "https://esm.sh/gitignore-parser@0.0.2";
+
+export { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";

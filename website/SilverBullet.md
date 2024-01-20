@@ -15,13 +15,11 @@ You were told wrong.
 * [[Install]]: how to install and deploy SilverBullet.
 * [[Manual]]: how to use this thing.
 * [[CHANGELOG]]: we’re in active development, so things change rapidly, watch this page to keep up.
-* Development:
-  * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
-  * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them.
-  * [Discussions](https://github.com/silverbulletmd/silverbullet/discussions): got ideas for features or questions? Ask them here.
-* Socials:
-  * [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
-  * [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion, join our Discord!
+* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
+* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas, or find bugs, please report them.
+* [Community](https://community.silverbullet.md): join our discourse community!
+* [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion!
+* [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/)
 
 # Features
 Some highlights:
@@ -29,13 +27,13 @@ Some highlights:
 * SilverBullet runs in any modern browser (including mobile ones) as a [[PWA]] in two [[Client Modes]] ([[Client Modes$online|online]] and [[Client Modes$sync|synced]] mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
 * SilverBullet provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * SilverBullet supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to thereby providing _bi-directional linking_.
-* SilverBullet allows you to boost your writing/knowledge collection productivity using its various [[Templates]] mechanism.
 * SilverBullet is optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use [[Slash Commands]] to perform common text editing operations.
-* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]] and [[Live Templates]], allowing to make parts of your pages _dynamic_.
-* SilverBullet can be extended using [[Plugs]].
+* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]], [[Live Queries]], [[Live Templates]] and [[Live Template Widgets]], allowing to make parts of your pages and UI dynamic.
+* SilverBullet allows you to boost your writing/knowledge collection productivity using its various [[Templates]] mechanism.
+* SilverBullet can be extended using [[Libraries]] and [[Plugs]].
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk (if you so choose). Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
@@ -87,10 +85,10 @@ function helloWorld() {
 # Beyond Markdown
 Where things get slightly more interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Spaces]]. 
 
-Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[template/plug]] template, we can simply do this as follows:
+Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[internal-template/plug]] template, we can simply do this as follows:
 
 ```query
-plug render [[template/plug]]
+plug render [[internal-template/plug]]
 ```
 
 Hover over that list and click the edit button to see the query that generates this view.

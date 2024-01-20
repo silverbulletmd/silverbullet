@@ -1,11 +1,5 @@
-Slash commands are built-in to SilverBullet. You can trigger them by typing a `/` in your text (after whitespace).
+Slash commands are quick ways to perform repetitive tasks, 99% of the time this will mean inserting a [[Snippets|snippet]].
 
-The [[Plugs/Editor]] plug provides a few helpful ones:
+You can trigger a slash command by typing a `/` in your text (after some white space).
 
-* `/h1` through `/h4` to turn the current line into a header
-* `/hr` to insert a horizontal rule (`---`)
-* `/table` to insert a markdown table (whoever can remember this syntax without it)
-* `/today` to insert today’s date
-* `/tomorrow` to insert tomorrow’s date
-
-You can create custom slash commands using [[Slash Templates]].
+Technically, no slash commands ship with SilverBullet directly. However, you can easily add useful ones via [[Libraries]].

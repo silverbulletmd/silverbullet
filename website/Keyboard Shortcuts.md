@@ -9,8 +9,6 @@ Particularly useful keyboard shortcuts (that you may not know about).
 | Cmd-z/Ctrl-z | Undo the latest change |
 | Cmd-u/Ctrl-u | Go one change ahead |
 | Alt-h | Navigate to the home page | 
-| Ctrl-Alt-t | Toggle table of contents|
-| Ctrl-Alt-m | Toggle mentions | 
 | Cmd-Shift-f/Ctrl-Shift-f | Search for text across your entire space |
 # System
 | Combination (Mac/Win-Linux) | Action |
@@ -20,8 +18,6 @@ Particularly useful keyboard shortcuts (that you may not know about).
 | Cmd-Shift-p/Ctrl-Shift-p | Update plugs (from the `PLUGS` file) |
 | Alt-q | Refresh all live queries and templates on this page |
 | Cmd-p/Ctrl-p | Toggle markdown preview |
-| Ctrl-Alt-t | Toggle table of contents|
-| Ctrl-Alt-m | Toggle mentions | 
 | Cmd-Shift-f/Ctrl-Shift-f | Search for text across your entire space |
 
 # Navigation

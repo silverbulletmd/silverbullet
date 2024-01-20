@@ -28,3 +28,9 @@ functions:
     pageNamespace:
       pattern: "!.+"
       operation: getFileMeta
+
+  # Library management
+  importLibraryCommand:
+    path: library.ts:importLibraryCommand
+    command:
+      name: "Library: Import"

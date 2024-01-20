@@ -3,135 +3,51 @@ functions:
   # API
   renderTemplate:
     path: api.ts:renderTemplate
+
   cleanTemplate:
     path: api.ts:cleanTemplate
 
-  # Used by various slash commands
-  insertTemplateText:
-    path: template.ts:insertTemplateText
-
+  # Indexing
   indexTemplate:
-    path: ./index.ts:indexTemplate
+    path: index.ts:indexTemplate
     events:
     # Special event only triggered for template pages
     - page:indexTemplate
 
   # Completion
   templateSlashCommand:
-    path: ./complete.ts:templateSlashComplete
+    path: snippet.ts:snippetSlashComplete
     events:
     - slash:complete
 
-  insertSlashTemplate:
-    path: ./complete.ts:insertSlashTemplate
+  insertSnippetTemplate:
+    path: snippet.ts:insertSnippetTemplate
 
   handlebarHelperComplete:
-    path: ./complete.ts:templateVariableComplete
+    path: var.ts:templateVariableComplete
     events:
       - editor:complete
 
-  applyLineReplace:
-    path: ./template.ts:applyLineReplace
-  insertFrontMatter:
-    redirect: insertTemplateText
-    slashCommand:
-      name: frontmatter
-      description: Insert page frontmatter
-      value: |
-        ---
-        |^|
-        ---
-  makeH1:
-    redirect: applyLineReplace
-    slashCommand:
-      name: h1
-      description: Turn line into h1 header
-      match: "^#*\\s*"
-      replace: "# "
-  makeH2:
-    redirect: applyLineReplace
-    slashCommand:
-      name: h2
-      description: Turn line into h2 header
-      match: "^#*\\s*"
-      replace: "## "
-  makeH3:
-    redirect: applyLineReplace
-    slashCommand:
-      name: h3
-      description: Turn line into h3 header
-      match: "^#*\\s*"
-      replace: "### "
-  makeH4:
-    redirect: applyLineReplace
-    slashCommand:
-      name: h4
-      description: Turn line into h4 header
-      match: "^#*\\s*"
-      replace: "#### "
-  insertCodeBlock:
-    redirect: insertTemplateText
-    slashCommand:
-      name: code
-      description: Insert fenced code block
-      value: |
-        ```|^|
-        
-        ```
+  # Widget
+  templateWidget: # Legacy
+    path: template_block.ts:widget
+    codeWidget: template
+    renderMode: markdown
 
-  insertHRTemplate:
-    redirect: insertTemplateText
-    slashCommand:
-      name: hr
-      description: Insert a horizontal rule
-      value: "---"
+  # API invoked when a new page is created
+  newPage:
+    path: page.ts:newPage
 
-  insertTable:
-    redirect: insertTemplateText
-    slashCommand:
-      name: table
-      description: Insert a table
-      boost: -1 # Low boost because it's likely not very commonly used
-      value: |
-        | Header A | Header B |
-        |----------|----------|
-        | Cell A|^| | Cell B |
-
-  quickNoteCommand:
-    path: ./template.ts:quickNoteCommand
-    command:
-      name: "Quick Note"
-      key: "Alt-Shift-n"
-      priority: 3
-
-  dailyNoteCommand:
-    path: ./template.ts:dailyNoteCommand
-    command:
-      name: "Open Daily Note"
-      key: "Alt-Shift-d"
-
-  weeklyNoteCommand:
-    path: ./template.ts:weeklyNoteCommand
-    command:
-      name: "Open Weekly Note"
-      key: "Alt-Shift-w"
-
+  # Commands
   newPageCommand:
-    path: ./template.ts:newPageCommand
+    path: page.ts:newPageCommand
     command:
       name: "Page: From Template"
       key: "Alt-Shift-t"
 
-  insertTodayCommand:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: today
-      description: Insert today's date
-      value: "{{today}}"
 
-  insertTomorrowCommand:
-    path: "./template.ts:insertTemplateText"
-    slashCommand:
-      name: tomorrow
-      description: Insert tomorrow's date
-      value: "{{tomorrow}}"
+  # Lint
+  lintTemplateFrontmatter:
+    path: lint.ts:lintTemplateFrontmatter
+    events:
+    - editor:lint

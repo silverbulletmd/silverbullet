@@ -80,11 +80,7 @@ export const builtins: Record<string, Record<string, string>> = {
     page: "!string",
     pageName: "string",
     pos: "!number",
-    type: "string",
-    trigger: "string",
-    where: "string",
-    priority: "number",
-    enabled: "boolean",
+    hooks: "hooksSpec",
   },
 };
 

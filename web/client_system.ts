@@ -42,6 +42,7 @@ import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
 import { Query } from "$sb/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
+import { createKeyBindings } from "./editor_state.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -102,6 +103,12 @@ export class ClientSystem {
         this.client.ui?.viewDispatch({
           type: "update-commands",
           commands: commandMap,
+        });
+        // Replace the key mapping compartment (keybindings)
+        this.client.editorView.dispatch({
+          effects: this.client.keyHandlerCompartment?.reconfigure(
+            createKeyBindings(this.client),
+          ),
         });
       },
     });

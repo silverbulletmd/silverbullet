@@ -1,19 +1,11 @@
 This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` and `customStyles`, which require a reload.
 
 ```yaml
-# Initial page to load when launching SB
+# Initial page to load when launching SB, can contain template variables
 indexPage: "[[SilverBullet]]"
 
 # Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
-
-# Template settings
-quickNotePrefix: "📥 "
-dailyNotePrefix: "📅 "
-dailyNoteTemplate: "[[template/page/Daily Note]]"
-weeklyNotePrefix: "🗓️ "
-weeklyNoteTemplate: "[[template/page/Weekly Note]]"
-weeklyNoteMonday: false
 
 # It is possible to override keyboard shortcuts and command priority
 shortcuts:

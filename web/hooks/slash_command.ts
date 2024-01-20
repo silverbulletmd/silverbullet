@@ -115,18 +115,10 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             });
             // Replace with whatever the completion is
             safeRun(async () => {
-              const [plugName, functionName] = slashCompletion.invoke.split(
-                ".",
+              await this.editor.system.system.invokeFunction(
+                slashCompletion.invoke,
+                [slashCompletion],
               );
-              const plug = this.editor.system.system.loadedPlugs.get(plugName);
-              if (!plug) {
-                this.editor.flashNotification(
-                  `Plug ${plugName} not found`,
-                  "error",
-                );
-                return;
-              }
-              await plug.invoke(functionName, [slashCompletion]);
               this.editor.focus();
             });
           },

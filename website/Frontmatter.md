@@ -19,6 +19,19 @@ Here is another example:
     ## This is a section
     This is content
 
+For convenience, you may use the `attribute.subAttribute` notation, which internally will expand:
+
+```yaml
+attribute.subAttribute: 10
+```
+
+to
+
+```yaml
+attribute:
+   subAttribute: 10
+```
+
 # Special attributes
 While SilverBullet allows arbitrary metadata to be added to pages, there are a few attributes with special meaning:
 

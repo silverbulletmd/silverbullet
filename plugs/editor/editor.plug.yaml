@@ -15,6 +15,27 @@ functions:
     command:
       name: "Editor: Toggle Dark Mode"
 
+  openCommandPalette:
+    path: editor.ts:openCommandPalette
+    command:
+      name: "Open Command Palette"
+      key: "Ctrl-/"
+      mac: "Cmd-/"
+
+  openPageNavigator:
+    path: editor.ts:openPageNavigator
+    command:
+      name: "Open Page Navigator"
+      key: "Ctrl-k"
+      mac: "Cmd-k"
+
+  openTemplateNavigator:
+    path: editor.ts:openTemplateNavigator
+    command:
+      name: "Open Template Navigator"
+      key: "Ctrl-Shift-t"
+      mac: "Cmd-Shift-t"
+
   # Page operations
   deletePage:
     path: "./page.ts:deletePage"
@@ -34,6 +55,11 @@ functions:
     path: "./command.ts:commandComplete"
     events:
       - editor:complete
+
+  reloadSettingsAndCommands:
+    path: editor.ts:reloadSettingsAndCommands
+    command:
+      name: "System: Reload Settings and Commands"
 
   # Navigation
   linkNavigate:
