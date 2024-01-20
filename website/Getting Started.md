@@ -2,7 +2,7 @@ Welcome to SilverBullet. Since you’re starting fresh, you may want to kick off
 
 {[Library: Import|Import Core Library]("!silverbullet.md/Library/Core/")}
 
-Did that? Alright, let’s proceed.
+Did that? Let’s proceed.
 
 ## Getting started
 The best way to get a good feel for what SilverBullet is to immediately start playing with it. Here are some things for you to try:

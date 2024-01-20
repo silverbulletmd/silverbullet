@@ -2,8 +2,8 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
-## Next
-_Not yet released, this will likely become 0.6.0._
+## Edge
+_Not yet released, this will likely become 0.6.0. To try this out now, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
 * **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]].
   A quick FAQ:
@@ -11,6 +11,7 @@ _Not yet released, this will likely become 0.6.0._
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
   * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
+* The [[Getting Started]] page (that is embedded in the `index` page that is auto-generated when creating a new space) has been updated to include instructions on how to import the [[Library/Core]] library.
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
 * (Hopefully subtle) **breaking change** in how tags work (see [[Objects]]):
   * Every object now has a `tag` attribute, signifying the “main” tag for that object (e.g. `page`, `item`)
