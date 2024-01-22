@@ -107,10 +107,12 @@ export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
 
   cursorPos = await editor.getCursor();
 
-  if (snippetTemplate.matchRegex) {
+  if (snippetTemplate.match || snippetTemplate.matchRegex) {
     const pageText = await editor.getText();
     // Regex matching mode
-    const matchRegex = new RegExp(snippetTemplate.matchRegex);
+    const matchRegex = new RegExp(
+      (snippetTemplate.match || snippetTemplate.matchRegex)!,
+    );
 
     let startOfLine = cursorPos;
     while (startOfLine > 0 && pageText[startOfLine - 1] !== "\n") {

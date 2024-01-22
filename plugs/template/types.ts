@@ -36,6 +36,8 @@ export const SnippetConfig = refineCommand(
     slashCommand: z.string(), // trigger
     // Regex match to apply (implicitly makes the body the regex replacement)
     matchRegex: z.string().optional(),
+    // Deprecated: use matchRegex instead (for backwards compatibility)
+    match: z.string().optional(),
     insertAt: z.enum([
       "cursor",
       "line-start",
