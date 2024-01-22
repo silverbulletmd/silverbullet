@@ -4,21 +4,21 @@ release.
 ---
 
 ## Edge
-_Not yet released, this will likely become 0.6.0. To try this out now, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
+_The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
-* Nothing new yet, be patient but check out 0.6.0 below.
+* Nothing new yet, be patient, but check out 0.6.0 below.
 
 ---
 
 ## 0.6.0
 
-* **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]].
-* **Upgrade instructions**: to get the best experience after upgrading to 0.6.0 do the following:
-  * Upgrade your docker image/deno version to 0.6.0
-  * Reload your page 2-3x to be sure you have the latest front-end code running
+* **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]], and read the items below.
+* **Upgrade instructions**: to get the best experience after upgrading to 0.6.0 as an existing user, do the following:
+  * Upgrade your docker image/deno version to 0.6.0 (or `latest`).
+  * Reload your page 2-3x to be sure you have the latest front-end code running.
   * Run the {[Library: Import]} command in your space, and enter the following federation URL: `!silverbullet.md/Library/` This will import both the [[Library/Core]] and [[Library/Journal]] libraries into your space, which will bring you roughly on par with 0.5.x versions in terms of functionality (this will include the daily note, weekly note, various slash commands etc.)
-* A **quick FAQ** on the template system
-  * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux). Yeah, that’s new!
+* A **quick FAQ** on the new template system:
+  * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux) to get to them.
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
   * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
