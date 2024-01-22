@@ -32,10 +32,10 @@ import { SyncStatus } from "../common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { validatePageName } from "$sb/lib/page.ts";
+import { encodePageRef, validatePageName } from "$sb/lib/page.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
-import { OpenPages } from "./open_pages.ts";
+import { OpenPages, PageState } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
@@ -56,6 +56,7 @@ import { LimitedMap } from "$sb/lib/limited_map.ts";
 import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
+import { extractPageState } from "./open_pages.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -71,6 +72,8 @@ declare global {
     client: Client;
   }
 }
+
+// history.scrollRestoration = "manual";
 
 export class Client {
   system!: ClientSystem;
@@ -313,57 +316,67 @@ export class Client {
     );
   }
 
+  private async navigateToPageRefInPage(pageRef: PageRef) {
+    let pos: number | undefined = pageRef.pos;
+    if (pageRef.anchor) {
+      console.log("Navigating to anchor", pageRef.anchor);
+
+      // We're going to look up the anchor through a API invocation
+      const matchingAnchor = await this.system.system.localSyscall(
+        "system.invokeFunction",
+        [
+          "index.getObjectByRef",
+          pageRef.page,
+          "anchor",
+          `${pageRef.page}$${pageRef.anchor}`,
+        ],
+      );
+
+      if (!matchingAnchor) {
+        return this.flashNotification(
+          `Could not find anchor $${pageRef.anchor}`,
+          "error",
+        );
+      } else {
+        pos = matchingAnchor.pos as number;
+      }
+    }
+    if (pos !== undefined) {
+      setTimeout(() => {
+        console.log("Doing this scroll to", pos);
+        this.editorView.dispatch({
+          selection: { anchor: pos! },
+          effects: EditorView.scrollIntoView(pos!, {
+            y: "start",
+            yMargin: 5,
+          }),
+        });
+      });
+    }
+  }
+
   private initNavigator() {
     this.pageNavigator = new PathPageNavigator(
       cleanPageRef(renderHandlebarsTemplate(this.settings.indexPage, {}, {})),
     );
 
-    this.pageNavigator.subscribe(async (pageRef) => {
-      console.log("Now navigating to", pageRef);
+    this.pageNavigator.subscribe(async (pageState) => {
+      console.log("Now navigating to", pageState);
 
-      if (!pageRef.page) {
-        pageRef.page = this.settings.indexPage;
+      if (!pageState.page) {
+        pageState.page = cleanPageRef(
+          renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
+        );
       }
 
       const stateRestored = await this.loadPage(
-        pageRef.page,
-        pageRef.pos === undefined,
+        pageState.page,
+        pageState,
       );
-      let pos: number | undefined = pageRef.pos;
-      if (pageRef.anchor) {
-        console.log("Navigating to anchor", pageRef.anchor);
 
-        // We're going to look up the anchor through a API invocation
-        const matchingAnchor = await this.system.system.localSyscall(
-          "system.invokeFunction",
-          [
-            "index.getObjectByRef",
-            pageRef.page,
-            "anchor",
-            `${pageRef.page}$${pageRef.anchor}`,
-          ],
-        );
-
-        if (!matchingAnchor) {
-          return this.flashNotification(
-            `Could not find anchor $${pageRef.anchor}`,
-            "error",
-          );
-        } else {
-          pos = matchingAnchor.pos as number;
-        }
-      }
-      if (pos !== undefined) {
-        setTimeout(() => {
-          this.editorView.dispatch({
-            selection: { anchor: pos! },
-            effects: EditorView.scrollIntoView(pos!, {
-              y: "start",
-              yMargin: 5,
-            }),
-          });
-        });
-      } else if (!stateRestored) {
+      // Move the cursor to the appropriate place inside the doc
+      await this.navigateToPageRefInPage(pageState);
+      if (!stateRestored) {
         // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
         const pageText = this.editorView.state.sliceDoc();
 
@@ -375,6 +388,7 @@ export class Client {
           initialCursorPos = match[0].length;
         }
         // By default scroll to the top
+        console.log("Scrolling to place after frontmatter", initialCursorPos);
         this.editorView.scrollDOM.scrollTop = 0;
         this.editorView.dispatch({
           selection: { anchor: initialCursorPos },
@@ -382,7 +396,10 @@ export class Client {
           scrollIntoView: true,
         });
       }
-      await this.stateDataStore.set(["client", "lastOpenedPage"], pageRef.page);
+      await this.stateDataStore.set(
+        ["client", "lastOpenedPage"],
+        pageState.page,
+      );
     });
 
     if (location.hash === "#boot") {
@@ -889,16 +906,28 @@ export class Client {
     }
 
     if (newWindow) {
-      const win = window.open(`${location.origin}/${name}`, "_blank");
+      const win = window.open(
+        `${location.origin}/${encodePageRef(pageRef)}`,
+        "_blank",
+      );
       if (win) {
         win.focus();
       }
       return;
     }
-    await this.pageNavigator!.navigate(pageRef, replaceState);
+
+    await this.pageNavigator!.navigate(
+      pageRef,
+      extractPageState(this),
+      replaceState,
+    );
+    this.focus();
   }
 
-  async loadPage(pageName: string, restoreState = true): Promise<boolean> {
+  async loadPage(
+    pageName: string,
+    restoreState?: PageState,
+  ): Promise<boolean> {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
     const previousPage = this.currentPage;
@@ -977,7 +1006,27 @@ export class Client {
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM);
     }
-    const stateRestored = restoreState && this.openPages.restoreState(pageName);
+    const stateRestored = !!restoreState;
+
+    if (restoreState && restoreState.scrollTop === undefined) {
+      console.log("Restoring state from open pages");
+      this.openPages.restoreState(pageName);
+    } else if (restoreState) {
+      console.log("Restoring state from", restoreState);
+      if (restoreState.scrollTop !== undefined) {
+        editorView.scrollDOM.scrollTop = restoreState.scrollTop;
+      }
+      if (restoreState.selection.anchor) { // Only do this if we got a specific cursor position
+        console.log("Chanign cursor position to", restoreState.selection);
+        editorView.dispatch({
+          selection: restoreState.selection,
+        });
+      }
+      // this.editorView.scrollDOM.scrollTop = restoreState.scrollTop;
+      // this.editorView.dispatch({
+      //   selection: restoreState.selection,
+      // });
+    }
     this.space.watchPage(pageName);
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)

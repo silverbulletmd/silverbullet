@@ -1,32 +1,45 @@
 import { safeRun } from "../common/util.ts";
 import { PageRef, parsePageRef } from "$sb/lib/page.ts";
-import { encodePageRef } from "$sb/lib/page.ts";
+import { PageState } from "./open_pages.ts";
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
 
   constructor(readonly indexPage: string, readonly root: string = "") {}
 
-  async navigate(pageRef: PageRef, replaceState = false) {
-    if (pageRef.page === this.indexPage) {
-      pageRef.page = "";
+  async navigate(
+    nextPageRef: PageRef,
+    currentState: PageState,
+    replaceState = false,
+  ) {
+    if (nextPageRef.page === this.indexPage) {
+      nextPageRef.page = "";
     }
-    if (replaceState) {
+    if (!replaceState) {
+      console.log("Replacing old state", currentState);
       window.history.replaceState(
-        pageRef,
+        currentState,
         "",
-        `${this.root}/${pageRef.page}`,
+        `${this.root}/${currentState.page}`,
+      );
+      console.log("Pushing new state", nextPageRef);
+      window.history.pushState(
+        nextPageRef,
+        "",
+        `${this.root}/${nextPageRef.page}`,
       );
     } else {
-      window.history.pushState(
-        pageRef,
+      console.log("Replacing state", nextPageRef);
+      window.history.replaceState(
+        nextPageRef,
         "",
-        `${this.root}/${pageRef.page}`,
+        `${this.root}/${nextPageRef.page}`,
       );
     }
+    console.log("Explicitly dispatching popstate", nextPageRef);
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
-        state: pageRef,
+        state: nextPageRef,
       }),
     );
     await new Promise<void>((resolve) => {
@@ -37,16 +50,22 @@ export class PathPageNavigator {
 
   subscribe(
     pageLoadCallback: (
-      pageRef: PageRef,
+      pageState: PageState,
     ) => Promise<void>,
   ): void {
     const cb = (event?: PopStateEvent) => {
+      console.log("Got this popstate", event?.state);
       safeRun(async () => {
         if (!event) {
           // Initial load
-          await pageLoadCallback(this.decodeURI());
+          await pageLoadCallback({
+            ...this.decodeURI(),
+            scrollTop: 0,
+            selection: { anchor: 0 },
+          });
         } else {
-          await pageLoadCallback(event.state!);
+          const pageState: PageState = event.state!;
+          await pageLoadCallback(pageState);
         }
         if (this.navigationResolve) {
           this.navigationResolve();
