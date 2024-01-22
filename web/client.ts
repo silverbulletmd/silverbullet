@@ -55,6 +55,7 @@ import {
 import { LimitedMap } from "$sb/lib/limited_map.ts";
 import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
+import { PageRef } from "$sb/lib/page.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -317,66 +318,72 @@ export class Client {
       cleanPageRef(renderHandlebarsTemplate(this.settings.indexPage, {}, {})),
     );
 
-    this.pageNavigator.subscribe(
-      async (pageName, pos: number | string | undefined) => {
-        console.log("Now navigating to", pageName);
+    this.pageNavigator.subscribe(async (pageRef) => {
+      console.log("Now navigating to", pageRef);
 
-        const stateRestored = await this.loadPage(pageName, pos === undefined);
-        if (pos) {
-          if (typeof pos === "string") {
-            console.log("Navigating to anchor", pos);
+      if (!pageRef.page) {
+        pageRef.page = this.settings.indexPage;
+      }
 
-            // We're going to look up the anchor through a API invocation
-            const matchingAnchor = await this.system.system.localSyscall(
-              "system.invokeFunction",
-              [
-                "index.getObjectByRef",
-                pageName,
-                "anchor",
-                `${pageName}$${pos}`,
-              ],
-            );
+      const stateRestored = await this.loadPage(
+        pageRef.page,
+        pageRef.pos === undefined,
+      );
+      let pos: number | undefined = pageRef.pos;
+      if (pageRef.anchor) {
+        console.log("Navigating to anchor", pageRef.anchor);
 
-            if (!matchingAnchor) {
-              return this.flashNotification(
-                `Could not find anchor $${pos}`,
-                "error",
-              );
-            } else {
-              pos = matchingAnchor.pos as number;
-            }
-          }
-          setTimeout(() => {
-            this.editorView.dispatch({
-              selection: { anchor: pos as number },
-              effects: EditorView.scrollIntoView(pos as number, {
-                y: "start",
-                yMargin: 5,
-              }),
-            });
-          });
-        } else if (!stateRestored) {
-          // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
-          const pageText = this.editorView.state.sliceDoc();
+        // We're going to look up the anchor through a API invocation
+        const matchingAnchor = await this.system.system.localSyscall(
+          "system.invokeFunction",
+          [
+            "index.getObjectByRef",
+            pageRef.page,
+            "anchor",
+            `${pageRef.page}$${pageRef.anchor}`,
+          ],
+        );
 
-          // Default the cursor to be at position 0
-          let initialCursorPos = 0;
-          const match = frontMatterRegex.exec(pageText);
-          if (match) {
-            // Frontmatter found, put cursor after it
-            initialCursorPos = match[0].length;
-          }
-          // By default scroll to the top
-          this.editorView.scrollDOM.scrollTop = 0;
-          this.editorView.dispatch({
-            selection: { anchor: initialCursorPos },
-            // And then scroll down if required
-            scrollIntoView: true,
-          });
+        if (!matchingAnchor) {
+          return this.flashNotification(
+            `Could not find anchor $${pageRef.anchor}`,
+            "error",
+          );
+        } else {
+          pos = matchingAnchor.pos as number;
         }
-        await this.stateDataStore.set(["client", "lastOpenedPage"], pageName);
-      },
-    );
+      }
+      if (pos !== undefined) {
+        setTimeout(() => {
+          this.editorView.dispatch({
+            selection: { anchor: pos! },
+            effects: EditorView.scrollIntoView(pos!, {
+              y: "start",
+              yMargin: 5,
+            }),
+          });
+        });
+      } else if (!stateRestored) {
+        // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
+        const pageText = this.editorView.state.sliceDoc();
+
+        // Default the cursor to be at position 0
+        let initialCursorPos = 0;
+        const match = frontMatterRegex.exec(pageText);
+        if (match) {
+          // Frontmatter found, put cursor after it
+          initialCursorPos = match[0].length;
+        }
+        // By default scroll to the top
+        this.editorView.scrollDOM.scrollTop = 0;
+        this.editorView.dispatch({
+          selection: { anchor: initialCursorPos },
+          // And then scroll down if required
+          scrollIntoView: true,
+        });
+      }
+      await this.stateDataStore.set(["client", "lastOpenedPage"], pageRef.page);
+    });
 
     if (location.hash === "#boot") {
       (async () => {
@@ -865,20 +872,18 @@ export class Client {
   }
 
   async navigate(
-    name: string,
-    pos?: number | string,
+    pageRef: PageRef,
     replaceState = false,
     newWindow = false,
   ) {
-    if (!name) {
-      name = cleanPageRef(
+    if (!pageRef.page) {
+      pageRef.page = cleanPageRef(
         renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
       );
     }
 
     try {
-      const pagePart = name.split(/[@$]/)[0];
-      validatePageName(pagePart);
+      validatePageName(pageRef.page);
     } catch (e: any) {
       return this.flashNotification(e.message, "error");
     }
@@ -890,7 +895,7 @@ export class Client {
       }
       return;
     }
-    await this.pageNavigator!.navigate(name, pos, replaceState);
+    await this.pageNavigator!.navigate(pageRef, replaceState);
   }
 
   async loadPage(pageName: string, restoreState = true): Promise<boolean> {

@@ -1,43 +1,32 @@
 import { safeRun } from "../common/util.ts";
-
-function encodePageUrl(name: string): string {
-  return name;
-}
-
-function decodePageUrl(url: string): string {
-  return url;
-}
+import { PageRef, parsePageRef } from "$sb/lib/page.ts";
+import { encodePageRef } from "$sb/lib/page.ts";
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
 
   constructor(readonly indexPage: string, readonly root: string = "") {}
 
-  async navigate(
-    page: string,
-    pos?: number | string | undefined,
-    replaceState = false,
-  ) {
-    let encodedPage = encodePageUrl(page);
-    if (page === this.indexPage) {
-      encodedPage = "";
+  async navigate(pageRef: PageRef, replaceState = false) {
+    if (pageRef.page === this.indexPage) {
+      pageRef.page = "";
     }
     if (replaceState) {
       window.history.replaceState(
-        { page },
-        page,
-        `${this.root}/${encodedPage}`,
+        pageRef,
+        "",
+        `${this.root}/${pageRef.page}`,
       );
     } else {
       window.history.pushState(
-        { page },
-        page,
-        `${this.root}/${encodedPage}`,
+        pageRef,
+        "",
+        `${this.root}/${pageRef.page}`,
       );
     }
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
-        state: { page, pos },
+        state: pageRef,
       }),
     );
     await new Promise<void>((resolve) => {
@@ -48,20 +37,17 @@ export class PathPageNavigator {
 
   subscribe(
     pageLoadCallback: (
-      pageName: string,
-      pos: number | string | undefined,
+      pageRef: PageRef,
     ) => Promise<void>,
   ): void {
     const cb = (event?: PopStateEvent) => {
-      const gotoPage = this.getCurrentPage();
-      if (!gotoPage) {
-        return;
-      }
       safeRun(async () => {
-        await pageLoadCallback(
-          this.getCurrentPage(),
-          event?.state?.pos,
-        );
+        if (!event) {
+          // Initial load
+          await pageLoadCallback(this.decodeURI());
+        } else {
+          await pageLoadCallback(event.state!);
+        }
         if (this.navigationResolve) {
           this.navigationResolve();
         }
@@ -71,27 +57,21 @@ export class PathPageNavigator {
     cb();
   }
 
-  decodeURI(): [string, number | string] {
-    const [page, pos] = decodeURI(
+  decodeURI(): PageRef {
+    return parsePageRef(decodeURI(
       location.pathname.substring(this.root.length + 1),
-    ).split(/[@$]/);
-    if (pos) {
-      if (pos.match(/^\d+$/)) {
-        return [page, +pos];
-      } else {
-        return [page, pos];
-      }
-    } else {
-      return [page, 0];
-    }
+    ));
   }
 
-  getCurrentPage(): string {
-    return decodePageUrl(this.decodeURI()[0]) || this.indexPage;
+  get currentPage(): string {
+    return this.decodeURI().page || this.indexPage;
   }
 
-  getCurrentPos(): number | string {
-    // console.log("Pos", this.decodeURI()[1]);
-    return this.decodeURI()[1];
+  get currentPos(): number | undefined {
+    return this.decodeURI().pos;
+  }
+
+  get currentAnchor(): string | undefined {
+    return this.decodeURI().anchor;
   }
 }

@@ -112,7 +112,7 @@ export class MainUI {
               });
               if (page) {
                 safeRun(async () => {
-                  await client.navigate(page);
+                  await client.navigate({ page });
                 });
               }
             }}
@@ -246,7 +246,7 @@ export class MainUI {
               icon: HomeIcon,
               description: `Go to the index page (Alt-h)`,
               callback: () => {
-                client.navigate("", 0);
+                client.navigate({ page: "", pos: 0 });
                 // And let's make sure all panels are closed
                 dispatch({ type: "hide-filterbox" });
               },

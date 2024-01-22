@@ -67,7 +67,7 @@ async function renamePage(
 
   if (navigateThere) {
     console.log("Navigating to new page");
-    await editor.navigate(newName, 0, true);
+    await editor.navigate({ page: newName, pos: 0 }, true);
   }
 
   const pagesToUpdate = await getBackLinks(oldName);
@@ -101,12 +101,16 @@ async function renamePage(
       continue;
     }
 
+    // Replace all links found in place following the patterns [[Page]] and [[Page@pos]] as well as [[Page$anchor]]
     const newText = text.replaceAll(`[[${oldName}]]`, () => {
       updatedReferences++;
       return `[[${newName}]]`;
     }).replaceAll(`[[${oldName}@`, () => {
       updatedReferences++;
       return `[[${newName}@`;
+    }).replaceAll(`[[${oldName}$`, () => {
+      updatedReferences++;
+      return `[[${newName}$`;
     });
     if (text !== newText) {
       console.log("Changes made, saving...");
@@ -207,5 +211,5 @@ export async function extractToPageCommand() {
   console.log("Writing new page to space");
   await space.writePage(newName, text);
   console.log("Navigating to new page");
-  await editor.navigate(newName);
+  await editor.navigate({ page: newName });
 }

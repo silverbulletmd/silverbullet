@@ -9,6 +9,7 @@ import {
   LinkWidget,
 } from "./util.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
@@ -30,7 +31,7 @@ export function cleanWikiLinkPlugin(client: Client) {
 
         let pageExists = !client.fullSyncCompleted;
         let cleanPage = page;
-        cleanPage = page.split(/[@$]/)[0];
+        cleanPage = parsePageRef(page).page;
         cleanPage = resolvePath(client.currentPage!, cleanPage);
         const lowerCasePageName = cleanPage.toLowerCase();
         for (const pageName of client.allKnownPages) {

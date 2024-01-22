@@ -7,6 +7,7 @@ import {
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
 
 export type MarkdownRenderOptions = {
@@ -245,11 +246,11 @@ function render(
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
       }
-      const [pageName] = ref.split(/[@$]/);
+      const { page: pageName, anchor } = parsePageRef(ref);
       return {
         name: "a",
         attrs: {
-          href: `/${pageName}`,
+          href: `/${pageName}${anchor ? "#" + anchor : ""}`,
           class: "wiki-link",
           "data-ref": ref,
         },
@@ -278,9 +279,9 @@ function render(
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
-        const ref = wikilink.children![0].text!;
-        if (!externalTaskRef && (ref.includes("@") || ref.includes("$"))) {
-          externalTaskRef = ref;
+        const pageRef = parsePageRef(wikilink.children![0].text!);
+        if (!externalTaskRef && (pageRef.pos !== undefined || pageRef.anchor)) {
+          externalTaskRef = wikilink.children![0].text!;
         }
       });
 

@@ -5,6 +5,7 @@ import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$sb/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
@@ -56,7 +57,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
       let toPage = resolvePath(name, wikiLinkPage.children![0].text!);
       const pos = wikiLinkPage.from!;
-      toPage = toPage.split(/[@$]/)[0];
+      toPage = parsePageRef(toPage).page;
       const link: LinkObject = {
         ref: `${name}@${pos}`,
         tag: "link",
@@ -89,7 +90,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         const code = codeText.children![0].text!;
         const matches = code.matchAll(pageRefRegex);
         for (const match of matches) {
-          const pageRefName = resolvePath(name, match[1]);
+          const pageRefName = resolvePath(name, parsePageRef(match[1]).page);
           const pos = codeText.from! + match.index! + 2;
           const link = {
             ref: `${name}@${pos}`,

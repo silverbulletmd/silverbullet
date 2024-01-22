@@ -6,13 +6,47 @@ export function validatePageName(name: string) {
   if (name.startsWith(".")) {
     throw new Error("Page name cannot start with a '.'");
   }
-  if (name.includes("@")) {
-    throw new Error("Page name cannot contain '@'");
-  }
-  if (name.includes("$")) {
-    throw new Error("Page name cannot contain '$'");
-  }
   if (/\.[a-zA-Z]+$/.test(name)) {
     throw new Error("Page name can not end with a file extension");
   }
+}
+
+export type PageRef = {
+  page: string;
+  pos?: number;
+  anchor?: string;
+};
+
+const posRegex = /@(\d+)$/;
+// Should be kept in sync with the regex in index.plug.yaml
+const anchorRegex = /\$([a-zA-Z\.\-\/]+[\w\.\-\/]*)$/;
+
+export function parsePageRef(name: string): PageRef {
+  // Normalize the page name
+  if (name.startsWith("[[") && name.endsWith("]]")) {
+    name = name.slice(2, -2);
+  }
+  const pageRef: PageRef = { page: name };
+  const posMatch = pageRef.page.match(posRegex);
+  if (posMatch) {
+    pageRef.pos = parseInt(posMatch[1]);
+    pageRef.page = pageRef.page.replace(posRegex, "");
+  }
+  const anchorMatch = pageRef.page.match(anchorRegex);
+  if (anchorMatch) {
+    pageRef.anchor = anchorMatch[1];
+    pageRef.page = pageRef.page.replace(anchorRegex, "");
+  }
+  return pageRef;
+}
+
+export function encodePageRef(pageRef: PageRef): string {
+  let name = pageRef.page;
+  if (pageRef.pos) {
+    name += `@${pageRef.pos}`;
+  }
+  if (pageRef.anchor) {
+    name += `$${pageRef.anchor}`;
+  }
+  return name;
 }

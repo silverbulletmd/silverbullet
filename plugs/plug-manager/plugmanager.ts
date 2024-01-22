@@ -109,7 +109,7 @@ export async function addPlugCommand() {
     plugsPrelude + "```yaml\n" + plugList.map((p) => `- ${p}`).join("\n") +
       "\n```",
   );
-  await editor.navigate("PLUGS");
+  await editor.navigate({ page: "PLUGS" });
   await updatePlugsCommand();
   await editor.flashNotification("Plug added!");
   system.reloadPlugs();
