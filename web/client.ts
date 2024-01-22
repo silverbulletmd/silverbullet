@@ -35,7 +35,7 @@ import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primiti
 import { encodePageRef, validatePageName } from "$sb/lib/page.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
-import { OpenPages, PageState } from "./open_pages.ts";
+import { PageState } from "./open_pages.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
@@ -117,7 +117,6 @@ export class Client {
   eventHook!: EventHook;
 
   ui!: MainUI;
-  openPages!: OpenPages;
   stateDataStore!: DataStore;
   spaceDataStore!: DataStore;
   mq!: DataStoreMQ;
@@ -195,8 +194,6 @@ export class Client {
       state: createEditorState(this, "", "", false),
       parent: document.getElementById("sb-editor")!,
     });
-
-    this.openPages = new OpenPages(this);
 
     this.focus();
 
@@ -357,6 +354,7 @@ export class Client {
 
   private initNavigator() {
     this.pageNavigator = new PathPageNavigator(
+      this,
       cleanPageRef(renderHandlebarsTemplate(this.settings.indexPage, {}, {})),
     );
 
@@ -784,7 +782,7 @@ export class Client {
 
     if (this.currentPage) {
       // And update the editor if a page is loaded
-      this.openPages.saveState(this.currentPage);
+      // this.openPages.saveState(this.currentPage);
 
       editorView.setState(
         createEditorState(
@@ -800,7 +798,7 @@ export class Client {
         );
       }
 
-      this.openPages.restoreState(this.currentPage);
+      // this.openPages.restoreState(this.currentPage);
     }
   }
 
@@ -918,7 +916,6 @@ export class Client {
 
     await this.pageNavigator!.navigate(
       pageRef,
-      extractPageState(this),
       replaceState,
     );
     this.focus();
@@ -936,7 +933,7 @@ export class Client {
 
     // Persist current page state and nicely close page
     if (previousPage) {
-      this.openPages.saveState(previousPage);
+      // this.openPages.saveState(previousPage);
       this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
@@ -1008,15 +1005,12 @@ export class Client {
     }
     const stateRestored = !!restoreState;
 
-    if (restoreState && restoreState.scrollTop === undefined) {
-      console.log("Restoring state from open pages");
-      this.openPages.restoreState(pageName);
-    } else if (restoreState) {
+    if (restoreState) {
       console.log("Restoring state from", restoreState);
-      if (restoreState.scrollTop !== undefined) {
-        editorView.scrollDOM.scrollTop = restoreState.scrollTop;
-      }
-      if (restoreState.selection.anchor) { // Only do this if we got a specific cursor position
+      // if (restoreState.scrollTop !== undefined) {
+      editorView.scrollDOM.scrollTop = restoreState.scrollTop || 0;
+      // }
+      if (restoreState.selection?.anchor) { // Only do this if we got a specific cursor position
         console.log("Chanign cursor position to", restoreState.selection);
         editorView.dispatch({
           selection: restoreState.selection,

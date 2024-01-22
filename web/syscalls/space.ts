@@ -26,7 +26,7 @@ export function spaceSyscalls(editor: Client): SysCallMapping {
         await editor.navigate({ page: "" });
       }
       // Remove page from open pages in editor
-      editor.openPages.openPages.delete(name);
+      // editor.openPages.openPages.delete(name);
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },

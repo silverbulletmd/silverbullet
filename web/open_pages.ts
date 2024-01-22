@@ -2,8 +2,8 @@ import { PageRef } from "$sb/lib/page.ts";
 import { Client } from "./client.ts";
 
 export type PageState = PageRef & {
-  scrollTop: number;
-  selection: {
+  scrollTop?: number;
+  selection?: {
     anchor: number;
     head?: number;
   };
@@ -31,6 +31,10 @@ export class OpenPages {
     const editorView = this.client.editorView;
     console.log("Restoring state", pageState);
     if (pageState) {
+      if (pageState.scrollTop) {
+        console.log("Scrolling to top", pageState.scrollTop);
+        editorView.scrollDOM.scrollTop = pageState.scrollTop;
+      }
       // Restore state
       try {
         editorView.dispatch({
@@ -45,7 +49,6 @@ export class OpenPages {
       }
       setTimeout(() => {
         // Next tick, to allow the editor to process the render
-        editorView.scrollDOM.scrollTop = pageState.scrollTop;
       });
     } else {
       editorView.scrollDOM.scrollTop = 0;

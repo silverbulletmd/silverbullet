@@ -1,27 +1,26 @@
 import { safeRun } from "../common/util.ts";
 import { PageRef, parsePageRef } from "$sb/lib/page.ts";
 import { PageState } from "./open_pages.ts";
+import { Client } from "./client.ts";
+import { extractPageState } from "./open_pages.ts";
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
 
-  constructor(readonly indexPage: string, readonly root: string = "") {}
+  constructor(
+    private client: Client,
+    readonly indexPage: string,
+    readonly root: string = "",
+  ) {}
 
   async navigate(
     nextPageRef: PageRef,
-    currentState: PageState,
     replaceState = false,
   ) {
     if (nextPageRef.page === this.indexPage) {
       nextPageRef.page = "";
     }
     if (!replaceState) {
-      console.log("Replacing old state", currentState);
-      window.history.replaceState(
-        currentState,
-        "",
-        `${this.root}/${currentState.page}`,
-      );
       console.log("Pushing new state", nextPageRef);
       window.history.pushState(
         nextPageRef,
@@ -54,18 +53,20 @@ export class PathPageNavigator {
     ) => Promise<void>,
   ): void {
     const cb = (event?: PopStateEvent) => {
-      console.log("Got this popstate", event?.state);
+      console.log("Got this popstate event", event);
+
       safeRun(async () => {
-        if (!event) {
-          // Initial load
-          await pageLoadCallback({
-            ...this.decodeURI(),
-            scrollTop: 0,
-            selection: { anchor: 0 },
-          });
+        const currentState = extractPageState(this.client);
+        console.log("Current state", currentState, "pop state event", event);
+        if (currentState.page !== undefined) {
+          console.log("Replacing old state");
+          window.history.replaceState(currentState, "");
+        }
+        if (event?.state) {
+          await pageLoadCallback(event.state);
         } else {
-          const pageState: PageState = event.state!;
-          await pageLoadCallback(pageState);
+          console.log("Got null state so using", this.decodeURI());
+          await pageLoadCallback(this.decodeURI());
         }
         if (this.navigationResolve) {
           this.navigationResolve();
