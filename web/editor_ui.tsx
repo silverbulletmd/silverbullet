@@ -260,15 +260,6 @@ export class MainUI {
               },
             },
             {
-              icon: TemplateIcon,
-              description: `Open template (${
-                isMacLike() ? "Cmd-Shift-t" : "Ctrl-Shift-t"
-              })`,
-              callback: () => {
-                client.startPageNavigate("template");
-              },
-            },
-            {
               icon: TerminalIcon,
               description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
               callback: () => {

@@ -2,12 +2,23 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+
 ## Edge
 _Not yet released, this will likely become 0.6.0. To try this out now, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
+* Nothing new yet, be patient but check out 0.6.0 below.
+
+---
+
+## 0.6.0
+
 * **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]].
-  A quick FAQ:
-  * **Where did my templates go!?** They have now moved to the [[Template Picker]], see that “T” button up there? Yeah, that’s new.
+* **Upgrade instructions**: to get the best experience after upgrading to 0.6.0 do the following:
+  * Upgrade your docker image/deno version to 0.6.0
+  * Reload your page 2-3x to be sure you have the latest front-end code running
+  * Run the {[Library: Import]} command in your space, and enter the following federation URL: `!silverbullet.md/Library/` This will import both the [[Library/Core]] and [[Library/Journal]] libraries into your space, which will bring you roughly on par with 0.5.x versions in terms of functionality (this will include the daily note, weekly note, various slash commands etc.)
+* A **quick FAQ** on the template system
+  * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Template Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux). Yeah, that’s new!
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
   * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
