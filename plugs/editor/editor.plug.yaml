@@ -25,14 +25,14 @@ functions:
   openPageNavigator:
     path: editor.ts:openPageNavigator
     command:
-      name: "Page Navigator"
+      name: "Navigate: Page Picker"
       key: "Ctrl-k"
       mac: "Cmd-k"
 
   openTemplateNavigator:
     path: editor.ts:openTemplateNavigator
     command:
-      name: "Template Picker"
+      name: "Navigate: Template Picker"
       key: "Ctrl-Shift-t"
       mac: "Cmd-Shift-t"
 
