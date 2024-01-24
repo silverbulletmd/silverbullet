@@ -2,6 +2,7 @@ import { collectNodesOfType } from "$sb/lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
 import { ObjectValue, QueryExpression } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 type AnchorObject = ObjectValue<{
   name: string;
@@ -27,14 +28,14 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function anchorComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@$:]*[@$][\w\.\-\/]*)$/.exec(
+  const match = /\[\[([^\]$:]*\$[\w\.\-\/]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match) {
     return null;
   }
 
-  const pageRef = match[1].split(/[@$]/)[0];
+  const pageRef = parsePageRef(match[1]).page;
   let filter: QueryExpression | undefined = ["=", ["attr", "page"], [
     "string",
     pageRef,

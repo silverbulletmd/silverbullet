@@ -1,5 +1,6 @@
 import { traverseTree } from "../../plug-api/lib/tree.ts";
 import { editor, markdown, space } from "$sb/syscalls.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 export async function brokenLinksCommand() {
   const pageName = "BROKEN LINKS";
@@ -13,7 +14,7 @@ export async function brokenLinksCommand() {
     traverseTree(tree, (tree) => {
       if (tree.type === "WikiLinkPage") {
         // Add the prefix in the link text
-        const [pageName] = tree.children![0].text!.split(/[@$]/);
+        const { page: pageName } = parsePageRef(tree.children![0].text!);
         if (pageName.startsWith("!")) {
           return true;
         }
@@ -53,5 +54,5 @@ export async function brokenLinksCommand() {
     );
   }
   await space.writePage(pageName, lines.join("\n"));
-  await editor.navigate(pageName);
+  await editor.navigate({ page: pageName });
 }

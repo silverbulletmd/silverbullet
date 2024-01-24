@@ -5,6 +5,7 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import buildMarkdown from "../../common/markdown_parser/parser.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
@@ -152,12 +153,8 @@ export class MarkdownWidget extends WidgetType {
         }
         e.preventDefault();
         e.stopPropagation();
-        const [pageName, pos] = el.dataset.ref!.split(/[$@]/);
-        if (pos && pos.match(/^\d+$/)) {
-          this.client.navigate(pageName, +pos);
-        } else {
-          this.client.navigate(pageName, pos);
-        }
+        const pageRef = parsePageRef(el.dataset.ref!);
+        this.client.navigate(pageRef);
       });
     });
 

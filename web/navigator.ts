@@ -1,43 +1,77 @@
 import { safeRun } from "../common/util.ts";
+import { PageRef, parsePageRef } from "$sb/lib/page.ts";
+import { Client } from "./client.ts";
+import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
 
-function encodePageUrl(name: string): string {
-  return name;
-}
-
-function decodePageUrl(url: string): string {
-  return url;
-}
+export type PageState = PageRef & {
+  scrollTop?: number;
+  selection?: {
+    anchor: number;
+    head?: number;
+  };
+};
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
+  root: string;
+  indexPage: string;
 
-  constructor(readonly indexPage: string, readonly root: string = "") {}
+  openPages = new Map<string, PageState>();
 
+  constructor(
+    private client: Client,
+  ) {
+    this.root = "";
+    this.indexPage = cleanPageRef(
+      renderHandlebarsTemplate(client.settings.indexPage, {}, {}),
+    );
+  }
+
+  /**
+   * Navigates the client to the given page, this involves:
+   * - Patching the current popstate with current state
+   * - Pushing the new state
+   * - Dispatching a popstate event
+   * @param pageRef to navigate to
+   * @param replaceState whether to update the state in place (rather than to push a new state)
+   */
   async navigate(
-    page: string,
-    pos?: number | string | undefined,
+    pageRef: PageRef,
     replaceState = false,
   ) {
-    let encodedPage = encodePageUrl(page);
-    if (page === this.indexPage) {
-      encodedPage = "";
+    if (pageRef.page === this.indexPage) {
+      pageRef.page = "";
     }
-    if (replaceState) {
+    const currentState = this.buildCurrentPageState();
+    // No need to keep pos and anchor if we already have scrollTop and selection
+    const cleanState = { ...currentState, pos: undefined, anchor: undefined };
+    this.openPages.set(currentState.page || this.indexPage, cleanState);
+    if (!replaceState) {
+      console.log("Updating current state", currentState);
       window.history.replaceState(
-        { page },
-        page,
-        `${this.root}/${encodedPage}`,
+        cleanState,
+        "",
+        `${this.root}/${currentState.page}`,
+      );
+      console.log("Pushing new state", pageRef);
+      window.history.pushState(
+        pageRef,
+        "",
+        `${this.root}/${pageRef.page}`,
       );
     } else {
-      window.history.pushState(
-        { page },
-        page,
-        `${this.root}/${encodedPage}`,
+      // console.log("Replacing state", pageRef);
+      window.history.replaceState(
+        pageRef,
+        "",
+        `${this.root}/${pageRef.page}`,
       );
     }
+    // console.log("Explicitly dispatching the popstate", pageRef);
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
-        state: { page, pos },
+        state: pageRef,
       }),
     );
     await new Promise<void>((resolve) => {
@@ -46,52 +80,77 @@ export class PathPageNavigator {
     this.navigationResolve = undefined;
   }
 
+  buildCurrentPageState(): PageState {
+    const pageState: PageState = this.parseURI();
+    const mainSelection = this.client.editorView.state.selection.main;
+    pageState.scrollTop = this.client.editorView.scrollDOM.scrollTop;
+    pageState.selection = {
+      head: mainSelection.head,
+      anchor: mainSelection.anchor,
+    };
+    return pageState;
+  }
+
   subscribe(
     pageLoadCallback: (
-      pageName: string,
-      pos: number | string | undefined,
+      pageState: PageState,
     ) => Promise<void>,
   ): void {
-    const cb = (event?: PopStateEvent) => {
-      const gotoPage = this.getCurrentPage();
-      if (!gotoPage) {
-        return;
-      }
+    const cb = (event: PopStateEvent) => {
       safeRun(async () => {
-        await pageLoadCallback(
-          this.getCurrentPage(),
-          event?.state?.pos,
-        );
+        const popState = event.state;
+        if (popState) {
+          // This is the usual case
+          if (!popState.page) {
+            popState.page = this.indexPage;
+          }
+          if (
+            popState.anchor === undefined && popState.pos === undefined &&
+            popState.selection === undefined &&
+            popState.scrollTop === undefined
+          ) {
+            // Pretty low-context popstate, so let's leverage openPages
+            const openPage = this.openPages.get(popState.page);
+            if (openPage) {
+              console.log("Pulling open page state", openPage);
+              popState.selection = openPage.selection;
+              popState.scrollTop = openPage.scrollTop;
+            }
+          }
+          console.log("Got popstate state, using", popState);
+          await pageLoadCallback(popState);
+        } else {
+          // This occurs when the page is loaded completely fresh with no browser history around it
+          // console.log("Got null state so using", this.parseURI());
+          const pageRef = this.parseURI();
+          if (!pageRef.page) {
+            pageRef.page = this.indexPage;
+          }
+          await pageLoadCallback(pageRef);
+        }
         if (this.navigationResolve) {
           this.navigationResolve();
         }
       });
     };
     globalThis.addEventListener("popstate", cb);
-    cb();
+
+    cb(
+      new PopStateEvent("popstate", {
+        state: this.buildCurrentPageState(),
+      }),
+    );
   }
 
-  decodeURI(): [string, number | string] {
-    const [page, pos] = decodeURI(
+  parseURI(): PageRef {
+    const pageRef = parsePageRef(decodeURI(
       location.pathname.substring(this.root.length + 1),
-    ).split(/[@$]/);
-    if (pos) {
-      if (pos.match(/^\d+$/)) {
-        return [page, +pos];
-      } else {
-        return [page, pos];
-      }
-    } else {
-      return [page, 0];
-    }
-  }
+    ));
 
-  getCurrentPage(): string {
-    return decodePageUrl(this.decodeURI()[0]) || this.indexPage;
-  }
+    // if (!pageRef.page) {
+    //   pageRef.page = this.indexPage;
+    // }
 
-  getCurrentPos(): number | string {
-    // console.log("Pos", this.decodeURI()[1]);
-    return this.decodeURI()[1];
+    return pageRef;
   }
 }

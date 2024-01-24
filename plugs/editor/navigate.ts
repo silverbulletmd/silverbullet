@@ -8,6 +8,7 @@ import {
   ParseTree,
 } from "$sb/lib/tree.ts";
 import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -39,30 +40,22 @@ async function actionClickOrActionEnter(
   const currentPage = await editor.getCurrentPage();
   switch (mdTree.type) {
     case "WikiLink": {
-      let pageLink = mdTree.children![1]!.children![0].text!;
-      let pos: string | number = 0;
-      if (pageLink.includes("@") || pageLink.includes("$")) {
-        [pageLink, pos] = pageLink.split(/[@$]/);
-        if (pos.match(/^\d+$/)) {
-          pos = +pos;
-        }
+      const pageLink = mdTree.children![1]!.children![0].text!;
+      const pageRef = parsePageRef(pageLink);
+      pageRef.page = resolvePath(currentPage, pageRef.page);
+      if (!pageRef.page) {
+        pageRef.page = currentPage;
       }
-      pageLink = resolvePath(currentPage, pageLink);
-      if (!pageLink) {
-        pageLink = currentPage;
+      // This is an explicit navigate, move to the top
+      if (pageRef.pos === undefined) {
+        pageRef.pos = 0;
       }
-      await editor.navigate(pageLink, pos, false, inNewWindow);
+      await editor.navigate(pageRef, false, inNewWindow);
       break;
     }
     case "PageRef": {
-      const bracketedPageRef = mdTree.children![0].text!;
-
-      // Slicing off the initial [[ and final ]]
-      const pageName = bracketedPageRef.substring(
-        2,
-        bracketedPageRef.length - 2,
-      );
-      await editor.navigate(pageName, 0, false, inNewWindow);
+      const pageName = parsePageRef(mdTree.children![0].text!).page;
+      await editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
       break;
     }
     case "NakedURL":
@@ -125,5 +118,5 @@ export async function clickNavigate(event: ClickEvent) {
 }
 
 export async function navigateCommand(cmdDef: any) {
-  await editor.navigate(cmdDef.page);
+  await editor.navigate({ page: cmdDef.page, pos: 0 });
 }

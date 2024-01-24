@@ -1,4 +1,5 @@
 import type { FilterOption } from "../../web/types.ts";
+import { PageRef } from "$sb/lib/page.ts";
 import { UploadFile } from "../types.ts";
 import { syscall } from "./syscall.ts";
 
@@ -31,12 +32,11 @@ export function save(): Promise<void> {
 }
 
 export function navigate(
-  name: string,
-  pos?: string | number,
+  pageRef: PageRef,
   replaceState = false,
   newWindow = false,
 ): Promise<void> {
-  return syscall("editor.navigate", name, pos, replaceState, newWindow);
+  return syscall("editor.navigate", pageRef, replaceState, newWindow);
 }
 
 export function openPageNavigator(

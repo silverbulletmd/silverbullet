@@ -13,6 +13,7 @@ import {
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 import { UploadFile } from "../../plug-api/types.ts";
+import { PageRef } from "$sb/lib/page.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -33,12 +34,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.navigate": async (
       _ctx,
-      name: string,
-      pos: number | string,
+      pageRef: PageRef | string,
       replaceState = false,
       newWindow = false,
     ) => {
-      await client.navigate(name, pos, replaceState, newWindow);
+      if (typeof pageRef === "string") {
+        pageRef = { page: pageRef };
+      }
+      await client.navigate(pageRef, replaceState, newWindow);
     },
     "editor.reloadPage": async () => {
       await client.reloadPage();

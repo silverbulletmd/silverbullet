@@ -20,6 +20,7 @@ import { ObjectValue } from "$sb/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 export type TaskObject = ObjectValue<
   {
@@ -191,8 +192,11 @@ export async function updateTaskState(
   newState: string,
 ) {
   const currentPage = await editor.getCurrentPage();
-  const [page, posS] = ref.split("@");
-  const pos = +posS;
+  const { page, pos } = parsePageRef(ref);
+  if (pos === undefined) {
+    console.error("No position found in page ref, skipping", ref);
+    return;
+  }
   if (page === currentPage) {
     // In current page, just update the task marker with dispatch
     const editorText = await editor.getText();
