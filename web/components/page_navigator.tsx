@@ -130,7 +130,7 @@ export function PageNavigator({
       newHint={`Create ${mode}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.ref);
+        onNavigate(opt?.ref || opt?.name);
       }}
     />
   );
