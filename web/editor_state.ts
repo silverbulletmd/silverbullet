@@ -261,7 +261,7 @@ export function createEditorState(
   });
 }
 
-export function createKeyBindings(client: Client): Extension {
+export function createCommandKeyBindings(client: Client): KeyBinding[] {
   const commandKeyBindings: KeyBinding[] = [];
 
   // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
@@ -336,8 +336,13 @@ export function createKeyBindings(client: Client): Extension {
       });
     }
   }
+
+  return commandKeyBindings;
+}
+
+export function createKeyBindings(client: Client): Extension {
   return keymap.of([
-    ...commandKeyBindings,
+    ...createCommandKeyBindings(client),
     ...smartQuoteKeymap,
     ...closeBracketsKeymap,
     ...standardKeymap,
@@ -345,16 +350,5 @@ export function createKeyBindings(client: Client): Extension {
     ...historyKeymap,
     ...completionKeymap,
     indentWithTab,
-    {
-      key: "Ctrl-.",
-      mac: "Cmd-.",
-      run: (): boolean => {
-        client.ui.viewDispatch({
-          type: "show-palette",
-          context: client.getContext(),
-        });
-        return true;
-      },
-    },
   ]);
 }

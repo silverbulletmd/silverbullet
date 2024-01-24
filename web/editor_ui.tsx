@@ -12,7 +12,6 @@ import {
   preactRender,
   RefreshCwIcon,
   runScopeHandlers,
-  TemplateIcon,
   TerminalIcon,
   useEffect,
   useReducer,
@@ -30,10 +29,11 @@ export class MainUI {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!client.editorView.hasFocus) {
-        if ((ev.target as any).closest(".cm-editor")) {
+        if ((ev.target as any).closest(".cm-content")) {
           // In some cm element, let's back out
           return;
         }
+        console.log("Delegated keydown", ev, "to editor");
         if (runScopeHandlers(client.editorView, ev, "editor")) {
           ev.preventDefault();
         }

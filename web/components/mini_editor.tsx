@@ -20,6 +20,7 @@ import {
   vim,
   vimGetCm,
 } from "../deps.ts";
+import { createCommandKeyBindings } from "../editor_state.ts";
 
 type MiniEditorEvents = {
   onEnter: (newText: string, shiftDown?: boolean) => void;
@@ -197,6 +198,7 @@ export function MiniEditor(
           ...standardKeymap,
           ...historyKeymap,
           ...completionKeymap,
+          ...createCommandKeyBindings(window.client),
         ]),
         EditorView.domEventHandlers({
           click: (e) => {

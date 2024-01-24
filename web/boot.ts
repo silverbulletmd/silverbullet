@@ -14,8 +14,8 @@ safeRun(async () => {
     document.getElementById("sb-root")!,
     syncMode,
   );
-  await client.init();
   window.client = client;
+  await client.init();
 });
 
 if (navigator.serviceWorker) {
