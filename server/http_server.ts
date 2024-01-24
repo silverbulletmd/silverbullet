@@ -423,7 +423,7 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "/:path{[^!].+\\.[a-zA-Z]+}";
+    const filePathRegex = "/:path{[^!].*\\.[a-zA-Z]+}";
 
     this.app.get(
       filePathRegex,
