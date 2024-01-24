@@ -9,6 +9,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { parsePageRef } from "$sb/lib/page.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
+import { encodePageRef } from "$sb/lib/page.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -246,11 +247,11 @@ function render(
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
       }
-      const { page: pageName, anchor } = parsePageRef(ref);
+      const pageRef = parsePageRef(ref);
       return {
         name: "a",
         attrs: {
-          href: `/${pageName}${anchor ? "#" + anchor : ""}`,
+          href: `/${encodePageRef(pageRef)}`,
           class: "wiki-link",
           "data-ref": ref,
         },

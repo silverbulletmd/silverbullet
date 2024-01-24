@@ -14,7 +14,6 @@ export type PageState = PageRef & {
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
-  root: string;
   indexPage: string;
 
   openPages = new Map<string, PageState>();
@@ -22,7 +21,6 @@ export class PathPageNavigator {
   constructor(
     private client: Client,
   ) {
-    this.root = "";
     this.indexPage = cleanPageRef(
       renderHandlebarsTemplate(client.settings.indexPage, {}, {}),
     );
@@ -52,20 +50,20 @@ export class PathPageNavigator {
       window.history.replaceState(
         cleanState,
         "",
-        `${this.root}/${currentState.page}`,
+        `/${currentState.page}`,
       );
       console.log("Pushing new state", pageRef);
       window.history.pushState(
         pageRef,
         "",
-        `${this.root}/${pageRef.page}`,
+        `/${pageRef.page}`,
       );
     } else {
       // console.log("Replacing state", pageRef);
       window.history.replaceState(
         pageRef,
         "",
-        `${this.root}/${pageRef.page}`,
+        `/${pageRef.page}`,
       );
     }
     // console.log("Explicitly dispatching the popstate", pageRef);
@@ -81,7 +79,7 @@ export class PathPageNavigator {
   }
 
   buildCurrentPageState(): PageState {
-    const pageState: PageState = this.parseURI();
+    const pageState: PageState = parsePageRefFromURI();
     const mainSelection = this.client.editorView.state.selection.main;
     pageState.scrollTop = this.client.editorView.scrollDOM.scrollTop;
     pageState.selection = {
@@ -122,7 +120,7 @@ export class PathPageNavigator {
         } else {
           // This occurs when the page is loaded completely fresh with no browser history around it
           // console.log("Got null state so using", this.parseURI());
-          const pageRef = this.parseURI();
+          const pageRef = parsePageRefFromURI();
           if (!pageRef.page) {
             pageRef.page = this.indexPage;
           }
@@ -141,16 +139,12 @@ export class PathPageNavigator {
       }),
     );
   }
+}
 
-  parseURI(): PageRef {
-    const pageRef = parsePageRef(decodeURI(
-      location.pathname.substring(this.root.length + 1),
-    ));
+export function parsePageRefFromURI(): PageRef {
+  const pageRef = parsePageRef(decodeURI(
+    location.pathname.substring(1),
+  ));
 
-    // if (!pageRef.page) {
-    //   pageRef.page = this.indexPage;
-    // }
-
-    return pageRef;
-  }
+  return pageRef;
 }

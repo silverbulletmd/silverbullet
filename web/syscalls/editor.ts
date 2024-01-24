@@ -18,7 +18,7 @@ import { PageRef } from "$sb/lib/page.ts";
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
-      return client.currentPage!;
+      return client.currentPage;
     },
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();

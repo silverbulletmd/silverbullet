@@ -6,6 +6,9 @@ release.
 ## Edge
 _The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
+* Bug fixes:
+  * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
+  * Right-clicking links now opens browser native context menu again
 * Internal changes:
   * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
   * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.
@@ -118,8 +121,8 @@ _The changes below are not yet released “properly”. To them out early, check
 ---
 ## 0.5.3
 * Changes to [[Objects]]:
-  * Paragraphs are now indexed, see [[Objects@paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
-  * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects@item]].
+  * Paragraphs are now indexed, see [[Objects$paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
+  * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects$item]].
 * The {[Directive: Convert to Live Query/Template]} now also converts `#use` and `#include` directives
 * Styling improvements for Linked Mentions
 * SilverBullet now fully works when added as PWA on Safari 17 (via the “Add to Dock” option).

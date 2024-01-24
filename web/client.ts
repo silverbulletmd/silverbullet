@@ -13,7 +13,11 @@ import { FilterOption } from "./types.ts";
 import { ensureSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { AppCommand } from "./hooks/command.ts";
-import { PageState, PathPageNavigator } from "./navigator.ts";
+import {
+  PageState,
+  parsePageRefFromURI,
+  PathPageNavigator,
+} from "./navigator.ts";
 
 import { AppViewState, BuiltinSettings } from "./types.ts";
 
@@ -110,6 +114,7 @@ export class Client {
 
   // Used by the "wiki link" highlighter to check if a page exists
   public allKnownPages = new Set<string>();
+  onLoadPageRef: PageRef;
 
   constructor(
     private parent: Element,
@@ -120,6 +125,7 @@ export class Client {
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
+    this.onLoadPageRef = parsePageRefFromURI();
   }
 
   /**
@@ -224,7 +230,7 @@ export class Client {
 
     setInterval(() => {
       try {
-        this.syncService.syncFile(`${this.currentPage!}.md`).catch((e: any) => {
+        this.syncService.syncFile(`${this.currentPage}.md`).catch((e: any) => {
           console.error("Interval sync error", e);
         });
       } catch (e: any) {
@@ -305,7 +311,11 @@ export class Client {
     let adjustedPosition = false;
 
     // Was a particular scroll position persisted?
-    if (pageState.scrollTop !== undefined) {
+    if (
+      pageState.scrollTop !== undefined &&
+      !(pageState.scrollTop === 0 &&
+        (pageState.pos !== undefined || pageState.anchor !== undefined))
+    ) {
       setTimeout(() => {
         console.log("Kicking off scroll to", pageState.scrollTop);
         this.editorView.scrollDOM.scrollTop = pageState.scrollTop!;
@@ -592,8 +602,10 @@ export class Client {
     return localSpacePrimitives;
   }
 
-  get currentPage(): string | undefined {
-    return this.ui.viewState.currentPage;
+  get currentPage(): string {
+    return this.ui.viewState.currentPage !== undefined
+      ? this.ui.viewState.currentPage
+      : this.onLoadPageRef.page; // best effort
   }
 
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
@@ -814,7 +826,7 @@ export class Client {
     }
 
     const results = await this.dispatchAppEvent(eventName, {
-      pageName: this.currentPage!,
+      pageName: this.currentPage,
       linePrefix,
       pos: selection.from,
       parentNodes,
@@ -851,7 +863,7 @@ export class Client {
   async reloadPage() {
     console.log("Reloading page");
     clearTimeout(this.saveTimeout);
-    await this.loadPage(this.currentPage!);
+    await this.loadPage(this.currentPage);
   }
 
   focus() {
@@ -889,6 +901,10 @@ export class Client {
     }
 
     if (newWindow) {
+      console.log(
+        "Navigating to new page in new window",
+        `${location.origin}/${encodePageRef(pageRef)}`,
+      );
       const win = window.open(
         `${location.origin}/${encodePageRef(pageRef)}`,
         "_blank",

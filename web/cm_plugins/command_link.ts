@@ -55,7 +55,7 @@ export function cleanCommandLinkPlugin(editor: Client) {
                 }
                 // Dispatch click event to navigate there without moving the cursor
                 const clickEvent: ClickEvent = {
-                  page: editor.currentPage!,
+                  page: editor.currentPage,
                   ctrlKey: e.ctrlKey,
                   metaKey: e.metaKey,
                   altKey: e.altKey,

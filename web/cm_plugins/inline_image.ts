@@ -33,7 +33,7 @@ class InlineImageWidget extends WidgetType {
   toDOM() {
     const img = document.createElement("img");
     let url = this.url;
-    url = resolvePath(this.client.currentPage!, url, true);
+    url = resolvePath(this.client.currentPage, url, true);
     // console.log("Creating DOM", this.url);
     const cachedImageHeight = this.client.getCachedWidgetHeight(
       `image:${this.url}`,
@@ -79,7 +79,7 @@ export function inlineImagesPlugin(client: Client) {
         const title = imageRexexResult.groups.title;
 
         if (url.indexOf("://") === -1 && !url.startsWith("/")) {
-          url = resolveAttachmentPath(client.currentPage!, decodeURI(url));
+          url = resolveAttachmentPath(client.currentPage, decodeURI(url));
         }
         widgets.push(
           Decoration.widget({

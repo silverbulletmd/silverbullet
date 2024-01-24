@@ -48,7 +48,7 @@ export class MarkdownWidget extends WidgetType {
   ) {
     const widgetContent = await this.codeWidgetCallback(
       this.bodyText,
-      this.client.currentPage!,
+      this.client.currentPage,
     );
     activeWidgets.add(this);
     if (!widgetContent) {
@@ -79,7 +79,7 @@ export class MarkdownWidget extends WidgetType {
       translateUrls: (url) => {
         if (!url.includes("://")) {
           url = resolveAttachmentPath(
-            this.client.currentPage!,
+            this.client.currentPage,
             decodeURI(url),
           );
         }

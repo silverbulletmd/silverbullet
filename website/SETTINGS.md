@@ -16,6 +16,8 @@ shortcuts:
   key: "Alt-x"
 - command: "{[Upload: File]}"
   priority: 1 # Make sure this appears at the top of the list in the command palette
+- command: "{[Open Command Palette]}"
+  key: "Ctrl-."
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |

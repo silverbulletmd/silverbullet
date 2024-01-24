@@ -215,7 +215,7 @@ export function attachmentExtension(editor: Client) {
       return;
     }
     await editor.space.writeAttachment(
-      resolve(folderName(editor.currentPage!), finalFileName),
+      resolve(folderName(editor.currentPage), finalFileName),
       new Uint8Array(data),
     );
     let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;

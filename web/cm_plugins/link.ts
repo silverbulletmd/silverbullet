@@ -37,7 +37,7 @@ export function linkPlugin(client: Client) {
 
         if (!cleanLink.includes("://")) {
           cleanLink = resolveAttachmentPath(
-            client.currentPage!,
+            client.currentPage,
             decodeURI(cleanLink),
           );
         }

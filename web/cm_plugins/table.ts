@@ -42,7 +42,7 @@ class TableViewWidget extends WidgetType {
       annotationPositions: true,
       translateUrls: (url) => {
         if (!url.includes("://")) {
-          url = resolveAttachmentPath(this.client.currentPage!, decodeURI(url));
+          url = resolveAttachmentPath(this.client.currentPage, decodeURI(url));
         }
 
         return url;
