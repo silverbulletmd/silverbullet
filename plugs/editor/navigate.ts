@@ -46,6 +46,10 @@ async function actionClickOrActionEnter(
       if (!pageRef.page) {
         pageLink = currentPage;
       }
+      // This is an explicit navigate, move to the top
+      if (pageRef.pos === undefined) {
+        pageRef.pos = 0;
+      }
       await editor.navigate(pageRef, false, inNewWindow);
       break;
     }

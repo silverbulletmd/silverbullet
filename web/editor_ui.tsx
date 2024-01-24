@@ -21,7 +21,6 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
 import { sleep } from "$sb/lib/async.ts";
-import { template } from "https://esm.sh/v132/handlebars@4.7.7/runtime.d.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
