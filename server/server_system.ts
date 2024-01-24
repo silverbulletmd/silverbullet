@@ -1,7 +1,5 @@
 import { PlugNamespaceHook } from "../common/hooks/plug_namespace.ts";
 import { SilverBulletHooks } from "../common/manifest.ts";
-import { loadMarkdownExtensions } from "../common/markdown_parser/markdown_ext.ts";
-import buildMarkdown from "../common/markdown_parser/parser.ts";
 import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
 import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
@@ -135,7 +133,7 @@ export class ServerSystem {
       dataStoreSyscalls(this.ds),
       debugSyscalls(),
       codeWidgetSyscalls(codeWidgetHook),
-      markdownSyscalls(buildMarkdown([])), // Will later be replaced with markdown extensions
+      markdownSyscalls(),
     );
 
     // Syscalls that require some additional permissions
@@ -150,12 +148,6 @@ export class ServerSystem {
     );
 
     await this.loadPlugs();
-
-    // Load markdown syscalls based on all new syntax (if any)
-    this.system.registerSyscalls(
-      [],
-      markdownSyscalls(buildMarkdown(loadMarkdownExtensions(this.system))),
-    );
 
     this.listInterval = setInterval(() => {
       // runWithSystemLock(this.system, async () => {

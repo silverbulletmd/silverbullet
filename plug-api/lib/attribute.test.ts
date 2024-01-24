@@ -1,9 +1,9 @@
 import "$sb/lib/syscall_mock.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { renderToText } from "$sb/lib/tree.ts";
+import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
 
 const inlineAttributeSample = `
 # My document
@@ -26,8 +26,7 @@ Top level attributes:
 `;
 
 Deno.test("Test attribute extraction", async () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, inlineAttributeSample);
+  const tree = parse(extendedMarkdownLanguage, inlineAttributeSample);
   const toplevelAttributes = await extractAttributes(tree, false);
   // console.log("All attributes", toplevelAttributes);
   assertEquals(toplevelAttributes.name, "sup");

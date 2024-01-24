@@ -6,7 +6,9 @@ release.
 ## Edge
 _The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
-* Nothing new yet, be patient, but check out 0.6.0 below.
+* Internal changes:
+  * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
+  * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.
 
 ---
 

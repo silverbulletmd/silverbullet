@@ -1,11 +1,11 @@
 import { parse } from "./parse_tree.ts";
-import buildMarkdown from "./parser.ts";
 import {
   collectNodesOfType,
   findNodeOfType,
   renderToText,
 } from "../../plug-api/lib/tree.ts";
 import { assertEquals, assertNotEquals } from "../../test_deps.ts";
+import { extendedMarkdownLanguage } from "./parser.ts";
 
 const sample1 = `---
 type: page
@@ -26,8 +26,7 @@ name: Zef
 Supper`;
 
 Deno.test("Test parser", () => {
-  const lang = buildMarkdown([]);
-  let tree = parse(lang, sample1);
+  let tree = parse(extendedMarkdownLanguage, sample1);
   // console.log("tree", JSON.stringify(tree, null, 2));
   // Check if rendering back to text works
   assertEquals(renderToText(tree), sample1);
@@ -45,7 +44,7 @@ Deno.test("Test parser", () => {
   // Find frontmatter
   let node = findNodeOfType(tree, "FrontMatter");
   assertNotEquals(node, undefined);
-  tree = parse(lang, sampleInvalid1);
+  tree = parse(extendedMarkdownLanguage, sampleInvalid1);
   node = findNodeOfType(tree, "FrontMatter");
   // console.log("Invalid node", node);
   assertEquals(node, undefined);
@@ -62,8 +61,7 @@ And one with nested brackets: [array: [1, 2, 3]]
 `;
 
 Deno.test("Test inline attribute syntax", () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, inlineAttributeSample);
+  const tree = parse(extendedMarkdownLanguage, inlineAttributeSample);
   // console.log("Attribute parsed", JSON.stringify(tree, null, 2));
   const attributes = collectNodesOfType(tree, "Attribute");
   let nameNode = findNodeOfType(attributes[0], "AttributeName");
@@ -89,8 +87,7 @@ const multiStatusTaskExample = `
 `;
 
 Deno.test("Test multi-status tasks", () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, multiStatusTaskExample);
+  const tree = parse(extendedMarkdownLanguage, multiStatusTaskExample);
   // console.log("Tasks parsed", JSON.stringify(tree, null, 2));
   const tasks = collectNodesOfType(tree, "Task");
   assertEquals(tasks.length, 3);
@@ -107,8 +104,7 @@ const commandLinkSample = `
 `;
 
 Deno.test("Test command links", () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, commandLinkSample);
+  const tree = parse(extendedMarkdownLanguage, commandLinkSample);
   const commands = collectNodesOfType(tree, "CommandLink");
   console.log("Command links parsed", JSON.stringify(commands, null, 2));
   assertEquals(commands.length, 3);
@@ -125,8 +121,7 @@ const commandLinkArgsSample = `
 `;
 
 Deno.test("Test command link arguments", () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, commandLinkArgsSample);
+  const tree = parse(extendedMarkdownLanguage, commandLinkArgsSample);
   const commands = collectNodesOfType(tree, "CommandLink");
   assertEquals(commands.length, 2);
 
@@ -138,7 +133,6 @@ Deno.test("Test command link arguments", () => {
 });
 
 Deno.test("Test template directives", () => {
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, `Hello there {{name}}!`);
+  const tree = parse(extendedMarkdownLanguage, `Hello there {{name}}!`);
   console.log("Template directive", JSON.stringify(tree, null, 2));
 });

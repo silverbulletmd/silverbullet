@@ -9,9 +9,9 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import wikiMarkdownLang from "../../common/markdown_parser/parser.ts";
 import { assertEquals, assertNotEquals } from "../../test_deps.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
 
 const mdTest1 = `
 # Heading
@@ -49,8 +49,7 @@ name: something
 `;
 
 Deno.test("Test parsing", () => {
-  const lang = wikiMarkdownLang([]);
-  const mdTree = parse(lang, mdTest1);
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
   addParentPointers(mdTree);
   // console.log(JSON.stringify(mdTree, null, 2));
   const wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
@@ -75,12 +74,11 @@ Deno.test("Test parsing", () => {
     }
   });
   // console.log(JSON.stringify(mdTree, null, 2));
-  let mdTree3 = parse(lang, mdTest3);
+  let mdTree3 = parse(extendedMarkdownLanguage, mdTest3);
   // console.log(JSON.stringify(mdTree3, null, 2));
 });
 
 Deno.test("AST functions", () => {
-  const lang = wikiMarkdownLang([]);
-  const mdTree = parse(lang, mdTest1);
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
   console.log(JSON.stringify(parseTreeToAST(mdTree), null, 2));
 });

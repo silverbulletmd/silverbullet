@@ -1,10 +1,9 @@
-import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { System } from "../../plugos/system.ts";
 
 import { createSandbox } from "../../plugos/sandboxes/deno_worker_sandbox.ts";
-import { loadMarkdownExtensions } from "../../common/markdown_parser/markdown_ext.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
+import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
@@ -20,11 +19,10 @@ Deno.test("Markdown render", async () => {
       new URL("../../dist_plug_bundle/_plug/tasks.plug.js", import.meta.url),
     ),
   );
-  const lang = buildMarkdown(loadMarkdownExtensions(system));
   const testFile = Deno.readTextFileSync(
     new URL("test/example.md", import.meta.url).pathname,
   );
-  const tree = parse(lang, testFile);
+  const tree = parse(extendedMarkdownLanguage, testFile);
   renderMarkdownToHtml(tree, {
     failOnUnknown: true,
   });
@@ -35,8 +33,7 @@ Deno.test("Markdown render", async () => {
 Deno.test("Smart hard break test", () => {
   const example = `**Hello**
 *world!*`;
-  const lang = buildMarkdown([]);
-  const tree = parse(lang, example);
+  const tree = parse(extendedMarkdownLanguage, example);
   const html = renderMarkdownToHtml(tree, {
     failOnUnknown: true,
     smartHardBreak: true,
@@ -58,7 +55,7 @@ And another
   Server: something else
   📅 last_updated - [Release notes](release_notes_url)`;
 
-  const tree2 = parse(lang, example2);
+  const tree2 = parse(extendedMarkdownLanguage, example2);
   const html2 = renderMarkdownToHtml(tree2, {
     failOnUnknown: true,
     smartHardBreak: true,

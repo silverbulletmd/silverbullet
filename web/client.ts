@@ -94,17 +94,6 @@ export class Client {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
-  debouncedPlugsUpdatedEvent = throttle(async () => {
-    // To register new commands, update editor state based on new plugs
-    this.rebuildEditorState();
-    await this.dispatchAppEvent(
-      "editor:pageLoaded",
-      this.currentPage,
-      undefined,
-      true,
-    );
-  }, 1000);
-
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
@@ -195,7 +184,7 @@ export class Client {
 
     this.focus();
 
-    await this.system.init();
+    this.system.init();
 
     await this.loadSettings();
 
@@ -773,7 +762,6 @@ export class Client {
 
   async loadPlugs() {
     await this.system.reloadPlugsFromSpace(this.space);
-    this.rebuildEditorState();
     await this.eventHook.dispatchEvent("system:ready");
     await this.dispatchAppEvent("plugs:loaded");
   }
@@ -782,12 +770,7 @@ export class Client {
     const editorView = this.editorView;
     console.log("Rebuilding editor state");
 
-    this.system.updateMarkdownParser();
-
     if (this.currentPage) {
-      // And update the editor if a page is loaded
-      // this.openPages.saveState(this.currentPage);
-
       editorView.setState(
         createEditorState(
           this,
@@ -801,8 +784,6 @@ export class Client {
           editorView.contentDOM,
         );
       }
-
-      // this.openPages.restoreState(this.currentPage);
     }
   }
 
@@ -929,8 +910,6 @@ export class Client {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
     const previousPage = this.currentPage;
-
-    // console.log("Navigating to", pageName, restoreState);
 
     // Persist current page state and nicely close page
     if (previousPage) {

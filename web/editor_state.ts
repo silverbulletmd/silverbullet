@@ -1,6 +1,4 @@
-import buildMarkdown, {
-  commandLinkRegex,
-} from "../common/markdown_parser/parser.ts";
+import { commandLinkRegex } from "../common/markdown_parser/parser.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
@@ -46,6 +44,7 @@ import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "../common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, Extension } from "@codemirror/state";
+import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
 
 export function createEditorState(
   client: Client,
@@ -54,8 +53,6 @@ export function createEditorState(
   readOnly: boolean,
 ): EditorState {
   let touchCount = 0;
-
-  const markdownLanguage = buildMarkdown(client.system.mdExtensions);
 
   // Ugly: keep the keyhandler compartment in the client, to be replaced later once more commands are loaded
   client.keyHandlerCompartment = new Compartment();
@@ -82,7 +79,7 @@ export function createEditorState(
 
       // The uber markdown mode
       markdown({
-        base: markdownLanguage,
+        base: extendedMarkdownLanguage,
         codeLanguages: (info) => {
           const lang = languageFor(info);
           if (lang) {
@@ -96,10 +93,10 @@ export function createEditorState(
         },
         addKeymap: true,
       }),
-      markdownLanguage.data.of({
+      extendedMarkdownLanguage.data.of({
         closeBrackets: { brackets: ["(", "{", "[", "`"] },
       }),
-      syntaxHighlighting(customMarkdownStyle(client.system.mdExtensions)),
+      syntaxHighlighting(customMarkdownStyle()),
       autocompletion({
         override: [
           client.editorComplete.bind(client),

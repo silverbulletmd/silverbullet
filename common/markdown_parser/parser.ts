@@ -1,6 +1,5 @@
 import {
   BlockContext,
-  Language,
   LeafBlock,
   LeafBlockParser,
   Line,
@@ -9,16 +8,14 @@ import {
   StreamLanguage,
   Strikethrough,
   styleTags,
+  Tag,
   tags as t,
   yamlLanguage,
 } from "../deps.ts";
 import * as ct from "./customtags.ts";
+import { HashtagTag, TaskDeadlineTag } from "./customtags.ts";
+import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
-import {
-  MDExt,
-  mdExtensionStyleTags,
-  mdExtensionSyntaxConfig,
-} from "./markdown_ext.ts";
 
 export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
@@ -313,6 +310,77 @@ export const Comment: MarkdownConfig = {
   ],
 };
 
+type RegexParserExtension = {
+  // unicode char code for efficiency .charCodeAt(0)
+  firstCharCode: number;
+  regex: RegExp;
+  nodeType: string;
+  tag: Tag;
+  className?: string;
+};
+
+function regexParser({
+  regex,
+  firstCharCode,
+  nodeType,
+}: RegexParserExtension): MarkdownConfig {
+  return {
+    defineNodes: [nodeType],
+    parseInline: [
+      {
+        name: nodeType,
+        parse(cx, next, pos) {
+          if (firstCharCode !== next) {
+            return -1;
+          }
+          const match = regex.exec(cx.slice(pos, cx.end));
+          if (!match) {
+            return -1;
+          }
+          return cx.addElement(cx.elt(nodeType, pos, pos + match[0].length));
+        },
+      },
+    ],
+  };
+}
+
+const NakedURL = regexParser(
+  {
+    firstCharCode: 104, // h
+    regex:
+      /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&=\/]*)/,
+    nodeType: "NakedURL",
+    className: "sb-naked-url",
+    tag: NakedURLTag,
+  },
+);
+
+const Hashtag = regexParser(
+  {
+    firstCharCode: 35, // #
+    regex: /^#[^#\d\s\[\]]+\w+/,
+    nodeType: "Hashtag",
+    className: "sb-hashtag",
+    tag: ct.HashtagTag,
+  },
+);
+
+const TaskDeadline = regexParser({
+  firstCharCode: 55357, // 📅
+  regex: /^📅\s*\d{4}\-\d{2}\-\d{2}/,
+  className: "sb-task-deadline",
+  nodeType: "DeadlineDate",
+  tag: ct.TaskDeadlineTag,
+});
+
+const NamedAnchor = regexParser({
+  firstCharCode: 36, // $
+  regex: /^\$[a-zA-Z\.\-\/]+[\w\.\-\/]*/,
+  className: "sb-named-anchor",
+  nodeType: "NamedAnchor",
+  tag: ct.NamedAnchorTag,
+});
+
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
 
@@ -379,54 +447,56 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
-export default function buildMarkdown(mdExtensions: MDExt[]): Language {
-  return markdown({
-    extensions: [
-      WikiLink,
-      CommandLink,
-      Attribute,
-      FrontMatter,
-      TaskList,
-      Comment,
-      Highlight,
-      TemplateDirective,
-      Strikethrough,
-      Table,
-      ...mdExtensions.map(mdExtensionSyntaxConfig),
-      {
-        props: [
-          foldNodeProp.add({
-            // Don't fold at the list level
-            BulletList: () => null,
-            OrderedList: () => null,
-            // Fold list items
-            ListItem: (tree, state) => ({
-              from: state.doc.lineAt(tree.from).to,
-              to: tree.to,
-            }),
-            // Fold frontmatter
-            FrontMatter: (tree) => ({
-              from: tree.from,
-              to: tree.to,
-            }),
+export const extendedMarkdownLanguage = markdown({
+  extensions: [
+    WikiLink,
+    CommandLink,
+    Attribute,
+    FrontMatter,
+    TaskList,
+    Comment,
+    Highlight,
+    TemplateDirective,
+    Strikethrough,
+    Table,
+    NakedURL,
+    Hashtag,
+    TaskDeadline,
+    NamedAnchor,
+    {
+      props: [
+        foldNodeProp.add({
+          // Don't fold at the list level
+          BulletList: () => null,
+          OrderedList: () => null,
+          // Fold list items
+          ListItem: (tree, state) => ({
+            from: state.doc.lineAt(tree.from).to,
+            to: tree.to,
           }),
+          // Fold frontmatter
+          FrontMatter: (tree) => ({
+            from: tree.from,
+            to: tree.to,
+          }),
+        }),
 
-          styleTags({
-            Task: ct.TaskTag,
-            TaskMark: ct.TaskMarkTag,
-            Comment: ct.CommentTag,
-            "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
-              t.processingInstruction,
-            "TableHeader/...": t.heading,
-            TableCell: t.content,
-            CodeInfo: ct.CodeInfoTag,
-            HorizontalRule: ct.HorizontalRuleTag,
-          }),
-          ...mdExtensions.map((mdExt) =>
-            styleTags(mdExtensionStyleTags(mdExt))
-          ),
-        ],
-      },
-    ],
-  }).language;
-}
+        styleTags({
+          Task: ct.TaskTag,
+          TaskMark: ct.TaskMarkTag,
+          Comment: ct.CommentTag,
+          "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
+            t.processingInstruction,
+          "TableHeader/...": t.heading,
+          TableCell: t.content,
+          CodeInfo: ct.CodeInfoTag,
+          HorizontalRule: ct.HorizontalRuleTag,
+          Hashtag: ct.HashtagTag,
+          NakedURL: ct.NakedURLTag,
+          DeadlineDate: ct.TaskDeadlineTag,
+          NamedAnchor: ct.NamedAnchorTag,
+        }),
+      ],
+    },
+  ],
+}).language;

@@ -4,8 +4,8 @@ import type { CodeWidgetButton, CodeWidgetCallback } from "$sb/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import buildMarkdown from "../../common/markdown_parser/parser.ts";
 import { parsePageRef } from "$sb/lib/page.ts";
+import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
@@ -59,9 +59,8 @@ export class MarkdownWidget extends WidgetType {
       );
       return;
     }
-    const lang = buildMarkdown(this.client.system.mdExtensions);
     let mdTree = parse(
-      lang,
+      extendedMarkdownLanguage,
       widgetContent.markdown!,
     );
     mdTree = await this.client.system.localSyscall(

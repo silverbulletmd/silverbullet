@@ -4,7 +4,7 @@ import { CompletionContext, CompletionResult } from "../deps.ts";
 import { PageMeta } from "$sb/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 
-const tagRegex = /#[^#\d\s\[\]]+\w+/g;
+export const tagRegex = /#[^#\d\s\[\]]+\w+/g;
 
 export function PageNavigator({
   allPages,

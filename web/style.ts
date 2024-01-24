@@ -1,9 +1,8 @@
 import { HighlightStyle } from "../common/deps.ts";
 import { tagHighlighter, tags as t } from "./deps.ts";
 import * as ct from "../common/markdown_parser/customtags.ts";
-import { MDExt } from "../common/markdown_parser/markdown_ext.ts";
 
-export default function highlightStyles(mdExtension: MDExt[]) {
+export default function highlightStyles() {
   tagHighlighter;
   return HighlightStyle.define([
     { tag: t.heading1, class: "sb-h1" },
@@ -49,8 +48,9 @@ export default function highlightStyles(mdExtension: MDExt[]) {
     { tag: t.processingInstruction, class: "sb-meta" },
     { tag: t.punctuation, class: "sb-punctuation" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
-    ...mdExtension.map((mdExt) => {
-      return { tag: mdExt.tag, ...mdExt.styles, class: mdExt.className };
-    }),
+    { tag: ct.HashtagTag, class: "sb-hashtag" },
+    { tag: ct.NakedURLTag, class: "sb-naked-url" },
+    { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
+    { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
   ]);
 }

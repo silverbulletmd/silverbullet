@@ -1,6 +1,5 @@
 import { PlugNamespaceHook } from "../common/hooks/plug_namespace.ts";
-import { Manifest, SilverBulletHooks } from "../common/manifest.ts";
-import buildMarkdown from "../common/markdown_parser/parser.ts";
+import { SilverBulletHooks } from "../common/manifest.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
@@ -23,10 +22,6 @@ import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "./syscalls/system.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { Space } from "./space.ts";
-import {
-  loadMarkdownExtensions,
-  MDExt,
-} from "../common/markdown_parser/markdown_ext.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
@@ -51,7 +46,6 @@ export class ClientSystem {
   slashCommandHook: SlashCommandHook;
   namespaceHook: PlugNamespaceHook;
   codeWidgetHook: CodeWidgetHook;
-  mdExtensions: MDExt[] = [];
   system: System<SilverBulletHooks>;
   panelWidgetHook: PanelWidgetHook;
 
@@ -139,22 +133,17 @@ export class ClientSystem {
           const plugName = plugNameExtractRegex.exec(path)![1];
           console.log("Plug updated, reloading", plugName, "from", path);
           this.system.unload(path);
-          const plug = await this.system.load(
+          await this.system.load(
             plugName,
             createSandbox(new URL(`/${path}`, location.href)),
             newHash,
           );
-          if ((plug.manifest! as Manifest).syntax) {
-            // If there are syntax extensions, rebuild the markdown parser immediately
-            this.updateMarkdownParser();
-          }
-          this.client.debouncedPlugsUpdatedEvent();
         }
       },
     );
   }
 
-  async init() {
+  init() {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
@@ -166,7 +155,7 @@ export class ClientSystem {
       editorSyscalls(this.client),
       spaceSyscalls(this.client),
       systemSyscalls(this.system, this.client),
-      markdownSyscalls(buildMarkdown(this.mdExtensions)),
+      markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
       handlebarsSyscalls(),
@@ -220,16 +209,6 @@ export class ClientSystem {
         );
       }
     }));
-  }
-
-  updateMarkdownParser() {
-    // Load all syntax extensions
-    this.mdExtensions = loadMarkdownExtensions(this.system);
-    // And reload the syscalls to use the new syntax extensions
-    this.system.registerSyscalls(
-      [],
-      markdownSyscalls(buildMarkdown(this.mdExtensions)),
-    );
   }
 
   localSyscall(name: string, args: any[]) {

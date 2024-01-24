@@ -1,10 +1,4 @@
 name: editor
-syntax:
-  NakedURL:
-    firstCharacters:
-      - "h"
-    regex: "https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}([-a-zA-Z0-9()@:%_\\+.~#?&=\\/]*)"
-    className: sb-naked-url
 functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
