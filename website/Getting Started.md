@@ -18,7 +18,6 @@ Now that you have some basics stuff in place, it’s time to start playing a bit
   * Type the name of a non-existent page to create it.
   * Folders are implicitly created by putting slashes (`/`) in the name (even on Windows), e.g. `My Folder/My Page`. Don’t worry about folders existing, we’ll automatically create them if they don’t.
 * Click on the terminal icon (top right), or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows), or tap the screen with 3 fingers at the same time (on mobile) to open the [[Command Palette]]. From here you can run various useful and perhaps less useful [[Commands]]. The {[Stats: Show]} one is a safe one to try.
-* Click on the “T” icon (top right), or hit `Cmd-Shift-t` (Mac) or `Ctrl-Shift-t` (Linux and Windows) to open the [[Template Picker]] and see what templates you have installed (which should be a few after importing the Core library)
 * Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` (Windows/Linux) to make it **bold**, or `Cmd-i` (Mac) or `Ctrl-i` (Windows/Linux) to make it _italic_.
 * Click a link somewhere on this page to navigate there. When you link to a new page it will initially show up in red (to indicate it does not yet exist), but once you click it — you will create the page automatically (only for real when you actually enter some text).
 * Start typing `[[` somewhere to insert your own page link (with completion).
