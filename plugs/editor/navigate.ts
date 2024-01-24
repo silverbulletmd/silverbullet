@@ -40,11 +40,11 @@ async function actionClickOrActionEnter(
   const currentPage = await editor.getCurrentPage();
   switch (mdTree.type) {
     case "WikiLink": {
-      let pageLink = mdTree.children![1]!.children![0].text!;
+      const pageLink = mdTree.children![1]!.children![0].text!;
       const pageRef = parsePageRef(pageLink);
       pageRef.page = resolvePath(currentPage, pageRef.page);
       if (!pageRef.page) {
-        pageLink = currentPage;
+        pageRef.page = currentPage;
       }
       // This is an explicit navigate, move to the top
       if (pageRef.pos === undefined) {
@@ -118,5 +118,5 @@ export async function clickNavigate(event: ClickEvent) {
 }
 
 export async function navigateCommand(cmdDef: any) {
-  await editor.navigate({ page: cmdDef.page });
+  await editor.navigate({ page: cmdDef.page, pos: 0 });
 }

@@ -352,7 +352,7 @@ export class Client {
     }
     if (pos !== undefined) {
       // setTimeout(() => {
-      console.log("Doing this scroll to", pos);
+      console.log("Doing this pos set to", pos);
       this.editorView.dispatch({
         selection: { anchor: pos! },
         effects: EditorView.scrollIntoView(pos!, {

@@ -44,11 +44,13 @@ export class PathPageNavigator {
       pageRef.page = "";
     }
     const currentState = this.buildCurrentPageState();
-    this.openPages.set(currentState.page, currentState);
+    // No need to keep pos and anchor if we already have scrollTop and selection
+    const cleanState = { ...currentState, pos: undefined, anchor: undefined };
+    this.openPages.set(currentState.page || this.indexPage, cleanState);
     if (!replaceState) {
       console.log("Updating current state", currentState);
       window.history.replaceState(
-        currentState,
+        cleanState,
         "",
         `${this.root}/${currentState.page}`,
       );
@@ -59,14 +61,14 @@ export class PathPageNavigator {
         `${this.root}/${pageRef.page}`,
       );
     } else {
-      console.log("Replacing state", pageRef);
+      // console.log("Replacing state", pageRef);
       window.history.replaceState(
         pageRef,
         "",
         `${this.root}/${pageRef.page}`,
       );
     }
-    console.log("Explicitly dispatching the popstate", pageRef);
+    // console.log("Explicitly dispatching the popstate", pageRef);
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
         state: pageRef,
@@ -81,12 +83,7 @@ export class PathPageNavigator {
   buildCurrentPageState(): PageState {
     const pageState: PageState = this.parseURI();
     const mainSelection = this.client.editorView.state.selection.main;
-    if (this.client.currentPage) {
-      pageState.page = this.client.currentPage;
-    }
-    if (pageState.pos === undefined && pageState.anchor === undefined) {
-      pageState.scrollTop = this.client.editorView.scrollDOM.scrollTop;
-    }
+    pageState.scrollTop = this.client.editorView.scrollDOM.scrollTop;
     pageState.selection = {
       head: mainSelection.head,
       anchor: mainSelection.anchor,
@@ -108,8 +105,9 @@ export class PathPageNavigator {
             popState.page = this.indexPage;
           }
           if (
-            !popState.anchor && !popState.pos && !popState.selection &&
-            !popState.scrollTop
+            popState.anchor === undefined && popState.pos === undefined &&
+            popState.selection === undefined &&
+            popState.scrollTop === undefined
           ) {
             // Pretty low-context popstate, so let's leverage openPages
             const openPage = this.openPages.get(popState.page);
@@ -123,8 +121,12 @@ export class PathPageNavigator {
           await pageLoadCallback(popState);
         } else {
           // This occurs when the page is loaded completely fresh with no browser history around it
-          console.log("Got null state so using", this.parseURI());
-          await pageLoadCallback(this.parseURI());
+          // console.log("Got null state so using", this.parseURI());
+          const pageRef = this.parseURI();
+          if (!pageRef.page) {
+            pageRef.page = this.indexPage;
+          }
+          await pageLoadCallback(pageRef);
         }
         if (this.navigationResolve) {
           this.navigationResolve();
@@ -132,10 +134,7 @@ export class PathPageNavigator {
       });
     };
     globalThis.addEventListener("popstate", cb);
-    globalThis.addEventListener("hashchange", (ev) => {
-      console.log("Got hash change", ev, "not doing anything though");
-      // cb();
-    });
+
     cb(
       new PopStateEvent("popstate", {
         state: this.buildCurrentPageState(),
@@ -148,19 +147,9 @@ export class PathPageNavigator {
       location.pathname.substring(this.root.length + 1),
     ));
 
-    if (!pageRef.page) {
-      pageRef.page = this.indexPage;
-    }
-
-    if (location.hash) {
-      console.log("Got a hash value", location.hash);
-      const hash = location.hash.substring(1);
-      if (/\d+/.test(hash)) {
-        pageRef.pos = +hash;
-      } else {
-        pageRef.anchor = hash;
-      }
-    }
+    // if (!pageRef.page) {
+    //   pageRef.page = this.indexPage;
+    // }
 
     return pageRef;
   }
