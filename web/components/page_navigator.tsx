@@ -44,26 +44,40 @@ export function PageNavigator({
     if (isFederationPath(pageMeta.name)) {
       orderId = Math.round(orderId / 10); // Just 10x lower the timestamp to push them down, should work
     }
-    let description: string | undefined;
-    let aliases: string[] = [];
-    if (pageMeta.displayName) {
-      aliases.push(pageMeta.displayName);
+
+    if (mode === "page") {
+      // Special behavior for regular pages
+      let description: string | undefined;
+      let aliases: string[] = [];
+      if (pageMeta.displayName) {
+        aliases.push(pageMeta.displayName);
+      }
+      if (Array.isArray(pageMeta.aliases)) {
+        aliases = aliases.concat(pageMeta.aliases);
+      }
+      if (aliases.length > 0) {
+        description = "(a.k.a. " + aliases.join(", ") + ") ";
+      }
+      if (pageMeta.tags) {
+        description = (description || "") +
+          pageMeta.tags.map((tag) => `#${tag}`).join(" ");
+      }
+      options.push({
+        ...pageMeta,
+        description,
+        orderId: orderId,
+      });
+    } else {
+      // Special behavior for templates
+      options.push({
+        ...pageMeta,
+        // Use the displayName or last bit of the path as the name
+        name: pageMeta.displayName || pageMeta.name.split("/").pop()!,
+        // And use the full path as the description
+        description: pageMeta.name,
+        orderId: orderId,
+      });
     }
-    if (Array.isArray(pageMeta.aliases)) {
-      aliases = aliases.concat(pageMeta.aliases);
-    }
-    if (aliases.length > 0) {
-      description = "(a.k.a. " + aliases.join(", ") + ") ";
-    }
-    if (pageMeta.tags) {
-      description = (description || "") +
-        pageMeta.tags.map((tag) => `#${tag}`).join(" ");
-    }
-    options.push({
-      ...pageMeta,
-      description,
-      orderId: orderId,
-    });
   }
   let completePrefix = currentPage + "/";
   if (currentPage && currentPage.includes("/")) {
@@ -116,7 +130,7 @@ export function PageNavigator({
       newHint={`Create ${mode}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.name);
+        onNavigate(opt?.ref);
       }}
     />
   );
