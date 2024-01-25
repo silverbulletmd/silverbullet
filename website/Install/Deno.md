@@ -1,6 +1,10 @@
 The SilverBullet is implemented using a JavaScript runtime called [Deno](https://deno.com/) which is a lot like node.js, just... you know, better. And we like better.
 
-To run SilverBullet directly on your host system (so not in a [[Install/Docker]] container), you need to install Deno [first following these instructions](https://deno.land/manual/getting_started/installation).
+To run SilverBullet directly on your host system (so not in a [[Install/Docker]] container), you need to [install Deno](https://docs.deno.com/runtime/manual/getting_started/installation) 1.39:
+
+```bash
+$ curl -fsSL https://deno.land/install.sh | sh -s v1.39.4
+```
 
 After having installed Deno, run:
 
@@ -40,9 +44,3 @@ $ silverbullet upgrade
 ```
 
 And restart SilverBullet. You should be good to go.
-
-Deno itself is also updated regularly, so be sure to let that self-upgrade as well:
-
-```shell
-$ deno upgrade
-```
