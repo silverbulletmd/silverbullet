@@ -46,27 +46,23 @@ export class PathPageNavigator {
     const cleanState = { ...currentState, pos: undefined, anchor: undefined };
     this.openPages.set(currentState.page || this.indexPage, cleanState);
     if (!replaceState) {
-      console.log("Updating current state", currentState);
       window.history.replaceState(
         cleanState,
         "",
         `/${currentState.page}`,
       );
-      console.log("Pushing new state", pageRef);
       window.history.pushState(
         pageRef,
         "",
         `/${pageRef.page}`,
       );
     } else {
-      // console.log("Replacing state", pageRef);
       window.history.replaceState(
         pageRef,
         "",
         `/${pageRef.page}`,
       );
     }
-    // console.log("Explicitly dispatching the popstate", pageRef);
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
         state: pageRef,
@@ -110,16 +106,13 @@ export class PathPageNavigator {
             // Pretty low-context popstate, so let's leverage openPages
             const openPage = this.openPages.get(popState.page);
             if (openPage) {
-              console.log("Pulling open page state", openPage);
               popState.selection = openPage.selection;
               popState.scrollTop = openPage.scrollTop;
             }
           }
-          console.log("Got popstate state, using", popState);
           await pageLoadCallback(popState);
         } else {
           // This occurs when the page is loaded completely fresh with no browser history around it
-          // console.log("Got null state so using", this.parseURI());
           const pageRef = parsePageRefFromURI();
           if (!pageRef.page) {
             pageRef.page = this.indexPage;

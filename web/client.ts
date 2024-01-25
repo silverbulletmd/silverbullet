@@ -378,7 +378,6 @@ export class Client {
     }
     if (pos !== undefined) {
       // setTimeout(() => {
-      console.log("Doing this pos set to", pos);
       this.editorView.dispatch({
         selection: { anchor: pos! },
         effects: EditorView.scrollIntoView(pos!, {
@@ -403,7 +402,6 @@ export class Client {
         initialCursorPos = match[0].length;
       }
       // By default scroll to the top
-      console.log("Scrolling to place after frontmatter", initialCursorPos);
       this.editorView.scrollDOM.scrollTop = 0;
       this.editorView.dispatch({
         selection: { anchor: initialCursorPos },
