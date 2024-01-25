@@ -70,6 +70,13 @@ export const builtins: Record<string, Record<string, string>> = {
     alias: "!string",
     asTemplate: "!boolean",
   },
+  header: {
+    ref: "!string",
+    name: "!string",
+    page: "!string",
+    level: "!number",
+    pos: "!number",
+  },
   paragraph: {
     text: "!string",
     page: "!string",

@@ -108,7 +108,17 @@ functions:
     path: "./anchor.ts:anchorComplete"
     events:
       - editor:complete
-  
+
+  # Headers
+  indexHeaders:
+    path: header.ts:indexHeaders
+    events:
+    - page:index
+  headerComplete:
+    path: header.ts:headerComplete
+    events:
+      - editor:complete
+
   # Data
   indexData:
     path: data.ts:indexData

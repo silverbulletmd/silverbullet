@@ -146,5 +146,9 @@ export function parsePageRefFromURI(): PageRef {
     location.pathname.substring(1),
   ));
 
+  if (location.hash) {
+    pageRef.header = decodeURI(location.hash.substring(1));
+  }
+
   return pageRef;
 }

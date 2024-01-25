@@ -15,11 +15,13 @@ export type PageRef = {
   page: string;
   pos?: number;
   anchor?: string;
+  header?: string;
 };
 
 const posRegex = /@(\d+)$/;
 // Should be kept in sync with the regex in index.plug.yaml
 const anchorRegex = /\$([a-zA-Z\.\-\/]+[\w\.\-\/]*)$/;
+const headerRegex = /#([^#]*)$/;
 
 export function parsePageRef(name: string): PageRef {
   // Normalize the page name
@@ -37,6 +39,11 @@ export function parsePageRef(name: string): PageRef {
     pageRef.anchor = anchorMatch[1];
     pageRef.page = pageRef.page.replace(anchorRegex, "");
   }
+  const headerMatch = pageRef.page.match(headerRegex);
+  if (headerMatch) {
+    pageRef.header = headerMatch[1];
+    pageRef.page = pageRef.page.replace(headerRegex, "");
+  }
   return pageRef;
 }
 
@@ -47,6 +54,9 @@ export function encodePageRef(pageRef: PageRef): string {
   }
   if (pageRef.anchor) {
     name += `$${pageRef.anchor}`;
+  }
+  if (pageRef.header) {
+    name += `#${pageRef.header}`;
   }
   return name;
 }

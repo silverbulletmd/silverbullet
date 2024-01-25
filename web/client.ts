@@ -320,7 +320,8 @@ export class Client {
     if (
       pageState.scrollTop !== undefined &&
       !(pageState.scrollTop === 0 &&
-        (pageState.pos !== undefined || pageState.anchor !== undefined))
+        (pageState.pos !== undefined || pageState.anchor !== undefined ||
+          pageState.header !== undefined))
     ) {
       setTimeout(() => {
         console.log("Kicking off scroll to", pageState.scrollTop);
@@ -330,7 +331,10 @@ export class Client {
     }
 
     // Was a particular cursor/selection set?
-    if (pageState.selection?.anchor && !pageState.pos && !pageState.anchor) { // Only do this if we got a specific cursor position
+    if (
+      pageState.selection?.anchor && !pageState.pos && !pageState.anchor &&
+      !pageState.header
+    ) { // Only do this if we got a specific cursor position
       console.log("Changing cursor position to", pageState.selection);
       this.editorView.dispatch({
         selection: pageState.selection,
@@ -344,11 +348,28 @@ export class Client {
       console.log("Navigating to anchor", pageState.anchor);
       const pageText = this.editorView.state.sliceDoc();
 
+      // This is somewhat of a simplistic way to find the anchor, but it works for now
       pos = pageText.indexOf(`$${pageState.anchor}`);
 
       if (pos === -1) {
         return this.flashNotification(
           `Could not find anchor $${pageState.anchor}`,
+          "error",
+        );
+      }
+
+      adjustedPosition = true;
+    }
+    if (pageState.header) {
+      console.log("Navigating to header", pageState.header);
+      const pageText = this.editorView.state.sliceDoc();
+
+      // This is somewhat of a simplistic way to find the header, but it works for now
+      pos = pageText.indexOf(`# ${pageState.header}\n`) + 2;
+
+      if (pos === -1) {
+        return this.flashNotification(
+          `Could not find header "${pageState.header}"`,
           "error",
         );
       }

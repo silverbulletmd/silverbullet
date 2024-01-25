@@ -7,6 +7,10 @@ Deno.test("Page utility functions", () => {
   assertEquals(parsePageRef("[[foo]]"), { page: "foo" });
   assertEquals(parsePageRef("foo@1"), { page: "foo", pos: 1 });
   assertEquals(parsePageRef("foo$bar"), { page: "foo", anchor: "bar" });
+  assertEquals(parsePageRef("foo#My header"), {
+    page: "foo",
+    header: "My header",
+  });
   assertEquals(parsePageRef("foo$bar@1"), {
     page: "foo",
     anchor: "bar",
@@ -21,4 +25,5 @@ Deno.test("Page utility functions", () => {
   assertEquals(encodePageRef({ page: "foo" }), "foo");
   assertEquals(encodePageRef({ page: "foo", pos: 10 }), "foo@10");
   assertEquals(encodePageRef({ page: "foo", anchor: "bar" }), "foo$bar");
+  assertEquals(encodePageRef({ page: "foo", header: "bar" }), "foo#bar");
 });

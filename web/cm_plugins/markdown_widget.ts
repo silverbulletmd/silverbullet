@@ -162,7 +162,6 @@ export class MarkdownWidget extends WidgetType {
     div.querySelectorAll("span.hashtag").forEach((el_) => {
       const el = el_ as HTMLElement;
       // Override default click behavior with a local navigate (faster)
-      console.log("Found hashtag", el.innerText);
       el.addEventListener("click", (e) => {
         console.log("Hashtag clicked", el.innerText);
         if (e.ctrlKey || e.metaKey) {
