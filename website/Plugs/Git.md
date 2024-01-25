@@ -6,6 +6,5 @@ author: Zef Hemel
 ---
 
 ```template
-page: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-git/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-git/main/README]]"
 ```

@@ -10,6 +10,8 @@ import { parseQuery } from "$sb/lib/parse-query.ts";
 type TemplateWidgetConfig = {
   // Pull the template from a page
   page?: string;
+  // Include a page raw (without template processing)
+  raw?: string;
   // Or use a string directly
   template?: string;
   // To feed data into the template you can either use a concrete value
@@ -17,9 +19,6 @@ type TemplateWidgetConfig = {
 
   // Or a query
   query?: string;
-
-  // If true, don't render the template, just use it as-is
-  raw?: boolean;
 };
 
 export async function widget(
@@ -31,7 +30,8 @@ export async function widget(
   try {
     const config: TemplateWidgetConfig = await YAML.parse(bodyText);
     let templateText = config.template || "";
-    let templatePage = config.page;
+    let templatePage = config.page ||
+      (typeof config.raw !== "boolean" && config.raw);
     if (templatePage) {
       // Rewrite federation page references
       templatePage = rewritePageRefsInString(templatePage, pageName);
@@ -39,13 +39,13 @@ export async function widget(
         templatePage = templatePage.slice(2, -2);
       }
       if (!templatePage) {
-        throw new Error("No template page specified");
+        throw new Error("No page specified");
       }
       try {
         templateText = await space.readPage(templatePage);
       } catch (e: any) {
         if (e.message === "Not found") {
-          throw new Error(`Template page ${templatePage} not found`);
+          throw new Error(`Page "${templatePage}" not found`);
         }
       }
     }

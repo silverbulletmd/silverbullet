@@ -6,6 +6,5 @@ tags: plug
 ---
 
 ```template
-page: "[[!raw.githubusercontent.com/m1lt0n/silverbullet-serendipity/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/m1lt0n/silverbullet-serendipity/main/README]]"
 ```

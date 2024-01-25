@@ -10,6 +10,5 @@ tags: plug
 
 
 ```template
-page: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-mattermost/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-mattermost/main/README]]"
 ```

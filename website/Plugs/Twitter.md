@@ -8,6 +8,5 @@ author: SilverBullet Authors
 Remember Twitter?
 
 ```template
-page: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-twitter/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-twitter/main/README]]"
 ```

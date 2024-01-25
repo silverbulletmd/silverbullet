@@ -7,6 +7,5 @@ share-support: true
 ---
 
 ```template
-page: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-ghost/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-ghost/main/README]]"
 ```

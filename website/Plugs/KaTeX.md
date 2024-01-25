@@ -7,6 +7,5 @@ author: Zef Hemel
 ---
 
 ```template
-page: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-katex/main/README]]"
-raw: true
+raw: "[[!raw.githubusercontent.com/silverbulletmd/silverbullet-katex/main/README]]"
 ```

@@ -34,9 +34,7 @@ template: |
    {{/each}}
 ```
 
-If you just want to render the raw markdown without handling it as a handlebars template, set `raw` to true:
+If you want to include another _page_ (not necessarily a template) unprocessed (so without replacing template placeholders), you can use `raw`:
 ```template
-template: |
-   This is not going to be {{processed}} by Handlebars
-raw: true
+raw: "[[internal/test page]]"
 ```
