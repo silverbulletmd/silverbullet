@@ -59,7 +59,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const match = /#[^#\s]+$/.exec(completeEvent.linePrefix);
+  const match = /#[^#\d\s\[\]]+\w*$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }

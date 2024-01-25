@@ -28,12 +28,12 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
       });
     },
   );
-  console.log("Found", headers.length, "headers(s)");
+  // console.log("Found", headers.length, "headers(s)");
   await indexObjects(pageName, headers);
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]$:#]*#.*)$/.exec(
+  const match = /\[\[([^\]$:#]*#[^\]]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match) {

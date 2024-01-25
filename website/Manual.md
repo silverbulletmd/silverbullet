@@ -39,6 +39,7 @@ These are the core concepts used in SilverBullet:
 * Content is written using [[Markdown]] and rendered using [[Live Preview]]
   * Markdown [[Markdown/Basics]]
   * Markdown [[Markdown/Extensions]]
+    * [[Links]]
     * [[Markdown/Admonitions]]
     * [[Plugs/Tasks]]
     * [[Markdown/Syntax Highlighting]]

@@ -4,10 +4,12 @@ release.
 ---
 
 ## Edge
+$edge
 _The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
 * Action buttons (top right buttons) can now be configured, see [[SETTINGS]] how to do this.
+* Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the type of link formats that SilverBullet now supports.
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
   * Right-clicking links now opens browser native context menu again
@@ -35,7 +37,7 @@ _The changes below are not yet released “properly”. To them out early, check
   * Every object now has a `tag` attribute, signifying the “main” tag for that object (e.g. `page`, `item`)
   * The `tags` attribute will now _only_ contain explicitly assigned tags (so not the built-in tag, which moved to `tag`)
   * The new `itags` attribute (available in many objects) includes both the `tag`, `tags` as well as any tags inherited from the page the object appears in.
-  * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text, see [[Objects$page]].
+  * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text, see [[Objects#page]].
 * New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
 * Filter list (used by [[Page Picker]], [[Template Picker]] and [[Command Palette]]) improvements:
   * Better ranking
@@ -123,8 +125,8 @@ _The changes below are not yet released “properly”. To them out early, check
 ---
 ## 0.5.3
 * Changes to [[Objects]]:
-  * Paragraphs are now indexed, see [[Objects$paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
-  * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects$item]].
+  * Paragraphs are now indexed, see [[Objects#paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
+  * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects#item]].
 * The {[Directive: Convert to Live Query/Template]} now also converts `#use` and `#include` directives
 * Styling improvements for Linked Mentions
 * SilverBullet now fully works when added as PWA on Safari 17 (via the “Add to Dock” option).

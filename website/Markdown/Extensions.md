@@ -1,6 +1,6 @@
 In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by [CommonMark](https://commonmark.org/), SilverBullet relies on the following extensions:
 
-* Double-bracketed wiki links: `[[link to page]]`, optionally with aliases `[[link to page|alias]]`.
+* [[Links]]
 * [[Frontmatter]] and [[Attributes]]
 * [Fenced code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), and in addition, assigning new meanings to specific fenced code block languages:
     * Generically via [[Markdown/Code Widgets]]
