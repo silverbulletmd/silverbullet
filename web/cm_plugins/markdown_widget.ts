@@ -6,6 +6,7 @@ import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { parsePageRef } from "$sb/lib/page.ts";
 import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { tagPrefix } from "../../plugs/index/constants.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
@@ -154,6 +155,24 @@ export class MarkdownWidget extends WidgetType {
         e.stopPropagation();
         const pageRef = parsePageRef(el.dataset.ref!);
         this.client.navigate(pageRef);
+      });
+    });
+
+    // Attach click handlers to hash tags
+    div.querySelectorAll("span.hashtag").forEach((el_) => {
+      const el = el_ as HTMLElement;
+      // Override default click behavior with a local navigate (faster)
+      console.log("Found hashtag", el.innerText);
+      el.addEventListener("click", (e) => {
+        console.log("Hashtag clicked", el.innerText);
+        if (e.ctrlKey || e.metaKey) {
+          // Don't do anything special for ctrl/meta clicks
+          return;
+        }
+        this.client.navigate({
+          page: `${tagPrefix}${el.innerText.slice(1)}`,
+          pos: 0,
+        });
       });
     });
 

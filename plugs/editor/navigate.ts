@@ -9,6 +9,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page.ts";
+import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,
@@ -27,6 +28,7 @@ async function actionClickOrActionEnter(
       "Link",
       "CommandLink",
       "PageRef",
+      "Hashtag",
     ]
       .includes(
         t.type!,
@@ -94,6 +96,16 @@ async function actionClickOrActionEnter(
           "error",
         );
       }
+      break;
+    }
+    case "Hashtag": {
+      console.log("Got myself a hash tag", mdTree);
+      const hashtag = mdTree.children![0].text!.slice(1);
+      await editor.navigate(
+        { page: `${tagPrefix}${hashtag}`, pos: 0 },
+        false,
+        inNewWindow,
+      );
       break;
     }
   }
