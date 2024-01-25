@@ -2,7 +2,7 @@
 
 if [ "$1" != "local" ]; then
     echo "Install Deno"
-    curl -fsSL https://deno.land/install.sh | sh
+    curl -fsSL https://deno.land/install.sh v1.39.4 | sh
     export PATH=~/.deno/bin:$PATH
     export DENO_DIR=$PWD/deno_cache
     echo "DENO_DIR: $DENO_DIR"
