@@ -270,11 +270,18 @@ functions:
     command:
       name: "Outline: Unfold All"
       key: "Ctrl-Alt-Shift-]"
+  findInPageCommand:
+    path: editor.ts:findInPageCommand
+    command:
+      name: "Editor: Find in Page"
+      key: "Ctrl-f"
+      mac: "Cmd-f"
 
   # Demo
   customFlashMessage:
     path: editor.ts:customFlashMessage
     command:
       name: "Flash: Custom Message"
+      hide: true
       contexts:
       - internal

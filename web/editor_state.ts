@@ -287,9 +287,11 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
                 "error",
               );
             },
-          ).then(() => {
+          ).then((returnValue: any) => {
             // Always be focusing the editor after running a command
-            client.focus();
+            if (returnValue !== false) {
+              client.focus();
+            }
           });
           return true;
         },
@@ -322,11 +324,13 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
                 `Error running command: ${e.message}`,
                 "error",
               );
-            })
-            .then(() => {
+            }).then((returnValue: any) => {
               // Always be focusing the editor after running a command
-              client.focus();
+              if (returnValue !== false) {
+                client.focus();
+              }
             });
+
           return true;
         },
       });
@@ -342,7 +346,6 @@ export function createKeyBindings(client: Client): Extension {
     ...smartQuoteKeymap,
     ...closeBracketsKeymap,
     ...standardKeymap,
-    ...searchKeymap,
     ...historyKeymap,
     ...completionKeymap,
     indentWithTab,

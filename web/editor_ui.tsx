@@ -7,6 +7,7 @@ import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
 import {
+  closeSearchPanel,
   featherIcons,
   preactRender,
   runScopeHandlers,
@@ -27,7 +28,13 @@ export class MainUI {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!client.editorView.hasFocus) {
-        if ((ev.target as any).closest(".cm-content")) {
+        const target = ev.target as HTMLElement;
+        if (target.className === "cm-textfield" && ev.key === "Escape") {
+          // Search panel is open, let's close it
+          console.log("Closing search panel");
+          closeSearchPanel(client.editorView);
+          return;
+        } else if (target.closest(".cm-content")) {
           // In some cm element, let's back out
           return;
         }
@@ -119,9 +126,6 @@ export class MainUI {
           <CommandPalette
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
-              setTimeout(() => {
-                client.focus();
-              });
               if (cmd) {
                 dispatch({ type: "command-run", command: cmd.command.name });
                 cmd
@@ -129,9 +133,11 @@ export class MainUI {
                   .catch((e: any) => {
                     console.error("Error running command", e.message);
                   })
-                  .then(() => {
+                  .then((returnValue: any) => {
                     // Always be focusing the editor after running a command
-                    client.focus();
+                    if (returnValue !== false) {
+                      client.focus();
+                    }
                   });
               }
             }}

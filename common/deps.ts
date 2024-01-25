@@ -43,7 +43,11 @@ export {
 
 export type { NodeType, SyntaxNode, SyntaxNodeRef, Tree } from "@lezer/common";
 
-export { searchKeymap } from "@codemirror/search";
+export {
+  closeSearchPanel,
+  openSearchPanel,
+  searchKeymap,
+} from "@codemirror/search";
 export {
   Decoration,
   drawSelection,

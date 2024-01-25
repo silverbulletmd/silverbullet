@@ -51,3 +51,8 @@ export async function reloadSettingsAndCommands() {
   await editor.reloadSettingsAndCommands();
   await editor.flashNotification("Reloaded settings and commands");
 }
+
+export async function findInPageCommand() {
+  await editor.openSearchPanel();
+  return false;
+}

@@ -14,6 +14,7 @@ import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 import { UploadFile } from "../../plug-api/types.ts";
 import { PageRef } from "$sb/lib/page.ts";
+import { openSearchPanel } from "../deps.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -267,6 +268,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.unfoldAll": () => {
       unfoldAll(client.editorView);
+    },
+    "editor.openSearchPanel": () => {
+      openSearchPanel(client.editorView);
     },
   };
 

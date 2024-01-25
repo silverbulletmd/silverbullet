@@ -178,3 +178,7 @@ export function foldAll() {
 export function unfoldAll() {
   return syscall("editor.unfoldAll");
 }
+
+export function openSearchPanel() {
+  return syscall("editor.openSearchPanel");
+}
