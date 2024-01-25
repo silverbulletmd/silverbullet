@@ -105,12 +105,10 @@ async function buildCopyBundleAssets() {
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "https://esm.sh/preact@10.11.1",
-    plugins: [
-      ...denoPlugins({
-        importMapURL: new URL("./import_map.json", import.meta.url)
-          .toString(),
-      }),
-    ],
+    plugins: denoPlugins({
+      importMapURL: new URL("./import_map.json", import.meta.url)
+        .toString(),
+    }),
   });
 
   // Patch the service_worker {{CACHE_NAME}}

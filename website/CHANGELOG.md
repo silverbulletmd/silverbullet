@@ -5,6 +5,7 @@ release.
 
 ## Edge
 $edge
+
 _The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
