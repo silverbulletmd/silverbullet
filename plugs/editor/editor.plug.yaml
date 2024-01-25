@@ -59,7 +59,7 @@ functions:
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
     command:
-      name: Navigate To page
+      name: "Navigate: To This Page"
       key: Ctrl-Enter
       mac: Cmd-Enter
   clickNavigate:
@@ -76,6 +76,11 @@ functions:
     path: "./editor.ts:moveToPosCommand"
     command:
       name: "Navigate: Move Cursor to Position"
+  navigateToPage:
+    path: "./navigate.ts:navigateToPage"
+    command:
+      name: "Navigate: To Page"
+      hide: true
 
   # Text editing commands
   quoteSelectionCommand:

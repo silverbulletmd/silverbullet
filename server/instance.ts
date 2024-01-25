@@ -2,7 +2,7 @@ import { SilverBulletHooks } from "../common/manifest.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { ensureSettingsAndIndex } from "../common/util.ts";
+import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { System } from "../plugos/system.ts";
@@ -113,10 +113,11 @@ export class SpaceServer {
   async reloadSettings() {
     if (!this.clientEncryption) {
       // Only attempt this when the space is not encrypted
-      this.settings = await ensureSettingsAndIndex(this.spacePrimitives);
+      this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
     } else {
       this.settings = {
         indexPage: "index",
+        actionButtons: [],
       };
     }
   }

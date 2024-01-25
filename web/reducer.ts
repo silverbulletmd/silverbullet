@@ -45,6 +45,11 @@ export default function reducer(
         ...state,
         syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
+    case "settings-loaded":
+      return {
+        ...state,
+        settings: action.settings,
+      };
     case "update-page-list": {
       // Let's move over any "lastOpened" times to the "allPages" list
       const oldPageMeta = new Map(

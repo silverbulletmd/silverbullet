@@ -1,3 +1,4 @@
+import { commandLinkRegex } from "../command.ts";
 import {
   BlockContext,
   LeafBlock,
@@ -13,7 +14,6 @@ import {
   yamlLanguage,
 } from "../deps.ts";
 import * as ct from "./customtags.ts";
-import { HashtagTag, TaskDeadlineTag } from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 
@@ -64,9 +64,6 @@ const WikiLink: MarkdownConfig = {
     },
   ],
 };
-
-export const commandLinkRegex =
-  /^\{\[([^\]\|]+)(\|([^\]]+))?\](\(([^\)]+)\))?\}/;
 
 const CommandLink: MarkdownConfig = {
   defineNodes: [

@@ -132,3 +132,7 @@ export async function clickNavigate(event: ClickEvent) {
 export async function navigateCommand(cmdDef: any) {
   await editor.navigate({ page: cmdDef.page, pos: 0 });
 }
+
+export async function navigateToPage(_cmdDef: any, pageName: string) {
+  await editor.navigate({ page: pageName, pos: 0 });
+}

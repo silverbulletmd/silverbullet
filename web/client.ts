@@ -10,7 +10,7 @@ import {
 } from "../common/deps.ts";
 import { Space } from "./space.ts";
 import { FilterOption } from "./types.ts";
-import { ensureSettingsAndIndex } from "../common/util.ts";
+import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { AppCommand } from "./hooks/command.ts";
 import {
@@ -242,7 +242,13 @@ export class Client {
   }
 
   async loadSettings() {
-    this.settings = await ensureSettingsAndIndex(this.space.spacePrimitives);
+    this.settings = await ensureAndLoadSettingsAndIndex(
+      this.space.spacePrimitives,
+    );
+    this.ui.viewDispatch({
+      type: "settings-loaded",
+      settings: this.settings,
+    });
   }
 
   private async initSync() {

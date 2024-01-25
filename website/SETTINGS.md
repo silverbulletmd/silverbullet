@@ -7,7 +7,25 @@ indexPage: "[[SilverBullet]]"
 # Load custom CSS styles from the following page, can also be an array
 customStyles: "[[STYLES]]"
 
-# It is possible to override keyboard shortcuts and command priority
+# Hide the sync button
+hideSyncButton: false
+
+# Configure the shown action buttons (top right bar)
+actionButtons: 
+- icon: Home # Capitalized version of an icon from https://feathericons.com
+  command: "{[Navigate: Home]}"
+  description: "Go to the index page"
+- icon: Activity
+  description: "What's new"
+  command: '{[Navigate: To Page]("CHANGELOG")}'
+- icon: Book
+  command: "{[Navigate: Page Picker]}"
+  description: Open page
+- icon: Terminal
+  command: "{[Open Command Palette]}"
+  description: Run command
+
+# Override keyboard shortcuts and command priority
 shortcuts:
 - command: "{[Stats: Show]}" # Using the command link syntax here
   mac: "Cmd-s" # Mac-specific keyboard shortcut

@@ -48,13 +48,35 @@ export function parseYamlSettings(settingsMarkdown: string): {
   }
 }
 
+export const defaultSettings: BuiltinSettings = {
+  indexPage: "index",
+  hideSyncButton: false,
+  actionButtons: [
+    {
+      icon: "Home",
+      description: "Go to the index page",
+      command: "Navigate: Home",
+    },
+    {
+      icon: "Book",
+      description: `Open page`,
+      command: "Navigate: Page Picker",
+    },
+    {
+      icon: "Terminal",
+      description: `Run command`,
+      command: "Open Command Palette",
+    },
+  ],
+};
+
 /**
  * Ensures that the settings and index page exist in the given space.
  * If they don't exist, default settings and index page will be created.
  * @param space - The SpacePrimitives object representing the space.
  * @returns A promise that resolves to the built-in settings.
  */
-export async function ensureSettingsAndIndex(
+export async function ensureAndLoadSettingsAndIndex(
   space: SpacePrimitives,
 ): Promise<BuiltinSettings> {
   let settingsText: string | undefined;
@@ -73,9 +95,7 @@ export async function ensureSettingsAndIndex(
     } else {
       console.error("Error reading settings", e.message);
       console.warn("Falling back to default settings");
-      return {
-        indexPage: "index",
-      };
+      return defaultSettings;
     }
     settingsText = SETTINGS_TEMPLATE;
     // Ok, then let's also check the index page
@@ -95,5 +115,5 @@ export async function ensureSettingsAndIndex(
 
   const settings: any = parseYamlSettings(settingsText);
   expandPropertyNames(settings);
-  return settings;
+  return { ...defaultSettings, ...settings };
 }

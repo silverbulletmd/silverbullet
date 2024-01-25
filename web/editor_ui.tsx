@@ -1,4 +1,4 @@
-import { isMacLike, safeRun } from "../common/util.ts";
+import { safeRun } from "../common/util.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
@@ -7,12 +7,9 @@ import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "./types.ts";
 import {
-  BookIcon,
-  HomeIcon,
+  featherIcons,
   preactRender,
-  RefreshCwIcon,
   runScopeHandlers,
-  TerminalIcon,
   useEffect,
   useReducer,
 } from "./deps.ts";
@@ -20,6 +17,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
 import { sleep } from "$sb/lib/async.ts";
+import { parseCommand } from "../common/command.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -210,10 +208,11 @@ export class MainUI {
             client.focus();
           }}
           actionButtons={[
-            ...!window.silverBulletConfig.syncOnly
+            ...(!window.silverBulletConfig.syncOnly &&
+                !viewState.settings.hideSyncButton)
               // If we support syncOnly, don't show this toggle button
               ? [{
-                icon: RefreshCwIcon,
+                icon: featherIcons.RefreshCw,
                 description: this.client.syncMode
                   ? "Currently in Sync mode, click to switch to Online mode"
                   : "Currently in Online mode, click to switch to Sync mode",
@@ -241,33 +240,20 @@ export class MainUI {
                 },
               }]
               : [],
-            {
-              icon: HomeIcon,
-              description: `Go to the index page (Alt-h)`,
-              callback: () => {
-                client.navigate({ page: "", pos: 0 });
-                // And let's make sure all panels are closed
-                dispatch({ type: "hide-filterbox" });
-              },
-              href: "",
-            },
-            {
-              icon: BookIcon,
-              description: `Open page (${isMacLike() ? "Cmd-k" : "Ctrl-k"})`,
-              callback: () => {
-                client.startPageNavigate("page");
-              },
-            },
-            {
-              icon: TerminalIcon,
-              description: `Run command (${isMacLike() ? "Cmd-/" : "Ctrl-/"})`,
-              callback: () => {
-                dispatch({
-                  type: "show-palette",
-                  context: client.getContext(),
-                });
-              },
-            },
+            ...viewState.settings.actionButtons.map((button) => {
+              const parsedCommand = parseCommand(button.command);
+              return {
+                icon: (featherIcons as any)[button.icon],
+                description: button.description || "",
+                callback: () => {
+                  client.runCommandByName(
+                    parsedCommand.name,
+                    parsedCommand.args,
+                  );
+                },
+                href: "",
+              };
+            }),
           ]}
           rhs={!!viewState.panels.rhs.mode && (
             <div

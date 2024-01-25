@@ -1,4 +1,3 @@
-import { commandLinkRegex } from "../common/markdown_parser/parser.ts";
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
@@ -45,6 +44,7 @@ import { languageFor } from "../common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
+import { parseCommand } from "../common/command.ts";
 
 export function createEditorState(
   client: Client,
@@ -270,28 +270,24 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   if (client.settings?.shortcuts) {
     for (const shortcut of client.settings.shortcuts) {
       // Figure out if we're using the command link syntax here, if so: parse it out
-      const commandMatch = commandLinkRegex.exec(shortcut.command);
-      let cleanCommandName = shortcut.command;
-      let args: any[] = [];
-      if (commandMatch) {
-        cleanCommandName = commandMatch[1];
-        args = commandMatch[5] ? JSON.parse(`[${commandMatch[5]}]`) : [];
-      }
-      if (args.length === 0) {
+      const parsedCommand = parseCommand(shortcut.command);
+      if (parsedCommand.args.length === 0) {
         // If there was no "specialization" of this command (that is, we effectively created a keybinding for an existing command but with arguments), let's add it to the overridden command set:
-        overriddenCommands.add(cleanCommandName);
+        overriddenCommands.add(parsedCommand.name);
       }
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,
         run: (): boolean => {
-          client.runCommandByName(cleanCommandName, args).catch((e: any) => {
-            console.error(e);
-            client.flashNotification(
-              `Error running command: ${e.message}`,
-              "error",
-            );
-          }).then(() => {
+          client.runCommandByName(parsedCommand.name, parsedCommand.args).catch(
+            (e: any) => {
+              console.error(e);
+              client.flashNotification(
+                `Error running command: ${e.message}`,
+                "error",
+              );
+            },
+          ).then(() => {
             // Always be focusing the editor after running a command
             client.focus();
           });

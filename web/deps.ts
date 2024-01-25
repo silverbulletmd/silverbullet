@@ -9,13 +9,7 @@ export {
   useState,
 } from "https://esm.sh/preact@10.11.1/hooks";
 
-export {
-  Book as BookIcon,
-  Home as HomeIcon,
-  RefreshCw as RefreshCwIcon,
-  Terminal as TerminalIcon,
-  Type as TemplateIcon,
-} from "https://esm.sh/preact-feather@4.2.1?external=preact";
+export * as featherIcons from "https://esm.sh/preact-feather@4.2.1?external=preact";
 
 // Vim mode
 export {

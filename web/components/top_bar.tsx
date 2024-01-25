@@ -1,9 +1,4 @@
-import {
-  CompletionContext,
-  CompletionResult,
-  useEffect,
-  useRef,
-} from "../deps.ts";
+import { CompletionContext, CompletionResult, useEffect } from "../deps.ts";
 import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
 import { Notification } from "../types.ts";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
@@ -65,8 +60,9 @@ export function TopBar({
         const innerDiv = currentPageElement.parentElement!.parentElement!;
 
         // Then calculate a new width
+        const substract = 60 + actionButtons.length * 31;
         currentPageElement.style.width = `${
-          Math.min(editorWidth - 170, innerDiv.clientWidth - 170)
+          Math.min(editorWidth - substract, innerDiv.clientWidth - substract)
         }px`;
       }
     }

@@ -1,6 +1,7 @@
 import { Manifest } from "../common/manifest.ts";
 import { PageMeta } from "$sb/types.ts";
 import { AppCommand } from "./hooks/command.ts";
+import { defaultSettings } from "../common/util.ts";
 
 // Used by FilterBox
 export type FilterOption = {
@@ -26,11 +27,20 @@ export type Shortcut = {
   command: string;
 };
 
+export type ActionButton = {
+  icon: string;
+  description?: string;
+  command: string;
+  args?: any[];
+};
+
 export type BuiltinSettings = {
   indexPage: string;
   customStyles?: string | string[];
   plugOverrides?: Record<string, Partial<Manifest>>;
   shortcuts?: Shortcut[];
+  hideSyncButton?: boolean;
+  actionButtons: ActionButton[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
 };
@@ -44,6 +54,8 @@ export type PanelConfig = {
 export type AppViewState = {
   currentPage?: string;
   currentPageMeta?: PageMeta;
+  allPages: PageMeta[];
+
   isLoading: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
@@ -52,10 +64,11 @@ export type AppViewState = {
   syncFailures: number; // Reset everytime a sync succeeds
   progressPerc?: number;
   panels: { [key: string]: PanelConfig };
-  allPages: PageMeta[];
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
+
+  settings: BuiltinSettings;
 
   uiOptions: {
     vimMode: boolean;
@@ -104,6 +117,7 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
+  settings: defaultSettings,
   allPages: [],
   commands: new Map(),
   recentCommands: new Map(),
@@ -126,6 +140,7 @@ export type Action =
   | { type: "page-saved" }
   | { type: "sync-change"; syncSuccess: boolean }
   | { type: "update-page-list"; allPages: PageMeta[] }
+  | { type: "settings-loaded"; settings: BuiltinSettings }
   | { type: "start-navigate"; mode: "page" | "template" }
   | { type: "stop-navigate" }
   | {

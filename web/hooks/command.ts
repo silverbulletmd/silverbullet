@@ -20,6 +20,8 @@ export type CommandDef = {
   // Bind to keyboard shortcut
   key?: string;
   mac?: string;
+
+  hide?: boolean;
 };
 
 export type AppCommand = {

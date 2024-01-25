@@ -17,7 +17,7 @@ The `editor` plug implements foundational editor functionality for SilverBullet.
 
 ## Navigation
 * {[Navigate: Home]}: navigate to the home (index) page
-* {[Navigate To page]}: navigate to the page under the cursor
+* {[Navigate: To This Page]}: navigate to the page under the cursor
 * {[Navigate: Center Cursor]}: center the cursor at the center of the screen
 * {[Navigate: Move Cursor to Position]}: move cursor to a specific (numeric) cursor position (# of characters from the start of the document)
 

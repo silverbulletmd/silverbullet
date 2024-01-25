@@ -25,5 +25,8 @@ jobs:
       - name: Run build
         run: deno task build
 
+      - name: Run type check
+        run: deno task check
+
       - name: Run tests
         run: deno task test --trace-ops
