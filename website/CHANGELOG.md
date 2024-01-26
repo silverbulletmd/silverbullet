@@ -11,6 +11,7 @@ _The changes below are not yet released “properly”. To them out early, check
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
 * Action buttons (top right buttons) can now be configured, see [[SETTINGS]] how to do this.
 * Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the type of link formats that SilverBullet now supports.
+* New {[Task: Remove Completed]} command to remove all completed tasks from a page
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
   * Right-clicking links now opens browser native context menu again

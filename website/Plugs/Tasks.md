@@ -18,6 +18,8 @@ However, custom states can also be used for extra flexibility:
 
 You can cycle through the states by clicking on the status or by running the {[Task: Cycle State]} command while on a task. There is also auto complete for all known custom task states in a space.
 
+To delete completed task from a page you can use {[Task: Remove Completed]}.
+
 ## Annotations
 Tasks can also be annotated with [[Tags]]:
 
