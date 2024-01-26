@@ -248,8 +248,13 @@ export class MainUI {
               : [],
             ...viewState.settings.actionButtons.map((button) => {
               const parsedCommand = parseCommand(button.command);
+              let featherIcon =
+                (featherIcons as any)[kebabToCamel(button.icon)];
+              if (!featherIcon) {
+                featherIcon = featherIcons.HelpCircle;
+              }
               return {
-                icon: (featherIcons as any)[button.icon],
+                icon: featherIcon,
                 description: button.description || "",
                 callback: () => {
                   client.runCommandByName(
@@ -304,4 +309,11 @@ export class MainUI {
     // const ViewComponent = this.ui.ViewComponent.bind(this.ui);
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
+}
+
+function kebabToCamel(str: string) {
+  return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(
+    /^./,
+    (g) => g.toUpperCase(),
+  );
 }

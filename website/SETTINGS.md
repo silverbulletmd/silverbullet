@@ -12,16 +12,16 @@ hideSyncButton: false
 
 # Configure the shown action buttons (top right bar)
 actionButtons: 
-- icon: Home # Capitalized version of an icon from https://feathericons.com
+- icon: home # Use any icon from https://feathericons.com
   command: "{[Navigate: Home]}"
   description: "Go to the index page"
-- icon: Activity
+- icon: activity
   description: "What's new"
   command: '{[Navigate: To Page]("CHANGELOG")}'
-- icon: Book
+- icon: book
   command: "{[Navigate: Page Picker]}"
   description: Open page
-- icon: Terminal
+- icon: terminal
   command: "{[Open Command Palette]}"
   description: Run command
 
