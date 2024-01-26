@@ -51,6 +51,7 @@ functions:
     path: "./command.ts:reindexCommand"
     command:
       name: "Space: Reindex"
+      requireMode: rw
   processIndexQueue:
     path: ./command.ts:processIndexQueue
     mqSubscriptions:
@@ -142,16 +143,19 @@ functions:
       mac: Cmd-Alt-r
       key: Ctrl-Alt-r
       page: ""
+      requireMode: rw
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:
       name: "Page: Batch Rename Prefix"
+      requireMode: rw
 
   # Refactoring Commands
   extractToPageCommand:
     path: ./refactor.ts:extractToPageCommand
     command:
       name: "Page: Extract"
+      requireMode: rw
 
   # TOC
   tocWidget:

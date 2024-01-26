@@ -11,10 +11,9 @@ import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
-import { debugSyscalls } from "../web/syscalls/debug.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
-import { spaceSyscalls } from "./syscalls/space.ts";
-import { systemSyscalls } from "../web/syscalls/system.ts";
+import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
+import { systemSyscalls } from "../common/syscalls/system.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
@@ -22,7 +21,10 @@ import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
 import { Plug } from "../plugos/plug.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
-import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
+import {
+  dataStoreReadSyscalls,
+  dataStoreWriteSyscalls,
+} from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
@@ -65,6 +67,7 @@ export class ServerSystem {
     private baseSpacePrimitives: SpacePrimitives,
     readonly kvPrimitives: KvPrimitives,
     private shellBackend: ShellBackend,
+    private readOnlyMode: boolean,
   ) {
   }
 
@@ -123,29 +126,37 @@ export class ServerSystem {
     this.system.registerSyscalls(
       [],
       eventSyscalls(eventHook),
-      spaceSyscalls(space),
+      spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      systemSyscalls(this.system),
+      systemSyscalls(this.system, this.readOnlyMode),
       mqSyscalls(mq),
       languageSyscalls(),
       handlebarsSyscalls(),
-      dataStoreSyscalls(this.ds),
-      debugSyscalls(),
+      dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),
     );
 
-    // Syscalls that require some additional permissions
-    this.system.registerSyscalls(
-      ["fetch"],
-      sandboxFetchSyscalls(),
-    );
+    if (!this.readOnlyMode) {
+      // Write mode only
+      this.system.registerSyscalls(
+        [],
+        spaceWriteSyscalls(space),
+        dataStoreWriteSyscalls(this.ds),
+      );
 
-    this.system.registerSyscalls(
-      ["shell"],
-      shellSyscalls(this.shellBackend),
-    );
+      // Syscalls that require some additional permissions
+      this.system.registerSyscalls(
+        ["fetch"],
+        sandboxFetchSyscalls(),
+      );
+
+      this.system.registerSyscalls(
+        ["shell"],
+        shellSyscalls(this.shellBackend),
+      );
+    }
 
     await this.loadPlugs();
 

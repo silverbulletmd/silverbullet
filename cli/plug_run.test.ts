@@ -5,14 +5,12 @@ import { runPlug } from "./plug_run.ts";
 import assets from "../dist/plug_asset_bundle.json" assert { type: "json" };
 import { assertEquals } from "../test_deps.ts";
 import { path } from "../common/deps.ts";
+import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
 
 Deno.test("Test plug run", {
   sanitizeResources: false,
   sanitizeOps: false,
 }, async () => {
-  // const tempDir = await Deno.makeTempDir();
-  const tempDbFile = await Deno.makeTempFile({ suffix: ".db" });
-
   const assetBundle = new AssetBundle(assets);
 
   const testFolder = path.dirname(new URL(import.meta.url).pathname);
@@ -31,11 +29,11 @@ Deno.test("Test plug run", {
       "test.run",
       [],
       assetBundle,
+      new MemoryKvPrimitives(),
     ),
     "Hello",
   );
 
   // await Deno.remove(tempDir, { recursive: true });
   esbuild.stop();
-  await Deno.remove(tempDbFile);
 });

@@ -59,6 +59,8 @@ import { LimitedMap } from "$sb/lib/limited_map.ts";
 import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
+import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
+import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -69,6 +71,7 @@ declare global {
     silverBulletConfig: {
       spaceFolderPath: string;
       syncOnly: boolean;
+      readOnly: boolean;
       clientEncryption: boolean;
     };
     client: Client;
@@ -87,7 +90,6 @@ export class Client {
   private dbPrefix: string;
 
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
-  // localSpacePrimitives!: FilteredSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
   space!: Space;
 
@@ -109,7 +111,7 @@ export class Client {
 
   ui!: MainUI;
   stateDataStore!: DataStore;
-  spaceDataStore!: DataStore;
+  spaceKV?: KvPrimitives;
   mq!: DataStoreMQ;
 
   // Used by the "wiki link" highlighter to check if a page exists
@@ -118,7 +120,8 @@ export class Client {
 
   constructor(
     private parent: Element,
-    public syncMode = false,
+    public syncMode: boolean,
+    private readOnlyMode: boolean,
   ) {
     if (!syncMode) {
       this.fullSyncCompleted = true;
@@ -159,6 +162,7 @@ export class Client {
       this.mq,
       this.stateDataStore,
       this.eventHook,
+      window.silverBulletConfig.readOnly,
     );
 
     const localSpacePrimitives = await this.initSpace();
@@ -518,6 +522,12 @@ export class Client {
       }
     }
 
+    if (this.readOnlyMode) {
+      remoteSpacePrimitives = new ReadOnlySpacePrimitives(
+        remoteSpacePrimitives,
+      );
+    }
+
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       remoteSpacePrimitives,
       this.system.namespaceHook,
@@ -534,6 +544,8 @@ export class Client {
         `${this.dbPrefix}_synced_space`,
       );
       await spaceKvPrimitives.init();
+
+      this.spaceKV = spaceKvPrimitives;
 
       localSpacePrimitives = new FilteredSpacePrimitives(
         new EventedSpacePrimitives(

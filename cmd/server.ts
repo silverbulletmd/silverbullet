@@ -10,6 +10,8 @@ import { sleep } from "$sb/lib/async.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
+import { runPlug } from "../cli/plug_run.ts";
+import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
 
 export async function serveCommand(
   options: {
@@ -40,6 +42,8 @@ export async function serveCommand(
   }
 
   const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
+
+  const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
   if (syncOnly) {
     console.log("Running in sync-only mode (no backend processing)");
@@ -75,6 +79,9 @@ export async function serveCommand(
     const [user, pass] = userAuth.split(":");
     userCredentials = { user, pass };
   }
+
+  const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
+
   const configs = new Map<string, SpaceServerConfig>();
   configs.set("*", {
     hostname,
@@ -82,15 +89,29 @@ export async function serveCommand(
     auth: userCredentials,
     authToken: Deno.env.get("SB_AUTH_TOKEN"),
     syncOnly,
+    readOnly,
+    shellBackend: backendConfig,
     clientEncryption,
     pagesPath: folder,
   });
 
+  const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
+
+  if (readOnly) {
+    console.log("Indexing the space first. Hang on...");
+    await runPlug(
+      folder,
+      "index.reindexSpace",
+      [],
+      plugAssets,
+      new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
+    );
+  }
   const httpServer = new HttpServer({
     hostname,
     port,
     clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
-    plugAssetBundle: new AssetBundle(plugAssetBundle as AssetJson),
+    plugAssetBundle: plugAssets,
     baseKvPrimitives,
     keyFile: options.key,
     certFile: options.cert,

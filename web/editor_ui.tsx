@@ -34,7 +34,9 @@ export class MainUI {
           console.log("Closing search panel");
           closeSearchPanel(client.editorView);
           return;
-        } else if (target.closest(".cm-content")) {
+        } else if (
+          target.className === "cm-textfield" || target.closest(".cm-content")
+        ) {
           // In some cm element, let's back out
           return;
         }

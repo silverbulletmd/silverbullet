@@ -1,7 +1,6 @@
 import { ObjectValue } from "$sb/types.ts";
+import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
-import { AttributeObject } from "./attributes.ts";
-import { TagObject } from "./tags.ts";
 
 export const builtinPseudoPage = ":builtin:";
 
@@ -92,6 +91,10 @@ export const builtins: Record<string, Record<string, string>> = {
 };
 
 export async function loadBuiltinsIntoIndex() {
+  if (await system.getMode() === "ro") {
+    console.log("Running in read-only mode, not loading builtins");
+    return;
+  }
   console.log("Loading builtins attributes into index");
   const allObjects: ObjectValue<any>[] = [];
   for (const [tagName, attributes] of Object.entries(builtins)) {

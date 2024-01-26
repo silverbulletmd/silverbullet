@@ -17,11 +17,13 @@ functions:
     command:
       name: "Task: Cycle State"
       key: Alt-t
+      requireMode: rw
   taskPostponeCommand:
     path: ./task.ts:postponeCommand
     command:
       name: "Task: Postpone"
       key: Alt-+
+      requireMode: rw
       contexts:
         - DeadlineDate
   previewTaskToggle:
@@ -38,3 +40,4 @@ functions:
     path: task.ts:removeCompletedTasksCommand
     command:
       name: "Task: Remove Completed"
+      requireMode: rw

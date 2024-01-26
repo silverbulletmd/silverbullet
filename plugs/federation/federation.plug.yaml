@@ -34,3 +34,4 @@ functions:
     path: library.ts:importLibraryCommand
     command:
       name: "Library: Import"
+      requireMode: rw

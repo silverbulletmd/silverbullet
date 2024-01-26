@@ -9,7 +9,6 @@ import {
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { FileMeta } from "$sb/types.ts";
 import { ShellRequest } from "./rpc.ts";
-import { determineShellBackend } from "./shell_backend.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
@@ -58,7 +57,6 @@ export class HttpServer {
   async bootSpaceServer(config: SpaceServerConfig): Promise<SpaceServer> {
     const spaceServer = new SpaceServer(
       config,
-      determineShellBackend(config.pagesPath),
       this.plugAssetBundle,
       new PrefixedKvPrimitives(this.baseKvPrimitives, [
         config.namespace,
@@ -119,6 +117,9 @@ export class HttpServer {
       ).replaceAll(
         "{{SYNC_ONLY}}",
         spaceServer.syncOnly ? "true" : "false",
+      ).replaceAll(
+        "{{READ_ONLY}}",
+        spaceServer.readOnly ? "true" : "false",
       ).replaceAll(
         "{{CLIENT_ENCRYPTION}}",
         spaceServer.clientEncryption ? "true" : "false",
@@ -217,6 +218,7 @@ export class HttpServer {
                 JSON.stringify([
                   spaceServer.clientEncryption,
                   spaceServer.syncOnly,
+                  spaceServer.readOnly,
                 ]),
               ),
             );
@@ -510,7 +512,10 @@ export class HttpServer {
         const req = c.req;
         const name = req.param("path")!;
         const spaceServer = await this.ensureSpaceServer(req);
-        console.log("Saving file", name);
+        if (spaceServer.readOnly) {
+          return c.text("Read only mode, no writes allowed", 405);
+        }
+        console.log("Writing file", name);
         if (name.startsWith(".")) {
           // Don't expose hidden files
           return c.text("Forbidden", 403);
@@ -533,6 +538,9 @@ export class HttpServer {
       const req = c.req;
       const name = req.param("path")!;
       const spaceServer = await this.ensureSpaceServer(req);
+      if (spaceServer.readOnly) {
+        return c.text("Read only mode, no writes allowed", 405);
+      }
       console.log("Deleting file", name);
       if (name.startsWith(".")) {
         // Don't expose hidden files

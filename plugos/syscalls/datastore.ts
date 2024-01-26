@@ -7,7 +7,26 @@ import type { SysCallMapping } from "../system.ts";
  * @param ds the datastore to wrap
  * @param prefix prefix to scope all keys to to which the plug name will be appended
  */
-export function dataStoreSyscalls(ds: DataStore): SysCallMapping {
+export function dataStoreReadSyscalls(ds: DataStore): SysCallMapping {
+  return {
+    "datastore.batchGet": (
+      _ctx,
+      keys: KvKey[],
+    ): Promise<(any | undefined)[]> => {
+      return ds.batchGet(keys);
+    },
+
+    "datastore.get": (_ctx, key: KvKey): Promise<any | null> => {
+      return ds.get(key);
+    },
+
+    "datastore.query": async (_ctx, query: KvQuery): Promise<KV[]> => {
+      return (await ds.query(query));
+    },
+  };
+}
+
+export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
   return {
     "datastore.delete": (_ctx, key: KvKey) => {
       return ds.delete(key);
@@ -23,21 +42,6 @@ export function dataStoreSyscalls(ds: DataStore): SysCallMapping {
 
     "datastore.batchDelete": (_ctx, keys: KvKey[]) => {
       return ds.batchDelete(keys);
-    },
-
-    "datastore.batchGet": (
-      _ctx,
-      keys: KvKey[],
-    ): Promise<(any | undefined)[]> => {
-      return ds.batchGet(keys);
-    },
-
-    "datastore.get": (_ctx, key: KvKey): Promise<any | null> => {
-      return ds.get(key);
-    },
-
-    "datastore.query": async (_ctx, query: KvQuery): Promise<KV[]> => {
-      return (await ds.query(query));
     },
 
     "datastore.queryDelete": (_ctx, query: KvQuery): Promise<void> => {

@@ -7,7 +7,6 @@ const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 
 const precacheFiles = Object.fromEntries([
   "/",
-  "/.client/logout.html",
   "/.client/client.js",
   "/.client/favicon.png",
   "/.client/iAWriterMonoS-Bold.woff2",

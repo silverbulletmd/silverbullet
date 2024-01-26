@@ -11,6 +11,10 @@ export async function reindexCommand() {
 }
 
 export async function reindexSpace() {
+  if (await system.getMode() === "ro") {
+    console.info("Not reindexing because we're in read-only mode");
+    return;
+  }
   console.log("Clearing page index...");
   // Executed this way to not have to embed the search plug code here
   await system.invokeFunction("index.clearIndex");
@@ -55,6 +59,10 @@ export async function processIndexQueue(messages: MQMessage[]) {
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
+  if (await system.getMode() === "ro") {
+    console.info("Not reindexing", name, "because we're in read-only mode");
+    return;
+  }
   const parsed = await markdown.parseMarkdown(text);
 
   if (isTemplate(text)) {

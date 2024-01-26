@@ -1,6 +1,8 @@
+import { KvKey } from "$sb/types.ts";
 import type { SysCallMapping } from "../../plugos/system.ts";
+import { Client } from "../client.ts";
 
-export function debugSyscalls(): SysCallMapping {
+export function debugSyscalls(client: Client): SysCallMapping {
   return {
     "debug.resetClient": async () => {
       if (navigator.serviceWorker) {
@@ -43,6 +45,21 @@ export function debugSyscalls(): SysCallMapping {
       // And finally, reload the page
       alert("Reset complete, now reloading the page...");
       location.reload();
+    },
+    "debug.cleanup": async () => {
+      if (client.spaceKV) {
+        console.log("Wiping the entire space KV store");
+        // In sync mode, we can just delete the whole space
+        const allKeys: KvKey[] = [];
+        for await (const { key } of client.spaceKV.query({})) {
+          allKeys.push(key);
+        }
+        await client.spaceKV.batchDelete(allKeys);
+      }
+      localStorage.clear();
+      console.log("Wiping the entire state KV store");
+      await client.stateDataStore.queryDelete({});
+      console.log("Done");
     },
   };
 }

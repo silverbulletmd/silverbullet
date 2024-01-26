@@ -22,6 +22,7 @@ export type CommandDef = {
   mac?: string;
 
   hide?: boolean;
+  requireMode?: "rw" | "ro";
 };
 
 export type AppCommand = {
@@ -58,6 +59,10 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
           continue;
         }
         const cmd = functionDef.command;
+        if (cmd.requireMode === "rw" && window.silverBulletConfig.readOnly) {
+          // Bit hacky, but don't expose commands that require write mode in read-only mode
+          continue;
+        }
         this.editorCommands.set(cmd.name, {
           command: cmd,
           run: (args?: string[]) => {

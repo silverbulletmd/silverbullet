@@ -44,6 +44,7 @@ functions:
     command:
       name: "Page: From Template"
       key: "Alt-Shift-t"
+      requireMode: rw
 
 
   # Lint

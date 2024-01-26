@@ -2,7 +2,7 @@ import { datastore } from "$sb/syscalls.ts";
 import { KV, KvKey, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { builtins } from "./builtins.ts";
-import { AttributeObject, determineType } from "./attributes.ts";
+import { determineType } from "./attributes.ts";
 import { ttlCache } from "$sb/lib/memory_cache.ts";
 
 const indexKey = "idx";
@@ -47,12 +47,17 @@ export async function clearPageIndex(page: string): Promise<void> {
 }
 
 /**
- * Clears the entire datastore for this indexKey plug
+ * Clears the entire page index
  */
 export async function clearIndex(): Promise<void> {
   const allKeys: KvKey[] = [];
   for (
-    const { key } of await datastore.query({ prefix: [] })
+    const { key } of await datastore.query({ prefix: [indexKey] })
+  ) {
+    allKeys.push(key);
+  }
+  for (
+    const { key } of await datastore.query({ prefix: [pageKey] })
   ) {
     allKeys.push(key);
   }

@@ -6,3 +6,4 @@ functions:
       name: "Share: Publish"
       key: "Ctrl-s"
       mac: "Cmd-s"
+      requireMode: rw

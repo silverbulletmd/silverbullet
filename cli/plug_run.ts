@@ -4,28 +4,22 @@ import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
-import { determineShellBackend } from "../server/shell_backend.ts";
+import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
+import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 
 export async function runPlug(
   spacePath: string,
   functionName: string | undefined,
   args: string[] = [],
   builtinAssetBundle: AssetBundle,
-  httpServerPort = 3123,
-  httpHostname = "127.0.0.1",
+  kvPrimitives: KvPrimitives,
+  httpServerPort?: number,
+  httpHostname?: string,
 ) {
   const serverController = new AbortController();
   const app = new Hono();
-
-  const dbBackend = await determineDatabaseBackend(spacePath);
-
-  if (!dbBackend) {
-    console.error("Cannot run plugs in databaseless mode.");
-    return;
-  }
 
   const endpointHook = new EndpointHook("/_/");
 
@@ -34,23 +28,25 @@ export async function runPlug(
       new DiskSpacePrimitives(spacePath),
       builtinAssetBundle,
     ),
-    dbBackend,
-    determineShellBackend(spacePath),
+    kvPrimitives,
+    new LocalShell(spacePath),
+    false,
   );
   await serverSystem.init(true);
   app.use((context, next) => {
     return endpointHook.handleRequest(serverSystem.system!, context, next);
   });
-  Deno.serve({
-    hostname: httpHostname,
-    port: httpServerPort,
-    signal: serverController.signal,
-  }, app.fetch);
+  if (httpHostname && httpServerPort) {
+    Deno.serve({
+      hostname: httpHostname,
+      port: httpServerPort,
+      signal: serverController.signal,
+    }, app.fetch);
+  }
 
   if (functionName) {
     const result = await serverSystem.system.invokeFunction(functionName, args);
     await serverSystem.close();
-    serverSystem.kvPrimitives.close();
     serverController.abort();
     return result;
   } else {

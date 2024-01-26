@@ -26,3 +26,7 @@ export function reloadPlugs() {
 export function getEnv(): Promise<string | undefined> {
   return syscall("system.getEnv");
 }
+
+export function getMode(): Promise<"ro" | "rw"> {
+  return syscall("system.getMode");
+}

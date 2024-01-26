@@ -2,7 +2,7 @@ import { Client } from "../client.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { AttachmentMeta, FileMeta, PageMeta } from "$sb/types.ts";
 
-export function spaceSyscalls(editor: Client): SysCallMapping {
+export function spaceReadSyscalls(editor: Client): SysCallMapping {
   return {
     "space.listPages": (): Promise<PageMeta[]> => {
       return editor.space.fetchPageList();
@@ -13,6 +13,36 @@ export function spaceSyscalls(editor: Client): SysCallMapping {
     "space.getPageMeta": (_ctx, name: string): Promise<PageMeta> => {
       return editor.space.getPageMeta(name);
     },
+    "space.listPlugs": (): Promise<FileMeta[]> => {
+      return editor.space.listPlugs();
+    },
+    "space.listAttachments": async (): Promise<AttachmentMeta[]> => {
+      return await editor.space.fetchAttachmentList();
+    },
+    "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
+      return (await editor.space.readAttachment(name)).data;
+    },
+    "space.getAttachmentMeta": async (
+      _ctx,
+      name: string,
+    ): Promise<AttachmentMeta> => {
+      return await editor.space.getAttachmentMeta(name);
+    },
+    // FS
+    "space.listFiles": (): Promise<FileMeta[]> => {
+      return editor.space.spacePrimitives.fetchFileList();
+    },
+    "space.getFileMeta": (_ctx, name: string): Promise<FileMeta> => {
+      return editor.space.spacePrimitives.getFileMeta(name);
+    },
+    "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
+      return (await editor.space.spacePrimitives.readFile(name)).data;
+    },
+  };
+}
+
+export function spaceWriteSyscalls(editor: Client): SysCallMapping {
+  return {
     "space.writePage": (
       _ctx,
       name: string,
@@ -30,21 +60,6 @@ export function spaceSyscalls(editor: Client): SysCallMapping {
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },
-    "space.listPlugs": (): Promise<FileMeta[]> => {
-      return editor.space.listPlugs();
-    },
-    "space.listAttachments": async (): Promise<AttachmentMeta[]> => {
-      return await editor.space.fetchAttachmentList();
-    },
-    "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
-      return (await editor.space.readAttachment(name)).data;
-    },
-    "space.getAttachmentMeta": async (
-      _ctx,
-      name: string,
-    ): Promise<AttachmentMeta> => {
-      return await editor.space.getAttachmentMeta(name);
-    },
     "space.writeAttachment": (
       _ctx,
       name: string,
@@ -54,17 +69,6 @@ export function spaceSyscalls(editor: Client): SysCallMapping {
     },
     "space.deleteAttachment": async (_ctx, name: string) => {
       await editor.space.deleteAttachment(name);
-    },
-
-    // FS
-    "space.listFiles": (): Promise<FileMeta[]> => {
-      return editor.space.spacePrimitives.fetchFileList();
-    },
-    "space.getFileMeta": (_ctx, name: string): Promise<FileMeta> => {
-      return editor.space.spacePrimitives.getFileMeta(name);
-    },
-    "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
-      return (await editor.space.spacePrimitives.readFile(name)).data;
     },
     "space.writeFile": (
       _ctx,

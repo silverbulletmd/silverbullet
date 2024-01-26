@@ -1,10 +1,11 @@
 import { SysCallMapping, System } from "../../plugos/system.ts";
-import type { Client } from "../client.ts";
-import { CommandDef } from "../hooks/command.ts";
-import { proxySyscall } from "./util.ts";
+import type { Client } from "../../web/client.ts";
+import { CommandDef } from "../../web/hooks/command.ts";
+import { proxySyscall } from "../../web/syscalls/util.ts";
 
 export function systemSyscalls(
   system: System<any>,
+  readOnlyMode: boolean,
   client?: Client,
 ): SysCallMapping {
   const api: SysCallMapping = {
@@ -63,6 +64,9 @@ export function systemSyscalls(
     },
     "system.getEnv": () => {
       return system.env;
+    },
+    "system.getMode": () => {
+      return readOnlyMode ? "ro" : "rw";
     },
   };
   return api;

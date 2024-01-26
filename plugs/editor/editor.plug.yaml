@@ -35,10 +35,12 @@ functions:
     path: "./page.ts:deletePage"
     command:
       name: "Page: Delete"
+      requireMode: rw
   copyPage:
     path: "./page.ts:copyPage"
     command:
       name: "Page: Copy"
+      requireMode: rw
 
   # Completion
   pageComplete:
@@ -54,6 +56,7 @@ functions:
     path: editor.ts:reloadSettingsAndCommands
     command:
       name: "System: Reload Settings and Commands"
+      requireMode: rw
 
   # Navigation
   linkNavigate:
@@ -89,22 +92,26 @@ functions:
       name: "Text: Quote Selection"
       key: "Ctrl-Shift-."
       mac: "Cmd-Shift-."
+      requireMode: rw
   listifySelection:
     path: ./text.ts:listifySelection
     command:
       name: "Text: Listify Selection"
       key: "Ctrl-Shift-8"
       mac: "Cmd-Shift-8"
+      requireMode: rw
   numberListifySelection:
     path: ./text.ts:numberListifySelection
     command:
       name: "Text: Number Listify Selection"
+      requireMode: rw
   linkSelection:
     path: ./text.ts:linkSelection
     command:
       name: "Text: Link Selection"
       key: "Ctrl-Shift-k"
       mac: "Cmd-Shift-k"
+      requireMode: rw
   bold:
     path: ./text.ts:wrapSelection
     command:
@@ -112,6 +119,7 @@ functions:
       key: "Ctrl-b"
       mac: "Cmd-b"
       wrapper: "**"
+      requireMode: rw
   italic:
     path: ./text.ts:wrapSelection
     command:
@@ -119,23 +127,27 @@ functions:
       key: "Ctrl-i"
       mac: "Cmd-i"
       wrapper: "_"
+      requireMode: rw
   strikethrough:
     path: ./text.ts:wrapSelection
     command:
       name: "Text: Strikethrough"
       key: "Ctrl-Shift-s"
       wrapper: "~~"
+      requireMode: rw
   marker:
     path: ./text.ts:wrapSelection
     command:
       name: "Text: Marker"
       key: "Alt-m"
       wrapper: "=="
+      requireMode: rw
   centerCursor:
     path: "./editor.ts:centerCursorCommand"
     command:
       name: "Navigate: Center Cursor"
       key: "Ctrl-Alt-l"
+      requireMode: rw
 
   # Debug commands
   parseCommand:
@@ -150,6 +162,7 @@ functions:
       name: "Link: Unfurl"
       key: "Ctrl-Shift-u"
       mac: "Cmd-Shift-u"
+      requireMode: rw
       contexts:
         - NakedURL
 
@@ -180,11 +193,6 @@ functions:
     events:
       - editor:modeswitch
 
-  brokenLinksCommand:
-    path: ./broken_links.ts:brokenLinksCommand
-    command:
-      name: "Broken Links: Show"
-
   # Random stuff
   statsCommand:
     path: ./stats.ts:statsCommand
@@ -210,14 +218,15 @@ functions:
       name: "Help: Getting Started"
 
   accountLogoutCommand:
-    path: ./account.ts:accountLogoutCommand
+    path: clean.ts:cleanCommand
     command:
-      name: "Account: Logout"
+      name: "Clear Local Storage & Logout"
 
   uploadFileCommand:
     path: ./upload.ts:uploadFile
     command:
       name: "Upload: File"
+      requireMode: rw
 
   # Outline commands
   outlineMoveUp:
@@ -225,24 +234,28 @@ functions:
     command:
       name: "Outline: Move Up"
       key: "Alt-ArrowUp"
+      requireMode: rw
 
   outlineMoveDown:
     path: ./outline.ts:moveItemDown
     command:
       name: "Outline: Move Down"
       key: "Alt-ArrowDown"
+      requireMode: rw
 
   outlineIndent:
     path: ./outline.ts:indentItem
     command:
       name: "Outline: Move Right"
       key: "Alt->"
+      requireMode: rw
 
   outlineOutdent:
     path: ./outline.ts:outdentItem
     command:
       name: "Outline: Move Left"
       key: "Alt-<"
+      requireMode: rw
 
   # Outline folding commands
   foldCommand:

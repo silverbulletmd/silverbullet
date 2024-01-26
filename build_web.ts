@@ -42,9 +42,6 @@ export async function copyAssets(dist: string) {
   await copy("web/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
-  await copy("web/logout.html", `${dist}/logout.html`, {
-    overwrite: true,
-  });
   await copy("web/images/favicon.png", `${dist}/favicon.png`, {
     overwrite: true,
   });
@@ -84,7 +81,7 @@ async function buildCopyBundleAssets() {
 
   console.log("Now ESBuilding the client and service workers...");
 
-  await esbuild.build({
+  const result = await esbuild.build({
     entryPoints: [
       {
         in: "web/boot.ts",
@@ -102,6 +99,7 @@ async function buildCopyBundleAssets() {
     sourcemap: "linked",
     minify: true,
     jsxFactory: "h",
+    // metafile: true,
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "https://esm.sh/preact@10.11.1",
@@ -110,6 +108,11 @@ async function buildCopyBundleAssets() {
         .toString(),
     }),
   });
+
+  if (result.metafile) {
+    const text = await esbuild.analyzeMetafile(result.metafile!);
+    console.log("Bundle info", text);
+  }
 
   // Patch the service_worker {{CACHE_NAME}}
   let swCode = await Deno.readTextFile("dist_client_bundle/service_worker.js");

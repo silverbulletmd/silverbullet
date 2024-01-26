@@ -1,6 +1,7 @@
 import { SilverBulletHooks } from "../common/manifest.ts";
 import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
@@ -10,6 +11,7 @@ import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { ServerSystem } from "./server_system.ts";
+import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 
@@ -21,8 +23,10 @@ export type SpaceServerConfig = {
   // Additional API auth token
   authToken?: string;
   pagesPath: string;
-  syncOnly?: boolean;
-  clientEncryption?: boolean;
+  shellBackend: string;
+  syncOnly: boolean;
+  readOnly: boolean;
+  clientEncryption: boolean;
 };
 
 export class SpaceServer {
@@ -41,10 +45,11 @@ export class SpaceServer {
   system?: System<SilverBulletHooks>;
   clientEncryption: boolean;
   syncOnly: boolean;
+  readOnly: boolean;
+  shellBackend: ShellBackend;
 
   constructor(
     config: SpaceServerConfig,
-    public shellBackend: ShellBackend,
     private plugAssetBundle: AssetBundle,
     private kvPrimitives: KvPrimitives,
   ) {
@@ -53,13 +58,18 @@ export class SpaceServer {
     this.auth = config.auth;
     this.authToken = config.authToken;
     this.clientEncryption = !!config.clientEncryption;
-    this.syncOnly = !!config.syncOnly;
+    this.syncOnly = config.syncOnly;
+    this.readOnly = config.readOnly;
     if (this.clientEncryption) {
       // Sync only will forced on when encryption is enabled
       this.syncOnly = true;
     }
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
+
+    this.shellBackend = config.readOnly
+      ? new NotSupportedShell() // No shell for read only mode
+      : determineShellBackend(config);
   }
 
   async init() {
@@ -81,6 +91,10 @@ export class SpaceServer {
       },
     );
 
+    if (this.readOnly) {
+      this.spacePrimitives = new ReadOnlySpacePrimitives(this.spacePrimitives);
+    }
+
     // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
     if (!this.syncOnly) {
       // Enable server-side processing
@@ -88,6 +102,7 @@ export class SpaceServer {
         this.spacePrimitives,
         this.kvPrimitives,
         this.shellBackend,
+        this.readOnly,
       );
       this.serverSystem = serverSystem;
     }

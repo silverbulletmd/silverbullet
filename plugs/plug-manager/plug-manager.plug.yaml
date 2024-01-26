@@ -8,6 +8,7 @@ functions:
       name: "Plugs: Update"
       key: "Ctrl-Shift-p"
       mac: "Cmd-Shift-p"
+      requireMode: rw
   getPlugHTTPS:
     path: "./plugmanager.ts:getPlugHTTPS"
     events:
@@ -24,3 +25,4 @@ functions:
     path: ./plugmanager.ts:addPlugCommand
     command:
       name: "Plugs: Add"
+      requireMode: rw

@@ -17,16 +17,19 @@ import { editorSyscalls } from "./syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { markdownSyscalls } from "../common/syscalls/markdown.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
-import { spaceSyscalls } from "./syscalls/space.ts";
+import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
+import { systemSyscalls } from "../common/syscalls/system.ts";
 import { yamlSyscalls } from "../common/syscalls/yaml.ts";
 import { Space } from "./space.ts";
 import { MQHook } from "../plugos/hooks/mq.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
-import { dataStoreSyscalls } from "../plugos/syscalls/datastore.ts";
+import {
+  dataStoreReadSyscalls,
+  dataStoreWriteSyscalls,
+} from "../plugos/syscalls/datastore.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
@@ -54,6 +57,7 @@ export class ClientSystem {
     private mq: MessageQueue,
     private ds: DataStore,
     private eventHook: EventHook,
+    private readOnlyMode: boolean,
   ) {
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(
@@ -153,8 +157,8 @@ export class ClientSystem {
       [],
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
-      spaceSyscalls(this.client),
-      systemSyscalls(this.system, this.client),
+      spaceReadSyscalls(this.client),
+      systemSyscalls(this.system, false, this.client),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -167,24 +171,31 @@ export class ClientSystem {
         ? mqSyscalls(this.mq)
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
-      this.client.syncMode
-        ? dataStoreSyscalls(this.ds)
-        : dataStoreProxySyscalls(this.client),
-      debugSyscalls(),
+      ...this.client.syncMode
+        ? [dataStoreReadSyscalls(this.ds), dataStoreWriteSyscalls(this.ds)]
+        : [dataStoreProxySyscalls(this.client)],
+      debugSyscalls(this.client),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
     );
 
-    // Syscalls that require some additional permissions
-    this.system.registerSyscalls(
-      ["fetch"],
-      sandboxFetchSyscalls(this.client),
-    );
+    if (!this.readOnlyMode) {
+      // Write syscalls
+      this.system.registerSyscalls(
+        [],
+        spaceWriteSyscalls(this.client),
+      );
+      // Syscalls that require some additional permissions
+      this.system.registerSyscalls(
+        ["fetch"],
+        sandboxFetchSyscalls(this.client),
+      );
 
-    this.system.registerSyscalls(
-      ["shell"],
-      shellSyscalls(this.client),
-    );
+      this.system.registerSyscalls(
+        ["shell"],
+        shellSyscalls(this.client),
+      );
+    }
   }
 
   async reloadPlugsFromSpace(space: Space) {
