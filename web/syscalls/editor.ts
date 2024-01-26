@@ -15,6 +15,7 @@ import type { FilterOption } from "../types.ts";
 import { UploadFile } from "../../plug-api/types.ts";
 import { PageRef } from "$sb/lib/page.ts";
 import { openSearchPanel } from "../deps.ts";
+import { diffAndPrepareChanges } from "./cm_util.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -23,6 +24,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();
+    },
+    "editor.setText": (_ctx, newText: string) => {
+      const currentText = client.editorView.state.sliceDoc();
+      const allChanges = diffAndPrepareChanges(currentText, newText);
+      client.editorView.dispatch({
+        changes: allChanges,
+      });
     },
     "editor.getCursor": (): number => {
       return client.editorView.state.selection.main.from;

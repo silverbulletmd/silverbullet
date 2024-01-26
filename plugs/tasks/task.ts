@@ -5,6 +5,7 @@ import { editor, markdown, space, sync } from "$sb/syscalls.ts";
 import {
   addParentPointers,
   collectNodesMatching,
+  findNodeMatching,
   findNodeOfType,
   findParentMatching,
   nodeAtPos,
@@ -336,4 +337,35 @@ export async function postponeCommand() {
       anchor: pos,
     },
   });
+}
+
+export async function removeCompletedTasksCommand() {
+  const tree = await markdown.parseMarkdown(await editor.getText());
+  addParentPointers(tree);
+
+  // Taking this ugly approach because the tree is modified in place
+  // Just finding and removing one task at a time and then repeating until nothing changes
+  while (true) {
+    const completedTaskNode = findNodeMatching(tree, (node) => {
+      return node.type === "Task" &&
+        ["x", "X"].includes(node.children![0].children![1].text!);
+    });
+    if (completedTaskNode) {
+      // Ok got one, let's remove it
+      const listItemNode = completedTaskNode.parent!;
+      const bulletListNode = listItemNode.parent!;
+      // Remove the list item
+      const listItemIdx = bulletListNode.children!.indexOf(listItemNode);
+      let removeItems = 1;
+      if (bulletListNode.children![listItemIdx + 1]?.text === "\n") {
+        removeItems++;
+      }
+      bulletListNode.children!.splice(listItemIdx, removeItems);
+    } else {
+      // No completed tasks left, we're done
+      break;
+    }
+  }
+
+  await editor.setText(renderToText(tree));
 }

@@ -15,6 +15,14 @@ export function getText(): Promise<string> {
   return syscall("editor.getText");
 }
 
+/**
+ * This updates the editor text, but in a minimal-diff way:
+ * it compares the current editor text with the new text, and only sends the changes to the editor, thereby preserving cursor location
+ */
+export function setText(newText: string) {
+  return syscall("editor.setText", newText);
+}
+
 export function getCursor(): Promise<number> {
   return syscall("editor.getCursor");
 }
