@@ -14,13 +14,7 @@ $ deno install -f --name silverbullet --unstable -A https://get.silverbullet.md
 
 You only have to do this once. This will download the currently _released_ version of SilverBullet onto your machine.
 
-If you prefer to live on the _bleeding edge_, you can install using the following command instead:
-
-```shell
-$ deno install -f --name silverbullet --unstable -A https://silverbullet.md/silverbullet.js
-```
-
-Either command will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
+This command will install `silverbullet` into your `~/.deno/bin` folder (which should already be in your `$PATH` if you followed the Deno install instructions).
 
 While you have [[Install/Configuration|options as to where and how to store your content]], the most straightforward way is to simply use a folder on disk.
 

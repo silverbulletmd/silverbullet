@@ -36,7 +36,7 @@ $ docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./s
 There you go!
 
 # Versions
-The `zefhemel/silverbullet` image will give you the latest released version. This is equivalent to `zefhemel/silverbullet:latest`. If you prefer, you can also pin to a specific release, e.g. `zefhemel/silverbullet:0.5.5`. If you prefer to live on the bleeding edge, you can use the `zefhemel/silverbullet:edge` image, which is updated on every commit to the `main` brain. This is the YOLO option.
+The `zefhemel/silverbullet` image will give you the latest released version. This is equivalent to `zefhemel/silverbullet:latest`. If you prefer, you can also pin to a specific release, e.g. `zefhemel/silverbullet:0.6.0`. If you prefer to live on the bleeding edge, you can use the `zefhemel/silverbullet:edge` image, which is updated on every commit to the `main` brain. This is the YOLO option.
 
 ## Upgrade
 You can upgrade SilverBullet as follows:
