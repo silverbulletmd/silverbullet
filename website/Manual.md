@@ -1,4 +1,4 @@
-Welcome to wonderful world of SilverBullet. The goal of this manual is to give you a broad sense of how to use this tool and what it’s capable of. However, its full capabilities are yet to be discovered. You too may find new and creative ways to use the various SilverBullet features in ways nobody previously thought of.
+Welcome to the wonderful world of SilverBullet. The goal of this manual is to give you a broad sense of how to use this tool and what it’s capable of. However, its full capabilities are yet to be discovered. You too may find new and creative ways to use the various SilverBullet features in ways nobody previously thought of.
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let’s give you a bit of a sense.
 
@@ -59,13 +59,13 @@ The main ways to roam your space, beside following page links, are:
   * [[Attributes]]
 * [[Live Queries]]
 * [[Templates]]
-* [[Federation]]: it possibly to “sync in” content from outside sources, such as [[Libraries]]
+* [[Federation]]: it is possible to “sync in” content from outside sources, such as [[Libraries]]
 
 # Extending SilverBullet
 A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].
 
 # Contributing
-SilverBullet is free and open source software. You can contribute to it [via Github](https://github.com/silverbulletmd/silverbullet). For some details on how to do this, have a look at [[Development]].
+SilverBullet is free and open-source software. You can contribute to it [via Github](https://github.com/silverbulletmd/silverbullet). For some details on how to do this, have a look at [[Development]].
 
 # Personalization
 Want to tweak something? [[SETTINGS]] gives you a few settings you can tweak.
