@@ -17,7 +17,7 @@ export async function upgradeCommand() {
     "So, that's done. Now let's see if this actually did anything...",
   );
   const vp = new Deno.Command("deno", {
-    args: ["run", "-A", "--unstable", Deno.mainModule, "version"],
+    args: ["run", "-A", Deno.mainModule, "version"],
   });
   const versionStatus = await vp.output();
   if (!versionStatus.success) {

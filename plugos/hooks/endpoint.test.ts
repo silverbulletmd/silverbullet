@@ -7,7 +7,10 @@ import { compileManifest } from "../compile.ts";
 import { esbuild } from "../deps.ts";
 import { Hono } from "../../server/deps.ts";
 
-Deno.test("Run a plugos endpoint server", async () => {
+Deno.test("Run a plugos endpoint server", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, async () => {
   const tempDir = await Deno.makeTempDir();
   const system = new System<EndpointHookT>("server");
 

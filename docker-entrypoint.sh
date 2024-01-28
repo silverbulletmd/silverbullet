@@ -13,7 +13,7 @@ fi
 
 if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     # Will run SilverBullet as default user
-    deno run -A --unstable /silverbullet.js $@
+    deno run -A --unstable-kv --unstable-worker-options /silverbullet.js $@
 else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
     getent group $PGID &> /dev/null || groupadd -g $PGID silverbullet
@@ -24,6 +24,6 @@ else
     # And run via su as requested PUID, usually this will be 'silverbullet' but if a user with this idea already exists, we will use that
     USERNAME=$(getent passwd $PUID | cut -d ":" -f 1)
     echo "Running SilverBullet as $USERNAME (configured as PUID $PUID and PGID $PGID)"
-    su $USERNAME -s /bin/bash -c "deno run -A --unstable /silverbullet.js $args"
+    su $USERNAME -s /bin/bash -c "deno run -A --unstable-kv --unstable-worker-options /silverbullet.js $args"
 fi
 

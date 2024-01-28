@@ -48,7 +48,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
       const f = await Deno.open(localPath, { read: true });
       const data = await readAll(f);
-      Deno.close(f.rid);
+      f.close();
 
       return {
         data,

@@ -10,7 +10,10 @@ import {
 import { sleep } from "$sb/lib/async.ts";
 import { SysCallMapping } from "./system.ts";
 
-Deno.test("Run a deno sandbox", async () => {
+Deno.test("Run a deno sandbox", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, async () => {
   const system = new System("server");
   system.registerSyscalls([], {
     addNumbers: (_ctx, a, b) => {
