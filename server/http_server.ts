@@ -13,6 +13,9 @@ import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
 import { base64Encode } from "../plugos/asset_bundle/base64.ts";
+import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
+import { parse } from "../common/markdown_parser/parse_tree.ts";
+import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -108,19 +111,39 @@ export class HttpServer {
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
-  renderIndexHtml(spaceServer: SpaceServer) {
+  async renderHtmlPage(spaceServer: SpaceServer, pageName: string) {
+    console.log("Server side rendering", pageName);
+    let html = "";
+    try {
+      const { data } = await spaceServer.spacePrimitives.readFile(
+        `${pageName}.md`,
+      );
+      const text = new TextDecoder().decode(data);
+      const tree = parse(extendedMarkdownLanguage, text);
+      html = renderMarkdownToHtml(tree);
+    } catch (e: any) {
+      if (e.message !== "Not found") {
+        console.error("Error server-side rendering page", e);
+      }
+    }
     return this.clientAssetBundle.readTextFileSync(".client/index.html")
-      .replaceAll(
+      .replace(
         "{{SPACE_PATH}}",
         spaceServer.pagesPath.replaceAll("\\", "\\\\"),
-        // );
-      ).replaceAll(
+      )
+      .replace(
+        "{{TITLE}}",
+        pageName,
+      ).replace(
         "{{SYNC_ONLY}}",
         spaceServer.syncOnly ? "true" : "false",
-      ).replaceAll(
+      ).replace(
         "{{READ_ONLY}}",
         spaceServer.readOnly ? "true" : "false",
-      ).replaceAll(
+      ).replace(
+        "{{CONTENT}}",
+        html,
+      ).replace(
         "{{CLIENT_ENCRYPTION}}",
         spaceServer.clientEncryption ? "true" : "false",
       );
@@ -135,7 +158,9 @@ export class HttpServer {
     // Fallback, serve the UI index.html
     this.app.use("*", async (c) => {
       const spaceServer = await this.ensureSpaceServer(c.req);
-      return c.html(this.renderIndexHtml(spaceServer), 200, {
+      const url = new URL(c.req.url);
+      const pageName = decodeURI(url.pathname.slice(1));
+      return c.html(await this.renderHtmlPage(spaceServer, pageName), 200, {
         "Cache-Control": "no-cache",
       });
     });
@@ -175,9 +200,16 @@ export class HttpServer {
       ) {
         // Serve the UI (index.html)
         // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
-        return c.html(this.renderIndexHtml(spaceServer), 200, {
-          "Cache-Control": "no-cache",
-        });
+        return c.html(
+          await this.renderHtmlPage(
+            spaceServer,
+            spaceServer.settings?.indexPage!,
+          ),
+          200,
+          {
+            "Cache-Control": "no-cache",
+          },
+        );
       }
       try {
         const assetName = url.pathname.slice(1);

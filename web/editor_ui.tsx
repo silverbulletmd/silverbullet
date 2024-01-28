@@ -309,6 +309,7 @@ export class MainUI {
 
   render(container: Element) {
     // const ViewComponent = this.ui.ViewComponent.bind(this.ui);
+    container.innerHTML = "";
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
 }

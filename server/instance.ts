@@ -35,7 +35,7 @@ export class SpaceServer {
   authToken?: string;
   hostname: string;
 
-  private settings?: BuiltinSettings;
+  settings?: BuiltinSettings;
   spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;

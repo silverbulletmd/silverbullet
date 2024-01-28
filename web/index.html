@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#e1e1e1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#262626" media="(prefers-color-scheme: dark)">
 
-  <title>SilverBullet</title>
+  <title>{{TITLE}}</title>
   <script>
     // Some global variables we need to make this work
     Deno = {
@@ -61,6 +61,16 @@
 
 <body>
   <div id="sb-root">
+
+    <div id="sb-main">
+      <div id="sb-editor">
+        <div class="cm-editor">
+          <div class="cm-content">
+            {{CONTENT}}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 
