@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 
 <head>
   <meta charset="utf-8" />
@@ -11,6 +11,9 @@
   <meta name="theme-color" content="#262626" media="(prefers-color-scheme: dark)">
 
   <title>{{TITLE}}</title>
+  <meta property="og:image" content="/.client/logo.png">
+  <meta property="og:description" content={{DESCRIPTION}}>
+
   <script>
     // Some global variables we need to make this work
     Deno = {

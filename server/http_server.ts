@@ -133,6 +133,10 @@ export class HttpServer {
         spaceServer.pagesPath.replaceAll("\\", "\\\\"),
       )
       .replace(
+        "{{DESCRIPTION}}",
+        JSON.stringify(stripHtml(html).substring(0, 255)),
+      )
+      .replace(
         "{{TITLE}}",
         pageName,
       ).replace(
@@ -662,4 +666,9 @@ function utcDateString(mtime: number): string {
 
 function authCookieName(host: string) {
   return `auth_${host.replaceAll(/\W/g, "_")}`;
+}
+
+function stripHtml(html: string): string {
+  const regex = /<[^>]*>/g;
+  return html.replace(regex, "");
 }
