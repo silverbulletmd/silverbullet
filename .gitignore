@@ -16,3 +16,4 @@ test_space
 silverbullet
 deploy.json
 *.generated
+tmp_playground
