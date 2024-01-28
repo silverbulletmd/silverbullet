@@ -17,6 +17,8 @@ _The changes below are not yet released “properly.” To try them out early, c
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
   * Right-clicking links now opens the browser's native context menu again
+  * `tags` in [[Frontmatter]] are now properly indexed again when listed as an array
+  * Page links with aliases are now properly renamed
 * Internal changes:
   * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
   * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.

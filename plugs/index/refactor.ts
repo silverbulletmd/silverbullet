@@ -103,14 +103,25 @@ async function renamePage(
 
     // Replace all links found in place following the patterns [[Page]] and [[Page@pos]] as well as [[Page$anchor]]
     const newText = text.replaceAll(`[[${oldName}]]`, () => {
+      // Plain link format
       updatedReferences++;
       return `[[${newName}]]`;
+    }).replaceAll(`[[${oldName}|`, () => {
+      // Aliased link format
+      updatedReferences++;
+      return `[[${newName}|`;
     }).replaceAll(`[[${oldName}@`, () => {
+      // Link with position format
       updatedReferences++;
       return `[[${newName}@`;
     }).replaceAll(`[[${oldName}$`, () => {
+      // Link with anchor format
       updatedReferences++;
       return `[[${newName}$`;
+    }).replaceAll(`[[${oldName}#`, () => {
+      // Link with header format
+      updatedReferences++;
+      return `[[${newName}#`;
     });
     if (text !== newText) {
       console.log("Changes made, saving...");
