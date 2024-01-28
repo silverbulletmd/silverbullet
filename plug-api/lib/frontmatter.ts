@@ -85,6 +85,9 @@ export async function extractFrontmatter(
         if (typeof data.tags === "string") {
           tags.push(...(data.tags as string).split(/,\s*|\s+/));
         }
+        if (Array.isArray(data.tags)) {
+          tags.push(...data.tags);
+        }
 
         if (options.removeKeys && options.removeKeys.length > 0) {
           let removedOne = false;
