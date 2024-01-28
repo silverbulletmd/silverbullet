@@ -46,54 +46,11 @@ url: https://youtu.be/BbNbZgOwB-Y
 # Try it
 Here’s the kicker:
 
-==You are looking at a (more or less) operational copy of SilverBullet **right now**.==
+==You are looking at a (read-only) version of SilverBullet **right now**.==
 
 That’s right, **this very website is powered by SilverBullet itself**. 🤯
 
-On this site, everything is editable, just none of it syncs back (successfully) to the server. You are editing a local copy of this website, so changes do persist locally. It’s not a perfect rendition of the actual SilverBullet experience, but it's pretty close.
-
-Don’t just sit there, try it!
-
-* Click on the page picker (book icon) icon at the top right, or hit `Cmd-k` (Mac) or `Ctrl-k` (Linux and Windows) to open the **page switcher**. Type the name of a non-existent page to create it (although it won’t save in this environment).
-* Click on the terminal button (top right) or hit `Cmd-/` (Mac) or `Ctrl-/` (Linux and Windows) to open the **command palette** (note that not all commands will work in this mode).
-* Select some text and hit `Alt-m` to ==highlight== it, or `Cmd-b` (Mac) or `Ctrl-b` (Windows/Linux) to make it **bold**, or `Cmd-i` (Mac) or `Ctrl-i` (Windows/Linux) to make it _italic_.
-* Click a link somewhere on this page to navigate there.
-* Start typing `[[` somewhere to insert a page link (with completion).
-* [ ] Tap this box 👈 to mark this task as done.
-* Start typing `:party` to trigger the emoji picker 🎉
-* Type `/` somewhere in the text to invoke a **slash command**.
-* Click this button {[Editor: Toggle Vim Mode]} to toggle Vim mode
-* Open this site on your phone or tablet and... it just works!
-* Are you using a browser with **PWA support** (e.g., any Chromium-based
-  browser or recent version of Safari)? Click on that little icon to the right of your location bar that says “Install SilverBullet” to give SB its own window frame and desktop icon, like it is a stand-alone app (not particularly useful on silverbullet.md, but definitely do this once you install it yourself). Now, unplug your network cable and reload the page. It still works!
-
-At the core of SilverBullet is [[Markdown]] with some added fancier features like tables:
-
-| Page | Comment |
-|----------|----------|
-| [[SilverBullet]] | Main product page |
-| [[CHANGELOG]] | The latest updates |
-
-or code snippets, like JavaScript:
-
-```javascript
-function helloWorld() {
-   return "Look at my I'm JavaScript!";
-}
-```
-
-# Beyond Markdown
-Where things get slightly more interesting is when using features like [[Live Queries]] that allow you to query all types of [[Objects]] indexed based on the pages in your [[Spaces]]. 
-
-Let’s explore this with a meta example of using this functionality for this very website. All pages in this space that represent a [[Plugs|plug]] are tagged with the `#plug` [[Tags|tag]]. Now, if we want to render a list of all plugs in one place using the [[internal-template/plug]] template, we can simply do this as follows:
-
-```query
-plug render [[internal-template/plug]]
-```
-
-Hover over that list and click the edit button to see the query that generates this view.
-
-And it’s not just pages that can be queried, there’s a large variety of queriable sources and you can define your own via tags. Examples include `task`s, `page`s, `tag`s, and `link`s. The sky is the limit. See [[Objects]] and [[Live Queries]] for more information.
+Except... _you cannot edit anything_. But don’t despair, head to [play.silverbullet.md](https://play.silverbullet.md) and login with user `silverbullet`, and password `silverbullet` to get the editable experience (in an environment that resets itself every 15 minutes).
 
 # Install SilverBullet
 Has your mind been sufficiently blown to commit to an install? Took you long enough, alright then. Please proceed to [[Install]] and enjoy!
@@ -101,4 +58,4 @@ Has your mind been sufficiently blown to commit to an install? Took you long eno
 # Support
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).
 
-Want to chat with us? [Join our Discord](https://discord.gg/EvXbFucTxn)!
+And... join our [community](https://community.silverbullet.md/)!

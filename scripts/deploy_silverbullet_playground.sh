@@ -5,7 +5,7 @@ cd $(realpath $(dirname $(dirname $0)))
 IMAGE_NAME="zefhemel/silverbullet:edge"
 PLAYGROUND_SPACE="/tmp/silverbullet-playground"
 PLAYGROUND_PORT=3001
-SB_USER=sb:thisiscool
+SB_USER=silverbullet:silverbullet
 
 # Now do the same for the playground
 echo "Now resetting the playground"
