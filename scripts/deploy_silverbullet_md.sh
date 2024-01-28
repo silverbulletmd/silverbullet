@@ -16,10 +16,10 @@ docker pull $IMAGE_NAME
 AFTER_PULL=$(docker images -q $IMAGE_NAME)
 
 # Compare the image IDs
-# if [ "$BEFORE_PULL" == "$AFTER_PULL" ]; then
-#     echo "The Docker image has not been updated. Done!"
-#     exit 0
-# fi
+if [ "$BEFORE_PULL" == "$AFTER_PULL" ]; then
+    echo "The Docker image has not been updated. Done!"
+    exit 0
+fi
 
 echo "The Docker image has been updated, let's update the website content."
 git pull
@@ -36,7 +36,7 @@ echo "Removing old databases"
 rm -f $WEBSITE_SPACE/.silverbullet.db*
 
 echo "Starting new silverbullet container"
-docker run -d --name silverbullet -v $WEBSITE_SPACE:/space -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
+docker run -d --name silverbullet --restart unless-stopped -v $WEBSITE_SPACE:/space -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
 
 
 echo "Waiting for the servers to start"

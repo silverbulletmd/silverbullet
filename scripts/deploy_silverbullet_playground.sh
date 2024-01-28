@@ -33,7 +33,7 @@ cp -r scripts/playground_space/* $PLAYGROUND_SPACE/
 cp -r website/Library $PLAYGROUND_SPACE/
 
 echo "Starting new playground container"
-docker run -d --name silverbullet-playground -v $PLAYGROUND_SPACE:/space -e SB_SHELL_BACKEND=off -p $PLAYGROUND_PORT:3000 $IMAGE_NAME
+docker run -d --name silverbullet-playground --restart unless-stopped -v $PLAYGROUND_SPACE:/space -e SB_SHELL_BACKEND=off -p $PLAYGROUND_PORT:3000 $IMAGE_NAME
 
 echo "Waiting for the server to start"
 
