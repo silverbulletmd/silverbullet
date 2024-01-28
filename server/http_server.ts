@@ -113,20 +113,23 @@ export class HttpServer {
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
   async renderHtmlPage(spaceServer: SpaceServer, pageName: string) {
-    console.log("Server side rendering", pageName);
     let html = "";
-    try {
-      const { data } = await spaceServer.spacePrimitives.readFile(
-        `${pageName}.md`,
-      );
-      const text = new TextDecoder().decode(data);
-      const tree = parse(extendedMarkdownLanguage, text);
-      html = renderMarkdownToHtml(tree);
-    } catch (e: any) {
-      if (e.message !== "Not found") {
-        console.error("Error server-side rendering page", e);
+    if (!spaceServer.auth) {
+      // Only attempt server-side rendering when this site is not protected by auth
+      try {
+        const { data } = await spaceServer.spacePrimitives.readFile(
+          `${pageName}.md`,
+        );
+        const text = new TextDecoder().decode(data);
+        const tree = parse(extendedMarkdownLanguage, text);
+        html = renderMarkdownToHtml(tree);
+      } catch (e: any) {
+        if (e.message !== "Not found") {
+          console.error("Error server-side rendering page", e);
+        }
       }
     }
+    // TODO: Replace this with a proper template engine
     return this.clientAssetBundle.readTextFileSync(".client/index.html")
       .replace(
         "{{SPACE_PATH}}",
