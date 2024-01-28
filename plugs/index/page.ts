@@ -41,6 +41,15 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   combinedPageMeta.tag = "page";
 
+  if (combinedPageMeta.aliases && !Array.isArray(combinedPageMeta.aliases)) {
+    console.warn(
+      "Aliases must be an array",
+      combinedPageMeta.aliases,
+      "falling back to empty array",
+    );
+    combinedPageMeta.aliases = [];
+  }
+
   updateITags(combinedPageMeta, frontmatter);
 
   // console.log("Page object", combinedPageMeta);
