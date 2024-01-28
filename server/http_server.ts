@@ -16,6 +16,7 @@ import { base64Encode } from "../plugos/asset_bundle/base64.ts";
 import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
 import { parse } from "../common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
+import { parsePageRef } from "$sb/lib/page.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -200,11 +201,9 @@ export class HttpServer {
       ) {
         // Serve the UI (index.html)
         // Note: we're explicitly not setting Last-Modified and If-Modified-Since header here because this page is dynamic
+        const indexPage = parsePageRef(spaceServer.settings?.indexPage!).page;
         return c.html(
-          await this.renderHtmlPage(
-            spaceServer,
-            spaceServer.settings?.indexPage!,
-          ),
+          await this.renderHtmlPage(spaceServer, indexPage),
           200,
           {
             "Cache-Control": "no-cache",
