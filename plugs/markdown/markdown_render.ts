@@ -201,7 +201,7 @@ function render(
         body: "",
       };
     case "Link": {
-      const linkText = t.children![1].text!;
+      const linkTextChildren = t.children!.slice(1, -4);
       const urlNode = findNodeOfType(t, "URL");
       if (!urlNode) {
         return renderToText(t);
@@ -215,7 +215,7 @@ function render(
         attrs: {
           href: url,
         },
-        body: linkText,
+        body: cleanTags(mapRender(linkTextChildren)),
       };
     }
     case "Image": {
@@ -240,7 +240,6 @@ function render(
 
     // Custom stuff
     case "WikiLink": {
-      // console.log("WikiLink", JSON.stringify(t, null, 2));
       const ref = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
       let linkText = ref.split("/").pop()!;
       const aliasNode = findNodeOfType(t, "WikiLinkAlias");
