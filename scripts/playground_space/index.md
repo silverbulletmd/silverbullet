@@ -1,5 +1,5 @@
 # Welcome to the SilverBullet Playground
-This is a fully functional SilverBullet instance that **resets every hour.**
+This is a fully functional SilverBullet instance that **resets every 15 minutes.**
 
 So go ahead, play around, but don't keep anything valuable here. It will be gone in a snap.
 

@@ -5,12 +5,7 @@ cd $(realpath $(dirname $(dirname $0)))
 IMAGE_NAME="zefhemel/silverbullet:edge"
 PLAYGROUND_SPACE="/tmp/silverbullet-playground"
 PLAYGROUND_PORT=3001
-
-# Pull the Docker image
-docker pull $IMAGE_NAME
-
-echo "Let's update the repo content, just in case."
-git pull
+SB_USER=sb:thisiscool
 
 # Now do the same for the playground
 echo "Now resetting the playground"
@@ -33,7 +28,7 @@ cp -r scripts/playground_space/* $PLAYGROUND_SPACE/
 cp -r website/Library $PLAYGROUND_SPACE/
 
 echo "Starting new playground container"
-docker run -d --name silverbullet-playground --restart unless-stopped -v $PLAYGROUND_SPACE:/space -e SB_SHELL_BACKEND=off -p $PLAYGROUND_PORT:3000 $IMAGE_NAME
+docker run -d --name silverbullet-playground --restart unless-stopped -v $PLAYGROUND_SPACE:/space -e SB_SHELL_BACKEND=off -e SB_USER=$SB_USER -p $PLAYGROUND_PORT:3000 $IMAGE_NAME
 
 echo "Waiting for the server to start"
 
