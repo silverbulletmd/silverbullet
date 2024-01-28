@@ -6,17 +6,17 @@ release.
 ## Edge
 $edge
 
-_The changes below are not yet released “properly”. To them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
+_The changes below are not yet released “properly.” To try them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
-* Action buttons (top right buttons) can now be configured, see [[SETTINGS]] how to do this.
-* Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the type of link formats that SilverBullet now supports.
+* Action buttons (top right buttons) can now be configured; see [[SETTINGS]] for how to do this.
+* Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the types of link formats that SilverBullet now supports.
 * New {[Task: Remove Completed]} command to remove all completed tasks from a page
-* **Read-only mode** (experimental) is here, see [[Install/Configuration#Run mode]] on how to enable it. Allowing you expose your space to the outside world in all its glory, but without allowing anybody to edit anything. This should be fairly locked down and secure, but back up your stuff!
+* **Read-only mode** (experimental) is here; see [[Install/Configuration#Run mode]] on how to enable it. This allows you expose your space to the outside world in all its glory but without allowing anybody to edit anything. This should be fairly locked down and secure, but back up your stuff!
 * New {[Clear Local Storage & Logout]} command to wipe out any locally synced data (and log you out if you use [[Authentication]]).
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
-  * Right-clicking links now opens browser native context menu again
+  * Right-clicking links now opens the browser's native context menu again
 * Internal changes:
   * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
   * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.
@@ -25,23 +25,23 @@ _The changes below are not yet released “properly”. To them out early, check
 
 ## 0.6.0
 
-* **Templates 2.0**: templates are now turbo charged (that’s a technical term) and have replaced a lot of previously built in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]], and read the items below.
+* **Templates 2.0**: templates are now turbocharged (that’s a technical term) and have replaced a lot of previously built-in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]], and read the items below.
 * **Upgrade instructions**: to get the best experience after upgrading to 0.6.0 as an existing user, do the following:
   * Upgrade your docker image/deno version to 0.6.0 (or `latest`).
   * Reload your page 2-3x to be sure you have the latest front-end code running.
-  * Run the {[Library: Import]} command in your space, and enter the following federation URL: `!silverbullet.md/Library/` This will import both the [[Library/Core]] and [[Library/Journal]] libraries into your space, which will bring you roughly on par with 0.5.x versions in terms of functionality (this will include the daily note, weekly note, various slash commands etc.)
+  * Run the {[Library: Import]} command in your space, and enter the following federation URL: `!silverbullet.md/Library/` This will import both the [[Library/Core]] and [[Library/Journal]] libraries into your space, bringing you roughly on par with 0.5.x versions in terms of functionality (this will include the daily note, weekly note, various slash commands etc.)
 * A **quick FAQ** on the new template system:
   * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux) to get to them.
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
   * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
 * The [[Getting Started]] page (that is embedded in the `index` page that is auto-generated when creating a new space) has been updated to include instructions on how to import the [[Library/Core]] library.
-* **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you hadn’t migrated yet and want to auto migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
+* **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you haven’t migrated yet and want to auto-migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
 * (Hopefully subtle) **breaking change** in how tags work (see [[Objects]]):
   * Every object now has a `tag` attribute, signifying the “main” tag for that object (e.g. `page`, `item`)
   * The `tags` attribute will now _only_ contain explicitly assigned tags (so not the built-in tag, which moved to `tag`)
-  * The new `itags` attribute (available in many objects) includes both the `tag`, `tags` as well as any tags inherited from the page the object appears in.
-  * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text, see [[Objects#page]].
+  * The new `itags` attribute (available in many objects) includes both the `tag` and `tags` as well as any tags inherited from the page the object appears in.
+  * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text; see [[Objects#page]].
 * New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
 * Filter list (used by [[Page Picker]], [[Template Picker]] and [[Command Palette]]) improvements:
   * Better ranking
@@ -49,7 +49,7 @@ _The changes below are not yet released “properly”. To them out early, check
   * Better mouse behavior
 * Templates:
   * Somewhat nicer rendering of {{templateVars}} (notice the gray background)
-  * Rendering of [[Markdown/Code Widgets]] (such as live queries and templates) **are now disabled** on template pages, which should make them less confusing to read and interpret.
+  * Rendering of [[Markdown/Code Widgets]] (such as live queries and templates) **is now disabled** on template pages, which should make them less confusing to read and interpret.
 * The `indexPage` [[SETTINGS]] can now contain template variables, such as `{{today}}`
 * Backend work in preparation for supporting more “serverless” deployments (e.g. Cloudflare workers and Deno Deploy) in the future
   * Move from [Oak](https://oakserver.github.io/oak/) to [Hono](https://hono.dev/)
@@ -59,7 +59,7 @@ _The changes below are not yet released “properly”. To them out early, check
 
 ## 0.5.11
 * Keyboard shortcuts as well as priority (order in which they appear in the [[Command Palette]]) can now be configured for [[Commands]] in [[SETTINGS]]. The `priority` enables you to put frequently used commands at the top.
-* The rendering of [[Live Templates]], [[Live Queries]], [[Table of Contents]] and [[Linked Mentions]] has been re-implemented. Rendering should now be near-instant and the “flappy” behavior should be largely gone, especially after an initial load (results are cached). There may still be some visual regressions. Please report them if you find them.
+* The rendering of [[Live Templates]], [[Live Queries]], [[Table of Contents]] and [[Linked Mentions]] has been re-implemented. Rendering should now be near-instant, and the “flappy” behavior should be largely gone, especially after an initial load (results are cached). There may still be some visual regressions. Please report them if you find them.
 
 ---
 

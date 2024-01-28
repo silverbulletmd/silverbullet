@@ -1,4 +1,4 @@
-Snippets allow you to define custom [[Slash Commands]] that expand snippet style templates inline.
+Snippets allow you to define custom [[Commands]] and [[Slash Commands]] that expand snippet-style templates inline.
 
 # Definition
 You define a snippet by creating a [[Templates|template]] with a `hooks.snippet` attribute that configures the snippet. The following configuration options are supported:
