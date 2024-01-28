@@ -15,19 +15,19 @@ In SilverBullet templates serve a few purposes:
   * [[Page Templates]]
 
 # Definition
-Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that, when tagged inline (by putting `#template` at the beginning of the page), the tag will be removed when the template is instantiated.
+Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that when tagged inline (by putting `#template` at the beginning of the page), the tag will be removed when the template is instantiated.
 
 Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does a few things:
 
 1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in  [[Live Templates]].
-2. The template page no longer appear in the [[Page Picker]], instead you now navigate to it using the [[Template Picker]].
-4. It can register your templates to be used as [[Snippets]], [[Page Templates]] or [[Live Template Widgets]].
+2. The template page no longer appears in the [[Page Picker]], instead you now navigate to it using the [[Template Picker]].
+3. It can register your templates to be used as [[Snippets]], [[Page Templates]] or [[Live Template Widgets]].
 
 ## Frontmatter
 [[Frontmatter]] has special meaning in templates. The following attributes are used:
 
 * `tags`: should always be set to `template`
-* `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in a [[Live Templates]].
+* `displayName` (optional): defines an alternative name to use when e.g. showing the template picker for [[Page Templates]], or when template completing a `render` clause in [[Live Templates]].
 * `description` (optional): may appear in various UIs to give more information about the template.
 * `frontmatter` (optional): defines [[Frontmatter]] to be added/used in the _rendered_ template. This can either be specified as a string or as an object.
 * `hooks` (optional): hook the template into various parts of the system, look at [[Page Templates]], [[Snippets]] and [[Live Template Widgets]] for details.
@@ -62,4 +62,4 @@ There are a number of built-in handlebars helpers you can use:
 - `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
 - `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
 - `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).
-- The `@page` variable contains all page meta data (`name`, `lastModified`, `contentType`, as well as any custom [[Frontmatter]] attributes). You can address it like so: `{{@page.name}}`
+- The `@page` variable contains all page metadata (`name`, `lastModified`, `contentType`, as well as any custom [[Frontmatter]] attributes). You can address it like so: `{{@page.name}}`
