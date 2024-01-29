@@ -91,8 +91,9 @@ export type QueryExpression =
   | [">", QueryExpression, QueryExpression]
   | [">=", QueryExpression, QueryExpression]
   | ["in", QueryExpression, QueryExpression]
-  | ["attr", QueryExpression, string]
-  | ["attr", string]
+  | ["attr"] // .
+  | ["attr", string] // name
+  | ["attr", QueryExpression, string] // something.name
   | ["number", number]
   | ["string", string]
   | ["boolean", boolean]

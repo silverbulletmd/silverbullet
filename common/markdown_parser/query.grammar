@@ -16,7 +16,6 @@ commaSep<content> { content ("," content)* }
 
 kw<term> { @specialize[@name={term}]<Identifier, term> }
 
-
 Query {
     TagIdentifier ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
 }
@@ -41,13 +40,16 @@ Attribute {
 }
 
 Call {
-  Identifier "(" commaSep<Expression> ")" | Identifier "(" ")"
+    Identifier "(" commaSep<Expression> ")"
+  | Identifier "(" ")"
 }
 
 LVal {
   Identifier
 | Attribute
 }
+
+TopLevelVal { "." }
 
 ParenthesizedExpression { "(" Expression ")" }
 
@@ -59,10 +61,17 @@ Expression !and kw<"and"> Expression
 Expression {
   Value
 | LVal
+| TopLevelVal
 | ParenthesizedExpression
 | LogicalExpression 
+| UnaryExpression
 | BinExpression
 | Call
+}
+
+UnaryExpression {
+    NotKW Expression
+  | "!" Expression
 }
 
 BinExpression {
@@ -94,6 +103,7 @@ Bool {
 @tokens {
   space { std.whitespace+ }
 
+
   TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
 
   Identifier { @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
@@ -105,7 +115,7 @@ Bool {
     "[" "[" ![\]]* "]" "]"
   }
   Order { "order by" }
-  Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
+  Regex { "/" ( ![/\\\n\r] | "\\" _ )+ "/" }
 
   Number { std.digit+ }
 
@@ -113,7 +123,11 @@ Bool {
 
   InKW { "in" }
 
+  NotKW { "not" }
+
   OrderKW { "asc" | "desc" }
 
-  @precedence { Order, BooleanKW, InKW, OrderKW, Identifier, Number }
+  @precedence { Order, BooleanKW, InKW, OrderKW, NotKW, Identifier, Number }
+
+  
 }

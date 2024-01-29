@@ -201,8 +201,6 @@ export const highlightingQueryParser = queryParser.configure({
   ],
 });
 
-export { parser as expressionParser } from "./parse-expression.js";
-
 export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
@@ -379,7 +377,7 @@ const NamedAnchor = regexParser({
 });
 
 import { Table } from "./table_parser.ts";
-import { foldNodeProp } from "@codemirror/language";
+import { foldNodeProp, LRLanguage } from "@codemirror/language";
 
 // FrontMatter parser
 

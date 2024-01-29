@@ -1,5 +1,5 @@
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { AST, parseTreeToAST } from "$sb/lib/tree.ts";
+import { AST, collectNodesOfType, parseTreeToAST } from "$sb/lib/tree.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { languageFor } from "../../common/languages.ts";
@@ -7,6 +7,8 @@ import { languageFor } from "../../common/languages.ts";
 function wrapQueryParse(query: string): AST | null {
   const tree = parse(languageFor("query")!, query);
   // console.log("tree", tree);
+  // Check for no ambiguitiies
+  assertEquals(collectNodesOfType(tree, "⚠").length, 0);
   return parseTreeToAST(tree.children![0]);
 }
 
@@ -26,6 +28,30 @@ Deno.test("Test query parser", () => {
     {
       querySource: "page",
       filter: ["boolean", true],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where .`)!),
+    {
+      querySource: "page",
+      filter: ["attr"],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where not true`)!),
+    {
+      querySource: "page",
+      filter: ["not", ["boolean", true]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where !isSomething`)!),
+    {
+      querySource: "page",
+      filter: ["not", ["attr", "isSomething"]],
     },
   );
 

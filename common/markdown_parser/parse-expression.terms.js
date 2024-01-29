@@ -12,8 +12,11 @@ export const
   List = 11,
   LVal = 12,
   Attribute = 13,
-  ParenthesizedExpression = 14,
-  LogicalExpression = 15,
-  BinExpression = 18,
-  InKW = 19,
-  Call = 20
+  TopLevelVal = 14,
+  ParenthesizedExpression = 15,
+  LogicalExpression = 16,
+  UnaryExpression = 19,
+  NotKW = 20,
+  BinExpression = 21,
+  InKW = 22,
+  Call = 23

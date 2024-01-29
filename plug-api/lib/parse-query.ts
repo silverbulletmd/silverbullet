@@ -148,6 +148,16 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
       }
       return ["call", fn, args.map(expressionToKvQueryExpression)];
     }
+    case "UnaryExpression": {
+      // console.log("UnaryExpression", node);
+      if (node[1][0] === "NotKW" || node[1][0] === "!") {
+        return ["not", expressionToKvQueryExpression(node[2])];
+      }
+      throw new Error(`Unknown unary expression: ${node[1][0]}`);
+    }
+    case "TopLevelVal": {
+      return ["attr"];
+    }
     default:
       throw new Error(`Not supported: ${node[0]}`);
   }
