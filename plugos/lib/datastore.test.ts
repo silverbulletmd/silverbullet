@@ -8,7 +8,7 @@ import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 
 async function test(db: KvPrimitives) {
   const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), {
-    count: (arr: any[]) => arr.length,
+    count: (_, arr: any[]) => arr.length,
   });
   await datastore.set(["user", "peter"], { name: "Peter" });
   await datastore.set(["user", "hank"], { name: "Hank" });

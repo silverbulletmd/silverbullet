@@ -9,7 +9,7 @@ import { KvPrimitives } from "./kv_primitives.ts";
 export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
-    private functionMap: FunctionMap = builtinFunctions,
+    readonly functionMap: FunctionMap = builtinFunctions,
   ) {
   }
 
@@ -57,13 +57,21 @@ export class DataStore {
     return this.kv.batchDelete(keys);
   }
 
-  async query<T = any>(query: KvQuery): Promise<KV<T>[]> {
+  async query<T = any>(
+    query: KvQuery,
+    globalVariables: Record<string, any> = {},
+  ): Promise<KV<T>[]> {
     const results: KV<T>[] = [];
     let itemCount = 0;
     // Accumulate results
     let limit = Infinity;
     if (query.limit) {
-      limit = evalQueryExpression(query.limit, {}, this.functionMap);
+      limit = evalQueryExpression(
+        query.limit,
+        {},
+        globalVariables,
+        this.functionMap,
+      );
     }
     for await (
       const entry of this.kv.query(query)
@@ -71,7 +79,12 @@ export class DataStore {
       // Filter
       if (
         query.filter &&
-        !evalQueryExpression(query.filter, entry.value, this.functionMap)
+        !evalQueryExpression(
+          query.filter,
+          entry.value,
+          globalVariables,
+          this.functionMap,
+        )
       ) {
         continue;
       }
@@ -84,7 +97,12 @@ export class DataStore {
       }
     }
     // Apply order by, limit, and select
-    return applyQueryNoFilterKV(query, results, this.functionMap);
+    return applyQueryNoFilterKV(
+      query,
+      results,
+      globalVariables,
+      this.functionMap,
+    );
   }
 
   async queryDelete(query: KvQuery): Promise<void> {

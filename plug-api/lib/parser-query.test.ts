@@ -40,6 +40,14 @@ Deno.test("Test query parser", () => {
   );
 
   assertEquals(
+    astToKvQuery(wrapQueryParse(`page where @page`)!),
+    {
+      querySource: "page",
+      filter: ["global", "page"],
+    },
+  );
+
+  assertEquals(
     astToKvQuery(wrapQueryParse(`page where not true`)!),
     {
       querySource: "page",

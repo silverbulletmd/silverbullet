@@ -31,7 +31,7 @@ export async function queryProvider({
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  const phrase = evalQueryExpression(phraseFilter, {});
+  const phrase = evalQueryExpression(phraseFilter, {}, {}, {});
   // console.log("Phrase", phrase);
   let results: any[] = await ftsSearch(phrase);
 
@@ -41,7 +41,7 @@ export async function queryProvider({
     delete r.id;
   }
 
-  results = applyQuery(query, results);
+  results = applyQuery(query, results, {}, {});
   return results;
 }
 

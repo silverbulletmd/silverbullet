@@ -158,6 +158,9 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     case "TopLevelVal": {
       return ["attr"];
     }
+    case "GlobalIdentifier": {
+      return ["global", (node[1] as string).substring(1)];
+    }
     default:
       throw new Error(`Not supported: ${node[0]}`);
   }

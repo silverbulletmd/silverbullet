@@ -94,6 +94,7 @@ export type QueryExpression =
   | ["attr"] // .
   | ["attr", string] // name
   | ["attr", QueryExpression, string] // something.name
+  | ["global", string] // @name
   | ["number", number]
   | ["string", string]
   | ["boolean", boolean]
@@ -109,7 +110,10 @@ export type QueryExpression =
   | ["/", QueryExpression, QueryExpression]
   | ["call", string, QueryExpression[]];
 
-export type FunctionMap = Record<string, (...args: any[]) => any>;
+export type FunctionMap = Record<
+  string,
+  (globalVariables: Record<string, any>, ...args: any[]) => any
+>;
 
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of

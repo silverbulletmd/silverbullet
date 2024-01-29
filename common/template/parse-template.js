@@ -5,12 +5,12 @@ export const parser = LRParser.deserialize({
   states: "#fQQOPOOO]OQO'#C`ObOSO'#CdOOOO'#C^'#C^OOOO'#Ch'#ChQQOPOOOgOQO,58zOlOQO,59OOOOO-E6f-E6fOOOO1G.f1G.fOqOQO1G.jOvOPO7+$UO!UOSO<<GpO!ZOPO<<GpO!iOQOAN=[O!nOSOAN=[OOOOG22vG22vO!sOQOG22vOOOOLD(bLD(b",
   stateData: "!}~ORROTPOXQO~OUUO~OYVO~OVXO~OUYO~OVZO~ORROTPOXQOZ[O~OY^O~ORROTPOXQOZ_O~OV`O~OYaO~OVbO~OXTRT~",
   goto: "t]PP^PdPPPdPPPjXSOTZ]XROTZ]QTOSWT]R]Z",
-  nodeNames: "⚠ Document TemplateElement Text ExpressionDirective ExpressionDirectiveOpenTag BlockDirectiveContent DirectiveTagEnd BlockDirective BlockDirectiveOpenTagStart BlockName BlockDirectiveCloseTagStart",
+  nodeNames: "⚠ Template TemplateElement Text ExpressionDirective ExpressionDirectiveOpenTag BlockDirectiveContent DirectiveTagEnd BlockDirective BlockDirectiveOpenTagStart BlockName BlockDirectiveCloseTagStart",
   maxTerm: 13,
   skippedNodes: [0],
   repeatNodeCount: 1,
   tokenData: "'`VRYO!cq!c!}#e!}#Tq#T#o#e#o#p$^#p#qq#q#r&a#r;'Sq;'S;=`#_<%lOqRxVUQRPO#oq#o#p!_#p#qq#q#r!v#r;'Sq;'S;=`#_<%lOqQ!dSUQO#q!_#r;'S!_;'S;=`!p<%lO!_Q!sP;=`<%l!_P!{SRPO#o!v#p;'S!v;'S;=`#X<%lO!vP#[P;=`<%l!vR#bP;=`<%lqV#nYUQYSRPO!cq!c!}#e!}#Tq#T#o#e#o#p!_#p#qq#q#r!v#r;'Sq;'S;=`#_<%lOqR$cVUQO#oq#o#p$x#p#qq#q#r!v#r;'Sq;'S;=`#_<%lOqR%PWUQTPOs!_st%it!P!_!P!Q%|!Q#q!_#r;'S!_;'S;=`!p<%lO!_R%pSUQXPO#q!_#r;'S!_;'S;=`!p<%lO!_R&TSZPUQO#q!_#r;'S!_;'S;=`!p<%lO!_R&fVRPO#oq#o#p!_#p#qq#q#r&{#r;'Sq;'S;=`#_<%lOqR'SSVQRPO#o!v#p;'S!v;'S;=`#X<%lO!v",
   tokenizers: [0, 1, 2],
-  topRules: {"Document":[0,1]},
+  topRules: {"Template":[0,1]},
   tokenPrec: 86
 })

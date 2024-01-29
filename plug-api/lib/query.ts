@@ -3,24 +3,25 @@ import { FunctionMap, KV, Query, QueryExpression } from "$sb/types.ts";
 export function evalQueryExpression(
   val: QueryExpression,
   obj: any,
-  functionMap: FunctionMap = {},
+  globalVariables: Record<string, any>,
+  functionMap: FunctionMap,
 ): any {
   const [type, op1] = val;
 
   switch (type) {
     // Logical operators
     case "and":
-      return evalQueryExpression(op1, obj, functionMap) &&
-        evalQueryExpression(val[2], obj, functionMap);
+      return evalQueryExpression(op1, obj, globalVariables, functionMap) &&
+        evalQueryExpression(val[2], obj, globalVariables, functionMap);
     case "or":
-      return evalQueryExpression(op1, obj, functionMap) ||
-        evalQueryExpression(val[2], obj, functionMap);
+      return evalQueryExpression(op1, obj, globalVariables, functionMap) ||
+        evalQueryExpression(val[2], obj, globalVariables, functionMap);
     // Value types
     case "null":
       return null;
     // TODO: Add this to the actualy query syntax
     case "not":
-      return !evalQueryExpression(op1, obj, functionMap);
+      return !evalQueryExpression(op1, obj, globalVariables, functionMap);
     case "number":
     case "string":
     case "boolean":
@@ -30,7 +31,12 @@ export function evalQueryExpression(
     case "attr": {
       let attributeVal = obj;
       if (val.length === 3) {
-        attributeVal = evalQueryExpression(val[1], obj, functionMap);
+        attributeVal = evalQueryExpression(
+          val[1],
+          obj,
+          globalVariables,
+          functionMap,
+        );
         if (attributeVal) {
           return attributeVal[val[2]];
         } else {
@@ -42,8 +48,13 @@ export function evalQueryExpression(
         return attributeVal[val[1]];
       }
     }
+    case "global": {
+      return globalVariables[op1];
+    }
     case "array": {
-      return op1.map((v) => evalQueryExpression(v, obj, functionMap));
+      return op1.map((v) =>
+        evalQueryExpression(v, obj, globalVariables, functionMap)
+      );
     }
     case "object":
       return obj;
@@ -53,14 +64,17 @@ export function evalQueryExpression(
         throw new Error(`Unknown function: ${op1}`);
       }
       return fn(
-        ...val[2].map((v) => evalQueryExpression(v, obj, functionMap)),
+        globalVariables,
+        ...val[2].map((v) =>
+          evalQueryExpression(v, obj, globalVariables, functionMap)
+        ),
       );
     }
   }
 
   // Binary operators, here we can pre-calculate the two operand values
-  const val1 = evalQueryExpression(op1, obj, functionMap);
-  const val2 = evalQueryExpression(val[2], obj, functionMap);
+  const val1 = evalQueryExpression(op1, obj, globalVariables, functionMap);
+  const val2 = evalQueryExpression(val[2], obj, globalVariables, functionMap);
 
   switch (type) {
     case "+":
@@ -162,24 +176,32 @@ export function liftAttributeFilter(
   throw new Error(`Cannot find attribute assignment for ${attributeName}`);
 }
 
-export function applyQuery<T>(query: Query, allItems: T[]): T[] {
+export function applyQuery<T>(
+  query: Query,
+  allItems: T[],
+  globalVariables: Record<string, any>,
+  functionMap: FunctionMap,
+): T[] {
   // Filter
   if (query.filter) {
     allItems = allItems.filter((item) =>
-      evalQueryExpression(query.filter!, item)
+      evalQueryExpression(query.filter!, item, globalVariables, functionMap)
     );
   }
   // Add dummy keys, then remove them
   return applyQueryNoFilterKV(
     query,
     allItems.map((v) => ({ key: [], value: v })),
+    globalVariables,
+    functionMap,
   ).map((v) => v.value);
 }
 
 export function applyQueryNoFilterKV(
   query: Query,
   allItems: KV[],
-  functionMap: FunctionMap = {}, // TODO: Figure this out later
+  globalVariables: Record<string, any>,
+  functionMap: FunctionMap,
 ): KV[] {
   // Order by
   if (query.orderBy) {
@@ -187,8 +209,18 @@ export function applyQueryNoFilterKV(
       const aVal = a.value;
       const bVal = b.value;
       for (const { expr, desc } of query.orderBy!) {
-        const evalA = evalQueryExpression(expr, aVal, functionMap);
-        const evalB = evalQueryExpression(expr, bVal, functionMap);
+        const evalA = evalQueryExpression(
+          expr,
+          aVal,
+          globalVariables,
+          functionMap,
+        );
+        const evalB = evalQueryExpression(
+          expr,
+          bVal,
+          globalVariables,
+          functionMap,
+        );
         if (
           evalA < evalB || evalA === undefined
         ) {
@@ -211,7 +243,7 @@ export function applyQueryNoFilterKV(
       const newRec: any = {};
       for (const { name, expr } of query.select) {
         newRec[name] = expr
-          ? evalQueryExpression(expr, rec, functionMap)
+          ? evalQueryExpression(expr, rec, globalVariables, functionMap)
           : rec[name];
       }
       allItems[i].value = newRec;
@@ -232,7 +264,12 @@ export function applyQueryNoFilterKV(
   }
 
   if (query.limit) {
-    const limit = evalQueryExpression(query.limit, {}, functionMap);
+    const limit = evalQueryExpression(
+      query.limit,
+      {},
+      globalVariables,
+      functionMap,
+    );
     if (allItems.length > limit) {
       allItems = allItems.slice(0, limit);
     }

@@ -46,6 +46,7 @@ Call {
 
 LVal {
   Identifier
+| GlobalIdentifier
 | Attribute
 }
 
@@ -107,6 +108,8 @@ Bool {
   TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
 
   Identifier { @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
+
+  GlobalIdentifier { "@" @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
 
   String {
     ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")

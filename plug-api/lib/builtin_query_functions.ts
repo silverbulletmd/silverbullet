@@ -5,29 +5,34 @@ export const builtinFunctions: FunctionMap = {
   today() {
     return niceDate(new Date());
   },
-  max(...args: number[]) {
+  max(_globals, ...args: number[]) {
     return Math.max(...args);
   },
-  min(...args: number[]) {
+  min(_globals, ...args: number[]) {
     return Math.min(...args);
   },
-  replace(str: string, match: [string, string] | string, replace: string) {
+  replace(
+    _globals,
+    str: string,
+    match: [string, string] | string,
+    replace: string,
+  ) {
     const matcher = Array.isArray(match)
       ? new RegExp(match[0], match[1] + "g")
       : match;
     return str.replaceAll(matcher, replace);
   },
-  toJSON(obj: any) {
+  toJSON(_globals, obj: any) {
     return JSON.stringify(obj);
   },
-  startsWith(str: string, prefix: string) {
+  startsWith(_globals, str: string, prefix: string) {
     return str.startsWith(prefix);
   },
-  endsWith(str: string, suffix: string) {
+  endsWith(_globals, str: string, suffix: string) {
     return str.endsWith(suffix);
   },
   // Note: these assume Monday as the first day of the week
-  firstDayOfWeek(dateString: string): string {
+  firstDayOfWeek(_globals, dateString: string): string {
     const date = new Date(dateString);
     const dayOfWeek = date.getDay();
     const daysToSubtract = (dayOfWeek + 7 - 1) % 7;
@@ -35,7 +40,7 @@ export const builtinFunctions: FunctionMap = {
     firstDayOfWeek.setDate(date.getDate() - daysToSubtract);
     return niceDate(firstDayOfWeek);
   },
-  lastDayOfWeek(dateString: string): string {
+  lastDayOfWeek(_globals, dateString: string): string {
     const date = new Date(dateString);
     const dayOfWeek = date.getDay();
     const daysToAdd = (7 - dayOfWeek) % 7;
@@ -43,7 +48,7 @@ export const builtinFunctions: FunctionMap = {
     lastDayOfWeek.setDate(date.getDate() + daysToAdd);
     return niceDate(lastDayOfWeek);
   },
-  addDays(dateString: string, daysToAdd: number): string {
+  addDays(_globals, dateString: string, daysToAdd: number): string {
     const date = new Date(dateString);
     date.setDate(date.getDate() + daysToAdd);
     return niceDate(date);

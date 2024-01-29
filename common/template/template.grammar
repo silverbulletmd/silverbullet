@@ -1,4 +1,4 @@
-@top Document { TemplateElement* }
+@top Template { TemplateElement* }
 
 TemplateElement {
   Text
