@@ -1,4 +1,4 @@
-import { handlebars, markdown, YAML } from "$sb/syscalls.ts";
+import { markdown, template, YAML } from "$sb/syscalls.ts";
 import type { PageMeta } from "$sb/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { TemplateObject } from "./types.ts";
@@ -31,14 +31,14 @@ export async function renderTemplate(
     } else {
       frontmatterText = await YAML.stringify(frontmatter.frontmatter);
     }
-    frontmatterText = await handlebars.renderTemplate(frontmatterText, data, {
+    frontmatterText = await template.renderTemplate(frontmatterText, data, {
       page: pageMeta,
     });
   }
   return {
     frontmatter,
     renderedFrontmatter: frontmatterText,
-    text: await handlebars.renderTemplate(templateText, data, {
+    text: await template.renderTemplate(templateText, data, {
       page: pageMeta,
     }),
   };

@@ -43,9 +43,6 @@ Deno.test("Test template", () => {
   {{/if}}
   {{/each}}
 
-  {{#query page limit 3}}
-  * {{name}}
-  {{/query}}
   `);
 
   // console.log(JSON.stringify(tree, null, 2));

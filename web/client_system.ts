@@ -33,7 +33,7 @@ import {
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { MessageQueue } from "../plugos/lib/mq.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
-import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
+import { templateSyscalls } from "../common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
@@ -162,7 +162,7 @@ export class ClientSystem {
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      handlebarsSyscalls(),
+      templateSyscalls(this.ds.functionMap),
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),

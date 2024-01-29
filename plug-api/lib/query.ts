@@ -45,7 +45,13 @@ export function evalQueryExpression(
       } else if (!val[1]) {
         return obj;
       } else {
-        return attributeVal[val[1]];
+        let attrVal = attributeVal[val[1]];
+        // Fallback to function call, if one is defined with this name
+        const func = functionMap[val[1]];
+        if (attrVal === undefined && func !== undefined) {
+          attrVal = func(globalVariables);
+        }
+        return attrVal;
       }
     }
     case "global": {

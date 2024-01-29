@@ -56,11 +56,12 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
-import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
+import { renderHandlebarsTemplate } from "../common/syscalls/template.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
 import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -225,7 +226,7 @@ export class Client {
     }
 
     await this.loadPlugs();
-    this.initNavigator();
+    await this.initNavigator();
     await this.initSync();
 
     this.loadCustomStyles().catch(console.error);
@@ -415,8 +416,10 @@ export class Client {
     }
   }
 
-  private initNavigator() {
+  private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
+
+    await this.pageNavigator.init();
 
     this.pageNavigator.subscribe(async (pageState) => {
       console.log("Now navigating to", pageState);
@@ -927,7 +930,12 @@ export class Client {
   ) {
     if (!pageRef.page) {
       pageRef.page = cleanPageRef(
-        renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
+        await renderHandlebarsTemplate(
+          this.settings.indexPage,
+          {},
+          {},
+          builtinFunctions,
+        ),
       );
     }
 

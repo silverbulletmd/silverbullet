@@ -1,5 +1,9 @@
 name: query
 functions:
+  # API
+  performQuery:
+    path: widget.ts:performQuery
+
   queryWidget:
     path: widget.ts:widget
     codeWidget: query

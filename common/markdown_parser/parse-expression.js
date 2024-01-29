@@ -3,8 +3,8 @@ import {LRParser} from "@lezer/lr"
 const spec_Identifier = {__proto__:null,null:20, and:36, or:38}
 export const parser = LRParser.deserialize({
   version: 14,
-  states: "%|OVQPOOOOQO'#Cb'#CbOVQPO'#CgOOQO'#C_'#C_O}QQO'#C^O#bQQO'#ChOOQO'#Ch'#ChOOQO'#Ck'#CkOVQPO'#ClOVQPO'#CpQ$xQQOOOOQO'#C^'#C^O%|QQO'#CzO&ZQPO,59RO&`QPO,59UO&eQPO,59`O&lQQO,59WO&sQQO,59[OVQPO,59^OVQPO,59^OVQPO,59^OVQPO,59XOVQPO,59XOVQPO'#CuO'TQPO,59fOOQO1G.m1G.mOOQO1G.p1G.pO'`QPO1G.zOOQO1G.z1G.zOOQO1G.r1G.rO(oQQO1G.xOOQO1G.x1G.xO(yQQO1G.xO*bQQO1G.sO*iQQO1G.sO*pQQO,59aOOQO-E6s-E6sOOQO7+$f7+$f",
-  stateData: "+U~OlOS~OSROTROVPOWROXTOYRO]UOeXOmQOqVOrWOtXO~Oq^ObQXcQXgQXjQXuQXvQXwQXxQXyQXzQX{QX|QX}QX!OQX!PQX!QQX!RQXoQXpQXsQX~Or_Ob[Xc[Xg[Xj[Xq[Xu[Xv[Xw[Xx[Xy[Xz[X{[X|[X}[X!O[X!P[X!Q[X!R[Xo[Xp[Xs[X~ObeOcfOgbOubOvbOwbOxbOybOzbO{bO|bO}cO!OcO!PcO!QdO!RdO~OogOpnXsnX~P$xOpiO~OXjO~OslO~PVOsmO~P$xOjdaodapdasda~P$xOogOpnasna~OsuO~O}cO!OcO!PcObficfigfijfiufivfiwfixfiyfizfi{fi|fiofipfisfi~O!QdO!RdO~P'eO!Qfi!Rfi~P'eOgbOubOvbOwbOxbOybOzbO{bO|bO}cO!OcO!PcO!QdO!RdOcaijaioaipaisai~Obai~P)TObeO~P)TOoiapiasia~P$xOVgeXSe~",
+  states: "%|OVQPOOOOQO'#Cb'#CbOVQPO'#CgOOQO'#C_'#C_O}QQO'#C^O#bQQO'#ChOOQO'#Ch'#ChOOQO'#Ck'#CkOVQPO'#ClOVQPO'#CpQ$xQQOOOOQO'#C^'#C^O%|QQO'#CzO&ZQPO,59RO&`QPO,59UO&eQPO,59`O&lQQO,59WOOQO,59[,59[OVQPO,59^OVQPO,59^OVQPO,59^OVQPO,59XOVQPO,59XOVQPO'#CuO&sQPO,59fOOQO1G.m1G.mOOQO1G.p1G.pO'OQPO1G.zOOQO1G.z1G.zOOQO1G.r1G.rO(_QQO1G.xOOQO1G.x1G.xO(iQQO1G.xO*QQQO1G.sO*XQQO1G.sO*`QQO,59aOOQO-E6s-E6sOOQO7+$f7+$f",
+  stateData: "*t~OlOS~OSROTROVPOWROXTOYRO]UOeXOmQOqVOrWOtXO~Oq^ObQXcQXgQXjQXuQXvQXwQXxQXyQXzQX{QX|QX}QX!OQX!PQX!QQX!RQXoQXpQXsQX~Or_Ob[Xc[Xg[Xj[Xq[Xu[Xv[Xw[Xx[Xy[Xz[X{[X|[X}[X!O[X!P[X!Q[X!R[Xo[Xp[Xs[X~ObeOcfOgbOubOvbOwbOxbOybOzbO{bO|bO}cO!OcO!PcO!QdO!RdO~OogOpnXsnX~P$xOpiO~OXjO~OslO~PVOsmO~P$xOogOpnasna~OsuO~O}cO!OcO!PcObficfigfijfiufivfiwfixfiyfizfi{fi|fiofipfisfi~O!QdO!RdO~P'TO!Qfi!Rfi~P'TOgbOubOvbOwbOxbOybOzbO{bO|bO}cO!OcO!PcO!QdO!RdOcaijaioaipaisai~Obai~P(sObeO~P(sOoiapiasia~P$xOVgeXSe~",
   goto: "#soPPp!aPP!nPPPP!n!{P#Y!a!a!aPP!aP!aP!a#gPPPP#mQYOS[Q_Q`WQaXQnbQocQpdQqeQrfRsggZOQWX_bcdefggROQWX_bcdefggSOQWX_bcdefggUOQWX_bcdefgQh[RthQ]QRk_",
   nodeNames: "⚠ Program Expression Value Number String Bool BooleanKW Regex Identifier null List LVal GlobalIdentifier Attribute TopLevelVal ParenthesizedExpression LogicalExpression and or UnaryExpression NotKW BinExpression InKW Call",
   maxTerm: 49,
@@ -14,5 +14,5 @@ export const parser = LRParser.deserialize({
   tokenizers: [0, 1],
   topRules: {"Program":[0,1]},
   specialized: [{term: 9, get: (value) => spec_Identifier[value] || -1}],
-  tokenPrec: 459
+  tokenPrec: 443
 })

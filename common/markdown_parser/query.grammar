@@ -1,6 +1,7 @@
 @top Program { Query }
 
 @precedence {
+  unaryop
   mulop @left
   addop @left
   binop @left
@@ -71,8 +72,8 @@ Expression {
 }
 
 UnaryExpression {
-    NotKW Expression
-  | "!" Expression
+    !unaryop NotKW Expression
+  | !unaryop "!" Expression
 }
 
 BinExpression {

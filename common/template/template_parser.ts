@@ -1,6 +1,5 @@
 import { LRLanguage } from "@codemirror/language";
 import { parse } from "../markdown_parser/parse_tree.ts";
-import { ParseTree, replaceNodesMatching } from "$sb/lib/tree.ts";
 
 import { parser as templateParser } from "./parse-template.js";
 import { parser as expressionParser } from "../markdown_parser/parse-expression.js";
@@ -25,6 +24,8 @@ export const queryLanguage = LRLanguage.define({
 });
 
 export function parseTemplate(text: string) {
+  // Remove a newline after a singleton (only thing on the line) block open or close tag
+  text = text.replaceAll(/(^|\n)(\{\{[#\/][^}]+\}\})(\n)/g, "$1$2");
   const tree = parse(templateLanguage, text);
   return processTree(parseTreeToAST(tree, false));
 }
@@ -55,7 +56,7 @@ function processTree(tree: AST): AST {
       const bodyElements = (tree as any[]).filter((n) =>
         n[0] === "TemplateElement"
       );
-      // console.log("Body", bodyElements);
+      // const body = stripInitialNewline(bodyElements.map(processTree));
       const body = bodyElements.map(processTree);
       switch (blockType) {
         case "each": {
@@ -63,6 +64,7 @@ function processTree(tree: AST): AST {
             expressionLanguage,
             blockTextContent.trim(),
           ));
+          // console.log("Each body", bodyElements);
           return ["EachDirective", expressionTree[1], ...body];
         }
         case "if": {
@@ -93,13 +95,6 @@ function processTree(tree: AST): AST {
             return ["IfDirective", expressionTree[1], ["Template", ...body]];
           }
         }
-        case "query": {
-          const queryTree = parseTreeToAST(parse(
-            queryLanguage,
-            blockTextContent.trim(),
-          ));
-          return ["QueryDirective", queryTree[1], ...body];
-        }
         default: {
           throw new Error(`Unknown block type: ${blockType}`);
         }
@@ -111,75 +106,4 @@ function processTree(tree: AST): AST {
       console.log("tree", tree);
       throw new Error(`Unknown node type: ${tree[0]}`);
   }
-  // replaceNodesMatching(tree, (node) => {
-  //   console.log("node", node);
-  //   if (node.type === "ExpressionDirective") {
-  //     const expressionTree = parse(
-  //       expressionLanguage,
-  //       node.children![1].children![0].text!,
-  //     );
-  //     return {
-  //       type: "ExpressionDirective",
-  //       children: expressionTree.children,
-  //     };
-  //   }
-  //   if (node.type === "BlockDirective") {
-  //     const blockType = node.children![1].children![0].text!;
-  //     console.log("FOUND A BLOCK", blockType, node);
-  //     const blockTextContent = node.children![2].children![0].text!;
-  //     const bodyElements: ParseTree = {
-  //       type: "BlockBody",
-  //       children: node.children!.filter((n) => n.type === "TemplateElement"),
-  //     };
-
-  //     processTree(bodyElements);
-
-  //     switch (blockType) {
-  //       case "each": {
-  //         const expressionTree = parse(
-  //           expressionLanguage,
-  //           blockTextContent.trim(),
-  //         );
-
-  //         return {
-  //           type: "EachDirective",
-  //           children: [
-  //             expressionTree.children![0]!,
-  //             bodyElements,
-  //           ],
-  //         };
-  //       }
-  //       case "if": {
-  //         const expressionTree = parse(
-  //           expressionLanguage,
-  //           blockTextContent.trim(),
-  //         );
-  //         return {
-  //           type: "IfDirective",
-  //           children: [
-  //             expressionTree.children![0]!,
-  //             bodyElements,
-  //           ],
-  //         };
-  //       }
-  //       case "query": {
-  //         const queryTree = parse(
-  //           queryLanguage,
-  //           blockTextContent.trim(),
-  //         );
-  //         return {
-  //           type: "QueryDirective",
-  //           children: [
-  //             queryTree.children![0]!,
-  //             bodyElements,
-  //           ],
-  //         };
-  //       }
-  //       default: {
-  //         throw new Error(`Unknown block type: ${blockType}`);
-  //       }
-  //     }
-  //   }
-  //   return undefined;
-  // });
 }

@@ -1,20 +1,14 @@
-import { DataStore } from "../../plugos/lib/datastore.ts";
-import { MemoryKvPrimitives } from "../../plugos/lib/memory_kv_primitives.ts";
+import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 import { assertEquals } from "../../test_deps.ts";
 import { renderTemplate } from "./render.ts";
 import { parseTemplate } from "./template_parser.ts";
 
 Deno.test("Test template", async () => {
-  const ds = new DataStore(new MemoryKvPrimitives());
+  const functionMap = builtinFunctions;
 
   const globalVariables = {
     page: { name: "this page" },
   };
-
-  await ds.batchSet([
-    { key: ["page", "1"], value: { name: "Page 1" } },
-    { key: ["page", "2"], value: { name: "Page 2" } },
-  ]);
 
   // Base case
   assertEquals(await parseAndRender(`Hello World`, {}), `Hello World`);
@@ -58,15 +52,6 @@ Deno.test("Test template", async () => {
       ],
     ),
     `a* Pete\n* John\nb`,
-  );
-
-  // Query directive
-  assertEquals(
-    await parseAndRender(
-      `{{#query page limit 3}}* {{name}}\n{{/query}}`,
-      {},
-    ),
-    `* Page 1\n* Page 2\n`,
   );
 
   // If directive
@@ -116,6 +101,6 @@ Deno.test("Test template", async () => {
 
   function parseAndRender(template: string, value: any): Promise<string> {
     const parsedTemplate = parseTemplate(template);
-    return renderTemplate(parsedTemplate, value, globalVariables, ds);
+    return renderTemplate(parsedTemplate, value, globalVariables, functionMap);
   }
 });

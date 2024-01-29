@@ -1,14 +1,6 @@
-import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
-import { handlebars, space } from "$sb/syscalls.ts";
+import { space, template } from "$sb/syscalls.ts";
 import { cleanTemplate } from "./plug_api.ts";
-
-export function buildHandebarOptions(pageMeta: PageMeta) {
-  return {
-    helpers: handlebarHelpers(),
-    data: { page: pageMeta },
-  };
-}
 
 export function defaultJsonTransformer(v: any): string {
   if (v === undefined) {
@@ -80,5 +72,5 @@ export async function renderQueryTemplate(
   if (!renderAll) {
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }
-  return handlebars.renderTemplate(templateText, data, { page: pageMeta });
+  return template.renderTemplate(templateText, data, { page: pageMeta });
 }

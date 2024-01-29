@@ -195,7 +195,7 @@ export const highlightingQueryParser = queryParser.configure({
       "String": t.string,
       "Number": t.number,
       "PageRef": ct.WikiLinkTag,
-      "where limit select render Order OrderKW and or as InKW each all":
+      "where limit select render Order OrderKW and or as InKW NotKW each all":
         t.keyword,
     }),
   ],

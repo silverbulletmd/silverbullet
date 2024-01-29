@@ -34,8 +34,6 @@ export async function widget(
         );
         resultMarkdown = rendered.trim();
       } else {
-        // TODO: At this point it's a bit pointless to first render a markdown table, and then convert that to HTML
-        // We should just render the HTML table directly
         resultMarkdown = jsonToMDTable(results);
       }
     }

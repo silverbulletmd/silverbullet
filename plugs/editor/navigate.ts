@@ -99,7 +99,6 @@ async function actionClickOrActionEnter(
       break;
     }
     case "Hashtag": {
-      console.log("Got myself a hash tag", mdTree);
       const hashtag = mdTree.children![0].text!.slice(1);
       await editor.navigate(
         { page: `${tagPrefix}${hashtag}`, pos: 0 },
