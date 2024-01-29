@@ -8,17 +8,21 @@ $edge
 
 _The changes below are not yet released “properly.” To try them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
 
+* No edgy updates since 0.6.1. Hang tight!
+
+## 0.6.1
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
 * Action buttons (top right buttons) can now be configured; see [[SETTINGS]] for how to do this.
 * Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the types of link formats that SilverBullet now supports.
 * New {[Task: Remove Completed]} command to remove all completed tasks from a page
-* **Read-only mode** (experimental) is here; see [[Install/Configuration#Run mode]] on how to enable it. This allows you expose your space to the outside world in all its glory but without allowing anybody to edit anything. This should be fairly locked down and secure, but back up your stuff!
+* **Read-only mode** (experimental) is here; see [[Install/Configuration#Run mode]] on how to enable it. This allows you expose your space to the outside world in all its glory but without allowing anybody to edit anything.
+  * [silverbullet.md](https://silverbullet.md) has now been redeployed to run in this mode
+  * Pages in this mode are _server-side rendered_ so their content can actually be indexed by search engines. In addition, some [OpenGraph](https://ogp.me/) attributes are put in in the HTML to enable nice embedding links, e.g. in our [community](https://community.silverbullet.md).
 * New {[Clear Local Storage & Logout]} command to wipe out any locally synced data (and log you out if you use [[Authentication]]).
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
   * Right-clicking links now opens the browser's native context menu again
   * `tags` in [[Frontmatter]] are now properly indexed again when listed as an array
-  * Page links with aliases are now properly renamed
 * Internal changes:
   * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
   * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.
