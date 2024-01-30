@@ -47,6 +47,16 @@ Deno.test("Test query parser", () => {
     },
   );
 
+  // Comment check
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page # comment`)!,
+    ),
+    {
+      querySource: "page",
+    },
+  );
+
   assertEquals(
     astToKvQuery(wrapQueryParse(`page where not true`)!),
     {
