@@ -3,7 +3,7 @@ SilverBullet has a simple expression language that is used both by the [[Query L
 Examples in this page will be demonstrated by embedding expressions inside of a [[Templates|template]].
 
 # Primitives 
-* strings: `"a string"`
+* strings: `"a string"`, `'a string'` or `a string` (with backticks). Escaping is not currently supported, so use your quotes wisely.
 * numbers: `10`
 * booleans: `true` or `false`
 * regular expressions: `/[a-z]+/`

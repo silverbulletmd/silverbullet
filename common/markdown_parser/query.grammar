@@ -117,7 +117,9 @@ Bool {
   GlobalIdentifier { "@" @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
 
   String {
-    ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
+      "\"" ![\"]* "\""
+    | "'" ![']* "'"
+    | "`" ![`]* "`"
   }
   PageRef {
     "[" "[" ![\]]* "]" "]"

@@ -379,7 +379,7 @@ const NamedAnchor = regexParser({
 });
 
 import { Table } from "./table_parser.ts";
-import { foldNodeProp, LRLanguage } from "@codemirror/language";
+import { foldNodeProp } from "@codemirror/language";
 
 // FrontMatter parser
 
