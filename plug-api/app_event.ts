@@ -19,7 +19,7 @@ export type AppEvent =
 
 export type QueryProviderEvent = {
   query: Query;
-  pageName: string;
+  // pageName: string;
 };
 
 export type ClickEvent = {

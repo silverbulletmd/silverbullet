@@ -7,7 +7,6 @@ import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
 import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
 import { SnippetConfig } from "./types.ts";
-import { snippet } from "@codemirror/autocomplete";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,

@@ -29,9 +29,14 @@ functions:
       - editor:complete
 
   # Widget
-  templateWidget: # Legacy
+  templateWidget:
     path: template_block.ts:widget
     codeWidget: template
+    renderMode: markdown
+
+  blockWidget:
+    path: template_block.ts:blockWidget
+    codeWidget: block
     renderMode: markdown
 
   # API invoked when a new page is created

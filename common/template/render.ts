@@ -1,5 +1,5 @@
 import { AST } from "$sb/lib/tree.ts";
-import { evalQueryExpression } from "$sb/lib/query.ts";
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { FunctionMap } from "$sb/types.ts";
 
@@ -33,7 +33,7 @@ async function renderTemplateElement(
         ),
       )).join("");
     case "ExpressionDirective":
-      return renderExpressionDirective(
+      return await renderExpressionDirective(
         ast,
         value,
         globalVariables,
@@ -48,6 +48,8 @@ async function renderTemplateElement(
       );
     case "IfDirective":
       return await renderIfDirective(ast, value, globalVariables, functionMap);
+    case "LetDirective":
+      return await renderLetDirective(ast, value, globalVariables, functionMap);
     case "Text":
       return children[0] as string;
     default:
@@ -55,15 +57,16 @@ async function renderTemplateElement(
   }
 }
 
-function renderExpressionDirective(
+async function renderExpressionDirective(
   ast: AST,
   value: any,
   globalVariables: Record<string, any>,
   functionMap: FunctionMap,
-): string {
+): Promise<string> {
   const [_, expression] = ast;
   const expr = expressionToKvQueryExpression(expression);
-  return "" + evalQueryExpression(expr, value, globalVariables, functionMap);
+  return "" +
+    await evalQueryExpression(expr, value, globalVariables, functionMap);
 }
 
 async function renderEachDirective(
@@ -74,12 +77,13 @@ async function renderEachDirective(
 ): Promise<string> {
   const [_, expression, ...body] = ast;
   const expr = expressionToKvQueryExpression(expression);
-  const values = evalQueryExpression(
+  const values = await evalQueryExpression(
     expr,
     value,
     globalVariables,
     functionMap,
   );
+  console.log("Got values", values);
   return await Promise.all(values.map(async (itemValue: any) => {
     return await renderTemplate(
       ["Document", ...body],
@@ -90,7 +94,7 @@ async function renderEachDirective(
   })).then((results) => results.join(""));
 }
 
-function renderIfDirective(
+async function renderIfDirective(
   ast: AST,
   value: any,
   globalVariables: Record<string, any>,
@@ -98,7 +102,7 @@ function renderIfDirective(
 ) {
   const [_, expression, trueTemplate, falseTemplate] = ast;
   const expr = expressionToKvQueryExpression(expression);
-  const condVal = evalQueryExpression(
+  const condVal = await evalQueryExpression(
     expr,
     value,
     globalVariables,
@@ -114,4 +118,27 @@ function renderIfDirective(
       ? renderTemplate(falseTemplate, value, globalVariables, functionMap)
       : "";
   }
+}
+
+async function renderLetDirective(
+  ast: AST,
+  value: any,
+  globalVariables: Record<string, any>,
+  functionMap: FunctionMap,
+) {
+  const [_, name, expression, ...body] = ast;
+  const expr = expressionToKvQueryExpression(expression);
+  const val = await evalQueryExpression(
+    expr,
+    value,
+    globalVariables,
+    functionMap,
+  );
+  const newGlobalVariables = { ...globalVariables, [name as any]: val };
+  return await renderTemplate(
+    ["Document", ...body],
+    value,
+    newGlobalVariables,
+    functionMap,
+  );
 }

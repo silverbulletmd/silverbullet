@@ -99,6 +99,15 @@ Deno.test("Test template", async () => {
     `* Pete\n* John\n`,
   );
 
+  // Let directive
+  assertEquals(
+    await parseAndRender(
+      `{{#let @name = "Pete"}}Hello {{@name}}{{/let}} and now {{@name}}`,
+      {},
+    ),
+    `Hello Pete and now undefined`,
+  );
+
   function parseAndRender(template: string, value: any): Promise<string> {
     const parsedTemplate = parseTemplate(template);
     return renderTemplate(parsedTemplate, value, globalVariables, functionMap);

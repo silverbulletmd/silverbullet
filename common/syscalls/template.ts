@@ -1,5 +1,4 @@
 import { FunctionMap } from "$sb/types.ts";
-import { DataStore } from "../../plugos/lib/datastore.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { renderTemplate } from "../template/render.ts";
 import { parseTemplate } from "../template/template_parser.ts";

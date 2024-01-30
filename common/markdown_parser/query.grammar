@@ -5,6 +5,7 @@
   mulop @left
   addop @left
   binop @left
+  terop @left
   and @left
   or @left
 }
@@ -68,6 +69,7 @@ Expression {
 | LogicalExpression 
 | UnaryExpression
 | BinExpression
+| TernaryExpression
 | Call
 }
 
@@ -92,6 +94,10 @@ BinExpression {
 | Expression !mulop "%" Expression
 | Expression !addop "+" Expression
 | Expression !addop "-" Expression
+}
+
+TernaryExpression {
+  Expression !terop "?" Expression !terop ":" Expression
 }
 
 List { "[" commaSep<Expression> "]" }

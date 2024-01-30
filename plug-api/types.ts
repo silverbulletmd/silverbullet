@@ -108,6 +108,7 @@ export type QueryExpression =
   | ["*", QueryExpression, QueryExpression]
   | ["%", QueryExpression, QueryExpression]
   | ["/", QueryExpression, QueryExpression]
+  | ["?", QueryExpression, QueryExpression, QueryExpression]
   | ["call", string, QueryExpression[]];
 
 export type FunctionMap = Record<

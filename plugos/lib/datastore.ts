@@ -1,7 +1,8 @@
-import { applyQueryNoFilterKV, evalQueryExpression } from "$sb/lib/query.ts";
+import { applyQueryNoFilterKV } from "$sb/lib/query.ts";
 import { FunctionMap, KV, KvKey, KvQuery } from "$sb/types.ts";
 import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
  * in a more user-friendly way
@@ -9,7 +10,7 @@ import { KvPrimitives } from "./kv_primitives.ts";
 export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
-    readonly functionMap: FunctionMap = builtinFunctions,
+    public functionMap: FunctionMap = builtinFunctions,
   ) {
   }
 
@@ -66,7 +67,7 @@ export class DataStore {
     // Accumulate results
     let limit = Infinity;
     if (query.limit) {
-      limit = evalQueryExpression(
+      limit = await evalQueryExpression(
         query.limit,
         {},
         globalVariables,
@@ -79,7 +80,7 @@ export class DataStore {
       // Filter
       if (
         query.filter &&
-        !evalQueryExpression(
+        !await evalQueryExpression(
           query.filter,
           entry.value,
           globalVariables,

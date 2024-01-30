@@ -21,4 +21,5 @@ export const
   NotKW = 22,
   BinExpression = 23,
   InKW = 24,
-  Call = 25
+  TernaryExpression = 25,
+  Call = 26

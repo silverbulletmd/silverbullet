@@ -1,14 +1,11 @@
 import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
 import { renderToText } from "$sb/lib/tree.ts";
-import {
-  applyQuery,
-  evalQueryExpression,
-  liftAttributeFilter,
-} from "$sb/lib/query.ts";
+import { applyQuery, liftAttributeFilter } from "$sb/lib/query.ts";
 import { editor } from "$sb/syscalls.ts";
 import { FileMeta } from "$sb/types.ts";
 import { PromiseQueue } from "$sb/lib/async.ts";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 
 const searchPrefix = "🔍 ";
 
@@ -31,7 +28,7 @@ export async function queryProvider({
   if (!phraseFilter) {
     throw Error("No 'phrase' filter specified, this is mandatory");
   }
-  const phrase = evalQueryExpression(phraseFilter, {}, {}, {});
+  const phrase = await evalQueryExpression(phraseFilter, {}, {}, {});
   // console.log("Phrase", phrase);
   let results: any[] = await ftsSearch(phrase);
 
@@ -41,7 +38,7 @@ export async function queryProvider({
     delete r.id;
   }
 
-  results = applyQuery(query, results, {}, {});
+  results = await applyQuery(query, results, {}, {});
   return results;
 }
 

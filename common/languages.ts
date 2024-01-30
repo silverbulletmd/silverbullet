@@ -34,7 +34,7 @@ export const builtinLanguages: Record<string, Language> = {
   "meta": StreamLanguage.define(yamlLanguage),
   "yaml": StreamLanguage.define(yamlLanguage),
   "template": StreamLanguage.define(yamlLanguage),
-  "block": StreamLanguage.define(yamlLanguage),
+  // "block": StreamLanguage.define(yamlLanguage),
   "embed": StreamLanguage.define(yamlLanguage),
   "data": StreamLanguage.define(yamlLanguage),
   "toc": StreamLanguage.define(yamlLanguage),

@@ -161,6 +161,16 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     case "GlobalIdentifier": {
       return ["global", (node[1] as string).substring(1)];
     }
+    case "TernaryExpression": {
+      const [_, condition, _space, ifTrue, _space2, ifFalse] = node;
+      console.log("TernaryExpression", node);
+      return [
+        "?",
+        expressionToKvQueryExpression(condition),
+        expressionToKvQueryExpression(ifTrue),
+        expressionToKvQueryExpression(ifFalse),
+      ];
+    }
     default:
       throw new Error(`Not supported: ${node[0]}`);
   }

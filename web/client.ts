@@ -141,10 +141,8 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(
-      stateKvPrimitives,
-      buildQueryFunctions(this.allKnownPages),
-    );
+
+    this.stateDataStore = new DataStore(stateKvPrimitives);
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
@@ -153,7 +151,6 @@ export class Client {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
       this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
     }, 20000); // Look to requeue every 20s
-
     // Event hook
     this.eventHook = new EventHook();
 
@@ -164,6 +161,12 @@ export class Client {
       this.stateDataStore,
       this.eventHook,
       window.silverBulletConfig.readOnly,
+    );
+
+    // Swap in the expanded function map
+    this.stateDataStore.functionMap = buildQueryFunctions(
+      this.allKnownPages,
+      this.system.system,
     );
 
     const localSpacePrimitives = await this.initSpace();
@@ -557,7 +560,7 @@ export class Client {
             new DataStoreSpacePrimitives(
               new DataStore(
                 spaceKvPrimitives,
-                buildQueryFunctions(this.allKnownPages),
+                buildQueryFunctions(this.allKnownPages, this.system.system),
               ),
             ),
             this.plugSpaceRemotePrimitives,

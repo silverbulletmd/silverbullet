@@ -1,8 +1,10 @@
 name: query
 functions:
   # API
-  performQuery:
-    path: widget.ts:performQuery
+  queryParsed:
+    path: api.ts:queryParsed
+  query:
+    path: api.ts:query
 
   queryWidget:
     path: widget.ts:widget

@@ -10,6 +10,8 @@ Deno.test("Test template", () => {
     ],
   ]]]);
 
+  console.log(parseTemplate(`{{#let @var = 10}}{{@var}}{{/let}}`));
+
   assertEquals(parseTemplate(`{{escapeRegexp @page.name}}`), ["Template", [
     "TemplateElement",
     ["ExpressionDirective", ["Expression", [

@@ -75,7 +75,7 @@ export class ServerSystem {
   async init(awaitIndex = false) {
     this.ds = new DataStore(
       this.kvPrimitives,
-      buildQueryFunctions(this.allKnownPages),
+      buildQueryFunctions(this.allKnownPages, this.system),
     );
 
     this.system = new System(

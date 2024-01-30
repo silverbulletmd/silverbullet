@@ -67,6 +67,25 @@ function processTree(tree: AST): AST {
           // console.log("Each body", bodyElements);
           return ["EachDirective", expressionTree[1], ...body];
         }
+        case "let": {
+          const letExpr = blockTextContent.trim();
+          const letMatch = letExpr.match(/@(\w+)\s*=\s*(.+)$/);
+          if (!letMatch) {
+            throw new Error(
+              `Let should be of the shape {{#let @var = expression}}`,
+            );
+          }
+          const expressionTree = parseTreeToAST(parse(
+            expressionLanguage,
+            letMatch[2],
+          ));
+          return [
+            "LetDirective",
+            letMatch[1],
+            expressionTree[1],
+            ...body,
+          ];
+        }
         case "if": {
           const expressionTree = parseTreeToAST(parse(
             expressionLanguage,

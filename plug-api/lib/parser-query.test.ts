@@ -264,4 +264,20 @@ Deno.test("Test query parser", () => {
       }],
     },
   );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page select 8 > 3 ? "yes" : "no" as truth`)!,
+    ),
+    {
+      querySource: "page",
+      select: [{
+        name: "truth",
+        expr: ["?", [">", ["number", 8], ["number", 3]], ["string", "yes"], [
+          "string",
+          "no",
+        ]],
+      }],
+    },
+  );
 });

@@ -1,5 +1,4 @@
 import { markdown, template, YAML } from "$sb/syscalls.ts";
-import type { PageMeta } from "$sb/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { TemplateObject } from "./types.ts";
 import { renderToText } from "$sb/lib/tree.ts";
@@ -14,8 +13,8 @@ import { renderToText } from "$sb/lib/tree.ts";
  */
 export async function renderTemplate(
   templateText: string,
-  pageMeta: PageMeta,
   data: any = {},
+  globalVariables: Record<string, any> = {},
 ): Promise<{ renderedFrontmatter?: string; frontmatter: any; text: string }> {
   const tree = await markdown.parseMarkdown(templateText);
   const frontmatter: Partial<TemplateObject> = await extractFrontmatter(tree, {
@@ -31,16 +30,16 @@ export async function renderTemplate(
     } else {
       frontmatterText = await YAML.stringify(frontmatter.frontmatter);
     }
-    frontmatterText = await template.renderTemplate(frontmatterText, data, {
-      page: pageMeta,
-    });
+    frontmatterText = await template.renderTemplate(
+      frontmatterText,
+      data,
+      globalVariables,
+    );
   }
   return {
     frontmatter,
     renderedFrontmatter: frontmatterText,
-    text: await template.renderTemplate(templateText, data, {
-      page: pageMeta,
-    }),
+    text: await template.renderTemplate(templateText, data, globalVariables),
   };
 }
 
