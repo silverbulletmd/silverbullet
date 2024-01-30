@@ -163,7 +163,6 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "TernaryExpression": {
       const [_, condition, _space, ifTrue, _space2, ifFalse] = node;
-      console.log("TernaryExpression", node);
       return [
         "?",
         expressionToKvQueryExpression(condition),

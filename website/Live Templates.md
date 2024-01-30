@@ -1,37 +1,29 @@
-Live Templates are a type of [[Blocks|block]] that render [[Templates]] inline in a page. 
+Live Templates are a type of [[Blocks|block]] that render [[Templates]] written in [[Template Language]] inline in a page. 
 
-Template blocks are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the block specifies the template to use, as well as any arguments to pass to it.
+There are two variants of Live Templates:
 
-Generally you’d use it in one of two ways, either using a `page` [[Templates|template]] reference, or an inline `template`:
+* `block`: where the template is specified inline.
+* `template`: where an external page (template) is used to render the template
+
+Template blocks are specified using [[Markdown]]‘s fenced code block notation using either `template` or `block` as its language.
+
+# Block
+To specify a template to render inline, you can use the `block` block:
+
+```block
+Today is {{today}}
+```
+
+# Template
+A `template` block is configured using [[YAML]] in the body. The following attributes are supported:
+
+* `page`: the page to use as a template
+* `value`: an (optional) value to pass to the template
+* `raw`: a page reference to include in the page without processing it as a template.
 
 Here’s an example using `page`:
 ```template
 page: "[[internal-template/today]]"
-```
-
-And here’s an example using `template`:
-```template
-template: |
-   Today is {{today}}!
-```
-
-To pass a literal value to the template, you can specify the optional `value` attribute:
-```template
-template: |
-   Hello, {{name}}! Today is _{{today}}_
-value:
-   name: Pete
-```
-
-You can also pass in the result of a [[Live Queries|query]] as a value by setting the `query` attribute:
-
-```template
-query: |
-   tag where parent = "page" select name
-template: |
-   {{#each .}}
-   * #{{name}}
-   {{/each}}
 ```
 
 If you want to include another _page_ (not necessarily a template) unprocessed (so without replacing template placeholders), you can use `raw`:

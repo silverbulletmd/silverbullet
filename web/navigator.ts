@@ -2,7 +2,7 @@ import { safeRun } from "../common/util.ts";
 import { PageRef, parsePageRef } from "$sb/lib/page.ts";
 import { Client } from "./client.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { renderHandlebarsTemplate } from "../common/syscalls/template.ts";
+import { renderTheTemplate } from "../common/syscalls/template.ts";
 import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 
 export type PageState = PageRef & {
@@ -26,7 +26,7 @@ export class PathPageNavigator {
 
   async init() {
     this.indexPage = cleanPageRef(
-      await renderHandlebarsTemplate(
+      await renderTheTemplate(
         this.client.settings.indexPage,
         {},
         {},

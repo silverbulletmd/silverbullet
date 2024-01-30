@@ -11,12 +11,12 @@ export function templateSyscalls(functionMap: FunctionMap): SysCallMapping {
       obj: any,
       globals: Record<string, any> = {},
     ): Promise<string> => {
-      return renderHandlebarsTemplate(template, obj, globals, functionMap);
+      return renderTheTemplate(template, obj, globals, functionMap);
     },
   };
 }
 
-export function renderHandlebarsTemplate(
+export function renderTheTemplate(
   template: string,
   obj: any,
   globals: Record<string, any>,

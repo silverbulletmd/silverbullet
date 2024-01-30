@@ -65,8 +65,13 @@ async function renderExpressionDirective(
 ): Promise<string> {
   const [_, expression] = ast;
   const expr = expressionToKvQueryExpression(expression);
-  return "" +
-    await evalQueryExpression(expr, value, globalVariables, functionMap);
+  const result = await evalQueryExpression(
+    expr,
+    value,
+    globalVariables,
+    functionMap,
+  );
+  return "" + result;
 }
 
 async function renderEachDirective(
@@ -83,7 +88,6 @@ async function renderEachDirective(
     globalVariables,
     functionMap,
   );
-  console.log("Got values", values);
   return await Promise.all(values.map(async (itemValue: any) => {
     return await renderTemplate(
       ["Document", ...body],

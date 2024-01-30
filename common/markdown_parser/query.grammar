@@ -2,6 +2,7 @@
 
 @precedence {
   unaryop
+  attr @left
   mulop @left
   addop @left
   binop @left
@@ -38,18 +39,12 @@ OrderDirection {
 Value { Number | String | Bool | Regex | kw<"null"> | List }
 
 Attribute {
-  LVal "." Identifier
+  Expression !attr "." Identifier
 }
 
 Call {
     Identifier "(" commaSep<Expression> ")"
   | Identifier "(" ")"
-}
-
-LVal {
-  Identifier
-| GlobalIdentifier
-| Attribute
 }
 
 TopLevelVal { "." }
@@ -63,7 +58,9 @@ Expression !and kw<"and"> Expression
 
 Expression {
   Value
-| LVal
+| Identifier
+| GlobalIdentifier
+| Attribute
 | TopLevelVal
 | ParenthesizedExpression
 | LogicalExpression 

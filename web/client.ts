@@ -56,7 +56,7 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
-import { renderHandlebarsTemplate } from "../common/syscalls/template.ts";
+import { renderTheTemplate } from "../common/syscalls/template.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
 import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
@@ -933,7 +933,7 @@ export class Client {
   ) {
     if (!pageRef.page) {
       pageRef.page = cleanPageRef(
-        await renderHandlebarsTemplate(
+        await renderTheTemplate(
           this.settings.indexPage,
           {},
           {},

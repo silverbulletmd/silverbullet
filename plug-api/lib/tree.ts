@@ -215,6 +215,12 @@ export function cloneTree(tree: ParseTree): ParseTree {
 }
 
 export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
+  const ambNodes = collectNodesOfType(tree, "⚠");
+  if (ambNodes.length > 0) {
+    throw new Error(
+      `Ambiguous parse tree: ${JSON.stringify(ambNodes, null, 2)}`,
+    );
+  }
   if (tree.text !== undefined) {
     return tree.text;
   }

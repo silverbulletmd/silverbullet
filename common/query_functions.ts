@@ -15,6 +15,9 @@ export function buildQueryFunctions(
       }
       return allKnownPages.has(name);
     },
+    readPage: (_globals, name: string) => {
+      return system.syscall({}, "space.readPage", [name]);
+    },
     query: (_globals, query: string, ...args: any) => {
       const encodedArgs: string[] = [];
       for (const arg of args) {

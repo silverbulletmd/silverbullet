@@ -18,10 +18,10 @@ Deno.test("Test template", () => {
       "Call",
       ["Identifier", "escapeRegexp"],
       "(",
-      ["Expression", ["LVal", [
+      ["Expression", [
         "Attribute",
         [
-          "LVal",
+          "Expression",
           ["GlobalIdentifier", "@page"],
         ],
         ".",
@@ -29,7 +29,7 @@ Deno.test("Test template", () => {
           "Identifier",
           "name",
         ],
-      ]]],
+      ]],
       ")",
     ]]],
   ]]);

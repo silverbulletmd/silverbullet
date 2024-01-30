@@ -1,6 +1,6 @@
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
 import { AST, collectNodesOfType, parseTreeToAST } from "$sb/lib/tree.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { assert, assertEquals } from "../../test_deps.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { languageFor } from "../../common/languages.ts";
 
@@ -8,7 +8,11 @@ function wrapQueryParse(query: string): AST | null {
   const tree = parse(languageFor("query")!, query);
   // console.log("tree", tree);
   // Check for no ambiguitiies
-  assertEquals(collectNodesOfType(tree, "⚠").length, 0);
+  if (collectNodesOfType(tree, "⚠").length > 0) {
+    console.error("Ambiguous parse tree", JSON.stringify(tree, null, 2));
+    assert(false);
+  }
+
   return parseTreeToAST(tree.children![0]);
 }
 
@@ -236,6 +240,16 @@ Deno.test("Test query parser", () => {
         "number",
         1,
       ]]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`task where myCall().thing`)!,
+    ),
+    {
+      querySource: "task",
+      filter: ["attr", ["call", "myCall", []], "thing"],
     },
   );
 

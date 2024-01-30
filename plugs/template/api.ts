@@ -16,31 +16,39 @@ export async function renderTemplate(
   data: any = {},
   globalVariables: Record<string, any> = {},
 ): Promise<{ renderedFrontmatter?: string; frontmatter: any; text: string }> {
-  const tree = await markdown.parseMarkdown(templateText);
-  const frontmatter: Partial<TemplateObject> = await extractFrontmatter(tree, {
-    removeFrontmatterSection: true,
-    removeTags: ["template"],
-  });
-  templateText = renderToText(tree).trimStart();
-  // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
-  let frontmatterText: string | undefined;
-  if (frontmatter.frontmatter) {
-    if (typeof frontmatter.frontmatter === "string") {
-      frontmatterText = frontmatter.frontmatter;
-    } else {
-      frontmatterText = await YAML.stringify(frontmatter.frontmatter);
-    }
-    frontmatterText = await template.renderTemplate(
-      frontmatterText,
-      data,
-      globalVariables,
+  try {
+    const tree = await markdown.parseMarkdown(templateText);
+    const frontmatter: Partial<TemplateObject> = await extractFrontmatter(
+      tree,
+      {
+        removeFrontmatterSection: true,
+        removeTags: ["template"],
+      },
     );
+    templateText = renderToText(tree).trimStart();
+    // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
+    let frontmatterText: string | undefined;
+    if (frontmatter.frontmatter) {
+      if (typeof frontmatter.frontmatter === "string") {
+        frontmatterText = frontmatter.frontmatter;
+      } else {
+        frontmatterText = await YAML.stringify(frontmatter.frontmatter);
+      }
+      frontmatterText = await template.renderTemplate(
+        frontmatterText,
+        data,
+        globalVariables,
+      );
+    }
+    return {
+      frontmatter,
+      renderedFrontmatter: frontmatterText,
+      text: await template.renderTemplate(templateText, data, globalVariables),
+    };
+  } catch (e) {
+    console.error("Error rendering template", e);
+    throw e;
   }
-  return {
-    frontmatter,
-    renderedFrontmatter: frontmatterText,
-    text: await template.renderTemplate(templateText, data, globalVariables),
-  };
 }
 
 /**
