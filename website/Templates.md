@@ -2,7 +2,7 @@ Templates are reusable pieces of (markdown) content, often containing placeholde
 
 Templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
 
-Templates do not appear in the [[Page Picker]], but instead appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
+Templates **do not appear** in the [[Page Picker]], but instead appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
 
 In SilverBullet templates serve a few purposes:
 
@@ -43,22 +43,3 @@ An example:
     # {{today}}
     * |^|
 
-# Content
-Templates consist of plain markdown text, but can also include [Handlebars syntax](https://handlebarsjs.com/), such as `{{today}}`, and `{{#each .}}`.
-
-A special `|^|` marker can be used to specify the desired cursor position after the template is included.
-
-## Handlebar helpers
-There are a number of built-in handlebars helpers you can use:
-
-- `{{today}}`: Today’s date in the usual YYYY-MM-DD format
-- `{{tomorrow}}`: Tomorrow’s date in the usual YYY-MM-DD format
-- `{{yesterday}}`: Yesterday’s date in the usual YYY-MM-DD format
-- `{{lastWeek}}`: Current date - 7 days
-- `{{nextWeek}}`: Current date + 7 days
-- `{{escapeRegexp "hello/there"}}` to escape a regexp, useful when injecting e.g. a page name into a query — think `name =~ /{{escapeRegexp @page.name}}/
-- `{{json @page}}` translate any (object) value to JSON, mostly useful for debugging
-- `{{substring "my string" 0 3}}` performs a substring operation on the first argument, which in this example would result in `my `
-- `{{prefixLines "my string\nanother" "  "}}` prefixes each line (except the first) with the given prefix.
-- `{{niceDate @page.lastModified}}` translates any timestamp into a “nice” format (e.g. `2023-06-20`).
-- The `@page` variable contains all page metadata (`name`, `lastModified`, `contentType`, as well as any custom [[Frontmatter]] attributes). You can address it like so: `{{@page.name}}`
