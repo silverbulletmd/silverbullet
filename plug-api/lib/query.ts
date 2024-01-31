@@ -42,7 +42,7 @@ export function liftAttributeFilter(
 export async function applyQuery<T>(
   query: Query,
   allItems: T[],
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<T[]> {
   // Filter
@@ -53,7 +53,7 @@ export async function applyQuery<T>(
         await evalQueryExpression(
           query.filter,
           item,
-          globalVariables,
+          variables,
           functionMap,
         )
       ) {
@@ -66,7 +66,7 @@ export async function applyQuery<T>(
   return (await applyQueryNoFilterKV(
     query,
     allItems.map((v) => ({ key: [], value: v })),
-    globalVariables,
+    variables,
     functionMap,
   )).map((v) => v.value);
 }
@@ -74,7 +74,7 @@ export async function applyQuery<T>(
 export async function applyQueryNoFilterKV(
   query: Query,
   allItems: KV[],
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<KV[]> {
   // Order by
@@ -86,7 +86,7 @@ export async function applyQueryNoFilterKV(
         const evalA = evalQueryExpression(
           expr,
           aVal,
-          globalVariables,
+          variables,
           functionMap,
         );
         if (evalA instanceof Promise) {
@@ -95,7 +95,7 @@ export async function applyQueryNoFilterKV(
         const evalB = evalQueryExpression(
           expr,
           bVal,
-          globalVariables,
+          variables,
           functionMap,
         );
         if (evalB instanceof Promise) {
@@ -123,7 +123,7 @@ export async function applyQueryNoFilterKV(
       const newRec: any = {};
       for (const { name, expr } of query.select) {
         newRec[name] = expr
-          ? await evalQueryExpression(expr, rec, globalVariables, functionMap)
+          ? await evalQueryExpression(expr, rec, variables, functionMap)
           : rec[name];
       }
       allItems[i].value = newRec;
@@ -147,7 +147,7 @@ export async function applyQueryNoFilterKV(
     const limit = await evalQueryExpression(
       query.limit,
       {},
-      globalVariables,
+      variables,
       functionMap,
     );
     if (allItems.length > limit) {

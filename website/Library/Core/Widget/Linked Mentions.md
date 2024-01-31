@@ -3,7 +3,7 @@ description: Adds Linked Mentions to pages
 tags: template
 hooks.bottom.where: 'true'
 ---
-{{#let @linkedMentions = query("link where toPage = ? and page != ? order by page", @page.name, @page.name)}}
+{{#let @linkedMentions = {link where toPage = @page.name and page != @page.name order by page}}}
 {{#if @linkedMentions}}
 # Linked Mentions
 {{#each @linkedMentions}}

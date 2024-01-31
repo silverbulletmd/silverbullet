@@ -1,12 +1,11 @@
 import { CompleteEvent } from "$sb/app_event.ts";
-import { events } from "$sb/syscalls.ts";
+import { datastore, events } from "$sb/syscalls.ts";
 
 import {
   AttributeCompleteEvent,
   AttributeCompletion,
 } from "../index/attributes.ts";
 import { attributeCompletionsToCMCompletion } from "./snippet.ts";
-import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 
 export async function templateVariableComplete(completeEvent: CompleteEvent) {
   // Check if we're in a query, block or template context
@@ -29,9 +28,11 @@ export async function templateVariableComplete(completeEvent: CompleteEvent) {
   if (match[1] !== "@") {
     // Not a variable
     // Function completions
-    allCompletions = Object.keys(builtinFunctions).map(
-      (name) => ({ label: name, detail: "function" }),
-    );
+    const builtinFunctions = await datastore.listFunctions();
+    allCompletions = builtinFunctions.map((name) => ({
+      label: name,
+      detail: "function",
+    }));
 
     // Attribute completions
     const completions = (await events.dispatchEvent(

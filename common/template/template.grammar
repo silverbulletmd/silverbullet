@@ -20,11 +20,11 @@ ExpressionDirective {
 @tokens {
     @precedence { BlockDirectiveOpenTagStart, ExpressionDirectiveOpenTag, Text }
 
-    Text { ![{]+ | "{" ![{]+ }
+    Text { (![{] | "{" ![{])+ }
 
     BlockName { @asciiLetter+ }
 
-    BlockDirectiveContent { (![}]+ | "}" ![}]+)+ }
+    BlockDirectiveContent { ( ![}] | "{" ![}]+ "}" )+ }
 
     ExpressionDirectiveOpenTag { "{{" }
 

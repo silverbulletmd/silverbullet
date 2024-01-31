@@ -3,7 +3,7 @@ import { FunctionMap, QueryExpression } from "$sb/types.ts";
 export function evalQueryExpression(
   val: QueryExpression,
   obj: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<any> | any {
   const [type, op1] = val;
@@ -14,16 +14,16 @@ export function evalQueryExpression(
       const op1Val = evalQueryExpression(
         op1,
         obj,
-        globalVariables,
+        variables,
         functionMap,
       );
       if (op1Val instanceof Promise) {
         return op1Val.then((v) =>
           v &&
-          evalQueryExpression(val[2], obj, globalVariables, functionMap)
+          evalQueryExpression(val[2], obj, variables, functionMap)
         );
       } else if (op1Val) {
-        return evalQueryExpression(val[2], obj, globalVariables, functionMap);
+        return evalQueryExpression(val[2], obj, variables, functionMap);
       } else {
         return false;
       }
@@ -32,18 +32,18 @@ export function evalQueryExpression(
       const op1Val = evalQueryExpression(
         op1,
         obj,
-        globalVariables,
+        variables,
         functionMap,
       );
       if (op1Val instanceof Promise) {
         return op1Val.then((v) =>
           v ||
-          evalQueryExpression(val[2], obj, globalVariables, functionMap)
+          evalQueryExpression(val[2], obj, variables, functionMap)
         );
       } else if (op1Val) {
         return true;
       } else {
-        return evalQueryExpression(val[2], obj, globalVariables, functionMap);
+        return evalQueryExpression(val[2], obj, variables, functionMap);
       }
     }
     // Value types
@@ -51,7 +51,7 @@ export function evalQueryExpression(
       return null;
     // TODO: Add this to the actualy query syntax
     case "not": {
-      const val = evalQueryExpression(op1, obj, globalVariables, functionMap);
+      const val = evalQueryExpression(op1, obj, variables, functionMap);
       if (val instanceof Promise) {
         return val.then((v) => !v);
       } else {
@@ -70,7 +70,7 @@ export function evalQueryExpression(
         const attributeVal = evalQueryExpression(
           val[1],
           obj,
-          globalVariables,
+          variables,
           functionMap,
         );
         if (attributeVal instanceof Promise) {
@@ -87,19 +87,17 @@ export function evalQueryExpression(
         const func = functionMap[val[1]];
         if (attrVal === undefined && func !== undefined) {
           // Fallback to function call, if one is defined with this name
-          attrVal = func(globalVariables);
+          attrVal = func(variables);
         }
         return attrVal;
       }
     }
     case "global": {
-      return globalVariables[op1];
+      return variables[op1];
     }
     case "array": {
       return Promise.all(
-        op1.map((v) =>
-          evalQueryExpression(v, obj, globalVariables, functionMap)
-        ),
+        op1.map((v) => evalQueryExpression(v, obj, variables, functionMap)),
       );
     }
     case "object":
@@ -110,7 +108,7 @@ export function evalQueryExpression(
       if (!queryFunction) {
         throw new Error(`No $query function defined`);
       }
-      return queryFunction(parsedQuery, globalVariables);
+      return queryFunction(parsedQuery, variables);
     }
     case "call": {
       const fn = functionMap[op1];
@@ -118,7 +116,7 @@ export function evalQueryExpression(
         throw new Error(`Unknown function: ${op1}`);
       }
       const argValues = val[2].map((v) =>
-        evalQueryExpression(v, obj, globalVariables, functionMap)
+        evalQueryExpression(v, obj, variables, functionMap)
       );
       // Check if any arg value is a promise, and if so wait for it
       const waitForPromises: Promise<void>[] = [];
@@ -140,13 +138,13 @@ export function evalQueryExpression(
   const val1 = evalQueryExpression(
     op1,
     obj,
-    globalVariables,
+    variables,
     functionMap,
   );
   const val2 = evalQueryExpression(
     val[2],
     obj,
-    globalVariables,
+    variables,
     functionMap,
   );
 
@@ -154,7 +152,7 @@ export function evalQueryExpression(
     ? evalQueryExpression(
       val[3],
       obj,
-      globalVariables,
+      variables,
       functionMap,
     )
     : undefined;

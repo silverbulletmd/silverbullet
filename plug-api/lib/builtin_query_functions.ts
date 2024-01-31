@@ -19,7 +19,7 @@ export const builtinFunctions: FunctionMap = {
     return JSON.stringify(v);
   },
   niceDate: (ts: any) => niceDate(new Date(ts)),
-  escapeRegexp: (_, ts: any) => {
+  escapeRegexp: (ts: any) => {
     return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   },
   escape: (handlebarsExpr: string) => {

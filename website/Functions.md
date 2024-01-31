@@ -1,30 +1,19 @@
 Here is a list of all functions you can use in SilverBullet’s [[Expression Language]]:
 
-# Lists and queries 
-## query(query, ...args)
-Perform a [[Query Language]] query. The `query` may contain `?` placeholders, filled in with the args:
-
-```template
-Most recently updated page: {{at(query("page order by lastModified desc limit 1"), 0).name}}
-
-Some page query JSON: {{json(query("page limit ?", 8 - 5))}}
-```
-
+# Lists
 ## count(list)
 Count the number of elements in a list:
 
 ```template
-{{#let @totalTasks = count(query("task"))}}
-{{#let @notDoneTasks = count(query("task where not done"))}}
-# Fun stats
-There are **{{count(query("page"))}}** pages in this space.
-You have **{{@totalTasks}}** total tasks of which **{{@notDoneTasks}}** have not been completed. That's like, {{@notDoneTasks/@totalTasks * 100}}% not complete.
-{{/let}}
-{{/let}}
+There are **{{count({page})}}** pages in this space.
 ```
 
 ## at(list, index)
-Returns the `index`th element of `list`.
+Returns the `index`th element of `list` (starting from 0 of course).
+
+```template
+Index 1 of our count to three is {{at([1, 2, 3], 1)}}
+```
 
 # Date and time
 ## today()

@@ -19,7 +19,7 @@ export type AppEvent =
 
 export type QueryProviderEvent = {
   query: Query;
-  globalVariables?: Record<string, any>;
+  variables?: Record<string, any>;
 };
 
 export type ClickEvent = {

@@ -6,7 +6,7 @@ import { parseTemplate } from "./template_parser.ts";
 Deno.test("Test template", async () => {
   const functionMap = builtinFunctions;
 
-  const globalVariables = {
+  const variables = {
     page: { name: "this page" },
   };
 
@@ -110,6 +110,6 @@ Deno.test("Test template", async () => {
 
   function parseAndRender(template: string, value: any): Promise<string> {
     const parsedTemplate = parseTemplate(template);
-    return renderTemplate(parsedTemplate, value, globalVariables, functionMap);
+    return renderTemplate(parsedTemplate, value, variables, functionMap);
   }
 });

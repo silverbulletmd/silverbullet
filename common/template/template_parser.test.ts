@@ -10,6 +10,14 @@ Deno.test("Test template", () => {
     ],
   ]]]);
 
+  assertEquals(parseTemplate(`{{{page}}}`), ["Template", ["TemplateElement", [
+    "ExpressionDirective",
+    ["Expression", ["QueryExpression", "{", ["Query", [
+      "TagIdentifier",
+      "page",
+    ]], "}"]],
+  ]]]);
+
   console.log(parseTemplate(`{{#let @var = 10}}{{@var}}{{/let}}`));
 
   assertEquals(parseTemplate(`{{escapeRegexp @page.name}}`), ["Template", [

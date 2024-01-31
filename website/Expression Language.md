@@ -35,6 +35,17 @@ Today without an argument list: {{today}}
 ## Supported functions
 [[Functions]]
 
+# Queries
+You can execute a (nested) [[Query Language|query]] using the `{ page limit 1 }` syntax. Note that you can reference variables inside this sub-query as well.
+
+## Example
+Incomplete task:
+* [ ] This task is not yet complete
+
+```template
+Number of incomplete tasks on this page: {{count({task where not done and page = @page.name})}}
+```
+
 # Logical expressions 
 
 * and: `name = "this" and age > 10`

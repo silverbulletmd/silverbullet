@@ -249,6 +249,9 @@
 
   .sb-code {
     background-color: var(--editor-code-background-color);
+  }
+
+  .sb-line-fenced-code .sb-code {
     color: var(--editor-code-color);
   }
 

@@ -19,10 +19,10 @@ export function buildQueryFunctions(
     readPage: (name: string) => {
       return system.syscall({}, "space.readPage", [name]);
     },
-    $query: (query: Query, globalVariables: Record<string, any>) => {
+    $query: (query: Query, variables: Record<string, any>) => {
       return system.invokeFunction("query.queryParsed", [
         query,
-        globalVariables,
+        variables,
       ]);
     },
   };

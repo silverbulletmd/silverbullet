@@ -6,13 +6,13 @@ import { FunctionMap } from "$sb/types.ts";
 export async function renderTemplate(
   ast: AST,
   value: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<string> {
   const [_, ...elements] = ast;
   const renderedElements = await Promise.all(
     elements.map((e) =>
-      renderTemplateElement(e, value, globalVariables, functionMap)
+      renderTemplateElement(e, value, variables, functionMap)
     ),
   );
   return renderedElements.join("");
@@ -21,7 +21,7 @@ export async function renderTemplate(
 async function renderTemplateElement(
   ast: AST,
   value: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<string> {
   const [type, ...children] = ast;
@@ -29,27 +29,27 @@ async function renderTemplateElement(
     case "TemplateElement":
       return (await Promise.all(
         children.map((c) =>
-          renderTemplateElement(c, value, globalVariables, functionMap)
+          renderTemplateElement(c, value, variables, functionMap)
         ),
       )).join("");
     case "ExpressionDirective":
       return await renderExpressionDirective(
         ast,
         value,
-        globalVariables,
+        variables,
         functionMap,
       );
     case "EachDirective":
       return await renderEachDirective(
         ast,
         value,
-        globalVariables,
+        variables,
         functionMap,
       );
     case "IfDirective":
-      return await renderIfDirective(ast, value, globalVariables, functionMap);
+      return await renderIfDirective(ast, value, variables, functionMap);
     case "LetDirective":
-      return await renderLetDirective(ast, value, globalVariables, functionMap);
+      return await renderLetDirective(ast, value, variables, functionMap);
     case "Text":
       return children[0] as string;
     default:
@@ -60,7 +60,7 @@ async function renderTemplateElement(
 async function renderExpressionDirective(
   ast: AST,
   value: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<string> {
   const [_, expression] = ast;
@@ -68,7 +68,7 @@ async function renderExpressionDirective(
   const result = await evalQueryExpression(
     expr,
     value,
-    globalVariables,
+    variables,
     functionMap,
   );
   return "" + result;
@@ -77,7 +77,7 @@ async function renderExpressionDirective(
 async function renderEachDirective(
   ast: AST,
   value: any[],
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<string> {
   const [_, expression, ...body] = ast;
@@ -85,14 +85,14 @@ async function renderEachDirective(
   const values = await evalQueryExpression(
     expr,
     value,
-    globalVariables,
+    variables,
     functionMap,
   );
   return await Promise.all(values.map(async (itemValue: any) => {
     return await renderTemplate(
       ["Document", ...body],
       itemValue,
-      globalVariables,
+      variables,
       functionMap,
     );
   })).then((results) => results.join(""));
@@ -101,7 +101,7 @@ async function renderEachDirective(
 async function renderIfDirective(
   ast: AST,
   value: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ) {
   const [_, expression, trueTemplate, falseTemplate] = ast;
@@ -109,17 +109,17 @@ async function renderIfDirective(
   const condVal = await evalQueryExpression(
     expr,
     value,
-    globalVariables,
+    variables,
     functionMap,
   );
   if (
     !Array.isArray(condVal) && condVal ||
     (Array.isArray(condVal) && condVal.length > 0)
   ) {
-    return renderTemplate(trueTemplate, value, globalVariables, functionMap);
+    return renderTemplate(trueTemplate, value, variables, functionMap);
   } else {
     return falseTemplate
-      ? renderTemplate(falseTemplate, value, globalVariables, functionMap)
+      ? renderTemplate(falseTemplate, value, variables, functionMap)
       : "";
   }
 }
@@ -127,7 +127,7 @@ async function renderIfDirective(
 async function renderLetDirective(
   ast: AST,
   value: any,
-  globalVariables: Record<string, any>,
+  variables: Record<string, any>,
   functionMap: FunctionMap,
 ) {
   const [_, name, expression, ...body] = ast;
@@ -135,10 +135,10 @@ async function renderLetDirective(
   const val = await evalQueryExpression(
     expr,
     value,
-    globalVariables,
+    variables,
     functionMap,
   );
-  const newGlobalVariables = { ...globalVariables, [name as any]: val };
+  const newGlobalVariables = { ...variables, [name as any]: val };
   return await renderTemplate(
     ["Document", ...body],
     value,

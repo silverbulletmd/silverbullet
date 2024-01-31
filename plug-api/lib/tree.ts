@@ -218,7 +218,7 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
   const ambNodes = collectNodesOfType(tree, "⚠");
   if (ambNodes.length > 0) {
     throw new Error(
-      `Ambiguous parse tree: ${JSON.stringify(ambNodes, null, 2)}`,
+      `Parse error: ${JSON.stringify(ambNodes, null, 2)}`,
     );
   }
   if (tree.text !== undefined) {

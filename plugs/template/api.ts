@@ -14,7 +14,7 @@ import { renderToText } from "$sb/lib/tree.ts";
 export async function renderTemplate(
   templateText: string,
   data: any = {},
-  globalVariables: Record<string, any> = {},
+  variables: Record<string, any> = {},
 ): Promise<{ renderedFrontmatter?: string; frontmatter: any; text: string }> {
   try {
     const tree = await markdown.parseMarkdown(templateText);
@@ -37,13 +37,13 @@ export async function renderTemplate(
       frontmatterText = await template.renderTemplate(
         frontmatterText,
         data,
-        globalVariables,
+        variables,
       );
     }
     return {
       frontmatter,
       renderedFrontmatter: frontmatterText,
-      text: await template.renderTemplate(templateText, data, globalVariables),
+      text: await template.renderTemplate(templateText, data, variables),
     };
   } catch (e) {
     console.error("Error rendering template", e);

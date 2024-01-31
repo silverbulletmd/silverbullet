@@ -55,7 +55,7 @@ Counting to 3:
 {{/each}}
 
 Iterating over the three last modified pages:
-{{#each query("page order by lastModified desc limit 3")}}
+{{#each {page order by lastModified desc limit 3}}}
 * {{name}}
 {{/each}}
 ```

@@ -5,16 +5,16 @@ import { QueryProviderEvent } from "$sb/app_event.ts";
 
 export async function query(
   query: string,
-  globalVariables?: Record<string, any>,
+  variables?: Record<string, any>,
 ): Promise<any> {
   const parsedQuery = await parseQuery(query);
 
-  return queryParsed(parsedQuery, globalVariables);
+  return queryParsed(parsedQuery, variables);
 }
 
 export async function queryParsed(
   parsedQuery: Query,
-  globalVariables?: Record<string, any>,
+  variables?: Record<string, any>,
 ) {
   if (!parsedQuery.limit) {
     parsedQuery.limit = ["number", 1000];
@@ -24,8 +24,8 @@ export async function queryParsed(
   // console.log("Parsed query", parsedQuery);
   // Let's dispatch an event and see what happens
   const event: QueryProviderEvent = { query: parsedQuery };
-  if (globalVariables) {
-    event.globalVariables = globalVariables;
+  if (variables) {
+    event.variables = variables;
   }
   const results = await events.dispatchEvent(eventName, event, 30 * 1000);
   if (results.length === 0) {

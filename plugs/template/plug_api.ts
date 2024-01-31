@@ -3,13 +3,13 @@ import { system } from "../../plug-api/syscalls.ts";
 export function renderTemplate(
   templateText: string,
   data: any = {},
-  globalVariables: Record<string, any> = {},
+  variables: Record<string, any> = {},
 ): Promise<{ frontmatter?: string; text: string }> {
   return system.invokeFunction(
     "template.renderTemplate",
     templateText,
     data,
-    globalVariables,
+    variables,
   );
 }
 

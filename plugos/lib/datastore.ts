@@ -60,7 +60,7 @@ export class DataStore {
 
   async query<T = any>(
     query: KvQuery,
-    globalVariables: Record<string, any> = {},
+    variables: Record<string, any> = {},
   ): Promise<KV<T>[]> {
     const results: KV<T>[] = [];
     let itemCount = 0;
@@ -70,7 +70,7 @@ export class DataStore {
       limit = await evalQueryExpression(
         query.limit,
         {},
-        globalVariables,
+        variables,
         this.functionMap,
       );
     }
@@ -83,7 +83,7 @@ export class DataStore {
         !await evalQueryExpression(
           query.filter,
           entry.value,
-          globalVariables,
+          variables,
           this.functionMap,
         )
       ) {
@@ -101,18 +101,18 @@ export class DataStore {
     return applyQueryNoFilterKV(
       query,
       results,
-      globalVariables,
+      variables,
       this.functionMap,
     );
   }
 
   async queryDelete(
     query: KvQuery,
-    globalVariables: Record<string, any> = {},
+    variables: Record<string, any> = {},
   ): Promise<void> {
     const keys: KvKey[] = [];
     for (
-      const { key } of await this.query(query, globalVariables)
+      const { key } of await this.query(query, variables)
     ) {
       keys.push(key);
     }
