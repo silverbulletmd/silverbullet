@@ -1,4 +1,4 @@
-Templates are reusable pieces of (markdown) content, often containing placeholders that are replaced once instantiated.
+Templates are reusable pieces of (markdown) content, often containing placeholders that are replaced once instantiated written in SilverBullet’s [[Template Language]].
 
 Templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
 

@@ -16,7 +16,7 @@ Examples in this page will be demonstrated by embedding expressions inside of a 
 * variables: `@page`. Note the `@page` is always available and is an instance of a [[Objects#page]] that points to the current page.
 
 ## Examples
-```block
+```template
 String expression: {{"This is a string"}}
 List expression: {{[1, 2, 3]}}
 Attribute of variable: {{@page.name}}
@@ -27,14 +27,13 @@ Attribute of variable: {{@page.name}}
 * `functionName`: call `functionName` without any arguments
 
 ## Examples
-```block
+```template
 Today with argument list: {{today()}}
 Today without an argument list: {{today}}
 ```
 
 ## Supported functions
-To be fully documented
-
+[[Functions]]
 
 # Logical expressions 
 
@@ -42,7 +41,7 @@ To be fully documented
 * or: `name = "this" or age > 10`
 
 ## Examples
-```block
+```template
 Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 ```
 
@@ -66,7 +65,7 @@ Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 * `%` modulo, e.g. `10 % 12`
 
 ## Examples
-```block
+```template
 Some arithmatic: {{10 * 100 / 1000}}
 Some regexp match: {{"hello" =~ /ell/}}
 Some list check: {{["template", "other"] = "template"}}
@@ -76,7 +75,7 @@ Some list check: {{["template", "other"] = "template"}}
 * `not <expression>` or `!<expression>` to negate the truthiness value
 
 ## Examples
-```block
+```template
 Not false: {{!false}} and {{not false}}
 ```
 
@@ -84,7 +83,7 @@ Not false: {{!false}} and {{not false}}
 * `<expression> ? <ifTrue> : <ifFalse>`
 
 ## Examples
-```block
+```template
 {{8 > 3 ? "8 is larger than 3" : "8 is not larger than 3"}}
 ```
 

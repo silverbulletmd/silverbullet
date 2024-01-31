@@ -12,7 +12,7 @@ export const INDEX_TEMPLATE =
 
 For your convenience we're including an on-boarding live template below. Enjoy!
 
-\`\`\`template
-page: "[[!silverbullet.md/Getting Started]]"
+\`\`\`include
+raw: "[[!silverbullet.md/Getting Started]]"
 \`\`\`
 `;

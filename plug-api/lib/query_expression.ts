@@ -104,6 +104,14 @@ export function evalQueryExpression(
     }
     case "object":
       return obj;
+    case "query": {
+      const parsedQuery = val[1];
+      const queryFunction = functionMap.$query;
+      if (!queryFunction) {
+        throw new Error(`No $query function defined`);
+      }
+      return queryFunction(parsedQuery, globalVariables);
+    }
     case "call": {
       const fn = functionMap[op1];
       if (!fn) {
@@ -121,11 +129,9 @@ export function evalQueryExpression(
         }
       }
       if (waitForPromises.length > 0) {
-        return Promise.all(waitForPromises).then(() =>
-          fn(globalVariables, ...argValues)
-        );
+        return Promise.all(waitForPromises).then(() => fn(...argValues));
       } else {
-        return fn(globalVariables, ...argValues);
+        return fn(...argValues);
       }
     }
   }

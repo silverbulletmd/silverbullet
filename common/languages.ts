@@ -34,7 +34,7 @@ import {
 export const builtinLanguages: Record<string, Language> = {
   "meta": StreamLanguage.define(yamlLanguage),
   "yaml": StreamLanguage.define(yamlLanguage),
-  "template": StreamLanguage.define(yamlLanguage),
+  "include": StreamLanguage.define(yamlLanguage),
   "embed": StreamLanguage.define(yamlLanguage),
   "data": StreamLanguage.define(yamlLanguage),
   "toc": StreamLanguage.define(yamlLanguage),
@@ -86,7 +86,7 @@ export const builtinLanguages: Record<string, Language> = {
     name: "query",
     parser: highlightingQueryParser,
   }),
-  "block": extendedMarkdownLanguage,
+  "template": extendedMarkdownLanguage,
   "expression": LRLanguage.define({
     name: "expression",
     parser: expressionParser,

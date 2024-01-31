@@ -64,10 +64,15 @@ Expression {
 | TopLevelVal
 | ParenthesizedExpression
 | LogicalExpression 
+| QueryExpression
 | UnaryExpression
 | BinExpression
 | TernaryExpression
 | Call
+}
+
+QueryExpression {
+  "{" Query "}"
 }
 
 UnaryExpression {

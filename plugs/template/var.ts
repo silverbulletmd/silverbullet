@@ -12,7 +12,6 @@ export async function templateVariableComplete(completeEvent: CompleteEvent) {
   // Check if we're in a query, block or template context
   const fencedParent = completeEvent.parentNodes.find((node) =>
     node.startsWith("FencedCode:query") ||
-    node.startsWith("FencedCode:block") ||
     node.startsWith("FencedCode:template")
   );
 

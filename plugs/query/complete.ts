@@ -18,9 +18,9 @@ export async function queryComplete(completeEvent: CompleteEvent) {
       completeEvent.linePrefix,
     );
   } else {
-    // Not a query, perhaps a block then?
+    // Not a query, perhaps a template then?
     fencedParent = completeEvent.parentNodes.find((node) =>
-      node.startsWith("FencedCode:block")
+      node.startsWith("FencedCode:template")
     );
 
     if (fencedParent) {

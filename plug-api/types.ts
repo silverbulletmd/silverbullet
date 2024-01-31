@@ -109,11 +109,12 @@ export type QueryExpression =
   | ["%", QueryExpression, QueryExpression]
   | ["/", QueryExpression, QueryExpression]
   | ["?", QueryExpression, QueryExpression, QueryExpression]
+  | ["query", Query]
   | ["call", string, QueryExpression[]];
 
 export type FunctionMap = Record<
   string,
-  (globalVariables: Record<string, any>, ...args: any[]) => any
+  (...args: any[]) => any
 >;
 
 /**

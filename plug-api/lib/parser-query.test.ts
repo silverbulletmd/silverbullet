@@ -9,7 +9,7 @@ function wrapQueryParse(query: string): AST | null {
   // console.log("tree", tree);
   // Check for no ambiguitiies
   if (collectNodesOfType(tree, "⚠").length > 0) {
-    console.error("Ambiguous parse tree", JSON.stringify(tree, null, 2));
+    console.error("Parse error:", JSON.stringify(tree, null, 2));
     assert(false);
   }
 
@@ -58,6 +58,21 @@ Deno.test("Test query parser", () => {
     ),
     {
       querySource: "page",
+    },
+  );
+
+  // Nested query check
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page select {page} as p`)!,
+    ),
+    {
+      querySource: "page",
+      select: [{
+        expr: ["query", { querySource: "page" }],
+        name: "p",
+      }],
     },
   );
 

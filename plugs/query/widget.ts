@@ -17,7 +17,9 @@ export async function widget(
       await replaceTemplateVars(bodyText, pageObject),
     );
 
-    const results = await queryParsed(parsedQuery);
+    const results = await queryParsed(parsedQuery, {
+      page: pageObject,
+    });
     if (results.length === 0 && !parsedQuery.renderAll) {
       resultMarkdown = "No results";
     } else {

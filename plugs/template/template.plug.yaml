@@ -30,13 +30,13 @@ functions:
 
   # Widget
   templateWidget:
-    path: template_block.ts:widget
-    codeWidget: template
+    path: widget.ts:includeWidget
+    codeWidget: include
     renderMode: markdown
 
   blockWidget:
-    path: template_block.ts:blockWidget
-    codeWidget: block
+    path: widget.ts:templateWidget
+    codeWidget: template
     renderMode: markdown
 
   # API invoked when a new page is created
@@ -55,5 +55,10 @@ functions:
   # Lint
   lintTemplateFrontmatter:
     path: lint.ts:lintTemplateFrontmatter
+    events:
+    - editor:lint
+
+  lintTemplateBlocks:
+    path: lint.ts:lintTemplateBlocks
     events:
     - editor:lint

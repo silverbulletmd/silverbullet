@@ -80,6 +80,14 @@ Deno.test("Test inline attribute syntax", () => {
   assertEquals(valueNode?.children![0].text, "[1, 2, 3]");
 });
 
+Deno.test("Test template directive parsing", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "Simple {{name}} and {{count({ page })}}",
+  );
+  console.log("Template directive", JSON.stringify(tree, null, 2));
+});
+
 const multiStatusTaskExample = `
 * [ ] Task 1
 - [x] Task 2
@@ -106,7 +114,7 @@ const commandLinkSample = `
 Deno.test("Test command links", () => {
   const tree = parse(extendedMarkdownLanguage, commandLinkSample);
   const commands = collectNodesOfType(tree, "CommandLink");
-  console.log("Command links parsed", JSON.stringify(commands, null, 2));
+  // console.log("Command links parsed", JSON.stringify(commands, null, 2));
   assertEquals(commands.length, 3);
   assertEquals(commands[0].children![1].children![0].text, "Some: Command");
   assertEquals(commands[1].children![1].children![0].text, "Other: Command");
@@ -130,9 +138,4 @@ Deno.test("Test command link arguments", () => {
 
   const args2 = findNodeOfType(commands[1], "CommandLinkArgs");
   assertEquals(args2!.children![0].text, '"other", "args", 123');
-});
-
-Deno.test("Test template directives", () => {
-  const tree = parse(extendedMarkdownLanguage, `Hello there {{name}}!`);
-  console.log("Template directive", JSON.stringify(tree, null, 2));
 });

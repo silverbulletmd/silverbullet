@@ -170,6 +170,9 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
         expressionToKvQueryExpression(ifFalse),
       ];
     }
+    case "QueryExpression": {
+      return ["query", astToKvQuery(node[2])];
+    }
     default:
       throw new Error(`Not supported: ${node[0]}`);
   }

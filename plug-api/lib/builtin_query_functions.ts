@@ -6,7 +6,6 @@ export const builtinFunctions: FunctionMap = {
     return niceDate(new Date());
   },
   replace(
-    _globals,
     str: string,
     match: [string, string] | string,
     replace: string,
@@ -16,14 +15,14 @@ export const builtinFunctions: FunctionMap = {
       : match;
     return str.replaceAll(matcher, replace);
   },
-  json: (_, v: any) => {
+  json: (v: any) => {
     return JSON.stringify(v);
   },
-  niceDate: (_, ts: any) => niceDate(new Date(ts)),
+  niceDate: (ts: any) => niceDate(new Date(ts)),
   escapeRegexp: (_, ts: any) => {
     return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   },
-  escape: (_, handlebarsExpr: string) => {
+  escape: (handlebarsExpr: string) => {
     return `{{${handlebarsExpr}}}`;
   },
   time: () => niceTime(new Date()),
@@ -47,7 +46,7 @@ export const builtinFunctions: FunctionMap = {
     nextWeek.setDate(nextWeek.getDate() + 7);
     return niceDate(nextWeek);
   },
-  weekStart: (_, startOnMonday = true) => {
+  weekStart: (startOnMonday = true) => {
     const d = new Date();
     const day = d.getDay();
     let diff = d.getDate() - day;
@@ -58,10 +57,10 @@ export const builtinFunctions: FunctionMap = {
   },
 
   // List functions
-  count: (_, list: any[]) => {
+  count: (list: any[]) => {
     return list.length;
   },
-  at: (_, list: any[], index: number) => {
+  at: (list: any[], index: number) => {
     return list[index];
   },
 };

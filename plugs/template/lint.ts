@@ -1,8 +1,13 @@
 import { LintEvent } from "$sb/app_event.ts";
 import { LintDiagnostic } from "$sb/types.ts";
-import { findNodeOfType } from "$sb/lib/tree.ts";
+import {
+  findNodeOfType,
+  renderToText,
+  traverseTreeAsync,
+} from "$sb/lib/tree.ts";
 import { FrontmatterConfig } from "./types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { YAML } from "$sb/syscalls.ts";
 
 export async function lintTemplateFrontmatter(
   { tree }: LintEvent,
@@ -39,5 +44,50 @@ export async function lintTemplateFrontmatter(
       });
     }
   }
+  return diagnostics;
+}
+
+export async function lintTemplateBlocks(
+  { tree }: LintEvent,
+): Promise<LintDiagnostic[]> {
+  const diagnostics: LintDiagnostic[] = [];
+  await traverseTreeAsync(tree, async (node) => {
+    if (node.type === "FencedCode") {
+      const codeInfo = findNodeOfType(node, "CodeInfo")!;
+      if (!codeInfo) {
+        return true;
+      }
+      const codeLang = codeInfo.children![0].text!;
+      if (codeLang !== "template") {
+        return true;
+      }
+
+      const codeText = findNodeOfType(node, "CodeText");
+      if (!codeText) {
+        return true;
+      }
+      try {
+        const bodyText = renderToText(codeText);
+        const parsedYaml = await YAML.parse(bodyText);
+        if (
+          typeof parsedYaml === "object" &&
+          (parsedYaml.template || parsedYaml.page || parsedYaml.raw)
+        ) {
+          diagnostics.push({
+            from: codeText.from!,
+            to: codeText.to!,
+            message:
+              "Legacy template syntax detected, please replace ```template with ```include to fix.",
+            severity: "warning",
+          });
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
+    return false;
+  });
+
   return diagnostics;
 }

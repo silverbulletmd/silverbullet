@@ -1,1 +1,1 @@
-This is a simple test page
+This is a simple test page with a {{var}} that will not be processed.

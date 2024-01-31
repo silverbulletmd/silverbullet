@@ -21,7 +21,7 @@ type TemplateWidgetConfig = {
   query?: string;
 };
 
-export async function widget(
+export async function includeWidget(
   bodyText: string,
   pageName: string,
 ): Promise<CodeWidgetContent> {
@@ -100,14 +100,31 @@ export async function widget(
   }
 }
 
-export async function blockWidget(
+export async function templateWidget(
   bodyText: string,
   pageName: string,
 ): Promise<CodeWidgetContent> {
+  // Check if this is a legacy syntax template widget (with YAML body)
+  try {
+    const parsedYaml = await YAML.parse(bodyText);
+    if (
+      typeof parsedYaml === "object" &&
+      (parsedYaml.template || parsedYaml.page || parsedYaml.raw)
+    ) {
+      // Yeah... this looks like a legacy widget
+      console.warn(
+        "Found a template widget with legacy syntax, implicitly rewriting it to 'include'",
+      );
+      return includeWidget(bodyText, pageName);
+    }
+  } catch {
+    // Not a legacy widget, good!
+  }
+
   const pageMeta: PageMeta = await loadPageObject(pageName);
 
   try {
-    let { text: rendered } = await renderTemplate(
+    const { text: rendered } = await renderTemplate(
       bodyText,
       pageMeta,
       { page: pageMeta },

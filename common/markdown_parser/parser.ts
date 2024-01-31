@@ -129,8 +129,6 @@ const CommandLink: MarkdownConfig = {
   ],
 };
 
-export const templateDirectiveRegex = /^\{\{([^\}]+)\}\}/;
-
 const TemplateDirective: MarkdownConfig = {
   defineNodes: [
     { name: "TemplateDirective", style: t.monospace },
@@ -140,15 +138,41 @@ const TemplateDirective: MarkdownConfig = {
     {
       name: "TemplateDirective",
       parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
+        const textFromPos = cx.slice(pos, cx.end);
         if (
           next != 123 /* '{' */ ||
-          !(match = templateDirectiveRegex.exec(cx.slice(pos, cx.end)))
+          cx.slice(pos, pos + 2) !== "{{"
         ) {
           return -1;
         }
-        const fullMatch = match[0];
-        const endPos = pos + fullMatch.length;
+
+        let bracketNestingDepth = 0;
+        let valueLength = 0;
+        // We need to ensure balanced { and } pairs
+        loopLabel:
+        for (; valueLength < textFromPos.length; valueLength++) {
+          switch (textFromPos[valueLength]) {
+            case "{":
+              bracketNestingDepth++;
+              break;
+            case "}":
+              bracketNestingDepth--;
+              if (bracketNestingDepth === 0) {
+                // Done!
+                break loopLabel;
+              }
+              break;
+          }
+        }
+        if (bracketNestingDepth !== 0) {
+          console.log(
+            "Failed to parse template directive",
+            textFromPos,
+          );
+          return -1;
+        }
+
+        const endPos = pos + valueLength + 1;
         return cx.addElement(
           cx.elt("TemplateDirective", pos, endPos, [
             cx.elt("TemplateDirectiveMark", pos, pos + 2),
@@ -250,7 +274,6 @@ export const Attribute: MarkdownConfig = {
         }
 
         if (textFromPos[valueLength + 1] === "(") {
-          console.log("Link", fullMatch, textFromPos);
           // This turns out to be a link, back out!
           return -1;
         }

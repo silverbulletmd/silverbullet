@@ -20,8 +20,12 @@ export function dataStoreReadSyscalls(ds: DataStore): SysCallMapping {
       return ds.get(key);
     },
 
-    "datastore.query": async (_ctx, query: KvQuery): Promise<KV[]> => {
-      return (await ds.query(query));
+    "datastore.query": (
+      _ctx,
+      query: KvQuery,
+      globalVariables?: Record<string, any>,
+    ): Promise<KV[]> => {
+      return ds.query(query, globalVariables);
     },
   };
 }
@@ -44,8 +48,12 @@ export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
       return ds.batchDelete(keys);
     },
 
-    "datastore.queryDelete": (_ctx, query: KvQuery): Promise<void> => {
-      return ds.queryDelete(query);
+    "datastore.queryDelete": (
+      _ctx,
+      query: KvQuery,
+      globalVariables?: Record<string, any>,
+    ): Promise<void> => {
+      return ds.queryDelete(query, globalVariables);
     },
   };
 }

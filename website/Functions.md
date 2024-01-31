@@ -4,7 +4,7 @@ Here is a list of all functions you can use in SilverBullet’s [[Expression Lan
 ## query(query, ...args)
 Perform a [[Query Language]] query. The `query` may contain `?` placeholders, filled in with the args:
 
-```block
+```template
 Most recently updated page: {{at(query("page order by lastModified desc limit 1"), 0).name}}
 
 Some page query JSON: {{json(query("page limit ?", 8 - 5))}}
@@ -13,7 +13,7 @@ Some page query JSON: {{json(query("page limit ?", 8 - 5))}}
 ## count(list)
 Count the number of elements in a list:
 
-```block
+```template
 {{#let @totalTasks = count(query("task"))}}
 {{#let @notDoneTasks = count(query("task where not done"))}}
 # Fun stats
@@ -49,7 +49,7 @@ Replace text in a string. `match` can either be a literal string or a regular ex
 ## json(obj)
 Convert the argument to a JSON string (for debugging purposes).
 
-```block
+```template
 The current page object: {{json(@page)}}
 ```
 
@@ -57,13 +57,13 @@ The current page object: {{json(@page)}}
 ## pageExists(name)
 Checks if the page `name` exists:
 
-```block
+```template
 This very page exists: {{pageExists(@page.name)}}
 ```
 
 ## readPage(name)
 Read the content of page `name` and return it.
 
-```block
+```template
 {{readPage("internal/test page")}}
 ```

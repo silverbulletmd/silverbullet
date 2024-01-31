@@ -106,10 +106,13 @@ export class DataStore {
     );
   }
 
-  async queryDelete(query: KvQuery): Promise<void> {
+  async queryDelete(
+    query: KvQuery,
+    globalVariables: Record<string, any> = {},
+  ): Promise<void> {
     const keys: KvKey[] = [];
     for (
-      const { key } of await this.query(query)
+      const { key } of await this.query(query, globalVariables)
     ) {
       keys.push(key);
     }
