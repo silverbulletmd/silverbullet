@@ -37,7 +37,7 @@ export async function newPage(pageName: string) {
   const allPageTemplatesMatchingPrefix = (await listPageTemplates()).filter(
     (templateObject) => {
       const forPrefix = templateObject.hooks?.newPage?.forPrefix;
-      return forPrefix && pageName.startsWith(forPrefix);
+      return forPrefix !== undefined && pageName.startsWith(forPrefix);
     },
   );
   // console.log("Matching templates", allPageTemplatesMatchingPrefix);
