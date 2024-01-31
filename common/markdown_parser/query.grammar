@@ -69,6 +69,8 @@ Expression {
 | BinExpression
 | TernaryExpression
 | Call
+| PageRef
+| Object
 }
 
 QueryExpression {
@@ -102,8 +104,13 @@ TernaryExpression {
   Expression !terop "?" Expression !terop ":" Expression
 }
 
-List { "[" commaSep<Expression> "]" }
+List { "[" commaSep<Expression> "]" | "[" "]" }
 
+KeyVal {
+  String ":" Expression
+}
+
+Object { "{" commaSep<KeyVal> "}" | "{" "}" }
 
 Bool {
   BooleanKW
@@ -127,7 +134,7 @@ Bool {
     | "`" ![`]* "`"
   }
   PageRef {
-    "[" "[" ![\]]* "]" "]"
+    "[[" ![\]]* "]]"
   }
   Order { "order by" }
   Regex { "/" ( ![/\\\n\r] | "\\" _ )+ "/" }

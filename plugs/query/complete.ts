@@ -24,7 +24,7 @@ export async function queryComplete(completeEvent: CompleteEvent) {
     );
 
     if (fencedParent) {
-      querySourceMatch = /query\s*\(["']([\w\-_]*)$/.exec(
+      querySourceMatch = /\{(\s*[\w\-_]*)$/.exec(
         completeEvent.linePrefix,
       );
     } else {
@@ -60,7 +60,7 @@ export async function queryComplete(completeEvent: CompleteEvent) {
 
   // If that doesn't work, let's try to match other bits of the query
   // For this we do need to find the query source, though, so let's look for it in fencedParent
-  querySourceMatch = /(^[\n\r\s]*|query\s*\(["'])([\w\-_]+)/.exec(
+  querySourceMatch = /(^[\n\r\s]*|\{\s*)([\w\-_]+)/.exec(
     fencedParent.slice("FencedCode:query".length),
   );
   const whereMatch =

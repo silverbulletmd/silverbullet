@@ -24,7 +24,7 @@ ExpressionDirective {
 
     BlockName { @asciiLetter+ }
 
-    BlockDirectiveContent { ( ![}] | "{" ![}]+ "}" )+ }
+    BlockDirectiveContent { ( ![}] | "{" ![}]* "}" )+ }
 
     ExpressionDirectiveOpenTag { "{{" }
 

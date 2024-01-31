@@ -23,10 +23,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     allPages = await queryObjects<PageMeta>("template", {}, 5);
   } else if (
     completeEvent.parentNodes.find((node) =>
-      node.startsWith("FencedCode:include")
+      node.startsWith("FencedCode:include") ||
+      node.startsWith("FencedCode:template")
     )
   ) {
-    // Include both pages and templates in page completion in ```include blocks
+    // Include both pages and templates in page completion in ```include and ```template blocks
     allPages = await queryObjects<PageMeta>("page", {}, 5);
   } else {
     // Otherwise, just complete non-template pages

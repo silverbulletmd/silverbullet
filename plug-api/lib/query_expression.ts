@@ -96,12 +96,48 @@ export function evalQueryExpression(
       return variables[op1];
     }
     case "array": {
-      return Promise.all(
-        op1.map((v) => evalQueryExpression(v, obj, variables, functionMap)),
+      const argValues = op1.map((v) =>
+        evalQueryExpression(v, obj, variables, functionMap)
       );
+      // Check if any arg value is a promise, and if so wait for it
+      const waitForPromises: Promise<void>[] = [];
+      for (let i = 0; i < argValues.length; i++) {
+        if (argValues[i] instanceof Promise) {
+          // Wait and replace in-place
+          waitForPromises.push(argValues[i].then((v: any) => argValues[i] = v));
+        }
+      }
+      if (waitForPromises.length > 0) {
+        return Promise.all(waitForPromises).then(() => argValues);
+      } else {
+        return argValues;
+      }
     }
-    case "object":
-      return obj;
+    case "object": {
+      const objEntries: [string, any][] = op1.map((
+        [key, expr],
+      ) => [key, evalQueryExpression(expr, obj, variables, functionMap)]);
+      // Check if any arg value is a promise, and if so wait for it
+      const waitForPromises: Promise<void>[] = [];
+      for (let i = 0; i < objEntries.length; i++) {
+        if (objEntries[i][1] instanceof Promise) {
+          // Wait and replace in-place
+          waitForPromises.push(
+            objEntries[i][1].then((v: any) => objEntries[i] = v),
+          );
+        }
+      }
+      if (waitForPromises.length > 0) {
+        return Promise.all(waitForPromises).then(() =>
+          Object.fromEntries(objEntries)
+        );
+      } else {
+        return Object.fromEntries(objEntries);
+      }
+    }
+    case "pageref":
+      // This evaluates to a plain string
+      return op1;
     case "query": {
       const parsedQuery = val[1];
       const queryFunction = functionMap.$query;

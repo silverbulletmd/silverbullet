@@ -9,17 +9,24 @@ export function buildQueryFunctions(
 ): FunctionMap {
   return {
     ...builtinFunctions,
-    pageExists: (name: string) => {
+    pageExists(name: string) {
       if (name.startsWith("!") || name.startsWith("{{")) {
         // Let's assume federated pages exist, and ignore template variable ones
         return true;
       }
       return allKnownPages.has(name);
     },
-    readPage: (name: string) => {
+    readPage(name: string) {
       return system.syscall({}, "space.readPage", [name]);
     },
-    $query: (query: Query, variables: Record<string, any>) => {
+    async renderTemplate(name: string, obj: any) {
+      return (await system.invokeFunction("template.renderTemplate", [
+        await system.syscall({}, "space.readPage", [name]),
+        obj,
+      ])).text;
+    },
+    // INTERNAL: Used for implementing the { query } syntax in expressions
+    $query(query: Query, variables: Record<string, any>) {
       return system.invokeFunction("query.queryParsed", [
         query,
         variables,

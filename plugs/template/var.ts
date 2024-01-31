@@ -18,7 +18,7 @@ export async function templateVariableComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const match = /(@|\{\{)(\w*)$/.exec(completeEvent.linePrefix);
+  const match = /(@|[^\{]\{\{)(\w*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }

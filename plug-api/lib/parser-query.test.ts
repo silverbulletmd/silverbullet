@@ -110,6 +110,65 @@ Deno.test("Test query parser", () => {
 
   assertEquals(
     astToKvQuery(
+      wrapQueryParse(`page where name = [[my page]]`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], [
+        "pageref",
+        "my page",
+      ]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = {"name": "Pete", "age": 27}`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["object", [
+        ["name", ["string", "Pete"]],
+        ["age", ["number", 27]],
+      ]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where json({})`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["call", "json", [["object", []]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = [1, 2, 3]`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["array", [["number", 1], ["number", 2], [
+        "number",
+        3,
+      ]]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = []`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["array", []]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
       wrapQueryParse(`page where name = "test" and age > 20`)!,
     ),
     {

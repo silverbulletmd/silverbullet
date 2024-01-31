@@ -35,6 +35,9 @@ export const fuzzySearchAndSort = (
     }, {
       name: "aliases",
       weight: 0.5,
+    }, {
+      name: "description",
+      weight: 0.3,
     }],
     includeScore: true,
     shouldSort: true,

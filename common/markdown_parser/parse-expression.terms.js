@@ -35,4 +35,6 @@ export const
   BinExpression = 43,
   InKW = 44,
   TernaryExpression = 45,
-  Call = 46
+  Call = 46,
+  Object = 47,
+  KeyVal = 48

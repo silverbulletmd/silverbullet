@@ -122,6 +122,22 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
       }
       return ["array", exprs.map(expressionToKvQueryExpression)];
     }
+    case "Object": {
+      const objAttrs: [string, QueryExpression][] = [];
+      for (const kv of node.slice(2)) {
+        if (typeof kv === "string") {
+          continue;
+        }
+        const [_, key, _colon, expr] = kv;
+        objAttrs.push([
+          key[1].slice(1, -1) as string,
+          expressionToKvQueryExpression(
+            expr,
+          ),
+        ]);
+      }
+      return ["object", objAttrs];
+    }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
       const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
@@ -172,6 +188,9 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "QueryExpression": {
       return ["query", astToKvQuery(node[2])];
+    }
+    case "PageRef": {
+      return ["pageref", (node[1] as string).slice(2, -2)];
     }
     default:
       throw new Error(`Not supported: ${node[0]}`);

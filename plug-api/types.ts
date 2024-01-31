@@ -101,8 +101,9 @@ export type QueryExpression =
   | ["null"]
   | ["not", QueryExpression]
   | ["array", QueryExpression[]]
-  | ["object", Record<string, any>]
+  | ["object", [string, QueryExpression][]]
   | ["regexp", string, string] // regex, modifier
+  | ["pageref", string]
   | ["+", QueryExpression, QueryExpression]
   | ["-", QueryExpression, QueryExpression]
   | ["*", QueryExpression, QueryExpression]
