@@ -135,3 +135,7 @@ export async function navigateCommand(cmdDef: any) {
 export async function navigateToPage(_cmdDef: any, pageName: string) {
   await editor.navigate({ page: pageName, pos: 0 });
 }
+
+export async function navigateToURL(_cmdDef: any, url: string) {
+  await editor.openUrl(url, false);
+}
