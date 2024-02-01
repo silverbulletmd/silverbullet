@@ -8,7 +8,7 @@ There are two variants of Live Templates:
 Template blocks are specified using [[Markdown]]‘s fenced code block notation using either `template` or `include` as its language.
 
 # Template
-To specify a template to render inline, you can use the `template` block:
+To specify a template to render inline, you can use the `template` block. The body is written in [[Template Language]].
 
 ```template
 Today is {{today}}
@@ -26,7 +26,7 @@ Here’s an example using `page`:
 page: "[[internal-template/today]]"
 ```
 
-If you want to include another _page_ (not necessarily a template) unprocessed (so without replacing template placeholders), you can use `raw`:
+If you want to include another _page_ (not necessarily a template). unprocessed (so without replacing template placeholders), you can use `raw`:
 ```include
 raw: "[[internal/test page]]"
 ```

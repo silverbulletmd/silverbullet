@@ -49,10 +49,3 @@ Checks if the page `name` exists:
 ```template
 This very page exists: {{pageExists(@page.name)}}
 ```
-
-## readPage(name)
-Read the content of page `name` and return it.
-
-```template
-{{readPage("internal/test page")}}
-```

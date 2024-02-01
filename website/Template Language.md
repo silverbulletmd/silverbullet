@@ -1,11 +1,11 @@
-SilverBullet uses a simple template language for [[Templates]] that is somewhat inspired by [Handlebars](https://handlebarsjs.com/).
+SilverBullet uses a simple template language for [[Templates]] that is partially inspired by [Handlebars](https://handlebarsjs.com/).
 
-This template language is a superset of [[Markdown]] text a new _directive syntax_ added using `{{` and `}}`.
+The template language is a superset of [[Markdown]] text a new _directive syntax_ added, using `{{` and `}}`.
 
-Examples on this page will use the [[Live Templates#Block]] feature. To see the underlying code, move your cursor inside the block or click the edit button that will appear when you hover over the block.
+Examples on this page will use the [[Live Templates#Template]] feature. To see the underlying code, move your cursor inside the block or click the edit button that will appear when you hover over the block.
 
 # Expressions
-[[Expression Language]] expressions can be injected in a template using the `{{expression}}` syntax.
+[[Expression Language]] expressions can be used in a template using the `{{expression}}` syntax.
 
 > **note** Note
 > For handlebars backwards compatibility, a legacy function call syntax is added, although we don’t recommend using it (use the [[Expression Language#Function calls]] syntax instead).
@@ -13,11 +13,13 @@ Examples on this page will use the [[Live Templates#Block]] feature. To see the 
 
 ## Examples
 ```template
-3 * 3 = {{3 * 3}}
+81232 * 321 = {{81232 * 321}}
+
+This is your last modified page: {{at({page order by lastModified desc limit 1}, 0).name}}
 ```
 
 # let directive
-To define a variable, you can you use a `#let` directive. The variable will be scoped to the directive.
+To define (scoped) variables, you can you use a `#let` directive. The variable will be scoped to the directive. Variables in [[Expression Language]] use the `@variable` syntax:
 
 ```template
 {{#let @myVar = 3 * 3}}

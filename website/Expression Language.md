@@ -1,19 +1,23 @@
-SilverBullet has a simple expression language that is used both by the [[Query Language]] and [[Template Language]].
+SilverBullet has a simple expression language that is used by the [[Query Language]], [[Template Language]] and `where` condition in [[Live Template Widgets]].
 
 Examples in this page will be demonstrated by embedding expressions inside of a [[Templates|template]].
 
-# Primitives 
+While a custom language, it takes a lot of inspiration from JavaScript and SQL, but includes some features very specific to SilverBullet, including syntax for embedded queries and page references.
+
+# Primitive values
 * strings: `"a string"`, `'a string'` or `a string` (with backticks). Escaping is not currently supported, so use your quotes wisely.
 * numbers: `10`
 * booleans: `true` or `false`
 * regular expressions: `/[a-z]+/`
+* page references: `[[page ref]]`
 * null: `null`
 * lists: `["value 1", 10, false]`
+* objects: `{"name": "Jack", "age": 1232}`
 * attributes:
   * `.` for the current object
   * `attr` for the current object’s attribute with the name `attr`
   * `<expression>.attr` to access an attribute from the object that `<expression>` evaluates to
-* variables: `@page`. Note the `@page` is always available and is an instance of a [[Objects#page]] that points to the current page.
+* variables: `@page`
 
 ## Examples
 ```template
@@ -36,7 +40,7 @@ Today without an argument list: {{today}}
 [[Functions]]
 
 # Queries
-You can execute a (nested) [[Query Language|query]] using the `{ page limit 1 }` syntax. Note that you can reference variables inside this sub-query as well.
+Expression can include [[Query Language|queries]] using the `{ page limit 1 }` syntax. Note that you can reference variables inside this sub-query as well.
 
 ## Example
 Incomplete task:
@@ -47,7 +51,6 @@ Number of incomplete tasks on this page: {{count({task where not done and page =
 ```
 
 # Logical expressions 
-
 * and: `name = "this" and age > 10`
 * or: `name = "this" or age > 10`
 
@@ -56,7 +59,7 @@ Number of incomplete tasks on this page: {{count({task where not done and page =
 Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 ```
 
-# Binary expressions 
+# Operators 
 * `=` equals
   * For scalar values this performs an equivalence test (e.g. `10 = 10`)
   * If the left operand is an array and the right operand is _not_, this will check if the right operand is _included_ in the left operand’s value, e.g. `[1, 2, 3] = 2` will be true.
@@ -74,32 +77,19 @@ Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 * `/` addition, e.g. `10 / 12`
 * `*` multiplication, e.g. `10 * 12`
 * `%` modulo, e.g. `10 % 12`
+* `not <expression>` or `!<expression>` to negate the truthiness value
+* `<expression> ? <ifTrue> : <ifFalse>`
+
+## Operator precedence
+Operator precedence follows standard rules, use parentheses when in doubt, e.g. `(age > 10) or (name = "Pete")`
 
 ## Examples
 ```template
 Some arithmatic: {{10 * 100 / 1000}}
 Some regexp match: {{"hello" =~ /ell/}}
 Some list check: {{["template", "other"] = "template"}}
-```
-
-# Unary expression 
-* `not <expression>` or `!<expression>` to negate the truthiness value
-
-## Examples
-```template
-Not false: {{!false}} and {{not false}}
-```
-
-# Ternary expressions 
-* `<expression> ? <ifTrue> : <ifFalse>`
-
-## Examples
-```template
 {{8 > 3 ? "8 is larger than 3" : "8 is not larger than 3"}}
 ```
 
 # Comments
 Line comments are supported via `# this is a line comment`
-
-# Operator precedence
-Operator precedence follows standard rules, use parentheses when in doubt, e.g. `(age > 10) or (name = "Pete")`

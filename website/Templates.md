@@ -1,27 +1,29 @@
-Templates are reusable pieces of (markdown) content, often containing placeholders that are replaced once instantiated written in SilverBullet’s [[Template Language]].
+Templates are pieces of (markdown) text that contain placeholders (named _directives_) that are replaced once instantiated. Templates are written in SilverBullet’s [[Template Language]].
 
-Templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
+Like everything else, templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.
 
-Templates **do not appear** in the [[Page Picker]], but instead appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
+However, templates **do not appear** in the [[Page Picker]]. Instead, they appear in the [[Template Picker]]. They are not offered as auto complete suggestions when creating regular page links, only when doing so in the context of e.g. a [[Live Queries]] and [[Live Templates]].
 
 In SilverBullet templates serve a few purposes:
 
 1. _Live_ uses, where page content is dynamically updated based on templates:
-  * [[Live Queries]]
   * [[Live Templates]]
+  * [[Live Queries]]
   * [[Live Template Widgets]]
 2. _One-off_ uses, where a template is instantiated once and inserted into an existing or new page:
   * [[Snippets]]
   * [[Page Templates]]
 
 # Definition
-Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that when tagged inline (by putting `#template` at the beginning of the page), the tag will be removed when the template is instantiated.
+Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that when tagged inline (by putting `#template` at the beginning of the page), that tag will be removed when the template is instantiated.
 
-Tagging a page with a `#template` tag (either in the [[Frontmatter]] or using a [[Tags]] at the very beginning of the page content) does a few things:
+Tagging a page with a `template` does a few things:
 
 1. It will make the page appear when completing template names, e.g. in `render` clauses in [[Live Queries]], or after the `page` key in  [[Live Templates]].
 2. The template page no longer appears in the [[Page Picker]], instead you now navigate to it using the [[Template Picker]].
 3. It can register your templates to be used as [[Snippets]], [[Page Templates]] or [[Live Template Widgets]].
+
+Templates are written in [[Template Language]]
 
 ## Frontmatter
 [[Frontmatter]] has special meaning in templates. The following attributes are used:
