@@ -18,6 +18,7 @@ async function actionClickOrActionEnter(
   if (!mdTree) {
     return;
   }
+  // console.log("Got a click on", mdTree);
   const navigationNodeFinder = (t: ParseTree) =>
     [
       "WikiLink",

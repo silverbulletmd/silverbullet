@@ -108,6 +108,33 @@ Deno.test("Test template", async () => {
     `Hello Pete and now undefined`,
   );
 
+  // Test line removal
+  console.log(
+    "Got this",
+    JSON.stringify(
+      parseTemplate(
+        "{{#if .}}\nHello\n{{/if}}",
+      ),
+      null,
+      2,
+    ),
+  );
+  assertEquals(
+    await parseAndRender(
+      "{{#if .}}\nHello\n{{/if}}",
+      true,
+    ),
+    "Hello\n",
+  );
+
+  assertEquals(
+    await parseAndRender(
+      "{{#each [1, 2, 3]}}\n{{.}}\n{{/each}}",
+      true,
+    ),
+    "1\n2\n3\n",
+  );
+
   function parseAndRender(template: string, value: any): Promise<string> {
     const parsedTemplate = parseTemplate(template);
     return renderTemplate(parsedTemplate, value, variables, functionMap);

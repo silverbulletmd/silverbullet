@@ -215,10 +215,10 @@ export function cloneTree(tree: ParseTree): ParseTree {
 }
 
 export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
-  const ambNodes = collectNodesOfType(tree, "⚠");
-  if (ambNodes.length > 0) {
+  const parseErrorNodes = collectNodesOfType(tree, "⚠");
+  if (parseErrorNodes.length > 0) {
     throw new Error(
-      `Parse error: ${JSON.stringify(ambNodes, null, 2)}`,
+      `Parse error in: ${renderToText(tree)}`,
     );
   }
   if (tree.text !== undefined) {

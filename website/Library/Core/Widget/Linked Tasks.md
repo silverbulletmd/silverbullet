@@ -5,5 +5,5 @@ description: |
 ---
 
 ```query
-task where name =~ /\[\[{{escapeRegexp @page.name}}\]\]/ where done = false render [[Library/Core/Query/Task]]
+task where name =~ /\[\[{{escapeRegexp(@page.name)}}\]\]/ where done = false render [[Library/Core/Query/Task]]
 ```

@@ -48,4 +48,6 @@ Checks if the page `name` exists:
 
 ```template
 This very page exists: {{pageExists(@page.name)}}
+
+And this one: {{pageExists([[non-existing]])}}
 ```

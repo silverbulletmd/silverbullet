@@ -1,4 +1,5 @@
 import { FunctionMap } from "$sb/types.ts";
+import { AST } from "$sb/lib/tree.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { renderTemplate } from "../template/render.ts";
 import { parseTemplate } from "../template/template_parser.ts";
@@ -12,6 +13,12 @@ export function templateSyscalls(functionMap: FunctionMap): SysCallMapping {
       globals: Record<string, any> = {},
     ): Promise<string> => {
       return renderTheTemplate(template, obj, globals, functionMap);
+    },
+    "template.parseTemplate": (
+      _ctx,
+      template: string,
+    ): AST => {
+      return parseTemplate(template);
     },
   };
 }

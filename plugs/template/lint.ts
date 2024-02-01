@@ -7,7 +7,7 @@ import {
 } from "$sb/lib/tree.ts";
 import { FrontmatterConfig } from "./types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { YAML } from "$sb/syscalls.ts";
+import { template, YAML } from "$sb/syscalls.ts";
 
 export async function lintTemplateFrontmatter(
   { tree }: LintEvent,
@@ -66,8 +66,9 @@ export async function lintTemplateBlocks(
       if (!codeText) {
         return true;
       }
+      const bodyText = renderToText(codeText);
+      // See if it parses as YAML, then issue a warning
       try {
-        const bodyText = renderToText(codeText);
         const parsedYaml = await YAML.parse(bodyText);
         if (
           typeof parsedYaml === "object" &&
@@ -83,6 +84,18 @@ export async function lintTemplateBlocks(
         }
       } catch {
         // Ignore
+      }
+
+      // Ok, now parse it as a template and report any parse errors
+      try {
+        await template.parseTemplate(bodyText);
+      } catch (e: any) {
+        diagnostics.push({
+          from: codeText.from!,
+          to: codeText.to!,
+          message: e.message,
+          severity: "error",
+        });
       }
     }
 

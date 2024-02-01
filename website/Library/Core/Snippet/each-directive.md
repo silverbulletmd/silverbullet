@@ -1,5 +1,5 @@
 ---
-description: Insert a template '#each' directive
+description: (Template) Insert an `#each` directive
 tags: template
 hooks.snippet.slashCommand: "#each"
 ---

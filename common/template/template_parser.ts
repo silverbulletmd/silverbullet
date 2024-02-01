@@ -25,15 +25,20 @@ export const queryLanguage = LRLanguage.define({
 
 export function parseTemplate(text: string) {
   // Remove a newline after a singleton (only thing on the line) block open or close tag
-  text = text.replaceAll(/(^|\n)(\{\{[#\/][^}]+\}\})(\n)/g, "$1$2");
+  // text = text.replaceAll(/(^|\n)(\{\{[#\/][^}]+\}\})(\n)/g, "$1$2");
   const tree = parse(templateLanguage, text);
-  return processTree(parseTreeToAST(tree, false));
+  const ast = processTree(parseTreeToAST(tree, false));
+  // console.log("AST", JSON.stringify(ast, null, 2));
+  return ast;
 }
 
 function processTree(tree: AST): AST {
   switch (tree[0]) {
     case "Template":
-      return ["Template", ...(tree.slice(1) as AST[]).map(processTree)];
+      return [
+        "Template",
+        ...stripInitialNewline((tree.slice(1) as AST[]).map(processTree)),
+      ];
     case "TemplateElement":
       return ["TemplateElement", ...(tree.slice(1) as AST[]).map(processTree)];
     case "ExpressionDirective": {
@@ -60,6 +65,12 @@ function processTree(tree: AST): AST {
       const bodyElements = (tree as any[]).filter((n) =>
         n[0] === "TemplateElement"
       );
+      const closingBlockName = tree[tree.length - 2][1];
+      if (closingBlockName !== blockType) {
+        throw new Error(
+          `Block #${blockType} is not properly closed, saw /${closingBlockName} instead`,
+        );
+      }
       // const body = stripInitialNewline(bodyElements.map(processTree));
       const body = bodyElements.map(processTree);
       switch (blockType) {
@@ -69,14 +80,17 @@ function processTree(tree: AST): AST {
             blockTextContent.trim(),
           ));
           // console.log("Each body", bodyElements);
-          return ["EachDirective", expressionTree[1], ...body];
+          return ["EachDirective", expressionTree[1], [
+            "Template",
+            ...stripInitialNewline(body),
+          ]];
         }
         case "let": {
           const letExpr = blockTextContent.trim();
           const letMatch = letExpr.match(/@(\w+)\s*=\s*(.+)$/);
           if (!letMatch) {
             throw new Error(
-              `Let should be of the shape {{#let @var = expression}}`,
+              `A #let directive should be of the shape {{#let @var = expression}}, got instead: ${blockTextContent}`,
             );
           }
           const expressionTree = parseTreeToAST(parse(
@@ -87,7 +101,7 @@ function processTree(tree: AST): AST {
             "LetDirective",
             letMatch[1],
             expressionTree[1],
-            ...body,
+            ["Template", ...stripInitialNewline(body)],
           ];
         }
         case "if": {
@@ -105,11 +119,14 @@ function processTree(tree: AST): AST {
             return [
               "IfDirective",
               expressionTree[1],
-              ["Template", ...body.slice(0, elseIndex)],
-              ["Template", ...body.slice(elseIndex + 1)],
+              ["Template", ...stripInitialNewline(body.slice(0, elseIndex))],
+              ["Template", ...stripInitialNewline(body.slice(elseIndex + 1))],
             ];
           } else {
-            return ["IfDirective", expressionTree[1], ["Template", ...body]];
+            return ["IfDirective", expressionTree[1], [
+              "Template",
+              ...stripInitialNewline(body),
+            ]];
           }
         }
         default: {
@@ -123,4 +140,36 @@ function processTree(tree: AST): AST {
       console.log("tree", tree);
       throw new Error(`Unknown node type: ${tree[0]}`);
   }
+}
+
+function stripInitialNewline(body: any[]) {
+  // body = [["TemplateElement", ["Text", "\n..."], ...]]
+  let first = true;
+  let stripNext = false;
+  for (const el of body) {
+    // Strip initial newline
+    if (first && el[1][0] === "Text" && el[1][1].startsWith("\n")) {
+      // Remove initial newline
+      el[1][1] = el[1][1].slice(1);
+    }
+    first = false;
+
+    // After each block directive, strip the next newline
+    if (
+      ["IfDirective", "EachDirective", "LetDirective"].includes(el[1][0])
+    ) {
+      // console.log("Got a block directive, consider stripping the next one", el);
+      stripNext = true;
+      continue;
+    }
+    if (
+      el[1][0] === "Text" &&
+      el[1][1].startsWith("\n") && stripNext
+    ) {
+      // console.log("Stripping initial newline from", el);
+      el[1][1] = el[1][1].slice(1);
+    }
+    stripNext = false;
+  }
+  return body;
 }

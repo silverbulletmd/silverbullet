@@ -256,11 +256,13 @@
   }
 
   .sb-directive-mark {
-    color: var(--editor-directive-mark-color);
+    color: var(--editor-directive-color);
+    font-weight: bold;
   }
 
   .sb-directive {
     color: var(--editor-directive-color);
+    font-weight: bold;
   }
 
   .sb-highlight {

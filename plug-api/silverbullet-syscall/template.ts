@@ -14,3 +14,9 @@ export function renderTemplate(
 ): Promise<string> {
   return syscall("template.renderTemplate", template, obj, globals);
 }
+
+export function parseTemplate(
+  template: string,
+): Promise<string> {
+  return syscall("template.parseTemplate", template);
+}

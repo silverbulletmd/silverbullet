@@ -1,5 +1,5 @@
 ---
-description: Insert a template '#if' directive with 'else'
+description: (Template) Insert `#if` directive with 'else'
 tags: template
 hooks.snippet.slashCommand: "#if-else"
 ---

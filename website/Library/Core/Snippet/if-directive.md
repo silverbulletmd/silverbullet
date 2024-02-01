@@ -1,5 +1,5 @@
 ---
-description: Insert a template '#if' directive
+description: (Template) Insert an `#if` directive
 tags: template
 hooks.snippet.slashCommand: "#if"
 ---

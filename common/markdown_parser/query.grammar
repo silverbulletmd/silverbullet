@@ -1,8 +1,8 @@
 @top Program { Query }
 
 @precedence {
-  unaryop
   attr @left
+  unaryop
   mulop @left
   addop @left
   binop @left

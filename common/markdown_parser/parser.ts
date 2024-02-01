@@ -187,7 +187,7 @@ const TemplateDirective: MarkdownConfig = {
         let bodyEl: any;
 
         // Is this an open block directive?
-        const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/.exec(bodyText);
+        const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/s.exec(bodyText);
         if (openBlockMatch) {
           const [_, directiveStart, directiveType, directiveBody] =
             openBlockMatch;
@@ -206,7 +206,7 @@ const TemplateDirective: MarkdownConfig = {
 
         if (!bodyEl) {
           // Is this an open block directive?
-          const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/.exec(
+          const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/s.exec(
             bodyText,
           );
           if (openLetBlockMatch) {
@@ -310,7 +310,7 @@ const expressionStyleTags = styleTags({
   BinExpression: t.operator,
   TernaryExpression: t.operator,
   Regex: t.regexp,
-  "where limit select render Order OrderKW and or as InKW NotKW BooleanKW each all":
+  "where limit select render Order OrderKW and or null as InKW NotKW BooleanKW each all":
     t.keyword,
 });
 

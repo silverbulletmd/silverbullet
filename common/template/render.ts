@@ -80,7 +80,7 @@ async function renderEachDirective(
   variables: Record<string, any>,
   functionMap: FunctionMap,
 ): Promise<string> {
-  const [_, expression, ...body] = ast;
+  const [_eachDirective, expression, template] = ast;
   const expr = expressionToKvQueryExpression(expression);
   const values = await evalQueryExpression(
     expr,
@@ -88,9 +88,14 @@ async function renderEachDirective(
     variables,
     functionMap,
   );
+  if (!Array.isArray(values)) {
+    throw new Error(
+      `Expecting a list expression for #each directive, instead got ${values}`,
+    );
+  }
   return await Promise.all(values.map(async (itemValue: any) => {
     return await renderTemplate(
-      ["Document", ...body],
+      template,
       itemValue,
       variables,
       functionMap,
@@ -130,7 +135,7 @@ async function renderLetDirective(
   variables: Record<string, any>,
   functionMap: FunctionMap,
 ) {
-  const [_, name, expression, ...body] = ast;
+  const [_letDirective, name, expression, template] = ast;
   const expr = expressionToKvQueryExpression(expression);
   const val = await evalQueryExpression(
     expr,
@@ -140,7 +145,7 @@ async function renderLetDirective(
   );
   const newGlobalVariables = { ...variables, [name as any]: val };
   return await renderTemplate(
-    ["Document", ...body],
+    template,
     value,
     newGlobalVariables,
     functionMap,

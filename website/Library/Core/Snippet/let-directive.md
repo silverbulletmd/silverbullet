@@ -1,5 +1,5 @@
 ---
-description: Insert a template '#let' directive
+description: (Template) Insert a `#let` directive
 tags: template
 hooks.snippet.slashCommand: "#let"
 ---
