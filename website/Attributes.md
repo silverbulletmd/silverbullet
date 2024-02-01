@@ -33,7 +33,7 @@ However, usually, [[Frontmatter]] is used for this purpose instead.
 Example query:
 
 ```query
-page where name = "{{@page.name}}" select name, pageAttribute 
+page where name = @page.name select name, pageAttribute 
 ```
 
 This attaches an attribute to an item:

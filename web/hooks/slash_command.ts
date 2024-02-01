@@ -21,7 +21,7 @@ export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
 };
 
-const slashCommandRegexp = /([^\w:]|^)\/[\w\-]*/;
+const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands = new Map<string, AppSlashCommand>();

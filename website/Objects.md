@@ -30,7 +30,7 @@ Every page in your space is available via the `page` tag. You can attach _additi
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
 ```query
-page where name = "{{@page.name}}"
+page where name = @page.name
 ```
 
 Note that you can also query this page using the `example-tag` directly:
@@ -69,7 +69,7 @@ upnext render [[Library/Core/Query/Task]]
 And can be queried as follows:
 
 ```query
-taskstate where page = "{{@page.name}}"
+taskstate where page = @page.name
 ```
 
 ## template
@@ -90,7 +90,7 @@ Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 And then queried via the #quote tag:
 
 ```query 
-quote where page = "{{@page.name}}" and tag = "item" select name, by
+quote where page = @page.name and tag = "item" select name, by
 ```
 
 ## paragraph
@@ -129,7 +129,7 @@ _Note_: this is the data source used for the {[Mentions: Toggle]} feature as wel
 Here is a query that shows all links that appear in this particular page:
 
 ```query
-link where page = "{{@page.name}}"
+link where page = @page.name
 ```
 
 ## anchor
@@ -138,14 +138,14 @@ link where page = "{{@page.name}}"
 Here is an example query:
 
 ```query
-anchor where page = "{{@page.name}}"
+anchor where page = @page.name
 ```
 
 ## header
 Headers (lines starting with `#`, `##` etc.) are indexed as well and queriable.
 
 ```query
-header where page = "{{@page.name}}" limit 3
+header where page = @page.name limit 3
 ```
 
 
@@ -155,12 +155,12 @@ The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which
 Here are the tags used/defined in this page:
 
 ```query
-tag where page = "{{@page.name}}" select name, parent
+tag where page = @page.name select name, parent
 ```
 
 ## attribute
 This is another meta tag, which is used to index all [[Attributes]] used in your space. This is used by e.g. attribute completion in various contexts. You likely don’t need to use this tag directly, but it’s there.
 
 ```query
-attribute where page = "{{@page.name}}" limit 1 
+attribute where page = @page.name limit 1 
 ```

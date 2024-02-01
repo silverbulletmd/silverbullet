@@ -34,21 +34,21 @@ age: 25
 To query all `person`s that are above age 21, we can use the following `where` clause:
 
 ```query
-person where page = "{{@page.name}}" and age > 21
+person where page = @page.name and age > 21
 ```
 
 ## order by <expression>
 To sort results, an `order by` clause can be used, optionally with `desc` to order in descending order (ascending is the default):
 
 ```query
-person where page = "{{@page.name}}" order by age desc
+person where page = @page.name order by age desc
 ```
 
 ## limit <expression>
 To limit the number of results, you can use a `limit` clause:
 
 ```query
-person where page = "{{@page.name}}" limit 1
+person where page = @page.name limit 1
 ```
 
 ## select
@@ -56,7 +56,7 @@ You can use the `select` clause to select only specific attributes from the resu
 
 ```query
 person
-where page = "{{@page.name}}"
+where page = @page.name
 select name, age, age + 1 as nextYear
 ```
 
@@ -65,7 +65,7 @@ In the context of [[Live Queries]], by default, results are rendered as a table.
 
 ```query
 person
-where page = "{{@page.name}}"
+where page = @page.name
 render each [[internal-template/person]]
 ```
 
@@ -73,6 +73,6 @@ And `render all` where the entire result set is passed to the template as a list
 
 ```query
 person
-where page = "{{@page.name}}"
+where page = @page.name
 render all [[internal-template/people]]
 ```

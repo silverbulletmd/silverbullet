@@ -22,8 +22,12 @@ export const builtinFunctions: FunctionMap = {
   escapeRegexp: (ts: any) => {
     return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   },
+  // Legacy name: don't use
   escape: (handlebarsExpr: string) => {
     return `{{${handlebarsExpr}}}`;
+  },
+  escapeDirective: (directiveText: string) => {
+    return `{{${directiveText}}}`;
   },
   time: () => niceTime(new Date()),
   tomorrow: () => {
