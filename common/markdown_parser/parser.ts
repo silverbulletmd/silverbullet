@@ -131,8 +131,16 @@ const CommandLink: MarkdownConfig = {
 
 const TemplateDirective: MarkdownConfig = {
   defineNodes: [
-    { name: "TemplateDirective", style: t.monospace },
-    { name: "TemplateDirectiveMark", style: t.monospace },
+    { name: "TemplateDirective" },
+    { name: "TemplateExpressionDirective" },
+    { name: "TemplateIfStartDirective", style: ct.DirectiveTag },
+    { name: "TemplateEachStartDirective", style: ct.DirectiveTag },
+    { name: "TemplateLetStartDirective", style: ct.DirectiveTag },
+    { name: "TemplateIfEndDirective", style: ct.DirectiveTag },
+    { name: "TemplateEachEndDirective", style: ct.DirectiveTag },
+    { name: "TemplateLetEndDirective", style: ct.DirectiveTag },
+    { name: "TemplateLetVar", style: t.variableName },
+    { name: "TemplateDirectiveMark", style: ct.DirectiveMarkTag },
   ],
   parseInline: [
     {
@@ -172,10 +180,90 @@ const TemplateDirective: MarkdownConfig = {
           return -1;
         }
 
+        const bodyText = textFromPos.slice(2, valueLength - 1);
+        // console.log("Body text", bodyText);
+
         const endPos = pos + valueLength + 1;
+        let bodyEl: any;
+
+        // Is this an open block directive?
+        const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/.exec(bodyText);
+        if (openBlockMatch) {
+          const [_, directiveStart, directiveType, directiveBody] =
+            openBlockMatch;
+          const parsedExpression = highlightingExpressionParser.parse(
+            directiveBody,
+          );
+          bodyEl = cx.elt(
+            directiveType === "if"
+              ? "TemplateIfStartDirective"
+              : "TemplateEachStartDirective",
+            pos + 2,
+            endPos - 2,
+            [cx.elt(parsedExpression, pos + 2 + directiveStart.length)],
+          );
+        }
+
+        if (!bodyEl) {
+          // Is this an open block directive?
+          const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/.exec(
+            bodyText,
+          );
+          if (openLetBlockMatch) {
+            const [_, directiveStart, varName, eq, expr] = openLetBlockMatch;
+            const parsedExpression = highlightingExpressionParser.parse(
+              expr,
+            );
+            bodyEl = cx.elt(
+              "TemplateLetStartDirective",
+              pos + 2,
+              endPos - 2,
+              [
+                cx.elt(
+                  "TemplateLetVar",
+                  pos + 2 + directiveStart.length,
+                  pos + 2 + directiveStart.length + varName.length,
+                ),
+                cx.elt(
+                  parsedExpression,
+                  pos + 2 + directiveStart.length + varName.length + eq.length,
+                ),
+              ],
+            );
+          }
+        }
+
+        if (!bodyEl) {
+          // Is this a directive close?
+          const closeBlockMatch = /^\s*\/(if|each|let)/.exec(bodyText);
+
+          if (closeBlockMatch) {
+            const [_, directiveType] = closeBlockMatch;
+            const upCaseDirectiveType = directiveType[0].toUpperCase() +
+              directiveType.slice(1);
+            bodyEl = cx.elt(
+              `Template${upCaseDirectiveType}EndDirective`,
+              pos + 2,
+              endPos - 2,
+            );
+          }
+        }
+
+        if (!bodyEl) {
+          // Let's parse as an expression
+          const parsedExpression = highlightingExpressionParser.parse(bodyText);
+          bodyEl = cx.elt(
+            "TemplateExpressionDirective",
+            pos + 2,
+            endPos - 2,
+            [cx.elt(parsedExpression, pos + 2)],
+          );
+        }
+
         return cx.addElement(
           cx.elt("TemplateDirective", pos, endPos, [
             cx.elt("TemplateDirectiveMark", pos, pos + 2),
+            bodyEl!,
             cx.elt("TemplateDirectiveMark", endPos - 2, endPos),
           ]),
         );
@@ -212,20 +300,31 @@ export const Highlight: MarkdownConfig = {
 
 import { parser as queryParser } from "./parse-query.js";
 
+const expressionStyleTags = styleTags({
+  Identifier: t.variableName,
+  TagIdentifier: t.variableName,
+  GlobalIdentifier: t.variableName,
+  String: t.string,
+  Number: t.number,
+  PageRef: ct.WikiLinkTag,
+  BinExpression: t.operator,
+  TernaryExpression: t.operator,
+  Regex: t.regexp,
+  "where limit select render Order OrderKW and or as InKW NotKW BooleanKW each all":
+    t.keyword,
+});
+
 export const highlightingQueryParser = queryParser.configure({
   props: [
-    styleTags({
-      "Name": t.variableName,
-      "String": t.string,
-      "Number": t.number,
-      "PageRef": ct.WikiLinkTag,
-      "where limit select render Order OrderKW and or as InKW NotKW each all":
-        t.keyword,
-    }),
+    expressionStyleTags,
   ],
 });
 
-export { parser as expressionParser } from "./parse-expression.js";
+import { parser as expressionParser } from "./parse-expression.js";
+
+export const highlightingExpressionParser = expressionParser.configure({
+  props: [expressionStyleTags],
+});
 
 export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
@@ -403,6 +502,7 @@ const NamedAnchor = regexParser({
 
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
+import { c } from "https://esm.sh/@codemirror/legacy-modes@6.3.3/mode/clike?external=@codemirror/language&target=es2022";
 
 // FrontMatter parser
 

@@ -139,3 +139,25 @@ Deno.test("Test command link arguments", () => {
   const args2 = findNodeOfType(commands[1], "CommandLinkArgs");
   assertEquals(args2!.children![0].text, '"other", "args", 123');
 });
+
+Deno.test("Test directive parser", () => {
+  const simpleExample = `Simple {{.}}`;
+  let tree = parse(extendedMarkdownLanguage, simpleExample);
+  assertEquals(renderToText(tree), simpleExample);
+
+  const eachExample = `{{#each .}}Sup{{/each}}`;
+  tree = parse(extendedMarkdownLanguage, eachExample);
+
+  const ifExample = `{{#if true}}Sup{{/if}}`;
+  tree = parse(extendedMarkdownLanguage, ifExample);
+  assertEquals(renderToText(tree), ifExample);
+
+  const ifElseExample = `{{#if true}}Sup{{else}}Sup2{{/if}}`;
+  tree = parse(extendedMarkdownLanguage, ifElseExample);
+  assertEquals(renderToText(tree), ifElseExample);
+  console.log("Final tree", JSON.stringify(tree, null, 2));
+
+  const letExample = `{{#let @p = true}}{{/let}}`;
+  tree = parse(extendedMarkdownLanguage, letExample);
+  assertEquals(renderToText(tree), letExample);
+});

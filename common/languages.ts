@@ -26,8 +26,8 @@ import {
   yamlLanguage,
 } from "./deps.ts";
 import {
-  expressionParser,
   extendedMarkdownLanguage,
+  highlightingExpressionParser,
   highlightingQueryParser,
 } from "./markdown_parser/parser.ts";
 
@@ -89,7 +89,7 @@ export const builtinLanguages: Record<string, Language> = {
   "template": extendedMarkdownLanguage,
   "expression": LRLanguage.define({
     name: "expression",
-    parser: expressionParser,
+    parser: highlightingExpressionParser,
   }),
 };
 
