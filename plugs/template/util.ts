@@ -19,6 +19,19 @@ export function defaultJsonTransformer(v: any): string {
   return "" + v;
 }
 
+export function jsonObjectToMDTable(
+  obj: Record<string, any>,
+  valueTransformer: (v: any) => string = defaultJsonTransformer,
+): string {
+  const lines = [];
+  lines.push("| Key | Value |");
+  lines.push("| --- | --- |");
+  for (const [k, v] of Object.entries(obj)) {
+    lines.push(`| ${k} | ${valueTransformer(v)} |`);
+  }
+  return lines.join("\n");
+}
+
 // Nicely format an array of JSON objects as a Markdown table
 export function jsonToMDTable(
   jsonArray: any[],

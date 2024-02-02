@@ -2,6 +2,10 @@ import { AST } from "$sb/lib/tree.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { FunctionMap } from "$sb/types.ts";
+import {
+  jsonObjectToMDTable,
+  jsonToMDTable,
+} from "../../plugs/template/util.ts";
 
 export async function renderTemplate(
   ast: AST,
@@ -71,7 +75,30 @@ async function renderExpressionDirective(
     variables,
     functionMap,
   );
-  return "" + result;
+
+  if (
+    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
+  ) {
+    // If result is an array of objects, render as a markdown table
+    try {
+      return jsonToMDTable(result);
+    } catch (e: any) {
+      console.error(
+        `Error rendering expression directive: ${e.message} for value ${
+          JSON.stringify(result)
+        }`,
+      );
+      return JSON.stringify(result);
+    }
+  } else if (typeof result === "object" && result.constructor === Object) {
+    // if result is a plain object, render as a markdown table
+    return jsonToMDTable([result]);
+  } else if (Array.isArray(result)) {
+    // Not-object array
+    return JSON.stringify(result);
+  } else {
+    return "" + result;
+  }
 }
 
 async function renderEachDirective(
@@ -93,14 +120,26 @@ async function renderEachDirective(
       `Expecting a list expression for #each directive, instead got ${values}`,
     );
   }
-  return await Promise.all(values.map(async (itemValue: any) => {
-    return await renderTemplate(
-      template,
-      itemValue,
-      variables,
-      functionMap,
-    );
-  })).then((results) => results.join(""));
+  const resultPieces: string[] = [];
+  for (const itemValue of values) {
+    try {
+      resultPieces.push(
+        await renderTemplate(
+          template,
+          itemValue,
+          variables,
+          functionMap,
+        ),
+      );
+    } catch (e: any) {
+      throw new Error(
+        `Error rendering #each directive: ${e.message} for item ${
+          JSON.stringify(itemValue)
+        }`,
+      );
+    }
+  }
+  return resultPieces.join("");
 }
 
 async function renderIfDirective(

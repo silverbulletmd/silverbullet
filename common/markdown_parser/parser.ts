@@ -173,10 +173,6 @@ const TemplateDirective: MarkdownConfig = {
           }
         }
         if (bracketNestingDepth !== 0) {
-          console.log(
-            "Failed to parse template directive",
-            textFromPos,
-          );
           return -1;
         }
 

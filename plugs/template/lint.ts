@@ -50,7 +50,23 @@ export async function lintTemplateFrontmatter(
 export async function lintTemplateBlocks(
   { tree }: LintEvent,
 ): Promise<LintDiagnostic[]> {
+  const frontmatter = await extractFrontmatter(tree);
   const diagnostics: LintDiagnostic[] = [];
+
+  if (frontmatter.tags?.includes("template")) {
+    // Parse the whole page as a template to check for errors if this is a template
+    try {
+      await template.parseTemplate(renderToText(tree));
+    } catch (e: any) {
+      diagnostics.push({
+        from: tree.from!,
+        to: tree.to!,
+        message: e.message,
+        severity: "error",
+      });
+    }
+  }
+
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FencedCode") {
       const codeInfo = findNodeOfType(node, "CodeInfo")!;

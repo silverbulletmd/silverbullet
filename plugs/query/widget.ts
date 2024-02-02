@@ -4,7 +4,7 @@ import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { CodeWidgetContent } from "$sb/types.ts";
 import { jsonToMDTable, renderQueryTemplate } from "../template/util.ts";
-import { queryParsed } from "./api.ts";
+import { renderQuery } from "./api.ts";
 
 export async function widget(
   bodyText: string,
@@ -17,25 +17,11 @@ export async function widget(
       await replaceTemplateVars(bodyText, pageObject),
     );
 
-    const results = await queryParsed(parsedQuery, {
-      page: pageObject,
-    });
-    if (results.length === 0 && !parsedQuery.renderAll) {
-      resultMarkdown = "No results";
+    const results = await renderQuery(parsedQuery, { page: pageObject });
+    if (Array.isArray(results)) {
+      resultMarkdown = jsonToMDTable(results);
     } else {
-      if (parsedQuery.render) {
-        // Configured a custom rendering template, let's use it!
-        const templatePage = resolvePath(pageName, parsedQuery.render);
-        const rendered = await renderQueryTemplate(
-          pageObject,
-          templatePage,
-          results,
-          parsedQuery.renderAll!,
-        );
-        resultMarkdown = rendered.trim();
-      } else {
-        resultMarkdown = jsonToMDTable(results);
-      }
+      resultMarkdown = results;
     }
 
     return {

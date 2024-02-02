@@ -135,9 +135,13 @@ export function evalQueryExpression(
         return Object.fromEntries(objEntries);
       }
     }
-    case "pageref":
-      // This evaluates to a plain string
-      return op1;
+    case "pageref": {
+      const readPageFunction = functionMap.$readPage;
+      if (!readPageFunction) {
+        throw new Error(`No $readPage function defined`);
+      }
+      return readPageFunction(op1);
+    }
     case "query": {
       const parsedQuery = val[1];
       const queryFunction = functionMap.$query;

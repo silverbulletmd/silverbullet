@@ -5,17 +5,29 @@ The template language is a superset of [[Markdown]] text a new _directive syntax
 Examples on this page will use the [[Live Templates#Template]] feature. To see the underlying code, move your cursor inside the block or click the edit button that will appear when you hover over the block.
 
 # Expressions
-[[Expression Language]] expressions can be used in a template using the `{{expression}}` syntax.
+[[Expression Language]] expressions can be inject in a template using the `{{expression}}` syntax.
 
-> **note** Note
-> For handlebars backwards compatibility, a legacy function call syntax is added, although we don’t recommend using it (use the [[Expression Language#Function calls]] syntax instead).
-> This syntax looks as follows: `{{escape "hello"}}` (note the lack of parentheses).
+There’s some “smarts” built into this:
+* When the expression evaluates to a scalar value, such as a string, number or boolean, this value will just be presented as is.
+* When the expression evaluates to an _array of objects_ (such as the result of a query), they will be rendered as a markdown table.
+* When the expression evaluates to a single simple object, this value will be rendered in a single-row markdown table.
+* Any other complex value will be rendered as JSON.
 
 ## Examples
 ```template
-81232 * 321 = {{81232 * 321}}
+A simple value: {{20 * 3}}
 
-This is your last modified page: {{at({page order by lastModified desc limit 1}, 0).name}}
+A list of objects:
+{{{page limit 2}}}
+
+Note that if we include a `render` clause in a query, it will evaluate to a string and therefore also render properly:
+{{{page limit 2 render [[Library/Core/Query/Page]]}}}
+
+A single object:
+{{at({page limit 1}, 0)}}
+
+Any other random value:
+{{[1, 2, 3]}}
 ```
 
 # let directive
