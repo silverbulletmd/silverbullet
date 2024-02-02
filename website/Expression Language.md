@@ -9,7 +9,6 @@ While a custom language, it takes a lot of inspiration from JavaScript and SQL, 
 * numbers: `10`
 * booleans: `true` or `false`
 * regular expressions: `/[a-z]+/`
-* page references: `[[page ref]]`
 * null: `null`
 * lists: `["value 1", 10, false]`
 * objects: `{"name": "Jack", "age": 1232}`
@@ -40,7 +39,12 @@ Today without an argument list: {{today}}
 [[Functions]]
 
 # Queries
-Expression can include [[Query Language|queries]] using the `{ page limit 1 }` syntax. Note that you can reference variables inside this sub-query as well.
+Expression can include [[Query Language|queries]] using the `{ page limit 1 }` syntax. Queries evaluate to one of two things:
+
+* Queries with a `render` or `render all` clause will evaluate a string, where the referenced template is applied (similar to [[Live Queries]]).
+* Queries _without_ a `clause` will evaluate to a list of results.
+
+Note that you can reference variables inside your query as well.
 
 ## Example
 Incomplete task:
@@ -48,6 +52,18 @@ Incomplete task:
 
 ```template
 Number of incomplete tasks on this page: {{count({task where not done and page = @page.name})}}
+
+A rendered query:
+{{{page limit 3 render [[Library/Core/Query/Page]]}}}
+```
+
+# Page references
+Page references use the `[[page name]]` syntax and evaluate to the content of the referenced page (as a string), this makes them a good candidate to be used in conjunction with [[Functions#template(text, value)]] or to simply inline another page:
+
+```template
+Including another page directly, without template rendering: {{[[internal/test page]]}}
+
+And rendered as a template: {{template([[internal/test page]], "actual value")}}
 ```
 
 # Logical expressions 

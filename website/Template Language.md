@@ -1,4 +1,4 @@
-SilverBullet uses a simple template language for [[Templates]] that is partially inspired by [Handlebars](https://handlebarsjs.com/).
+SilverBullet uses a template language for [[Templates]] that is partially inspired by [Handlebars](https://handlebarsjs.com/), however adds some powerful new features — primarily a much more expressive [[Expression Language]].
 
 The template language is a superset of [[Markdown]] text a new _directive syntax_ added, using `{{` and `}}`.
 

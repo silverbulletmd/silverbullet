@@ -1,4 +1,4 @@
-The syntax of queries is inspired by [SQL](https://en.wikipedia.org/wiki/SQL). It can be used using [[Live Queries]] as well as via as [[Functions#query(query, ...args)]].
+The syntax of queries is inspired by [SQL](https://en.wikipedia.org/wiki/SQL). It can be used using [[Live Queries]] as well as via nested queries part of template expressions: [[Expression Language#Queries]].
 
 Let’s start with a query that demonstrates some of the supported clauses. Hover over the result and click the edit icon to show the code that generates the view:
 

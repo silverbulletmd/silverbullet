@@ -5,6 +5,6 @@ hooks.snippet:
   slashCommand: "#each"
   order: 10
 ---
-{{escape("#each |^|")}}
+{{escapeDirective("#each |^|")}}
 
-{{escape("/each")}}
+{{escapeDirective("/each")}}

@@ -15,6 +15,9 @@ Today is {{today}}
 ```
 
 # Include
+> **warning** Deprecated, use templates instead
+> Include template are primarily here to be a drop-in replacement for the old style template blocks, see below for a suggestion how to use those instead.
+
 A `template` block is configured using [[YAML]] in its body. The following attributes are supported:
 
 * `page`: the page to use as a template
@@ -30,3 +33,14 @@ If you want to include another _page_ (not necessarily a template). unprocessed 
 ```include
 raw: "[[internal/test page]]"
 ```
+
+## Recommended alternative
+Instead of using the `include` block we recommend you use a `{{template([[template]])}}` directive in a `template` instead as it is more flexible and more natural.
+
+Look for yourself:
+```template
+{{template([[internal-template/today]])}}
+```
+
+
+

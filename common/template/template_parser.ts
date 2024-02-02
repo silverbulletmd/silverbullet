@@ -87,7 +87,7 @@ function processTree(tree: AST): AST {
         }
         case "let": {
           const letExpr = blockTextContent.trim();
-          const letMatch = letExpr.match(/@(\w+)\s*=\s*(.+)$/);
+          const letMatch = letExpr.match(/@(\w+)\s*=\s*(.+)$/s);
           if (!letMatch) {
             throw new Error(
               `A #let directive should be of the shape {{#let @var = expression}}, got instead: ${blockTextContent}`,

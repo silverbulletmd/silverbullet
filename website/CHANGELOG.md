@@ -3,12 +3,37 @@ release.
 
 ---
 
-## Edge
-$edge
+## 0.7.0
+I know what you’re thinking: another “major” minor release, so quickly?
 
-_The changes below are not yet released “properly.” To try them out early, check out [the docs on edge](https://community.silverbullet.md/t/living-on-the-edge-builds/27)._
+Yeah... we’re swapping out some of the guts of SilverBullet here, so this warrants the version bump. Honestly, this should have been 100.0, but you know...
 
-* No edgy updates since 0.6.1. Hang tight!
+This is the one where the template engine SilverBullet is swapped out and no longer using [Handlebars.js](https://handlebarsjs.com/) under the hood. We’d like to thank handlebars for its effort, but everything has to end some day. It’s time to take our destiny into our own hands.
+
+SilverBullet now uses its own custom [[Template Language]] that is _way, way, way_ dare I say _way_ more powerful than Handlebars. I put in a lot of effort to ensure backwards compatibility, so unless you did some obscure things in your templates, everything should keep working as is. If not, please reach out on our [community](https://community.silverbullet.md) and I’ll do my best to support you in this journey that for sure will be worth it.
+
+Trust me, I’m an engineer.
+
+> **note** **Upgrade note**
+> While the [[Library/Core]] library that you (probably) imported previously will keep working (I hope), I would recommend you do another import overwriting the old files. Mainly because many templates have been rebuilt to leverage the new features of our new [[Template Language]] and therefore much cleaner. So please follow the [[Library/Core#Installation]] instructions, and hit “Ok” about 30 times.
+
+So, what’s the fuss all about?
+
+* **Soft breaking change**: `include` is the new name of the old `template` [[Blocks]]. Previously, a template block’s primary function was to include an external template or page — that role has now been replaced with [[Live Templates#Include]]. If you used `template` blocks in the past, you will see a warning squiggly warning appear suggesting you turn it into an `include` block, which is functionally equivalent to the old `template.` To fix this across your space, simply replace triple-backtick `template` with triple-backtick `include` across all your files and you should be done. That said, SilverBullet will detect if you’re using a legacy syntax `template` blocks and automatically interpret them as `include` blocks instead so _nothing should break_. Famous last words.
+* So, funny story, we’re also **instantly deprecating** these new `include` blocks and suggest you `template` all the things, see [[Live Templates#Recommended alternative]] for the rationale behind this insanity. You will ask: “So what is he going to deprecate next? [[Live Queries]]? _Hahaha!_” Honestly, probably yes, because everything those can do, templates do better — basically. But let’s take it slow for now. One step at a time, as my mom says.
+* **`template`s are the new hotness**. The body of a `template` block is now interpreted as the new and shiny [[Template Language]]! This means you get syntax highlighting and (best effort) code completion for all your markdown and template directives endeavors.
+* The [[Template Language]] and [[Query Language]] have been unified. It may not have been visible to everybody, but the handlebars syntax and SB’s own query language were different before. No longer.
+* The [[Expression Language]] used as part of the new [[Template Language]] has been significantly expanded. Some notable new features:
+  * It now supports some basics like a `not` operator, and ternary operator (`bla ? true : false`). I know, the level of innovation here is crazy.
+  * It now supports (sub) queries as values, simply wrap any query in `{` and `}` and you’re good to go: [[Expression Language#Queries]]
+  * It now supports _page references_ as values: [[Expression Language#Page references]]
+  * It now (officially) supports function calls, and while I’ve kept the set of built-in [[Functions]] deliberately small for now — this is where the big wins are going to be gained in future releases: [[Expression Language#Function calls]]. Let me know in the [community](https://community.silverbullet.md) what functions you’d like to see. _Even the ability to expand the set of functions using JavaScript from within your space_ is now on the table for future iterations.
+* A [[CHANGELOG]] entry is never not going to do this justice. I recommend you simply (re)read the following pages and check out the examples to have your 🤯 and start to think what you can do with this:
+  * [[Templates]]
+  * [[Template Language]]
+  * [[Query Language]]
+  * [[Expression Language]]
+* Ah yes, you can also still take notes with SilverBullet. That still works. I think.
 
 ## 0.6.1
 * Tag pages: when you click on a #tag you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
