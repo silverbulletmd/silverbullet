@@ -4,6 +4,7 @@ Snippets allow you to define custom [[Commands]] and [[Slash Commands]] that exp
 You define a snippet by creating a [[Templates|template]] with a `hooks.snippet` attribute that configures the snippet. The following configuration options are supported:
 
 * `slashCommand`: expose the snippet via the `/my-snippet` notation.
+* `order`: when completing as a slash commend, use this to order suggestions (higher is lower down the list)
 * `command`: expose the snippet as a [[Commands|command]].
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.

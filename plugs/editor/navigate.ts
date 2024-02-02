@@ -18,6 +18,7 @@ async function actionClickOrActionEnter(
   if (!mdTree) {
     return;
   }
+  // console.log("Got a click on", mdTree);
   const navigationNodeFinder = (t: ParseTree) =>
     [
       "WikiLink",
@@ -99,7 +100,6 @@ async function actionClickOrActionEnter(
       break;
     }
     case "Hashtag": {
-      console.log("Got myself a hash tag", mdTree);
       const hashtag = mdTree.children![0].text!.slice(1);
       await editor.navigate(
         { page: `${tagPrefix}${hashtag}`, pos: 0 },
@@ -135,4 +135,8 @@ export async function navigateCommand(cmdDef: any) {
 
 export async function navigateToPage(_cmdDef: any, pageName: string) {
   await editor.navigate({ page: pageName, pos: 0 });
+}
+
+export async function navigateToURL(_cmdDef: any, url: string) {
+  await editor.openUrl(url, false);
 }

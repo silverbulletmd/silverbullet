@@ -29,8 +29,13 @@ functions:
       - editor:complete
 
   # Widget
-  templateWidget: # Legacy
-    path: template_block.ts:widget
+  templateWidget:
+    path: widget.ts:includeWidget
+    codeWidget: include
+    renderMode: markdown
+
+  blockWidget:
+    path: widget.ts:templateWidget
     codeWidget: template
     renderMode: markdown
 
@@ -50,5 +55,10 @@ functions:
   # Lint
   lintTemplateFrontmatter:
     path: lint.ts:lintTemplateFrontmatter
+    events:
+    - editor:lint
+
+  lintTemplateBlocks:
+    path: lint.ts:lintTemplateBlocks
     events:
     - editor:lint

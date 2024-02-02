@@ -9,22 +9,33 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   if (!match) {
     return null;
   }
-  // When we're in fenced code block, we likely want to complete a page name without an alias, and only complete template pages
-  // so let's check if we're in a template context
-  const isInTemplateContext =
-    completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
-    // either a render [[bla]] clause or page: "[[bla]]" template block
-    /render\s+\[\[|page:\s*["']\[\[/.test(
-      completeEvent.linePrefix,
-    );
 
-  // When in a template context, we only want to complete template pages
-  // When outside of a template context, we want to complete all pages except template pages
-  let allPages: PageMeta[] = isInTemplateContext
-    ? await queryObjects<PageMeta>("template", {}, 5)
-    : await queryObjects<PageMeta>("page", {
+  let allPages: PageMeta[] = [];
+
+  if (
+    completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
+    // either a render [[bla]] clause
+    /render\s+\[\[/.test(
+      completeEvent.linePrefix,
+    )
+  ) {
+    // We're in a template context, let's only complete templates
+    allPages = await queryObjects<PageMeta>("template", {}, 5);
+  } else if (
+    completeEvent.parentNodes.find((node) =>
+      node.startsWith("FencedCode:include") ||
+      node.startsWith("FencedCode:template")
+    )
+  ) {
+    // Include both pages and templates in page completion in ```include and ```template blocks
+    allPages = await queryObjects<PageMeta>("page", {}, 5);
+  } else {
+    // Otherwise, just complete non-template pages
+    allPages = await queryObjects<PageMeta>("page", {
       filter: ["!=", ["attr", "tags"], ["string", "template"]],
     }, 5);
+  }
+
   const prefix = match[1];
   if (prefix.startsWith("!")) {
     // Federation prefix, let's first see if we're matching anything from federation that is locally synced
@@ -54,7 +65,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         completions.push({
           label: `${pageMeta.displayName}`,
           boost: new Date(pageMeta.lastModified).getTime(),
-          apply: isInTemplateContext
+          apply: pageMeta.tag === "template"
             ? pageMeta.name
             : `${pageMeta.name}|${pageMeta.displayName}`,
           detail: `displayName for: ${pageMeta.name}`,
@@ -66,7 +77,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           completions.push({
             label: `${alias}`,
             boost: new Date(pageMeta.lastModified).getTime(),
-            apply: isInTemplateContext
+            apply: pageMeta.tag === "template"
               ? pageMeta.name
               : `${pageMeta.name}|${alias}`,
             detail: `alias to: ${pageMeta.name}`,

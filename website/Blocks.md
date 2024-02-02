@@ -2,7 +2,7 @@ Blocks use the fenced code block notation of [[Markdown]], and assign special be
 
 The general syntax is:
 
-    ```block-type
+    ```template-type
     block configuration
     ```
 

@@ -6,5 +6,5 @@ export * as clientStore from "./clientStore.ts";
 export * as sync from "./sync.ts";
 export * as debug from "./debug.ts";
 export * as language from "./language.ts";
-export * as handlebars from "./handlebars.ts";
+export * as template from "./template.ts";
 export * as codeWidget from "./code_widget.ts";

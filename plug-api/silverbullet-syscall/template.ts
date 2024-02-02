@@ -12,5 +12,11 @@ export function renderTemplate(
   obj: any,
   globals: Record<string, any> = {},
 ): Promise<string> {
-  return syscall("handlebars.renderTemplate", template, obj, globals);
+  return syscall("template.renderTemplate", template, obj, globals);
+}
+
+export function parseTemplate(
+  template: string,
+): Promise<string> {
+  return syscall("template.parseTemplate", template);
 }

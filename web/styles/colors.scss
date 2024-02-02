@@ -251,6 +251,20 @@
     background-color: var(--editor-code-background-color);
   }
 
+  .sb-line-fenced-code .sb-code {
+    color: var(--editor-code-color);
+  }
+
+  .sb-directive-mark {
+    color: var(--editor-directive-color);
+    font-weight: bold;
+  }
+
+  .sb-directive {
+    color: var(--editor-directive-color);
+    font-weight: bold;
+  }
+
   .sb-highlight {
     background-color: var(--editor-highlight-background-color);
   }
@@ -278,6 +292,10 @@
 
   .sb-number {
     color: var(--editor-code-number-color);
+  }
+
+  .sb-operator {
+    color: var(--editor-code-operator-color);
   }
 
   .sb-meta {

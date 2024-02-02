@@ -18,6 +18,9 @@ actionButtons:
 - icon: activity
   description: "What's new"
   command: '{[Navigate: To Page]("CHANGELOG")}'
+- icon: message-circle
+  description: "Community"
+  command: '{[Navigate: To URL]("https://community.silverbullet.md")}'
 - icon: book
   command: "{[Navigate: Page Picker]}"
   description: Open page

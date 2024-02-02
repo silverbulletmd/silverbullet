@@ -84,6 +84,11 @@ functions:
     command:
       name: "Navigate: To Page"
       hide: true
+  navigateToURL:
+    path: "./navigate.ts:navigateToURL"
+    command:
+      name: "Navigate: To URL"
+      hide: true
 
   # Text editing commands
   quoteSelectionCommand:

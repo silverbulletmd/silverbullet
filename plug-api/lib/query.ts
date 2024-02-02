@@ -1,128 +1,5 @@
 import { FunctionMap, KV, Query, QueryExpression } from "$sb/types.ts";
-
-export function evalQueryExpression(
-  val: QueryExpression,
-  obj: any,
-  functionMap: FunctionMap = {},
-): any {
-  const [type, op1] = val;
-
-  switch (type) {
-    // Logical operators
-    case "and":
-      return evalQueryExpression(op1, obj, functionMap) &&
-        evalQueryExpression(val[2], obj, functionMap);
-    case "or":
-      return evalQueryExpression(op1, obj, functionMap) ||
-        evalQueryExpression(val[2], obj, functionMap);
-    // Value types
-    case "null":
-      return null;
-    // TODO: Add this to the actualy query syntax
-    case "not":
-      return !evalQueryExpression(op1, obj, functionMap);
-    case "number":
-    case "string":
-    case "boolean":
-      return op1;
-    case "regexp":
-      return [op1, val[2]];
-    case "attr": {
-      let attributeVal = obj;
-      if (val.length === 3) {
-        attributeVal = evalQueryExpression(val[1], obj, functionMap);
-        if (attributeVal) {
-          return attributeVal[val[2]];
-        } else {
-          return null;
-        }
-      } else if (!val[1]) {
-        return obj;
-      } else {
-        return attributeVal[val[1]];
-      }
-    }
-    case "array": {
-      return op1.map((v) => evalQueryExpression(v, obj, functionMap));
-    }
-    case "object":
-      return obj;
-    case "call": {
-      const fn = functionMap[op1];
-      if (!fn) {
-        throw new Error(`Unknown function: ${op1}`);
-      }
-      return fn(
-        ...val[2].map((v) => evalQueryExpression(v, obj, functionMap)),
-      );
-    }
-  }
-
-  // Binary operators, here we can pre-calculate the two operand values
-  const val1 = evalQueryExpression(op1, obj, functionMap);
-  const val2 = evalQueryExpression(val[2], obj, functionMap);
-
-  switch (type) {
-    case "+":
-      return val1 + val2;
-    case "-":
-      return val1 - val2;
-    case "*":
-      return val1 * val2;
-    case "/":
-      return val1 / val2;
-    case "%":
-      return val1 % val2;
-    case "=": {
-      if (Array.isArray(val1) && !Array.isArray(val2)) {
-        // Record property is an array, and value is a scalar: find the value in the array
-        return val1.includes(val2);
-      } else if (Array.isArray(val1) && Array.isArray(val2)) {
-        // Record property is an array, and value is an array: compare the arrays
-        return val1.length === val2.length &&
-          val1.every((v) => val2.includes(v));
-      }
-      return val1 == val2;
-    }
-    case "!=": {
-      if (Array.isArray(val1) && !Array.isArray(val2)) {
-        // Record property is an array, and value is a scalar: find the value in the array
-        return !val1.includes(val2);
-      } else if (Array.isArray(val1) && Array.isArray(val2)) {
-        // Record property is an array, and value is an array: compare the arrays
-        return !(val1.length === val2.length &&
-          val1.every((v) => val2.includes(v)));
-      }
-      return val1 != val2;
-    }
-    case "=~": {
-      if (!Array.isArray(val2)) {
-        throw new Error(`Invalid regexp: ${val2}`);
-      }
-      const r = new RegExp(val2[0], val2[1]);
-      return r.test(val1);
-    }
-    case "!=~": {
-      if (!Array.isArray(val2)) {
-        throw new Error(`Invalid regexp: ${val2}`);
-      }
-      const r = new RegExp(val2[0], val2[1]);
-      return !r.test(val1);
-    }
-    case "<":
-      return val1 < val2;
-    case "<=":
-      return val1 <= val2;
-    case ">":
-      return val1 > val2;
-    case ">=":
-      return val1 >= val2;
-    case "in":
-      return val2.includes(val1);
-    default:
-      throw new Error(`Unupported operator: ${type}`);
-  }
-}
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 
 /**
  * Looks for an attribute assignment in the expression, and returns the expression assigned to the attribute or throws an error when not found
@@ -162,33 +39,68 @@ export function liftAttributeFilter(
   throw new Error(`Cannot find attribute assignment for ${attributeName}`);
 }
 
-export function applyQuery<T>(query: Query, allItems: T[]): T[] {
+export async function applyQuery<T>(
+  query: Query,
+  allItems: T[],
+  variables: Record<string, any>,
+  functionMap: FunctionMap,
+): Promise<T[]> {
   // Filter
   if (query.filter) {
-    allItems = allItems.filter((item) =>
-      evalQueryExpression(query.filter!, item)
-    );
+    const filteredItems: T[] = [];
+    for (const item of allItems) {
+      if (
+        await evalQueryExpression(
+          query.filter,
+          item,
+          variables,
+          functionMap,
+        )
+      ) {
+        filteredItems.push(item);
+      }
+    }
+    allItems = filteredItems;
   }
   // Add dummy keys, then remove them
-  return applyQueryNoFilterKV(
+  return (await applyQueryNoFilterKV(
     query,
     allItems.map((v) => ({ key: [], value: v })),
-  ).map((v) => v.value);
+    variables,
+    functionMap,
+  )).map((v) => v.value);
 }
 
-export function applyQueryNoFilterKV(
+export async function applyQueryNoFilterKV(
   query: Query,
   allItems: KV[],
-  functionMap: FunctionMap = {}, // TODO: Figure this out later
-): KV[] {
+  variables: Record<string, any>,
+  functionMap: FunctionMap,
+): Promise<KV[]> {
   // Order by
   if (query.orderBy) {
     allItems = allItems.sort((a, b) => {
       const aVal = a.value;
       const bVal = b.value;
       for (const { expr, desc } of query.orderBy!) {
-        const evalA = evalQueryExpression(expr, aVal, functionMap);
-        const evalB = evalQueryExpression(expr, bVal, functionMap);
+        const evalA = evalQueryExpression(
+          expr,
+          aVal,
+          variables,
+          functionMap,
+        );
+        if (evalA instanceof Promise) {
+          throw new Error("Cannot order by a promise");
+        }
+        const evalB = evalQueryExpression(
+          expr,
+          bVal,
+          variables,
+          functionMap,
+        );
+        if (evalB instanceof Promise) {
+          throw new Error("Cannot order by a promise");
+        }
         if (
           evalA < evalB || evalA === undefined
         ) {
@@ -211,7 +123,7 @@ export function applyQueryNoFilterKV(
       const newRec: any = {};
       for (const { name, expr } of query.select) {
         newRec[name] = expr
-          ? evalQueryExpression(expr, rec, functionMap)
+          ? await evalQueryExpression(expr, rec, variables, functionMap)
           : rec[name];
       }
       allItems[i].value = newRec;
@@ -232,7 +144,12 @@ export function applyQueryNoFilterKV(
   }
 
   if (query.limit) {
-    const limit = evalQueryExpression(query.limit, {}, functionMap);
+    const limit = await evalQueryExpression(
+      query.limit,
+      {},
+      variables,
+      functionMap,
+    );
     if (allItems.length > limit) {
       allItems = allItems.slice(0, limit);
     }

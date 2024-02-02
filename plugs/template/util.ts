@@ -1,14 +1,6 @@
-import { handlebarHelpers } from "../../common/syscalls/handlebar_helpers.ts";
 import { PageMeta } from "$sb/types.ts";
-import { handlebars, space } from "$sb/syscalls.ts";
+import { space, template } from "$sb/syscalls.ts";
 import { cleanTemplate } from "./plug_api.ts";
-
-export function buildHandebarOptions(pageMeta: PageMeta) {
-  return {
-    helpers: handlebarHelpers(),
-    data: { page: pageMeta },
-  };
-}
 
 export function defaultJsonTransformer(v: any): string {
   if (v === undefined) {
@@ -25,6 +17,19 @@ export function defaultJsonTransformer(v: any): string {
     ).join(", ");
   }
   return "" + v;
+}
+
+export function jsonObjectToMDTable(
+  obj: Record<string, any>,
+  valueTransformer: (v: any) => string = defaultJsonTransformer,
+): string {
+  const lines = [];
+  lines.push("| Key | Value |");
+  lines.push("| --- | --- |");
+  for (const [k, v] of Object.entries(obj)) {
+    lines.push(`| ${k} | ${valueTransformer(v)} |`);
+  }
+  return lines.join("\n");
 }
 
 // Nicely format an array of JSON objects as a Markdown table
@@ -80,5 +85,5 @@ export async function renderQueryTemplate(
   if (!renderAll) {
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }
-  return handlebars.renderTemplate(templateText, data, { page: pageMeta });
+  return template.renderTemplate(templateText, data, { page: pageMeta });
 }

@@ -11,7 +11,7 @@ import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
 import { TemplateObject, WidgetConfig } from "../template/types.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
-import { evalQueryExpression } from "$sb/lib/query.ts";
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { renderTemplate } from "../template/plug_api.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
@@ -59,13 +59,13 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       await language.parseLanguage("expression", blockDef.where!),
     );
     const parsedExpression = expressionToKvQueryExpression(exprAST[1]);
-    if (evalQueryExpression(parsedExpression, pageMeta)) {
+    if (await evalQueryExpression(parsedExpression, pageMeta, {}, {})) {
       // Match! We're happy
       const templateText = await space.readPage(template.ref);
       let renderedTemplate = (await renderTemplate(
         templateText,
-        pageMeta,
         frontmatter,
+        { page: pageMeta },
       )).text;
 
       const parsedMarkdown = await markdown.parseMarkdown(renderedTemplate);

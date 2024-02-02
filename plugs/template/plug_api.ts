@@ -1,16 +1,15 @@
-import type { PageMeta } from "$sb/types.ts";
 import { system } from "../../plug-api/syscalls.ts";
 
 export function renderTemplate(
   templateText: string,
-  pageMeta: PageMeta,
   data: any = {},
+  variables: Record<string, any> = {},
 ): Promise<{ frontmatter?: string; text: string }> {
   return system.invokeFunction(
     "template.renderTemplate",
     templateText,
-    pageMeta,
     data,
+    variables,
   );
 }
 

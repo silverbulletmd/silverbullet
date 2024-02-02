@@ -91,24 +91,32 @@ export type QueryExpression =
   | [">", QueryExpression, QueryExpression]
   | [">=", QueryExpression, QueryExpression]
   | ["in", QueryExpression, QueryExpression]
-  | ["attr", QueryExpression, string]
-  | ["attr", string]
+  | ["attr"] // .
+  | ["attr", string] // name
+  | ["attr", QueryExpression, string] // something.name
+  | ["global", string] // @name
   | ["number", number]
   | ["string", string]
   | ["boolean", boolean]
   | ["null"]
   | ["not", QueryExpression]
   | ["array", QueryExpression[]]
-  | ["object", Record<string, any>]
+  | ["object", [string, QueryExpression][]]
   | ["regexp", string, string] // regex, modifier
+  | ["pageref", string]
   | ["+", QueryExpression, QueryExpression]
   | ["-", QueryExpression, QueryExpression]
   | ["*", QueryExpression, QueryExpression]
   | ["%", QueryExpression, QueryExpression]
   | ["/", QueryExpression, QueryExpression]
+  | ["?", QueryExpression, QueryExpression, QueryExpression]
+  | ["query", Query]
   | ["call", string, QueryExpression[]];
 
-export type FunctionMap = Record<string, (...args: any[]) => any>;
+export type FunctionMap = Record<
+  string,
+  (...args: any[]) => any
+>;
 
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of

@@ -122,6 +122,22 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
       }
       return ["array", exprs.map(expressionToKvQueryExpression)];
     }
+    case "Object": {
+      const objAttrs: [string, QueryExpression][] = [];
+      for (const kv of node.slice(2)) {
+        if (typeof kv === "string") {
+          continue;
+        }
+        const [_, key, _colon, expr] = kv;
+        objAttrs.push([
+          key[1].slice(1, -1) as string,
+          expressionToKvQueryExpression(
+            expr,
+          ),
+        ]);
+      }
+      return ["object", objAttrs];
+    }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
       const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
@@ -147,6 +163,34 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
         }
       }
       return ["call", fn, args.map(expressionToKvQueryExpression)];
+    }
+    case "UnaryExpression": {
+      // console.log("UnaryExpression", node);
+      if (node[1][0] === "NotKW" || node[1][0] === "!") {
+        return ["not", expressionToKvQueryExpression(node[2])];
+      }
+      throw new Error(`Unknown unary expression: ${node[1][0]}`);
+    }
+    case "TopLevelVal": {
+      return ["attr"];
+    }
+    case "GlobalIdentifier": {
+      return ["global", (node[1] as string).substring(1)];
+    }
+    case "TernaryExpression": {
+      const [_, condition, _space, ifTrue, _space2, ifFalse] = node;
+      return [
+        "?",
+        expressionToKvQueryExpression(condition),
+        expressionToKvQueryExpression(ifTrue),
+        expressionToKvQueryExpression(ifFalse),
+      ];
+    }
+    case "QueryExpression": {
+      return ["query", astToKvQuery(node[2])];
+    }
+    case "PageRef": {
+      return ["pageref", (node[1] as string).slice(2, -2)];
     }
     default:
       throw new Error(`Not supported: ${node[0]}`);

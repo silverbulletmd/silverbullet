@@ -2,8 +2,9 @@ import { codeWidget, editor, events } from "$sb/syscalls.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
-import { CodeWidgetContent, PageMeta, Query } from "$sb/types.ts";
+import { CodeWidgetContent } from "$sb/types.ts";
 import { jsonToMDTable, renderQueryTemplate } from "../template/util.ts";
+import { renderQuery } from "./api.ts";
 
 export async function widget(
   bodyText: string,
@@ -16,28 +17,11 @@ export async function widget(
       await replaceTemplateVars(bodyText, pageObject),
     );
 
-    const results = await performQuery(
-      parsedQuery,
-      pageObject,
-    );
-    if (results.length === 0 && !parsedQuery.renderAll) {
-      resultMarkdown = "No results";
+    const results = await renderQuery(parsedQuery, { page: pageObject });
+    if (Array.isArray(results)) {
+      resultMarkdown = jsonToMDTable(results);
     } else {
-      if (parsedQuery.render) {
-        // Configured a custom rendering template, let's use it!
-        const templatePage = resolvePath(pageName, parsedQuery.render);
-        const rendered = await renderQueryTemplate(
-          pageObject,
-          templatePage,
-          results,
-          parsedQuery.renderAll!,
-        );
-        resultMarkdown = rendered.trim();
-      } else {
-        // TODO: At this point it's a bit pointless to first render a markdown table, and then convert that to HTML
-        // We should just render the HTML table directly
-        resultMarkdown = jsonToMDTable(results);
-      }
+      resultMarkdown = results;
     }
 
     return {
@@ -60,25 +44,6 @@ export async function widget(
   } catch (e: any) {
     return { markdown: `**Error:** ${e.message}` };
   }
-}
-
-export async function performQuery(parsedQuery: Query, pageObject: PageMeta) {
-  if (!parsedQuery.limit) {
-    parsedQuery.limit = ["number", 1000];
-  }
-
-  const eventName = `query:${parsedQuery.querySource}`;
-  // console.log("Parsed query", parsedQuery);
-  // Let's dispatch an event and see what happens
-  const results = await events.dispatchEvent(
-    eventName,
-    { query: parsedQuery, pageName: pageObject.name },
-    30 * 1000,
-  );
-  if (results.length === 0) {
-    throw new Error(`Unsupported query source '${parsedQuery.querySource}'`);
-  }
-  return results.flat();
 }
 
 export function refreshAllWidgets() {

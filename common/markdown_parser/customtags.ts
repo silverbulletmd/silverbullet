@@ -26,3 +26,6 @@ export const TaskDeadlineTag = Tag.define();
 
 export const HashtagTag = Tag.define();
 export const NakedURLTag = Tag.define();
+
+export const DirectiveMarkTag = Tag.define();
+export const DirectiveTag = Tag.define();

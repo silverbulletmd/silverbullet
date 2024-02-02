@@ -50,7 +50,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
       const codeLang = codeInfo.children![0].text!;
       // All known YAML formats
       if (
-        codeLang === "template" || codeLang === "yaml" ||
+        ["include", "embed", "yaml"].includes(codeLang) ||
         codeLang.startsWith("#")
       ) {
         const codeText = findNodeOfType(node, "CodeText");

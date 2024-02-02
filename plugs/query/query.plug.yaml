@@ -1,5 +1,13 @@
 name: query
 functions:
+  # API
+  queryParsed:
+    path: api.ts:queryParsed
+  query:
+    path: api.ts:query
+  renderQuery:
+    path: api.ts:renderQuery
+
   queryWidget:
     path: widget.ts:widget
     codeWidget: query

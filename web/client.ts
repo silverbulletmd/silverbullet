@@ -56,11 +56,12 @@ import {
   markFullSpaceIndexComplete,
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
-import { renderHandlebarsTemplate } from "../common/syscalls/handlebars.ts";
+import { renderTheTemplate } from "../common/syscalls/template.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
 import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -140,10 +141,8 @@ export class Client {
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(
-      stateKvPrimitives,
-      buildQueryFunctions(this.allKnownPages),
-    );
+
+    this.stateDataStore = new DataStore(stateKvPrimitives);
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
@@ -152,7 +151,6 @@ export class Client {
       // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
       this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
     }, 20000); // Look to requeue every 20s
-
     // Event hook
     this.eventHook = new EventHook();
 
@@ -163,6 +161,12 @@ export class Client {
       this.stateDataStore,
       this.eventHook,
       window.silverBulletConfig.readOnly,
+    );
+
+    // Swap in the expanded function map
+    this.stateDataStore.functionMap = buildQueryFunctions(
+      this.allKnownPages,
+      this.system.system,
     );
 
     const localSpacePrimitives = await this.initSpace();
@@ -225,7 +229,7 @@ export class Client {
     }
 
     await this.loadPlugs();
-    this.initNavigator();
+    await this.initNavigator();
     await this.initSync();
 
     this.loadCustomStyles().catch(console.error);
@@ -415,8 +419,10 @@ export class Client {
     }
   }
 
-  private initNavigator() {
+  private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
+
+    await this.pageNavigator.init();
 
     this.pageNavigator.subscribe(async (pageState) => {
       console.log("Now navigating to", pageState);
@@ -554,7 +560,7 @@ export class Client {
             new DataStoreSpacePrimitives(
               new DataStore(
                 spaceKvPrimitives,
-                buildQueryFunctions(this.allKnownPages),
+                buildQueryFunctions(this.allKnownPages, this.system.system),
               ),
             ),
             this.plugSpaceRemotePrimitives,
@@ -927,7 +933,12 @@ export class Client {
   ) {
     if (!pageRef.page) {
       pageRef.page = cleanPageRef(
-        renderHandlebarsTemplate(this.settings.indexPage, {}, {}),
+        await renderTheTemplate(
+          this.settings.indexPage,
+          {},
+          {},
+          builtinFunctions,
+        ),
       );
     }
 

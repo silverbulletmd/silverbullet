@@ -19,7 +19,7 @@ export type AppEvent =
 
 export type QueryProviderEvent = {
   query: Query;
-  pageName: string;
+  variables?: Record<string, any>;
 };
 
 export type ClickEvent = {
@@ -62,6 +62,7 @@ export type SlashCompletion = {
   label: string;
   detail?: string;
   invoke: string;
+  order?: number;
 } & Record<string, any>;
 
 export type WidgetContent = {

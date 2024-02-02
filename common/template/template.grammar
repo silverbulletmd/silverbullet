@@ -1,0 +1,36 @@
+@top Template { TemplateElement* }
+
+TemplateElement {
+  Text
+  | ExpressionDirective
+  | BlockDirective
+}
+
+
+BlockDirective {
+    BlockDirectiveOpenTagStart BlockName BlockDirectiveContent DirectiveTagEnd
+    TemplateElement*
+    BlockDirectiveCloseTagStart BlockName DirectiveTagEnd
+}
+
+ExpressionDirective {
+    ExpressionDirectiveOpenTag BlockDirectiveContent DirectiveTagEnd
+}
+
+@tokens {
+    @precedence { BlockDirectiveOpenTagStart, ExpressionDirectiveOpenTag, Text }
+
+    Text { (![{] | "{" ![{])+ }
+
+    BlockName { @asciiLetter+ }
+
+    BlockDirectiveContent { ( ![}] | "{" ![}]* "}" )+ }
+
+    ExpressionDirectiveOpenTag { "{{" }
+
+    BlockDirectiveOpenTagStart { "{{#" }
+    BlockDirectiveCloseTagStart { "{{/" }
+
+    DirectiveTagEnd { "}}" }
+
+}

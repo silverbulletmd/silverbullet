@@ -1,7 +1,8 @@
-import { applyQueryNoFilterKV, evalQueryExpression } from "$sb/lib/query.ts";
+import { applyQueryNoFilterKV } from "$sb/lib/query.ts";
 import { FunctionMap, KV, KvKey, KvQuery } from "$sb/types.ts";
 import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
+import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
  * in a more user-friendly way
@@ -9,7 +10,7 @@ import { KvPrimitives } from "./kv_primitives.ts";
 export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
-    private functionMap: FunctionMap = builtinFunctions,
+    public functionMap: FunctionMap = builtinFunctions,
   ) {
   }
 
@@ -57,13 +58,21 @@ export class DataStore {
     return this.kv.batchDelete(keys);
   }
 
-  async query<T = any>(query: KvQuery): Promise<KV<T>[]> {
+  async query<T = any>(
+    query: KvQuery,
+    variables: Record<string, any> = {},
+  ): Promise<KV<T>[]> {
     const results: KV<T>[] = [];
     let itemCount = 0;
     // Accumulate results
     let limit = Infinity;
     if (query.limit) {
-      limit = evalQueryExpression(query.limit, {}, this.functionMap);
+      limit = await evalQueryExpression(
+        query.limit,
+        {},
+        variables,
+        this.functionMap,
+      );
     }
     for await (
       const entry of this.kv.query(query)
@@ -71,7 +80,12 @@ export class DataStore {
       // Filter
       if (
         query.filter &&
-        !evalQueryExpression(query.filter, entry.value, this.functionMap)
+        !await evalQueryExpression(
+          query.filter,
+          entry.value,
+          variables,
+          this.functionMap,
+        )
       ) {
         continue;
       }
@@ -84,13 +98,21 @@ export class DataStore {
       }
     }
     // Apply order by, limit, and select
-    return applyQueryNoFilterKV(query, results, this.functionMap);
+    return applyQueryNoFilterKV(
+      query,
+      results,
+      variables,
+      this.functionMap,
+    );
   }
 
-  async queryDelete(query: KvQuery): Promise<void> {
+  async queryDelete(
+    query: KvQuery,
+    variables: Record<string, any> = {},
+  ): Promise<void> {
     const keys: KvKey[] = [];
     for (
-      const { key } of await this.query(query)
+      const { key } of await this.query(query, variables)
     ) {
       keys.push(key);
     }

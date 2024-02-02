@@ -23,8 +23,7 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 ## AWS S3 bucket storage
 It is also possible to use an S3 bucket as storage. For this, you need to create a bucket, create an IAM user and configure access to it appropriately.
 
-Since S3 doesn’t support an efficient way to store custom metadata, this mode does require a [[
-]] configuration (see below) to keep all file metadata.
+Since S3 doesn’t support an efficient way to store custom metadata, this mode does require a [[#Database]] configuration (see below) to keep all file metadata.
 
 S3 is configured as follows:
 

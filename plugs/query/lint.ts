@@ -32,7 +32,6 @@ export async function lintQuery(
         const parsedQuery = await parseQuery(
           await replaceTemplateVars(bodyText, pageObject),
         );
-
         const allSources = await allQuerySources();
         if (
           parsedQuery.querySource &&

@@ -11,5 +11,6 @@ export function dataStoreProxySyscalls(client: Client): SysCallMapping {
     "datastore.batchGet",
     "datastore.query",
     "datastore.get",
+    "datastore.listFunctions",
   ]);
 }

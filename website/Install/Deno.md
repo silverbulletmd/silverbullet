@@ -9,7 +9,7 @@ $ curl -fsSL https://deno.land/install.sh | sh
 After having installed Deno, run:
 
 ```shell
-$ deno install -f --name silverbullet --unstable -A https://get.silverbullet.md
+$ deno install -f --name silverbullet  --unstable-kv --unstable-worker-options -A https://get.silverbullet.md
 ```
 
 You only have to do this once. This will download the currently _released_ version of SilverBullet onto your machine.

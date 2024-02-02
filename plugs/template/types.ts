@@ -34,6 +34,7 @@ export type NewPageConfig = z.infer<typeof NewPageConfig>;
 export const SnippetConfig = refineCommand(
   z.object({
     slashCommand: z.string(), // trigger
+    order: z.number().optional(), // order in the list
     // Regex match to apply (implicitly makes the body the regex replacement)
     matchRegex: z.string().optional(),
     // Deprecated: use matchRegex instead (for backwards compatibility)

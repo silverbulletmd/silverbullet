@@ -21,7 +21,7 @@ export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
 };
 
-const slashCommandRegexp = /([^\w:]|^)\/[\w\-]*/;
+const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands = new Map<string, AppSlashCommand>();
@@ -104,6 +104,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         options.push({
           label: slashCompletion.label,
           detail: slashCompletion.detail,
+          boost: slashCompletion.order && -slashCompletion.order,
           apply: () => {
             // Delete slash command part
             this.editor.editorView.dispatch({

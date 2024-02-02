@@ -27,12 +27,18 @@ export function batchDel(keys: KvKey[]): Promise<void> {
 
 export function query(
   query: KvQuery,
+  variables: Record<string, any> = {},
 ): Promise<KV[]> {
-  return syscall("datastore.query", query);
+  return syscall("datastore.query", query, variables);
 }
 
 export function queryDelete(
   query: KvQuery,
+  variables?: Record<string, any>,
 ): Promise<void> {
-  return syscall("datastore.queryDelete", query);
+  return syscall("datastore.queryDelete", query, variables);
+}
+
+export function listFunctions(): Promise<string[]> {
+  return syscall("datastore.listFunctions");
 }

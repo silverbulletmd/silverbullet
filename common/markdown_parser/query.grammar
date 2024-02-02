@@ -1,21 +1,23 @@
 @top Program { Query }
 
 @precedence {
+  attr @left
+  unaryop
   mulop @left
   addop @left
   binop @left
+  terop @left
   and @left
   or @left
 }
 
 @skip {
-  space
+  space | LineComment
 }
 
 commaSep<content> { content ("," content)* }
 
 kw<term> { @specialize[@name={term}]<Identifier, term> }
-
 
 Query {
     TagIdentifier ( WhereClause | LimitClause | OrderClause | SelectClause | RenderClause )*
@@ -37,17 +39,15 @@ OrderDirection {
 Value { Number | String | Bool | Regex | kw<"null"> | List }
 
 Attribute {
-  LVal "." Identifier
+  Expression !attr "." Identifier
 }
 
 Call {
-  Identifier "(" commaSep<Expression> ")" | Identifier "(" ")"
+    Identifier "(" commaSep<Expression> ")"
+  | Identifier "(" ")"
 }
 
-LVal {
-  Identifier
-| Attribute
-}
+TopLevelVal { "." }
 
 ParenthesizedExpression { "(" Expression ")" }
 
@@ -58,11 +58,28 @@ Expression !and kw<"and"> Expression
 
 Expression {
   Value
-| LVal
+| Identifier
+| GlobalIdentifier
+| Attribute
+| TopLevelVal
 | ParenthesizedExpression
 | LogicalExpression 
+| QueryExpression
+| UnaryExpression
 | BinExpression
+| TernaryExpression
 | Call
+| PageRef
+| Object
+}
+
+QueryExpression {
+  "{" Query "}"
+}
+
+UnaryExpression {
+    !unaryop NotKW Expression
+  | !unaryop "!" Expression
 }
 
 BinExpression {
@@ -83,8 +100,17 @@ BinExpression {
 | Expression !addop "-" Expression
 }
 
-List { "[" commaSep<Expression> "]" }
+TernaryExpression {
+  Expression !terop "?" Expression !terop ":" Expression
+}
 
+List { "[" commaSep<Expression> "]" | "[" "]" }
+
+KeyVal {
+  String ":" Expression
+}
+
+Object { "{" commaSep<KeyVal> "}" | "{" "}" }
 
 Bool {
   BooleanKW
@@ -94,18 +120,24 @@ Bool {
 @tokens {
   space { std.whitespace+ }
 
+  LineComment { "#" ![\n]* }
+
   TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
 
   Identifier { @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
 
+  GlobalIdentifier { "@" @asciiLetter (@asciiLetter | @digit | "-" | "_")* }
+
   String {
-    ("\"" | "“" | "”") ![\"”“]* ("\"" | "“" | "”")
+      "\"" ![\"]* "\""
+    | "'" ![']* "'"
+    | "`" ![`]* "`"
   }
   PageRef {
-    "[" "[" ![\]]* "]" "]"
+    "[[" ![\]]* "]]"
   }
   Order { "order by" }
-  Regex { "/" ( ![/\\\n\r] | "\\" _ )* "/"? }
+  Regex { "/" ( ![/\\\n\r] | "\\" _ )+ "/" }
 
   Number { std.digit+ }
 
@@ -113,7 +145,11 @@ Bool {
 
   InKW { "in" }
 
+  NotKW { "not" }
+
   OrderKW { "asc" | "desc" }
 
-  @precedence { Order, BooleanKW, InKW, OrderKW, Identifier, Number }
+  @precedence { Order, BooleanKW, InKW, OrderKW, NotKW, Identifier, Number }
+
+  
 }

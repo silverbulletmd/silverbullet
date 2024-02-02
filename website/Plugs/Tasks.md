@@ -41,7 +41,7 @@ When the cursor is positioned inside of a due date, the {[Task: Postpone]} comma
 All meta data (`done` status, `state`, `tags`, `deadline` and custom attributes) is extracted and available via the `task` query source to [[Live Queries]]:
 
 ```query
-task where page = "{{@page.name}}" 
+task where page = @page.name
 ```
 
 ## Rendering
@@ -50,7 +50,7 @@ There is a [[!silverbullet.md/template/tasks/task]] template you can use to rend
 Try it (by clicking on the checkbox inside of the query):
 
 ```query
-task where page = "{{@page.name}}" and name = "Remote toggle me" render [[Library/Core/Query/Task]] 
+task where page = @page.name and name = "Remote toggle me" render [[Library/Core/Query/Task]] 
 ```
 
 * [ ] Remote toggle me

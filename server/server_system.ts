@@ -27,7 +27,7 @@ import {
 } from "../plugos/syscalls/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
-import { handlebarsSyscalls } from "../common/syscalls/handlebars.ts";
+import { templateSyscalls } from "../common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
@@ -75,7 +75,7 @@ export class ServerSystem {
   async init(awaitIndex = false) {
     this.ds = new DataStore(
       this.kvPrimitives,
-      buildQueryFunctions(this.allKnownPages),
+      buildQueryFunctions(this.allKnownPages, this.system),
     );
 
     this.system = new System(
@@ -132,7 +132,7 @@ export class ServerSystem {
       systemSyscalls(this.system, this.readOnlyMode),
       mqSyscalls(mq),
       languageSyscalls(),
-      handlebarsSyscalls(),
+      templateSyscalls(this.ds.functionMap),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),

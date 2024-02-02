@@ -1,40 +1,46 @@
-Live Templates are a type of [[Blocks|block]] that render [[Templates]] inline in a page. 
+Live Templates are a type of [[Blocks|block]] that render [[Templates]] written in [[Template Language]] inline in a page. 
 
-Template blocks are specified using [[Markdown]]‘s fenced code block notation using `template` as a language. The body of the block specifies the template to use, as well as any arguments to pass to it.
+There are two variants of Live Templates:
 
-Generally you’d use it in one of two ways, either using a `page` [[Templates|template]] reference, or an inline `template`:
+* `template`: where the template is specified inline in a code block.
+* `include`: where an external page (template) is _included_ and rendered.
+
+Template blocks are specified using [[Markdown]]‘s fenced code block notation using either `template` or `include` as its language.
+
+# Template
+To specify a template to render inline, you can use the `template` block. The body is written in [[Template Language]].
+
+```template
+Today is {{today}}
+```
+
+# Include
+> **warning** Deprecated, use templates instead
+> Include template are primarily here to be a drop-in replacement for the old style template blocks, see below for a suggestion how to use those instead.
+
+A `template` block is configured using [[YAML]] in its body. The following attributes are supported:
+
+* `page`: the page to use as a template
+* `value`: an (optional) value to pass to the template
+* `raw`: a page reference to include in the page without processing it as a template.
 
 Here’s an example using `page`:
-```template
+```include
 page: "[[internal-template/today]]"
 ```
 
-And here’s an example using `template`:
-```template
-template: |
-   Today is {{today}}!
-```
-
-To pass a literal value to the template, you can specify the optional `value` attribute:
-```template
-template: |
-   Hello, {{name}}! Today is _{{today}}_
-value:
-   name: Pete
-```
-
-You can also pass in the result of a [[Live Queries|query]] as a value by setting the `query` attribute:
-
-```template
-query: |
-   tag where parent = "page" select name
-template: |
-   {{#each .}}
-   * #{{name}}
-   {{/each}}
-```
-
-If you want to include another _page_ (not necessarily a template) unprocessed (so without replacing template placeholders), you can use `raw`:
-```template
+If you want to include another _page_ (not necessarily a template). unprocessed (so without replacing template placeholders), you can use `raw`:
+```include
 raw: "[[internal/test page]]"
 ```
+
+## Recommended alternative
+Instead of using the `include` block we recommend you use a `{{template([[template]])}}` directive in a `template` instead as it is more flexible and more natural.
+
+Look for yourself:
+```template
+{{template([[internal-template/today]])}}
+```
+
+
+

@@ -1,6 +1,6 @@
 ---
 tags: template
-description: Turn the current line into a task
+description: Make this a task
 hooks.snippet:
   slashCommand: task
   matchRegex: "^(\\s*)[\\-\\*]?\\s*(\\[[ xX]\\])?\\s*"

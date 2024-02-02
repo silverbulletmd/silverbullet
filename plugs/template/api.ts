@@ -1,5 +1,4 @@
-import { handlebars, markdown, YAML } from "$sb/syscalls.ts";
-import type { PageMeta } from "$sb/types.ts";
+import { markdown, template, YAML } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { TemplateObject } from "./types.ts";
 import { renderToText } from "$sb/lib/tree.ts";
@@ -14,34 +13,42 @@ import { renderToText } from "$sb/lib/tree.ts";
  */
 export async function renderTemplate(
   templateText: string,
-  pageMeta: PageMeta,
   data: any = {},
+  variables: Record<string, any> = {},
 ): Promise<{ renderedFrontmatter?: string; frontmatter: any; text: string }> {
-  const tree = await markdown.parseMarkdown(templateText);
-  const frontmatter: Partial<TemplateObject> = await extractFrontmatter(tree, {
-    removeFrontmatterSection: true,
-    removeTags: ["template"],
-  });
-  templateText = renderToText(tree).trimStart();
-  // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
-  let frontmatterText: string | undefined;
-  if (frontmatter.frontmatter) {
-    if (typeof frontmatter.frontmatter === "string") {
-      frontmatterText = frontmatter.frontmatter;
-    } else {
-      frontmatterText = await YAML.stringify(frontmatter.frontmatter);
+  try {
+    const tree = await markdown.parseMarkdown(templateText);
+    const frontmatter: Partial<TemplateObject> = await extractFrontmatter(
+      tree,
+      {
+        removeFrontmatterSection: true,
+        removeTags: ["template"],
+      },
+    );
+    templateText = renderToText(tree).trimStart();
+    // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
+    let frontmatterText: string | undefined;
+    if (frontmatter.frontmatter) {
+      if (typeof frontmatter.frontmatter === "string") {
+        frontmatterText = frontmatter.frontmatter;
+      } else {
+        frontmatterText = await YAML.stringify(frontmatter.frontmatter);
+      }
+      frontmatterText = await template.renderTemplate(
+        frontmatterText,
+        data,
+        variables,
+      );
     }
-    frontmatterText = await handlebars.renderTemplate(frontmatterText, data, {
-      page: pageMeta,
-    });
+    return {
+      frontmatter,
+      renderedFrontmatter: frontmatterText,
+      text: await template.renderTemplate(templateText, data, variables),
+    };
+  } catch (e) {
+    console.error("Error rendering template", e);
+    throw e;
   }
-  return {
-    frontmatter,
-    renderedFrontmatter: frontmatterText,
-    text: await handlebars.renderTemplate(templateText, data, {
-      page: pageMeta,
-    }),
-  };
 }
 
 /**

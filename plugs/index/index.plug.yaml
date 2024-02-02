@@ -62,12 +62,6 @@ functions:
     path: "./command.ts:reindexSpace"
     env: server
 
-  # Attachments
-  attachmentQueryProvider:
-    path: ./attachment.ts:attachmentQueryProvider
-    events:
-      - query:attachment
-
   indexPage:
     path: page.ts:indexPage
     events:

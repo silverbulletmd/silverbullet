@@ -1,4 +1,4 @@
-import { editor, handlebars, space } from "$sb/syscalls.ts";
+import { editor, space, template } from "$sb/syscalls.ts";
 import { PageMeta } from "$sb/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import { FrontmatterConfig, TemplateObject } from "./types.ts";
@@ -225,5 +225,5 @@ export function replaceTemplateVars(
   s: string,
   pageMeta: PageMeta,
 ): Promise<string> {
-  return handlebars.renderTemplate(s, {}, { page: pageMeta });
+  return template.renderTemplate(s, {}, { page: pageMeta });
 }

@@ -181,11 +181,12 @@ export function queryObjects<T>(
 
 export async function query(
   query: KvQuery,
+  variables?: Record<string, any>,
 ): Promise<KV[]> {
   return (await datastore.query({
     ...query,
     prefix: [indexKey, ...query.prefix ? query.prefix : []],
-  })).map(({ key, value }) => ({ key: key.slice(1), value }));
+  }, variables)).map(({ key, value }) => ({ key: key.slice(1), value }));
 }
 
 export function getObjectByRef<T>(
@@ -198,13 +199,14 @@ export function getObjectByRef<T>(
 
 export async function objectSourceProvider({
   query,
+  variables,
 }: QueryProviderEvent): Promise<any[]> {
   const tag = query.querySource!;
   const results = await datastore.query({
     ...query,
     prefix: [indexKey, tag],
     distinct: true,
-  });
+  }, variables);
   return results.map((r) => r.value);
 }
 

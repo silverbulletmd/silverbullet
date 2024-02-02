@@ -1,8 +1,8 @@
 ---
-description: Insert an inline template
+description: Insert a template
 tags: template
 hooks.snippet.slashCommand: "template"
 ---
 ```template
-page: "[[|^|]]"
+|^|
 ```

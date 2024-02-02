@@ -20,7 +20,6 @@ import {
   LanguageDescription,
   LanguageSupport,
   markdown,
-  searchKeymap,
   standardKeymap,
   syntaxHighlighting,
   ViewPlugin,

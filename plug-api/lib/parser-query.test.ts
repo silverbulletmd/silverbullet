@@ -1,12 +1,18 @@
 import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { AST, parseTreeToAST } from "$sb/lib/tree.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { AST, collectNodesOfType, parseTreeToAST } from "$sb/lib/tree.ts";
+import { assert, assertEquals } from "../../test_deps.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { languageFor } from "../../common/languages.ts";
 
 function wrapQueryParse(query: string): AST | null {
   const tree = parse(languageFor("query")!, query);
   // console.log("tree", tree);
+  // Check for no ambiguitiies
+  if (collectNodesOfType(tree, "⚠").length > 0) {
+    console.error("Parse error:", JSON.stringify(tree, null, 2));
+    assert(false);
+  }
+
   return parseTreeToAST(tree.children![0]);
 }
 
@@ -30,6 +36,63 @@ Deno.test("Test query parser", () => {
   );
 
   assertEquals(
+    astToKvQuery(wrapQueryParse(`page where .`)!),
+    {
+      querySource: "page",
+      filter: ["attr"],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where @page`)!),
+    {
+      querySource: "page",
+      filter: ["global", "page"],
+    },
+  );
+
+  // Comment check
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page # comment`)!,
+    ),
+    {
+      querySource: "page",
+    },
+  );
+
+  // Nested query check
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page select {page} as p`)!,
+    ),
+    {
+      querySource: "page",
+      select: [{
+        expr: ["query", { querySource: "page" }],
+        name: "p",
+      }],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where not true`)!),
+    {
+      querySource: "page",
+      filter: ["not", ["boolean", true]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse(`page where !isSomething`)!),
+    {
+      querySource: "page",
+      filter: ["not", ["attr", "isSomething"]],
+    },
+  );
+
+  assertEquals(
     astToKvQuery(wrapQueryParse(`page where name =~ /test/`)!),
     {
       querySource: "page",
@@ -42,6 +105,65 @@ Deno.test("Test query parser", () => {
     {
       querySource: "page",
       filter: ["=", ["attr", ["attr", "parent"], "name"], ["string", "test"]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = [[my page]]`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], [
+        "pageref",
+        "my page",
+      ]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = {"name": "Pete", "age": 27}`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["object", [
+        ["name", ["string", "Pete"]],
+        ["age", ["number", 27]],
+      ]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where json({})`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["call", "json", [["object", []]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = [1, 2, 3]`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["array", [["number", 1], ["number", 2], [
+        "number",
+        3,
+      ]]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where name = []`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], ["array", []]],
     },
   );
 
@@ -197,6 +319,16 @@ Deno.test("Test query parser", () => {
 
   assertEquals(
     astToKvQuery(
+      wrapQueryParse(`task where myCall().thing`)!,
+    ),
+    {
+      querySource: "task",
+      filter: ["attr", ["call", "myCall", []], "thing"],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
       wrapQueryParse(`task select today() as today2`)!,
     ),
     {
@@ -217,6 +349,22 @@ Deno.test("Test query parser", () => {
       select: [{
         name: "today",
         expr: ["call", "today", [["number", 1], ["number", 2], ["number", 3]]],
+      }],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page select 8 > 3 ? "yes" : "no" as truth`)!,
+    ),
+    {
+      querySource: "page",
+      select: [{
+        name: "truth",
+        expr: ["?", [">", ["number", 8], ["number", 3]], ["string", "yes"], [
+          "string",
+          "no",
+        ]],
       }],
     },
   );

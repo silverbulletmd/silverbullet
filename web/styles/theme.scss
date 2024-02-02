@@ -63,6 +63,7 @@ html {
   --editor-hashtag-border-color: #0120416b;
   --editor-ruler-color: rgb(76, 75, 75);
   --editor-naked-url-color: var(--link-color);
+  --editor-code-color: #7c828e;
   --editor-link-color: var(--link-color);
   --editor-link-url-color: var(--link-color);
   --editor-link-meta-color: var(--meta-subtle-color);
@@ -90,8 +91,9 @@ html {
   --editor-code-comment-color: var(--meta-subtle-color);
   --editor-code-variable-color: #024866;
   --editor-code-typename-color: #038138;
-  --editor-code-string-color: #440377;
-  --editor-code-number-color: #440377;
+  --editor-code-string-color: #540293;
+  --editor-code-number-color: #01833c;
+  --editor-code-operator-color: #808080;
   --editor-code-info-color: var(--subtle-color);
   --editor-code-atom-color: #5a0000;
   --editor-admonition-note-border-color: rgb(0, 184, 212);
@@ -104,6 +106,10 @@ html {
   --editor-widget-background-color: rgb(238, 238, 238);
   --editor-task-marker-color: var(--subtle-color);
   --editor-task-state-color: var(--subtle-color);
+
+  --editor-directive-mark-color: #6c0101;
+  --editor-directive-color: #696969;
+  --editor-directive-background-color: #ebebeb7d;
 
 
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,

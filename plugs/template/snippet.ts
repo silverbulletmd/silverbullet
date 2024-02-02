@@ -7,7 +7,6 @@ import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
 import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
 import { SnippetConfig } from "./types.ts";
-import { snippet } from "@codemirror/autocomplete";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
@@ -22,6 +21,7 @@ export async function snippetSlashComplete(
     return {
       label: snippetTemplate.slashCommand,
       detail: template.description,
+      order: snippetTemplate.order || 0,
       templatePage: template.ref,
       pageName: completeEvent.pageName,
       invoke: "template.insertSnippetTemplate",
