@@ -62,6 +62,7 @@ export type SlashCompletion = {
   label: string;
   detail?: string;
   invoke: string;
+  order?: number;
 } & Record<string, any>;
 
 export type WidgetContent = {

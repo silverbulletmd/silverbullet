@@ -104,6 +104,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         options.push({
           label: slashCompletion.label,
           detail: slashCompletion.detail,
+          boost: slashCompletion.order && -slashCompletion.order,
           apply: () => {
             // Delete slash command part
             this.editor.editorView.dispatch({

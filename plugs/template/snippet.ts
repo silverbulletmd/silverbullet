@@ -21,6 +21,7 @@ export async function snippetSlashComplete(
     return {
       label: snippetTemplate.slashCommand,
       detail: template.description,
+      order: snippetTemplate.order || 0,
       templatePage: template.ref,
       pageName: completeEvent.pageName,
       invoke: "template.insertSnippetTemplate",
