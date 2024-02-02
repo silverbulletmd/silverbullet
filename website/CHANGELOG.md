@@ -15,9 +15,9 @@ _The changes below are not yet released “properly.” To try them out early, c
 * Action buttons (top right buttons) can now be configured; see [[SETTINGS]] for how to do this.
 * Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the types of link formats that SilverBullet now supports.
 * New {[Task: Remove Completed]} command to remove all completed tasks from a page
-* **Read-only mode** (experimental) is here; see [[Install/Configuration#Run mode]] on how to enable it. This allows you expose your space to the outside world in all its glory but without allowing anybody to edit anything.
+* **Read-only mode** (experimental) is here; see [[Install/Configuration#Run mode]] on how to enable it. This allows you to expose your space to the outside world in all its glory but without allowing anybody to edit anything.
   * [silverbullet.md](https://silverbullet.md) has now been redeployed to run in this mode
-  * Pages in this mode are _server-side rendered_ so their content can actually be indexed by search engines. In addition, some [OpenGraph](https://ogp.me/) attributes are put in in the HTML to enable nice embedding links, e.g. in our [community](https://community.silverbullet.md).
+  * Pages in this mode are _server-side rendered_ so their content can actually be indexed by search engines. In addition, some [OpenGraph](https://ogp.me/) attributes are put in the HTML to enable nice embedding links, e.g. in our [community](https://community.silverbullet.md).
 * New {[Clear Local Storage & Logout]} command to wipe out any locally synced data (and log you out if you use [[Authentication]]).
 * Bug fixes:
   * Improved Ctrl/Cmd-click (to open links in a new window) behavior: now actually follow `@pos` and `$anchor` links.
@@ -25,7 +25,7 @@ _The changes below are not yet released “properly.” To try them out early, c
   * `tags` in [[Frontmatter]] are now properly indexed again when listed as an array
 * Internal changes:
   * Big refactor: of navigation and browser history, fixed some {[Page: Rename]} bugs along the way
-  * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing” especially during sync.
+  * Plugs now can no longer define their own markdown syntax, migrated all plug-specific syntax into the main parser. This should remove a bunch of editor “flashing”, especially during sync.
 
 ---
 
@@ -40,7 +40,7 @@ _The changes below are not yet released “properly.” To try them out early, c
   * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux) to get to them.
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
-  * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but should be easy to update to the new format: check [[Page Templates]].
+  * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but it should be easy to update to the new format: check [[Page Templates]].
 * The [[Getting Started]] page (that is embedded in the `index` page that is auto-generated when creating a new space) has been updated to include instructions on how to import the [[Library/Core]] library.
 * **Directives have now been removed** from the code base. Please use [[Live Queries]] and [[Live Templates]] instead. If you haven’t migrated yet and want to auto-migrate, downgrade your SilverBullet version to 0.5.11 (e.g. using the `zefhemel/silverbullet:0.5.11` docker image) and run the {[Directive: Convert Entire Space to Live/Templates]} command with that version.
 * (Hopefully subtle) **breaking change** in how tags work (see [[Objects]]):
