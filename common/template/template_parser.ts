@@ -76,7 +76,7 @@ function processTree(tree: AST): AST {
       switch (blockType) {
         case "each": {
           const eachExpr = blockTextContent.trim();
-          const eachVarMatch = eachExpr.match(/^@(\w+)\s*in\s*(.+)$/s);
+          const eachVarMatch = eachExpr.match(/^@(\w+)\s+in\s+(.+)$/s);
           if (!eachVarMatch) {
             // Not a each var declaration, just an expression
             const expressionTree = parseTreeToAST(parse(

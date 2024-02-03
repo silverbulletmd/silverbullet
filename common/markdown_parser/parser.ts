@@ -213,7 +213,7 @@ const TemplateDirective: MarkdownConfig = {
         if (!bodyEl) {
           // Is this an #each @p = block directive?
           const openEachVariableBlockMatch =
-            /^(\s*#each\s*)(@\w+)(\s*in\s*)(.+)$/s.exec(
+            /^(\s*#each\s*)(@\w+)(\s+in\s+)(.+)$/s.exec(
               bodyText,
             );
           if (openEachVariableBlockMatch) {
