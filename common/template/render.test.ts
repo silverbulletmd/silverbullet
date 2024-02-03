@@ -135,6 +135,14 @@ Deno.test("Test template", async () => {
     "1\n2\n3\n",
   );
 
+  assertEquals(
+    await parseAndRender(
+      "{{#each @v in [1, 2, 3]}}\n{{@v}}\n{{/each}}",
+      true,
+    ),
+    "1\n2\n3\n",
+  );
+
   function parseAndRender(template: string, value: any): Promise<string> {
     const parsedTemplate = parseTemplate(template);
     return renderTemplate(parsedTemplate, value, variables, functionMap);

@@ -2,10 +2,7 @@ import { AST } from "$sb/lib/tree.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { FunctionMap } from "$sb/types.ts";
-import {
-  jsonObjectToMDTable,
-  jsonToMDTable,
-} from "../../plugs/template/util.ts";
+import { jsonToMDTable } from "../../plugs/template/util.ts";
 
 export async function renderTemplate(
   ast: AST,
@@ -45,6 +42,13 @@ async function renderTemplateElement(
       );
     case "EachDirective":
       return await renderEachDirective(
+        ast,
+        value,
+        variables,
+        functionMap,
+      );
+    case "EachVarDirective":
+      return await renderEachVarDirective(
         ast,
         value,
         variables,
@@ -99,6 +103,48 @@ async function renderExpressionDirective(
   } else {
     return "" + result;
   }
+}
+
+async function renderEachVarDirective(
+  ast: AST,
+  value: any[],
+  variables: Record<string, any>,
+  functionMap: FunctionMap,
+): Promise<string> {
+  const [_eachVarDirective, name, expression, template] = ast;
+  const expr = expressionToKvQueryExpression(expression);
+  const values = await evalQueryExpression(
+    expr,
+    value,
+    variables,
+    functionMap,
+  );
+  if (!Array.isArray(values)) {
+    throw new Error(
+      `Expecting a list expression for #each var directive, instead got ${values}`,
+    );
+  }
+  const resultPieces: string[] = [];
+  for (const itemValue of values) {
+    const localVariables = { ...variables, [name as any]: itemValue };
+    try {
+      resultPieces.push(
+        await renderTemplate(
+          template,
+          value,
+          localVariables,
+          functionMap,
+        ),
+      );
+    } catch (e: any) {
+      throw new Error(
+        `Error rendering #each directive: ${e.message} for item ${
+          JSON.stringify(itemValue)
+        }`,
+      );
+    }
+  }
+  return resultPieces.join("");
 }
 
 async function renderEachDirective(
@@ -182,11 +228,11 @@ async function renderLetDirective(
     variables,
     functionMap,
   );
-  const newGlobalVariables = { ...variables, [name as any]: val };
+  const newVariables = { ...variables, [name as any]: val };
   return await renderTemplate(
     template,
     value,
-    newGlobalVariables,
+    newVariables,
     functionMap,
   );
 }

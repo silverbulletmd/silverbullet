@@ -75,15 +75,31 @@ function processTree(tree: AST): AST {
       const body = bodyElements.map(processTree);
       switch (blockType) {
         case "each": {
+          const eachExpr = blockTextContent.trim();
+          const eachVarMatch = eachExpr.match(/@(\w+)\s*in\s*(.+)$/s);
+          if (!eachVarMatch) {
+            // Not a each var declaration, just an expression
+            const expressionTree = parseTreeToAST(parse(
+              expressionLanguage,
+              blockTextContent.trim(),
+            ));
+            // console.log("Each body", bodyElements);
+            return ["EachDirective", expressionTree[1], [
+              "Template",
+              ...stripInitialNewline(body),
+            ]];
+          }
+          // This is a #each @p = version
           const expressionTree = parseTreeToAST(parse(
             expressionLanguage,
-            blockTextContent.trim(),
+            eachVarMatch[2],
           ));
-          // console.log("Each body", bodyElements);
-          return ["EachDirective", expressionTree[1], [
-            "Template",
-            ...stripInitialNewline(body),
-          ]];
+          return [
+            "EachVarDirective",
+            eachVarMatch[1],
+            expressionTree[1],
+            ["Template", ...stripInitialNewline(body)],
+          ];
         }
         case "let": {
           const letExpr = blockTextContent.trim();
@@ -156,7 +172,8 @@ function stripInitialNewline(body: any[]) {
 
     // After each block directive, strip the next newline
     if (
-      ["IfDirective", "EachDirective", "LetDirective"].includes(el[1][0])
+      ["IfDirective", "EachDirective", "EachVarDirective", "LetDirective"]
+        .includes(el[1][0])
     ) {
       // console.log("Got a block directive, consider stripping the next one", el);
       stripNext = true;

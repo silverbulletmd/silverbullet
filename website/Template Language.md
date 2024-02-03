@@ -60,12 +60,20 @@ You can also add an optional `else` clause:
 ```
 
 # each directive
-To iterate over a collection use an `#each` directive. On each iteration, the current item that is iterated over will be set as the active object (accessible via `.` and its attributes via the `attribute` syntax):
+To iterate over a collection use an `#each` directive. There are two variants of `#each`, one with and one without variable assignment:
+
+* `#each @varname in expression` repeats the body of this directive assigning every value to `@varname` one by one
+* `#each expression` repeats the body of this directive assigning every value to `.` one by one.
 
 ```template
-Counting to 3:
+Counting to 3 with a variable name:
 {{#each [1, 2, 3]}}
 * {{.}}
+{{/each}}
+
+And using a variable name iterator:
+{{#each @v in [1, 2, 3]}}
+* {{@v}}
 {{/each}}
 
 Iterating over the three last modified pages:

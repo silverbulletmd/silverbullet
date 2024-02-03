@@ -4,7 +4,6 @@ import { events } from "$sb/syscalls.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { renderQueryTemplate } from "../template/util.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
 
 export async function query(
   query: string,

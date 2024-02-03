@@ -135,11 +135,12 @@ const TemplateDirective: MarkdownConfig = {
     { name: "TemplateExpressionDirective" },
     { name: "TemplateIfStartDirective", style: ct.DirectiveTag },
     { name: "TemplateEachStartDirective", style: ct.DirectiveTag },
+    { name: "TemplateEachVarStartDirective", style: ct.DirectiveTag },
     { name: "TemplateLetStartDirective", style: ct.DirectiveTag },
     { name: "TemplateIfEndDirective", style: ct.DirectiveTag },
     { name: "TemplateEachEndDirective", style: ct.DirectiveTag },
     { name: "TemplateLetEndDirective", style: ct.DirectiveTag },
-    { name: "TemplateLetVar", style: t.variableName },
+    { name: "TemplateVar", style: t.variableName },
     { name: "TemplateDirectiveMark", style: ct.DirectiveMarkTag },
   ],
   parseInline: [
@@ -182,41 +183,52 @@ const TemplateDirective: MarkdownConfig = {
         const endPos = pos + valueLength + 1;
         let bodyEl: any;
 
-        // Is this an open block directive?
-        const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/s.exec(bodyText);
-        if (openBlockMatch) {
-          const [_, directiveStart, directiveType, directiveBody] =
-            openBlockMatch;
+        // Is this an let block directive?
+        const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/s.exec(
+          bodyText,
+        );
+        if (openLetBlockMatch) {
+          const [_, directiveStart, varName, eq, expr] = openLetBlockMatch;
           const parsedExpression = highlightingExpressionParser.parse(
-            directiveBody,
+            expr,
           );
           bodyEl = cx.elt(
-            directiveType === "if"
-              ? "TemplateIfStartDirective"
-              : "TemplateEachStartDirective",
+            "TemplateLetStartDirective",
             pos + 2,
             endPos - 2,
-            [cx.elt(parsedExpression, pos + 2 + directiveStart.length)],
+            [
+              cx.elt(
+                "TemplateVar",
+                pos + 2 + directiveStart.length,
+                pos + 2 + directiveStart.length + varName.length,
+              ),
+              cx.elt(
+                parsedExpression,
+                pos + 2 + directiveStart.length + varName.length + eq.length,
+              ),
+            ],
           );
         }
 
         if (!bodyEl) {
-          // Is this an open block directive?
-          const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/s.exec(
-            bodyText,
-          );
-          if (openLetBlockMatch) {
-            const [_, directiveStart, varName, eq, expr] = openLetBlockMatch;
+          // Is this an #each @p = block directive?
+          const openEachVariableBlockMatch =
+            /^(\s*#each\s*)(@\w+)(\s*in\s*)(.+)$/s.exec(
+              bodyText,
+            );
+          if (openEachVariableBlockMatch) {
+            const [_, directiveStart, varName, eq, expr] =
+              openEachVariableBlockMatch;
             const parsedExpression = highlightingExpressionParser.parse(
               expr,
             );
             bodyEl = cx.elt(
-              "TemplateLetStartDirective",
+              "TemplateEachVarStartDirective",
               pos + 2,
               endPos - 2,
               [
                 cx.elt(
-                  "TemplateLetVar",
+                  "TemplateVar",
                   pos + 2 + directiveStart.length,
                   pos + 2 + directiveStart.length + varName.length,
                 ),
@@ -225,6 +237,25 @@ const TemplateDirective: MarkdownConfig = {
                   pos + 2 + directiveStart.length + varName.length + eq.length,
                 ),
               ],
+            );
+          }
+        }
+        if (!bodyEl) {
+          // Is this an open block directive?
+          const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/s.exec(bodyText);
+          if (openBlockMatch) {
+            const [_, directiveStart, directiveType, directiveBody] =
+              openBlockMatch;
+            const parsedExpression = highlightingExpressionParser.parse(
+              directiveBody,
+            );
+            bodyEl = cx.elt(
+              directiveType === "if"
+                ? "TemplateIfStartDirective"
+                : "TemplateEachStartDirective",
+              pos + 2,
+              endPos - 2,
+              [cx.elt(parsedExpression, pos + 2 + directiveStart.length)],
             );
           }
         }
