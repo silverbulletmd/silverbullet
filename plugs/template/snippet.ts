@@ -39,6 +39,7 @@ export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
     await renderTemplate(
       templateText,
       pageObject,
+      { page: pageObject },
     );
   let snippetTemplate: SnippetConfig;
   try {

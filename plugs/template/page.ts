@@ -112,6 +112,7 @@ async function instantiatePageTemplate(
   const { frontmatter } = await renderTemplate(
     templateText,
     tempPageMeta,
+    { page: tempPageMeta },
   );
 
   let frontmatterConfig: FrontmatterConfig;
@@ -175,6 +176,7 @@ async function instantiatePageTemplate(
   const { text: pageText, renderedFrontmatter } = await renderTemplate(
     templateText,
     tempPageMeta,
+    { page: tempPageMeta },
   );
   let fullPageText = renderedFrontmatter
     ? "---\n" + renderedFrontmatter + "---\n" + pageText
