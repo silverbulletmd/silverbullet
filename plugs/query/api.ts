@@ -4,6 +4,7 @@ import { events } from "$sb/syscalls.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { renderQueryTemplate } from "../template/util.ts";
+import { parse } from "../../common/markdown_parser/parse_tree.ts";
 
 export async function query(
   query: string,
@@ -25,26 +26,25 @@ export async function renderQuery(
   variables?: Record<string, any>,
 ): Promise<any[] | string> {
   const results = await queryParsed(parsedQuery, variables);
-  if (results.length === 0 && !parsedQuery.renderAll) {
-    return results;
-  } else {
-    if (parsedQuery.render) {
-      // Configured a custom rendering template, let's use it!
-      const templatePage = resolvePath(
-        variables?.page?.name,
-        parsedQuery.render,
-      );
-      const rendered = await renderQueryTemplate(
-        variables?.page,
-        templatePage,
-        results,
-        parsedQuery.renderAll!,
-      );
-      return rendered.trim();
+  if (parsedQuery.render) {
+    if (results.length === 0 && !parsedQuery.renderAll) {
+      return "No results";
     }
-
-    return results;
+    // Configured a custom rendering template, let's use it!
+    const templatePage = resolvePath(
+      variables?.page?.name,
+      parsedQuery.render,
+    );
+    const rendered = await renderQueryTemplate(
+      variables?.page,
+      templatePage,
+      results,
+      parsedQuery.renderAll!,
+    );
+    return rendered.trim();
   }
+
+  return results;
 }
 
 export async function queryParsed(
