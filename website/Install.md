@@ -1,6 +1,6 @@
 There’s a progressive path in how people tend to install and deploy SilverBullet. Generally, it’s best to try it out on your local machine first. Play around a bit, see if it’s for you.
 
-Once you’re hooked, you may want to spend a little bit more time and host SilverBullet on a server in your local network or on the public Internet. SilverBullet is not currently available as a SaaS product, so you’ll have to install and run it yourself.
+Once you’re hooked, you may want to spend a little bit more time and host SilverBullet on a server in your local network or on the public Internet. SilverBullet is not available as a SaaS product, so you’ll have to self host it.
 
 # Installation options
 Installing SilverBullet as a (local) web server is pretty straightforward if you’re technically inclined enough to be able to use a terminal.

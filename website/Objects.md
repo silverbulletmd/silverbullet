@@ -16,8 +16,6 @@ In addition, many objects will also contain:
 Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
-
-tags
 Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Live Queries]] — examples below.
 
 Here are the currently built-in tags:
