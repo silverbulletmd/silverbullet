@@ -14,7 +14,7 @@ export async function queryComplete(completeEvent: CompleteEvent) {
   );
   if (fencedParent) {
     // Yep, let's see if we can do source completion
-    querySourceMatch = /^\s*([\w\-_]*)$/.exec(
+    querySourceMatch = /^\s*()([\w\-_]*)$/.exec(
       completeEvent.linePrefix,
     );
   } else {
@@ -24,7 +24,8 @@ export async function queryComplete(completeEvent: CompleteEvent) {
     );
 
     if (fencedParent) {
-      querySourceMatch = /\{(\s*[\w\-_]*)$/.exec(
+      // Match "{{{source" or "{source" (without a { before it, because that would be a variable)
+      querySourceMatch = /([^{]|\{\{)\{(\s*[\w\-_]+)$/.exec(
         completeEvent.linePrefix,
       );
     } else {
@@ -53,23 +54,42 @@ export async function queryComplete(completeEvent: CompleteEvent) {
     }
 
     return {
-      from: completeEvent.pos - querySourceMatch[1].length,
+      from: completeEvent.pos - querySourceMatch[2].length,
       options: completionOptions,
     };
   }
 
-  // If that doesn't work, let's try to match other bits of the query
-  // For this we do need to find the query source, though, so let's look for it in fencedParent
-  querySourceMatch = /(^[\n\r\s]*|\{\s*)([\w\-_]+)/.exec(
-    fencedParent.slice("FencedCode:query".length),
+  return null;
+}
+
+export async function queryAttributeComplete(completeEvent: CompleteEvent) {
+  const fencedParent = completeEvent.parentNodes.find((node) =>
+    node.startsWith("FencedCode:query") ||
+    node.startsWith("FencedCode:template")
   );
+  if (!fencedParent) {
+    return null;
+  }
+  // For this we do need to find the query source, though, so let's look for it
+  let querySourceMatch: RegExpExecArray | null = null;
+  if (fencedParent.startsWith("FencedCode:query")) {
+    querySourceMatch = /^[\n\r\s]*([\w\-_]+)/.exec(
+      fencedParent.slice("FencedCode:query".length),
+    );
+    console.log("Got a query source match", querySourceMatch);
+  } else {
+    // We're in a template, so let's just consider the current line and see if we can find the source
+    querySourceMatch = /\{(\s*[\w\-_]+)\s+/.exec(
+      completeEvent.linePrefix,
+    );
+  }
   const whereMatch =
     /(where|order\s+by|and|or|select(\s+[\w\s,]+)?)\s+([\w\-_]*)$/
       .exec(
         completeEvent.linePrefix,
       );
   if (querySourceMatch && whereMatch) {
-    const type = querySourceMatch[2];
+    const type = querySourceMatch[1];
     const attributePrefix = whereMatch[3];
     const completions = (await events.dispatchEvent(
       `attribute:complete:${type}`,
@@ -83,7 +103,6 @@ export async function queryComplete(completeEvent: CompleteEvent) {
       options: attributeCompletionsToCMCompletion(completions),
     };
   }
-  return null;
 }
 
 function attributeCompletionsToCMCompletion(

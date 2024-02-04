@@ -29,6 +29,11 @@ functions:
     events:
       - editor:complete
 
+  templateAttributeComplete:
+    path: var.ts:templateAttributeComplete
+    events:
+      - editor:complete
+
   # Widget
   templateWidget:
     path: widget.ts:includeWidget

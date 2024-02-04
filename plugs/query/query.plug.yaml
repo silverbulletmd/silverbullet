@@ -27,6 +27,11 @@ functions:
     events:
     - editor:complete
 
+  queryAttributeComplete:
+    path: complete.ts:queryAttributeComplete
+    events:
+    - editor:complete
+
   languageComplete:
     path: complete.ts:languageComplete
     events:

@@ -15,7 +15,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   if (
     completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
     // either a render [[bla]] clause
-    /render\s+\[\[/.test(
+    /(render\s+|template\()\[\[/.test(
       completeEvent.linePrefix,
     )
   ) {
