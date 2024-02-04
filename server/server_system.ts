@@ -73,11 +73,6 @@ export class ServerSystem {
 
   // Always needs to be invoked right after construction
   async init(awaitIndex = false) {
-    this.ds = new DataStore(
-      this.kvPrimitives,
-      buildQueryFunctions(this.allKnownPages, this.system),
-    );
-
     this.system = new System(
       "server",
       {
@@ -87,6 +82,11 @@ export class ServerSystem {
         ),
         plugFlushTimeout: 5 * 60 * 1000, // 5 minutes
       },
+    );
+
+    this.ds = new DataStore(
+      this.kvPrimitives,
+      buildQueryFunctions(this.allKnownPages, this.system),
     );
 
     // Event hook

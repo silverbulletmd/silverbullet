@@ -2,6 +2,7 @@ name: template
 functions:
   # API
   renderTemplate:
+    env: server
     path: api.ts:renderTemplate
 
   cleanTemplate:
