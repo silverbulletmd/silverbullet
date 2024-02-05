@@ -2,6 +2,14 @@ An attempt at documenting the changes/new features introduced in each
 release.
 
 ---
+## Edge
+_These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
+
+* Numerous bug fixes and significant performance improvements in rendering templates (which now happen server-side), including code completion fixes.
+* New `{{#each @varname in <expression>}}` syntax in [[Template Language#each directive]].
+* New [[Functions#readPage(name)]] function
+
+---
 
 ## 0.7.0
 I know what you’re thinking: another “major” minor release, so quickly?
