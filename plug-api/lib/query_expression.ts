@@ -136,9 +136,9 @@ export function evalQueryExpression(
       }
     }
     case "pageref": {
-      const readPageFunction = functionMap.$readPage;
+      const readPageFunction = functionMap.readPage;
       if (!readPageFunction) {
-        throw new Error(`No $readPage function defined`);
+        throw new Error(`No readPage function defined`);
       }
       return readPageFunction(op1);
     }

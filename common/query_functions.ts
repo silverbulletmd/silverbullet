@@ -34,7 +34,7 @@ export function buildQueryFunctions(
       ]);
     },
     // INTERNAL: Used to implement resolving [[links]] in expressions
-    $readPage(name: string): Promise<string> | string {
+    readPage(name: string): Promise<string> | string {
       const cachedPage = pageCache.get(name);
       if (cachedPage) {
         return cachedPage;
