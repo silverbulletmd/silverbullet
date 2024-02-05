@@ -3,7 +3,7 @@ SilverBullet is a note-taking application optimized for people with a [hacker mi
 
 This is what SilverBullet aims to be.
 
-Absolutely. You use SilverBullet it to quickly jot things down. It’s a notes app. However, this is just the beginning. Gradually, you start to annotate your notes using [[Frontmatter]]. You realize: “Hey, this note represents a _person_, let me [[Tags|tag]] it as such.” Before you know it, you’re turning your notes into [[Objects]]. Then you learn that in SilverBullet you can [[Live Queries|Live Query]] these objects. Your queries grow into reusable [[Templates]] written using a powerful [[Template Language]]. You find more and more uses of these templates, for instance to create [[Page Templates|new pages]], or [[Live Template Widgets|widgets]] automatically added to your pages.
+Absolutely. You use SilverBullet to quickly jot things down. It’s a notes app after all. However, this is just the beginning. Gradually, you start to annotate your notes using [[Frontmatter]]. You realize: “Hey, this note represents a _person_, let me [[Tags|tag]] it as such.” Before you know it, you’re turning your notes into [[Objects]]. Then you learn that in SilverBullet you can [[Live Queries|Live Query]] these objects. Your queries grow into reusable [[Templates]] written using a powerful [[Template Language]]. You find more and more uses of these templates, for instance to create [[Page Templates|new pages]], or [[Live Template Widgets|widgets]] automatically added to your pages.
 
 And then, before you know it — you realize you’re effectively building applications in your notes app. [[End-User Programming]], y’all. It’s cool.
 
