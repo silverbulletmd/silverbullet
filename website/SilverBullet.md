@@ -12,7 +12,7 @@ You may have been told there is _no such thing_ as a [silver bullet](https://en.
 You were told wrong.
 
 # What is SilverBullet?
-SilverBullet is open source **personal knowledge management system** implemented as an offline-capable web application ([[PWA]]). In order to use it, you have to **self-host** it: that is, you need to run a web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]]. Yes, this requires a bit more work than downloading a desktop app. But get a lot in return.
+SilverBullet is open source **personal knowledge management system** implemented as an offline-capable web application ([[PWA]]). In order to use it, you have to **self-host** it: that is, you need to run a web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]]. Yes, this requires a bit more work than downloading a desktop app. But you get a lot in return.
 
 # Features
 * SilverBullet is a **web application** and therefore instantly accessible wherever a (modern) web browser is available, without the need to install a 200mb Electron app, nor unreliable or proprietary sync setups.
