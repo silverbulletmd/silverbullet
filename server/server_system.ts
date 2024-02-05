@@ -84,10 +84,7 @@ export class ServerSystem {
       },
     );
 
-    this.ds = new DataStore(
-      this.kvPrimitives,
-      buildQueryFunctions(this.allKnownPages, this.system),
-    );
+    this.ds = new DataStore(this.kvPrimitives);
 
     // Event hook
     const eventHook = new EventHook();
@@ -129,10 +126,10 @@ export class ServerSystem {
       spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      systemSyscalls(this.system, this.readOnlyMode),
+      systemSyscalls(this.system, this.readOnlyMode, undefined, this),
       mqSyscalls(mq),
       languageSyscalls(),
-      templateSyscalls(this.ds.functionMap),
+      templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),
@@ -159,6 +156,8 @@ export class ServerSystem {
     }
 
     await this.loadPlugs();
+
+    await this.loadSpaceScripts();
 
     this.listInterval = setInterval(() => {
       // runWithSystemLock(this.system, async () => {
@@ -211,18 +210,19 @@ export class ServerSystem {
   }
 
   async loadPlugs() {
-    // await this.system.load("index", noSandboxFactory(plugIndex));
-    // await this.system.load("federation", noSandboxFactory(plugFederation));
-    // await this.system.load("query", noSandboxFactory(plugQuery));
-    // await this.system.load("search", noSandboxFactory(plugSearch));
-    // await this.system.load("tasks", noSandboxFactory(plugTasks));
-    // await this.system.load("template", noSandboxFactory(plugTemplate));
-
     for (const { name } of await this.spacePrimitives.fetchFileList()) {
       if (plugNameExtractRegex.test(name)) {
         await this.loadPlugFromSpace(name);
       }
     }
+  }
+
+  async loadSpaceScripts() {
+    // Swap in the expanded function map
+    this.ds.functionMap = await buildQueryFunctions(
+      this.allKnownPages,
+      this.system,
+    );
   }
 
   async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {

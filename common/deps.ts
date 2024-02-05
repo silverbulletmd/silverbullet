@@ -18,6 +18,17 @@ export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 export * as YAML from "https://esm.sh/js-yaml@4.1.0";
 export * as path from "https://deno.land/std@0.189.0/path/mod.ts";
 
+import {
+  Intl,
+  Temporal,
+  toTemporalInstant,
+} from "https://esm.sh/@js-temporal/polyfill@0.4.4";
+export { Intl, Temporal };
+// @ts-ignore: temporal
+Date.prototype.toTemporalInstant = toTemporalInstant;
+// @ts-ignore: temporal
+globalThis.Temporal = Temporal;
+
 export type {
   BlockContext,
   Element,

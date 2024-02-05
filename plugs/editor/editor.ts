@@ -47,9 +47,9 @@ export async function customFlashMessage(_def: any, message: string) {
   await editor.flashNotification(message);
 }
 
-export async function reloadSettingsAndCommands() {
+export async function reloadSystem() {
   await editor.reloadSettingsAndCommands();
-  await editor.flashNotification("Reloaded settings and commands");
+  await editor.flashNotification("Reloaded system");
 }
 
 export async function findInPageCommand() {

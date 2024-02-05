@@ -3,14 +3,22 @@ import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 import { System } from "../plugos/system.ts";
 import { Query } from "$sb/types.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
+import { ScriptEnvironment } from "./space_script.ts";
 
 const pageCacheTtl = 10 * 1000; // 10s
 
-export function buildQueryFunctions(
+export async function buildQueryFunctions(
   allKnownPages: Set<string>,
   system: System<any>,
-): FunctionMap {
+): Promise<FunctionMap> {
   const pageCache = new LimitedMap<string>(10);
+  const scriptEnv = new ScriptEnvironment();
+  await scriptEnv.loadFromSystem(system);
+  console.log(
+    "Loaded",
+    Object.keys(scriptEnv.functions).length,
+    "functions from space-script",
+  );
   return {
     ...builtinFunctions,
     pageExists(name: string) {
@@ -49,5 +57,6 @@ export function buildQueryFunctions(
         });
       }
     },
+    ...scriptEnv.functions,
   };
 }

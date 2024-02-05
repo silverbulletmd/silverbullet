@@ -93,7 +93,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return plug.invoke(functionName, args);
   }
 
-  localSyscall(name: string, args: any): Promise<any> {
+  localSyscall(name: string, args: any[]): Promise<any> {
     return this.syscall({}, name, args);
   }
 

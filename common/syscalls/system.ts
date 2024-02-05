@@ -1,4 +1,5 @@
 import { SysCallMapping, System } from "../../plugos/system.ts";
+import type { ServerSystem } from "../../server/server_system.ts";
 import type { Client } from "../../web/client.ts";
 import { CommandDef } from "../../web/hooks/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
@@ -6,7 +7,8 @@ import { proxySyscall } from "../../web/syscalls/util.ts";
 export function systemSyscalls(
   system: System<any>,
   readOnlyMode: boolean,
-  client?: Client,
+  client: Client | undefined,
+  serverSystem: ServerSystem | undefined,
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
@@ -61,6 +63,28 @@ export function systemSyscalls(
         throw new Error("Not supported");
       }
       return client.loadPlugs();
+    },
+    "system.loadSpaceScripts": async () => {
+      if (client) {
+        // If this is invoked on the client, we need to load the space scripts locally
+        await client.loadSpaceScripts();
+        // And we are in a hybrud mode, tell the server to do the same
+        if (system.env === "client") {
+          console.info(
+            "Sending syscall to server to trigger space script reload",
+          );
+          await proxySyscall(
+            {},
+            client.httpSpacePrimitives,
+            "system.loadSpaceScripts",
+            [],
+          );
+        }
+      } else if (serverSystem) {
+        return serverSystem.loadSpaceScripts();
+      } else {
+        throw new Error("Load space scripts in an undefined environment");
+      }
     },
     "system.getEnv": () => {
       return system.env;

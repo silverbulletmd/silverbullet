@@ -529,7 +529,6 @@ const NamedAnchor = regexParser({
 
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
-import { c } from "https://esm.sh/@codemirror/legacy-modes@6.3.3/mode/clike?external=@codemirror/language&target=es2022";
 
 // FrontMatter parser
 
