@@ -23,11 +23,13 @@ import {
   Temporal,
   toTemporalInstant,
 } from "https://esm.sh/@js-temporal/polyfill@0.4.4";
-export { Intl, Temporal };
-// @ts-ignore: temporal
+
+// @ts-ignore: temporal polygifill
 Date.prototype.toTemporalInstant = toTemporalInstant;
-// @ts-ignore: temporal
+// @ts-ignore: Temporal polyfill
 globalThis.Temporal = Temporal;
+// @ts-ignore: Intl polyfill
+globalThis.Intl = Intl;
 
 export type {
   BlockContext,
