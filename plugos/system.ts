@@ -36,7 +36,7 @@ export type SystemOptions = {
 
 export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   protected plugs = new Map<string, Plug<HookT>>();
-  protected registeredSyscalls = new Map<string, Syscall>();
+  registeredSyscalls = new Map<string, Syscall>();
   protected enabledHooks = new Set<Hook<HookT>>();
 
   /**

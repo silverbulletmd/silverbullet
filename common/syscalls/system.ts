@@ -1,3 +1,4 @@
+import { SyscallMeta } from "$sb/types.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { ServerSystem } from "../../server/server_system.ts";
 import type { Client } from "../../web/client.ts";
@@ -49,14 +50,24 @@ export function systemSyscalls(
       return client.runCommandByName(name, args);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
-      if (!client) {
-        throw new Error("Not supported");
-      }
+      const commandHook = client?.system.commandHook ||
+        serverSystem!.commandHook;
       const allCommands: { [key: string]: CommandDef } = {};
-      for (const [cmd, def] of client.system.commandHook.editorCommands) {
+      for (const [cmd, def] of commandHook.editorCommands) {
         allCommands[cmd] = def.command;
       }
       return allCommands;
+    },
+    "system.listSyscalls": (): SyscallMeta[] => {
+      const syscalls: SyscallMeta[] = [];
+      for (const [name, info] of system.registeredSyscalls) {
+        syscalls.push({
+          name,
+          requiredPermissions: info.requiredPermissions,
+          argCount: Math.max(0, info.callback.length - 1),
+        });
+      }
+      return syscalls;
     },
     "system.reloadPlugs": () => {
       if (!client) {

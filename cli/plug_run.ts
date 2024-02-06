@@ -31,6 +31,7 @@ export async function runPlug(
     kvPrimitives,
     new LocalShell(spacePath),
     false,
+    true,
   );
   await serverSystem.init(true);
   app.use((context, next) => {

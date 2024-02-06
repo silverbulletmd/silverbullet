@@ -11,9 +11,12 @@ export class ScriptEnvironment {
   }
 
   // Internal API
-  evalScript(script: string) {
+  evalScript(script: string, system: System<any>) {
     try {
-      Function("silverbullet", script)(this);
+      Function("silverbullet", "syscall", script)(
+        this,
+        (name: string, ...args: any[]) => system.syscall({}, name, args),
+      );
     } catch (e: any) {
       throw new Error(
         `Error evaluating script: ${e.message} for script: ${script}`,
@@ -31,7 +34,7 @@ export class ScriptEnvironment {
       ["space-script", {}],
     );
     for (const script of allScripts) {
-      this.evalScript(script.script);
+      this.evalScript(script.script, system);
     }
   }
 }

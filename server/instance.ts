@@ -26,6 +26,7 @@ export type SpaceServerConfig = {
   shellBackend: string;
   syncOnly: boolean;
   readOnly: boolean;
+  enableSpaceScript: boolean;
   clientEncryption: boolean;
 };
 
@@ -47,6 +48,7 @@ export class SpaceServer {
   syncOnly: boolean;
   readOnly: boolean;
   shellBackend: ShellBackend;
+  enableSpaceScript: boolean;
 
   constructor(
     config: SpaceServerConfig,
@@ -60,6 +62,8 @@ export class SpaceServer {
     this.clientEncryption = !!config.clientEncryption;
     this.syncOnly = config.syncOnly;
     this.readOnly = config.readOnly;
+    this.enableSpaceScript = config.enableSpaceScript;
+
     if (this.clientEncryption) {
       // Sync only will forced on when encryption is enabled
       this.syncOnly = true;
@@ -103,6 +107,7 @@ export class SpaceServer {
         this.kvPrimitives,
         this.shellBackend,
         this.readOnly,
+        this.enableSpaceScript,
       );
       this.serverSystem = serverSystem;
     }

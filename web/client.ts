@@ -74,6 +74,7 @@ declare global {
       syncOnly: boolean;
       readOnly: boolean;
       clientEncryption: boolean;
+      enableSpaceScript: boolean;
     };
     client: Client;
   }
@@ -250,6 +251,7 @@ export class Client {
     this.stateDataStore.functionMap = await buildQueryFunctions(
       this.allKnownPages,
       this.system.system,
+      window.silverBulletConfig.enableSpaceScript,
     );
   }
 

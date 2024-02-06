@@ -43,6 +43,10 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   editorCommands = new Map<string, AppCommand>();
   system!: System<CommandHookT>;
 
+  constructor(private readOnly: boolean) {
+    super();
+  }
+
   throttledBuildAllCommands = throttle(() => {
     this.buildAllCommands().catch(console.error);
   }, 200);
@@ -59,7 +63,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
           continue;
         }
         const cmd = functionDef.command;
-        if (cmd.requireMode === "rw" && window.silverBulletConfig.readOnly) {
+        if (cmd.requireMode === "rw" && this.readOnly) {
           // Bit hacky, but don't expose commands that require write mode in read-only mode
           continue;
         }

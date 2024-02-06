@@ -76,7 +76,6 @@ export async function queryAttributeComplete(completeEvent: CompleteEvent) {
     querySourceMatch = /^[\n\r\s]*([\w\-_]+)/.exec(
       fencedParent.slice("FencedCode:query".length),
     );
-    console.log("Got a query source match", querySourceMatch);
   } else {
     // We're in a template, so let's just consider the current line and see if we can find the source
     querySourceMatch = /\{(\s*[\w\-_]+)\s+/.exec(

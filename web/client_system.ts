@@ -95,7 +95,7 @@ export class ClientSystem {
     }
 
     // Command hook
-    this.commandHook = new CommandHook();
+    this.commandHook = new CommandHook(this.readOnlyMode);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({

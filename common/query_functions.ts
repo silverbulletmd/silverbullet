@@ -10,15 +10,22 @@ const pageCacheTtl = 10 * 1000; // 10s
 export async function buildQueryFunctions(
   allKnownPages: Set<string>,
   system: System<any>,
+  enableSpaceScript: boolean,
 ): Promise<FunctionMap> {
   const pageCache = new LimitedMap<string>(10);
   const scriptEnv = new ScriptEnvironment();
-  await scriptEnv.loadFromSystem(system);
-  console.log(
-    "Loaded",
-    Object.keys(scriptEnv.functions).length,
-    "functions from space-script",
-  );
+  if (enableSpaceScript) {
+    try {
+      await scriptEnv.loadFromSystem(system);
+      console.log(
+        "Loaded",
+        Object.keys(scriptEnv.functions).length,
+        "functions from space-script",
+      );
+    } catch (e: any) {
+      console.error("Error loading space-script:", e.message);
+    }
+  }
   return {
     ...builtinFunctions,
     pageExists(name: string) {
