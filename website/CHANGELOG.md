@@ -5,7 +5,7 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Numerous bug fixes and significant performance improvements in rendering [[temp]] (which now happen server-side), including code completion fixes.
+* Numerous bug fixes and significant performance improvements in template rendering (which now happen server-side), including code completion fixes.
 * **Experimental** feature: [[Space Script]], the ability to extend SilverBullet from within your SilverBullet space with JavaScript.
 * New `{{#each @varname in <expression>}}` syntax in [[Template Language#each directive]].
 * New [[Functions#readPage(name)]] function.
