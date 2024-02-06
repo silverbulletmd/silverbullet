@@ -2,7 +2,6 @@ import { Manifest } from "../common/manifest.ts";
 import { PageMeta } from "$sb/types.ts";
 import { AppCommand } from "./hooks/command.ts";
 import { defaultSettings } from "../common/util.ts";
-import { EmojiConfig } from "../plugs/emoji/emoji.ts";
 
 // Used by FilterBox
 export type FilterOption = {
@@ -33,6 +32,10 @@ export type ActionButton = {
   description?: string;
   command: string;
   args?: any[];
+};
+
+export type EmojiConfig = {
+  aliases: string[][];
 };
 
 export type BuiltinSettings = {

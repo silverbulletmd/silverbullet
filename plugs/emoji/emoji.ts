@@ -2,10 +2,8 @@ import emojiBlob from "./emoji.json" assert { type: "json" };
 import type { CompleteEvent } from "$sb/app_event.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import type { EmojiConfig } from "../../web/types.ts";
 
-export type EmojiConfig = {
-  aliases: string[][];
-};
 let emojiConfig: EmojiConfig = { aliases: [] };
 
 const emojis = emojiBlob.split("|").map((line) => line.split(" "));
@@ -21,7 +19,7 @@ export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
   const [fullMatch, emojiName] = match;
 
   const filteredEmoji = [...emojiConfig.aliases, ...emojis].filter(
-    ([shortcode]) => shortcode.includes(emojiName)
+    ([shortcode]) => shortcode.includes(emojiName),
   );
 
   return {
@@ -75,7 +73,7 @@ async function updateConfig() {
   if (badAliases.length > 0) {
     await editor.flashNotification(
       errorMsg + `, need to fix: ${badAliases.join(",")}`,
-      "error"
+      "error",
     );
   }
 
