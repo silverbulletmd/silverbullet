@@ -140,3 +140,11 @@ export async function navigateToPage(_cmdDef: any, pageName: string) {
 export async function navigateToURL(_cmdDef: any, url: string) {
   await editor.openUrl(url, false);
 }
+
+export async function navigateBack() {
+  await editor.goHistory(-1);
+}
+
+export async function navigateForward() {
+  await editor.goHistory(1);
+}
