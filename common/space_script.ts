@@ -11,7 +11,7 @@ export class ScriptEnvironment {
   }
 
   // Internal API
-  private evalScript(script: string) {
+  evalScript(script: string) {
     try {
       Function("silverbullet", script)(this);
     } catch (e: any) {
