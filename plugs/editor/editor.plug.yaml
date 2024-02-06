@@ -56,7 +56,6 @@ functions:
     path: editor.ts:reloadSystem
     command:
       name: "System: Reload"
-      requireMode: rw
       key: Ctrl-Alt-r
 
   # Navigation
