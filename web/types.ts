@@ -34,6 +34,10 @@ export type ActionButton = {
   args?: any[];
 };
 
+export type EmojiConfig = {
+  aliases: string[][];
+};
+
 export type BuiltinSettings = {
   indexPage: string;
   customStyles?: string | string[];
@@ -43,6 +47,7 @@ export type BuiltinSettings = {
   actionButtons: ActionButton[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
+  emoji?: EmojiConfig;
 };
 
 export type PanelConfig = {

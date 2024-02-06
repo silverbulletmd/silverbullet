@@ -11,7 +11,7 @@ customStyles: "[[STYLES]]"
 hideSyncButton: false
 
 # Configure the shown action buttons (top right bar)
-actionButtons: 
+actionButtons:
 - icon: home # Use any icon from https://feathericons.com
   command: "{[Navigate: Home]}"
   description: "Go to the index page"
@@ -33,7 +33,7 @@ shortcuts:
 - command: "{[Stats: Show]}" # Using the command link syntax here
   mac: "Cmd-s" # Mac-specific keyboard shortcut
   key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
-- command: "Navigate: Center Cursor" # But a command name is also supported 
+- command: "Navigate: Center Cursor" # But a command name is also supported
   key: "Alt-x"
 - command: "{[Upload: File]}"
   priority: 1 # Make sure this appears at the top of the list in the command palette
@@ -46,4 +46,9 @@ spaceIgnore: |
    largefolder
    *.mp4
 
+# Add alternative names to emoji picker
+emoji:
+  aliases:
+    smile: 😀
+    sweat_smile: 😅
 ```
