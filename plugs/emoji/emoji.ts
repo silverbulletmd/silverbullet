@@ -34,11 +34,15 @@ export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
 }
 
 let lastConfigUpdate = 0;
+
 async function updateConfig() {
   // Update at most every 5 seconds
   if (Date.now() < lastConfigUpdate + 5000) return;
   lastConfigUpdate = Date.now();
   const config = await readSetting("emoji");
+  if (!config) {
+    return;
+  }
 
   // This is simpler to write in SETTINGS and prevents duplicates,
   // which could be supported but probably aren't user's intent
