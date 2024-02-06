@@ -36,6 +36,7 @@ import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
 import { FileMeta } from "$sb/types.ts";
 import { buildQueryFunctions } from "../common/query_functions.ts";
+import { CommandHook } from "../web/hooks/command.ts";
 
 // // Important: load this before the actual plugs
 // import {
@@ -62,12 +63,14 @@ export class ServerSystem {
   listInterval?: number;
   ds!: DataStore;
   allKnownPages = new Set<string>();
+  commandHook!: CommandHook;
 
   constructor(
     private baseSpacePrimitives: SpacePrimitives,
     readonly kvPrimitives: KvPrimitives,
     private shellBackend: ShellBackend,
     private readOnlyMode: boolean,
+    private enableSpaceScript: boolean,
   ) {
   }
 
@@ -84,14 +87,15 @@ export class ServerSystem {
       },
     );
 
-    this.ds = new DataStore(
-      this.kvPrimitives,
-      buildQueryFunctions(this.allKnownPages, this.system),
-    );
+    this.ds = new DataStore(this.kvPrimitives);
 
     // Event hook
     const eventHook = new EventHook();
     this.system.addHook(eventHook);
+
+    // Command hook, just for introspection
+    this.commandHook = new CommandHook(this.readOnlyMode);
+    this.system.addHook(this.commandHook);
 
     // Cron hook
     const cronHook = new CronHook(this.system);
@@ -129,10 +133,10 @@ export class ServerSystem {
       spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      systemSyscalls(this.system, this.readOnlyMode),
+      systemSyscalls(this.system, this.readOnlyMode, undefined, this),
       mqSyscalls(mq),
       languageSyscalls(),
-      templateSyscalls(this.ds.functionMap),
+      templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),
@@ -159,6 +163,8 @@ export class ServerSystem {
     }
 
     await this.loadPlugs();
+
+    await this.loadSpaceScripts();
 
     this.listInterval = setInterval(() => {
       // runWithSystemLock(this.system, async () => {
@@ -211,18 +217,20 @@ export class ServerSystem {
   }
 
   async loadPlugs() {
-    // await this.system.load("index", noSandboxFactory(plugIndex));
-    // await this.system.load("federation", noSandboxFactory(plugFederation));
-    // await this.system.load("query", noSandboxFactory(plugQuery));
-    // await this.system.load("search", noSandboxFactory(plugSearch));
-    // await this.system.load("tasks", noSandboxFactory(plugTasks));
-    // await this.system.load("template", noSandboxFactory(plugTemplate));
-
     for (const { name } of await this.spacePrimitives.fetchFileList()) {
       if (plugNameExtractRegex.test(name)) {
         await this.loadPlugFromSpace(name);
       }
     }
+  }
+
+  async loadSpaceScripts() {
+    // Swap in the expanded function map
+    this.ds.functionMap = await buildQueryFunctions(
+      this.allKnownPages,
+      this.system,
+      this.enableSpaceScript,
+    );
   }
 
   async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {

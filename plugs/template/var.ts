@@ -28,7 +28,7 @@ export async function templateAttributeComplete(completeEvent: CompleteEvent) {
   const functions = await datastore.listFunctions();
   allCompletions = functions.map((name) => ({
     label: name,
-    apply: `${name}(`,
+    apply: name,
     detail: "function",
   }));
 

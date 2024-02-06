@@ -3,8 +3,9 @@ import { AST } from "$sb/lib/tree.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import { renderTemplate } from "../template/render.ts";
 import { parseTemplate } from "../template/template_parser.ts";
+import { DataStore } from "../../plugos/lib/datastore.ts";
 
-export function templateSyscalls(functionMap: FunctionMap): SysCallMapping {
+export function templateSyscalls(ds: DataStore): SysCallMapping {
   return {
     "template.renderTemplate": (
       _ctx,
@@ -12,7 +13,7 @@ export function templateSyscalls(functionMap: FunctionMap): SysCallMapping {
       obj: any,
       globals: Record<string, any> = {},
     ): Promise<string> => {
-      return renderTheTemplate(template, obj, globals, functionMap);
+      return renderTheTemplate(template, obj, globals, ds.functionMap);
     },
     "template.parseTemplate": (
       _ctx,

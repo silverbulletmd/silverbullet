@@ -27,6 +27,12 @@ export type AttachmentMeta = {
   perm: "ro" | "rw";
 };
 
+export type SyscallMeta = {
+  name: string;
+  requiredPermissions: string[];
+  argCount: number;
+};
+
 // Message Queue related types
 export type MQMessage = {
   id: string;

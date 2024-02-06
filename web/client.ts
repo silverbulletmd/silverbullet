@@ -74,6 +74,7 @@ declare global {
       syncOnly: boolean;
       readOnly: boolean;
       clientEncryption: boolean;
+      enableSpaceScript: boolean;
     };
     client: Client;
   }
@@ -163,12 +164,6 @@ export class Client {
       window.silverBulletConfig.readOnly,
     );
 
-    // Swap in the expanded function map
-    this.stateDataStore.functionMap = buildQueryFunctions(
-      this.allKnownPages,
-      this.system.system,
-    );
-
     const localSpacePrimitives = await this.initSpace();
 
     this.syncService = this.syncMode
@@ -229,6 +224,8 @@ export class Client {
     }
 
     await this.loadPlugs();
+    await this.loadSpaceScripts();
+
     await this.initNavigator();
     await this.initSync();
 
@@ -247,6 +244,15 @@ export class Client {
     }, pageSyncInterval);
 
     this.updatePageListCache().catch(console.error);
+  }
+
+  async loadSpaceScripts() {
+    // Swap in the expanded function map
+    this.stateDataStore.functionMap = await buildQueryFunctions(
+      this.allKnownPages,
+      this.system.system,
+      window.silverBulletConfig.enableSpaceScript,
+    );
   }
 
   async loadSettings() {
@@ -286,6 +292,8 @@ export class Client {
         } else {
           // This was the initial sync, let's mark a full index as completed
           await markFullSpaceIndexComplete(this.stateDataStore);
+          // And load space scripts, which probably weren't loaded before
+          await this.loadSpaceScripts();
         }
       }
       if (operations) {
@@ -560,7 +568,7 @@ export class Client {
             new DataStoreSpacePrimitives(
               new DataStore(
                 spaceKvPrimitives,
-                buildQueryFunctions(this.allKnownPages, this.system.system),
+                {},
               ),
             ),
             this.plugSpaceRemotePrimitives,
@@ -733,6 +741,10 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
+    if (!this.system.system.loadedPlugs.has("index")) {
+      console.warn("Index plug not loaded, cannot update page list cache");
+      return;
+    }
     const allPages = await this.system.queryObjects<PageMeta>("page", {});
     this.ui.viewDispatch({
       type: "update-page-list",

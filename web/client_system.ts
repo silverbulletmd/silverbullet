@@ -95,7 +95,7 @@ export class ClientSystem {
     }
 
     // Command hook
-    this.commandHook = new CommandHook();
+    this.commandHook = new CommandHook(this.readOnlyMode);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -158,11 +158,11 @@ export class ClientSystem {
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this.client),
+      systemSyscalls(this.system, false, this.client, undefined),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      templateSyscalls(this.ds.functionMap),
+      templateSyscalls(this.ds),
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),

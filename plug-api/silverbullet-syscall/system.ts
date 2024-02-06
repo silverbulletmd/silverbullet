@@ -1,4 +1,5 @@
 import type { CommandDef } from "../../web/hooks/command.ts";
+import { SyscallMeta } from "$sb/types.ts";
 import { syscall } from "./syscall.ts";
 
 export function invokeFunction(
@@ -16,6 +17,10 @@ export function invokeCommand(name: string, args?: string[]): Promise<any> {
 // Only available on the client
 export function listCommands(): Promise<{ [key: string]: CommandDef }> {
   return syscall("system.listCommands");
+}
+
+export function listSyscalls(): Promise<SyscallMeta[]> {
+  return syscall("system.listSyscalls");
 }
 
 export function reloadPlugs() {

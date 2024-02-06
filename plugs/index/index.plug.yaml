@@ -120,6 +120,13 @@ functions:
     events:
     - page:index
 
+  # Script
+  indexSpaceScript:
+    path: script.ts:indexSpaceScript
+    events:
+    - page:index
+
+
   # Hashtags
   indexTags:
     path: tags.ts:indexTags
@@ -194,3 +201,13 @@ functions:
     pageNamespace:
       pattern: "📌 .+"
       operation: getFileMeta
+
+  syscallSourceProvider:
+    path: builtins.ts:syscallSourceProvider
+    events:
+    - query:syscall
+
+  commandSourceProvider:
+    path: builtins.ts:commandSourceProvider
+    events:
+    - query:command

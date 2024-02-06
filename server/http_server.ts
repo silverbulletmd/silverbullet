@@ -158,6 +158,9 @@ export class HttpServer {
         "{{SYNC_ONLY}}",
         spaceServer.syncOnly ? "true" : "false",
       ).replace(
+        "{{ENABLE_SPACE_SCRIPT}}",
+        spaceServer.enableSpaceScript ? "true" : "false",
+      ).replace(
         "{{READ_ONLY}}",
         spaceServer.readOnly ? "true" : "false",
       ).replace(
@@ -267,6 +270,7 @@ export class HttpServer {
                   spaceServer.clientEncryption,
                   spaceServer.syncOnly,
                   spaceServer.readOnly,
+                  spaceServer.enableSpaceScript,
                 ]),
               ),
             );

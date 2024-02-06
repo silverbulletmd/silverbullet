@@ -61,6 +61,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.reloadSettingsAndCommands": async () => {
       await client.loadSettings();
       await client.system.commandHook.buildAllCommands();
+      await client.system.system.localSyscall("system.loadSpaceScripts", []);
     },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       if (!existingWindow) {

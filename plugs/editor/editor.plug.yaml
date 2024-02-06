@@ -52,11 +52,12 @@ functions:
     events:
       - editor:complete
 
-  reloadSettingsAndCommands:
-    path: editor.ts:reloadSettingsAndCommands
+  reloadSystem:
+    path: editor.ts:reloadSystem
     command:
-      name: "System: Reload Settings and Commands"
+      name: "System: Reload"
       requireMode: rw
+      key: Ctrl-Alt-r
 
   # Navigation
   linkNavigate:

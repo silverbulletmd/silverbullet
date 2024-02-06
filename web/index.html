@@ -42,6 +42,7 @@
       // These {{VARIABLES}} are replaced by http_server.ts
       spaceFolderPath: "{{SPACE_PATH}}",
       syncOnly: "{{SYNC_ONLY}}" === "true",
+      enableSpaceScript: "{{ENABLE_SPACE_SCRIPT}}" === "true",
       readOnly: "{{READ_ONLY}}" === "true",
       clientEncryption: "{{CLIENT_ENCRYPTION}}" === "true",
     };
@@ -51,6 +52,7 @@
         spaceFolderPath: "",
         syncOnly: true,
         readOnly: false,
+        enableSpaceScripts: false,
         clientEncryption: false,
       };
     }

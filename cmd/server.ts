@@ -81,6 +81,7 @@ export async function serveCommand(
   }
 
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
+  const enableSpaceScript = Deno.env.get("SB_SPACE_SCRIPT") !== "off";
 
   const configs = new Map<string, SpaceServerConfig>();
   configs.set("*", {
@@ -92,6 +93,7 @@ export async function serveCommand(
     readOnly,
     shellBackend: backendConfig,
     clientEncryption,
+    enableSpaceScript,
     pagesPath: folder,
   });
 

@@ -100,7 +100,7 @@ export function setupMessageListener(
                 "An exception was thrown as a result of invoking function",
                 data.name,
                 "error:",
-                e,
+                e.message,
               );
               workerPostMessage({
                 type: "invr",

@@ -1,6 +1,9 @@
 import { ObjectValue } from "$sb/types.ts";
 import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
+import { QueryProviderEvent } from "$sb/app_event.ts";
+import { applyQuery } from "$sb/lib/query.ts";
+import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
 
 export const builtinPseudoPage = ":builtin:";
 
@@ -88,6 +91,22 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "!number",
     hooks: "hooksSpec",
   },
+
+  // System builtins
+  syscall: {
+    name: "!string",
+    requiredPermissions: "!string[]",
+    argCount: "!number",
+  },
+
+  command: {
+    name: "!string",
+    priority: "!number",
+    key: "!string",
+    mac: "!string",
+    hide: "!boolean",
+    requireMode: "!rw|ro",
+  },
 };
 
 export async function loadBuiltinsIntoIndex() {
@@ -120,4 +139,30 @@ export async function loadBuiltinsIntoIndex() {
     );
   }
   await indexObjects(builtinPseudoPage, allObjects);
+}
+
+export async function syscallSourceProvider({
+  query,
+  variables,
+}: QueryProviderEvent): Promise<any[]> {
+  const syscalls = await system.listSyscalls();
+  return applyQuery(
+    { ...query, distinct: true },
+    syscalls,
+    variables || {},
+    builtinFunctions,
+  );
+}
+
+export async function commandSourceProvider({
+  query,
+  variables,
+}: QueryProviderEvent): Promise<any[]> {
+  const commands = await system.listCommands();
+  return applyQuery(
+    { ...query, distinct: true },
+    Object.values(commands),
+    variables || {},
+    builtinFunctions,
+  );
 }
