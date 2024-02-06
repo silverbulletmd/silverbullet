@@ -1,33 +1,22 @@
 # Introduction
-SilverBullet is a note-taking application optimized for people with a [hacker’s mindset](https://en.wikipedia.org/wiki/Hacker). We all take notes. There’s a million note taking applications out there. [Literally](https://www.noteapps.ca/). But wouldn’t it be nice to have one where your notes are more than plain text files. Where your notes essentially become a database that you can query; that you can build knowledge custom applications on top of?
+SilverBullet is a note-taking application optimized for people with a [hacker mindset](https://en.wikipedia.org/wiki/Hacker). We all take notes. There’s a million note taking applications out there. [Literally](https://www.noteapps.ca/). Wouldn’t it be nice to have one where your notes are _more_ than plain text files? Where your notes essentially become a _database_ that you can query; that you can build custom knowledge applications on top of?
 
 This is what SilverBullet aims to be.
 
-Absolutely. You use it to quickly jot things down. This is where it starts. Then, gradually, you start to annotate your notes using [[Frontmatter]]. You realize: “Hey, this note represents a _person_, let me [[Tags|tag]] it as such. This page represents a _meeting_, let me tag it as such.” Before you know it, you’re turning your notes into [[Objects]]. And then, you learn that in SilverBullet you can [[Live Queries|query]] these objects. Your queries grow into reusable [[Templates]] written using a simple yet powerful [[Template Language]]. You find more and more uses of these templates, for instance to create [[Page Templates|new pages]], or [[Live Template Widgets|widgets]] automatically added to your pages.
+Absolutely. You use SilverBullet to quickly jot things down. It’s a notes app after all. However, this is just the beginning. Gradually, you start to annotate your notes using [[Frontmatter]]. You realize: “Hey, this note represents a _person_, let me [[Tags|tag]] it as such.” Before you know it, you’re turning your notes into [[Objects]]. Then you learn that in SilverBullet you can [[Live Queries|Live Query]] these objects. Your queries grow into reusable [[Templates]] written using a powerful [[Template Language]]. You find more and more uses of these templates, for instance to create [[Page Templates|new pages]], or [[Live Template Widgets|widgets]] automatically added to your pages.
 
-And then, before you know it — you realize you’re building [[End-User Programming|end-user programs]]. Just for you.
-
-Welcome to the wondrous world of SilverBullet.
-
-SilverBullet is _open source_ personal knowledge management system implemented as an _offline-capable_ web application ([[PWA]]). In order to use it, you have to _self-host_ it: that is, you need to run the web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]].
+And then, before you know it — you realize you’re effectively building applications in your notes app. [[End-User Programming]], y’all. It’s cool.
 
 You may have been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
 
 You were told wrong.
 
-# Quick Links
-* [[Install]]: how to install and deploy SilverBullet.
-* [[Manual]]: how to use this thing.
-* [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
-* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
-* [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
-* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.
-* [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion.
-* [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/).
+# What is SilverBullet?
+SilverBullet is open source **personal knowledge management system** implemented as an offline-capable web application ([[PWA]]). In order to use it, you have to **self-host** it: that is, you need to run a web server either on your own machine, somewhere on your network, or in the cloud somewhere. See our [[Install|installation instructions]]. Yes, this requires a bit more work than downloading a desktop app. But you get a lot in return.
 
 # Features
 * SilverBullet is a **web application** and therefore instantly accessible wherever a (modern) web browser is available, without the need to install a 200mb Electron app, nor unreliable or proprietary sync setups.
-* That said, SilverBullet is implemented as a [[PWA]] and supports two [[Client Modes]]: [[Client Modes#Online mode]] and [[Client Modes#Synced mode]]), where the _synced mode_ enables **100% offline operation**, keeping a copy of the content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
+* SilverBullet is a [[PWA]] that supports two [[Client Modes]]: [[Client Modes#Online mode]] and [[Client Modes#Synced mode]]), where the _synced mode_ enables **100% offline operation**, keeping a copy of the content in the browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
 * **Self-hosted**: _you own your data_. Your [[Spaces|space]] is stored as plain files in a folder on disk on your server. Back it up, sync, edit, publish, script it with any additional tools you like.
 * SilverBullet provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
 * SilverBullet supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to, thereby providing _bi-directional linking_.
@@ -57,6 +46,16 @@ Except... _you cannot edit anything_. But don’t despair, head to [play.silverb
 
 # Install SilverBullet
 Convinced to install this yourself? Please proceed to [[Install]], and enjoy!
+
+# What next?
+* [[Manual]]: how to use this thing.
+* [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
+* [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
+* [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
+* [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.
+* [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion.
+* [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/).
+
 
 # Support
 If you (hypothetically) find bugs or have feature requests, post them in [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues). Want to contribute? [Check out the code](https://github.com/silverbulletmd/silverbullet).

@@ -60,3 +60,6 @@ This very page exists: {{pageExists(@page.name)}}
 
 And this one: {{pageExists("non-existing")}}
 ```
+
+## readPage(name)
+Reads in the content of the page `name` and returns it as a string.
