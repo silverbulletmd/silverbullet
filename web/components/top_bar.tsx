@@ -57,15 +57,17 @@ export function TopBar({
         ),
       );
       const currentPageElement = document.getElementById("sb-current-page");
-      if (currentPageElement) {
+      const actionsElement = document.querySelector(".sb-actions");
+      if (currentPageElement && actionsElement) {
         // Temporarily make it very narrow to give the parent space
         currentPageElement.style.width = "10px";
         const innerDiv = currentPageElement.parentElement!.parentElement!;
 
         // Then calculate a new width
-        const substract = 60 + actionButtons.length * 31;
+        const actionsWidth = actionsElement.clientWidth;
+        // console.log("Editor width", editorWidth);
         currentPageElement.style.width = `${
-          Math.min(editorWidth - substract, innerDiv.clientWidth - substract)
+          innerDiv.clientWidth - actionsWidth - 40
         }px`;
       }
     }
