@@ -8,6 +8,9 @@ import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
 
 export async function runPlug(
   spacePath: string,
@@ -23,6 +26,10 @@ export async function runPlug(
 
   const endpointHook = new EndpointHook("/_/");
 
+  const ds = new DataStore(kvPrimitives);
+  const mq = new DataStoreMQ(ds);
+  const eventHook = new EventHook();
+
   const serverSystem = new ServerSystem(
     new AssetBundlePlugSpacePrimitives(
       new DiskSpacePrimitives(spacePath),
@@ -30,6 +37,9 @@ export async function runPlug(
     ),
     kvPrimitives,
     new LocalShell(spacePath),
+    mq,
+    ds,
+    eventHook,
     false,
     true,
   );

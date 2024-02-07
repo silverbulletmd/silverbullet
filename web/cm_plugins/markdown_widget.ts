@@ -64,7 +64,7 @@ export class MarkdownWidget extends WidgetType {
       extendedMarkdownLanguage,
       widgetContent.markdown!,
     );
-    mdTree = await this.client.system.localSyscall(
+    mdTree = await this.client.clientSystem.localSyscall(
       "system.invokeFunction",
       [
         "markdown.expandCodeWidgets",
@@ -215,7 +215,7 @@ export class MarkdownWidget extends WidgetType {
           // Update state in DOM as well for future toggles
           e.target.dataset.state = newState;
           console.log("Toggling task", taskRef);
-          this.client.system.localSyscall(
+          this.client.clientSystem.localSyscall(
             "system.invokeFunction",
             ["tasks.updateTaskState", taskRef, oldState, newState],
           ).catch(
@@ -234,7 +234,7 @@ export class MarkdownWidget extends WidgetType {
       if (button.widgetTarget) {
         div.addEventListener("click", () => {
           console.log("Widget clicked");
-          this.client.system.localSyscall("system.invokeFunction", [
+          this.client.clientSystem.localSyscall("system.invokeFunction", [
             button.invokeFunction,
             this.from,
           ]).catch(console.error);
@@ -245,7 +245,7 @@ export class MarkdownWidget extends WidgetType {
           (e) => {
             e.stopPropagation();
             console.log("Button clicked:", button.description);
-            this.client.system.localSyscall("system.invokeFunction", [
+            this.client.clientSystem.localSyscall("system.invokeFunction", [
               button.invokeFunction,
               this.from,
             ]).then((newContent: string | undefined) => {

@@ -22,12 +22,13 @@ export function fencedCodePlugin(editor: Client) {
           }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^```(\w+)?/)!;
-          const codeWidgetCallback = editor.system.codeWidgetHook
+          const codeWidgetCallback = editor.clientSystem.codeWidgetHook
             .codeWidgetCallbacks
             .get(lang);
-          const renderMode = editor.system.codeWidgetHook.codeWidgetModes.get(
-            lang,
-          );
+          const renderMode = editor.clientSystem.codeWidgetHook.codeWidgetModes
+            .get(
+              lang,
+            );
           // Only custom render when we have a custom renderer, and the current page is not a template
           if (codeWidgetCallback && !isTemplate(state.sliceDoc(0, from))) {
             // We got a custom renderer!

@@ -12,7 +12,7 @@ import { Space } from "./space.ts";
 import { FilterOption } from "./types.ts";
 import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { AppCommand } from "./hooks/command.ts";
+import { AppCommand } from "../common/hooks/command.ts";
 import {
   PageState,
   parsePageRefFromURI,
@@ -57,7 +57,6 @@ import {
 } from "../common/space_index.ts";
 import { LimitedMap } from "$sb/lib/limited_map.ts";
 import { renderTheTemplate } from "../common/syscalls/template.ts";
-import { buildQueryFunctions } from "../common/query_functions.ts";
 import { PageRef } from "$sb/lib/page.ts";
 import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
@@ -83,7 +82,7 @@ declare global {
 // history.scrollRestoration = "manual";
 
 export class Client {
-  system!: ClientSystem;
+  clientSystem!: ClientSystem;
   editorView!: EditorView;
   keyHandlerCompartment?: Compartment;
 
@@ -116,8 +115,6 @@ export class Client {
   spaceKV?: KvPrimitives;
   mq!: DataStoreMQ;
 
-  // Used by the "wiki link" highlighter to check if a page exists
-  public allKnownPages = new Set<string>();
   onLoadPageRef: PageRef;
 
   constructor(
@@ -148,15 +145,11 @@ export class Client {
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
 
-    setInterval(() => {
-      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
-      this.mq.requeueTimeouts(5000, 3, true).catch(console.error);
-    }, 20000); // Look to requeue every 20s
     // Event hook
     this.eventHook = new EventHook();
 
     // Instantiate a PlugOS system
-    this.system = new ClientSystem(
+    this.clientSystem = new ClientSystem(
       this,
       this.mq,
       this.stateDataStore,
@@ -193,7 +186,7 @@ export class Client {
 
     this.focus();
 
-    this.system.init();
+    this.clientSystem.init();
 
     await this.loadSettings();
 
@@ -224,7 +217,7 @@ export class Client {
     }
 
     await this.loadPlugs();
-    await this.loadSpaceScripts();
+    await this.clientSystem.loadSpaceScripts();
 
     await this.initNavigator();
     await this.initSync();
@@ -244,15 +237,6 @@ export class Client {
     }, pageSyncInterval);
 
     this.updatePageListCache().catch(console.error);
-  }
-
-  async loadSpaceScripts() {
-    // Swap in the expanded function map
-    this.stateDataStore.functionMap = await buildQueryFunctions(
-      this.allKnownPages,
-      this.system.system,
-      window.silverBulletConfig.enableSpaceScript,
-    );
   }
 
   async loadSettings() {
@@ -286,14 +270,14 @@ export class Client {
         // A full sync just completed
         if (!initialSync) {
           // If this was NOT the initial sync let's check if we need to perform a space reindex
-          ensureSpaceIndex(this.stateDataStore, this.system.system).catch(
+          ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
             console.error,
           );
         } else {
           // This was the initial sync, let's mark a full index as completed
           await markFullSpaceIndexComplete(this.stateDataStore);
           // And load space scripts, which probably weren't loaded before
-          await this.loadSpaceScripts();
+          await this.clientSystem.loadSpaceScripts();
         }
       }
       if (operations) {
@@ -340,7 +324,6 @@ export class Client {
           pageState.header !== undefined))
     ) {
       setTimeout(() => {
-        console.log("Kicking off scroll to", pageState.scrollTop);
         this.editorView.scrollDOM.scrollTop = pageState.scrollTop!;
       });
       adjustedPosition = true;
@@ -544,7 +527,7 @@ export class Client {
 
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       remoteSpacePrimitives,
-      this.system.namespaceHook,
+      this.clientSystem.namespaceHook,
       this.syncMode ? undefined : "client",
     );
 
@@ -628,21 +611,21 @@ export class Client {
     // Caching a list of known pages for the wiki_link highlighter (that checks if a page exists)
     this.eventHook.addLocalListener("page:saved", (pageName: string) => {
       // Make sure this page is in the list of known pages
-      this.allKnownPages.add(pageName);
+      this.clientSystem.allKnownPages.add(pageName);
     });
 
     this.eventHook.addLocalListener("page:deleted", (pageName: string) => {
-      this.allKnownPages.delete(pageName);
+      this.clientSystem.allKnownPages.delete(pageName);
     });
 
     this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages
-        this.allKnownPages.clear();
+        this.clientSystem.allKnownPages.clear();
         allFiles.forEach((f) => {
           if (f.name.endsWith(".md")) {
-            this.allKnownPages.add(f.name.slice(0, -3));
+            this.clientSystem.allKnownPages.add(f.name.slice(0, -3));
           }
         });
       },
@@ -741,11 +724,11 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
-    if (!this.system.system.loadedPlugs.has("index")) {
+    if (!this.clientSystem.system.loadedPlugs.has("index")) {
       console.warn("Index plug not loaded, cannot update page list cache");
       return;
     }
-    const allPages = await this.system.queryObjects<PageMeta>("page", {});
+    const allPages = await this.clientSystem.queryObjects<PageMeta>("page", {});
     this.ui.viewDispatch({
       type: "update-page-list",
       allPages,
@@ -828,7 +811,7 @@ export class Client {
   }
 
   async loadPlugs() {
-    await this.system.reloadPlugsFromSpace(this.space);
+    await this.clientSystem.reloadPlugsFromSpace(this.space);
     await this.eventHook.dispatchEvent("system:ready");
     await this.dispatchAppEvent("plugs:loaded");
   }
@@ -932,6 +915,7 @@ export class Client {
         viewState.showPrompt,
       ].some(Boolean)
     ) {
+      console.log("not focusing");
       // Some other modal UI element is visible, don't focus editor now
       return;
     }
@@ -965,7 +949,7 @@ export class Client {
         "Navigating to new page in new window",
         `${location.origin}/${encodePageRef(pageRef)}`,
       );
-      const win = window.open(
+      const win = globalThis.open(
         `${location.origin}/${encodePageRef(pageRef)}`,
         "_blank",
       );
@@ -1021,13 +1005,14 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
-        this.system.system.invokeFunction("template.newPage", [pageName]).then(
-          () => {
-            this.focus();
-          },
-        ).catch(
-          console.error,
-        );
+        this.clientSystem.system.invokeFunction("template.newPage", [pageName])
+          .then(
+            () => {
+              this.focus();
+            },
+          ).catch(
+            console.error,
+          );
       } else {
         this.flashNotification(
           `Could not load page ${pageName}: ${e.message}`,

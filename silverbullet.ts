@@ -10,6 +10,12 @@ import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { plugRunCommand } from "./cmd/plug_run.ts";
 import { syncCommand } from "./cmd/sync.ts";
 
+// Unhandled rejection, let's not crash
+globalThis.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled rejection:", event);
+  event.preventDefault();
+});
+
 await new Command()
   .name("silverbullet")
   .description("Markdown as a platform")

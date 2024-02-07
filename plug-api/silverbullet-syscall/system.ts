@@ -1,4 +1,4 @@
-import type { CommandDef } from "../../web/hooks/command.ts";
+import type { CommandDef } from "../../common/hooks/command.ts";
 import { SyscallMeta } from "$sb/types.ts";
 import { syscall } from "./syscall.ts";
 

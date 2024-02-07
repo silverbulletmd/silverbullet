@@ -6,7 +6,7 @@ import { MarkdownWidget } from "./markdown_widget.ts";
 export function postScriptPrefacePlugin(
   editor: Client,
 ) {
-  const panelWidgetHook = editor.system.panelWidgetHook;
+  const panelWidgetHook = editor.clientSystem.panelWidgetHook;
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
     const topCallback = panelWidgetHook.callbacks.get("top");

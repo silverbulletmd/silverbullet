@@ -1,6 +1,6 @@
 import { Manifest } from "../common/manifest.ts";
 import { PageMeta } from "$sb/types.ts";
-import { AppCommand } from "./hooks/command.ts";
+import { AppCommand } from "../common/hooks/command.ts";
 import { defaultSettings } from "../common/util.ts";
 
 // Used by FilterBox

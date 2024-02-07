@@ -210,7 +210,7 @@ export class MainUI {
               return;
             }
             console.log("Now renaming page to...", newName);
-            await client.system.system.invokeFunction(
+            await client.clientSystem.system.invokeFunction(
               "index.renamePageCommand",
               [{ page: newName }],
             );
@@ -250,26 +250,29 @@ export class MainUI {
               }]
               : [],
             ...viewState.settings.actionButtons
-            .filter((button) => (typeof button.mobile === "undefined") || (button.mobile === viewState.isMobile))
-            .map((button) => {
-              const parsedCommand = parseCommand(button.command);
-              let featherIcon =
-                (featherIcons as any)[kebabToCamel(button.icon)];
-              if (!featherIcon) {
-                featherIcon = featherIcons.HelpCircle;
-              }
-              return {
-                icon: featherIcon,
-                description: button.description || "",
-                callback: () => {
-                  client.runCommandByName(
-                    parsedCommand.name,
-                    parsedCommand.args,
-                  );
-                },
-                href: "",
-              };
-            }),
+              .filter((button) =>
+                (typeof button.mobile === "undefined") ||
+                (button.mobile === viewState.isMobile)
+              )
+              .map((button) => {
+                const parsedCommand = parseCommand(button.command);
+                let featherIcon =
+                  (featherIcons as any)[kebabToCamel(button.icon)];
+                if (!featherIcon) {
+                  featherIcon = featherIcons.HelpCircle;
+                }
+                return {
+                  icon: featherIcon,
+                  description: button.description || "",
+                  callback: () => {
+                    client.runCommandByName(
+                      parsedCommand.name,
+                      parsedCommand.args,
+                    );
+                  },
+                  href: "",
+                };
+              }),
           ]}
           rhs={!!viewState.panels.rhs.mode && (
             <div

@@ -25,7 +25,6 @@ import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "../plugos/syscalls/datastore.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { languageSyscalls } from "../common/syscalls/language.ts";
 import { templateSyscalls } from "../common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
@@ -35,43 +34,29 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "../common/space_index.ts";
 import { FileMeta } from "$sb/types.ts";
-import { buildQueryFunctions } from "../common/query_functions.ts";
-import { CommandHook } from "../web/hooks/command.ts";
-
-// // Important: load this before the actual plugs
-// import {
-//   createSandbox as noSandboxFactory,
-//   runWithSystemLock,
-// } from "../plugos/sandboxes/no_sandbox.ts";
-
-// // Load list of builtin plugs
-// import { plug as plugIndex } from "../dist_plug_bundle/_plug/index.plug.js";
-// import { plug as plugFederation } from "../dist_plug_bundle/_plug/federation.plug.js";
-// import { plug as plugQuery } from "../dist_plug_bundle/_plug/query.plug.js";
-// import { plug as plugSearch } from "../dist_plug_bundle/_plug/search.plug.js";
-// import { plug as plugTasks } from "../dist_plug_bundle/_plug/tasks.plug.js";
-// import { plug as plugTemplate } from "../dist_plug_bundle/_plug/template.plug.js";
+import { CommandHook } from "../common/hooks/command.ts";
+import { CommonSystem } from "../common/common_system.ts";
+import { MessageQueue } from "../plugos/lib/mq.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
 const plugNameExtractRegex = /([^/]+)\.plug\.js$/;
 
-export class ServerSystem {
-  system!: System<SilverBulletHooks>;
-  public spacePrimitives!: SpacePrimitives;
-  // denoKv!: Deno.Kv;
+export class ServerSystem extends CommonSystem {
   listInterval?: number;
-  ds!: DataStore;
-  allKnownPages = new Set<string>();
-  commandHook!: CommandHook;
 
   constructor(
-    private baseSpacePrimitives: SpacePrimitives,
-    readonly kvPrimitives: KvPrimitives,
+    public spacePrimitives: SpacePrimitives,
+    private kvPrimitives: KvPrimitives,
     private shellBackend: ShellBackend,
-    private readOnlyMode: boolean,
-    private enableSpaceScript: boolean,
+    mq: DataStoreMQ,
+    ds: DataStore,
+    eventHook: EventHook,
+    readOnlyMode: boolean,
+    enableSpaceScript: boolean,
   ) {
+    super(mq, ds, eventHook, readOnlyMode, enableSpaceScript);
   }
 
   // Always needs to be invoked right after construction
@@ -94,24 +79,20 @@ export class ServerSystem {
     this.system.addHook(eventHook);
 
     // Command hook, just for introspection
-    this.commandHook = new CommandHook(this.readOnlyMode);
+    this.commandHook = new CommandHook(
+      this.readOnlyMode,
+      this.spaceScriptCommands,
+    );
     this.system.addHook(this.commandHook);
 
     // Cron hook
     const cronHook = new CronHook(this.system);
     this.system.addHook(cronHook);
 
-    const mq = new DataStoreMQ(this.ds);
-
-    setInterval(() => {
-      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
-      mq.requeueTimeouts(5000, 3, true).catch(console.error);
-    }, 20000); // Look to requeue every 20s
-
     const plugNamespaceHook = new PlugNamespaceHook();
     this.system.addHook(plugNamespaceHook);
 
-    this.system.addHook(new MQHook(this.system, mq));
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     const codeWidgetHook = new CodeWidgetHook();
 
@@ -119,7 +100,7 @@ export class ServerSystem {
 
     this.spacePrimitives = new EventedSpacePrimitives(
       new PlugSpacePrimitives(
-        this.baseSpacePrimitives,
+        this.spacePrimitives,
         plugNamespaceHook,
       ),
       eventHook,
@@ -133,8 +114,8 @@ export class ServerSystem {
       spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      systemSyscalls(this.system, this.readOnlyMode, undefined, this),
-      mqSyscalls(mq),
+      systemSyscalls(this.system, this.readOnlyMode, this),
+      mqSyscalls(this.mq),
       languageSyscalls(),
       templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
@@ -167,9 +148,6 @@ export class ServerSystem {
     await this.loadSpaceScripts();
 
     this.listInterval = setInterval(() => {
-      // runWithSystemLock(this.system, async () => {
-      //   await space.updatePageList();
-      // });
       space.updatePageList().catch(console.error);
     }, fileListInterval);
 
@@ -211,9 +189,7 @@ export class ServerSystem {
       await indexPromise;
     }
 
-    // await runWithSystemLock(this.system, async () => {
     await eventHook.dispatchEvent("system:ready");
-    // });
   }
 
   async loadPlugs() {
@@ -222,15 +198,6 @@ export class ServerSystem {
         await this.loadPlugFromSpace(name);
       }
     }
-  }
-
-  async loadSpaceScripts() {
-    // Swap in the expanded function map
-    this.ds.functionMap = await buildQueryFunctions(
-      this.allKnownPages,
-      this.system,
-      this.enableSpaceScript,
-    );
   }
 
   async loadPlugFromSpace(path: string): Promise<Plug<SilverBulletHooks>> {

@@ -1,7 +1,7 @@
 import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
 import { CompletionContext, CompletionResult, featherIcons } from "../deps.ts";
-import { AppCommand } from "../hooks/command.ts";
+import { AppCommand } from "../../common/hooks/command.ts";
 import { BuiltinSettings, FilterOption } from "../types.ts";
 import { parseCommand } from "../../common/command.ts";
 

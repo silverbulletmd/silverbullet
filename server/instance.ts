@@ -5,7 +5,10 @@ import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts
 import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
 import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { DataStore } from "../plugos/lib/datastore.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { System } from "../plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
@@ -30,6 +33,7 @@ export type SpaceServerConfig = {
   clientEncryption: boolean;
 };
 
+// Equivalent of Client on the server
 export class SpaceServer {
   public pagesPath: string;
   auth?: { user: string; pass: string };
@@ -99,6 +103,11 @@ export class SpaceServer {
       this.spacePrimitives = new ReadOnlySpacePrimitives(this.spacePrimitives);
     }
 
+    const ds = new DataStore(this.kvPrimitives);
+    const mq = new DataStoreMQ(ds);
+
+    const eventHook = new EventHook();
+
     // system = undefined in databaseless mode (no PlugOS instance on the server and no DB)
     if (!this.syncOnly) {
       // Enable server-side processing
@@ -106,6 +115,9 @@ export class SpaceServer {
         this.spacePrimitives,
         this.kvPrimitives,
         this.shellBackend,
+        mq,
+        ds,
+        eventHook,
         this.readOnly,
         this.enableSpaceScript,
       );

@@ -9,7 +9,7 @@ import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { System } from "../plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
-import { CommandHook } from "./hooks/command.ts";
+import { CommandHook } from "../common/hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { debugSyscalls } from "./syscalls/debug.ts";
@@ -41,24 +41,29 @@ import { deepObjectMerge } from "$sb/lib/json.ts";
 import { Query } from "$sb/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";
+import { CommonSystem } from "../common/common_system.ts";
+import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
-export class ClientSystem {
-  commandHook: CommandHook;
-  slashCommandHook: SlashCommandHook;
-  namespaceHook: PlugNamespaceHook;
-  codeWidgetHook: CodeWidgetHook;
-  system: System<SilverBulletHooks>;
-  panelWidgetHook: PanelWidgetHook;
-
+/**
+ * Wrapper around a System, used by the client
+ */
+export class ClientSystem extends CommonSystem {
   constructor(
     private client: Client,
-    private mq: MessageQueue,
-    private ds: DataStore,
-    private eventHook: EventHook,
-    private readOnlyMode: boolean,
+    mq: DataStoreMQ,
+    ds: DataStore,
+    eventHook: EventHook,
+    readOnlyMode: boolean,
   ) {
+    super(
+      mq,
+      ds,
+      eventHook,
+      readOnlyMode,
+      window.silverBulletConfig.enableSpaceScript,
+    );
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(
       client.syncMode ? undefined : "client",
@@ -95,7 +100,10 @@ export class ClientSystem {
     }
 
     // Command hook
-    this.commandHook = new CommandHook(this.readOnlyMode);
+    this.commandHook = new CommandHook(
+      this.readOnlyMode,
+      this.spaceScriptCommands,
+    );
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -158,7 +166,7 @@ export class ClientSystem {
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this.client, undefined),
+      systemSyscalls(this.system, false, this, this.client),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),

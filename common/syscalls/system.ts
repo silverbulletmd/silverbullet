@@ -1,15 +1,15 @@
 import { SyscallMeta } from "$sb/types.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
-import type { ServerSystem } from "../../server/server_system.ts";
 import type { Client } from "../../web/client.ts";
-import { CommandDef } from "../../web/hooks/command.ts";
+import { CommandDef } from "../hooks/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
+import type { CommonSystem } from "../common_system.ts";
 
 export function systemSyscalls(
   system: System<any>,
   readOnlyMode: boolean,
-  client: Client | undefined,
-  serverSystem: ServerSystem | undefined,
+  commonSystem: CommonSystem,
+  client?: Client,
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
@@ -50,8 +50,7 @@ export function systemSyscalls(
       return client.runCommandByName(name, args);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
-      const commandHook = client?.system.commandHook ||
-        serverSystem!.commandHook;
+      const commandHook = commonSystem!.commandHook;
       const allCommands: { [key: string]: CommandDef } = {};
       for (const [cmd, def] of commandHook.editorCommands) {
         allCommands[cmd] = def.command;
@@ -76,9 +75,9 @@ export function systemSyscalls(
       return client.loadPlugs();
     },
     "system.loadSpaceScripts": async () => {
+      // Reload scripts locally
+      await commonSystem.loadSpaceScripts();
       if (client) {
-        // If this is invoked on the client, we need to load the space scripts locally
-        await client.loadSpaceScripts();
         // And we are in a hybrud mode, tell the server to do the same
         if (system.env === "client") {
           console.info(
@@ -91,10 +90,6 @@ export function systemSyscalls(
             [],
           );
         }
-      } else if (serverSystem) {
-        return serverSystem.loadSpaceScripts();
-      } else {
-        throw new Error("Load space scripts in an undefined environment");
       }
     },
     "system.getEnv": () => {

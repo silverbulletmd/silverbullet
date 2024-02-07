@@ -116,7 +116,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             });
             // Replace with whatever the completion is
             safeRun(async () => {
-              await this.editor.system.system.invokeFunction(
+              await this.editor.clientSystem.system.invokeFunction(
                 slashCompletion.invoke,
                 [slashCompletion],
               );

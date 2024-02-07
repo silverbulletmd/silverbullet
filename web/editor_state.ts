@@ -99,8 +99,8 @@ export function createEditorState(
       autocompletion({
         override: [
           client.editorComplete.bind(client),
-          client.system.slashCommandHook.slashCommandCompleter.bind(
-            client.system.slashCommandHook,
+          client.clientSystem.slashCommandHook.slashCommandCompleter.bind(
+            client.clientSystem.slashCommandHook,
           ),
         ],
       }),
@@ -299,7 +299,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   }
 
   // Then add bindings for plug commands
-  for (const def of client.system.commandHook.editorCommands.values()) {
+  for (const def of client.clientSystem.commandHook.editorCommands.values()) {
     if (def.command.key) {
       // If we've already overridden this command, skip it
       if (overriddenCommands.has(def.command.key)) {

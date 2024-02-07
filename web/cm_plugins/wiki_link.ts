@@ -33,7 +33,7 @@ export function cleanWikiLinkPlugin(client: Client) {
         const pageRef = parsePageRef(page);
         pageRef.page = resolvePath(client.currentPage, pageRef.page);
         const lowerCasePageName = pageRef.page.toLowerCase();
-        for (const pageName of client.allKnownPages) {
+        for (const pageName of client.clientSystem.allKnownPages) {
           if (pageName.toLowerCase() === lowerCasePageName) {
             pageExists = true;
             break;

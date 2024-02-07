@@ -43,7 +43,10 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   editorCommands = new Map<string, AppCommand>();
   system!: System<CommandHookT>;
 
-  constructor(private readOnly: boolean) {
+  constructor(
+    private readOnly: boolean,
+    private additionalCommandsMap: Map<string, AppCommand>,
+  ) {
     super();
   }
 
@@ -76,6 +79,9 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
       }
     }
     await this.loadPageTemplateCommands();
+    for (const [name, cmd] of this.additionalCommandsMap) {
+      this.editorCommands.set(name, cmd);
+    }
     this.emit("commandsUpdated", this.editorCommands);
   }
 
