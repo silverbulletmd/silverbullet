@@ -73,6 +73,15 @@ export function openUrl(url: string, existingWindow = false): Promise<void> {
   return syscall("editor.openUrl", url, existingWindow);
 }
 
+/**
+ * This is calling the `go()` method from the History Web API.
+ * @param delta Position in history to move to relative to the current page,
+ * where a negative value moves backwards, and positive forwards
+ */
+export function goHistory(delta: number): Promise<void> {
+  return syscall("editor.goHistory", delta);
+}
+
 // Force the client to download the file in dataUrl with filename as file name
 export function downloadFile(filename: string, dataUrl: string): Promise<void> {
   return syscall("editor.downloadFile", filename, dataUrl);

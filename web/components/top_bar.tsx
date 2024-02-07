@@ -10,6 +10,7 @@ export type ActionButton = {
   class?: string;
   callback: () => void;
   href?: string;
+  mobile?: boolean;
 };
 
 export function TopBar({
@@ -17,6 +18,7 @@ export function TopBar({
   unsavedChanges,
   syncFailures,
   isLoading,
+  isMobile,
   notifications,
   onRename,
   actionButtons,
@@ -32,6 +34,7 @@ export function TopBar({
   unsavedChanges: boolean;
   syncFailures: number;
   isLoading: boolean;
+  isMobile: boolean;
   notifications: Notification[];
   darkMode: boolean;
   vimMode: boolean;

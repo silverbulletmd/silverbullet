@@ -192,6 +192,7 @@ export class MainUI {
           syncFailures={viewState.syncFailures}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
+          isMobile={viewState.isMobile}
           vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
           progressPerc={viewState.progressPerc}
@@ -248,7 +249,9 @@ export class MainUI {
                 },
               }]
               : [],
-            ...viewState.settings.actionButtons.map((button) => {
+            ...viewState.settings.actionButtons
+            .filter((button) => (typeof button.mobile === "undefined") || (button.mobile === viewState.isMobile))
+            .map((button) => {
               const parsedCommand = parseCommand(button.command);
               let featherIcon =
                 (featherIcons as any)[kebabToCamel(button.icon)];

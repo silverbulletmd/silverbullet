@@ -89,6 +89,14 @@ functions:
     command:
       name: "Navigate: To URL"
       hide: true
+  navigateBack:
+    path: "./navigate.ts:navigateBack"
+    command:
+      name: "Navigate: Back in History"
+  navigateForward:
+    path: "./navigate.ts:navigateForward"
+    command:
+      name: "Navigate: Forward in History"
 
   # Text editing commands
   quoteSelectionCommand:
@@ -184,7 +192,6 @@ functions:
   embedWidget:
     path: ./embed.ts:embedWidget
     codeWidget: embed
-
 
   # Vim
   toggleVimMode:
@@ -302,4 +309,4 @@ functions:
       name: "Flash: Custom Message"
       hide: true
       contexts:
-      - internal
+        - internal

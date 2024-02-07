@@ -32,6 +32,7 @@ export type ActionButton = {
   description?: string;
   command: string;
   args?: any[];
+  mobile?: boolean;
 };
 
 export type EmojiConfig = {
@@ -62,6 +63,7 @@ export type AppViewState = {
   allPages: PageMeta[];
 
   isLoading: boolean;
+  isMobile: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
@@ -116,6 +118,7 @@ export const initialViewState: AppViewState = {
     darkMode: false,
     forcedROMode: false,
   },
+  isMobile: false,
   panels: {
     lhs: {},
     rhs: {},

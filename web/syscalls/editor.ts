@@ -73,6 +73,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         location.href = url;
       }
     },
+    "editor.goHistory": (_ctx, delta: number) => {
+      window.history.go(delta);
+    },
     "editor.downloadFile": (_ctx, filename: string, dataUrl: string) => {
       const link = document.createElement("a");
       link.href = dataUrl;
