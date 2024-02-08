@@ -1,5 +1,3 @@
-import { YAML } from "$sb/plugos-syscall/mod.ts";
-
 import {
   addParentPointers,
   ParseTree,
@@ -7,7 +5,8 @@ import {
   replaceNodesMatchingAsync,
   traverseTreeAsync,
 } from "$lib/tree.ts";
-import { expandPropertyNames } from "../../lib/json.ts";
+import { expandPropertyNames } from "$lib/json.ts";
+import { YAML } from "$sb/syscalls.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 

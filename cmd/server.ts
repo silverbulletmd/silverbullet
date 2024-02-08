@@ -5,7 +5,7 @@ import clientAssetBundle from "../dist/client_asset_bundle.json" assert {
 import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
-import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
+import { AssetBundle, AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";

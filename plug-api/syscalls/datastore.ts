@@ -1,4 +1,4 @@
-import { syscall } from "$sb/plugos-syscall/syscall.ts";
+import { syscall } from "$sb/syscall.ts";
 import { KV, KvKey, KvQuery } from "$type/types.ts";
 
 export function set(key: KvKey, value: any): Promise<void> {

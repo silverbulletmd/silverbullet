@@ -1,4 +1,4 @@
-import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { compileManifest } from "../plugos/compile.ts";
 import { esbuild } from "../plugos/deps.ts";
 import { runPlug } from "./plug_run.ts";

@@ -1,4 +1,4 @@
-import { syscall } from "./syscall.ts";
+import { syscall } from "../syscall.ts";
 
 /**
  * Implements a very simple (string) key value store for the client.

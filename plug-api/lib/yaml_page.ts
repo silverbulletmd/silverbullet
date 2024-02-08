@@ -1,6 +1,5 @@
 import { findNodeOfType, traverseTree } from "$lib/tree.ts";
-import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
-import { YAML } from "$sb/plugos-syscall/mod.ts";
+import { markdown, space, YAML } from "$sb/syscalls.ts";
 
 export async function readCodeBlockPage(
   pageName: string,

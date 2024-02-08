@@ -1,4 +1,4 @@
-import { syscall } from "$sb/silverbullet-syscall/syscall.ts";
+import { syscall } from "../syscall.ts";
 
 export function isSyncing(): Promise<boolean> {
   return syscall("sync.isSyncing");

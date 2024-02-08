@@ -7,7 +7,7 @@ import {
   HonoRequest,
   setCookie,
 } from "./deps.ts";
-import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { FileMeta } from "$type/types.ts";
 import { ShellRequest } from "./rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";

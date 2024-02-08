@@ -1,22 +1,22 @@
-import { KV, KvQuery, ObjectQuery, ObjectValue } from "../../type/types.ts";
-import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
+import { KV, KvQuery, ObjectQuery, ObjectValue } from "$type/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
+import { system } from "$sb/syscalls.ts";
 
 export function indexObjects<T>(
   page: string,
   objects: ObjectValue<T>[],
 ): Promise<void> {
-  return invokeFunction("index.indexObjects", page, objects);
+  return system.invokeFunction("index.indexObjects", page, objects);
 }
 
 export function batchSet(page: string, kvs: KV[]): Promise<void> {
-  return invokeFunction("index.batchSet", page, kvs);
+  return system.invokeFunction("index.batchSet", page, kvs);
 }
 
 export function query(
   query: KvQuery,
 ): Promise<KV[]> {
-  return invokeFunction("index.query", query);
+  return system.invokeFunction("index.query", query);
 }
 
 export function queryObjects<T>(
@@ -26,7 +26,7 @@ export function queryObjects<T>(
 ): Promise<ObjectValue<T>[]> {
   return ttlCache(
     query,
-    () => invokeFunction("index.queryObjects", tag, query),
+    () => system.invokeFunction("index.queryObjects", tag, query),
     ttlSecs, // no-op when undefined
   );
 }
@@ -36,5 +36,5 @@ export function getObjectByRef<T>(
   tag: string,
   ref: string,
 ): Promise<T | undefined> {
-  return invokeFunction("index.getObjectByRef", page, tag, ref);
+  return system.invokeFunction("index.getObjectByRef", page, tag, ref);
 }

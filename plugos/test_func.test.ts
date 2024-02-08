@@ -1,10 +1,10 @@
-import * as YAML from "https://deno.land/std@0.184.0/yaml/mod.ts";
-import { EndpointRequest, EndpointResponse } from "./hooks/endpoint.ts";
+import * as YAML from "js-yaml";
+import { EndpointRequest, EndpointResponse } from "../server/hooks/endpoint.ts";
 
 export async function hello() {
   const numbers = await syscall("addNumbers", 1, 2);
   return {
-    yamlMessage: YAML.stringify({ hello: "world" }),
+    yamlMessage: YAML.dump({ hello: "world" }),
     addedNumbers: numbers,
   };
 }

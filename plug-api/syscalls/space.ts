@@ -1,5 +1,5 @@
-import { syscall } from "./syscall.ts";
-import { AttachmentMeta, FileMeta, PageMeta } from "../../type/types.ts";
+import { syscall } from "../syscall.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "$type/types.ts";
 
 export function listPages(unfiltered = false): Promise<PageMeta[]> {
   return syscall("space.listPages", unfiltered);

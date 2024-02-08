@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
 } from "$lib/tree.ts";
 import { codeWidget } from "$sb/syscalls.ts";
-import { parseMarkdown } from "$sb/silverbullet-syscall/markdown.ts";
+import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {
   MarkdownRenderOptions,
   renderMarkdownToHtml,

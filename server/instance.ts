@@ -4,7 +4,7 @@ import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_spac
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { DataStore } from "$lib/datastore.ts";
 import { KvPrimitives } from "$lib/kv_primitives.ts";

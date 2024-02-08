@@ -1,5 +1,5 @@
-import type { CodeWidgetContent } from "../../type/types.ts";
-import { syscall } from "./syscall.ts";
+import type { CodeWidgetContent } from "$type/types.ts";
+import { syscall } from "../syscall.ts";
 
 export function render(
   lang: string,

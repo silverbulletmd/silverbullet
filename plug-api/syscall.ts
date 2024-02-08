@@ -13,4 +13,4 @@ if (typeof self === "undefined") {
   };
 }
 
-export const syscall = self.syscall;
+export const syscall = globalThis.syscall;

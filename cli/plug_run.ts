@@ -1,9 +1,9 @@
 import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
-import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
+import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
-import { EndpointHook } from "../plugos/hooks/endpoint.ts";
+import { EndpointHook } from "../server/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
 import { KvPrimitives } from "$lib/kv_primitives.ts";

@@ -1,4 +1,4 @@
-import { syscall } from "./syscall.ts";
+import { syscall } from "../syscall.ts";
 
 export function run(
   cmd: string,

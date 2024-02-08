@@ -1,7 +1,7 @@
 import emojiBlob from "./emoji.json" assert { type: "json" };
 import type { CompleteEvent } from "$type/types.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
-import { editor } from "$sb/silverbullet-syscall/mod.ts";
+import { editor } from "$sb/syscalls.ts";
 import type { EmojiConfig } from "../../web/types.ts";
 
 let emojiConfig: EmojiConfig = { aliases: [] };

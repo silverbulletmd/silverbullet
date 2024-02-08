@@ -1,5 +1,5 @@
-import { Hook, Manifest } from "../types.ts";
-import { System } from "../system.ts";
+import { Hook, Manifest } from "../../plugos/types.ts";
+import { System } from "../../plugos/system.ts";
 import { Context, Next } from "../../server/deps.ts";
 
 export type EndpointRequest = {

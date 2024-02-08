@@ -1,10 +1,4 @@
-import {
-  codeWidget,
-  editor,
-  language,
-  markdown,
-  space,
-} from "$sb/silverbullet-syscall/mod.ts";
+import { codeWidget, editor, language, markdown, space } from "$sb/syscalls.ts";
 import { parseTreeToAST, renderToText } from "$lib/tree.ts";
 import { CodeWidgetContent } from "$type/types.ts";
 import { loadPageObject } from "../template/page.ts";
