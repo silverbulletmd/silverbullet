@@ -1,18 +1,3 @@
-export {
-  history,
-  historyKeymap,
-  indentWithTab,
-  standardKeymap,
-} from "@codemirror/commands";
-export {
-  autocompletion,
-  closeBrackets,
-  closeBracketsKeymap,
-  CompletionContext,
-  completionKeymap,
-} from "@codemirror/autocomplete";
-export type { Completion, CompletionResult } from "@codemirror/autocomplete";
-
 export { styleTags, Tag, tagHighlighter, tags } from "@lezer/highlight";
 
 export * as YAML from "js-yaml";
@@ -56,68 +41,7 @@ export {
 
 export type { NodeType, SyntaxNode, SyntaxNodeRef, Tree } from "@lezer/common";
 
-export {
-  closeSearchPanel,
-  openSearchPanel,
-  searchKeymap,
-} from "@codemirror/search";
-export {
-  Decoration,
-  drawSelection,
-  dropCursor,
-  EditorView,
-  gutter,
-  highlightSpecialChars,
-  keymap,
-  placeholder,
-  runScopeHandlers,
-  ViewPlugin,
-  ViewUpdate,
-  WidgetType,
-} from "@codemirror/view";
-export type { DecorationSet, KeyBinding } from "@codemirror/view";
-
 export { markdown } from "@codemirror/lang-markdown";
-
-export {
-  EditorSelection,
-  EditorState,
-  Range,
-  SelectionRange,
-  StateField,
-  Text,
-  Transaction,
-} from "@codemirror/state";
-export type {
-  ChangeSpec,
-  Compartment,
-  Extension,
-  StateCommand,
-} from "@codemirror/state";
-export {
-  codeFolding,
-  defaultHighlightStyle,
-  defineLanguageFacet,
-  foldAll,
-  foldCode,
-  foldedRanges,
-  foldGutter,
-  foldInside,
-  HighlightStyle,
-  indentNodeProp,
-  indentOnInput,
-  Language,
-  languageDataProp,
-  LanguageDescription,
-  LanguageSupport,
-  ParseContext,
-  StreamLanguage,
-  syntaxHighlighting,
-  syntaxTree,
-  toggleFold,
-  unfoldAll,
-  unfoldCode,
-} from "@codemirror/language";
 
 // Language modes
 export { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
@@ -135,6 +59,8 @@ export { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?externa
 export { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
 export { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
 export { htmlLanguage } from "@codemirror/lang-html";
+
+export { Language, StreamLanguage } from "@codemirror/language";
 
 export {
   c as cLanguage,

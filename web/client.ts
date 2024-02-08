@@ -7,8 +7,8 @@ import {
   gitIgnoreCompiler,
   SyntaxNode,
   syntaxTree,
-} from "$common/deps.ts";
-import { Space } from "./space.ts";
+} from "./deps.ts";
+import { Space } from "../common/space.ts";
 import { FilterOption } from "./types.ts";
 import { EventHook } from "../lib/plugos/hooks/event.ts";
 import { AppCommand } from "$common/hooks/command.ts";

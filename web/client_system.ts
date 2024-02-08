@@ -21,7 +21,7 @@ import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
-import { Space } from "./space.ts";
+import { Space } from "../common/space.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";

@@ -10,12 +10,12 @@ import {
   Vim,
   vimGetCm,
 } from "../deps.ts";
-import { SysCallMapping } from "../../lib/plugos/system.ts";
+import { SysCallMapping } from "$lib/plugos/system.ts";
 import type { FilterOption } from "../types.ts";
-import { UploadFile } from "../../type/types.ts";
-import { PageRef } from "../../plug-api/lib/page_ref.ts";
+import { UploadFile } from "$type/types.ts";
+import { PageRef } from "$sb/lib/page_ref.ts";
 import { openSearchPanel } from "../deps.ts";
-import { diffAndPrepareChanges } from "./cm_util.ts";
+import { diffAndPrepareChanges } from "../cm_util.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {

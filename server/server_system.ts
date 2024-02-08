@@ -10,7 +10,7 @@ import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
 import { System } from "../lib/plugos/system.ts";
-import { Space } from "../web/space.ts";
+import { Space } from "../common/space.ts";
 import { markdownSyscalls } from "$common/syscalls/markdown.ts";
 import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";

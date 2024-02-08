@@ -24,9 +24,9 @@ import {
   syntaxHighlighting,
   ViewPlugin,
   ViewUpdate,
-} from "$common/deps.ts";
+  vim,
+} from "./deps.ts";
 import { Client } from "./client.ts";
-import { vim } from "./deps.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
@@ -43,7 +43,7 @@ import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parseCommand } from "$common/command.ts";
-import { safeRun } from "../lib/async.ts";
+import { safeRun } from "$lib/async.ts";
 
 export function createEditorState(
   client: Client,

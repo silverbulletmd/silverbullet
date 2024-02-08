@@ -19,6 +19,7 @@
     "@codemirror/lang-markdown": "https://esm.sh/@codemirror/lang-markdown@6.2.3?external=@codemirror/state,@lezer/common,@codemirror/language,@lezer/markdown,@codemirror/view,@lezer/highlight,@codemirror/lang-html&target=es2022",
     "@codemirror/legacy-modes/": "https://esm.sh/@codemirror/legacy-modes@6.3.3/",
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands&target=es2022",
+    "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.0.14?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
 
     "djwt": "https://deno.land/x/djwt@v3.0.1/mod.ts",
     "js-yaml": "https://esm.sh/js-yaml@4.1.0",

@@ -1,5 +1,5 @@
 import { Manifest } from "$common/manifest.ts";
-import { PageMeta } from "../type/types.ts";
+import { PageMeta } from "$type/types.ts";
 import { AppCommand } from "$common/hooks/command.ts";
 import { defaultSettings } from "$common/settings.ts";
 
