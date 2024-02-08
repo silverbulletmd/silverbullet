@@ -1,6 +1,6 @@
-import { FileMeta } from "$sb/types.ts";
+import { FileMeta } from "$type/types.ts";
 import { markdown, system } from "$sb/syscalls.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { renderToText } from "$lib/tree.ts";
 import { tagPrefix } from "./constants.ts";
 
 export async function readFileTag(

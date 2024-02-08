@@ -1,5 +1,5 @@
-import { compileManifests } from "../plugos/compile.ts";
-import { esbuild } from "../plugos/deps.ts";
+import { compileManifests } from "../lib/plugos/compile.ts";
+import { esbuild } from "../lib/plugos/deps.ts";
 
 export async function plugCompileCommand(
   { watch, dist, debug, info, importmap, runtimeUrl }: {

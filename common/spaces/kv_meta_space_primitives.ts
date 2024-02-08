@@ -1,6 +1,6 @@
-import { FileMeta } from "$sb/types.ts";
-import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import { KvPrimitives } from "../../plugos/lib/kv_primitives.ts";
+import { FileMeta } from "$type/types.ts";
+import { mime } from "mimetypes";
+import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export type KvMetaSpacePrimitivesCallbacks = {

@@ -8,7 +8,7 @@ import {
 } from "./util.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
-import { isTemplate } from "$sb/lib/cheap_yaml.ts";
+import { isTemplate } from "../../lib/cheap_yaml.ts";
 
 export function fencedCodePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {

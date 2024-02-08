@@ -1,6 +1,7 @@
 import { editor, events, space, system } from "$sb/syscalls.ts";
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
 import { builtinPlugNames } from "../builtin_plugs.ts";
+import { plugPrefix } from "$common/spaces/constants.ts";
 
 const plugsPrelude =
   "This file lists all plugs that SilverBullet will load. Run the {[Plugs: Update]} command to update and reload this list of plugs.\n\n";
@@ -61,7 +62,7 @@ export async function updatePlugsCommand() {
       allCustomPlugNames.push(plugName);
       // console.log("Writing", `_plug/${plugName}.plug.js`, workerCode);
       await space.writeAttachment(
-        `_plug/${plugName}.plug.js`,
+        `${plugPrefix}${plugName}.plug.js`,
         new TextEncoder().encode(workerCode),
       );
     }
@@ -70,7 +71,7 @@ export async function updatePlugsCommand() {
     // And delete extra ones
     for (const { name: existingPlug } of await space.listPlugs()) {
       const plugName = existingPlug.substring(
-        "_plug/".length,
+        plugPrefix.length,
         existingPlug.length - ".plug.js".length,
       );
       if (!allPlugNames.includes(plugName)) {

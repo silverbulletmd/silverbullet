@@ -1,0 +1,1 @@
+This folder contains useful library functions to be used by plugs, built-in or external.

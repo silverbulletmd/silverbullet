@@ -1,6 +1,6 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
-import type { ParseTree } from "$sb/lib/tree.ts";
+import type { ParseTree } from "$lib/tree.ts";
 import { builtinLanguages, languageFor } from "../languages.ts";
 
 export function languageSyscalls(): SysCallMapping {

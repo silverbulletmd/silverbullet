@@ -1,6 +1,7 @@
 import { SpacePrimitives } from "./space_primitives.ts";
-import { EventEmitter } from "../../plugos/event.ts";
-import { FileMeta } from "$sb/types.ts";
+import { EventEmitter } from "../../lib/plugos/event.ts";
+import { FileMeta } from "../../type/types.ts";
+import { plugPrefix } from "./constants.ts";
 
 type SyncHash = number;
 
@@ -76,7 +77,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         // Just make sure that _plug/ files appear first
         // This is important for the initial sync: plugs are loaded the moment they are pulled into the space,
         // which would activate e.g. any indexing logic for the remaining space content
-        return a.startsWith("_plug/") ? -1 : 1;
+        return a.startsWith(plugPrefix) ? -1 : 1;
       });
       // console.log("[sync]", "Iterating over all files");
       let filesProcessed = 0;

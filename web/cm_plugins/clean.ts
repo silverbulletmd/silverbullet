@@ -1,4 +1,4 @@
-import type { ClickEvent } from "../../plug-api/app_event.ts";
+import type { ClickEvent } from "$type/types.ts";
 import type { Extension } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { blockquotePlugin } from "./block_quote.ts";

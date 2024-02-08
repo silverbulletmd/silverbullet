@@ -1,4 +1,4 @@
-import { assertEquals } from "../../test_deps.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { parseTemplate } from "./template_parser.ts";
 
 Deno.test("Test template", () => {

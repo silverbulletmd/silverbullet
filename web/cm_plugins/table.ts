@@ -6,8 +6,8 @@ import {
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
-import { ParseTree, renderToText } from "$sb/lib/tree.ts";
-import { lezerToParseTree } from "../../common/markdown_parser/parse_tree.ts";
+import { ParseTree, renderToText } from "$lib/tree.ts";
+import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 

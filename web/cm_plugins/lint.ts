@@ -1,8 +1,8 @@
 import { Diagnostic, linter } from "@codemirror/lint";
 import type { Client } from "../client.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { LintEvent } from "$sb/app_event.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { LintEvent } from "$type/types.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 export function plugLinter(client: Client) {
   return linter(async (view): Promise<Diagnostic[]> => {

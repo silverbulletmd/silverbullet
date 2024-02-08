@@ -15,6 +15,5 @@
   },
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
-  },
-  "deno.documentPreloadLimit": 0
+  }
 }

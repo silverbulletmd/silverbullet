@@ -1,9 +1,9 @@
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$type/types.ts";
 
-import { collectNodesOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { collectNodesOfType, ParseTree, renderToText } from "$lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$type/types.ts";
 import { indexObjects } from "./api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

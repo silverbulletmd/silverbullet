@@ -1,4 +1,4 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { Client } from "../client.ts";
 import { proxySyscalls } from "./util.ts";
 

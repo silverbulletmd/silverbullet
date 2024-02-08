@@ -1,9 +1,0 @@
-{
-  "name": "silverbullet",
-  "version": "0.0.0",
-  "local": true,
-  "description": "This package.json is just for Netlify",
-  "dependencies": {
-    "netlify-plugin-cache": "^1.0.3"
-  }
-}

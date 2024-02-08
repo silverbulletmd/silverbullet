@@ -1,9 +1,5 @@
-import {
-  create,
-  getNumericDate,
-  verify,
-} from "https://deno.land/x/djwt@v3.0.1/mod.ts";
-import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { create, getNumericDate, verify } from "djwt";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 
 const jwtSecretKey = "jwtSecretKey";
 

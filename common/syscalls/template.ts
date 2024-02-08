@@ -1,9 +1,9 @@
-import { FunctionMap } from "$sb/types.ts";
-import { AST } from "$sb/lib/tree.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
-import { renderTemplate } from "../template/render.ts";
-import { parseTemplate } from "../template/template_parser.ts";
-import { DataStore } from "../../plugos/lib/datastore.ts";
+import { FunctionMap } from "$type/types.ts";
+import { AST } from "$lib/tree.ts";
+import { SysCallMapping } from "$lib/plugos/system.ts";
+import { renderTemplate } from "$common/template/render.ts";
+import { parseTemplate } from "$common/template/template_parser.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 
 export function templateSyscalls(ds: DataStore): SysCallMapping {
   return {

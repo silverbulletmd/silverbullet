@@ -1,15 +1,13 @@
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$type/types.ts";
 import { indexObjects } from "./api.ts";
 import {
-  addParentPointers,
   collectNodesOfType,
   findParentMatching,
   renderToText,
   traverseTreeAsync,
-} from "$sb/lib/tree.ts";
+} from "$lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { ObjectValue } from "$sb/types.ts";
-import a from "https://esm.sh/v135/node_process.js";
+import { ObjectValue } from "$type/types.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 

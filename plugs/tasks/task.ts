@@ -1,4 +1,4 @@
-import type { ClickEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import type { ClickEvent, IndexTreeEvent } from "$type/types.ts";
 
 import { editor, markdown, space, sync } from "$sb/syscalls.ts";
 
@@ -13,15 +13,15 @@ import {
   renderToText,
   replaceNodesMatching,
   traverseTreeAsync,
-} from "$sb/lib/tree.ts";
-import { niceDate } from "$sb/lib/dates.ts";
+} from "$lib/tree.ts";
+import { niceDate } from "$lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$type/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 export type TaskObject = ObjectValue<
   {

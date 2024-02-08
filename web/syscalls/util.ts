@@ -1,5 +1,5 @@
-import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
-import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
+import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
+import { SyscallContext, SysCallMapping } from "../../lib/plugos/system.ts";
 import { Client } from "../client.ts";
 
 export function proxySyscalls(client: Client, names: string[]): SysCallMapping {

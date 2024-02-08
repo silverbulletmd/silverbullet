@@ -1,4 +1,4 @@
-import { System } from "../plugos/system.ts";
+import { System } from "../lib/plugos/system.ts";
 import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "./hooks/command.ts";
 

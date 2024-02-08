@@ -1,5 +1,5 @@
-import { SpaceSync, SyncStatusItem } from "../common/spaces/sync.ts";
-import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
+import { SpaceSync, SyncStatusItem } from "$common/spaces/sync.ts";
+import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function syncCommand(

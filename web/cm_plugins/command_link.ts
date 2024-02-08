@@ -1,4 +1,4 @@
-import { ClickEvent } from "$sb/app_event.ts";
+import { ClickEvent } from "$type/types.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Client } from "../client.ts";
 import {
@@ -7,7 +7,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
-import { commandLinkRegex } from "../../common/command.ts";
+import { commandLinkRegex } from "$common/command.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.

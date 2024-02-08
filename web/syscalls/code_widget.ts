@@ -1,5 +1,5 @@
-import { CodeWidgetContent } from "$sb/types.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
+import { CodeWidgetContent } from "../../type/types.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { CodeWidgetHook } from "../hooks/code_widget.ts";
 
 export function codeWidgetSyscalls(

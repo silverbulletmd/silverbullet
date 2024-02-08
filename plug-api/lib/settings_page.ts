@@ -1,7 +1,5 @@
 import { readYamlPage } from "$sb/lib/yaml_page.ts";
-import { YAML } from "$sb/plugos-syscall/mod.ts";
-
-import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, space, YAML } from "$sb/syscalls.ts";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values

@@ -1,4 +1,4 @@
-import { FunctionMap, QueryExpression } from "$sb/types.ts";
+import { FunctionMap, QueryExpression } from "../../type/types.ts";
 
 export function evalQueryExpression(
   val: QueryExpression,

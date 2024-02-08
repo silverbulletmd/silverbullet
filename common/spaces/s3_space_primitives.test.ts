@@ -1,6 +1,6 @@
 import { S3SpacePrimitives } from "./s3_space_primitives.ts";
-import { MemoryKvPrimitives } from "../../plugos/lib/memory_kv_primitives.ts";
-import { testSpacePrimitives } from "./space_primitives.test.ts";
+import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
+import { testSpacePrimitives } from "$common/spaces/space_primitives.test.ts";
 
 Deno.test("s3_space_primitives", async () => {
   return;

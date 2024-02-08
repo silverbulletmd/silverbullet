@@ -1,15 +1,15 @@
 import { AppCommand, CommandHook } from "./hooks/command.ts";
-import { PlugNamespaceHook } from "./hooks/plug_namespace.ts";
+import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import { SilverBulletHooks } from "./manifest.ts";
 import { buildQueryFunctions } from "./query_functions.ts";
 import { ScriptEnvironment } from "./space_script.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
-import { System } from "../plugos/system.ts";
+import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { DataStore } from "$lib/data/datastore.ts";
+import { System } from "$lib/plugos/system.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
 import { SlashCommandHook } from "../web/hooks/slash_command.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 
 export abstract class CommonSystem {
   system!: System<SilverBulletHooks>;

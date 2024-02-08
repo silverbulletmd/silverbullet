@@ -1,9 +1,9 @@
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { System } from "../../plugos/system.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { System } from "../../lib/plugos/system.ts";
 
-import { createSandbox } from "../../plugos/sandboxes/deno_worker_sandbox.ts";
+import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");

@@ -1,5 +1,5 @@
-import { pageLinkRegex } from "../../common/markdown_parser/parser.ts";
-import { ClickEvent } from "../../plug-api/app_event.ts";
+import { pageLinkRegex } from "$common/markdown_parser/parser.ts";
+import { ClickEvent } from "$type/types.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Client } from "../client.ts";
 import {
@@ -9,7 +9,7 @@ import {
   LinkWidget,
 } from "./util.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
-import { encodePageRef, parsePageRef } from "$sb/lib/page.ts";
+import { encodePageRef, parsePageRef } from "../../plug-api/lib/page_ref.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.

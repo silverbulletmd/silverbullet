@@ -1,4 +1,4 @@
-import { CompleteEvent, SlashCompletion } from "$sb/app_event.ts";
+import { CompleteEvent, SlashCompletion } from "$type/types.ts";
 import { editor, markdown, space } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";

@@ -1,5 +1,5 @@
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
-import { assert, assertEquals } from "../../test_deps.ts";
+import { assert, assertEquals } from "$lib/test_deps.ts";
 
 Deno.test("Test query expression evaluation", async () => {
   assertEquals(

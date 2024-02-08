@@ -5,9 +5,10 @@ import {
   resolvePath,
   rewritePageRefs,
 } from "$sb/lib/resolve.ts";
-import { assertEquals } from "../../test_deps.ts";
-import { parseMarkdown } from "$sb/lib/test_utils.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { assertEquals } from "$lib/test_deps.ts";
+import { ParseTree, renderToText } from "$lib/tree.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 Deno.test("Test URL resolver", () => {
   assertEquals(resolvePath("test", "some page"), "some page");
@@ -104,3 +105,7 @@ page: "[[!silverbullet.md/template/use-template]]"
     resolveAttachmentPath("!silverbullet.md/something/bla", "/test.jpg"),
   );
 });
+
+function parseMarkdown(text: string): ParseTree {
+  return parse(extendedMarkdownLanguage, text);
+}

@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "../../test_deps.ts";
+import { assert, assertEquals } from "$lib/test_deps.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {

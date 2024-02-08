@@ -1,4 +1,4 @@
-import { findNodeOfType, ParseTree, traverseTree } from "$sb/lib/tree.ts";
+import { findNodeOfType, ParseTree, traverseTree } from "$lib/tree.ts";
 
 export function resolvePath(
   currentPage: string,

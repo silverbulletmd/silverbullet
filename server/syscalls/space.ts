@@ -1,6 +1,6 @@
-import { AttachmentMeta, FileMeta, PageMeta } from "$sb/types.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
-import type { Space } from "../../web/space.ts";
+import { AttachmentMeta, FileMeta, PageMeta } from "../../type/types.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
+import type { Space } from "../../common/space.ts";
 
 /**
  * Almost the same as web/syscalls/space.ts except leaving out client-specific stuff

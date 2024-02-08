@@ -1,11 +1,11 @@
-import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { IndexTreeEvent, QueryProviderEvent } from "$type/types.ts";
+import { renderToText } from "$lib/tree.ts";
 import { applyQuery, liftAttributeFilter } from "$sb/lib/query.ts";
 import { editor } from "$sb/syscalls.ts";
-import { FileMeta } from "$sb/types.ts";
-import { PromiseQueue } from "$sb/lib/async.ts";
+import { FileMeta } from "$type/types.ts";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
+import { PromiseQueue } from "$lib/async.ts";
 
 const searchPrefix = "🔍 ";
 

@@ -1,6 +1,6 @@
-import { SysCallMapping } from "../../plugos/system.ts";
-import { DataStore } from "../../plugos/lib/datastore.ts";
-import { KvKey } from "$sb/types.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
+import { DataStore } from "$lib/data/datastore.ts";
+import { KvKey } from "$type/types.ts";
 
 export function clientStoreSyscalls(
   ds: DataStore,

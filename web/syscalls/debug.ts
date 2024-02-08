@@ -1,5 +1,5 @@
-import { KvKey } from "$sb/types.ts";
-import type { SysCallMapping } from "../../plugos/system.ts";
+import { KvKey } from "../../type/types.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { Client } from "../client.ts";
 
 export function debugSyscalls(client: Client): SysCallMapping {

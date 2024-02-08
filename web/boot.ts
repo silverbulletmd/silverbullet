@@ -1,4 +1,4 @@
-import { safeRun } from "../common/util.ts";
+import { safeRun } from "../lib/async.ts";
 import { Client } from "./client.ts";
 
 const syncMode = window.silverBulletConfig.syncOnly ||

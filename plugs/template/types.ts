@@ -1,4 +1,4 @@
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "../../type/types.ts";
 import { z, ZodEffects } from "zod";
 
 export const CommandConfig = z.object({

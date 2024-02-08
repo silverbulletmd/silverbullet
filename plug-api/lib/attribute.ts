@@ -2,7 +2,7 @@ import {
   findNodeOfType,
   ParseTree,
   replaceNodesMatchingAsync,
-} from "$sb/lib/tree.ts";
+} from "$lib/tree.ts";
 
 import { YAML } from "$sb/syscalls.ts";
 
