@@ -5,12 +5,18 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new since 0.7.1 yet
+
+---
+
+## 0.7.1
 * Numerous bug fixes and significant performance improvements in template rendering (which now happen server-side), including code completion fixes.
-* **Experimental** feature: [[Space Script]], the ability to extend SilverBullet from within your SilverBullet space with JavaScript.
 * New `{{#each @varname in <expression>}}` syntax in [[Template Language#each directive]].
+* **Experimental feature**: [[Space Script]], the ability to extend SilverBullet from within your SilverBullet space with JavaScript.
 * New [[Functions#readPage(name)]] function.
-* New query sources: `command` and `syscalls`. The [[Keyboard Shortcuts]] and [[Commands]] pages now use these to list all key bindings and available commands.
+* New query sources: [[Objects#command]] and [[Objects#syscall]]. The [[Keyboard Shortcuts]] and [[Commands]] pages now use these to list all key bindings and available commands automatically.
 * You can now create emoji aliases (implemented by [Maarrk](https://github.com/silverbulletmd/silverbullet/pull/679)), see [[SETTINGS]] for an example 😅
+* You can now conditionally show action buttons (see [[SETTINGS]]) _only_ on mobile devices (implemented by [Maarrk](https://github.com/silverbulletmd/silverbullet/pull/686))
 
 ---
 

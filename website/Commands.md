@@ -8,5 +8,7 @@ Beside the list below, all commands available commands appear in the [[Command P
 These are all commands available as well as their Windows/Linux and macOS keybindings (if any):
 
 ```query
-command select name, key, mac
+command
+order by name
+select name, key, mac
 ```
