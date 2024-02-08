@@ -11,7 +11,7 @@ import {
   vimGetCm,
 } from "../deps.ts";
 import { SysCallMapping } from "$lib/plugos/system.ts";
-import type { FilterOption } from "../types.ts";
+import type { FilterOption } from "../../type/web.ts";
 import { UploadFile } from "$type/types.ts";
 import { PageRef } from "$sb/lib/page_ref.ts";
 import { openSearchPanel } from "../deps.ts";

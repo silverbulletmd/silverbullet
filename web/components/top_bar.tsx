@@ -1,6 +1,6 @@
 import { CompletionContext, CompletionResult, useEffect } from "../deps.ts";
 import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
-import { Notification } from "../types.ts";
+import { Notification } from "../../type/web.ts";
 import { FeatherProps } from "https://esm.sh/v99/preact-feather@4.2.1/dist/types";
 import { MiniEditor } from "./mini_editor.tsx";
 

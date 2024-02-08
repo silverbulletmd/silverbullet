@@ -10,7 +10,7 @@ import { DataStore } from "$lib/data/datastore.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { System } from "$lib/plugos/system.ts";
-import { BuiltinSettings } from "../web/types.ts";
+import { BuiltinSettings } from "../type/web.ts";
 import { JWTIssuer } from "./crypto.ts";
 import { gitIgnoreCompiler } from "./deps.ts";
 import { ServerSystem } from "./server_system.ts";

@@ -1,4 +1,4 @@
-import type { FilterOption } from "../../web/types.ts";
+import type { FilterOption } from "../../type/web.ts";
 import { UploadFile } from "$type/types.ts";
 import { syscall } from "../syscall.ts";
 import type { PageRef } from "$sb/lib/page_ref.ts";

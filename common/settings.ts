@@ -2,7 +2,7 @@ import { YAML } from "./deps.ts";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "../lib/json.ts";
-import type { BuiltinSettings } from "../web/types.ts";
+import type { BuiltinSettings } from "../type/web.ts";
 
 // TODO: This is naive, may be better to use a proper parser
 const yamlSettingsRegex = /```yaml([^`]+)```/;

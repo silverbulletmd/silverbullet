@@ -9,7 +9,7 @@ import {
 } from "./deps.ts";
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { FileMeta } from "$type/types.ts";
-import { ShellRequest } from "./rpc.ts";
+import { ShellRequest } from "../type/rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";

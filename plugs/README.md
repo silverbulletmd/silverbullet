@@ -1,0 +1,1 @@
+This folder contains the implementation of SilverBullet's built-in plugs — the plugs that ship with SB itself.

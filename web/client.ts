@@ -9,7 +9,7 @@ import {
   syntaxTree,
 } from "./deps.ts";
 import { Space } from "../common/space.ts";
-import { FilterOption } from "./types.ts";
+import { FilterOption } from "../type/web.ts";
 import { EventHook } from "../lib/plugos/hooks/event.ts";
 import { AppCommand } from "$common/hooks/command.ts";
 import {
@@ -18,7 +18,7 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import { AppViewState, BuiltinSettings } from "./types.ts";
+import { AppViewState, BuiltinSettings } from "../type/web.ts";
 
 import type { AppEvent, CompleteEvent } from "$type/types.ts";
 import { throttle } from "$lib/async.ts";

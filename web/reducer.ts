@@ -1,4 +1,4 @@
-import { Action, AppViewState } from "./types.ts";
+import { Action, AppViewState } from "../type/web.ts";
 
 export default function reducer(
   state: AppViewState,

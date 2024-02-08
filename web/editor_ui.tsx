@@ -4,7 +4,7 @@ import { FilterList } from "./components/filter.tsx";
 import { PageNavigator } from "./components/page_navigator.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
-import { Action, AppViewState, initialViewState } from "./types.ts";
+import { Action, AppViewState, initialViewState } from "../type/web.ts";
 import {
   closeSearchPanel,
   featherIcons,

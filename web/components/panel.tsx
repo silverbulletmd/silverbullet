@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "../deps.ts";
 import { Client } from "../client.ts";
-import { PanelConfig } from "../types.ts";
+import { PanelConfig } from "../../type/web.ts";
 import { panelHtml } from "./panel_html.ts";
 
 export function Panel({

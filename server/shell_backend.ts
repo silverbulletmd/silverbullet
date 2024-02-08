@@ -1,5 +1,5 @@
 import type { SpaceServerConfig } from "./instance.ts";
-import { ShellRequest, ShellResponse } from "./rpc.ts";
+import { ShellRequest, ShellResponse } from "../type/rpc.ts";
 
 /**
  * Configuration via environment variables:

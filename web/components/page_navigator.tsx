@@ -1,5 +1,5 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption } from "../types.ts";
+import { FilterOption } from "../../type/web.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
 import { PageMeta } from "../../type/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
