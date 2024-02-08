@@ -81,6 +81,17 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
    * @param args an array of arguments to pass to the function
    */
   invokeFunction(name: string, args: any[]): Promise<any> {
+    // Some sanity type checks
+    if (typeof name !== "string") {
+      throw new Error(
+        `invokeFunction: function name should be a string, got ${typeof name}`,
+      );
+    }
+    if (!Array.isArray(args)) {
+      throw new Error(
+        `invokeFunction: args should be an array, got ${typeof args}`,
+      );
+    }
     const [plugName, functionName] = name.split(".");
     if (!functionName) {
       // Sanity check
