@@ -8,7 +8,7 @@ import {
   runWithSystemLock,
 } from "./sandboxes/no_sandbox.ts";
 import { SysCallMapping } from "./system.ts";
-import { sleep } from "../lib/async.ts";
+import { sleep } from "../async.ts";
 
 Deno.test("Run a deno sandbox", {
   sanitizeResources: false,

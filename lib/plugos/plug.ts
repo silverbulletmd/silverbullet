@@ -1,6 +1,6 @@
 import { Manifest } from "./types.ts";
 import { System } from "./system.ts";
-import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
+import { AssetBundle } from "../asset_bundle/bundle.ts";
 import { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
 
 export class Plug<HookT> {

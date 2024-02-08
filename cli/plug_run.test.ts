@@ -1,6 +1,6 @@
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import { compileManifest } from "../plugos/compile.ts";
-import { esbuild } from "../plugos/deps.ts";
+import { compileManifest } from "../lib/plugos/compile.ts";
+import { esbuild } from "../lib/plugos/deps.ts";
 import { runPlug } from "./plug_run.ts";
 import assets from "../dist/plug_asset_bundle.json" assert { type: "json" };
 import { assertEquals } from "$lib/test_deps.ts";

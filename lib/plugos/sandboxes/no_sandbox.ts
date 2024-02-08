@@ -3,7 +3,7 @@ import { Sandbox } from "./sandbox.ts";
 import { Manifest } from "../types.ts";
 import { System } from "../system.ts";
 import { SandboxFactory } from "./sandbox.ts";
-import { PromiseQueue } from "../../lib/async.ts";
+import { PromiseQueue } from "../../async.ts";
 
 /**
  * This implements a "no sandbox" sandbox that actually runs code the main thread, without any isolation.

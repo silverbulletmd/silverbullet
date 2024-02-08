@@ -1,5 +1,5 @@
-import { Hook, Manifest } from "../../plugos/types.ts";
-import { System } from "../../plugos/system.ts";
+import { Hook, Manifest } from "../../lib/plugos/types.ts";
+import { System } from "../../lib/plugos/system.ts";
 import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
 import { Client } from "../client.ts";
 import { syntaxTree } from "../deps.ts";

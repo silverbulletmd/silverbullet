@@ -1,4 +1,4 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { ShellResponse } from "../../server/rpc.ts";
 import { ShellBackend } from "../shell_backend.ts";
 

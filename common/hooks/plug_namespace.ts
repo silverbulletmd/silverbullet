@@ -1,6 +1,6 @@
-import { Plug } from "../../plugos/plug.ts";
-import { System } from "../../plugos/system.ts";
-import { Hook, Manifest } from "../../plugos/types.ts";
+import { Plug } from "../../lib/plugos/plug.ts";
+import { System } from "../../lib/plugos/system.ts";
+import { Hook, Manifest } from "../../lib/plugos/types.ts";
 
 export type NamespaceOperation =
   | "readFile"

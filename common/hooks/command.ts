@@ -1,6 +1,6 @@
-import { Hook, Manifest } from "../../plugos/types.ts";
-import { System } from "../../plugos/system.ts";
-import { EventEmitter } from "../../plugos/event.ts";
+import { Hook, Manifest } from "../../lib/plugos/types.ts";
+import { System } from "../../lib/plugos/system.ts";
+import { EventEmitter } from "../../lib/plugos/event.ts";
 import { ObjectValue } from "../../type/types.ts";
 import {
   FrontmatterConfig,

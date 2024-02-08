@@ -9,7 +9,7 @@ import { Hono } from "../server/deps.ts";
 import { KvPrimitives } from "$lib/kv_primitives.ts";
 import { DataStore } from "$lib/datastore.ts";
 import { DataStoreMQ } from "$lib/mq.datastore.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
+import { EventHook } from "../lib/plugos/hooks/event.ts";
 import { sleep } from "$lib/async.ts";
 
 export async function runPlug(

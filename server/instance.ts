@@ -5,11 +5,11 @@ import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitive
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
+import { EventHook } from "../lib/plugos/hooks/event.ts";
 import { DataStore } from "$lib/datastore.ts";
 import { KvPrimitives } from "$lib/kv_primitives.ts";
 import { DataStoreMQ } from "$lib/mq.datastore.ts";
-import { System } from "../plugos/system.ts";
+import { System } from "../lib/plugos/system.ts";
 import { BuiltinSettings } from "../web/types.ts";
 import { JWTIssuer } from "./crypto.ts";
 import { gitIgnoreCompiler } from "./deps.ts";

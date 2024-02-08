@@ -1,5 +1,5 @@
 import { SyscallMeta } from "../../type/types.ts";
-import { SysCallMapping, System } from "../../plugos/system.ts";
+import { SysCallMapping, System } from "../../lib/plugos/system.ts";
 import type { Client } from "../../web/client.ts";
 import { CommandDef } from "../hooks/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";

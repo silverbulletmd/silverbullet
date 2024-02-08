@@ -1,4 +1,4 @@
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { DataStore } from "$lib/datastore.ts";
 import { KvKey } from "$type/types.ts";
 

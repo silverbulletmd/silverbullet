@@ -1,5 +1,5 @@
-import { esbuild, flags, path } from "./plugos/deps.ts";
-import { compileManifests } from "./plugos/compile.ts";
+import { esbuild, flags, path } from "./lib/plugos/deps.ts";
+import { compileManifests } from "./lib/plugos/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 
 if (import.meta.main) {

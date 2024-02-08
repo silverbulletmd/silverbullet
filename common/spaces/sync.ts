@@ -1,5 +1,5 @@
 import { SpacePrimitives } from "./space_primitives.ts";
-import { EventEmitter } from "../../plugos/event.ts";
+import { EventEmitter } from "../../lib/plugos/event.ts";
 import { FileMeta } from "../../type/types.ts";
 import { plugPrefix } from "./constants.ts";
 

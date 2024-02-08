@@ -10,7 +10,7 @@ import {
   Vim,
   vimGetCm,
 } from "../deps.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { FilterOption } from "../types.ts";
 import { UploadFile } from "../../type/types.ts";
 import { PageRef } from "../../plug-api/lib/page_ref.ts";

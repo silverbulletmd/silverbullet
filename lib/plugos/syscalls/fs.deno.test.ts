@@ -1,4 +1,4 @@
-import { FileMeta } from "../../type/types.ts";
+import { FileMeta } from "../../../type/types.ts";
 import { assert } from "$lib/test_deps.ts";
 import { path } from "../deps.ts";
 import fileSystemSyscalls from "./fs.deno.ts";

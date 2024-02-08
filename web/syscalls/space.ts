@@ -1,5 +1,5 @@
 import { Client } from "../client.ts";
-import { SysCallMapping } from "../../plugos/system.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { AttachmentMeta, FileMeta, PageMeta } from "../../type/types.ts";
 
 export function spaceReadSyscalls(editor: Client): SysCallMapping {

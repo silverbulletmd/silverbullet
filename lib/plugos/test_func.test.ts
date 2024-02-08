@@ -1,5 +1,8 @@
 import * as YAML from "js-yaml";
-import { EndpointRequest, EndpointResponse } from "../server/hooks/endpoint.ts";
+import {
+  EndpointRequest,
+  EndpointResponse,
+} from "../../server/hooks/endpoint.ts";
 
 export async function hello() {
   const numbers = await syscall("addNumbers", 1, 2);

@@ -1,5 +1,5 @@
 import { FileMeta } from "../../type/types.ts";
-import { EventHook } from "../../plugos/hooks/event.ts";
+import { EventHook } from "../../lib/plugos/hooks/event.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
 

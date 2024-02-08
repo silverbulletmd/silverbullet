@@ -1,12 +1,12 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import { SilverBulletHooks } from "$common/manifest.ts";
-import { CronHook } from "../plugos/hooks/cron.ts";
-import { EventHook } from "../plugos/hooks/event.ts";
-import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
+import { CronHook } from "../lib/plugos/hooks/cron.ts";
+import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 
-import assetSyscalls from "../plugos/syscalls/asset.ts";
-import { eventSyscalls } from "../plugos/syscalls/event.ts";
-import { System } from "../plugos/system.ts";
+import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
+import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
+import { System } from "../lib/plugos/system.ts";
 import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { CommandHook } from "$common/hooks/command.ts";
@@ -22,20 +22,20 @@ import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import { Space } from "./space.ts";
-import { MQHook } from "../plugos/hooks/mq.ts";
-import { mqSyscalls } from "../plugos/syscalls/mq.ts";
+import { MQHook } from "../lib/plugos/hooks/mq.ts";
+import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
 import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
-} from "../plugos/syscalls/datastore.ts";
+} from "../lib/plugos/syscalls/datastore.ts";
 import { DataStore } from "$lib/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
 import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
-import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
+import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
 import { deepObjectMerge } from "$lib/json.ts";
 import { Query } from "$type/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";

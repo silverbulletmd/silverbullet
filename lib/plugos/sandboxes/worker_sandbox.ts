@@ -1,7 +1,7 @@
 import { Manifest } from "../types.ts";
 import { ControllerMessage, WorkerMessage } from "../protocol.ts";
 import { Plug } from "../plug.ts";
-import { AssetBundle, AssetJson } from "../../lib/asset_bundle/bundle.ts";
+import { AssetBundle, AssetJson } from "../../asset_bundle/bundle.ts";
 import { Sandbox } from "./sandbox.ts";
 
 /**
