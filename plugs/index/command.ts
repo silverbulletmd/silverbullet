@@ -1,8 +1,8 @@
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
-import { IndexEvent } from "$sb/app_event.ts";
-import { MQMessage } from "../../type/types.ts";
-import { isTemplate } from "../../lib/cheap_yaml.ts";
-import { sleep } from "../../lib/async.ts";
+import { IndexEvent } from "$type/types.ts";
+import { MQMessage } from "$type/types.ts";
+import { isTemplate } from "$lib/cheap_yaml.ts";
+import { sleep } from "$lib/async.ts";
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");

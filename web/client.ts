@@ -20,7 +20,7 @@ import {
 
 import { AppViewState, BuiltinSettings } from "./types.ts";
 
-import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
+import type { AppEvent, CompleteEvent } from "$type/types.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
@@ -35,16 +35,16 @@ import { SyncStatus } from "$common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
-import { encodePageRef, validatePageName } from "../plug-api/lib/page_ref.ts";
+import { encodePageRef, validatePageName } from "$sb/lib/page_ref.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { CodeWidgetButton, FileMeta, PageMeta } from "../type/types.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
-import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { DataStore } from "$lib/datastore.ts";
+import { IndexedDBKvPrimitives } from "$lib/indexeddb_kv_primitives.ts";
+import { DataStoreMQ } from "$lib/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
 import {
   EncryptedSpacePrimitives,
@@ -57,7 +57,7 @@ import {
 import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { PageRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
-import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
+import { KvPrimitives } from "$lib/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";

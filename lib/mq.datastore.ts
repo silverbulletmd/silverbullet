@@ -1,9 +1,4 @@
-import {
-  KV,
-  MQMessage,
-  MQStats,
-  MQSubscribeOptions,
-} from "../../type/types.ts";
+import { KV, MQMessage, MQStats, MQSubscribeOptions } from "$type/types.ts";
 import { MessageQueue } from "./mq.ts";
 import { DataStore } from "./datastore.ts";
 

@@ -2,10 +2,10 @@
 import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
 import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
-import { KvPrimitives } from "../../plugos/lib/kv_primitives.ts";
+import { KvPrimitives } from "$lib/kv_primitives.ts";
 import { mime } from "../deps.ts";
-import { KV, KvKey } from "../../type/types.ts";
-import { PrefixedKvPrimitives } from "../../plugos/lib/prefixed_kv_primitives.ts";
+import { KV, KvKey } from "$type/types.ts";
+import { PrefixedKvPrimitives } from "$lib/prefixed_kv_primitives.ts";
 
 export type S3SpacePrimitivesOptions = ClientOptions;
 

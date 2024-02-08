@@ -1,5 +1,5 @@
 import { collectNodesMatching } from "$lib/tree.ts";
-import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import type { CompleteEvent, IndexTreeEvent } from "$type/types.ts";
 import { ObjectValue } from "$type/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";

@@ -5,7 +5,7 @@ import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
 import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
-import { Query } from "../../type/types.ts";
+import { Query } from "$type/types.ts";
 
 async function test(db: KvPrimitives) {
   const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), {

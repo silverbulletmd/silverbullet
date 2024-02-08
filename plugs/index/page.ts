@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$type/types.ts";
 import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
 
 import type { LintDiagnostic, PageMeta } from "../../type/types.ts";

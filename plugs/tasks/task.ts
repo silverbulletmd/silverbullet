@@ -1,4 +1,4 @@
-import type { ClickEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import type { ClickEvent, IndexTreeEvent } from "$type/types.ts";
 
 import { editor, markdown, space, sync } from "$sb/syscalls.ts";
 

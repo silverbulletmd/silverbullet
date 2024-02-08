@@ -1,5 +1,5 @@
 import { YAML } from "$sb/syscalls.ts";
-import type { WidgetContent } from "$sb/app_event.ts";
+import type { WidgetContent } from "$type/types.ts";
 
 type EmbedConfig = {
   url: string;

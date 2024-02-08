@@ -6,11 +6,11 @@ import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_spac
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
-import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
-import { DataStore } from "../plugos/lib/datastore.ts";
-import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { KvPrimitives } from "$lib/kv_primitives.ts";
+import { DataStore } from "$lib/datastore.ts";
+import { DataStoreMQ } from "$lib/mq.datastore.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { sleep } from "../lib/async.ts";
+import { sleep } from "$lib/async.ts";
 
 export async function runPlug(
   spacePath: string,

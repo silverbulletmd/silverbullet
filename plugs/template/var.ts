@@ -1,4 +1,4 @@
-import { CompleteEvent } from "$sb/app_event.ts";
+import { CompleteEvent } from "$type/types.ts";
 import { datastore, events } from "$sb/syscalls.ts";
 
 import {

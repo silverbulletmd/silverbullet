@@ -1,4 +1,4 @@
-import { DenoKvPrimitives } from "../../plugos/lib/deno_kv_primitives.ts";
+import { DenoKvPrimitives } from "$lib/deno_kv_primitives.ts";
 import { ChunkedKvStoreSpacePrimitives } from "./chunked_datastore_space_primitives.ts";
 import { testSpacePrimitives } from "./space_primitives.test.ts";
 

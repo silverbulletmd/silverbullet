@@ -1,4 +1,4 @@
-import type { ClickEvent } from "$sb/app_event.ts";
+import type { ClickEvent } from "$type/types.ts";
 import { editor, markdown, system } from "$sb/syscalls.ts";
 import {
   addParentPointers,

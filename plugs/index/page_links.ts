@@ -1,5 +1,5 @@
 import { findNodeOfType, renderToText, traverseTree } from "$lib/tree.ts";
-import { IndexTreeEvent } from "$sb/app_event.ts";
+import { IndexTreeEvent } from "$type/types.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "$type/types.ts";

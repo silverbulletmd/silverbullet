@@ -1,6 +1,6 @@
 import { editor, events, markdown } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { PublishEvent } from "$sb/app_event.ts";
+import { PublishEvent } from "$type/types.ts";
 
 export async function publishCommand() {
   await editor.save();

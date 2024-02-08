@@ -1,4 +1,4 @@
-import { IndexTreeEvent, QueryProviderEvent } from "$sb/app_event.ts";
+import { IndexTreeEvent, QueryProviderEvent } from "$type/types.ts";
 import { renderToText } from "$lib/tree.ts";
 import { applyQuery, liftAttributeFilter } from "$sb/lib/query.ts";
 import { editor } from "$sb/syscalls.ts";

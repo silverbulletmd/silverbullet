@@ -1,4 +1,4 @@
-import { LintEvent } from "$sb/app_event.ts";
+import { LintEvent } from "$type/types.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
 import { findNodeOfType, traverseTreeAsync } from "$lib/tree.ts";

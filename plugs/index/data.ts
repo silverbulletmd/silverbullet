@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$type/types.ts";
 import { YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$lib/tree.ts";
 import { ObjectValue } from "../../type/types.ts";

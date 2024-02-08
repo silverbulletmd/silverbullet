@@ -1,4 +1,4 @@
-import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
+import type { CompleteEvent, IndexTreeEvent } from "$type/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import {

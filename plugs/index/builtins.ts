@@ -1,9 +1,9 @@
 import { ObjectValue } from "../../type/types.ts";
 import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
-import { QueryProviderEvent } from "$sb/app_event.ts";
+import { QueryProviderEvent } from "$type/types.ts";
 import { applyQuery } from "$sb/lib/query.ts";
-import { builtinFunctions } from "../../lib/builtin_query_functions.ts";
+import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 
 export const builtinPseudoPage = ":builtin:";
 

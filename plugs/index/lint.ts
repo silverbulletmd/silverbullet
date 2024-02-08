@@ -1,7 +1,7 @@
 import { YAML } from "$sb/syscalls.ts";
 import { LintDiagnostic, QueryExpression } from "../../type/types.ts";
 import { findNodeOfType, renderToText, traverseTreeAsync } from "$lib/tree.ts";
-import { LintEvent } from "$sb/app_event.ts";
+import { LintEvent } from "$type/types.ts";
 import { queryObjects } from "./api.ts";
 import { AttributeObject } from "./attributes.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

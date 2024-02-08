@@ -1,4 +1,4 @@
-import { MemoryKvPrimitives } from "../../plugos/lib/memory_kv_primitives.ts";
+import { MemoryKvPrimitives } from "$lib/memory_kv_primitives.ts";
 import { assertEquals } from "$lib/test_deps.ts";
 import { ChunkedKvStoreSpacePrimitives } from "./chunked_datastore_space_primitives.ts";
 import { testSpacePrimitives } from "./space_primitives.test.ts";

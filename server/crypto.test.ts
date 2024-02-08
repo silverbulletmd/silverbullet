@@ -1,5 +1,5 @@
-import { sleep } from "../lib/async.ts";
-import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
+import { sleep } from "$lib/async.ts";
+import { MemoryKvPrimitives } from "$lib/memory_kv_primitives.ts";
 import { assertEquals } from "$lib/test_deps.ts";
 import { JWTIssuer } from "./crypto.ts";
 

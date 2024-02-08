@@ -31,7 +31,7 @@ import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
-import { ClickEvent } from "$sb/app_event.ts";
+import { ClickEvent } from "$type/types.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,

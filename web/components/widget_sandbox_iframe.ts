@@ -1,4 +1,4 @@
-import { WidgetContent } from "$sb/app_event.ts";
+import { WidgetContent } from "$type/types.ts";
 import { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
 

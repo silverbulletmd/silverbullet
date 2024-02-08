@@ -1,5 +1,4 @@
-import { LintEvent } from "$sb/app_event.ts";
-import { LintDiagnostic } from "../../type/types.ts";
+import type { LintDiagnostic, LintEvent } from "$type/types.ts";
 import { findNodeOfType, renderToText, traverseTreeAsync } from "$lib/tree.ts";
 import { FrontmatterConfig } from "./types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

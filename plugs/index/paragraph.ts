@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "$sb/app_event.ts";
+import type { IndexTreeEvent } from "$type/types.ts";
 import { indexObjects } from "./api.ts";
 import {
   collectNodesOfType,

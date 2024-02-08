@@ -5,7 +5,7 @@ import { runPlug } from "./plug_run.ts";
 import assets from "../dist/plug_asset_bundle.json" assert { type: "json" };
 import { assertEquals } from "$lib/test_deps.ts";
 import { path } from "$common/deps.ts";
-import { MemoryKvPrimitives } from "../plugos/lib/memory_kv_primitives.ts";
+import { MemoryKvPrimitives } from "$lib/memory_kv_primitives.ts";
 
 Deno.test("Test plug run", {
   sanitizeResources: false,
