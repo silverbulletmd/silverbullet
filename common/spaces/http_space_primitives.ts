@@ -1,6 +1,6 @@
 import { SpacePrimitives } from "./space_primitives.ts";
 import { FileMeta } from "../../type/types.ts";
-import { flushCachesAndUnregisterServiceWorker } from "./sw_util.ts";
+import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
