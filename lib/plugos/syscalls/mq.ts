@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../system.ts";
-import { MessageQueue } from "$lib/mq.ts";
+import { MessageQueue } from "$lib/data/mq.ts";
 
 export function mqSyscalls(
   mq: MessageQueue,

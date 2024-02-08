@@ -1,6 +1,6 @@
-import { DenoKvPrimitives } from "$lib/deno_kv_primitives.ts";
-import { KvPrimitives } from "$lib/kv_primitives.ts";
-import { MemoryKvPrimitives } from "$lib/memory_kv_primitives.ts";
+import { DenoKvPrimitives } from "$lib/data/deno_kv_primitives.ts";
+import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { path } from "./deps.ts";
 
 /**

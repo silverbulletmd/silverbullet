@@ -30,18 +30,18 @@ import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "../lib/plugos/syscalls/datastore.ts";
-import { DataStore } from "$lib/datastore.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
 import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
-import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
+import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
 import { deepObjectMerge } from "$lib/json.ts";
 import { Query } from "$type/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
-import { DataStoreMQ } from "$lib/mq.datastore.ts";
+import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;

@@ -1,10 +1,10 @@
 import "https://esm.sh/fake-indexeddb@4.0.2/auto";
-import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
-import { DataStore } from "./datastore.ts";
-import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
-import { KvPrimitives } from "./kv_primitives.ts";
+import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
+import { DataStore } from "../data/datastore.ts";
+import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
+import { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
-import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
+import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import { Query } from "$type/types.ts";
 
 async function test(db: KvPrimitives) {

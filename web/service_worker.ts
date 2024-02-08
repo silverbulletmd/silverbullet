@@ -1,7 +1,7 @@
 import type { FileContent } from "$common/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "$lib/crypto.ts";
-import { DataStore } from "$lib/datastore.ts";
-import { IndexedDBKvPrimitives } from "$lib/indexeddb_kv_primitives.ts";
+import { DataStore } from "$lib/data/datastore.ts";
+import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 

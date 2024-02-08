@@ -1,9 +1,9 @@
 import { FunctionMap } from "$type/types.ts";
 import { AST } from "$lib/tree.ts";
-import { SysCallMapping } from "../../lib/plugos/system.ts";
+import { SysCallMapping } from "$lib/plugos/system.ts";
 import { renderTemplate } from "$common/template/render.ts";
 import { parseTemplate } from "$common/template/template_parser.ts";
-import { DataStore } from "$lib/datastore.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 
 export function templateSyscalls(ds: DataStore): SysCallMapping {
   return {

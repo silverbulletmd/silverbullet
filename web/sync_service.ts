@@ -2,8 +2,8 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { SpaceSync, SyncStatus, SyncStatusItem } from "$common/spaces/sync.ts";
 import { sleep } from "$lib/async.ts";
-import { EventHook } from "../lib/plugos/hooks/event.ts";
-import { DataStore } from "$lib/datastore.ts";
+import { EventHook } from "$lib/plugos/hooks/event.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 import { Space } from "./space.ts";
 
 // Keeps the current sync snapshot

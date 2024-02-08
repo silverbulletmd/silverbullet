@@ -19,7 +19,7 @@ import { sandboxFetchSyscalls } from "../lib/plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { Plug } from "../lib/plugos/plug.ts";
-import { DataStore } from "$lib/datastore.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
@@ -28,16 +28,16 @@ import { languageSyscalls } from "$common/syscalls/language.ts";
 import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
-import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
-import { KvPrimitives } from "$lib/kv_primitives.ts";
+import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
+import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "$common/space_index.ts";
 import { FileMeta } from "$type/types.ts";
 import { CommandHook } from "$common/hooks/command.ts";
 import { CommonSystem } from "$common/common_system.ts";
-import { DataStoreMQ } from "$lib/mq.datastore.ts";
+import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
-import { base64EncodedDataUrl } from "../lib/crypto.ts";
+import { base64EncodedDataUrl } from "$lib/crypto.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 

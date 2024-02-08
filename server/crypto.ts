@@ -1,5 +1,5 @@
 import { create, getNumericDate, verify } from "djwt";
-import { KvPrimitives } from "$lib/kv_primitives.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 
 const jwtSecretKey = "jwtSecretKey";
 
