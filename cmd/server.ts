@@ -9,7 +9,7 @@ import { AssetBundle, AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
-import { runPlug } from "../cli/plug_run.ts";
+import { runPlug } from "../cmd/plug_run.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { sleep } from "$lib/async.ts";
 
