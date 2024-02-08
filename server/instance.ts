@@ -1,9 +1,9 @@
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
-import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
+import { SilverBulletHooks } from "$common/manifest.ts";
+import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
+import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
+import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
+import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";

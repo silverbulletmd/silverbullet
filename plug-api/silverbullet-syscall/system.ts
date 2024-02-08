@@ -1,5 +1,5 @@
-import type { CommandDef } from "../../common/hooks/command.ts";
-import { SyscallMeta } from "$sb/types.ts";
+import type { CommandDef } from "$common/hooks/command.ts";
+import { SyscallMeta } from "../../type/types.ts";
 import { syscall } from "./syscall.ts";
 
 export function invokeFunction(

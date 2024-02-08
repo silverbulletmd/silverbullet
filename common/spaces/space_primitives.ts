@@ -1,4 +1,4 @@
-import type { FileMeta } from "$sb/types.ts";
+import type { FileMeta } from "../../type/types.ts";
 
 /**
  * A generic interface used by `Space` to interact with the underlying storage, designed to be easy to implement for different storage backends

@@ -1,5 +1,5 @@
-import type { FunctionMap } from "$sb/types.ts";
-import { niceDate, niceTime } from "$sb/lib/dates.ts";
+import type { FunctionMap } from "../type/types.ts";
+import { niceDate, niceTime } from "./dates.ts";
 
 export const builtinFunctions: FunctionMap = {
   today() {

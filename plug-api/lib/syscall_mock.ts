@@ -1,4 +1,4 @@
-import { YAML } from "../../common/deps.ts";
+import { YAML } from "$common/deps.ts";
 
 globalThis.syscall = (name: string, ...args: readonly any[]) => {
   switch (name) {

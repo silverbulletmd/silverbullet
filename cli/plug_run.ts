@@ -1,9 +1,8 @@
-import { DiskSpacePrimitives } from "../common/spaces/disk_space_primitives.ts";
+import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
 
-import { sleep } from "$sb/lib/async.ts";
 import { ServerSystem } from "../server/server_system.ts";
-import { AssetBundlePlugSpacePrimitives } from "../common/spaces/asset_bundle_space_primitives.ts";
+import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { EndpointHook } from "../plugos/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
@@ -11,6 +10,7 @@ import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
+import { sleep } from "../lib/async.ts";
 
 export async function runPlug(
   spacePath: string,

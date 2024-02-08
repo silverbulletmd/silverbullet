@@ -1,4 +1,4 @@
-import { HttpSpacePrimitives } from "../../common/spaces/http_space_primitives.ts";
+import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { SyscallContext, SysCallMapping } from "../../plugos/system.ts";
 import { Client } from "../client.ts";
 

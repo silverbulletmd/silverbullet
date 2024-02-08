@@ -1,5 +1,5 @@
 import { editor, space } from "$sb/syscalls.ts";
-import { validatePageName } from "$sb/lib/page.ts";
+import { validatePageName } from "../../plug-api/lib/page_ref.ts";
 import { getBackLinks } from "./page_links.ts";
 
 export async function renamePageCommand(cmdDef: any) {

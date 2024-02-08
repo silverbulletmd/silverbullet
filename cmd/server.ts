@@ -6,12 +6,12 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };
 import { AssetBundle, AssetJson } from "../plugos/asset_bundle/bundle.ts";
-import { sleep } from "$sb/lib/async.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { SpaceServerConfig } from "../server/instance.ts";
 import { runPlug } from "../cli/plug_run.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
+import { sleep } from "../lib/async.ts";
 
 export async function serveCommand(
   options: {

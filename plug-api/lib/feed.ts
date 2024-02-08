@@ -3,7 +3,11 @@ import {
   findNodeOfType,
   ParseTree,
   renderToText,
-} from "$sb/lib/tree.ts";
+} from "$lib/tree.ts";
+
+/**
+ * Feed parsing functionality (WIP)
+ */
 
 import { extractAttributes } from "$sb/lib/attribute.ts";
 

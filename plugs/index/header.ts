@@ -1,8 +1,8 @@
-import { collectNodesMatching } from "$sb/lib/tree.ts";
+import { collectNodesMatching } from "$lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$type/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 type HeaderObject = ObjectValue<{
   name: string;

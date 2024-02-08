@@ -1,11 +1,11 @@
 import { WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
-import type { CodeWidgetButton, CodeWidgetCallback } from "$sb/types.ts";
+import type { CodeWidgetButton, CodeWidgetCallback } from "../../type/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { parsePageRef } from "../../plug-api/lib/page_ref.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();

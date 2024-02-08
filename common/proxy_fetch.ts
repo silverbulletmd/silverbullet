@@ -1,4 +1,4 @@
-import { base64Decode, base64Encode } from "../plugos/asset_bundle/base64.ts";
+import { base64Decode, base64Encode } from "../lib/crypto.ts";
 
 export type ProxyFetchRequest = {
   method?: string;

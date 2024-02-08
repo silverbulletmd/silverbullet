@@ -1,10 +1,7 @@
-import { sleep } from "$sb/lib/async.ts";
-import type { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import {
-  SpaceSync,
-  SyncStatus,
-  SyncStatusItem,
-} from "../common/spaces/sync.ts";
+import { plugPrefix } from "$common/spaces/constants.ts";
+import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import { SpaceSync, SyncStatus, SyncStatusItem } from "$common/spaces/sync.ts";
+import { sleep } from "../lib/async.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { Space } from "./space.ts";
@@ -310,7 +307,7 @@ export class SyncService implements ISyncService {
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
-    if (!name.startsWith("_plug/")) {
+    if (!name.startsWith(plugPrefix)) {
       const operations = await SpaceSync.primaryConflictResolver(
         name,
         snapshot,

@@ -6,10 +6,9 @@ import {
   removeParentPointers,
   renderToText,
   traverseTree,
-} from "$sb/lib/tree.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+} from "$lib/tree.ts";
+import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
-import { encodePageRef } from "$sb/lib/page.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;

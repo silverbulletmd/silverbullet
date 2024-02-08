@@ -1,6 +1,6 @@
 import { editor, markdown, YAML } from "$sb/syscalls.ts";
-import { CodeWidgetContent } from "$sb/types.ts";
-import { renderToText, traverseTree } from "$sb/lib/tree.ts";
+import { CodeWidgetContent } from "../../type/types.ts";
+import { renderToText, traverseTree } from "$lib/tree.ts";
 
 type Header = {
   name: string;

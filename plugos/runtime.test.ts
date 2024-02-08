@@ -1,14 +1,14 @@
 import { createSandbox } from "./sandboxes/deno_worker_sandbox.ts";
 import { System } from "./system.ts";
-import { assert, assertEquals } from "../test_deps.ts";
+import { assert, assertEquals } from "$lib/test_deps.ts";
 import { compileManifest } from "./compile.ts";
 import { esbuild } from "./deps.ts";
 import {
   createSandbox as createNoSandbox,
   runWithSystemLock,
 } from "./sandboxes/no_sandbox.ts";
-import { sleep } from "$sb/lib/async.ts";
 import { SysCallMapping } from "./system.ts";
+import { sleep } from "../lib/async.ts";
 
 Deno.test("Run a deno sandbox", {
   sanitizeResources: false,

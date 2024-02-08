@@ -1,5 +1,5 @@
-import type { FileContent } from "../common/spaces/datastore_space_primitives.ts";
-import { simpleHash } from "../common/crypto.ts";
+import type { FileContent } from "$common/spaces/datastore_space_primitives.ts";
+import { simpleHash } from "../lib/crypto.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 

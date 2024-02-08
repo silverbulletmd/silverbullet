@@ -2,7 +2,7 @@ import { WidgetContent } from "../../plug-api/app_event.ts";
 import { WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
-import type { CodeWidgetCallback } from "$sb/types.ts";
+import type { CodeWidgetCallback } from "../../type/types.ts";
 
 export class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;

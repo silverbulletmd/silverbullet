@@ -6,9 +6,9 @@ import {
   findParentMatching,
   nodeAtPos,
   ParseTree,
-} from "$sb/lib/tree.ts";
+} from "$lib/tree.ts";
 import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(

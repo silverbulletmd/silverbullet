@@ -1,8 +1,8 @@
-import { collectNodesOfType } from "$sb/lib/tree.ts";
+import { collectNodesOfType } from "$lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "$sb/app_event.ts";
-import { ObjectValue, QueryExpression } from "$sb/types.ts";
+import { ObjectValue, QueryExpression } from "$type/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 type AnchorObject = ObjectValue<{
   name: string;

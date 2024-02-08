@@ -8,16 +8,16 @@ import {
   setCookie,
 } from "./deps.ts";
 import { AssetBundle } from "../plugos/asset_bundle/bundle.ts";
-import { FileMeta } from "$sb/types.ts";
+import { FileMeta } from "../type/types.ts";
 import { ShellRequest } from "./rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "../plugos/lib/prefixed_kv_primitives.ts";
-import { base64Encode } from "../plugos/asset_bundle/base64.ts";
-import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
-import { parse } from "../common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "../plug-api/lib/page_ref.ts";
+import { base64Encode } from "../lib/crypto.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 

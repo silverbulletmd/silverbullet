@@ -1,8 +1,8 @@
 import "$sb/lib/syscall_mock.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { extractFeedItems } from "$sb/lib/feed.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 const feedSample1 = `---
 test: ignore me

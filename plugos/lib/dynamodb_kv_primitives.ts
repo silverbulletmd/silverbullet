@@ -1,4 +1,4 @@
-import { KV, KvKey } from "../../plug-api/types.ts";
+import { KV, KvKey } from "../../type/types.ts";
 import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import {
   createClient,

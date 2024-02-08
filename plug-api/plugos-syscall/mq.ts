@@ -1,5 +1,5 @@
 import { syscall } from "$sb/plugos-syscall/syscall.ts";
-import { MQStats } from "$sb/types.ts";
+import { MQStats } from "../../type/types.ts";
 
 export function send(queue: string, body: any) {
   return syscall("mq.send", queue, body);

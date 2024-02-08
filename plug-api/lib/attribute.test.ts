@@ -1,9 +1,9 @@
 import "$sb/lib/syscall_mock.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { assertEquals } from "../../test_deps.ts";
-import { renderToText } from "$sb/lib/tree.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { assertEquals } from "$lib/test_deps.ts";
+import { renderToText } from "$lib/tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 const inlineAttributeSample = `
 # My document

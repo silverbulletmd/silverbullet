@@ -1,5 +1,5 @@
 import { parseQuery } from "$sb/lib/parse-query.ts";
-import { Query } from "$sb/types.ts";
+import { Query } from "../../type/types.ts";
 import { events } from "$sb/syscalls.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";

@@ -1,4 +1,4 @@
-import { SyscallMeta } from "$sb/types.ts";
+import { SyscallMeta } from "../../type/types.ts";
 import { SysCallMapping, System } from "../../plugos/system.ts";
 import type { Client } from "../../web/client.ts";
 import { CommandDef } from "../hooks/command.ts";

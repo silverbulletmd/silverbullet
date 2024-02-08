@@ -9,9 +9,9 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import { assertEquals, assertNotEquals } from "../../test_deps.ts";
-import { parse } from "../../common/markdown_parser/parse_tree.ts";
-import { extendedMarkdownLanguage } from "../../common/markdown_parser/parser.ts";
+import { assertEquals, assertNotEquals } from "$lib/test_deps.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 const mdTest1 = `
 # Heading

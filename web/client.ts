@@ -7,12 +7,11 @@ import {
   gitIgnoreCompiler,
   SyntaxNode,
   syntaxTree,
-} from "../common/deps.ts";
+} from "$common/deps.ts";
 import { Space } from "./space.ts";
 import { FilterOption } from "./types.ts";
-import { ensureAndLoadSettingsAndIndex } from "../common/util.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
-import { AppCommand } from "../common/hooks/command.ts";
+import { AppCommand } from "$common/hooks/command.ts";
 import {
   PageState,
   parsePageRefFromURI,
@@ -22,45 +21,46 @@ import {
 import { AppViewState, BuiltinSettings } from "./types.ts";
 
 import type { AppEvent, CompleteEvent } from "../plug-api/app_event.ts";
-import { throttle } from "$sb/lib/async.ts";
-import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
-import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
+import { throttle } from "$lib/async.ts";
+import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
+import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
 import {
   ISyncService,
   NoSyncSyncService,
   pageSyncInterval,
   SyncService,
 } from "./sync_service.ts";
-import { simpleHash } from "../common/crypto.ts";
-import { SyncStatus } from "../common/spaces/sync.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "../common/spaces/fallback_space_primitives.ts";
-import { FilteredSpacePrimitives } from "../common/spaces/filtered_space_primitives.ts";
-import { encodePageRef, validatePageName } from "$sb/lib/page.ts";
+import { simpleHash } from "$lib/crypto.ts";
+import { SyncStatus } from "$common/spaces/sync.ts";
+import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
+import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
+import { encodePageRef, validatePageName } from "../plug-api/lib/page_ref.ts";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { CodeWidgetButton, FileMeta, PageMeta } from "$sb/types.ts";
+import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import { CodeWidgetButton, FileMeta, PageMeta } from "../type/types.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import { IndexedDBKvPrimitives } from "../plugos/lib/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "../common/spaces/datastore_space_primitives.ts";
+import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
 import {
   EncryptedSpacePrimitives,
-} from "../common/spaces/encrypted_space_primitives.ts";
+} from "$common/spaces/encrypted_space_primitives.ts";
 
 import {
   ensureSpaceIndex,
   markFullSpaceIndexComplete,
-} from "../common/space_index.ts";
-import { LimitedMap } from "$sb/lib/limited_map.ts";
-import { renderTheTemplate } from "../common/syscalls/template.ts";
-import { PageRef } from "$sb/lib/page.ts";
-import { ReadOnlySpacePrimitives } from "../common/spaces/ro_space_primitives.ts";
+} from "$common/space_index.ts";
+import { renderTheTemplate } from "$common/syscalls/template.ts";
+import { PageRef } from "../plug-api/lib/page_ref.ts";
+import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
-import { builtinFunctions } from "$sb/lib/builtin_query_functions.ts";
+import { builtinFunctions } from "$lib/builtin_query_functions.ts";
+import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
+import { LimitedMap } from "$lib/limited_map.ts";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;

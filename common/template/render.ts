@@ -1,7 +1,7 @@
-import { AST } from "$sb/lib/tree.ts";
+import { AST } from "$lib/tree.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
-import { FunctionMap } from "$sb/types.ts";
+import { FunctionMap } from "../../type/types.ts";
 import { jsonToMDTable } from "../../plugs/template/util.ts";
 
 export async function renderTemplate(

@@ -1,4 +1,4 @@
-import { LimitedMap } from "$sb/lib/limited_map.ts";
+import { LimitedMap } from "./limited_map.ts";
 
 const cache = new LimitedMap<any>(50);
 

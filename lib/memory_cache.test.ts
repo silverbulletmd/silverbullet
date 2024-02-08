@@ -1,6 +1,6 @@
-import { sleep } from "$sb/lib/async.ts";
-import { ttlCache } from "$sb/lib/memory_cache.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { ttlCache } from "$lib/memory_cache.ts";
+import { sleep } from "$lib/async.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 
 Deno.test("Memory cache", async () => {
   let calls = 0;

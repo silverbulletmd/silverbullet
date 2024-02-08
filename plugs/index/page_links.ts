@@ -1,11 +1,11 @@
-import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
+import { findNodeOfType, renderToText, traverseTree } from "$lib/tree.ts";
 import { IndexTreeEvent } from "$sb/app_event.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "$type/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
-import { parsePageRef } from "$sb/lib/page.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 

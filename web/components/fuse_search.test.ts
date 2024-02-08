@@ -1,5 +1,5 @@
 import { FilterOption } from "../types.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { fuzzySearchAndSort } from "./fuse_search.ts";
 
 Deno.test("testFuzzyFilter", () => {

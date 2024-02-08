@@ -1,5 +1,5 @@
-import { sleep } from "$sb/lib/async.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { sleep } from "$lib/async.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { LimitedMap } from "./limited_map.ts";
 
 Deno.test("limited map", async () => {

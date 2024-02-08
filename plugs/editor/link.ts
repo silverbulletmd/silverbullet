@@ -1,4 +1,4 @@
-import { nodeAtPos } from "$sb/lib/tree.ts";
+import { nodeAtPos } from "$lib/tree.ts";
 import { editor, events, markdown } from "$sb/syscalls.ts";
 
 type UnfurlOption = {

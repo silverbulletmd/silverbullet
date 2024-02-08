@@ -1,4 +1,3 @@
-import { safeRun } from "../common/util.ts";
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
@@ -17,8 +16,8 @@ import {
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { h } from "./deps.ts";
-import { sleep } from "$sb/lib/async.ts";
-import { parseCommand } from "../common/command.ts";
+import { safeRun, sleep } from "../lib/async.ts";
+import { parseCommand } from "$common/command.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;

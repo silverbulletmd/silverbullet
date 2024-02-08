@@ -1,5 +1,5 @@
 import { runPlug } from "../cli/plug_run.ts";
-import { path } from "../common/deps.ts";
+import { path } from "$common/deps.ts";
 import assets from "../dist/plug_asset_bundle.json" assert {
   type: "json",
 };

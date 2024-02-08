@@ -5,8 +5,8 @@ import {
   addParentPointers,
   collectNodesOfType,
   findParentMatching,
-} from "$sb/lib/tree.ts";
-import type { ObjectValue } from "$sb/types.ts";
+} from "$lib/tree.ts";
+import type { ObjectValue } from "../../type/types.ts";
 
 export type TagObject = ObjectValue<{
   name: string;

@@ -1,4 +1,4 @@
-import { FunctionMap, KV, Query, QueryExpression } from "$sb/types.ts";
+import { FunctionMap, KV, Query, QueryExpression } from "../../type/types.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 
 /**

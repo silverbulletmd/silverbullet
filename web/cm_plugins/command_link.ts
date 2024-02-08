@@ -7,7 +7,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
-import { commandLinkRegex } from "../../common/command.ts";
+import { commandLinkRegex } from "$common/command.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.

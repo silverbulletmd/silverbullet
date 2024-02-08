@@ -1,5 +1,5 @@
-import { type AST, parseTreeToAST } from "$sb/lib/tree.ts";
-import type { Query, QueryExpression } from "$sb/types.ts";
+import { type AST, parseTreeToAST } from "$lib/tree.ts";
+import type { Query, QueryExpression } from "../../type/types.ts";
 import { language } from "$sb/syscalls.ts";
 
 export function astToKvQuery(

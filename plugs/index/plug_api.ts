@@ -1,6 +1,6 @@
-import { KV, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
+import { KV, KvQuery, ObjectQuery, ObjectValue } from "../../type/types.ts";
 import { invokeFunction } from "$sb/silverbullet-syscall/system.ts";
-import { ttlCache } from "$sb/lib/memory_cache.ts";
+import { ttlCache } from "$lib/memory_cache.ts";
 
 export function indexObjects<T>(
   page: string,

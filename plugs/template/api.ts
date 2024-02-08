@@ -1,7 +1,7 @@
 import { markdown, template, YAML } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { TemplateObject } from "./types.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { renderToText } from "$lib/tree.ts";
 
 /**
  * Strips the template from its frontmatter and renders it.

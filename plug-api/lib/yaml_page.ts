@@ -1,4 +1,4 @@
-import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
+import { findNodeOfType, traverseTree } from "$lib/tree.ts";
 import { markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import { YAML } from "$sb/plugos-syscall/mod.ts";
 

@@ -1,9 +1,15 @@
 import { datastore } from "$sb/syscalls.ts";
-import { KV, KvKey, KvQuery, ObjectQuery, ObjectValue } from "$sb/types.ts";
+import {
+  KV,
+  KvKey,
+  KvQuery,
+  ObjectQuery,
+  ObjectValue,
+} from "../../type/types.ts";
 import { QueryProviderEvent } from "$sb/app_event.ts";
 import { builtins } from "./builtins.ts";
 import { determineType } from "./attributes.ts";
-import { ttlCache } from "$sb/lib/memory_cache.ts";
+import { ttlCache } from "$lib/memory_cache.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";

@@ -2,7 +2,7 @@ import { createSandbox } from "../sandboxes/deno_worker_sandbox.ts";
 import { EndpointHook, EndpointHookT } from "./endpoint.ts";
 import { System } from "../system.ts";
 
-import { assertEquals } from "../../test_deps.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { compileManifest } from "../compile.ts";
 import { esbuild } from "../deps.ts";
 import { Hono } from "../../server/deps.ts";

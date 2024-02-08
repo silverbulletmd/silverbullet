@@ -24,26 +24,26 @@ import {
   syntaxHighlighting,
   ViewPlugin,
   ViewUpdate,
-} from "../common/deps.ts";
+} from "$common/deps.ts";
 import { Client } from "./client.ts";
 import { vim } from "./deps.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
-import { safeRun } from "../common/util.ts";
 import { ClickEvent } from "$sb/app_event.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
-import { TextChange } from "$sb/lib/change.ts";
+import { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
-import { languageFor } from "../common/languages.ts";
+import { languageFor } from "$common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, Extension } from "@codemirror/state";
-import { extendedMarkdownLanguage } from "../common/markdown_parser/parser.ts";
-import { parseCommand } from "../common/command.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { parseCommand } from "$common/command.ts";
+import { safeRun } from "../lib/async.ts";
 
 export function createEditorState(
   client: Client,

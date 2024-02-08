@@ -5,8 +5,8 @@ import {
   markdown,
   space,
 } from "$sb/silverbullet-syscall/mod.ts";
-import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
-import { CodeWidgetContent } from "$sb/types.ts";
+import { parseTreeToAST, renderToText } from "$lib/tree.ts";
+import { CodeWidgetContent } from "$type/types.ts";
 import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
 import { TemplateObject, WidgetConfig } from "../template/types.ts";

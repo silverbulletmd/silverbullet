@@ -1,4 +1,4 @@
-import { KV, KvKey } from "$sb/types.ts";
+import { KV, KvKey } from "../../type/types.ts";
 
 export type KvQueryOptions = {
   prefix?: KvKey;

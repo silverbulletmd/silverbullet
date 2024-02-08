@@ -1,5 +1,5 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import { KvKey } from "$sb/types.ts";
+import { KvKey } from "../../type/types.ts";
 import { KvPrimitives } from "../../plugos/lib/kv_primitives.ts";
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
 import { PrefixedKvPrimitives } from "../../plugos/lib/prefixed_kv_primitives.ts";

@@ -6,8 +6,8 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
   traverseTreeAsync,
-} from "$sb/lib/tree.ts";
-import { expandPropertyNames } from "$sb/lib/json.ts";
+} from "$lib/tree.ts";
+import { expandPropertyNames } from "../../lib/json.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 

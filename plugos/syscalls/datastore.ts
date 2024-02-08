@@ -1,4 +1,4 @@
-import { KV, KvKey, KvQuery } from "$sb/types.ts";
+import { KV, KvKey, KvQuery } from "../../type/types.ts";
 import type { DataStore } from "../lib/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
 

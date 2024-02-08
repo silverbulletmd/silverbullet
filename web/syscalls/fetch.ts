@@ -3,12 +3,9 @@ import {
   performLocalFetch,
   ProxyFetchRequest,
   ProxyFetchResponse,
-} from "../../common/proxy_fetch.ts";
+} from "$common/proxy_fetch.ts";
 import type { Client } from "../client.ts";
-import {
-  base64Decode,
-  base64Encode,
-} from "../../plugos/asset_bundle/base64.ts";
+import { base64Decode, base64Encode } from "../../lib/crypto.ts";
 
 export function sandboxFetchSyscalls(
   client: Client,

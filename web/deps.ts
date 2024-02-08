@@ -1,4 +1,4 @@
-export * from "../common/deps.ts";
+export * from "$common/deps.ts";
 
 export { Fragment, h, render as preactRender } from "preact";
 export type { ComponentChildren, FunctionalComponent } from "preact";

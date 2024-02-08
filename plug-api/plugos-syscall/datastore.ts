@@ -1,5 +1,5 @@
 import { syscall } from "$sb/plugos-syscall/syscall.ts";
-import { KV, KvKey, KvQuery } from "$sb/types.ts";
+import { KV, KvKey, KvQuery } from "$type/types.ts";
 
 export function set(key: KvKey, value: any): Promise<void> {
   return syscall("datastore.set", key, value);

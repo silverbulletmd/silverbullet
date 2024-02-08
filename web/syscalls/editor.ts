@@ -12,8 +12,8 @@ import {
 } from "../deps.ts";
 import { SysCallMapping } from "../../plugos/system.ts";
 import type { FilterOption } from "../types.ts";
-import { UploadFile } from "../../plug-api/types.ts";
-import { PageRef } from "$sb/lib/page.ts";
+import { UploadFile } from "../../type/types.ts";
+import { PageRef } from "../../plug-api/lib/page_ref.ts";
 import { openSearchPanel } from "../deps.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 

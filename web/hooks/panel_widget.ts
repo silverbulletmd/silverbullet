@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
-import { CodeWidgetCallback } from "$sb/types.ts";
+import { CodeWidgetCallback } from "../../type/types.ts";
 
 export type PanelWidgetT = {
   panelWidget?: "top" | "bottom";

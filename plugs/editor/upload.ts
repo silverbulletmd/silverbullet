@@ -1,5 +1,5 @@
 import { editor, space } from "$sb/silverbullet-syscall/mod.ts";
-import { UploadFile } from "$sb/types.ts";
+import { UploadFile } from "../../type/types.ts";
 
 const maximumAttachmentSize = 1024 * 1024 * 10; // 10MB
 

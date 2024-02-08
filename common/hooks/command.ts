@@ -1,13 +1,13 @@
 import { Hook, Manifest } from "../../plugos/types.ts";
 import { System } from "../../plugos/system.ts";
 import { EventEmitter } from "../../plugos/event.ts";
-import { ObjectValue } from "$sb/types.ts";
+import { ObjectValue } from "../../type/types.ts";
 import {
   FrontmatterConfig,
   SnippetConfig,
 } from "../../plugs/template/types.ts";
-import { throttle } from "$sb/lib/async.ts";
 import { NewPageConfig } from "../../plugs/template/types.ts";
+import { throttle } from "../../lib/async.ts";
 
 export type CommandDef = {
   name: string;

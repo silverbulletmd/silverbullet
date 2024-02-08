@@ -1,7 +1,7 @@
-import { PlugNamespaceHook } from "../common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "../common/manifest.ts";
-import { EventedSpacePrimitives } from "../common/spaces/evented_space_primitives.ts";
-import { PlugSpacePrimitives } from "../common/spaces/plug_space_primitives.ts";
+import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
+import { SilverBulletHooks } from "$common/manifest.ts";
+import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
+import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../plugos/sandboxes/web_worker_sandbox.ts";
 import { CronHook } from "../plugos/hooks/cron.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
@@ -11,33 +11,33 @@ import { eventSyscalls } from "../plugos/syscalls/event.ts";
 import { mqSyscalls } from "../plugos/syscalls/mq.ts";
 import { System } from "../plugos/system.ts";
 import { Space } from "../web/space.ts";
-import { markdownSyscalls } from "../common/syscalls/markdown.ts";
+import { markdownSyscalls } from "$common/syscalls/markdown.ts";
 import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
-import { systemSyscalls } from "../common/syscalls/system.ts";
-import { yamlSyscalls } from "../common/syscalls/yaml.ts";
+import { systemSyscalls } from "$common/syscalls/system.ts";
+import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
-import { SpacePrimitives } from "../common/spaces/space_primitives.ts";
-import { base64EncodedDataUrl } from "../plugos/asset_bundle/base64.ts";
+import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { Plug } from "../plugos/plug.ts";
 import { DataStore } from "../plugos/lib/datastore.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "../plugos/syscalls/datastore.ts";
-import { languageSyscalls } from "../common/syscalls/language.ts";
-import { templateSyscalls } from "../common/syscalls/template.ts";
+import { languageSyscalls } from "$common/syscalls/language.ts";
+import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "../plugos/manifest_cache.ts";
 import { KvPrimitives } from "../plugos/lib/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
-import { ensureSpaceIndex } from "../common/space_index.ts";
-import { FileMeta } from "$sb/types.ts";
-import { CommandHook } from "../common/hooks/command.ts";
-import { CommonSystem } from "../common/common_system.ts";
-import { MessageQueue } from "../plugos/lib/mq.ts";
+import { ensureSpaceIndex } from "$common/space_index.ts";
+import { FileMeta } from "../type/types.ts";
+import { CommandHook } from "$common/hooks/command.ts";
+import { CommonSystem } from "$common/common_system.ts";
 import { DataStoreMQ } from "../plugos/lib/mq.datastore.ts";
+import { plugPrefix } from "$common/spaces/constants.ts";
+import { base64EncodedDataUrl } from "../lib/crypto.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -163,7 +163,7 @@ export class ServerSystem extends CommonSystem {
         });
       }
 
-      if (path.startsWith("_plug/") && path.endsWith(".plug.js")) {
+      if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
         console.log("Plug updated, reloading:", path);
         this.system.unload(path);
         await this.loadPlugFromSpace(path);

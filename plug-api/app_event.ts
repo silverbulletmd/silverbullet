@@ -1,6 +1,6 @@
-import type { ParseTree } from "$sb/lib/tree.ts";
-import { TextChange } from "$sb/lib/change.ts";
-import { Query } from "$sb/types.ts";
+import type { ParseTree } from "$lib/tree.ts";
+import { TextChange } from "../web/change.ts";
+import { Query } from "../type/types.ts";
 
 export type AppEvent =
   | "page:click"

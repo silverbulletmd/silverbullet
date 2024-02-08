@@ -1,4 +1,4 @@
-import { FileMeta } from "../../plug-api/types.ts";
+import { FileMeta } from "../../type/types.ts";
 import {
   base32Decode,
   base32Encode,
@@ -8,7 +8,8 @@ import {
   exportKey,
   generateSalt,
   importKey,
-} from "../crypto.ts";
+} from "../../lib/crypto.ts";
+import { plugPrefix } from "./constants.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export const encryptedFileExt = ".crypt";
@@ -178,7 +179,7 @@ export class EncryptedSpacePrimitives implements SpacePrimitives {
   }
 
   isUnencryptedPath(name: string) {
-    return name.startsWith("_plug/");
+    return name.startsWith(plugPrefix);
   }
 
   /**

@@ -3,7 +3,7 @@ import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import type {
   ProxyFetchRequest,
   ProxyFetchResponse,
-} from "../common/proxy_fetch.ts";
+} from "$common/proxy_fetch.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;

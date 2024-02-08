@@ -1,26 +1,8 @@
-import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { YAML } from "./deps.ts";
+import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
-import { expandPropertyNames } from "$sb/lib/json.ts";
+import { expandPropertyNames } from "../lib/json.ts";
 import type { BuiltinSettings } from "../web/types.ts";
-
-/**
- * Runs a function safely by catching any errors and logging them to the console.
- * @param fn - The function to run.
- */
-export function safeRun(fn: () => Promise<void>) {
-  fn().catch((e) => {
-    console.error(e);
-  });
-}
-
-/**
- * Checks if the current platform is Mac-like (Mac, iPhone, iPod, iPad).
- * @returns A boolean indicating if the platform is Mac-like.
- */
-export function isMacLike() {
-  return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
-}
 
 // TODO: This is naive, may be better to use a proper parser
 const yamlSettingsRegex = /```yaml([^`]+)```/;

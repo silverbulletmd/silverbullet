@@ -2,7 +2,7 @@ import { codeWidget, editor, events } from "$sb/syscalls.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
-import { CodeWidgetContent } from "$sb/types.ts";
+import { CodeWidgetContent } from "../../type/types.ts";
 import { jsonToMDTable, renderQueryTemplate } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
 

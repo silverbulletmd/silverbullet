@@ -1,10 +1,6 @@
 import { parse } from "./parse_tree.ts";
-import {
-  collectNodesOfType,
-  findNodeOfType,
-  renderToText,
-} from "../../plug-api/lib/tree.ts";
-import { assertEquals, assertNotEquals } from "../../test_deps.ts";
+import { collectNodesOfType, findNodeOfType, renderToText } from "$lib/tree.ts";
+import { assertEquals, assertNotEquals } from "$lib/test_deps.ts";
 import { extendedMarkdownLanguage } from "./parser.ts";
 
 const sample1 = `---

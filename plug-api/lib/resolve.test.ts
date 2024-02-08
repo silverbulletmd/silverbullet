@@ -5,9 +5,9 @@ import {
   resolvePath,
   rewritePageRefs,
 } from "$sb/lib/resolve.ts";
-import { assertEquals } from "../../test_deps.ts";
+import { assertEquals } from "$lib/test_deps.ts";
 import { parseMarkdown } from "$sb/lib/test_utils.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { renderToText } from "$lib/tree.ts";
 
 Deno.test("Test URL resolver", () => {
   assertEquals(resolvePath("test", "some page"), "some page");

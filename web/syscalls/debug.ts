@@ -1,4 +1,4 @@
-import { KvKey } from "$sb/types.ts";
+import { KvKey } from "../../type/types.ts";
 import type { SysCallMapping } from "../../plugos/system.ts";
 import { Client } from "../client.ts";
 

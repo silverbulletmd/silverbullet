@@ -89,3 +89,13 @@ export async function batchRequests<I, O>(
   }
   return results;
 }
+
+/**
+ * Runs a function safely by catching any errors and logging them to the console.
+ * @param fn - The function to run.
+ */
+export function safeRun(fn: () => Promise<void>) {
+  fn().catch((e) => {
+    console.error(e);
+  });
+}

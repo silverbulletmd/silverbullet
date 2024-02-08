@@ -1,9 +1,8 @@
-import { isMacLike } from "../../common/util.ts";
 import { FilterList } from "./filter.tsx";
 import { CompletionContext, CompletionResult, featherIcons } from "../deps.ts";
-import { AppCommand } from "../../common/hooks/command.ts";
+import { AppCommand } from "$common/hooks/command.ts";
 import { BuiltinSettings, FilterOption } from "../types.ts";
-import { parseCommand } from "../../common/command.ts";
+import { parseCommand } from "$common/command.ts";
 
 export function CommandPalette({
   commands,
@@ -73,4 +72,12 @@ export function CommandPalette({
       }}
     />
   );
+}
+
+/**
+ * Checks if the current platform is Mac-like (Mac, iPhone, iPod, iPad).
+ * @returns A boolean indicating if the platform is Mac-like.
+ */
+function isMacLike() {
+  return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 }

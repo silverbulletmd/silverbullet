@@ -1,8 +1,8 @@
 import { Hook, Manifest } from "../types.ts";
 import { System } from "../system.ts";
-import { MQMessage } from "$sb/types.ts";
+import { MQMessage } from "../../type/types.ts";
 import { MessageQueue } from "../lib/mq.ts";
-import { throttle } from "$sb/lib/async.ts";
+import { throttle } from "../../lib/async.ts";
 
 type MQSubscription = {
   queue: string;
