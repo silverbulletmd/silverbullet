@@ -1,7 +1,7 @@
 Live Embeds allow you to embed internet content into your page inside of an iframe. This is useful to embed youtube videos or other websites.
 
 ```embed
-url: https://youtu.be/BbNbZgOwB-Y
+url: https://youtu.be/8btx9HeuZ4s
 ```
 
 Note, there is specific support for YouTube videos — it automatically sets the width and height, and replaces the URL with an embed URL.

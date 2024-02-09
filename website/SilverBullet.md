@@ -32,7 +32,7 @@ SilverBullet is open source **personal knowledge management system** implemented
 To get a feel of what SilverBullet is capable of, have a look at this (always ever so slightly out of date) introduction video.
 
 ```embed
-url: https://youtu.be/BbNbZgOwB-Y
+url: https://youtu.be/8btx9HeuZ4s
 ```
 
 # Try it
