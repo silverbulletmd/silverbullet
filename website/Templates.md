@@ -14,6 +14,14 @@ In SilverBullet templates serve a few purposes:
   * [[Snippets]]
   * [[Page Templates]]
 
+# Video walkthrough
+If you prefer to watch rather than read, here’s an overview of SilverBullet’s template system and what it can do.
+
+```embed
+url: https://www.youtube.com/watch?v=ZiM1RM0DCgo
+```
+
+
 # Definition
 Templates are regular pages [[Tags|tagged]] with the `#template` tag. Note that when tagged inline (by putting `#template` at the beginning of the page), that tag will be removed when the template is instantiated.
 
