@@ -224,4 +224,9 @@ html[data-theme="dark"] {
   --editor-frontmatter-marker-color: #fff;
   --editor-widget-background-color: rgba(72, 72, 72, 0.5);
   --editor-task-marker-color: var(--subtle-color);
+  --editor-task-state-color: var(--subtle-color);
+
+  --editor-directive-mark-color: #ba0303;
+  --editor-directive-color: #898989;
+  --editor-directive-background-color: #4c4c4c7d;
 }
