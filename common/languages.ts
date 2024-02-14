@@ -24,6 +24,7 @@ import {
   typescriptLanguage,
   xmlLanguage,
   yamlLanguage,
+  goLanguage,
 } from "./deps.ts";
 import {
   extendedMarkdownLanguage,
@@ -83,6 +84,8 @@ export const builtinLanguages: Record<string, Language> = {
   "objective-c++": StreamLanguage.define(objectiveCppLanguage),
   "objectivec++": StreamLanguage.define(objectiveCppLanguage),
   "dart": StreamLanguage.define(dartLanguage),
+  "go": StreamLanguage.define(goLanguage),
+  "golang": StreamLanguage.define(goLanguage),
   "query": LRLanguage.define({
     name: "query",
     parser: highlightingQueryParser,

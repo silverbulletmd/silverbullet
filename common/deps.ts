@@ -59,6 +59,7 @@ export { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?externa
 export { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
 export { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
 export { htmlLanguage } from "@codemirror/lang-html";
+export { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@codemirror/language&target=es2022";
 
 export { Language, StreamLanguage } from "@codemirror/language";
 
