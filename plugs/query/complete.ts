@@ -117,7 +117,7 @@ function attributeCompletionsToCMCompletion(
 }
 
 export async function languageComplete(completeEvent: CompleteEvent) {
-  const languagePrefix = /^```(\w*)$/.exec(
+  const languagePrefix = /^(?:```+|~~~+)(\w*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!languagePrefix) {
