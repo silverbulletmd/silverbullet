@@ -23,6 +23,7 @@ export const TaskTag = Tag.define();
 export const TaskMarkTag = Tag.define();
 export const TaskStateTag = Tag.define();
 export const TaskDeadlineTag = Tag.define();
+export const TaskCompletedTag = Tag.define();
 
 export const HashtagTag = Tag.define();
 export const NakedURLTag = Tag.define();

@@ -52,6 +52,7 @@ export default function highlightStyles() {
     { tag: ct.HashtagTag, class: "sb-hashtag" },
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
+    { tag: ct.TaskCompletedTag, class: "sb-task-completed" },
     { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
 
     { tag: ct.DirectiveMarkTag, class: "sb-directive-mark" },

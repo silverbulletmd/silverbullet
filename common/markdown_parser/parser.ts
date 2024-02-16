@@ -519,6 +519,14 @@ const TaskDeadline = regexParser({
   tag: ct.TaskDeadlineTag,
 });
 
+const TaskCompletedDate = regexParser({
+  firstCharCode: 9989, // ✅
+  regex: /^✅\s*\d{4}\-\d{2}\-\d{2}/,
+  className: "sb-task-completed",
+  nodeType: "CompletedDate",
+  tag: ct.TaskCompletedTag,
+});
+
 const NamedAnchor = regexParser({
   firstCharCode: 36, // $
   regex: /^\$[a-zA-Z\.\-\/]+[\w\.\-\/]*/,
@@ -608,6 +616,7 @@ export const extendedMarkdownLanguage = markdown({
     NakedURL,
     Hashtag,
     TaskDeadline,
+    TaskCompletedDate,
     NamedAnchor,
     {
       props: [
@@ -640,6 +649,7 @@ export const extendedMarkdownLanguage = markdown({
           Hashtag: ct.HashtagTag,
           NakedURL: ct.NakedURLTag,
           DeadlineDate: ct.TaskDeadlineTag,
+          CompletedDate: ct.TaskCompletedTag,
           NamedAnchor: ct.NamedAnchorTag,
         }),
       ],

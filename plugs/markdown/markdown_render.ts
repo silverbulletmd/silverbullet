@@ -359,6 +359,15 @@ function render(
         body: renderToText(t),
       };
 
+    case "CompletedDate":
+      return {
+        name: "span",
+        attrs: {
+          class: "task-completed",
+        },
+        body: renderToText(t),
+      };
+
     // Tables
     case "Table":
       return {

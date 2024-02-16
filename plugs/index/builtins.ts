@@ -28,6 +28,7 @@ export const builtins: Record<string, Record<string, string>> = {
     page: "!string",
     state: "!string",
     deadline: "string",
+    completed: "string",
     pos: "!number",
     tags: "string[]",
   },

@@ -32,6 +32,7 @@ export type TaskObject = ObjectValue<
     done: boolean;
     state: string;
     deadline?: string;
+    completed?: string;
   } & Record<string, any>
 >;
 
@@ -43,6 +44,10 @@ export type TaskStateObject = ObjectValue<{
 
 function getDeadline(deadlineNode: ParseTree): string {
   return deadlineNode.children![0].text!.replace(/📅\s*/, "");
+}
+
+function getCompletedDate(completedDateNode: ParseTree): string {
+  return completedDateNode.children![0].text!.replace(/✅\s*/, "");
 }
 
 const completeStates = ["x", "X"];
@@ -83,6 +88,11 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       if (tree.type === "DeadlineDate") {
         task.deadline = getDeadline(tree);
         // Remove this node from the tree
+        return null;
+      }
+      if (tree.type === "CompletedDate") {
+        task.completed = getCompletedDate(tree);
+        console.log("completedDate: ", task.completed);
         return null;
       }
       if (tree.type === "Hashtag") {
