@@ -23,7 +23,7 @@ Disadvantages:
 
 # Synced mode
 $sync
-In this mode, all content is synchronized to the client, and all processing happens there. The server effectively acts as a “dumb data store.” All SilverBullet functionality is available even when there is no network connection available.
+In this mode, all content is synchronized to the client, and all processing happens there. The server effectively acts as a “dumb data store.” All SilverBullet functionality is available even when there is no network connection available. This requires SilverBullet to be served with HTTPS, otherwise the service worker responsible for sync won't launch.
 
 Advantages:
 * **100% offline capable**: disconnect your client from the network, shutdown the server, and everything still works. Changes synchronize automatically once a network connection is re-established.
