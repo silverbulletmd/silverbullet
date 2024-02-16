@@ -22,6 +22,7 @@ import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { readSettings } from "$sb/lib/settings_page.ts";
 
 export type TaskObject = ObjectValue<
   {
@@ -175,6 +176,14 @@ async function cycleTaskState(
     },
   });
 
+  // Task is being marked as completed
+  if (changeTo === "x") {
+    const tasksSettings = await readSettings({ tasks: { appendCompletedDate: false } });
+    if (tasksSettings.tasks.appendCompletedDate) {
+      await appendOrReplaceCompletionDate(node);
+    }
+  }
+
   const parentWikiLinks = collectNodesMatching(
     node.parent!,
     (n) => n.type === "WikiLinkPage",
@@ -184,6 +193,35 @@ async function cycleTaskState(
     if (ref.includes("@")) {
       await updateTaskState(ref, stateText, changeTo);
     }
+  }
+}
+
+async function appendOrReplaceCompletionDate(node: ParseTree) {
+  const currentDate = niceDate(new Date());
+  const text = await editor.getText();
+  // taskEnd needs to either be the end of the line with the task on it, or the end of the document - whichever is first
+  const taskEnd = text.indexOf('\n', node.to!) !== -1 ? text.indexOf('\n', node.to!) : text.length;
+  const taskLine = text.substring(node.from!, taskEnd);
+  // If there's already a completed date, we only want to update it - not append another one
+  const checkMarkIndex = taskLine.indexOf('✅');
+  if (checkMarkIndex !== -1) {
+    const dateStart = checkMarkIndex + 2; // 2 is the length of '✅ '
+    const dateEnd = taskLine.indexOf(' ', dateStart);
+    await editor.dispatch({
+      changes: {
+        from: node.from! + dateStart,
+        to: dateEnd === -1 ? taskEnd : node.from! + dateEnd,
+        insert: currentDate,
+      },
+    });
+  } else {
+    await editor.dispatch({
+      changes: {
+        from: taskEnd,
+        to: taskEnd,
+        insert: ` ✅ ${currentDate}`,
+      },
+    });
   }
 }
 

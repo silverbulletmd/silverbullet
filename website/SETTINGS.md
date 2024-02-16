@@ -55,4 +55,9 @@ emoji:
   aliases:
     smile: 😀
     sweat_smile: 😅
+
+tasks:
+  # If true, append the current date to a task when marking it as completed
+  appendCompletedDate: true
+
 ```
