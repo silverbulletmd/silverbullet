@@ -60,4 +60,9 @@ tasks:
   # If true, append the current date to a task when marking it as completed
   appendCompletedDate: true
 
+# Map certain emojis to named attributes, `📅 2024-02-15` effectively becomes `[deadline: 2024-02-15]`
+attributeMap:
+  📅: deadline
+  ✅: completed
+  ⌛: scheduled
 ```
