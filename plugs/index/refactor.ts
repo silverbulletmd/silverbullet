@@ -150,14 +150,31 @@ async function renamePage(
   return updatedReferences;
 }
 
-export async function renamePrefixCommand() {
-  const oldPrefix = await editor.prompt("Prefix to rename:", "");
+/**
+ * Renames pages based on a prefix string.
+ * @param cmdDef Optional command arguments
+ * @param cmdDef.oldPrefix The prefix to rename from. If not provided the
+ *   user will be prompted to enter a prefix.
+ * @param cmdDef.newPrefix The prefix with which to replace the `oldPrefix`
+ *   value. If not provided the user will be prompted to enter a new prefix.
+ * @param cmdDef.disableConfirmation If false, the user will be prompted
+ *   to confirm the rename action; Otherwise no confirmation dialog will
+ *   be shown before renaming. Defaults to false.
+ * @returns True if the rename succeeded; otherwise, false.
+ */
+export async function renamePrefixCommand(cmdDef: any) {
+  const oldPrefix = cmdDef.oldPrefix ??
+    await editor.prompt("Prefix to rename:", "");
+
   if (!oldPrefix) {
-    return;
+    return false;
   }
-  const newPrefix = await editor.prompt("New prefix:", oldPrefix);
+
+  const newPrefix = cmdDef.newPrefix ??
+    await editor.prompt("New prefix:", oldPrefix);
+
   if (!newPrefix) {
-    return;
+    return false;
   }
 
   const allPages = await space.listPages();
@@ -166,11 +183,11 @@ export async function renamePrefixCommand() {
   );
 
   if (
-    !(await editor.confirm(
+    !(cmdDef.disableConfirmation ?? await editor.confirm(
       `This will affect ${allAffectedPages.length} pages. Are you sure?`,
     ))
   ) {
-    return;
+    return false;
   }
 
   const allNewNames = allAffectedPages.map((name) =>
@@ -205,8 +222,10 @@ export async function renamePrefixCommand() {
     }
 
     await editor.flashNotification("Batch rename complete", "info");
+    return true;
   } catch (e: any) {
-    return editor.flashNotification(e.message, "error");
+    await editor.flashNotification(e.message, "error");
+    return false;
   }
 }
 
