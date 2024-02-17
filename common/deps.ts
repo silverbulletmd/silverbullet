@@ -60,9 +60,15 @@ export { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@
 export { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
 export { htmlLanguage } from "@codemirror/lang-html";
 export { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@codemirror/language&target=es2022";
-
+export { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff?external=@codemirror/language&target=es2022";
+export { powerShell as powerShellLanguage } from "@codemirror/legacy-modes/mode/powershell?external=@codemirror/language&target=es2022";
+export { perl as perlLanguage } from "@codemirror/legacy-modes/mode/perl?external=@codemirror/language&target=es2022";
+export { tcl as tclLanguage } from "@codemirror/legacy-modes/mode/tcl?external=@codemirror/language&target=es2022";
+export { verilog as verilogLanguage } from "@codemirror/legacy-modes/mode/verilog?external=@codemirror/language&target=es2022";
+export { vhdl as vhdlLanguage } from "@codemirror/legacy-modes/mode/vhdl?external=@codemirror/language&target=es2022";
+export { dockerFile as dockerfileLanguage } from "@codemirror/legacy-modes/mode/dockerfile?external=@codemirror/language&target=es2022";
+export { cmake as cmakeLanguage } from "@codemirror/legacy-modes/mode/cmake?external=@codemirror/language&target=es2022";
 export { Language, StreamLanguage } from "@codemirror/language";
-
 export {
   c as cLanguage,
   cpp as cppLanguage,
