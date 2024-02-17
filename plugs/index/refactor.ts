@@ -183,7 +183,7 @@ export async function renamePrefixCommand(cmdDef: any) {
   );
 
   if (
-    !(cmdDef.disableConfirmation ?? await editor.confirm(
+    cmdDef.disableConfirmation !== true && !(await editor.confirm(
       `This will affect ${allAffectedPages.length} pages. Are you sure?`,
     ))
   ) {
