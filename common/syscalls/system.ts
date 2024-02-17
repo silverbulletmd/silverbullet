@@ -4,6 +4,7 @@ import type { Client } from "../../web/client.ts";
 import { CommandDef } from "../hooks/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
+import { version } from "../../version.ts";
 
 export function systemSyscalls(
   system: System<any>,
@@ -97,6 +98,9 @@ export function systemSyscalls(
     },
     "system.getMode": () => {
       return readOnlyMode ? "ro" : "rw";
+    },
+    "system.getVersion": () => {
+      return version;
     },
   };
   return api;

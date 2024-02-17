@@ -35,3 +35,7 @@ export function getEnv(): Promise<string | undefined> {
 export function getMode(): Promise<"ro" | "rw"> {
   return syscall("system.getMode");
 }
+
+export function getVersion(): Promise<string> {
+  return syscall("system.getVersion");
+}
