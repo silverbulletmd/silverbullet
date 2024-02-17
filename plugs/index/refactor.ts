@@ -2,19 +2,31 @@ import { editor, space } from "$sb/syscalls.ts";
 import { validatePageName } from "../../plug-api/lib/page_ref.ts";
 import { getBackLinks } from "./page_links.ts";
 
+/**
+ * Renames a single page.
+ * @param cmdDef Optional command arguments
+ * @param cmdDef.oldPage The current name of the page to rename. Defaults to
+ *   the current page selected in the editor.
+ * @param cmdDef.page The name to rename the page to. If not provided the
+ *   user will be prompted to enter a new name.
+ * @param cmdDef.navigateThere When true, the user will be navigated to the
+ *   renamed page. Defaults to true.
+ * @returns True if the rename succeeded; otherwise, false.
+ */
 export async function renamePageCommand(cmdDef: any) {
-  const oldName = await editor.getCurrentPage();
+  const oldName = cmdDef.oldPage || await editor.getCurrentPage();
   console.log("Old name is", oldName);
   const newName = cmdDef.page ||
     await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
-    return;
+    return false;
   }
 
   try {
     validatePageName(newName);
   } catch (e: any) {
-    return editor.flashNotification(e.message, "error");
+    await editor.flashNotification(e.message, "error");
+    return false;
   }
 
   console.log("New name", newName);
@@ -22,7 +34,7 @@ export async function renamePageCommand(cmdDef: any) {
   if (newName.trim() === oldName.trim()) {
     // Nothing to do here
     console.log("Name unchanged, exiting");
-    return;
+    return false;
   }
 
   await editor.save();
@@ -45,13 +57,19 @@ export async function renamePageCommand(cmdDef: any) {
         throw e;
       }
     }
-    const updatedReferences = await renamePage(oldName, newName, true);
+    const updatedReferences = await renamePage(
+      oldName,
+      newName,
+      cmdDef.navigateThere ?? true,
+    );
 
     await editor.flashNotification(
       `Renamed page, and updated ${updatedReferences} references`,
     );
+    return true;
   } catch (e: any) {
     await editor.flashNotification(e.message, "error");
+    return false;
   }
 }
 
