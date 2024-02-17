@@ -16,8 +16,6 @@ import {
 import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
-import { readSetting } from "$sb/lib/settings_page.ts";
-
 
 export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
@@ -356,13 +354,6 @@ export const highlightingExpressionParser = expressionParser.configure({
 });
 
 export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
-// export const attributeMap = readSetting('attributeMap', {});
-// TODO: readSetting doesnt look like it works here
-const attributeMap = {
-  '📅': "deadline",
-  '✅': "completed",
-  '⌛': "scheduled"
-}
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [
@@ -378,29 +369,7 @@ export const Attribute: MarkdownConfig = {
       parse(cx, next, pos) {
         let match: RegExpMatchArray | null;
         const textFromPos = cx.slice(pos, cx.end);
-        if (Object.keys(attributeMap).includes(String.fromCharCode(next))) {
-          const emoji = String.fromCharCode(next);
-          console.log("Detected emoji: ", next, emoji);
-          const attributeName = attributeMap[emoji as keyof typeof attributeMap];
-          if (attributeName) {
-            const attributeValue = textFromPos.split(' ')[1];
-            console.log("Detected emoji attribute: ", emoji, attributeName, attributeValue);
-            return cx.addElement(
-              cx.elt("Attribute", pos, pos + 2 + attributeName.length + attributeValue.length, [
-                cx.elt("AttributeMark", pos, pos + 1), // emoji
-                cx.elt("AttributeName", pos + 1, pos + 1 + attributeName.length),
-                cx.elt(
-                  "AttributeValue",
-                  pos + 1 + attributeName.length,
-                  pos + 1 + attributeName.length + attributeValue.length,
-                ),
-              ]),
-            );
-          } else {
-            console.error("Attribute name not found for emoji: ", emoji, next);
-            return -1;
-          }
-        } else if (
+        if (
           next != 91 /* '[' */ ||
           // and match the whole thing
           !(match = attributeStartRegex.exec(textFromPos))
