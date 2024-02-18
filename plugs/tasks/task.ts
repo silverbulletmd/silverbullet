@@ -16,6 +16,7 @@ import {
 } from "$lib/tree.ts";
 import { niceDate } from "$lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
+import { parseAttributesFromRegex } from "../index/attributes.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
 import { ObjectValue } from "$type/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
@@ -107,11 +108,23 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     // Extract attributes and remove from tree
     const extractedAttributes = await extractAttributes(n, true);
-    for (const [key, value] of Object.entries(extractedAttributes)) {
-      task[key] = value;
-    }
 
-    task.name = n.children!.slice(1).map(renderToText).join("").trim();
+    // Parse regex-based attributes and prepare task name
+    let taskName = n.children!.slice(1).map(renderToText).join("").trim();
+    const regexAttributes = parseAttributesFromRegex(renderToText(n));
+
+    // Merge extracted and regex-based attributes, excluding matchedString from regexAttributes
+    regexAttributes.forEach(({ matchedString, ...rest }) => {
+      Object.assign(task, rest);
+      // Remove matched strings from task name
+      if (matchedString) {
+        taskName = taskName.replace(matchedString, "").trim();
+      }
+    });
+    Object.assign(task, extractedAttributes);
+
+    // Finalize task name
+    task.name = taskName;
 
     updateITags(task, frontmatter);
 

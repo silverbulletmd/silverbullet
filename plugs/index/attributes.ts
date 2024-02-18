@@ -4,6 +4,7 @@ import { queryObjects } from "./api.ts";
 import { ObjectValue, QueryExpression } from "../../type/types.ts";
 import { determineTags } from "$lib/cheap_yaml.ts";
 
+
 export type AttributeObject = ObjectValue<{
   name: string;
   attributeType: string;
@@ -61,6 +62,28 @@ export async function objectAttributeCompleter(
       readOnly: value.readOnly,
     } as AttributeCompletion;
   });
+}
+
+export function parseAttributesFromRegex(line: string): Record<string, any>[] {
+  const attributes: Record<string, any>[] = [];
+  console.log(`Parsing line for regex attributes: ${line}`);
+  Object.entries(regexToAttributeConfig).forEach(([pattern, config]) => {
+    const regex = new RegExp(pattern);
+    let match;
+    match = regex.exec(line);
+    if (match) {
+      console.log(`Match found for pattern: ${pattern}`, match);
+      if (match.length > 1) {
+        attributes.push({ [config.attributeName]: match[1], matchedString: match[0] });
+      }
+    } else {
+      console.log(`No match found for pattern: ${pattern} on line: ${line}`);
+    }
+  });
+  if (attributes.length === 0) {
+    console.log(`No regex attributes found for line: ${line}`);
+  }
+  return attributes;
 }
 
 /**

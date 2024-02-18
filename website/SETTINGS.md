@@ -60,4 +60,8 @@ tasks:
   # If true, append the current date to a task when marking it as completed
   appendCompletedDate: true
 
+regexAttributes:
+  "\\s⌛\\s+(\\d{4}-\\d{2}-\\d{2})": "scheduled"
+  "\\s📆\\s+(\\d{4}-\\d{2}-\\d{2})": "deadline"
+  "\\s❗\\s+(\\d)": "priority"
 ```
