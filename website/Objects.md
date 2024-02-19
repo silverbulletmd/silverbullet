@@ -37,6 +37,22 @@ Note that you can also query this page using the `example-tag` directly:
 example-tag
 ```
 
+## table
+Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tags]] in any of its cells.
+
+| Title | Description Text |
+| --- | ----- |
+| This is some key | The value contains a #table-tag |
+| Some Row | This is an example row in between two others |
+| Another key | This time without a tag |
+
+
+```query
+table
+```
+
+Table headers will be normalized by converting them to lowercase and replacing all non alphanumeric characters with `_`.
+
 ## task
 
 task
