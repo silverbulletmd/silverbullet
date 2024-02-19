@@ -7,7 +7,7 @@ SilverBullet is implemented as an open-source, self-hosted, offline-capable web 
 
 You’ve been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet). You were told wrong.
 
-[![IIntroduction to SilverBullet](http://img.youtube.com/vi/BbNbZgOwB-Y/0.jpg)](http://www.youtube.com/watch?v=BbNbZgOwB-Y)
+[![IIntroduction to SilverBullet](http://img.youtube.com/vi/8btx9HeuZ4s/0.jpg)](https://www.youtube.com/watch?v=8btx9HeuZ4s)
 
 ## Features
 SilverBullet...
