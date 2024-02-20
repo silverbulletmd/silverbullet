@@ -81,6 +81,7 @@ export type AppViewState = {
     vimMode: boolean;
     darkMode: boolean;
     forcedROMode: boolean;
+    customStyles?: string;
   };
 
   // Page navigator mode
