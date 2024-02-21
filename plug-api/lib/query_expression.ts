@@ -172,6 +172,12 @@ export function evalQueryExpression(
         return fn(...argValues);
       }
     }
+    case "-": {
+      if (val.length == 2) { // only unary minus
+        const val = evalQueryExpression(op1, obj, variables, functionMap);
+        return -val;
+      }
+    }
   }
 
   // Binary operators, here we can pre-calculate the two operand values

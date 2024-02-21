@@ -113,6 +113,7 @@ export type QueryExpression =
   | ["object", [string, QueryExpression][]]
   | ["regexp", string, string] // regex, modifier
   | ["pageref", string]
+  | ["-", QueryExpression]
   | ["+", QueryExpression, QueryExpression]
   | ["-", QueryExpression, QueryExpression]
   | ["*", QueryExpression, QueryExpression]

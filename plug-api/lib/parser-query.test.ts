@@ -368,4 +368,34 @@ Deno.test("Test query parser", () => {
       }],
     },
   );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where myCall(-3) > 4 - 2`)!,
+    ),
+    {
+      querySource: "page",
+      filter: [">", ["call", "myCall", [["-", ["number", 3]]]], ["-", ["number", 4], ["number", 2]]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where 1 * 2 - 3`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["-", ["*", ["number", 1], ["number", 2]], ["number", 3]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where 1*-2`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["*", ["number", 1], ["-", ["number", 2]]],
+    },
+  );
 });
