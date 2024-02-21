@@ -168,6 +168,8 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
       // console.log("UnaryExpression", node);
       if (node[1][0] === "NotKW" || node[1][0] === "!") {
         return ["not", expressionToKvQueryExpression(node[2])];
+      } else if (node[1][0] === "-") {
+        return ["-", expressionToKvQueryExpression(node[2])];
       }
       throw new Error(`Unknown unary expression: ${node[1][0]}`);
     }
