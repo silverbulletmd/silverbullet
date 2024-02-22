@@ -265,6 +265,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.openCommandPalette": () => {
       client.ui.viewDispatch({
         type: "show-palette",
+        context: client.getContext(),
       });
     },
     // Folding
