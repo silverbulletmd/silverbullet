@@ -302,7 +302,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   for (const def of client.clientSystem.commandHook.editorCommands.values()) {
     if (def.command.key) {
       // If we've already overridden this command, skip it
-      if (overriddenCommands.has(def.command.key)) {
+      if (overriddenCommands.has(def.command.name)) {
         continue;
       }
       commandKeyBindings.push({
