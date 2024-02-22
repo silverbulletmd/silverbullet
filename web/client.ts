@@ -1087,9 +1087,13 @@ export class Client {
           console.error("Failed to load custom styles", e);
         }
       }
-      document.getElementById("custom-styles")!.innerHTML = accumulatedCSS.join(
-        "\n\n",
-      );
+      const customStylesContent = accumulatedCSS.join("\n\n");
+      this.ui.viewDispatch({
+        type: "set-ui-option",
+        key: "customStyles",
+        value: customStylesContent,
+      });
+      document.getElementById("custom-styles")!.innerHTML = customStylesContent;
     }
   }
 
