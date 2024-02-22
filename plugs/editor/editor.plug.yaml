@@ -1,4 +1,6 @@
 name: editor
+requiredPermissions:
+  - fetch
 functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
