@@ -2,13 +2,31 @@ import { System } from "../lib/plugos/system.ts";
 import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "./hooks/command.ts";
 
+type FunctionDef = {
+  name: string;
+};
+
 export class ScriptEnvironment {
   functions: Record<string, (...args: any[]) => any> = {};
   commands: Record<string, AppCommand> = {};
 
   // Public API
-  registerFunction(name: string, fn: (...args: any[]) => any) {
-    this.functions[name] = fn;
+
+  // Register function
+  registerFunction(def: FunctionDef, fn: (...args: any[]) => any): void;
+  // Legacy invocation
+  registerFunction(name: string, fn: (...args: any[]) => any): void;
+  registerFunction(
+    arg: string | FunctionDef,
+    fn: (...args: any[]) => any,
+  ): void {
+    if (typeof arg === "string") {
+      console.warn(
+        "registerFunction with string is deprecated, use `{name: string}` instead",
+      );
+      arg = { name: arg };
+    }
+    this.functions[arg.name] = fn;
   }
 
   registerCommand(command: CommandDef, fn: (...args: any[]) => any) {

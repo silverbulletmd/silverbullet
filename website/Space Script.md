@@ -13,7 +13,7 @@ Space scripts are defined by simply using `space-script` fenced code blocks in y
 Here is a trivial example:
 
 ```space-script
-silverbullet.registerFunction("helloYeller", (name) => {
+silverbullet.registerFunction({name: "helloYeller"}, (name) => {
   return `Hello ${name}!`.toUpperCase();
 })
 ```
@@ -35,7 +35,7 @@ While not very secure, some effort is put into running this code in a clean Java
 
 Depending on where code is run (client or server), a slightly different JavaScript API will be available. However, code should ideally primarily rely on the following explicitly exposed APIs:
 
-* `silverbullet.registerFunction(name, callback)`: registers a custom function (see [[#Custom functions]]).
+* `silverbullet.registerFunction(definition, callback)`: registers a custom function (see [[#Custom functions]]).
 * `silverbullet.registerCommand(definition, callback)`: registers a custom command (see [[#Custom commands]]).
 * `syscall(name, args...)`: invoke a syscall (see [[#Syscalls]]).
 
@@ -51,14 +51,15 @@ Since template rendering happens on the server (except in [[Client Modes#Synced 
 
 The `silverbullet.registerFunction` API takes two arguments:
 
-* `name`: the function name to register
+* `options`: with currently just one option:
+  * `name`: the name of the function to register
 * `callback`: the callback function to invoke (can be `async` or not)
 
 ## Example
 Even though a [[Functions#readPage(name)]] function already exist, you could implement it in space script as follows (let’s name it `myReadPage`) using the `syscall` API (detailed further in [[#Syscalls]]):
 
 ```space-script
-silverbullet.registerFunction("myReadPage", async (name) => {
+silverbullet.registerFunction({name: "myReadPage"}, async (name) => {
   const pageContent = await syscall("space.readPage", name);
   return pageContent;
 })
