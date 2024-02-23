@@ -230,7 +230,19 @@ export async function renamePrefixCommand(cmdDef: any) {
 }
 
 export async function extractToPageCommand() {
-  const newName = await editor.prompt(`New page title:`, "new page");
+  const selection = await editor.getSelection();
+  let text = await editor.getText();
+  text = text.slice(selection.from, selection.to);
+
+  const match = text.match("#{1,6}\\s+([^\n]*)");
+
+  let newName;
+  if (match) {
+    newName = match[1];
+  } else {
+    newName = "new page";
+  }
+  newName = await editor.prompt(`New page title:`, newName);
   if (!newName) {
     return;
   }
@@ -252,9 +264,6 @@ export async function extractToPageCommand() {
       throw e;
     }
   }
-  let text = await editor.getText();
-  const selection = await editor.getSelection();
-  text = text.slice(selection.from, selection.to);
   await editor.replaceRange(selection.from, selection.to, `[[${newName}]]`);
   console.log("Writing new page to space");
   await space.writePage(newName, text);
