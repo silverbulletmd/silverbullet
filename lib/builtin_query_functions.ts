@@ -7,13 +7,22 @@ export const builtinFunctions: FunctionMap = {
   },
   replace(
     str: string,
-    match: [string, string] | string,
-    replace: string,
+    ...replacementPairs: any[]
   ) {
-    const matcher = Array.isArray(match)
-      ? new RegExp(match[0], match[1] + "g")
-      : match;
-    return str.replaceAll(matcher, replace);
+    if (replacementPairs.length % 2 !== 0) {
+      throw new Error(
+        "replace() requires an even number of replacement arguments",
+      );
+    }
+    for (let i = 0; i < replacementPairs.length; i += 2) {
+      const match = replacementPairs[i];
+      const replace = replacementPairs[i + 1];
+      const matcher = Array.isArray(match)
+        ? new RegExp(match[0], match[1] + "g")
+        : match;
+      str = str.replaceAll(matcher, replace);
+    }
+    return str;
   },
   json: (v: any) => {
     return JSON.stringify(v);
