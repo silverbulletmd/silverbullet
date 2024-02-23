@@ -2,7 +2,7 @@ import { system } from "$sb/syscalls.ts";
 import { CompleteEvent } from "$type/types.ts";
 
 export async function commandComplete(completeEvent: CompleteEvent) {
-  const match = /\{\[([^\]]*)$/.exec(completeEvent.linePrefix);
+  const match = /\{\[([^\]\[]*)$/.exec(completeEvent.linePrefix);
 
   if (!match) {
     return null;
