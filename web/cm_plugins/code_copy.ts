@@ -46,7 +46,7 @@ class CodeCopyWidget extends WidgetType {
           );
         })
         .then(() => {
-          this.client.flashNotification("Copied to cliboard", "info");
+          this.client.flashNotification("Copied to clipboard", "info");
         });
     };
 
