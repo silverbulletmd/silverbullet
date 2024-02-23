@@ -1,15 +1,19 @@
 html,
 html {
   overflow-y: scroll !important;
-  width: 90% !important
+  width: 90% !important;
 }
 
 body {
+  overflow: initial !important;
+  color: var(--top-color);
   font-family: georgia, times, serif;
   font-size: 14pt;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
+  margin-top: revert;
+  margin-bottom: revert;
   padding-left: 20px;
   padding-right: 20px;
 }
@@ -28,8 +32,8 @@ ul li p {
 }
 
 thead tr {
-  background-color: #333;
-  color: #eee;
+  background-color: var(--editor-table-head-background-color);
+  color: var(--editor-table-head-color);
 }
 
 th,
@@ -38,23 +42,26 @@ td {
 }
 
 tbody tr:nth-of-type(even) {
-  background-color: #f3f3f3;
+  background-color: var(--editor-table-even-background-color);
 }
 
 a[href] {
   text-decoration: none;
+  color: var(--link-color);
 }
 
 blockquote {
-  border-left: 1px solid #333;
+  border-left: 1px solid var(--editor-blockquote-border-color);
   margin-left: 2px;
   padding-left: 10px;
+  background-color: var(--editor-blockquote-background-color);
+  color: var(--editor-blockquote-color);
 }
 
 hr {
   margin: 1em 0 1em 0;
   text-align: center;
-  border-color: #777;
+  border-color: var(--editor-ruler-color);
   border-width: 0;
   border-style: dotted;
 }
@@ -65,5 +72,5 @@ hr:after {
 }
 
 span.highlight {
-  background-color: yellow;
+  background-color: var(--highlight-color);
 }
