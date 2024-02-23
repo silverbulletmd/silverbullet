@@ -5,8 +5,27 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new since 0.7.1 yet
-
+* We had a big influx of people and contributions from the community, which is amazing. Here’s the highlights:
+  * Prefill a new page with heading title in {[Page: Extract]} by [Patrik Stenmark](https://github.com/silverbulletmd/silverbullet/pull/744)
+  * Added custom data field to template plug by [Michael Kolb](https://github.com/silverbulletmd/silverbullet/pull/716)
+  * Markdown tables are now indexed [[Objects#table]], and queryable by [Michael Kolb](https://github.com/silverbulletmd/silverbullet/pull/729)
+  * Added “copy to clipboard” button to code blocks, by [Joe Krill](https://github.com/silverbulletmd/silverbullet/pull/735)
+  * Fenced code can now also use `~~~` in addition to triple backticks, by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/694)
+  * Markdown preview pane now uses custom styles and dark mode, by [Joe Krill](https://github.com/silverbulletmd/silverbullet/pull/741)
+  * Correctly skip adding default shortcuts for overridden commands, by [Joe Krill](https://github.com/silverbulletmd/silverbullet/pull/739)
+  * Fix {[Link: Unfurl]} command, by [Joe Krill](https://github.com/silverbulletmd/silverbullet/pull/738)
+  * [[Expression Language]] now supports unary minus (e.g. `-3`), by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/732)
+  * Added [[Markdown/Syntax Highlighting]] for Diff, Powershell, Perl, TCL, Verilos, VHDL, Docker and CMake), by [Giovanni Pollo](https://github.com/silverbulletmd/silverbullet/pull/718) and Go by [Viktoras](https://github.com/silverbulletmd/silverbullet/pull/709)
+  * Fixed dark mode for templates, by [Ashish Dhama](https://github.com/silverbulletmd/silverbullet/pull/698)
+* There are also two very notable new plugs you may be interested in trying:
+  * [[Plugs/TreeView]]: a sidebar showing (and allowing you to manipulate) your space’s folder tree (at long last)
+  * [[Plugs/AI]]: various clever AI integrations (supporting many different LLMs, including locally hosted ones)
+* [[Space Script]] is now indexed in templates too (so you can put space script in template tagged pages)
+* Changed the signature of `silverbullet.registerFunction` to make the first argument an object, see [[Space Script#Custom functions]]. Old string-based scripts still work, for backwards compatibility.
+* The [[Functions#replace(str, match, replacement)]] function now supports multiple replacements
+* Fixed edit button on code widgets after they have shifted
+* Fixed page completion in template blocks
+* Giant code reorganization (hopefully resulting in 0 regressions)
 ---
 
 ## 0.7.1
