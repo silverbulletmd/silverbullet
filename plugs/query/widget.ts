@@ -50,6 +50,14 @@ export function refreshAllWidgets() {
   codeWidget.refreshAll();
 }
 
-export async function editButton(pos: number) {
-  await editor.moveCursor(pos);
+export async function editButton(bodyText: string) {
+  const text = await editor.getText();
+  // This is a it of a heuristic and will point to the wrong place if the same body text appears in multiple places, which is easy to replicate but unlikely to happen in the real world
+  // A more accurate fix would be to update the widget (and therefore the index of where this widget appears) on every change, but this would be rather expensive. I think this is good enough.
+  const bodyPos = text.indexOf("\n" + bodyText + "\n");
+  if (bodyPos === -1) {
+    await editor.flashNotification("Could not find widget to edit", "error");
+    return;
+  }
+  await editor.moveCursor(bodyPos + 1);
 }

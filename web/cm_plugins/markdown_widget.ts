@@ -163,7 +163,6 @@ export class MarkdownWidget extends WidgetType {
       const el = el_ as HTMLElement;
       // Override default click behavior with a local navigate (faster)
       el.addEventListener("click", (e) => {
-        console.log("Hashtag clicked", el.innerText);
         if (e.ctrlKey || e.metaKey) {
           // Don't do anything special for ctrl/meta clicks
           return;
@@ -244,10 +243,9 @@ export class MarkdownWidget extends WidgetType {
           "click",
           (e) => {
             e.stopPropagation();
-            console.log("Button clicked:", button.description);
             this.client.clientSystem.localSyscall("system.invokeFunction", [
               button.invokeFunction,
-              this.from,
+              this.bodyText,
             ]).then((newContent: string | undefined) => {
               if (newContent) {
                 div.innerText = newContent;
