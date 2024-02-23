@@ -25,11 +25,11 @@ functions:
   objectSourceProvider:
     path: api.ts:objectSourceProvider
     events:
-    - query:*
+      - query:*
   discoverSources:
     path: api.ts:discoverSources
     events:
-    - query_
+      - query_
   clearIndex:
     path: api.ts:clearIndex
     env: server
@@ -40,7 +40,7 @@ functions:
     events:
       - page:saved
       - page:deleted
-      
+
   parseIndexTextRepublish:
     path: "./command.ts:parseIndexTextRepublish"
     env: server
@@ -55,9 +55,9 @@ functions:
   processIndexQueue:
     path: ./command.ts:processIndexQueue
     mqSubscriptions:
-    - queue: indexQueue
-      batchSize: 10
-      autoAck: true
+      - queue: indexQueue
+        batchSize: 10
+        autoAck: true
   reindexSpace:
     path: "./command.ts:reindexSpace"
     env: server
@@ -70,45 +70,51 @@ functions:
   indexParagraphs:
     path: "./paragraph.ts:indexParagraphs"
     events:
-    - page:index
+      - page:index
 
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
     events:
-    - page:index
+      - page:index
 
   attributeComplete:
     path: "./attributes.ts:attributeComplete"
     events:
-    - editor:complete
+      - editor:complete
 
   objectAttributeCompleter:
     path: ./attributes.ts:objectAttributeCompleter
     events:
-    - attribute:complete:*
+      - attribute:complete:*
 
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"
     events:
-    - page:index
+      - page:index
 
   # Anchors
   indexAnchors:
     path: "./anchor.ts:indexAnchors"
     events:
-    - page:index
+      - page:index
   anchorComplete:
     path: "./anchor.ts:anchorComplete"
     events:
       - editor:complete
 
+  # Tables
+  indexTables:
+    path: "table.ts:indexTables"
+    events:
+      - page:index
+
   # Headers
   indexHeaders:
     path: header.ts:indexHeaders
     events:
-    - page:index
+      - page:index
   headerComplete:
     path: header.ts:headerComplete
     events:
@@ -118,20 +124,19 @@ functions:
   indexData:
     path: data.ts:indexData
     events:
-    - page:index
+      - page:index
 
   # Script
   indexSpaceScript:
     path: script.ts:indexSpaceScript
     events:
-    - page:index
-
+      - page:index
 
   # Hashtags
   indexTags:
     path: tags.ts:indexTags
     events:
-    - page:index
+      - page:index
   tagComplete:
     path: tags.ts:tagComplete
     events:
@@ -181,7 +186,7 @@ functions:
   lintYAML:
     path: lint.ts:lintYAML
     events:
-    - editor:lint
+      - editor:lint
 
   # Tag file system
   readFileTag:
@@ -205,9 +210,9 @@ functions:
   syscallSourceProvider:
     path: builtins.ts:syscallSourceProvider
     events:
-    - query:syscall
+      - query:syscall
 
   commandSourceProvider:
     path: builtins.ts:commandSourceProvider
     events:
-    - query:command
+      - query:command
