@@ -61,6 +61,7 @@ import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
+import { currentCompletions } from "@codemirror/autocomplete";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -869,21 +870,37 @@ export class Client {
       pos: selection.from,
       parentNodes,
     } as CompleteEvent);
-    let actualResult = null;
+    let currentResult: CompletionResult | null = null;
     for (const result of results) {
-      if (result) {
-        if (actualResult) {
+      if (!result) {
+        continue;
+      }
+      if (currentResult) {
+        // Let's see if we can merge results
+        if (currentResult.from !== result.from) {
           console.error(
-            "Got completion results from multiple sources, cannot deal with that",
+            "Got completion results from multiple sources with different `from` locators, cannot deal with that",
           );
-          console.error("Previously had", actualResult, "now also got", result);
+          console.error(
+            "Previously had",
+            currentResult,
+            "now also got",
+            result,
+          );
           return null;
+        } else {
+          // Merge
+          currentResult = {
+            from: result.from,
+            options: [...currentResult.options, ...result.options],
+          };
         }
-        actualResult = result;
+      } else {
+        currentResult = result;
       }
     }
     // console.log("Compeltion result", actualResult);
-    return actualResult;
+    return currentResult;
   }
 
   editorComplete(
