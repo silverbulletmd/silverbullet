@@ -131,6 +131,7 @@ functions:
     path: script.ts:indexSpaceScript
     events:
       - page:index
+      - page:indexTemplate
 
   # Hashtags
   indexTags:
