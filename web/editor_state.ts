@@ -44,6 +44,7 @@ import { Compartment, Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parseCommand } from "$common/command.ts";
 import { safeRun } from "$lib/async.ts";
+import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 
 export function createEditorState(
   client: Client,
@@ -105,6 +106,7 @@ export function createEditorState(
         ],
       }),
       inlineImagesPlugin(client),
+      codeCopyPlugin(client),
       highlightSpecialChars(),
       history(),
       drawSelection(),

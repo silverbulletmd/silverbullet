@@ -395,6 +395,17 @@
     padding-right: 7px;
   }
 
+  .sb-code-copy-button {
+    float: right;
+    cursor: pointer;
+    margin: 0 3px;
+  }
+  
+  .sb-code-copy-button > svg {
+    height: 1rem;
+    width: 1rem;
+  }
+
   .sb-line-fenced-code .sb-code {
     background-color: transparent;
   }
