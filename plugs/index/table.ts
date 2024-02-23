@@ -1,4 +1,4 @@
-import { CompleteEvent, IndexTreeEvent, ObjectValue } from "$type/types.ts";
+import { IndexTreeEvent, ObjectValue } from "$type/types.ts";
 import { collectNodesMatching, ParseTree } from "$lib/tree.ts";
 import { indexObjects } from "./api.ts";
 import { collectNodesOfType } from "$lib/tree.ts";
@@ -30,7 +30,6 @@ function concatChildrenTexts(nodes: ParseTree[]): string {
 }
 
 export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
-  console.log(`Indexing tables in '${pageName}'`);
   const result: ObjectValue<TableRowObject>[] = [];
 
   collectNodesMatching(tree, (t) => !!t.type?.startsWith("Table")).forEach(
@@ -65,12 +64,9 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
           tableRow[label!] = content;
         });
         result.push(tableRow);
-
-        //console.log("Cells", cells);
       }
     },
   );
 
-  console.log("Found", result.length, "row(s)");
   await indexObjects(pageName, result);
 }

@@ -91,6 +91,11 @@ export const builtins: Record<string, Record<string, string>> = {
     pos: "!number",
     hooks: "hooksSpec",
   },
+  table: {
+    ref: "!string",
+    page: "!string",
+    pos: "!number",
+  },
 
   // System builtins
   syscall: {
