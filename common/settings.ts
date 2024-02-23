@@ -4,8 +4,7 @@ import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "../lib/json.ts";
 import type { BuiltinSettings } from "../type/web.ts";
 
-// TODO: This is naive, may be better to use a proper parser
-const yamlSettingsRegex = /```yaml([^`]+)```/;
+const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+)\1/m;
 
 /**
  * Parses YAML settings from a Markdown string.
@@ -19,7 +18,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
   if (!match) {
     return {};
   }
-  const yaml = match[1];
+  const yaml = match[2]; // The first group captures the code fence to look for same terminator
   try {
     return YAML.load(yaml) as {
       [key: string]: any;

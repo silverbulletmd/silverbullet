@@ -21,7 +21,7 @@ export function fencedCodePlugin(editor: Client) {
             return;
           }
           const text = state.sliceDoc(from, to);
-          const [_, lang] = text.match(/^```(\w+)?/)!;
+          const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
           const codeWidgetCallback = editor.clientSystem.codeWidgetHook
             .codeWidgetCallbacks
             .get(lang);

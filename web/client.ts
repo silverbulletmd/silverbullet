@@ -1077,12 +1077,13 @@ export class Client {
           const { text: stylesText } = await this.space.readPage(
             cleanPageRef(customStylesPage),
           );
-          const cssBlockRegex = /```css([^`]+)```/;
+          // Analogous to yamlSettingsRegex in settings.ts
+          const cssBlockRegex = /^(```+|~~~+)css\r?\n([\S\s]+)\1/m;
           const match = cssBlockRegex.exec(stylesText);
           if (!match) {
             return;
           }
-          accumulatedCSS.push(match[1]);
+          accumulatedCSS.push(match[2]);
         } catch (e: any) {
           console.error("Failed to load custom styles", e);
         }
