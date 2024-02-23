@@ -90,6 +90,7 @@ async function instantiatePageTemplate(
   templateName: string,
   intoCurrentPage: string | undefined,
   askName: boolean,
+  customData: any = undefined,
 ) {
   const templateText = await space.readPage(templateName!);
 
@@ -107,6 +108,7 @@ async function instantiatePageTemplate(
     created: "",
     lastModified: "",
     perm: "rw",
+    data: customData,
   };
   // Just used to extract the frontmatter
   const { frontmatter } = await renderTemplate(
