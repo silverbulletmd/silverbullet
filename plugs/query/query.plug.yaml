@@ -17,25 +17,28 @@ functions:
   editButton:
     path: widget.ts:editButton
 
+  bakeButton:
+    path: widget.ts:bakeButton
+
   lintQuery:
     path: lint.ts:lintQuery
     events:
-    - editor:lint
+      - editor:lint
 
   queryComplete:
     path: complete.ts:queryComplete
     events:
-    - editor:complete
+      - editor:complete
 
   queryAttributeComplete:
     path: complete.ts:queryAttributeComplete
     events:
-    - editor:complete
+      - editor:complete
 
   languageComplete:
     path: complete.ts:languageComplete
     events:
-    - editor:complete
+      - editor:complete
 
   refreshAllWidgets:
     path: widget.ts:refreshAllWidgets
@@ -43,3 +46,7 @@ functions:
       name: "Live Queries and Templates: Refresh All"
       key: "Alt-q"
 
+  bakeAllWidgets:
+    path: widget.ts:bakeAllWidgets
+    command:
+      name: "Page: Bake live blocks"

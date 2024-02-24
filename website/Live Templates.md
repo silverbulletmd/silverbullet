@@ -1,11 +1,11 @@
-Live Templates are a type of [[Blocks|block]] that render [[Templates]] written in [[Template Language]] inline in a page. 
+Live Templates are a type of [[Blocks|block]] that render [[Templates]] written in [[Template Language]] inline in a page.
 
 There are two variants of Live Templates:
 
 * `template`: where the template is specified inline in a code block.
 * `include`: where an external page (template) is _included_ and rendered.
 
-Template blocks are specified using [[Markdown]]‘s fenced code block notation using either `template` or `include` as its language.
+Template blocks are specified using [[Markdown]]‘s fenced code block notation using either `template` or `include` as its language. They can also be [[Live Queries#Baking|baked]].
 
 # Template
 To specify a template to render inline, you can use the `template` block. The body is written in [[Template Language]].
