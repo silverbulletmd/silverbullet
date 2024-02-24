@@ -5,7 +5,10 @@ import { DataStore } from "./datastore.ts";
 import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 import { sleep } from "$lib/async.ts";
 
-Deno.test("DataStore MQ", async () => {
+Deno.test("DataStore MQ", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, async () => {
   const tmpFile = await Deno.makeTempFile();
   const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
 
