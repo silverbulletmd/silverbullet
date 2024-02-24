@@ -110,6 +110,7 @@ export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
 
   if (snippetTemplate.match || snippetTemplate.matchRegex) {
     const pageText = await editor.getText();
+
     // Regex matching mode
     const matchRegex = new RegExp(
       (snippetTemplate.match || snippetTemplate.matchRegex)!,
@@ -119,21 +120,41 @@ export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
     while (startOfLine > 0 && pageText[startOfLine - 1] !== "\n") {
       startOfLine--;
     }
-    let currentLine = pageText.slice(startOfLine, cursorPos);
+    let endOfLine = cursorPos;
+    while (endOfLine < pageText.length && pageText[endOfLine] !== "\n") {
+      endOfLine++;
+    }
+    let currentLine = pageText.slice(startOfLine, endOfLine);
+    const caretParts = replacementText.split("|^|");
     const emptyLine = !currentLine;
-    currentLine = currentLine.replace(matchRegex, replacementText);
+    currentLine = currentLine.replace(matchRegex, caretParts[0]);
+
+    let newSelection = emptyLine
+      ? {
+        anchor: startOfLine + currentLine.length,
+      }
+      : undefined;
+
+    if (caretParts.length === 2) {
+      // The semantics of a caret in a replacement are:
+      // 1. It's a caret, so we need to move the cursor there
+      // 2. It's a placeholder, so we need to remove it
+      // 3. Any text after the caret should be inserted after the caret
+      const caretPos = currentLine.length;
+      // Now add the text after the caret
+      currentLine += caretParts[1];
+      newSelection = {
+        anchor: startOfLine + caretPos,
+      };
+    }
 
     await editor.dispatch({
       changes: {
         from: startOfLine,
-        to: cursorPos,
+        to: endOfLine,
         insert: currentLine,
       },
-      selection: emptyLine
-        ? {
-          anchor: startOfLine + currentLine.length,
-        }
-        : undefined,
+      selection: newSelection,
     });
   } else {
     const carretPos = replacementText.indexOf("|^|");

@@ -20,6 +20,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 * There are also two very notable new plugs you may be interested in trying:
   * [[Plugs/TreeView]]: a sidebar showing (and allowing you to manipulate) your space’s folder tree (at long last)
   * [[Plugs/AI]]: various clever AI integrations (supporting many different LLMs, including locally hosted ones)
+* [[Snippets]] using `matchRegex` can now use the `|^|` caret to wrap text around the replacement, see the [[Snippets#Examples]]
 * [[Space Script]] is now indexed in templates too (so you can put space script in template tagged pages)
 * Changed the signature of `silverbullet.registerFunction` to make the first argument an object, see [[Space Script#Custom functions]]. Old string-based scripts still work, for backwards compatibility.
 * The [[Functions#replace(str, match, replacement)]] function now supports multiple replacements
