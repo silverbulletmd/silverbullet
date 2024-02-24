@@ -178,18 +178,30 @@ functions:
       key: "Ctrl-Shift-u"
       mac: "Cmd-Shift-u"
       requireMode: rw
-      contexts:
-        - NakedURL
 
   # Title-based link unfurl
   titleUnfurlOptions:
     path: ./link.ts:titleUnfurlOptions
     events:
       - unfurl:options
+
   titleUnfurl:
     path: ./link.ts:titleUnfurl
     events:
       - unfurl:title-unfurl
+
+
+  # Title-based link unfurl
+  youtubeUnfurlOptions:
+    path: ./link.ts:youtubeUnfurlOptions
+    events:
+      - unfurl:options
+
+  youtubeUnfurl:
+    path: ./link.ts:youtubeUnfurl
+    events:
+      - unfurl:youtube-unfurl
+
 
   embedWidget:
     path: ./embed.ts:embedWidget

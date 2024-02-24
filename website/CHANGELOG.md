@@ -24,7 +24,8 @@ _These features are not yet properly released, you need to use [the edge builds]
 * [[Space Script]] is now indexed in templates too (so you can put space script in template tagged pages)
 * Changed the signature of `silverbullet.registerFunction` to make the first argument an object, see [[Space Script#Custom functions]]. Old string-based scripts still work, for backwards compatibility.
 * The [[Functions#replace(str, match, replacement)]] function now supports multiple replacements
-* You can now use backticks (`) around identifiers in [[Expression Language]], to e.g. use names with spaces or other weird characters as attribute names. 
+* You can now use backticks (`) around identifiers in [[Expression Language]], to e.g. use names with spaces or other weird characters as attribute names.
+* [[Link Unfurl]] now supports unfurling youtube videos
 * Fixed edit button on code widgets after they have shifted
 * Fixed page completion in template blocks
 * Giant code reorganization (hopefully resulting in 0 regressions)

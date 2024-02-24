@@ -1,5 +1,6 @@
 import { nodeAtPos } from "$lib/tree.ts";
 import { editor, events, markdown } from "$sb/syscalls.ts";
+import { extractYoutubeVideoId } from "./embed.ts";
 
 type UnfurlOption = {
   id: string;
@@ -8,7 +9,15 @@ type UnfurlOption = {
 
 export async function unfurlCommand() {
   const mdTree = await markdown.parseMarkdown(await editor.getText());
-  const nakedUrlNode = nodeAtPos(mdTree, await editor.getCursor());
+  const cursorPos = await editor.getCursor();
+  let nakedUrlNode = nodeAtPos(mdTree, cursorPos);
+  if (nakedUrlNode?.type !== "NakedURL") {
+    nakedUrlNode = nodeAtPos(mdTree, cursorPos - 1);
+  }
+  if (nakedUrlNode?.type !== "NakedURL") {
+    await editor.flashNotification("No URL found under cursor", "error");
+    return;
+  }
   const url = nakedUrlNode!.children![0].text!;
   console.log("Got URL to unfurl", url);
   const optionResponses = await events.dispatchEvent("unfurl:options", url);
@@ -66,4 +75,21 @@ export async function titleUnfurl(url: string): Promise<string> {
   } else {
     throw new Error("No title found");
   }
+}
+
+export function youtubeUnfurlOptions(url: string): UnfurlOption[] {
+  if (extractYoutubeVideoId(url)) {
+    return [
+      {
+        id: "youtube-unfurl",
+        name: "Embed video",
+      },
+    ];
+  } else {
+    return [];
+  }
+}
+
+export function youtubeUnfurl(url: string): string {
+  return "```embed\nurl: " + url + "\n```";
 }
