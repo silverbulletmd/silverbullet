@@ -20,7 +20,7 @@ import {
 
 import { AppViewState, BuiltinSettings } from "../type/web.ts";
 
-import type { AppEvent, CompleteEvent } from "$type/types.ts";
+import type { AppEvent, CompleteEvent, SlashCompletions } from "$type/types.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
@@ -61,7 +61,6 @@ import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
-import { currentCompletions } from "@codemirror/autocomplete";
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -842,7 +841,7 @@ export class Client {
   async completeWithEvent(
     context: CompletionContext,
     eventName: AppEvent,
-  ): Promise<CompletionResult | null> {
+  ): Promise<CompletionResult | SlashCompletions | null> {
     const editorState = context.state;
     const selection = editorState.selection.main;
     const line = editorState.doc.lineAt(selection.from);
@@ -906,13 +905,17 @@ export class Client {
   editorComplete(
     context: CompletionContext,
   ): Promise<CompletionResult | null> {
-    return this.completeWithEvent(context, "editor:complete");
+    return this.completeWithEvent(context, "editor:complete") as Promise<
+      CompletionResult | null
+    >;
   }
 
   miniEditorComplete(
     context: CompletionContext,
   ): Promise<CompletionResult | null> {
-    return this.completeWithEvent(context, "minieditor:complete");
+    return this.completeWithEvent(context, "minieditor:complete") as Promise<
+      CompletionResult | null
+    >;
   }
 
   async reloadPage() {

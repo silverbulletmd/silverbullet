@@ -1,4 +1,8 @@
-import { CompleteEvent, SlashCompletion } from "$type/types.ts";
+import {
+  CompleteEvent,
+  SlashCompletionOption,
+  SlashCompletions,
+} from "$type/types.ts";
 import { editor, markdown, space } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
@@ -10,26 +14,30 @@ import { SnippetConfig } from "./types.ts";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
-): Promise<SlashCompletion[]> {
+): Promise<SlashCompletions> {
   const allTemplates = await queryObjects<TemplateObject>("template", {
     // where hooks.snippet.slashCommand exists
     filter: ["attr", ["attr", ["attr", "hooks"], "snippet"], "slashCommand"],
   }, 5);
-  return allTemplates.map((template) => {
-    const snippetTemplate = template.hooks!.snippet!;
+  return {
+    options: allTemplates.map((template) => {
+      const snippetTemplate = template.hooks!.snippet!;
 
-    return {
-      label: snippetTemplate.slashCommand,
-      detail: template.description,
-      order: snippetTemplate.order || 0,
-      templatePage: template.ref,
-      pageName: completeEvent.pageName,
-      invoke: "template.insertSnippetTemplate",
-    };
-  });
+      return {
+        label: snippetTemplate.slashCommand,
+        detail: template.description,
+        order: snippetTemplate.order || 0,
+        templatePage: template.ref,
+        pageName: completeEvent.pageName,
+        invoke: "template.insertSnippetTemplate",
+      };
+    }),
+  };
 }
 
-export async function insertSnippetTemplate(slashCompletion: SlashCompletion) {
+export async function insertSnippetTemplate(
+  slashCompletion: SlashCompletionOption,
+) {
   const pageObject = await loadPageObject(
     slashCompletion.pageName,
   );

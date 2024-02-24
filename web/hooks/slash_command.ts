@@ -3,8 +3,8 @@ import { System } from "../../lib/plugos/system.ts";
 import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
 import { Client } from "../client.ts";
 import { syntaxTree } from "../deps.ts";
-import { SlashCompletion } from "$type/types.ts";
-import { safeRun } from "../../lib/async.ts";
+import { SlashCompletionOption, SlashCompletions } from "$type/types.ts";
+import { safeRun } from "$lib/async.ts";
 
 export type SlashCommandDef = {
   name: string;
@@ -93,14 +93,18 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       });
     }
 
-    const slashCompletions: SlashCompletion[] | null = await this.editor
-      .completeWithEvent(
-        ctx,
-        "slash:complete",
-      ) as any;
+    const slashCompletions: CompletionResult | SlashCompletions | null =
+      await this.editor
+        .completeWithEvent(
+          ctx,
+          "slash:complete",
+        );
 
     if (slashCompletions) {
-      for (const slashCompletion of slashCompletions) {
+      for (
+        const slashCompletion of slashCompletions
+          .options as SlashCompletionOption[]
+      ) {
         options.push({
           label: slashCompletion.label,
           detail: slashCompletion.detail,

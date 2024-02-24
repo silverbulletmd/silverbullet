@@ -232,12 +232,19 @@ export type CompleteEvent = {
   parentNodes: string[];
 };
 
-export type SlashCompletion = {
+export type SlashCompletionOption = {
   label: string;
   detail?: string;
   invoke: string;
   order?: number;
 } & Record<string, any>;
+
+export type SlashCompletions = {
+  // Ignore this one, only for compatibility with regular completions
+  from?: number;
+  // The actual completions
+  options: SlashCompletionOption[];
+};
 
 export type WidgetContent = {
   html?: string;
