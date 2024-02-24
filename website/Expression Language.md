@@ -5,13 +5,14 @@ Examples in this page will be demonstrated by embedding expressions inside of a 
 While a custom language, it takes a lot of inspiration from JavaScript and SQL, but includes some features very specific to SilverBullet, including syntax for embedded queries and page references.
 
 # Primitive values
-* strings: `"a string"`, `'a string'` or `a string` (with backticks). Escaping is not currently supported, so use your quotes wisely.
+* strings: `"a string"`, or `'a string'`. Escaping is not currently supported, so use your quotes wisely.
 * numbers: `10`
 * booleans: `true` or `false`
 * regular expressions: `/[a-z]+/`
 * null: `null`
 * lists: `["value 1", 10, false]`
 * objects: `{"name": "Jack", "age": 1232}`
+* identifiers: starting with a letter, followed by alphanumerics, `_` or `-`. Identifiers can also be surrounded with backticks: ` and in that case contain any non-backtick characters, including spaces.
 * attributes:
   * `.` for the current object
   * `attr` for the current object’s attribute with the name `attr`
@@ -20,9 +21,9 @@ While a custom language, it takes a lot of inspiration from JavaScript and SQL, 
 
 ## Examples
 ```template
-String expression: {{"This is a string"}}
-List expression: {{[1, 2, 3]}}
-Attribute of variable: {{@page.name}}
+String expression: {{"This is a string"}} 
+List expression: {{[1, 2, 3]}} 
+Attribute of variable: {{@page.name}} 
 ```
 
 # Function calls

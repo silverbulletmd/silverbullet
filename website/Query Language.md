@@ -52,12 +52,12 @@ person where page = @page.name limit 1
 ```
 
 ## select
-You can use the `select` clause to select only specific attributes from the result set. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name via the `select age + 1 as nextYear` syntax:
+You can use the `select` clause to select only specific attributes from the result set. You can use it either simply as `select attribute1, attribute2` but also select the value of certain expressions and give them a name, even one containing spaces using the backtick identifier syntax:
 
 ```query
 person
 where page = @page.name
-select name, age, age + 1 as nextYear
+select name, age, age + 1 as `next year`
 ```
 
 ## render each <template> and render all <template>

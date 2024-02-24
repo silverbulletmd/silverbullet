@@ -44,6 +44,41 @@ Deno.test("Test query parser", () => {
   );
 
   assertEquals(
+    astToKvQuery(wrapQueryParse(`page where name = "hello"`)!),
+    {
+      querySource: "page",
+      filter: ["=", ["attr", "name"], [
+        "string",
+        "hello",
+      ]],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse("page where `name`")!),
+    {
+      querySource: "page",
+      filter: ["attr", "name"],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse("page where `something`.`name`")!),
+    {
+      querySource: "page",
+      filter: ["attr", ["attr", "something"], "name"],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(wrapQueryParse("page select 10 as `something`, `name`")!),
+    {
+      querySource: "page",
+      select: [{ name: "something", expr: ["number", 10] }, { name: "name" }],
+    },
+  );
+
+  assertEquals(
     astToKvQuery(wrapQueryParse(`page where @page`)!),
     {
       querySource: "page",
@@ -375,7 +410,10 @@ Deno.test("Test query parser", () => {
     ),
     {
       querySource: "page",
-      filter: [">", ["call", "myCall", [["-", ["number", 3]]]], ["-", ["number", 4], ["number", 2]]],
+      filter: [">", ["call", "myCall", [["-", ["number", 3]]]], ["-", [
+        "number",
+        4,
+      ], ["number", 2]]],
     },
   );
 
