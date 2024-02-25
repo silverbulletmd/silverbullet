@@ -15,13 +15,21 @@ export function buildQueryFunctions(
   return {
     ...builtinFunctions,
     pageExists(name: string) {
+      if (typeof name !== "string") {
+        throw new Error("pageExists(): name is not a string");
+      }
+
       if (name.startsWith("!") || name.startsWith("{{")) {
         // Let's assume federated pages exist, and ignore template variable ones
         return true;
       }
       return allKnownPages.has(name);
     },
-    async template(template: string, obj: any) {
+    async template(template: unknown, obj: unknown) {
+      if (typeof template !== "string") {
+        throw new Error("template(): template is not a string");
+      }
+
       return (await system.invokeFunction("template.renderTemplate", [
         template,
         obj,

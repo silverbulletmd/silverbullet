@@ -6,36 +6,70 @@ export const builtinFunctions: FunctionMap = {
     return niceDate(new Date());
   },
   replace(
-    str: string,
-    ...replacementPairs: any[]
+    str: unknown,
+    ...replacementPairs: unknown[]
   ) {
+    if (typeof str !== "string") {
+      throw new Error("replace(): str is not a string");
+    }
+
     if (replacementPairs.length % 2 !== 0) {
       throw new Error(
-        "replace() requires an even number of replacement arguments",
+        "replace(): requires an even number of replacement arguments",
       );
     }
+
+    let ret = str;
     for (let i = 0; i < replacementPairs.length; i += 2) {
-      const match = replacementPairs[i];
+      let match = replacementPairs[i];
       const replace = replacementPairs[i + 1];
-      const matcher = Array.isArray(match)
-        ? new RegExp(match[0], match[1] + "g")
+      match = Array.isArray(match)
+        ? new RegExp(match[0], (match[1] ?? "") + "g")
         : match;
-      str = str.replaceAll(matcher, replace);
+
+      if (typeof match !== "string" && (!(match instanceof RegExp))) {
+        throw new Error(
+          `replace(): match is not a string or regexp`,
+        );
+      }
+      if (typeof replace !== "string") {
+        throw new Error(
+          `replace(): replace is not a string`,
+        );
+      }
+
+      ret = ret.replaceAll(match, replace);
     }
-    return str;
+    return ret;
   },
-  json: (v: any) => {
+  json: (v: unknown) => {
     return JSON.stringify(v);
   },
-  niceDate: (ts: any) => niceDate(new Date(ts)),
-  escapeRegexp: (ts: any) => {
+  niceDate: (ts: unknown) => {
+    if (
+      typeof ts !== "string" && typeof ts !== "number" && !(ts instanceof Date)
+    ) {
+      throw new Error("niceDate(): ts is not a valid date");
+    }
+
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) {
+      throw new Error("niceDate(): ts is not a valid date");
+    }
+
+    return niceDate(new Date(ts));
+  },
+  escapeRegexp: (ts: unknown) => {
+    if (typeof ts !== "string") {
+      throw new Error("escapeRegexp(): ts is not a string");
+    }
     return ts.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   },
   // Legacy name: don't use
   escape: (handlebarsExpr: string) => {
     return `{{${handlebarsExpr}}}`;
   },
-  escapeDirective: (directiveText: string) => {
+  escapeDirective: (directiveText: unknown) => {
     return `{{${directiveText}}}`;
   },
   time: () => niceTime(new Date()),
@@ -70,10 +104,10 @@ export const builtinFunctions: FunctionMap = {
   },
 
   // List functions
-  count: (list: any[]) => {
+  count: <T>(list: T[]) => {
     return list.length;
   },
-  at: (list: any[], index: number) => {
+  at: <T>(list: T[], index: number) => {
     return list[index];
   },
 };
