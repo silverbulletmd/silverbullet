@@ -6,11 +6,11 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing yet since 0.7.2
+* Nothing yet since 0.7.3
 
 ---
 
-## 0.7.2
+## 0.7.3
 
 * We had a big influx of people and contributions from the community, which is amazing. Here are the highlights:
   * Ability to “bake” templates and query results (with the new “bake” button or {[Page: Bake live blocks]}), that is: replace these blocks with their rendered results, and therefore freeze them in time, by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/719)
