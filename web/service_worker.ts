@@ -71,8 +71,12 @@ self.addEventListener("fetch", (event: any) => {
   event.respondWith(
     (async () => {
       const request = event.request;
+      const requestUrl = new URL(request.url);
 
-      // console.log("Getting request", request, [...request.headers.entries()]);
+      // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
+      if (location.host !== requestUrl.host) {
+        return fetch(request);
+      }
 
       // Any request with the X-Sync-Mode header originates from the sync engine: pass it on to the server
       if (request.headers.has("x-sync-mode")) {
@@ -91,13 +95,7 @@ self.addEventListener("fetch", (event: any) => {
         return fetch(request);
       }
 
-      const requestUrl = new URL(request.url);
       const pathname = requestUrl.pathname;
-
-      // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
-      if (location.host !== requestUrl.host) {
-        return fetch(request);
-      }
 
       if (pathname === "/.auth" || pathname === "/index.json") {
         return fetch(request);
