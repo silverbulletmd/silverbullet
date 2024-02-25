@@ -2,8 +2,7 @@ import * as path from "https://deno.land/std@0.189.0/path/mod.ts";
 import { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import { walk } from "https://deno.land/std@0.198.0/fs/walk.ts";
-import { FileMeta } from "../../type/types.ts";
+import { FileMeta } from "$type/types.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -126,21 +125,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
-    for await (
-      const file of walk(this.rootPath, {
-        includeDirs: false,
-        // Exclude hidden directories
-        skip: [
-          // Dynamically builds a regexp that matches hidden directories INSIDE the rootPath
-          // (but if the rootPath is hidden, it stil lists files inside of it, fixing #130)
-          new RegExp(`^${escapeRegExp(this.rootPath)}.*\\/\\..+$`),
-        ],
-      })
-    ) {
+    for await (const file of walkPreserveSymlinks(this.rootPath)) {
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
-        // console.log(fullPath, s.isSymlink);
         const name = fullPath.substring(this.rootPath.length + 1);
         if (excludedFiles.includes(name)) {
           continue;
@@ -166,6 +154,22 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 }
 
-function escapeRegExp(string: string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
+async function* walkPreserveSymlinks(
+  dirPath: string,
+): AsyncIterableIterator<{ path: string; entry: Deno.DirEntry }> {
+  for await (const dirEntry of Deno.readDir(dirPath)) {
+    const fullPath = `${dirPath}/${dirEntry.name}`;
+    if (dirEntry.name.startsWith(".")) {
+      // Skip hidden files and folders
+      continue;
+    }
+    if (dirEntry.isFile) {
+      yield { path: fullPath, entry: dirEntry };
+    }
+
+    if (dirEntry.isDirectory || dirEntry.isSymlink) {
+      // If it's a directory or a symlink, recurse into it
+      yield* walkPreserveSymlinks(fullPath);
+    }
+  }
 }
