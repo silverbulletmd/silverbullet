@@ -19,6 +19,8 @@ import { TaskList } from "./extended_task.ts";
 
 export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
+export const tagRegex = /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
+
 const WikiLink: MarkdownConfig = {
   defineNodes: [
     { name: "WikiLink", style: ct.WikiLinkTag },
@@ -504,7 +506,7 @@ const NakedURL = regexParser(
 const Hashtag = regexParser(
   {
     firstCharCode: 35, // #
-    regex: /^#[^#\d\s\[\]]+\w+/,
+    regex: new RegExp(`^${tagRegex.source}`),
     nodeType: "Hashtag",
     className: "sb-hashtag",
     tag: ct.HashtagTag,

@@ -3,8 +3,9 @@ import { FilterOption } from "../../type/web.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
 import { PageMeta } from "../../type/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
+import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
-export const tagRegex = /#[^#\d\s\[\]]+\w+/g;
+const tagRegex = new RegExp(mdTagRegex.source, "g")
 
 export function PageNavigator({
   allPages,
