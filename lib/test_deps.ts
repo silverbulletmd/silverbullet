@@ -4,6 +4,7 @@ export {
   AssertionError,
   assertMatch,
   assertNotEquals,
+  assertRejects,
   assertThrows,
   equal,
   fail,
