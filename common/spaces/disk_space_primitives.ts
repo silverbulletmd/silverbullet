@@ -163,11 +163,22 @@ async function* walkPreserveSymlinks(
       // Skip hidden files and folders
       continue;
     }
-    if (dirEntry.isFile) {
+
+    let entry: Deno.DirEntry | Deno.FileInfo = dirEntry;
+
+    if (dirEntry.isSymlink) {
+      try {
+        entry = await Deno.stat(fullPath);
+      } catch (e) {
+        console.error("Error reading symlink", fullPath, e.message);
+      }
+    }
+
+    if (entry.isFile) {
       yield { path: fullPath, entry: dirEntry };
     }
 
-    if (dirEntry.isDirectory || dirEntry.isSymlink) {
+    if (entry.isDirectory) {
       // If it's a directory or a symlink, recurse into it
       yield* walkPreserveSymlinks(fullPath);
     }
