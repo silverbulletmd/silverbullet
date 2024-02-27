@@ -102,9 +102,7 @@ export function systemSyscalls(
       tags: string[],
       text: string,
       tree: ParseTree,
-    ): Promise<
-      { attributes: Record<string, any>; text?: string; tree?: ParseTree }
-    > => {
+    ): Promise<Record<string, any>> => {
       return commonSystem.applyAttributeExtractors(tags, text, tree);
     },
     "system.getEnv": () => {

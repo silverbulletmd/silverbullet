@@ -119,28 +119,47 @@ silverbullet.registerEventListener({name: "*"}, (event) => {
 # Custom attribute extractors
 SilverBullet indexes various types of content as [[Objects]]. There are various ways to define [[Attributes]] for these objects, such as the [attribute: my value] syntax. However, using space script you can write your own code to extract attribute values not natively supported.
 
+The `silverbullet.registerAttributeExtractor` API takes two arguments:
+
+* `def`, currently just one option:
+  * `tags`: Array of tags this extractor should be applied to, could be a built-in tag such as `item`, `page` or `task`, but also any custom tags you define
+* `callback`: the callback function to invoke (can be `async` or not). This callback is passed two arguments:
+  * `text`: the text of the object to extract attributes for
+  * `tree`: the ParseTree of the object to extract attributes for (you can ignore this one if you don’t need it)
+  This callback should return an object of attribute mappings.
+
+## Example
 Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed:
 
 * [x] I’ve done this ✅ 2024-02-27
 
+The following attribute extractor will accomplish this: 
 
-The following attribute extractor will accomplish this:
 ```space-script
 silverbullet.registerAttributeExtractor({tags: ["task"]}, (text) => {
   // Find the completion date using a regular expression
-  const match = /✅\s*(\w{4}-\w{2}-\w{2})/.exec(text);
-  console.log("Testing this", text)
-  if(match) {
-    // Match found! Let's return the date as a `completed` attribute
-    return {completed: match[1]};
+  const completionRegex = /✅\s*(\w{4}-\w{2}-\w{2})/;
+  const match = completionRegex.exec(text);
+  if (match) { 
+    // Let's customize the task name by stripping this completion date
+    // First strip the checkbox bit
+    let taskName = text.replace(/\[[^\]]+\]\s*/, "");
+    // Then remove the completion date and clean it up
+    taskName = taskName.replace(completionRegex, "").trim(); 
+    return {
+      name: taskName,
+      completed: match[1]
+    };
   }
 });
 ```
 
+Note that built-in attributes can also be overridden (like `name` in this case).
+
+Result:
 ```template
 {{{task where page = @page.name select name, completed}}}
 ```
-
 
 # Syscalls
 The primary way to interact with the SilverBullet environment is using “syscalls”. Syscalls expose SilverBullet functionality largely available both on the client and server in a safe way.

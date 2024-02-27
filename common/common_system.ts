@@ -83,12 +83,8 @@ export abstract class CommonSystem {
     tags: string[],
     text: string,
     tree: ParseTree,
-  ): Promise<
-    { attributes: Record<string, any>; text?: string; tree?: ParseTree }
-  > {
+  ): Promise<Record<string, any>> {
     let resultingAttributes: Record<string, any> = {};
-    let newTree: ParseTree | undefined;
-    let newText: string | undefined;
     for (const tag of tags) {
       const extractors = this.scriptEnv.attributeExtractors[tag];
       if (!extractors) {
@@ -100,18 +96,12 @@ export abstract class CommonSystem {
           // Merge the attributes in
           resultingAttributes = {
             ...resultingAttributes,
-            ...extractorResult.attributes,
+            ...extractorResult,
           };
-          if (extractorResult.text) {
-            newText = extractorResult.text;
-          }
-          if (extractorResult.tree) {
-            newTree = extractorResult.tree;
-          }
         }
       }
     }
 
-    return { attributes: resultingAttributes, text: newText, tree: newTree };
+    return resultingAttributes;
   }
 }

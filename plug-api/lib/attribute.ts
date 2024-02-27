@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
 } from "$lib/tree.ts";
 
-import { markdown, system, YAML } from "$sb/syscalls.ts";
+import { system, YAML } from "$sb/syscalls.ts";
 
 /**
  * Extracts attributes from a tree, optionally cleaning them out of the tree.
@@ -17,7 +17,7 @@ export async function extractAttributes(
   tags: string[],
   tree: ParseTree,
   clean: boolean,
-): Promise<{ attributes: Record<string, any>; tree: ParseTree }> {
+): Promise<Record<string, any>> {
   let attributes: Record<string, any> = {};
   await replaceNodesMatchingAsync(tree, async (n) => {
     if (n.type === "ListItem") {
@@ -47,21 +47,14 @@ export async function extractAttributes(
     return undefined;
   });
   const text = renderToText(tree);
-  const spaceScriptAttributeResult = await system.applyAttributeExtractors(
+  const spaceScriptAttributes = await system.applyAttributeExtractors(
     tags,
     text,
     tree,
   );
   attributes = {
     ...attributes,
-    ...spaceScriptAttributeResult.attributes,
+    ...spaceScriptAttributes,
   };
-  if (spaceScriptAttributeResult.text) {
-    // Changed text, re-parse
-    tree = await markdown.parseMarkdown(spaceScriptAttributeResult.text);
-  } else if (spaceScriptAttributeResult.tree) {
-    // Changed parse tree
-    tree = spaceScriptAttributeResult.tree;
-  }
-  return { attributes, tree };
+  return attributes;
 }

@@ -91,20 +91,22 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
           task.tags = [];
         }
         task.tags.push(tagName);
+        tree.children = [];
       }
     });
 
     // Extract attributes and remove from tree
+    task.name = n.children!.slice(1).map(renderToText).join("").trim();
     const extractedAttributes = await extractAttributes(
       ["task", ...task.tags || []],
       n,
       true,
     );
+    task.name = n.children!.slice(1).map(renderToText).join("").trim();
+
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
     }
-
-    task.name = n.children!.slice(1).map(renderToText).join("").trim();
 
     updateITags(task, frontmatter);
 

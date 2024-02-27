@@ -35,9 +35,7 @@ export function applyAttributeExtractors(
   tags: string[],
   text: string,
   tree: ParseTree,
-): Promise<
-  { attributes: Record<string, any>[]; text?: string; tree?: ParseTree }
-> {
+): Promise<Record<string, any>[]> {
   return syscall("system.applyAttributeExtractors", tags, text, tree);
 }
 
