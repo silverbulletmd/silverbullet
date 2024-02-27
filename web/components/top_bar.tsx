@@ -46,38 +46,6 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
-  // Another one of my less proud moments:
-  // Somehow I cannot seem to proerply limit the width of the page name, so I'm doing
-  // it this way. If you have a better way to do this, please let me know!
-  useEffect(() => {
-    function resizeHandler() {
-      const editorWidth = parseInt(
-        getComputedStyle(document.getElementById("sb-root")!).getPropertyValue(
-          "--editor-width",
-        ),
-      );
-      const currentPageElement = document.getElementById("sb-current-page");
-      const actionsElement = document.querySelector(".sb-actions");
-      if (currentPageElement && actionsElement) {
-        // Temporarily make it very narrow to give the parent space
-        currentPageElement.style.width = "10px";
-        const innerDiv = currentPageElement.parentElement!.parentElement!;
-
-        // Then calculate a new width
-        const actionsWidth = actionsElement.clientWidth;
-        // console.log("Editor width", editorWidth);
-        currentPageElement.style.width = `${
-          innerDiv.clientWidth - actionsWidth - 40
-        }px`;
-      }
-    }
-    globalThis.addEventListener("resize", resizeHandler);
-
-    // Stop listening on unmount
-    return () => {
-      globalThis.removeEventListener("resize", resizeHandler);
-    };
-  }, []);
 
   return (
     <div

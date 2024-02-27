@@ -72,7 +72,8 @@ body {
       .wrapper {
         width: 100%;
         padding: 0 20px;
-        position: relative;
+        display: flex;
+        box-sizing: border-box;
       }
 
       .sb-notifications {
@@ -112,10 +113,10 @@ body {
   }
 
   .sb-actions {
+    display: flex;
+    align-items: baseline;
+    flex: 0 0 auto;
     text-align: right;
-    position: absolute;
-    right: 15px;
-    top: 0;
   }
 
   .progress-wrapper {
