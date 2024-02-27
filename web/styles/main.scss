@@ -65,13 +65,14 @@ body {
       max-width: var(--#{"editor-width"});
       margin: auto;
       font-size: 28px;
-      padding: 10px 20px;
+      padding: 10px 0;
       display: flex;
       flex-direction: row;
 
       .wrapper {
         width: 100%;
-        display: flex;
+        padding: 0 20px;
+        position: relative;
       }
 
       .sb-notifications {
@@ -111,10 +112,10 @@ body {
   }
 
   .sb-actions {
-    display: flex;
-    align-items: baseline;
-    flex: 0 0 auto;
     text-align: right;
+    position: absolute;
+    right: 15px;
+    top: 0;
   }
 
   .progress-wrapper {
