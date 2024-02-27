@@ -86,12 +86,12 @@ function selectPageTemplate(options: TemplateObject[]) {
   );
 }
 
-async function instantiatePageTemplate(
+export async function instantiatePageTemplate(
   templateName: string,
   intoCurrentPage: string | undefined,
   askName: boolean,
   customData: any = undefined,
-) {
+): Promise<string | void> {
   const templateText = await space.readPage(templateName!);
 
   console.log(
@@ -158,7 +158,7 @@ async function instantiatePageTemplate(
       if (newPageConfig.openIfExists) {
         console.log("Page already exists, navigating there");
         await editor.navigate({ page: pageName, pos: 0 });
-        return;
+        return pageName;
       }
 
       // let's warn
@@ -200,6 +200,7 @@ async function instantiatePageTemplate(
       pos: carretPos !== -1 ? carretPos : undefined,
     });
   }
+  return pageName;
 }
 
 export async function loadPageObject(pageName?: string): Promise<PageMeta> {
