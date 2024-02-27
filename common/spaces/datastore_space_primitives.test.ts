@@ -1,4 +1,4 @@
-import "https://esm.sh/fake-indexeddb@4.0.2/auto";
+import "fake-indexeddb/auto";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreSpacePrimitives } from "./datastore_space_primitives.ts";

@@ -1,7 +1,7 @@
-import * as path from "https://deno.land/std@0.189.0/path/mod.ts";
-import { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
+import * as path from "$std/path/mod.ts";
+import { readAll } from "$std/streams/read_all.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
-import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
+import { mime } from "mimetypes";
 import { FileMeta } from "../../plug-api/types.ts";
 
 function lookupContentType(path: string): string {

@@ -1,6 +1,6 @@
 // We're explicitly using 0.4.0 to be able to hijack the path encoding, which is inconsisently broken in 0.5.0
-import { S3Client } from "https://deno.land/x/s3_lite_client@0.4.0/mod.ts";
-import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/client.ts";
+import { S3Client } from "s3_lite_client/mod.ts";
+import type { ClientOptions } from "s3_lite_client/client.ts";
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { mime } from "../deps.ts";

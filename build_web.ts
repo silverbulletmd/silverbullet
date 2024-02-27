@@ -1,9 +1,9 @@
-import { copy } from "https://deno.land/std@0.165.0/fs/copy.ts";
+import { copy } from "$std/fs/copy.ts";
 
-import sass from "https://deno.land/x/denosass@1.0.4/mod.ts";
+import sass from "denosass";
 import { bundleFolder } from "./lib/asset_bundle/builder.ts";
 
-import * as flags from "https://deno.land/std@0.165.0/flags/mod.ts";
+import { parse } from "$std/flags/mod.ts";
 import { patchDenoLibJS } from "./lib/plugos/compile.ts";
 import { denoPlugins, esbuild } from "./lib/plugos/deps.ts";
 
@@ -126,7 +126,7 @@ async function buildCopyBundleAssets() {
 }
 
 if (import.meta.main) {
-  const args = flags.parse(Deno.args, {
+  const args = parse(Deno.args, {
     boolean: ["watch"],
     alias: { w: "watch" },
     default: {

@@ -1,4 +1,4 @@
-import "https://esm.sh/fake-indexeddb@4.0.2/auto";
+import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
 import { allTests } from "./kv_primitives.test.ts";
 

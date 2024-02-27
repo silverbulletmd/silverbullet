@@ -1,9 +1,9 @@
-import "https://esm.sh/fake-indexeddb@4.0.2/auto";
+import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
 import { DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
 import { KvPrimitives } from "../data/kv_primitives.ts";
-import { assertEquals } from "https://deno.land/std@0.165.0/testing/asserts.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import { Query } from "../../plug-api/types.ts";
 

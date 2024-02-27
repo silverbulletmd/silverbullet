@@ -1,6 +1,6 @@
 import { KV, KvKey } from "../../plug-api/types.ts";
 import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
-import { IDBPDatabase, openDB } from "https://esm.sh/idb@7.1.1/with-async-ittr";
+import { IDBPDatabase, openDB } from "idb/with-async-ittr";
 
 const sep = "\0";
 const objectStoreName = "data";

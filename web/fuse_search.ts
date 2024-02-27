@@ -1,5 +1,5 @@
 // @deno-types="https://deno.land/x/fuse@v6.4.1/dist/fuse.d.ts"
-import Fuse from "https://deno.land/x/fuse@v6.4.1/dist/fuse.esm.min.js";
+import Fuse from "fuse";
 import { FilterOption } from "../type/web.ts";
 
 type FuseOption = FilterOption & {
