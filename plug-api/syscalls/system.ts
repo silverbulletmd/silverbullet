@@ -1,5 +1,6 @@
 import type { CommandDef } from "$common/hooks/command.ts";
-import { SyscallMeta } from "$type/types.ts";
+import type { SyscallMeta } from "$type/types.ts";
+import type { ParseTree } from "$lib/tree.ts";
 import { syscall } from "../syscall.ts";
 
 export function invokeFunction(
@@ -23,8 +24,23 @@ export function listSyscalls(): Promise<SyscallMeta[]> {
   return syscall("system.listSyscalls");
 }
 
+export function invokeSpaceFunction(
+  name: string,
+  ...args: any[]
+): Promise<any> {
+  return syscall("system.invokeSpaceFunction", name, ...args);
+}
+
+export function applyAttributeExtractors(
+  tags: string[],
+  text: string,
+  tree: ParseTree,
+): Promise<Record<string, any>[]> {
+  return syscall("system.applyAttributeExtractors", tags, text, tree);
+}
+
 export function reloadPlugs() {
-  syscall("system.reloadPlugs");
+  return syscall("system.reloadPlugs");
 }
 
 // Returns what runtime environment this plug is run in, e.g. "server" or "client" can be undefined, which would mean a hybrid environment (such as mobile)

@@ -35,20 +35,19 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
       return false;
     }
 
-    const attrs = await extractAttributes(p, true);
-    const tags = new Set<string>();
-    const text = renderToText(p);
-
     // So we're looking at indexable a paragraph now
+    const tags = new Set<string>();
     collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
       tags.add(tagNode.children![0].text!.substring(1));
       // Hacky way to remove the hashtag
       tagNode.children = [];
     });
 
-    const textWithoutTags = renderToText(p);
+    // Extract attributes and remove from tree
+    const attrs = await extractAttributes(["paragraph", ...tags], p, true);
+    const text = renderToText(p);
 
-    if (!textWithoutTags.trim()) {
+    if (!text.trim()) {
       // Empty paragraph, just tags and attributes maybe
       return true;
     }

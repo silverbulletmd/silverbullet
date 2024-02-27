@@ -1,6 +1,6 @@
 import * as plugos from "../lib/plugos/types.ts";
 import { CronHookT } from "../lib/plugos/hooks/cron.ts";
-import { EventHookT } from "../lib/plugos/hooks/event.ts";
+import { EventHookT } from "./hooks/event.ts";
 import { CommandHookT } from "./hooks/command.ts";
 import { SlashCommandHookT } from "../web/hooks/slash_command.ts";
 import { PlugNamespaceHookT } from "./hooks/plug_namespace.ts";

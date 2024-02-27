@@ -15,7 +15,11 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   }
   const pageMeta = await space.getPageMeta(name);
   const frontmatter = await extractFrontmatter(tree);
-  const toplevelAttributes = await extractAttributes(tree, false);
+  const toplevelAttributes = await extractAttributes(
+    ["page", ...frontmatter.tags || []],
+    tree,
+    false,
+  );
 
   // Push them all into the page object
   // Note the order here, making sure that the actual page meta data overrules

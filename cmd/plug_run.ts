@@ -13,7 +13,7 @@ import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "../server/deps.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { EventHook } from "$lib/plugos/hooks/event.ts";
+import { EventHook } from "../common/hooks/event.ts";
 import { sleep } from "$lib/async.ts";
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 

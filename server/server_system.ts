@@ -4,7 +4,7 @@ import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 import { CronHook } from "../lib/plugos/hooks/cron.ts";
-import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { EventHook } from "../common/hooks/event.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
@@ -75,8 +75,7 @@ export class ServerSystem extends CommonSystem {
     this.ds = new DataStore(this.kvPrimitives);
 
     // Event hook
-    const eventHook = new EventHook();
-    this.system.addHook(eventHook);
+    this.system.addHook(this.eventHook);
 
     // Command hook, just for introspection
     this.commandHook = new CommandHook(
@@ -103,14 +102,14 @@ export class ServerSystem extends CommonSystem {
         this.spacePrimitives,
         plugNamespaceHook,
       ),
-      eventHook,
+      this.eventHook,
     );
-    const space = new Space(this.spacePrimitives, eventHook);
+    const space = new Space(this.spacePrimitives, this.eventHook);
 
     // Add syscalls
     this.system.registerSyscalls(
       [],
-      eventSyscalls(eventHook),
+      eventSyscalls(this.eventHook),
       spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -151,26 +150,29 @@ export class ServerSystem extends CommonSystem {
       space.updatePageList().catch(console.error);
     }, fileListInterval);
 
-    eventHook.addLocalListener("file:changed", async (path, localChange) => {
-      if (!localChange && path.endsWith(".md")) {
-        const pageName = path.slice(0, -3);
-        const data = await this.spacePrimitives.readFile(path);
-        console.log("Outside page change: reindexing", pageName);
-        // Change made outside of editor, trigger reindex
-        await eventHook.dispatchEvent("page:index_text", {
-          name: pageName,
-          text: new TextDecoder().decode(data.data),
-        });
-      }
+    this.eventHook.addLocalListener(
+      "file:changed",
+      async (path, localChange) => {
+        if (!localChange && path.endsWith(".md")) {
+          const pageName = path.slice(0, -3);
+          const data = await this.spacePrimitives.readFile(path);
+          console.log("Outside page change: reindexing", pageName);
+          // Change made outside of editor, trigger reindex
+          await this.eventHook.dispatchEvent("page:index_text", {
+            name: pageName,
+            text: new TextDecoder().decode(data.data),
+          });
+        }
 
-      if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
-        console.log("Plug updated, reloading:", path);
-        this.system.unload(path);
-        await this.loadPlugFromSpace(path);
-      }
-    });
+        if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
+          console.log("Plug updated, reloading:", path);
+          this.system.unload(path);
+          await this.loadPlugFromSpace(path);
+        }
+      },
+    );
 
-    eventHook.addLocalListener(
+    this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages
@@ -189,7 +191,7 @@ export class ServerSystem extends CommonSystem {
       await indexPromise;
     }
 
-    await eventHook.dispatchEvent("system:ready");
+    await this.eventHook.dispatchEvent("system:ready");
   }
 
   async loadPlugs() {

@@ -10,7 +10,7 @@ import {
 } from "./deps.ts";
 import { Space } from "../common/space.ts";
 import { FilterOption } from "../type/web.ts";
-import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { EventHook } from "../common/hooks/event.ts";
 import { AppCommand } from "$common/hooks/command.ts";
 import {
   PageState,

@@ -5,6 +5,7 @@ import { CommandDef } from "../hooks/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
+import { ParseTree } from "$lib/tree.ts";
 
 export function systemSyscalls(
   system: System<any>,
@@ -92,6 +93,17 @@ export function systemSyscalls(
           );
         }
       }
+    },
+    "system.invokeSpaceFunction": (_ctx, name: string, ...args: any[]) => {
+      return commonSystem.invokeSpaceFunction(name, args);
+    },
+    "system.applyAttributeExtractors": (
+      _ctx,
+      tags: string[],
+      text: string,
+      tree: ParseTree,
+    ): Promise<Record<string, any>> => {
+      return commonSystem.applyAttributeExtractors(tags, text, tree);
     },
     "system.getEnv": () => {
       return system.env;

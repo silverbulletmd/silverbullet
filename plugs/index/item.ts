@@ -23,7 +23,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
   const coll = collectNodesOfType(tree, "ListItem");
 
-  for (const n of coll) {
+  for (let n of coll) {
     if (!n.children) {
       continue;
     }
@@ -46,18 +46,20 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     collectNodesOfType(n, "Hashtag").forEach((h) => {
       // Push tag to the list, removing the initial #
       tags.add(h.children![0].text!.substring(1));
+      h.children = [];
     });
+
+    // Extract attributes and remove from tree
+    const extractedAttributes = await extractAttributes(
+      ["item", ...tags],
+      n,
+      true,
+    );
 
     for (const child of n.children!.slice(1)) {
       rewritePageRefs(child, name);
       if (child.type === "OrderedList" || child.type === "BulletList") {
         break;
-      }
-      // Extract attributes and remove from tree
-      const extractedAttributes = await extractAttributes(child, true);
-
-      for (const [key, value] of Object.entries(extractedAttributes)) {
-        item[key] = value;
       }
       textNodes.push(child);
     }
@@ -65,6 +67,12 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     item.name = textNodes.map(renderToText).join("").trim();
     if (tags.size > 0) {
       item.tags = [...tags];
+    }
+
+    for (
+      const [key, value] of Object.entries(extractedAttributes)
+    ) {
+      item[key] = value;
     }
 
     updateITags(item, frontmatter);
