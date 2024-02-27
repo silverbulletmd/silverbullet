@@ -1,4 +1,5 @@
 import { System } from "../lib/plugos/system.ts";
+import { ParseTree } from "$lib/tree.ts";
 import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "./hooks/command.ts";
 
@@ -6,9 +7,24 @@ type FunctionDef = {
   name: string;
 };
 
+type AttributeExtractorDef = {
+  tags: string[];
+};
+
+type EventListenerDef = {
+  name: string;
+};
+
+type AttributeExtractorCallback = (
+  text: string,
+  tree: ParseTree,
+) => Record<string, any> | null | Promise<Record<string, any> | null>;
+
 export class ScriptEnvironment {
   functions: Record<string, (...args: any[]) => any> = {};
   commands: Record<string, AppCommand> = {};
+  attributeExtractors: Record<string, AttributeExtractorCallback[]> = {};
+  eventHandlers: Record<string, ((...args: any[]) => any)[]> = {};
 
   // Public API
 
@@ -43,23 +59,40 @@ export class ScriptEnvironment {
     };
   }
 
+  registerAttributeExtractor(
+    def: AttributeExtractorDef,
+    callback: AttributeExtractorCallback,
+  ) {
+    for (const tag of def.tags) {
+      if (!this.attributeExtractors[tag]) {
+        this.attributeExtractors[tag] = [];
+      }
+      this.attributeExtractors[tag].push(callback);
+    }
+  }
+
+  registerEventListener(
+    def: EventListenerDef,
+    callback: (...args: any[]) => any,
+  ) {
+    if (!this.eventHandlers[def.name]) {
+      this.eventHandlers[def.name] = [];
+    }
+    this.eventHandlers[def.name].push(callback);
+  }
+
   // Internal API
   evalScript(script: string, system: System<any>) {
     try {
       const fn = Function(
         "silverbullet",
         "syscall",
-        "Deno",
-        "window",
-        "globalThis",
-        "self",
         script,
       );
       fn.call(
         {},
         this,
         (name: string, ...args: any[]) => system.syscall({}, name, args),
-        // The rest is explicitly left to be undefined to prevent access to the global scope
       );
     } catch (e: any) {
       throw new Error(

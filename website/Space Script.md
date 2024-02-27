@@ -31,12 +31,12 @@ If you use things like `console.log` in your script, you will see this output ei
 # Runtime Environment & API
 Space script is loaded directly in the browser environment on the client, and the Deno environment on the server.
 
-While not very secure, some effort is put into running this code in a clean JavaScript environment, as such the following global variables are not available: `this`, `self`, `Deno`, `window`, and `globalThis`.
-
 Depending on where code is run (client or server), a slightly different JavaScript API will be available. However, code should ideally primarily rely on the following explicitly exposed APIs:
 
-* `silverbullet.registerFunction(definition, callback)`: registers a custom function (see [[#Custom functions]]).
-* `silverbullet.registerCommand(definition, callback)`: registers a custom command (see [[#Custom commands]]).
+* `silverbullet.registerFunction(def, callback)`: registers a custom function (see [[#Custom functions]]).
+* `silverbullet.registerCommand(def, callback)`: registers a custom command (see [[#Custom commands]]).
+* `silverbullet.registerEventListener`: registers an event listener (see [[#Custom event listeners]]).
+* `silverbullet.registerAttributeExtractor(def, callback)`: registers a custom attribute extractor.
 * `syscall(name, args...)`: invoke a syscall (see [[#Syscalls]]).
 
 Many useful standard JavaScript APIs are available, such as:
@@ -51,7 +51,7 @@ Since template rendering happens on the server (except in [[Client Modes#Synced 
 
 The `silverbullet.registerFunction` API takes two arguments:
 
-* `options`: with currently just one option:
+* `def`: with currently just one option:
   * `name`: the name of the function to register
 * `callback`: the callback function to invoke (can be `async` or not)
 
@@ -88,13 +88,59 @@ You can run it via the command palette, or by pushing this [[Markdown/Command li
 
 The `silverbullet.registerCommand` API takes two arguments:
 
-* `options`:
+* `def`:
   * `name`: Name of the command
   * `key` (optional): Keyboard shortcut for the command (Windows/Linux)
   * `mac` (optional): Mac keyboard shortcut for the command
   * `hide` (optional): Do not show this command in the command palette
   * `requireMode` (optional): Only make this command available in `ro` or `rw` mode.
 * `callback`: the callback function to invoke (can be `async` or not)
+
+# Custom event listeners
+Various interesting events are triggered on SilverBullet’s central event bus. Space script can listen to these events and do something with them. 
+
+The `silverbullet.registerEventListener` API takes two arguments:
+
+* `def`, currently just one option:
+  * `name`: Name of the event. This name can contain `*` as a wildcard.
+* `callback`: the callback function to invoke (can be `async` or not). This callback is passed an object with two keys:
+  * `name`: the name of the event triggered (useful if you use a wildcard event listener)
+  * `data`: the event data
+
+To discover what events exist, you can do something like the following to listen to all events and log them to the JavaScript console. Note that different events are triggered on the client and server, so watch both logs:
+
+```space-script
+silverbullet.registerEventListener({name: "*"}, (event) => {
+  // To avoid excessive logging this line comment it out, uncomment it in your code code to see the event stream
+  // console.log("Received event in space script:", event);
+});
+```
+
+# Custom attribute extractors
+SilverBullet indexes various types of content as [[Objects]]. There are various ways to define [[Attributes]] for these objects, such as the [attribute: my value] syntax. However, using space script you can write your own code to extract attribute values not natively supported.
+
+Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed:
+
+* [x] I’ve done this ✅ 2024-02-27
+
+
+The following attribute extractor will accomplish this:
+```space-script
+silverbullet.registerAttributeExtractor({tags: ["task"]}, (text) => {
+  // Find the completion date using a regular expression
+  const match = /✅\s*(\w{4}-\w{2}-\w{2})/.exec(text);
+  console.log("Testing this", text)
+  if(match) {
+    // Match found! Let's return the date as a `completed` attribute
+    return {completed: match[1]};
+  }
+});
+```
+
+```template
+{{{task where page = @page.name select name, completed}}}
+```
+
 
 # Syscalls
 The primary way to interact with the SilverBullet environment is using “syscalls”. Syscalls expose SilverBullet functionality largely available both on the client and server in a safe way.

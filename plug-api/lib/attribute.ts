@@ -1,10 +1,11 @@
 import {
   findNodeOfType,
   ParseTree,
+  renderToText,
   replaceNodesMatchingAsync,
 } from "$lib/tree.ts";
 
-import { YAML } from "$sb/syscalls.ts";
+import { markdown, system, YAML } from "$sb/syscalls.ts";
 
 /**
  * Extracts attributes from a tree, optionally cleaning them out of the tree.
@@ -13,10 +14,11 @@ import { YAML } from "$sb/syscalls.ts";
  * @returns mapping from attribute name to attribute value
  */
 export async function extractAttributes(
+  tags: string[],
   tree: ParseTree,
   clean: boolean,
-): Promise<Record<string, any>> {
-  const attributes: Record<string, any> = {};
+): Promise<{ attributes: Record<string, any>; tree: ParseTree }> {
+  let attributes: Record<string, any> = {};
   await replaceNodesMatchingAsync(tree, async (n) => {
     if (n.type === "ListItem") {
       // Find top-level only, no nested lists
@@ -44,5 +46,22 @@ export async function extractAttributes(
     // Go on...
     return undefined;
   });
-  return attributes;
+  const text = renderToText(tree);
+  const spaceScriptAttributeResult = await system.applyAttributeExtractors(
+    tags,
+    text,
+    tree,
+  );
+  attributes = {
+    ...attributes,
+    ...spaceScriptAttributeResult.attributes,
+  };
+  if (spaceScriptAttributeResult.text) {
+    // Changed text, re-parse
+    tree = await markdown.parseMarkdown(spaceScriptAttributeResult.text);
+  } else if (spaceScriptAttributeResult.tree) {
+    // Changed parse tree
+    tree = spaceScriptAttributeResult.tree;
+  }
+  return { attributes, tree };
 }

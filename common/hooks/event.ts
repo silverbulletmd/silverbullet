@@ -1,5 +1,6 @@
-import type { Hook, Manifest } from "../types.ts";
-import { System } from "../system.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
+import { System } from "../../lib/plugos/system.ts";
+import { ScriptEnvironment } from "$common/space_script.ts";
 
 // System events:
 // - plug:load (plugName: string)
@@ -10,7 +11,8 @@ export type EventHookT = {
 
 export class EventHook implements Hook<EventHookT> {
   private system?: System<EventHookT>;
-  public localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
+  private localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
+  public scriptEnvironment?: ScriptEnvironment;
 
   addLocalListener(eventName: string, callback: (...args: any[]) => any) {
     if (!this.localListeners.has(eventName)) {
@@ -80,6 +82,8 @@ export class EventHook implements Hook<EventHookT> {
         }
       }
     }
+
+    // Local listeners
     const localListeners = this.localListeners.get(eventName);
     if (localListeners) {
       for (const localListener of localListeners) {
@@ -90,6 +94,32 @@ export class EventHook implements Hook<EventHookT> {
             responses.push(result);
           }
         })());
+      }
+    }
+
+    // Space script listeners
+    if (this.scriptEnvironment) {
+      for (
+        const [name, listeners] of Object.entries(
+          this.scriptEnvironment.eventHandlers,
+        )
+      ) {
+        if (eventNameToRegex(name).test(eventName)) {
+          for (const listener of listeners) {
+            promises.push((async () => {
+              const result = await Promise.resolve(
+                listener({
+                  name: eventName,
+                  // Most events have a single argument, so let's optimize for that, otherwise pass all arguments as an array
+                  data: args.length === 1 ? args[0] : args,
+                }),
+              );
+              if (result) {
+                responses.push(result);
+              }
+            })());
+          }
+        }
       }
     }
 

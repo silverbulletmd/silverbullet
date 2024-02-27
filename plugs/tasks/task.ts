@@ -95,7 +95,11 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     });
 
     // Extract attributes and remove from tree
-    const extractedAttributes = await extractAttributes(n, true);
+    const extractedAttributes = await extractAttributes(
+      ["task", ...task.tags || []],
+      n,
+      true,
+    );
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
     }

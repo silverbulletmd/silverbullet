@@ -5,7 +5,7 @@ import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitive
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { EventHook } from "../common/hooks/event.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";

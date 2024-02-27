@@ -51,7 +51,8 @@ async function nodesToFeedItem(nodes: ParseTree[]): Promise<FeedItem> {
   const wrapperNode: ParseTree = {
     children: nodes,
   };
-  const attributes = await extractAttributes(wrapperNode, true);
+  const attributes =
+    (await extractAttributes(["feed"], wrapperNode, true)).attributes;
   let id = attributes.id;
   delete attributes.id;
   if (!id) {

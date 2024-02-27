@@ -3,13 +3,14 @@ import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import { SilverBulletHooks } from "./manifest.ts";
 import { buildQueryFunctions } from "./query_functions.ts";
 import { ScriptEnvironment } from "./space_script.ts";
-import { EventHook } from "../lib/plugos/hooks/event.ts";
+import { EventHook } from "./hooks/event.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { System } from "$lib/plugos/system.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
 import { SlashCommandHook } from "../web/hooks/slash_command.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import { ParseTree } from "$lib/tree.ts";
 
 export abstract class CommonSystem {
   system!: System<SilverBulletHooks>;
@@ -23,6 +24,7 @@ export abstract class CommonSystem {
 
   readonly allKnownPages = new Set<string>();
   readonly spaceScriptCommands = new Map<string, AppCommand>();
+  scriptEnv: ScriptEnvironment = new ScriptEnvironment();
 
   constructor(
     protected mq: DataStoreMQ,
@@ -42,31 +44,74 @@ export abstract class CommonSystem {
       this.allKnownPages,
       this.system,
     );
-    const scriptEnv = new ScriptEnvironment();
     if (this.enableSpaceScript) {
+      this.scriptEnv = new ScriptEnvironment();
       try {
-        await scriptEnv.loadFromSystem(this.system);
+        await this.scriptEnv.loadFromSystem(this.system);
         console.log(
           "Loaded",
-          Object.keys(scriptEnv.functions).length,
+          Object.keys(this.scriptEnv.functions).length,
           "functions and",
-          Object.keys(scriptEnv.commands).length,
+          Object.keys(this.scriptEnv.commands).length,
           "commands from space-script",
         );
       } catch (e: any) {
         console.error("Error loading space-script:", e.message);
       }
-      functions = { ...functions, ...scriptEnv.functions };
+      functions = { ...functions, ...this.scriptEnv.functions };
 
       // Reset the space script commands
       this.spaceScriptCommands.clear();
-      for (const [name, command] of Object.entries(scriptEnv.commands)) {
+      for (const [name, command] of Object.entries(this.scriptEnv.commands)) {
         this.spaceScriptCommands.set(name, command);
       }
+
+      // Inject the registered events in the event hook
+      this.eventHook.scriptEnvironment = this.scriptEnv;
 
       this.commandHook.throttledBuildAllCommands();
     }
     // Swap in the expanded function map
     this.ds.functionMap = functions;
+  }
+
+  invokeSpaceFunction(name: string, args: any[]) {
+    return this.scriptEnv.functions[name](...args);
+  }
+
+  async applyAttributeExtractors(
+    tags: string[],
+    text: string,
+    tree: ParseTree,
+  ): Promise<
+    { attributes: Record<string, any>; text?: string; tree?: ParseTree }
+  > {
+    let resultingAttributes: Record<string, any> = {};
+    let newTree: ParseTree | undefined;
+    let newText: string | undefined;
+    for (const tag of tags) {
+      const extractors = this.scriptEnv.attributeExtractors[tag];
+      if (!extractors) {
+        continue;
+      }
+      for (const fn of extractors) {
+        const extractorResult = await fn(text, tree);
+        if (extractorResult) {
+          // Merge the attributes in
+          resultingAttributes = {
+            ...resultingAttributes,
+            ...extractorResult.attributes,
+          };
+          if (extractorResult.text) {
+            newText = extractorResult.text;
+          }
+          if (extractorResult.tree) {
+            newTree = extractorResult.tree;
+          }
+        }
+      }
+    }
+
+    return { attributes: resultingAttributes, text: newText, tree: newTree };
   }
 }
