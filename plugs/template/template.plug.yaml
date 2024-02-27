@@ -8,18 +8,21 @@ functions:
   cleanTemplate:
     path: api.ts:cleanTemplate
 
+  instantiatePageTemplate:
+    path: page.ts:instantiatePageTemplate
+
   # Indexing
   indexTemplate:
     path: index.ts:indexTemplate
     events:
-    # Special event only triggered for template pages
-    - page:indexTemplate
+      # Special event only triggered for template pages
+      - page:indexTemplate
 
   # Completion
   templateSlashCommand:
     path: snippet.ts:snippetSlashComplete
     events:
-    - slash:complete
+      - slash:complete
 
   insertSnippetTemplate:
     path: snippet.ts:insertSnippetTemplate
@@ -57,14 +60,13 @@ functions:
       key: "Alt-Shift-t"
       requireMode: rw
 
-
   # Lint
   lintTemplateFrontmatter:
     path: lint.ts:lintTemplateFrontmatter
     events:
-    - editor:lint
+      - editor:lint
 
   lintTemplateBlocks:
     path: lint.ts:lintTemplateBlocks
     events:
-    - editor:lint
+      - editor:lint
