@@ -39,7 +39,7 @@ Depending on where code is run (client or server), a slightly different JavaScri
 * `silverbullet.registerAttributeExtractor(def, callback)`: registers a custom attribute extractor.
 * `syscall(name, args...)`: invoke a syscall (see [[#Syscalls]]).
 
-Many useful standard JavaScript APIs are available, such as:
+Many standard JavaScript APIs are available, such as:
 
 * [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) (making fetch calls directly from the browser on the client, and via Deno’s fetch implementation on the server)
 * [Temporal](https://tc39.es/proposal-temporal/docs/) (implemented via a polyfill)
@@ -116,20 +116,37 @@ silverbullet.registerEventListener({name: "*"}, (event) => {
 });
 ```
 
+## Example
+Let’s say you want to automatically add a completion date to a task whenever you complete it, the [[Plugs/Tasks]] plug emits a `task:stateChange` event you can listen to:
+
+```space-script
+silverbullet.registerEventListener({name: "task:stateChange"}, async (event) => {
+  const {from, to, newState} = event.data;
+  if(newState !== " ") {
+    // Now dispatch an editor change to add the completion date at the end of the task
+    await syscall("editor.dispatch", {
+      changes: {
+        from: to, // insert at the end of the task
+        insert: " ✅ " + Temporal.Now.plainDateISO().toString(),
+      },
+    });
+  }
+});
+```
+
 # Custom attribute extractors
-SilverBullet indexes various types of content as [[Objects]]. There are various ways to define [[Attributes]] for these objects, such as the [attribute: my value] syntax. However, using space script you can write your own code to extract attribute values not natively supported.
+SilverBullet indexes various types of content as [[Objects]]. There are various ways to define [[Attributes]] for these objects, such as the [attribute: my value] syntax. However, using space script you can write your own code to extract attribute values not natively supported using the registerAttributeExtractor API.
 
 The `silverbullet.registerAttributeExtractor` API takes two arguments:
 
-* `def`, currently just one option:
-  * `tags`: Array of tags this extractor should be applied to, could be a built-in tag such as `item`, `page` or `task`, but also any custom tags you define
-* `callback`: the callback function to invoke (can be `async` or not). This callback is passed two arguments:
+* `def` with currently just one option:
+  * `tags`: Array of tags this extractor should be applied to, could be a built-in tag such as `item`, `page` or `task`, but also any custom tags you define.
+* `callback`: the callback function to invoke (can be `async` or not). This callback is passed the following arguments:
   * `text`: the text of the object to extract attributes for
-  * `tree`: the ParseTree of the object to extract attributes for (you can ignore this one if you don’t need it)
-  This callback should return an object of attribute mappings.
+  * return value: an object of attribute mappings, possibly overriding built-in ones.
 
 ## Example
-Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed:
+Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed and strip it from the task name. Here’s an example:
 
 * [x] I’ve done this ✅ 2024-02-27
 
@@ -141,11 +158,12 @@ silverbullet.registerAttributeExtractor({tags: ["task"]}, (text) => {
   const completionRegex = /✅\s*(\w{4}-\w{2}-\w{2})/;
   const match = completionRegex.exec(text);
   if (match) { 
-    // Let's customize the task name by stripping this completion date
-    // First strip the checkbox bit
+    // Let's patch the task name by stripping the completion date
+    // First strip the checkbox bit from the text
     let taskName = text.replace(/\[[^\]]+\]\s*/, "");
     // Then remove the completion date and clean it up
     taskName = taskName.replace(completionRegex, "").trim(); 
+    // That should be all
     return {
       name: taskName,
       completed: match[1]
@@ -153,8 +171,6 @@ silverbullet.registerAttributeExtractor({tags: ["task"]}, (text) => {
   }
 });
 ```
-
-Note that built-in attributes can also be overridden (like `name` in this case).
 
 Result:
 ```template
