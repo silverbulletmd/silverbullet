@@ -34,9 +34,6 @@ actionButtons:
 
 # Override keyboard shortcuts and command priority
 shortcuts:
-- command: "{[Stats: Show]}" # Using the command link syntax here
-  mac: "Cmd-s" # Mac-specific keyboard shortcut
-  key: "Ctrl-s" # Windows/Linux specific keyboard shortcut
 - command: "Navigate: Center Cursor" # But a command name is also supported
   key: "Alt-x"
 - command: "{[Upload: File]}"

@@ -2,16 +2,27 @@ import { editor, events, markdown } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { PublishEvent } from "$type/types.ts";
 
-export async function publishCommand() {
-  await editor.save();
+export async function publishShareOptions() {
   const text = await editor.getText();
-  const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
   let { $share } = await extractFrontmatter(tree);
   if (!$share) {
-    // Nothing to do here
-    return;
+    return [];
   }
+  if (!Array.isArray($share)) {
+    $share = [$share];
+  }
+  return [{
+    id: "publish",
+    name: `Publish to ${$share.map((s: string) => s.split(":")[0]).join(", ")}`,
+  }];
+}
+
+export async function publishShare() {
+  const pageName = await editor.getCurrentPage();
+  const text = await editor.getText();
+  const tree = await markdown.parseMarkdown(text);
+  let { $share } = await extractFrontmatter(tree);
   if (!Array.isArray($share)) {
     $share = [$share];
   }

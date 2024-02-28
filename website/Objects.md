@@ -147,7 +147,7 @@ link where page = @page.name
 ```
 
 ## anchor
-[[Anchors]] use the $myanchor notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
+[[Markdown/Anchors]] use the $myanchor notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
 
 Here is an example query:
 

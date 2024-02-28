@@ -25,6 +25,7 @@ functions:
       - editor:updated
       - editor:pageLoaded
       - editor:pageReloaded
+
   previewClickHandler:
     path: "./preview.ts:previewClickHandler"
     events:

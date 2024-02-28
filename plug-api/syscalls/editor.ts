@@ -199,3 +199,7 @@ export function unfoldAll() {
 export function openSearchPanel() {
   return syscall("editor.openSearchPanel");
 }
+
+export function copyToClipboard(data: string | Blob): Promise<void> {
+  return syscall("editor.copyToClipboard", data);
+}

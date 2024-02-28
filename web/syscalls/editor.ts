@@ -287,6 +287,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.openSearchPanel": () => {
       openSearchPanel(client.editorView);
     },
+    "editor.copyToClipboard": (_ctx, data: string | Blob) => {
+      if (typeof data === "string") {
+        navigator.clipboard.writeText(data);
+      } else {
+        navigator.clipboard.write([new ClipboardItem({ [data.type]: data })]);
+      }
+    },
   };
 
   return syscalls;

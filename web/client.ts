@@ -939,7 +939,7 @@ export class Client {
         viewState.showPrompt,
       ].some(Boolean)
     ) {
-      console.log("not focusing");
+      // console.log("not focusing");
       // Some other modal UI element is visible, don't focus editor now
       return;
     }

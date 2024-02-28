@@ -1,9 +1,33 @@
 name: share
 functions:
-  publishCommand:
-    path: publish.ts:publishCommand
+  shareCommand:
+    path: share.ts:shareCommand
     command:
-      name: "Share: Publish"
+      name: "Share: Page Or Selection"
       key: "Ctrl-s"
       mac: "Cmd-s"
-      requireMode: rw
+
+  clipboardShareOptions:
+    path: share.ts:clipboardShareOptions
+    events:
+    - share:options
+
+  clipboardMarkdownShare:
+    path: share.ts:clipboardMarkdownShare
+    events:
+    - share:clean-markdown
+
+  clipboardRichTextShare:
+    path: share.ts:clipboardRichTextShare
+    events:
+    - share:rich-text
+
+  publishShareOptions:
+    path: publish.ts:publishShareOptions
+    events:
+    - share:options
+
+  publishShare:
+    path: publish.ts:publishShare
+    events:
+    - share:publish
