@@ -145,6 +145,8 @@ The `silverbullet.registerAttributeExtractor` API takes two arguments:
   * `text`: the text of the object to extract attributes for
   * return value: an object of attribute mappings, possibly overriding built-in ones.
 
+Note that indexing happens on every page save. You have to run {[Space: Reindex]} to have the new attribute extractor apply across changes in your entire space.
+
 ## Example
 Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed and strip it from the task name. Here’s an example:
 
