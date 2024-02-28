@@ -1,7 +1,11 @@
 import { beforeEach, describe, it } from "$std/testing/bdd.ts";
 import { buildQueryFunctions } from "$common/query_functions.ts";
 import type { System } from "$lib/plugos/system.ts";
-import { assertEquals, assertRejects, assertThrows } from "$lib/test_deps.ts";
+import {
+  assertEquals,
+  assertRejects,
+  assertThrows,
+} from "$std/testing/asserts.ts";
 
 let functions: ReturnType<typeof buildQueryFunctions>;
 

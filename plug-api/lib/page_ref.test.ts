@@ -1,5 +1,5 @@
 import { encodePageRef, parsePageRef } from "./page_ref.ts";
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 
 Deno.test("Page utility functions", () => {
   // Base cases

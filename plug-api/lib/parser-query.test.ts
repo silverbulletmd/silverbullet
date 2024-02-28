@@ -1,6 +1,6 @@
 import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { AST, collectNodesOfType, parseTreeToAST } from "$sb/lib/tree.ts";
-import { assert, assertEquals } from "$lib/test_deps.ts";
+import { AST, collectNodesOfType, parseTreeToAST } from "./tree.ts";
+import { assert, assertEquals } from "$std/testing/asserts.ts";
 import { astToKvQuery } from "$sb/lib/parse-query.ts";
 import { languageFor } from "$common/languages.ts";
 

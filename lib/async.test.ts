@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "$lib/test_deps.ts";
+import { assert, assertEquals } from "$std/testing/asserts.ts";
 import { batchRequests, PromiseQueue, sleep } from "./async.ts";
 
 Deno.test("PromiseQueue test", async () => {

@@ -1,5 +1,5 @@
 import { DataStoreMQ } from "./mq.datastore.ts";
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { DenoKvPrimitives } from "./deno_kv_primitives.ts";
 import { DataStore } from "./datastore.ts";
 import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";

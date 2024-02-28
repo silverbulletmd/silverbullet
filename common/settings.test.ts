@@ -1,4 +1,4 @@
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { parseYamlSettings } from "./settings.ts";
 
 Deno.test("Settings regex", () => {

@@ -1,7 +1,7 @@
 import "$sb/lib/syscall_mock.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { renderToText } from "./tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
@@ -17,7 +17,7 @@ Top level attributes: [name:: sup] [age:: 42] [children: [pete, "john", mary]]
 
 const cleanedInlineAttributeSample = `
 # My document
-Top level attributes:   
+Top level attributes:
 
 * [ ] Attribute in a task [tag:: foo]
 * Regular item [tag:: bar]

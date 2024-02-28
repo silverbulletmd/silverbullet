@@ -2,7 +2,7 @@ import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import { compileManifest } from "$lib/plugos/compile.ts";
 import { esbuild } from "$lib/plugos/deps.ts";
 import assets from "../dist/plug_asset_bundle.json" assert { type: "json" };
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { path } from "$common/deps.ts";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { runPlug } from "./plug_run.ts";
