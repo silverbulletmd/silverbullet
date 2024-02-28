@@ -274,10 +274,14 @@ export class Client {
             console.error,
           );
         } else {
-          // This was the initial sync, let's mark a full index as completed
-          await markFullSpaceIndexComplete(this.stateDataStore);
-          // And load space scripts, which probably weren't loaded before
+          // Let's load space scripts, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
+          console.log(
+            "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom space script indexers",
+          );
+          ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
+            console.error,
+          );
         }
       }
       if (operations) {

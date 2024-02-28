@@ -10,15 +10,16 @@ export async function reindexCommand() {
   await editor.flashNotification("Done with page index!");
 }
 
-export async function reindexSpace() {
+export async function reindexSpace(noClear = false) {
   if (await system.getMode() === "ro") {
     console.info("Not reindexing because we're in read-only mode");
     return;
   }
-  console.log("Clearing page index...");
-  // Executed this way to not have to embed the search plug code here
-  await system.invokeFunction("index.clearIndex");
-
+  if (!noClear) {
+    console.log("Clearing page index...");
+    // Executed this way to not have to embed the search plug code here
+    await system.invokeFunction("index.clearIndex");
+  }
   // Load builtins
   await system.invokeFunction("index.loadBuiltinsIntoIndex");
 
