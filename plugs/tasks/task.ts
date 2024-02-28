@@ -1,6 +1,6 @@
 import type { ClickEvent, IndexTreeEvent } from "$type/types.ts";
 
-import { editor, markdown, space, sync } from "$sb/syscalls.ts";
+import { editor, events, markdown, space, sync } from "$sb/syscalls.ts";
 
 import {
   addParentPointers,
@@ -191,6 +191,13 @@ async function cycleTaskState(
       await updateTaskState(ref, stateText, changeTo);
     }
   }
+
+  await events.dispatchEvent("task:stateChange", {
+    from: node.parent!.from,
+    to: node.parent!.to,
+    newState: changeTo,
+    text: renderToText(node.parent),
+  });
 }
 
 export async function updateTaskState(
