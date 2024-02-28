@@ -42,6 +42,9 @@ export class ScriptEnvironment {
       );
       arg = { name: arg };
     }
+    if (this.functions[arg.name]) {
+      console.warn(`Function ${arg.name} already registered, overwriting`);
+    }
     this.functions[arg.name] = fn;
   }
 
