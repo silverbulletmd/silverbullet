@@ -10,6 +10,9 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Better sizing of the top bar (was buggy before and poorly implemented) (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/753))
 * Hashtag can now contain more different characters, including emoji (by [Matthew Pietz](https://github.com/silverbulletmd/silverbullet/pull/752))
 * New [[Space Script]] APIs: `registerAttributeExtractor` and `registerEventListener`
+* [[Plugs/Share]] using the {[Share: Page Or Selection]} command (bound to Ctrl-s/Cmd-s by default): allowing you to quickly share the current page (or selection) to the clipboard as:
+  * Clean markdown (to paste into other markdown supporting tools)
+  * Rich text (to paste into unenlightened rich text tools like Google Docs, Confluence, Word etc.)
 
 ---
 
