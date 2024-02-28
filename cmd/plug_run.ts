@@ -64,7 +64,7 @@ export async function plugRunCommand(
 export async function runPlug(
   spacePath: string,
   functionName: string | undefined,
-  args: string[] = [],
+  args: any[] = [],
   builtinAssetBundle: AssetBundle,
   kvPrimitives: KvPrimitives,
   httpServerPort?: number,

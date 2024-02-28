@@ -100,11 +100,21 @@ export async function serveCommand(
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
 
   if (readOnly) {
-    console.log("Indexing the space first. Hang on...");
+    console.log("Performing initial space indexing...");
     await runPlug(
       folder,
       "index.reindexSpace",
       [],
+      plugAssets,
+      new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
+    );
+    console.log(
+      "Now indexing again to make sure any additional space script indexers are run...",
+    );
+    await runPlug(
+      folder,
+      "index.reindexSpace",
+      [true], // noClear
       plugAssets,
       new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
     );
