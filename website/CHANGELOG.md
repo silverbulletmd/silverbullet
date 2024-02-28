@@ -6,7 +6,10 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing yet since 0.7.3
+* Various improvements in tests and input checks (by Maks [here](https://github.com/silverbulletmd/silverbullet/pull/754) and [here](https://github.com/silverbulletmd/silverbullet/pull/751))
+* Better sizing of the top bar (was buggy before and poorly implemented) (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/753))
+* Hashtag can now contain more different characters, including emoji (by [Matthew Pietz](https://github.com/silverbulletmd/silverbullet/pull/752))
+* New [[Space Script]] APIs: `registerAttributeExtractor` and `registerEventListener`
 
 ---
 
