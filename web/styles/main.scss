@@ -74,20 +74,25 @@ body {
         padding: 0 20px;
         display: flex;
         box-sizing: border-box;
-      }
+        position: relative;
 
-      .sb-notifications {
-        float: right;
-        margin-top: 8px;
-        font-size: 15px;
-        z-index: 100;
+        .sb-notifications {
+          position: absolute;
+          right: 20px;
+          top: 50px;
 
-        >div {
-          padding: 3px;
-          margin-bottom: 3px;
-          border-radius: 5px;
+          font-size: 15px;
+          z-index: 100;
+
+          >div {
+            padding: 3px;
+            margin-bottom: 3px;
+            border-radius: 5px;
+          }
         }
+
       }
+
     }
 
     #sb-current-page {
