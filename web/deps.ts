@@ -1,5 +1,3 @@
-export * from "$common/deps.ts";
-
 export {
   history,
   historyKeymap,

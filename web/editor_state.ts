@@ -18,13 +18,13 @@ import {
   keymap,
   LanguageDescription,
   LanguageSupport,
-  markdown,
   standardKeymap,
   syntaxHighlighting,
   ViewPlugin,
   ViewUpdate,
   vim,
 } from "./deps.ts";
+import { markdown } from "@codemirror/lang-markdown";
 import { Client } from "./client.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";

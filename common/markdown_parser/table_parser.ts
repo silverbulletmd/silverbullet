@@ -5,8 +5,8 @@ import {
   LeafBlockParser,
   Line,
   MarkdownConfig,
-  tags as t,
-} from "../deps.ts";
+} from "@lezer/markdown";
+import { tags as t } from "@lezer/highlight";
 
 // Forked from https://github.com/lezer-parser/markdown/blob/main/src/extension.ts
 // MIT License

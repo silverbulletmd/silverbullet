@@ -1,4 +1,5 @@
-import { Decoration, NodeType, syntaxTree, WidgetType } from "../deps.ts";
+import { Decoration, syntaxTree, WidgetType } from "../deps.ts";
+import { NodeType } from "@lezer/common";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 /**

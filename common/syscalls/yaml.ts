@@ -1,5 +1,5 @@
 import { SysCallMapping } from "../../lib/plugos/system.ts";
-import { YAML } from "../../web/deps.ts";
+import YAML from "js-yaml";
 
 type YamlStringifyOptions = {
   /** indentation width to use (in spaces). */

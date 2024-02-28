@@ -1,25 +1,24 @@
 import { commandLinkRegex } from "../command.ts";
+import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
+import { styleTags, Tag, tags as t } from "@lezer/highlight";
 import {
   BlockContext,
   LeafBlock,
   LeafBlockParser,
   Line,
-  markdown,
   MarkdownConfig,
-  StreamLanguage,
   Strikethrough,
-  styleTags,
-  Tag,
-  tags as t,
-  yamlLanguage,
-} from "../deps.ts";
+} from "@lezer/markdown";
+import { markdown } from "@codemirror/lang-markdown";
+import { StreamLanguage } from "@codemirror/language";
 import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 
 export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 
-export const tagRegex = /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
+export const tagRegex =
+  /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [

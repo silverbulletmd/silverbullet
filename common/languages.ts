@@ -1,39 +1,42 @@
 import { LRLanguage } from "@codemirror/language";
+import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
 import {
-  cLanguage,
-  cppLanguage,
-  csharpLanguage,
-  dartLanguage,
-  htmlLanguage,
-  javaLanguage,
+  pgSQL as postgresqlLanguage,
+  standardSQL as sqlLanguage,
+} from "@codemirror/legacy-modes/mode/sql?external=@codemirror/language&target=es2022";
+import { rust as rustLanguage } from "@codemirror/legacy-modes/mode/rust?external=@codemirror/language&target=es2022";
+import { python as pythonLanguage } from "@codemirror/legacy-modes/mode/python?external=@codemirror/language&target=es2022";
+import { protobuf as protobufLanguage } from "@codemirror/legacy-modes/mode/protobuf?external=@codemirror/language&target=es2022";
+import { shell as shellLanguage } from "@codemirror/legacy-modes/mode/shell?external=@codemirror/language&target=es2022";
+import { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?external=@codemirror/language&target=es2022";
+import { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
+import { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
+import { htmlLanguage } from "@codemirror/lang-html";
+import { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@codemirror/language&target=es2022";
+import { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff?external=@codemirror/language&target=es2022";
+import { powerShell as powerShellLanguage } from "@codemirror/legacy-modes/mode/powershell?external=@codemirror/language&target=es2022";
+import { perl as perlLanguage } from "@codemirror/legacy-modes/mode/perl?external=@codemirror/language&target=es2022";
+import { tcl as tclLanguage } from "@codemirror/legacy-modes/mode/tcl?external=@codemirror/language&target=es2022";
+import { verilog as verilogLanguage } from "@codemirror/legacy-modes/mode/verilog?external=@codemirror/language&target=es2022";
+import { vhdl as vhdlLanguage } from "@codemirror/legacy-modes/mode/vhdl?external=@codemirror/language&target=es2022";
+import { dockerFile as dockerfileLanguage } from "@codemirror/legacy-modes/mode/dockerfile?external=@codemirror/language&target=es2022";
+import { cmake as cmakeLanguage } from "@codemirror/legacy-modes/mode/cmake?external=@codemirror/language&target=es2022";
+import {
+  c as cLanguage,
+  cpp as cppLanguage,
+  csharp as csharpLanguage,
+  dart as dartLanguage,
+  java as javaLanguage,
+  kotlin as kotlinLanguage,
+  objectiveC as objectiveCLanguage,
+  objectiveCpp as objectiveCppLanguage,
+  scala as scalaLanguage,
+} from "@codemirror/legacy-modes/mode/clike?external=@codemirror/language&target=es2022";
+import { Language, StreamLanguage } from "@codemirror/language";
+import {
   javascriptLanguage,
-  jsonLanguage,
-  kotlinLanguage,
-  Language,
-  objectiveCLanguage,
-  objectiveCppLanguage,
-  postgresqlLanguage,
-  protobufLanguage,
-  pythonLanguage,
-  rustLanguage,
-  scalaLanguage,
-  shellLanguage,
-  sqlLanguage,
-  StreamLanguage,
-  tomlLanguage,
   typescriptLanguage,
-  xmlLanguage,
-  yamlLanguage,
-  goLanguage,
-  diffLanguage,
-  powerShellLanguage,
-  perlLanguage,
-  tclLanguage,
-  verilogLanguage,
-  vhdlLanguage,
-  dockerfileLanguage,
-  cmakeLanguage,
-} from "./deps.ts";
+} from "@codemirror/lang-javascript";
 import {
   extendedMarkdownLanguage,
   highlightingExpressionParser,

@@ -1,5 +1,6 @@
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
-import type { Language, SyntaxNode } from "../deps.ts";
+import type { SyntaxNode } from "@lezer/common";
+import type { Language } from "@codemirror/language";
 
 export function lezerToParseTree(
   text: string,

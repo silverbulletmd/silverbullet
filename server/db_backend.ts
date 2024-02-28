@@ -1,7 +1,7 @@
 import { DenoKvPrimitives } from "$lib/data/deno_kv_primitives.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
-import { path } from "./deps.ts";
+import { resolve } from "$std/path/mod.ts";
 
 /**
  * Environment variables:
@@ -20,7 +20,7 @@ export async function determineDatabaseBackend(
 
       if (singleTenantFolder) {
         // If we're running in single tenant mode, we may as well use the tenant's space folder to keep the database
-        dbFile = path.resolve(singleTenantFolder, dbFile);
+        dbFile = resolve(singleTenantFolder, dbFile);
       }
 
       if (Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined) { // We're running in Deno Deploy

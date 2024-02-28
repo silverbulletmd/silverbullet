@@ -21,6 +21,7 @@
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands&target=es2022",
     "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.0.14?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
 
+    "@js-temporal/polyfill": "https://esm.sh/@js-temporal/polyfill@0.4.4",
     "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.3/",
     "croner": "https://deno.land/x/croner@4.4.1/src/croner.js",
     "denosass": "https://deno.land/x/denosass@1.0.4/mod.ts",

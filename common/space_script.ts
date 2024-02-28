@@ -2,6 +2,14 @@ import { System } from "../lib/plugos/system.ts";
 import { ParseTree } from "../plug-api/lib/tree.ts";
 import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "./hooks/command.ts";
+import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
+
+// @ts-ignore: temporal polygifill
+Date.prototype.toTemporalInstant = toTemporalInstant;
+// @ts-ignore: Temporal polyfill
+globalThis.Temporal = Temporal;
+// @ts-ignore: Intl polyfill
+globalThis.Intl = Intl;
 
 type FunctionDef = {
   name: string;

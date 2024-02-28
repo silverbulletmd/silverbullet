@@ -12,7 +12,7 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { System } from "$lib/plugos/system.ts";
 import { BuiltinSettings } from "../type/web.ts";
 import { JWTIssuer } from "./crypto.ts";
-import { gitIgnoreCompiler } from "./deps.ts";
+import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import { ShellBackend } from "./shell_backend.ts";

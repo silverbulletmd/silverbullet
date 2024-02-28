@@ -2,10 +2,10 @@ import {
   Decoration,
   EditorState,
   EditorView,
-  SyntaxNodeRef,
   syntaxTree,
   WidgetType,
 } from "../deps.ts";
+import { SyntaxNodeRef } from "@lezer/common";
 import { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 

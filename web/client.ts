@@ -4,10 +4,10 @@ import {
   CompletionContext,
   CompletionResult,
   EditorView,
-  gitIgnoreCompiler,
-  SyntaxNode,
   syntaxTree,
 } from "./deps.ts";
+import { compile as gitIgnoreCompiler } from "gitignore-parser";
+import { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
 import { FilterOption } from "../type/web.ts";
 import { EventHook } from "../common/hooks/event.ts";

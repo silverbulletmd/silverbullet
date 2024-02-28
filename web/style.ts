@@ -1,5 +1,5 @@
 import { HighlightStyle } from "./deps.ts";
-import { tagHighlighter, tags as t } from "./deps.ts";
+import { tagHighlighter, tags as t } from "@lezer/highlight";
 import * as ct from "$common/markdown_parser/customtags.ts";
 
 export default function highlightStyles() {
