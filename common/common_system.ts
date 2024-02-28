@@ -76,7 +76,11 @@ export abstract class CommonSystem {
   }
 
   invokeSpaceFunction(name: string, args: any[]) {
-    return this.scriptEnv.functions[name](...args);
+    const fn = this.scriptEnv.functions[name];
+    if (!fn) {
+      throw new Error(`Function ${name} not found`);
+    }
+    return fn(...args);
   }
 
   async applyAttributeExtractors(
