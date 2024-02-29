@@ -8,7 +8,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 
 * Nothing yet since 0.7.4, be patient!
 
-## 0.7.4
+## 0.7.5
 * [[Plugs/Share]] using the {[Share: Page Or Selection]} command (bound to Ctrl-s/Cmd-s by default): allowing you to quickly share the current page (or selection) to the clipboard as:
   * Clean markdown (to paste into other markdown supporting tools)
   * Rich text (to paste into unenlightened rich text tools like Google Docs, Confluence, Word etc.)
