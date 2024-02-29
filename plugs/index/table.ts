@@ -1,7 +1,10 @@
-import { IndexTreeEvent, ObjectValue } from "$type/types.ts";
-import { collectNodesMatching, ParseTree } from "$lib/tree.ts";
+import { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import {
+  collectNodesMatching,
+  collectNodesOfType,
+  ParseTree,
+} from "$sb/lib/tree.ts";
 import { indexObjects } from "./api.ts";
-import { collectNodesOfType } from "$lib/tree.ts";
 
 type TableRowObject =
   & ObjectValue<{

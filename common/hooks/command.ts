@@ -1,7 +1,7 @@
 import { Hook, Manifest } from "../../lib/plugos/types.ts";
 import { System } from "../../lib/plugos/system.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
-import { ObjectValue } from "../../type/types.ts";
+import { ObjectValue } from "../../plug-api/types.ts";
 import {
   FrontmatterConfig,
   SnippetConfig,

@@ -1,4 +1,4 @@
-import { CompleteEvent } from "$type/types.ts";
+import { CompleteEvent } from "../../plug-api/types.ts";
 import { events, language } from "$sb/syscalls.ts";
 import {
   AttributeCompleteEvent,

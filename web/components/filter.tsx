@@ -10,7 +10,7 @@ import {
 import { FilterOption } from "../../type/web.ts";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../fuse_search.ts";
-import { deepEqual } from "$lib/json.ts";
+import { deepEqual } from "../../plug-api/lib/json.ts";
 
 export function FilterList({
   placeholder,

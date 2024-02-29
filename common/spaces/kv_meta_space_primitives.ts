@@ -1,4 +1,4 @@
-import { FileMeta } from "$type/types.ts";
+import { FileMeta } from "../../plug-api/types.ts";
 import { mime } from "mimetypes";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { SpacePrimitives } from "./space_primitives.ts";

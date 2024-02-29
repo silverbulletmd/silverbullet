@@ -1,4 +1,4 @@
-import { FileMeta } from "../../type/types.ts";
+import { FileMeta } from "../../plug-api/types.ts";
 import {
   base32Decode,
   base32Encode,

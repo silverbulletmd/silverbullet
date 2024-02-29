@@ -6,7 +6,7 @@ import {
   removeParentPointers,
   renderToText,
   traverseTree,
-} from "$lib/tree.ts";
+} from "../../plug-api/lib/tree.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
 

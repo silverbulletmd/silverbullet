@@ -3,7 +3,7 @@ import {
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
-} from "$lib/tree.ts";
+} from "../../plug-api/lib/tree.ts";
 import { codeWidget } from "$sb/syscalls.ts";
 import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {

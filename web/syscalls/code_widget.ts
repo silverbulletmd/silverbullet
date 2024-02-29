@@ -1,4 +1,4 @@
-import { CodeWidgetContent } from "../../type/types.ts";
+import { CodeWidgetContent } from "../../plug-api/types.ts";
 import { SysCallMapping } from "../../lib/plugos/system.ts";
 import { CodeWidgetHook } from "../hooks/code_widget.ts";
 

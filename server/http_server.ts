@@ -8,7 +8,7 @@ import {
   setCookie,
 } from "./deps.ts";
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import { FileMeta } from "$type/types.ts";
+import { FileMeta } from "../plug-api/types.ts";
 import { ShellRequest } from "../type/rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";

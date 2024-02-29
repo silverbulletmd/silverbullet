@@ -1,11 +1,11 @@
 import { FilterList } from "./filter.tsx";
 import { FilterOption } from "../../type/web.ts";
 import { CompletionContext, CompletionResult } from "../deps.ts";
-import { PageMeta } from "../../type/types.ts";
+import { PageMeta } from "../../plug-api/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
-const tagRegex = new RegExp(mdTagRegex.source, "g")
+const tagRegex = new RegExp(mdTagRegex.source, "g");
 
 export function PageNavigator({
   allPages,

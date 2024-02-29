@@ -1,12 +1,12 @@
-import type { CompleteEvent, IndexTreeEvent } from "$type/types.ts";
+import type { CompleteEvent, IndexTreeEvent } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import {
   addParentPointers,
   collectNodesOfType,
   findParentMatching,
-} from "$lib/tree.ts";
-import type { ObjectValue } from "../../type/types.ts";
+} from "$sb/lib/tree.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 
 export type TagObject = ObjectValue<{
   name: string;

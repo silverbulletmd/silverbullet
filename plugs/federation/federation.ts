@@ -2,7 +2,7 @@ import "$sb/lib/native_fetch.ts";
 import { federatedPathToUrl } from "$sb/lib/resolve.ts";
 import { readFederationConfigs } from "./config.ts";
 import { datastore } from "$sb/syscalls.ts";
-import type { FileMeta } from "../../type/types.ts";
+import type { FileMeta } from "../../plug-api/types.ts";
 
 async function responseToFileMeta(
   r: Response,

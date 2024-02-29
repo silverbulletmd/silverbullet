@@ -1,4 +1,4 @@
-import { WidgetContent } from "$type/types.ts";
+import { WidgetContent } from "../../plug-api/types.ts";
 import { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
 

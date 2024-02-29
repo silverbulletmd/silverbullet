@@ -1,4 +1,4 @@
-import { CompleteEvent } from "$type/types.ts";
+import { CompleteEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { TaskStateObject } from "./task.ts";
 

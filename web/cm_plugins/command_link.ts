@@ -1,4 +1,4 @@
-import { ClickEvent } from "$type/types.ts";
+import { ClickEvent } from "../../plug-api/types.ts";
 import { Decoration, syntaxTree } from "../deps.ts";
 import { Client } from "../client.ts";
 import {

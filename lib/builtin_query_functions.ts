@@ -1,4 +1,4 @@
-import type { FunctionMap } from "../type/types.ts";
+import type { FunctionMap } from "../plug-api/types.ts";
 import { niceDate, niceTime } from "./dates.ts";
 
 export const builtinFunctions: FunctionMap = {

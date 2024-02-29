@@ -1,7 +1,7 @@
-import type { CompleteEvent } from "$type/types.ts";
+import type { CompleteEvent } from "../../plug-api/types.ts";
 import { events } from "$sb/syscalls.ts";
 import { queryObjects } from "./api.ts";
-import { ObjectValue, QueryExpression } from "../../type/types.ts";
+import { ObjectValue, QueryExpression } from "../../plug-api/types.ts";
 import { determineTags } from "$lib/cheap_yaml.ts";
 
 export type AttributeObject = ObjectValue<{

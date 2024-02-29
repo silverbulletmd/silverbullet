@@ -4,8 +4,8 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
   traverseTreeAsync,
-} from "$lib/tree.ts";
-import { expandPropertyNames } from "$lib/json.ts";
+} from "./tree.ts";
+import { expandPropertyNames } from "./json.ts";
 import { YAML } from "$sb/syscalls.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;

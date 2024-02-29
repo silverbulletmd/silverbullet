@@ -1,5 +1,5 @@
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { FileMeta } from "../../type/types.ts";
+import { FileMeta } from "../../plug-api/types.ts";
 import {
   NamespaceOperation,
   PlugNamespaceHook,

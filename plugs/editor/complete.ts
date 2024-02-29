@@ -1,4 +1,4 @@
-import { CompleteEvent, FileMeta, PageMeta } from "$type/types.ts";
+import { CompleteEvent, FileMeta, PageMeta } from "../../plug-api/types.ts";
 import { cacheFileListing } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 

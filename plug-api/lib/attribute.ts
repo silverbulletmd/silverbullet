@@ -3,7 +3,7 @@ import {
   ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
-} from "$lib/tree.ts";
+} from "./tree.ts";
 
 import { system, YAML } from "$sb/syscalls.ts";
 

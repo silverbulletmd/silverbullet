@@ -1,13 +1,13 @@
-import type { IndexTreeEvent } from "$type/types.ts";
+import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import {
   collectNodesOfType,
   findParentMatching,
   renderToText,
   traverseTreeAsync,
-} from "$lib/tree.ts";
+} from "../../plug-api/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { ObjectValue } from "$type/types.ts";
+import { ObjectValue } from "../../plug-api/types.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 

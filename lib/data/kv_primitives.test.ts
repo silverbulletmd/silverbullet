@@ -1,6 +1,6 @@
 import { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "$lib/test_deps.ts";
-import { KV } from "$type/types.ts";
+import { KV } from "../../plug-api/types.ts";
 
 export async function allTests(db: KvPrimitives) {
   await db.batchSet([

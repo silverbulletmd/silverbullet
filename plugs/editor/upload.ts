@@ -1,5 +1,5 @@
 import { editor, space } from "$sb/syscalls.ts";
-import { UploadFile } from "$type/types.ts";
+import { UploadFile } from "../../plug-api/types.ts";
 
 const maximumAttachmentSize = 1024 * 1024 * 10; // 10MB
 

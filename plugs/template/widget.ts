@@ -1,8 +1,8 @@
 import { markdown, space, YAML } from "$sb/syscalls.ts";
 import { loadPageObject, replaceTemplateVars } from "./page.ts";
-import { CodeWidgetContent, PageMeta } from "$type/types.ts";
+import { CodeWidgetContent, PageMeta } from "../../plug-api/types.ts";
 import { renderTemplate } from "./plug_api.ts";
-import { renderToText } from "$lib/tree.ts";
+import { renderToText } from "$sb/lib/tree.ts";
 import { rewritePageRefs, rewritePageRefsInString } from "$sb/lib/resolve.ts";
 import { queryParsed } from "../query/api.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";

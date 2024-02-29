@@ -1,11 +1,15 @@
-import type { IndexTreeEvent } from "$type/types.ts";
+import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
 
-import type { LintDiagnostic, PageMeta } from "../../type/types.ts";
+import type { LintDiagnostic, PageMeta } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { indexObjects } from "./api.ts";
-import { findNodeOfType, renderToText, traverseTreeAsync } from "$lib/tree.ts";
+import {
+  findNodeOfType,
+  renderToText,
+  traverseTreeAsync,
+} from "../../plug-api/lib/tree.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {

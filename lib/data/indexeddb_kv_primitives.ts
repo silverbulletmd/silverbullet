@@ -1,4 +1,4 @@
-import { KV, KvKey } from "$type/types.ts";
+import { KV, KvKey } from "../../plug-api/types.ts";
 import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { IDBPDatabase, openDB } from "https://esm.sh/idb@7.1.1/with-async-ittr";
 

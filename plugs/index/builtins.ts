@@ -1,7 +1,7 @@
-import { ObjectValue } from "../../type/types.ts";
+import { ObjectValue } from "../../plug-api/types.ts";
 import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
-import { QueryProviderEvent } from "$type/types.ts";
+import { QueryProviderEvent } from "../../plug-api/types.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 

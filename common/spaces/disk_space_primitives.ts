@@ -2,7 +2,7 @@ import * as path from "https://deno.land/std@0.189.0/path/mod.ts";
 import { readAll } from "https://deno.land/std@0.165.0/streams/conversion.ts";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import { FileMeta } from "$type/types.ts";
+import { FileMeta } from "../../plug-api/types.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";

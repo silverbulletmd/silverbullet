@@ -1,5 +1,9 @@
 import { parse } from "./parse_tree.ts";
-import { collectNodesOfType, findNodeOfType, renderToText } from "$lib/tree.ts";
+import {
+  collectNodesOfType,
+  findNodeOfType,
+  renderToText,
+} from "$sb/lib/tree.ts";
 import { assertEquals, assertNotEquals } from "$lib/test_deps.ts";
 import { extendedMarkdownLanguage } from "./parser.ts";
 

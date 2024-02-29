@@ -1,4 +1,4 @@
-import { KvKey } from "../../type/types.ts";
+import { KvKey } from "../../plug-api/types.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { Client } from "../client.ts";
 

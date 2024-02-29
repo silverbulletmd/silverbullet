@@ -1,6 +1,9 @@
 import { WidgetType } from "../deps.ts";
 import type { Client } from "../client.ts";
-import type { CodeWidgetButton, CodeWidgetCallback } from "../../type/types.ts";
+import type {
+  CodeWidgetButton,
+  CodeWidgetCallback,
+} from "../../plug-api/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";

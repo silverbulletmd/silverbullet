@@ -1,4 +1,4 @@
-import { findNodeOfType, traverseTree } from "$lib/tree.ts";
+import { findNodeOfType, traverseTree } from "$sb/lib/tree.ts";
 import { markdown, space, YAML } from "$sb/syscalls.ts";
 
 export async function readCodeBlockPage(

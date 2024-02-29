@@ -1,4 +1,4 @@
-import type { ClickEvent, IndexTreeEvent } from "$type/types.ts";
+import type { ClickEvent, IndexTreeEvent } from "../../plug-api/types.ts";
 
 import { editor, events, markdown, space, sync } from "$sb/syscalls.ts";
 
@@ -13,11 +13,11 @@ import {
   renderToText,
   replaceNodesMatching,
   traverseTreeAsync,
-} from "$lib/tree.ts";
+} from "../../plug-api/lib/tree.ts";
 import { niceDate } from "$lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "$type/types.ts";
+import { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

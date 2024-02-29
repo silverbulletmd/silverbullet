@@ -1,4 +1,4 @@
-import { nodeAtPos } from "$lib/tree.ts";
+import { nodeAtPos } from "../../plug-api/lib/tree.ts";
 import { editor, events, markdown } from "$sb/syscalls.ts";
 import { extractYoutubeVideoId } from "./embed.ts";
 

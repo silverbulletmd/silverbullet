@@ -3,7 +3,10 @@ import { System } from "../../lib/plugos/system.ts";
 import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
 import { Client } from "../client.ts";
 import { syntaxTree } from "../deps.ts";
-import { SlashCompletionOption, SlashCompletions } from "$type/types.ts";
+import {
+  SlashCompletionOption,
+  SlashCompletions,
+} from "../../plug-api/types.ts";
 import { safeRun } from "$lib/async.ts";
 
 export type SlashCommandDef = {

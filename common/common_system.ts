@@ -10,7 +10,7 @@ import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
 import { SlashCommandHook } from "../web/hooks/slash_command.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { ParseTree } from "$lib/tree.ts";
+import { ParseTree } from "../plug-api/lib/tree.ts";
 
 export abstract class CommonSystem {
   system!: System<SilverBulletHooks>;

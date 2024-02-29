@@ -2,7 +2,7 @@ import {
   findNodeOfType,
   renderToText,
   replaceNodesMatching,
-} from "$lib/tree.ts";
+} from "$sb/lib/tree.ts";
 import { markdown } from "$sb/syscalls.ts";
 
 export function encodePageUrl(name: string): string {

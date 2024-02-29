@@ -1,4 +1,4 @@
-import { FunctionMap, QueryExpression } from "../../type/types.ts";
+import { FunctionMap, QueryExpression } from "../types.ts";
 
 export function evalQueryExpression(
   val: QueryExpression,

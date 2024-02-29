@@ -1,6 +1,6 @@
 import { syscall } from "../syscall.ts";
 
-import type { ParseTree } from "$lib/tree.ts";
+import type { ParseTree } from "../lib/tree.ts";
 
 /**
  * Parses a piece of code using any of the supported SB languages, see `common/languages.ts` for a list

@@ -2,7 +2,7 @@ import {
   CompleteEvent,
   SlashCompletionOption,
   SlashCompletions,
-} from "$type/types.ts";
+} from "../../plug-api/types.ts";
 import { editor, markdown, space } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";

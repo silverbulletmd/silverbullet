@@ -1,6 +1,6 @@
 import { editor, events, markdown } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { PublishEvent } from "$type/types.ts";
+import { PublishEvent } from "../../plug-api/types.ts";
 
 export async function publishShareOptions() {
   const text = await editor.getText();

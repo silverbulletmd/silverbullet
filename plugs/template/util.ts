@@ -1,4 +1,4 @@
-import { PageMeta } from "../../type/types.ts";
+import { PageMeta } from "../../plug-api/types.ts";
 import { space, template } from "$sb/syscalls.ts";
 import { cleanTemplate } from "./plug_api.ts";
 

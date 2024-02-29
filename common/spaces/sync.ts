@@ -1,6 +1,6 @@
 import { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
-import { FileMeta } from "../../type/types.ts";
+import { FileMeta } from "../../plug-api/types.ts";
 import { plugPrefix } from "./constants.ts";
 
 type SyncHash = number;

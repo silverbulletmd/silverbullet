@@ -1,5 +1,5 @@
-import { FunctionMap } from "$type/types.ts";
-import { AST } from "$lib/tree.ts";
+import { FunctionMap } from "../../plug-api/types.ts";
+import { AST } from "../../plug-api/lib/tree.ts";
 import { SysCallMapping } from "$lib/plugos/system.ts";
 import { renderTemplate } from "$common/template/render.ts";
 import { parseTemplate } from "$common/template/template_parser.ts";

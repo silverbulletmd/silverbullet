@@ -1,5 +1,5 @@
 import { system } from "$sb/syscalls.ts";
-import { CompleteEvent } from "$type/types.ts";
+import { CompleteEvent } from "../../plug-api/types.ts";
 
 export async function commandComplete(completeEvent: CompleteEvent) {
   const match = /\{\[([^\]\[]*)$/.exec(completeEvent.linePrefix);

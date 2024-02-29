@@ -5,8 +5,8 @@ import {
   KvQuery,
   ObjectQuery,
   ObjectValue,
-} from "../../type/types.ts";
-import { QueryProviderEvent } from "$type/types.ts";
+} from "../../plug-api/types.ts";
+import { QueryProviderEvent } from "../../plug-api/types.ts";
 import { builtins } from "./builtins.ts";
 import { determineType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";

@@ -20,7 +20,11 @@ import {
 
 import { AppViewState, BuiltinSettings } from "../type/web.ts";
 
-import type { AppEvent, CompleteEvent, SlashCompletions } from "$type/types.ts";
+import type {
+  AppEvent,
+  CompleteEvent,
+  SlashCompletions,
+} from "../plug-api/types.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
@@ -41,7 +45,7 @@ import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { CodeWidgetButton, FileMeta, PageMeta } from "../type/types.ts";
+import { CodeWidgetButton, FileMeta, PageMeta } from "../plug-api/types.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";

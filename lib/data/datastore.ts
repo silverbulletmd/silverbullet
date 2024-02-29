@@ -1,5 +1,5 @@
 import { applyQueryNoFilterKV } from "$sb/lib/query.ts";
-import { FunctionMap, KV, KvKey, KvQuery } from "$type/types.ts";
+import { FunctionMap, KV, KvKey, KvQuery } from "../../plug-api/types.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { KvPrimitives } from "./kv_primitives.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";

@@ -4,7 +4,7 @@ import type { ClientOptions } from "https://deno.land/x/s3_lite_client@0.4.0/cli
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { mime } from "../deps.ts";
-import { KV, KvKey } from "$type/types.ts";
+import { KV, KvKey } from "../../plug-api/types.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 
 export type S3SpacePrimitivesOptions = ClientOptions;

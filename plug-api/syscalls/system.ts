@@ -1,6 +1,6 @@
 import type { CommandDef } from "$common/hooks/command.ts";
-import type { SyscallMeta } from "$type/types.ts";
-import type { ParseTree } from "$lib/tree.ts";
+import type { SyscallMeta } from "../types.ts";
+import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
 
 export function invokeFunction(

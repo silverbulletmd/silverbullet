@@ -32,7 +32,7 @@ import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "$common/space_index.ts";
-import { FileMeta } from "$type/types.ts";
+import { FileMeta } from "../plug-api/types.ts";
 import { CommandHook } from "$common/hooks/command.ts";
 import { CommonSystem } from "$common/common_system.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";

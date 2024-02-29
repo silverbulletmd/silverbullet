@@ -1,4 +1,8 @@
-import { MQMessage, MQStats, MQSubscribeOptions } from "$type/types.ts";
+import {
+  MQMessage,
+  MQStats,
+  MQSubscribeOptions,
+} from "../../plug-api/types.ts";
 
 export interface MessageQueue {
   batchSend(queue: string, bodies: any[]): Promise<void>;

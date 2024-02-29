@@ -7,7 +7,11 @@ import TurndownService from "turndown";
 // With tables and task notation as well
 import { tables, taskListItems } from "turndown-plugin-gfm";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
-import { addParentPointers, findParentMatching, nodeAtPos } from "$lib/tree.ts";
+import {
+  addParentPointers,
+  findParentMatching,
+  nodeAtPos,
+} from "../../plug-api/lib/tree.ts";
 import { folderName, resolve } from "$lib/path.ts";
 import { maximumAttachmentSize } from "../constants.ts";
 import { safeRun } from "$lib/async.ts";

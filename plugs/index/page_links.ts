@@ -1,8 +1,8 @@
-import { findNodeOfType, renderToText, traverseTree } from "$lib/tree.ts";
-import { IndexTreeEvent } from "$type/types.ts";
+import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
+import { IndexTreeEvent } from "../../plug-api/types.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { ObjectValue } from "$type/types.ts";
+import { ObjectValue } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";

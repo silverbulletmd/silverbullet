@@ -1,5 +1,5 @@
 import { syscall } from "$sb/syscall.ts";
-import type { MQStats } from "$type/types.ts";
+import type { MQStats } from "../types.ts";
 
 export function send(queue: string, body: any) {
   return syscall("mq.send", queue, body);

@@ -8,10 +8,10 @@ import {
   ParseTree,
   removeParentPointers,
   renderToText,
-} from "$lib/tree.ts";
+} from "$sb/lib/tree.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
-import { CodeWidgetContent } from "$type/types.ts";
+import { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
 import { ChangeSpec } from "../../web/deps.ts";

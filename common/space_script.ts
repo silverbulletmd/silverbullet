@@ -1,5 +1,5 @@
 import { System } from "../lib/plugos/system.ts";
-import { ParseTree } from "$lib/tree.ts";
+import { ParseTree } from "../plug-api/lib/tree.ts";
 import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "./hooks/command.ts";
 

@@ -1,7 +1,7 @@
-import { FunctionMap } from "../type/types.ts";
+import { FunctionMap } from "../plug-api/types.ts";
 import { builtinFunctions } from "../lib/builtin_query_functions.ts";
 import { System } from "../lib/plugos/system.ts";
-import { Query } from "../type/types.ts";
+import { Query } from "../plug-api/types.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 
 const pageCacheTtl = 10 * 1000; // 10s

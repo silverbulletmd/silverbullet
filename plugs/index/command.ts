@@ -1,6 +1,6 @@
 import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
-import { IndexEvent } from "$type/types.ts";
-import { MQMessage } from "$type/types.ts";
+import { IndexEvent } from "../../plug-api/types.ts";
+import { MQMessage } from "../../plug-api/types.ts";
 import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
 
