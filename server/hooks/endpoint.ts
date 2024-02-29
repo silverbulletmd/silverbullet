@@ -1,6 +1,6 @@
 import { Hook, Manifest } from "../../lib/plugos/types.ts";
 import { System } from "../../lib/plugos/system.ts";
-import { Context, Next } from "../../server/deps.ts";
+import type { Context, Next } from "hono/mod.ts";
 
 export type EndpointRequest = {
   method: string;

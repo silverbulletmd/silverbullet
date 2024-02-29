@@ -8,7 +8,7 @@ import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { EndpointHook } from "../server/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
-import { Hono } from "../server/deps.ts";
+import { Hono } from "hono/mod.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { EventHook } from "../common/hooks/event.ts";
