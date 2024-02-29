@@ -17,7 +17,7 @@ Top level attributes: [name:: sup] [age:: 42] [children: [pete, "john", mary]]
 
 const cleanedInlineAttributeSample = `
 # My document
-Top level attributes:
+Top level attributes:   
 
 * [ ] Attribute in a task [tag:: foo]
 * Regular item [tag:: bar]

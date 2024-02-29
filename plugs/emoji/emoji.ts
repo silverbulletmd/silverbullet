@@ -1,8 +1,8 @@
-import emojiBlob from "./emoji.json" assert { type: "json" };
+import emojiBlob from "./emoji.json" with { type: "json" };
 import type { CompleteEvent } from "../../plug-api/types.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { editor } from "$sb/syscalls.ts";
-import type { EmojiConfig } from "../../type/web.ts";
+import type { EmojiConfig } from "$lib/web.ts";
 
 let emojiConfig: EmojiConfig = { aliases: [] };
 

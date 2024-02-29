@@ -9,9 +9,9 @@ import {
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
-import { FilterOption } from "../type/web.ts";
+import { FilterOption } from "$lib/web.ts";
 import { EventHook } from "../common/hooks/event.ts";
-import { AppCommand } from "$common/hooks/command.ts";
+import { AppCommand } from "$lib/command.ts";
 import {
   PageState,
   parsePageRefFromURI,

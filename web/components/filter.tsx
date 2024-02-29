@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "../deps.ts";
-import { FilterOption } from "../../type/web.ts";
+import { FilterOption } from "$lib/web.ts";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../fuse_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";

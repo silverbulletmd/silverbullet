@@ -1,5 +1,5 @@
-import { readYamlPage } from "$sb/lib/yaml_page.ts";
-import { editor, space, YAML } from "$sb/syscalls.ts";
+import { readYamlPage } from "./yaml_page.ts";
+import { editor, space, YAML } from "../syscalls.ts";
 
 /**
  * Convenience function to read a specific set of settings from the `SETTINGS` page as well as default values

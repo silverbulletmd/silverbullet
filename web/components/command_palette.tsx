@@ -1,7 +1,8 @@
 import { FilterList } from "./filter.tsx";
 import { CompletionContext, CompletionResult, featherIcons } from "../deps.ts";
-import { AppCommand } from "$common/hooks/command.ts";
-import { BuiltinSettings, FilterOption } from "../../type/web.ts";
+import { AppCommand } from "../../lib/command.ts";
+import { FilterOption } from "$lib/web.ts";
+import { BuiltinSettings } from "../../type/web.ts";
 import { parseCommand } from "$common/command.ts";
 
 export function CommandPalette({

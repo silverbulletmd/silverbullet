@@ -1,7 +1,7 @@
-import type { FilterOption } from "../../type/web.ts";
 import { UploadFile } from "../types.ts";
 import { syscall } from "../syscall.ts";
-import type { PageRef } from "$sb/lib/page_ref.ts";
+import type { PageRef } from "../lib/page_ref.ts";
+import type { FilterOption } from "../../lib/web.ts";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");

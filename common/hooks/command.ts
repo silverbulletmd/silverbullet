@@ -8,35 +8,11 @@ import {
 } from "../../plugs/template/types.ts";
 import { NewPageConfig } from "../../plugs/template/types.ts";
 import { throttle } from "../../lib/async.ts";
-
-export type CommandDef = {
-  name: string;
-
-  contexts?: string[];
-
-  // Default 0, higher is higher priority = higher in the list
-  priority?: number;
-
-  // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-
-  hide?: boolean;
-  requireMode?: "rw" | "ro";
-};
-
-export type AppCommand = {
-  command: CommandDef;
-  run: (args?: any[]) => Promise<void>;
-};
-
-export type CommandHookT = {
-  command?: CommandDef;
-};
-
-export type CommandHookEvents = {
-  commandsUpdated(commandMap: Map<string, AppCommand>): void;
-};
+import {
+  AppCommand,
+  CommandHookEvents,
+  CommandHookT,
+} from "../../lib/command.ts";
 
 export class CommandHook extends EventEmitter<CommandHookEvents>
   implements Hook<CommandHookT> {

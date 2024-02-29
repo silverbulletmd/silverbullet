@@ -1,5 +1,5 @@
 import { FunctionMap, KV, Query, QueryExpression } from "../types.ts";
-import { evalQueryExpression } from "$sb/lib/query_expression.ts";
+import { evalQueryExpression } from "./query_expression.ts";
 
 /**
  * Looks for an attribute assignment in the expression, and returns the expression assigned to the attribute or throws an error when not found

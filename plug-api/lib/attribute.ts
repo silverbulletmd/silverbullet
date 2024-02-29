@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
 } from "./tree.ts";
 
-import { system, YAML } from "$sb/syscalls.ts";
+import { system, YAML } from "../syscalls.ts";
 
 /**
  * Extracts attributes from a tree, optionally cleaning them out of the tree.

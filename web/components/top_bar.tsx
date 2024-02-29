@@ -1,6 +1,6 @@
 import { CompletionContext, CompletionResult, useEffect } from "../deps.ts";
 import type { ComponentChildren, FunctionalComponent } from "../deps.ts";
-import { Notification } from "../../type/web.ts";
+import { Notification } from "$lib/web.ts";
 import { FeatherProps } from "preact-feather";
 import { MiniEditor } from "./mini_editor.tsx";
 
@@ -46,7 +46,6 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
 }) {
-
   return (
     <div
       id="sb-top"

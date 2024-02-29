@@ -13,7 +13,7 @@ import {
   vimGetCm,
 } from "../deps.ts";
 import { SysCallMapping } from "$lib/plugos/system.ts";
-import type { FilterOption } from "../../type/web.ts";
+import type { FilterOption } from "$lib/web.ts";
 import { UploadFile } from "../../plug-api/types.ts";
 import { PageRef } from "$sb/lib/page_ref.ts";
 import { openSearchPanel } from "../deps.ts";
