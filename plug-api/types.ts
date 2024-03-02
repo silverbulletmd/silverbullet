@@ -186,6 +186,7 @@ export type AppEvent =
   | "editor:init"
   | "editor:pageLoaded" // args: pageName, previousPage, isSynced
   | "editor:pageReloaded"
+  | "editor:pageSaving"
   | "editor:pageSaved"
   | "editor:modeswitch"
   | "plugs:loaded"

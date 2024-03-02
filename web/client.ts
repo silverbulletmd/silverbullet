@@ -667,6 +667,10 @@ export class Client {
               return resolve();
             }
             console.log("Saving page", this.currentPage);
+            this.dispatchAppEvent(
+              "editor:pageSaving",
+              this.currentPage,
+            );
             this.space
               .writePage(
                 this.currentPage,
