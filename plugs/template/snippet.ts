@@ -3,14 +3,18 @@ import {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { editor, markdown, space } from "$sb/syscalls.ts";
+import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { TemplateObject } from "./types.ts";
 import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
-import { prepareFrontmatterDispatch } from "$sb/lib/frontmatter.ts";
+import {
+  extractFrontmatter,
+  prepareFrontmatterDispatch,
+} from "$sb/lib/frontmatter.ts";
 import { SnippetConfig } from "./types.ts";
+import { deepObjectMerge } from "$sb/lib/json.ts";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
@@ -67,13 +71,39 @@ export async function insertSnippetTemplate(
   let cursorPos = await editor.getCursor();
 
   if (renderedFrontmatter) {
-    renderedFrontmatter = renderedFrontmatter.trim();
+    let parsedFrontmatter: Record<string, any> = {};
+    try {
+      parsedFrontmatter = await YAML.parse(renderedFrontmatter);
+    } catch (e: any) {
+      console.error(
+        `Invalid rendered for ${slashCompletion.templatePage}:`,
+        e.message,
+        "for frontmatter",
+        renderedFrontmatter,
+      );
+      await editor.flashNotification(
+        `Invalid frontmatter for ${slashCompletion.templatePage}, won't insert snippet`,
+        "error",
+      );
+      return;
+    }
     const pageText = await editor.getText();
     const tree = await markdown.parseMarkdown(pageText);
+    const currentFrontmatter = await extractFrontmatter(
+      tree,
+      parsedFrontmatter,
+    );
+    if (!currentFrontmatter.tags?.length) {
+      delete currentFrontmatter.tags;
+    }
+    const newFrontmatter = deepObjectMerge(
+      currentFrontmatter,
+      parsedFrontmatter,
+    );
 
     const dispatch = await prepareFrontmatterDispatch(
       tree,
-      renderedFrontmatter,
+      newFrontmatter,
     );
     if (cursorPos === 0) {
       dispatch.selection = { anchor: renderedFrontmatter.length + 9 };
