@@ -6,7 +6,7 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing yet since 0.7.4, be patient!
+* Added [[Functions#contains(str, substr)]] function
 
 ## 0.7.5
 * [[Plugs/Share]] using the {[Share: Page Or Selection]} command (bound to Ctrl-s/Cmd-s by default): allowing you to quickly share the current page (or selection) to the clipboard as:

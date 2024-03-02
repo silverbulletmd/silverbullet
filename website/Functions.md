@@ -46,6 +46,9 @@ Replace text in a string. `match` can either be a literal string or a regular ex
 
 This function supports an infinite number of replacements, so you can keep adding more, e.g. `replace(str, match1, replacement1, match2, replacement2, match3, replacement3)`
 
+## contains(str, substr)
+Returns whether `str` contains `substr` as a substring.
+
 ## json(obj)
 Convert the argument to a JSON string (for debugging purposes).
 

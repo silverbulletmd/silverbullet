@@ -2,8 +2,15 @@ import type { FunctionMap } from "../plug-api/types.ts";
 import { niceDate, niceTime } from "./dates.ts";
 
 export const builtinFunctions: FunctionMap = {
-  today() {
-    return niceDate(new Date());
+  // String functions
+  contains(str: unknown, substr: unknown) {
+    if (typeof str !== "string") {
+      throw new Error("contains(): str is not a string");
+    }
+    if (typeof substr !== "string") {
+      throw new Error("contains(): substr is not a string");
+    }
+    return str.includes(substr);
   },
   replace(
     str: unknown,
@@ -71,6 +78,9 @@ export const builtinFunctions: FunctionMap = {
   },
   escapeDirective: (directiveText: unknown) => {
     return `{{${directiveText}}}`;
+  },
+  today() {
+    return niceDate(new Date());
   },
   time: () => niceTime(new Date()),
   tomorrow: () => {
