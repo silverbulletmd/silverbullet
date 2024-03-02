@@ -39,7 +39,7 @@ export async function insertSnippetTemplate(
   slashCompletion: SlashCompletionOption,
 ) {
   const pageObject = await loadPageObject(
-    slashCompletion.pageName,
+    slashCompletion.pageName || (await editor.getCurrentPage()),
   );
 
   const templateText = await space.readPage(slashCompletion.templatePage);
