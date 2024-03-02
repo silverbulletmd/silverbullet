@@ -78,14 +78,12 @@ export class SyncService implements ISyncService {
     );
 
     eventHook.addLocalListener("editor:pageSaving", () => {
-      console.log("Saving...");
       this.savingTimeout = setTimeout(() => {
         this.savingTimeout = undefined;
       }, 1000 * 5);
     });
 
     eventHook.addLocalListener("editor:pageSaved", (name) => {
-      console.log("Done saving...");
       if (this.savingTimeout) {
         clearTimeout(this.savingTimeout);
         this.savingTimeout = undefined;
