@@ -10,6 +10,7 @@ import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { parsePageRef } from "../../plug-api/lib/page_ref.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
+import { renderToText } from "$sb/lib/tree.ts";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
@@ -75,6 +76,23 @@ export class MarkdownWidget extends WidgetType {
         this.client.currentPage,
       ],
     );
+    const trimmedMarkdown = renderToText(mdTree).trim();
+
+    if (!trimmedMarkdown) {
+      // Net empty result after expansion
+      div.innerHTML = "";
+      this.client.setWidgetCache(
+        this.cacheKey,
+        { height: div.clientHeight, html: "" },
+      );
+      return;
+    }
+
+    // Parse the markdown again after trimming
+    mdTree = parse(
+      extendedMarkdownLanguage,
+      trimmedMarkdown,
+    );
 
     const html = renderMarkdownToHtml(mdTree, {
       // Annotate every element with its position so we can use it to put
@@ -92,7 +110,6 @@ export class MarkdownWidget extends WidgetType {
       },
       preserveAttributes: true,
     });
-    // console.log("Got html", html);
 
     if (cachedHtml === html) {
       // HTML still same as in cache, no need to re-render

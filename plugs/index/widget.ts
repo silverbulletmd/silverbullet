@@ -66,11 +66,11 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       rewritePageRefs(parsedMarkdown, template.ref);
       renderedTemplate = renderToText(parsedMarkdown);
 
-      // console.log("Rendering template", template.ref, renderedTemplate);
       templateBits.push(renderedTemplate.trim());
     }
   }
   const summaryText = templateBits.join("\n");
+  // console.log("Summary:", summaryText);
   return {
     markdown: summaryText,
     buttons: [

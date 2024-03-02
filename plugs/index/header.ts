@@ -56,7 +56,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
     });
   }
 
-  console.log("Found", headers, "headers(s)");
+  // console.log("Found", headers, "headers(s)");
   await indexObjects(pageName, headers);
 }
 

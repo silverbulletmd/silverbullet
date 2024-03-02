@@ -6,6 +6,7 @@ import { ObjectValue } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
@@ -19,30 +20,6 @@ export type LinkObject = ObjectValue<{
   alias?: string;
   asTemplate: boolean;
 }>;
-
-export function extractSnippet(text: string, pos: number): string {
-  let prefix = "";
-  for (let i = pos - 1; i > 0; i--) {
-    if (text[i] === "\n") {
-      break;
-    }
-    prefix = text[i] + prefix;
-    if (prefix.length > 25) {
-      break;
-    }
-  }
-  let suffix = "";
-  for (let i = pos; i < text.length; i++) {
-    if (text[i] === "\n") {
-      break;
-    }
-    suffix += text[i];
-    if (suffix.length > 25) {
-      break;
-    }
-  }
-  return prefix + suffix;
-}
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
@@ -62,7 +39,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         ref: `${name}@${pos}`,
         tag: "link",
         toPage: toPage,
-        snippet: extractSnippet(pageText, pos),
+        snippet: extractSnippetAroundIndex(pageText, pos),
         pos,
         page: name,
         asTemplate: false,
@@ -97,7 +74,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             tag: "link",
             toPage: pageRefName,
             page: name,
-            snippet: extractSnippet(pageText, pos),
+            snippet: extractSnippetAroundIndex(pageText, pos),
             pos: pos,
             asTemplate: true,
           };

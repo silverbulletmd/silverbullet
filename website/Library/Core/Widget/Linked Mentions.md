@@ -7,7 +7,7 @@ hooks.bottom.where: 'true'
 {{#if @linkedMentions}}
 # Linked Mentions
 {{#each @linkedMentions}}
-* [[{{ref}}]]: `{{snippet}}`
+* [[{{ref}}]]: “{{snippet}}”
 {{/each}}
 {{/if}}
 {{/let}}
