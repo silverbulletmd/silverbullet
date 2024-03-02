@@ -140,7 +140,7 @@ SilverBullet indexes various types of content as [[Objects]]. There are various 
 The `silverbullet.registerAttributeExtractor` API takes two arguments:
 
 * `def` with currently just one option:
-  * `tags`: Array of tags this extractor should be applied to, could be a built-in tag such as `item`, `page` or `task`, but also any custom tags you define.
+  * `tags`: Array of tags this extractor should be applied to, could be a built-in tag such as `item`, `page`, `paragraph`, `header`, or `task`, but also any custom tags you define.
 * `callback`: the callback function to invoke (can be `async` or not). This callback is passed the following arguments:
   * `text`: the text of the object to extract attributes for
   * return value: an object of attribute mappings, possibly overriding built-in ones.
