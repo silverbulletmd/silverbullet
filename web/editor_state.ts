@@ -12,7 +12,6 @@ import {
   EditorView,
   highlightSpecialChars,
   history,
-  historyKeymap,
   indentOnInput,
   indentWithTab,
   KeyBinding,
@@ -347,7 +346,6 @@ export function createKeyBindings(client: Client): Extension {
     ...smartQuoteKeymap,
     ...closeBracketsKeymap,
     ...standardKeymap,
-    ...historyKeymap,
     ...completionKeymap,
     indentWithTab,
   ]);

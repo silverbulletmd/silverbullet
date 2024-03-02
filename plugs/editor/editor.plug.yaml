@@ -316,6 +316,22 @@ functions:
       key: "Ctrl-f"
       mac: "Cmd-f"
 
+  # Undo/redo
+  undoCommand:
+    path: ./editor.ts:undoCommand
+    command:
+      name: "Editor: Undo"
+      key: "Ctrl-z"
+      mac: "Cmd-z"
+      requireMode: rw
+  redoCommand:
+    path: ./editor.ts:redoCommand
+    command:
+      name: "Editor: Redo"
+      key: "Ctrl-y"
+      mac: "Cmd-Shift-z"
+      requireMode: rw
+
   # Demo
   customFlashMessage:
     path: editor.ts:customFlashMessage

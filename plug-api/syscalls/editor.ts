@@ -175,7 +175,6 @@ export function vimEx(exCommand: string): Promise<any> {
 }
 
 // Folding
-
 export function fold() {
   return syscall("editor.fold");
 }
@@ -194,6 +193,15 @@ export function foldAll() {
 
 export function unfoldAll() {
   return syscall("editor.unfoldAll");
+}
+
+// Undo/redo
+export function undo() {
+  return syscall("editor.undo");
+}
+
+export function redo() {
+  return syscall("editor.redo");
 }
 
 export function openSearchPanel() {

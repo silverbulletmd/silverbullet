@@ -4,7 +4,9 @@ export {
   history,
   historyKeymap,
   indentWithTab,
+  redo,
   standardKeymap,
+  undo,
 } from "@codemirror/commands";
 export {
   autocompletion,

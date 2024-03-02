@@ -3,8 +3,10 @@ import {
   EditorView,
   foldAll,
   foldCode,
+  redo,
   toggleFold,
   Transaction,
+  undo,
   unfoldAll,
   unfoldCode,
   Vim,
@@ -283,6 +285,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.unfoldAll": () => {
       unfoldAll(client.editorView);
+    },
+    "editor.undo": () => {
+      return undo(client.editorView);
+    },
+    "editor.redo": () => {
+      return redo(client.editorView);
     },
     "editor.openSearchPanel": () => {
       openSearchPanel(client.editorView);

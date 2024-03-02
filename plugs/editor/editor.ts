@@ -56,3 +56,11 @@ export async function findInPageCommand() {
   await editor.openSearchPanel();
   return false;
 }
+
+export function undoCommand() {
+  return editor.undo();
+}
+
+export function redoCommand() {
+  return editor.redo();
+}
