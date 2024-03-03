@@ -68,6 +68,8 @@ export {
   StateField,
   Text,
   Transaction,
+  Facet,
+  RangeSetBuilder,
 } from "@codemirror/state";
 
 export type {

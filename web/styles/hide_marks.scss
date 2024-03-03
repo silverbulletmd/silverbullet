@@ -1,0 +1,89 @@
+@layer main, hide;
+
+@layer main {
+
+  /* move this to main later */
+  html {
+    --editor-meta-unfocused-opacity: 50%;
+
+    .cm-line {
+
+      &.sb-line-h1 {
+        text-indent: -2ch;
+      }
+
+      &.sb-line-h2 {
+        text-indent: -3ch;
+      }
+
+      &.sb-line-h3 {
+        text-indent: -4ch;
+      }
+
+      &.sb-line-h4 {
+        text-indent: -5ch;
+      }
+    }
+
+    .cm-line:not(.sb-activeLine) {
+
+      .sb-meta,
+      .sb-url {
+        opacity: var(--editor-meta-unfocused-opacity);
+      }
+    }
+  }
+}
+
+@layer hide {
+
+  /* Automatically hide marks */
+  /* html[hide-marks="true"] < implement this for allowing toggle */
+  html {
+    /* comment or remove next 2 variables to disable hiding marks when they are not focused */
+    --editor-meta-unfocused-visibility: hidden;
+    --editor-meta-unfocused-display: none;
+
+    .cm-line:not(.sb-activeLine) {
+
+      .sb-meta,
+      .sb-url {
+        display: var(--editor-meta-unfocused-display);
+      }
+
+      &.sb-line-h1,
+      &.sb-line-h2,
+      &.sb-line-h3,
+      &.sb-line-h4 {
+        text-indent: -1ch;
+      }
+    }
+
+    .cm-line {
+
+      .sb-meta,
+      .sb-url {
+        opacity: unset;
+        display: initial;
+      }
+    }
+
+  }
+
+  /* Don't hide empty links */
+  .cm-ldine:has(*:not(.sb-meta)) {
+
+    .sb-meta,
+    .sb-url {
+      display: var(--editor-meta-unfocused-display);
+    }
+  }
+
+  .cm-ldine:has(*:not(.sb-meta)) {
+
+    .sb-meta,
+    .sb-url {
+      display: var(--editor-meta-unfocused-display);
+    }
+  }
+}

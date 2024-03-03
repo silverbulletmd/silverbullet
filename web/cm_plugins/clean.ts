@@ -16,14 +16,14 @@ import { frontmatterPlugin } from "./frontmatter.ts";
 
 export function cleanModePlugins(client: Client) {
   return [
-    linkPlugin(client),
-    blockquotePlugin(),
-    admonitionPlugin(client),
-    hideMarksPlugin(),
-    hideHeaderMarkPlugin(),
-    cleanBlockPlugin(),
-    frontmatterPlugin(),
-    fencedCodePlugin(client),
+    //linkPlugin(client),
+    //blockquotePlugin(),
+    //admonitionPlugin(client),
+    //hideMarksPlugin(),
+    //hideHeaderMarkPlugin(),
+    //cleanBlockPlugin(),
+    //frontmatterPlugin(),
+    //fencedCodePlugin(client),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {
@@ -40,7 +40,7 @@ export function cleanModePlugins(client: Client) {
     }),
     listBulletPlugin(),
     tablePlugin(client),
-    cleanWikiLinkPlugin(client),
-    cleanCommandLinkPlugin(client),
+    //cleanWikiLinkPlugin(client),
+    //cleanCommandLinkPlugin(client),
   ] as Extension[];
 }
