@@ -74,6 +74,7 @@ export class EventHook implements Hook<EventHookT> {
                     console.error(
                       `Error dispatching event ${eventName} to ${plug.name}.${name}: ${e.message}`,
                     );
+                    throw e;
                   }
                 })());
               }
