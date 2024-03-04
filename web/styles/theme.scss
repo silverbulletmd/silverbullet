@@ -96,10 +96,6 @@ html {
   --editor-code-operator-color: #808080;
   --editor-code-info-color: var(--subtle-color);
   --editor-code-atom-color: #5a0000;
-  --editor-admonition-note-border-color: rgb(0, 184, 212);
-  --editor-admonition-note-background-color: rgba(0, 184, 212, 0.1);
-  --editor-admonition-warning-border-color: rgb(255, 145, 0);
-  --editor-admonition-warning-background-color: rgba(255, 145, 0, 0.1);
   --editor-frontmatter-background-color: rgba(255, 246, 189, 0.3);
   --editor-frontmatter-color: var(--subtle-color);
   --editor-frontmatter-marker-color: #89000080;
@@ -215,10 +211,6 @@ html[data-theme="dark"] {
   --editor-code-number-color: #986db9;
   --editor-code-info-color: var(--subtle-color);
   --editor-code-atom-color: #d6222e;
-  --editor-admonition-note-border-color: rgb(0, 184, 212);
-  --editor-admonition-note-background-color: rgba(0, 184, 212, 0.2);
-  --editor-admonition-warning-border-color: rgb(255, 145, 0);
-  --editor-admonition-warning-background-color: rgba(255, 145, 0, 0.2);
   --editor-frontmatter-background-color: rgb(41, 40, 35, 0.5);
   --editor-frontmatter-color: var(--subtle-color);
   --editor-frontmatter-marker-color: #fff;
@@ -229,4 +221,14 @@ html[data-theme="dark"] {
   --editor-directive-mark-color: #ba0303;
   --editor-directive-color: #898989;
   --editor-directive-background-color: #4c4c4c7d;
+}
+
+.sb-admonition[admonition="note"] {
+  --admonition-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>');
+  --admonition-color: #00b8d4;
+}
+
+.sb-admonition[admonition="warning"] {
+  --admonition-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>');
+  --admonition-color: #ff9100;
 }
