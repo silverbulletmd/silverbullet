@@ -30,7 +30,7 @@ export class PathPageNavigator {
         this.client.settings.indexPage,
         {},
         {},
-        builtinFunctions,
+        this.client.stateDataStore.functionMap,
       ),
     );
   }
