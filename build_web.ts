@@ -4,8 +4,9 @@ import sass from "denosass";
 import { bundleFolder } from "./lib/asset_bundle/builder.ts";
 
 import { parse } from "$std/flags/mod.ts";
-import { patchDenoLibJS } from "./lib/plugos/compile.ts";
-import { denoPlugins, esbuild } from "./lib/deps.ts";
+import { patchDenoLibJS } from "./cmd/compile.ts";
+import { denoPlugins } from "esbuild_deno_loader";
+import * as esbuild from "esbuild";
 
 export async function bundleAll(
   watch: boolean,

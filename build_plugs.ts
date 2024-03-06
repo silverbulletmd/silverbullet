@@ -1,5 +1,6 @@
-import { esbuild, path } from "./lib/deps.ts";
-import { compileManifests } from "./lib/plugos/compile.ts";
+import { path } from "./lib/deps.ts";
+import * as esbuild from "esbuild";
+import { compileManifests } from "./cmd/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 import { parse } from "$std/flags/mod.ts";
 

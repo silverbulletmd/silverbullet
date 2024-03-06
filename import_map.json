@@ -25,6 +25,8 @@
     "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.3/",
     "denosass": "https://deno.land/x/denosass@1.0.4/mod.ts",
     "djwt": "https://deno.land/x/djwt@v3.0.1/mod.ts",
+    "esbuild": "https://deno.land/x/esbuild@v0.20.0/mod.js",
+    "esbuild_deno_loader": "https://deno.land/x/esbuild_deno_loader@0.8.5/mod.ts",
     "fake-indexeddb/": "https://esm.sh/fake-indexeddb@4.0.2/",
     "fast-diff": "https://esm.sh/fast-diff@1.3.0",
     "fuse": "https://deno.land/x/fuse@v6.4.1/dist/fuse.esm.min.js",

@@ -1,7 +1,9 @@
-import { denoPlugins, esbuild, path, YAML } from "../deps.ts";
-import { bundleAssets } from "../asset_bundle/builder.ts";
-import { Manifest } from "./types.ts";
-import { version } from "../../version.ts";
+import { path, YAML } from "../lib/deps.ts";
+import { denoPlugins } from "esbuild_deno_loader";
+import * as esbuild from "esbuild";
+import { bundleAssets } from "../lib/asset_bundle/builder.ts";
+import { Manifest } from "../lib/plugos/types.ts";
+import { version } from "../version.ts";
 
 // const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);
 const workerRuntimeUrl =
@@ -103,7 +105,7 @@ setupMessageListener(functionMapping, manifest);
       ...denoPlugins({
         // TODO do this differently
         importMapURL: options.importMap ||
-          new URL("../../import_map.json", import.meta.url).toString(),
+          new URL("../import_map.json", import.meta.url).toString(),
         loader: "native",
       }),
     ],

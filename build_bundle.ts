@@ -1,4 +1,5 @@
-import { denoPlugins, esbuild } from "./lib/deps.ts";
+import { denoPlugins } from "esbuild_deno_loader";
+import * as esbuild from "esbuild";
 
 await Deno.mkdir("dist", { recursive: true });
 await esbuild.build({
