@@ -1,8 +1,12 @@
-import { Hook, Manifest } from "../../lib/plugos/types.ts";
-import { System } from "../../lib/plugos/system.ts";
-import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
+import { Hook, Manifest } from "$lib/plugos/types.ts";
+import { System } from "$lib/plugos/system.ts";
+import {
+  Completion,
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import { Client } from "../client.ts";
-import { syntaxTree } from "../deps.ts";
+import { syntaxTree } from "@codemirror/language";
 import {
   SlashCompletionOption,
   SlashCompletions,

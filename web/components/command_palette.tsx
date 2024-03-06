@@ -1,5 +1,6 @@
 import { FilterList } from "./filter.tsx";
-import { CompletionContext, CompletionResult, featherIcons } from "../deps.ts";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { Terminal } from "preact-feather";
 import { AppCommand } from "../../lib/command.ts";
 import { FilterOption } from "$lib/web.ts";
 import { BuiltinSettings } from "../../type/web.ts";
@@ -59,7 +60,7 @@ export function CommandPalette({
       placeholder="Command"
       options={options}
       allowNew={false}
-      icon={featherIcons.Terminal}
+      icon={Terminal}
       completer={completer}
       vimMode={vimMode}
       darkMode={darkMode}

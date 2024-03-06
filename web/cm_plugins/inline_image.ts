@@ -1,12 +1,7 @@
-import {
-  Decoration,
-  EditorState,
-  Range,
-  syntaxTree,
-  WidgetType,
-} from "../deps.ts";
+import { EditorState, Range } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
+import { Decoration, WidgetType } from "@codemirror/view";
 import { decoratorStateField } from "./util.ts";
-
 import type { Client } from "../client.ts";
 import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
 

@@ -1,4 +1,5 @@
-import { EditorView, syntaxTree, ViewPlugin, ViewUpdate } from "../deps.ts";
+import { syntaxTree } from "@codemirror/language";
+import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Client } from "../client.ts";
 
 // We use turndown to convert HTML to Markdown

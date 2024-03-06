@@ -1,4 +1,6 @@
-import { Decoration, EditorState, foldedRanges, syntaxTree } from "../deps.ts";
+import { EditorState } from "@codemirror/state";
+import { foldedRanges, syntaxTree } from "@codemirror/language";
+import { Decoration } from "@codemirror/view";
 import { decoratorStateField, HtmlWidget, isCursorInRange } from "./util.ts";
 
 export function frontmatterPlugin() {

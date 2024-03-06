@@ -1,4 +1,5 @@
-import { KeyBinding, syntaxTree } from "../deps.ts";
+import { KeyBinding } from "@codemirror/view";
+import { syntaxTree } from "@codemirror/language";
 
 const straightQuoteContexts = [
   "CommentBlock",

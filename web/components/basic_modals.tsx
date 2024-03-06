@@ -1,5 +1,5 @@
-import type { CompletionContext, CompletionResult } from "../deps.ts";
-import { useRef, useState } from "../deps.ts";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { useRef, useState } from "preact/hooks";
 import { MiniEditor } from "./mini_editor.tsx";
 
 export function Prompt({

@@ -1,11 +1,7 @@
-// Third party web dependencies
-import {
-  Compartment,
-  CompletionContext,
-  CompletionResult,
-  EditorView,
-  syntaxTree,
-} from "./deps.ts";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type { Compartment } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";

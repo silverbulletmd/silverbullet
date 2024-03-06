@@ -1,4 +1,4 @@
-import { WidgetType } from "../deps.ts";
+import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import type {
   CodeWidgetButton,

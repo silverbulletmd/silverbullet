@@ -1,4 +1,4 @@
-import { HighlightStyle } from "./deps.ts";
+import { HighlightStyle } from "@codemirror/language";
 import { tagHighlighter, tags as t } from "@lezer/highlight";
 import * as ct from "$common/markdown_parser/customtags.ts";
 

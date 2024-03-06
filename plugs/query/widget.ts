@@ -14,7 +14,7 @@ import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
-import { ChangeSpec } from "../../web/deps.ts";
+import type { ChangeSpec } from "@codemirror/state";
 
 export async function widget(
   bodyText: string,
