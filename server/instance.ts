@@ -1,4 +1,4 @@
-import { SilverBulletHooks } from "$common/manifest.ts";
+import { SilverBulletHooks } from "../lib/manifest.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";

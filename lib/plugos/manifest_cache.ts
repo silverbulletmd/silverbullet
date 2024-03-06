@@ -1,4 +1,4 @@
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import { KvPrimitives } from "../data/kv_primitives.ts";
 import { Plug } from "./plug.ts";
 import { Manifest } from "./types.ts";
 

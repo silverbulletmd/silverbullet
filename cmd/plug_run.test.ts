@@ -1,6 +1,6 @@
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import { compileManifest } from "$lib/plugos/compile.ts";
-import { esbuild } from "../lib/plugos/deps.ts";
+import { esbuild } from "../lib/deps.ts";
 import assets from "../dist/plug_asset_bundle.json" assert { type: "json" };
 import { assertEquals } from "$std/testing/asserts.ts";
 import { dirname, join } from "$std/path/mod.ts";

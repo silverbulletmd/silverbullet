@@ -1,5 +1,5 @@
 import { KV, KvKey, KvQuery } from "../../../plug-api/types.ts";
-import type { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "../../data/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
 
 /**

@@ -4,7 +4,7 @@ import { ScriptObject } from "../plugs/index/script.ts";
 import { AppCommand, CommandDef } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
 
-// @ts-ignore: temporal polygifill
+// @ts-ignore: Temporal polyfill
 Date.prototype.toTemporalInstant = toTemporalInstant;
 // @ts-ignore: Temporal polyfill
 globalThis.Temporal = Temporal;

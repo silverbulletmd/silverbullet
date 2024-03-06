@@ -1,9 +1,6 @@
 // This is the runtime imported from the compiled plug worker code
 import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
-import type {
-  ProxyFetchRequest,
-  ProxyFetchResponse,
-} from "$common/proxy_fetch.ts";
+import type { ProxyFetchRequest, ProxyFetchResponse } from "../proxy_fetch.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;

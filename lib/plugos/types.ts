@@ -1,5 +1,5 @@
 import { System } from "./system.ts";
-import { AssetJson } from "$lib/asset_bundle/bundle.ts";
+import { AssetJson } from "../asset_bundle/bundle.ts";
 
 /** The generic top level of a plug manifest file.
  * Defines plug metadata and functions.

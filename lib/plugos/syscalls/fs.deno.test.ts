@@ -1,6 +1,6 @@
 import { FileMeta } from "../../../plug-api/types.ts";
 import { assert } from "$std/testing/asserts.ts";
-import { path } from "../deps.ts";
+import { path } from "../../deps.ts";
 import fileSystemSyscalls from "./fs.deno.ts";
 
 Deno.test("Test FS operations", async () => {

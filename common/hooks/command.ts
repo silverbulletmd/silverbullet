@@ -8,11 +8,8 @@ import {
 } from "../../plugs/template/types.ts";
 import { NewPageConfig } from "../../plugs/template/types.ts";
 import { throttle } from "../../lib/async.ts";
-import {
-  AppCommand,
-  CommandHookEvents,
-  CommandHookT,
-} from "../../lib/command.ts";
+import { AppCommand, CommandHookEvents } from "../../lib/command.ts";
+import { CommandHookT } from "$lib/manifest.ts";
 
 export class CommandHook extends EventEmitter<CommandHookEvents>
   implements Hook<CommandHookT> {

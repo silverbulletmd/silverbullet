@@ -1,5 +1,5 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "$common/manifest.ts";
+import { SilverBulletHooks } from "../lib/manifest.ts";
 import { CronHook } from "../lib/plugos/hooks/cron.ts";
 import { EventHook } from "../common/hooks/event.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";

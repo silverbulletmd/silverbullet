@@ -1,15 +1,13 @@
-import type { Hook, Manifest } from "../../lib/plugos/types.ts";
-import { System } from "../../lib/plugos/system.ts";
+import type { Manifest } from "$lib/plugos/types.ts";
+import { System } from "$lib/plugos/system.ts";
 import { ScriptEnvironment } from "$common/space_script.ts";
+import { EventHookI } from "$lib/plugos/eventhook.ts";
+import { EventHookT } from "$lib/manifest.ts";
 
 // System events:
 // - plug:load (plugName: string)
 
-export type EventHookT = {
-  events?: string[];
-};
-
-export class EventHook implements Hook<EventHookT> {
+export class EventHook implements EventHookI {
   private system?: System<EventHookT>;
   private localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
   public scriptEnvironment?: ScriptEnvironment;

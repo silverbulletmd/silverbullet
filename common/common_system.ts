@@ -1,7 +1,7 @@
 import { AppCommand } from "$lib/command.ts";
 import { CommandHook } from "./hooks/command.ts";
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "./manifest.ts";
+import { SilverBulletHooks } from "../lib/manifest.ts";
 import { buildQueryFunctions } from "./query_functions.ts";
 import { ScriptEnvironment } from "./space_script.ts";
 import { EventHook } from "./hooks/event.ts";

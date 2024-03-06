@@ -2,7 +2,7 @@ import { createSandbox } from "./sandboxes/deno_worker_sandbox.ts";
 import { System } from "./system.ts";
 import { assert, assertEquals } from "$std/testing/asserts.ts";
 import { compileManifest } from "./compile.ts";
-import { esbuild } from "./deps.ts";
+import { esbuild } from "../deps.ts";
 import {
   createSandbox as createNoSandbox,
   runWithSystemLock,

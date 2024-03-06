@@ -1,6 +1,6 @@
-import { denoPlugins, esbuild, path, YAML } from "./deps.ts";
-import { bundleAssets } from "$lib/asset_bundle/builder.ts";
-import { Manifest } from "$lib/plugos/types.ts";
+import { denoPlugins, esbuild, path, YAML } from "../deps.ts";
+import { bundleAssets } from "../asset_bundle/builder.ts";
+import { Manifest } from "./types.ts";
 import { version } from "../../version.ts";
 
 // const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);

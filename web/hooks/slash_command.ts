@@ -8,20 +8,11 @@ import {
   SlashCompletions,
 } from "../../plug-api/types.ts";
 import { safeRun } from "$lib/async.ts";
-
-export type SlashCommandDef = {
-  name: string;
-  description?: string;
-  boost?: number;
-};
+import { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
   run: () => Promise<void>;
-};
-
-export type SlashCommandHookT = {
-  slashCommand?: SlashCommandDef;
 };
 
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;

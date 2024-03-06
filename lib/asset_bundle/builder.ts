@@ -1,4 +1,4 @@
-import { globToRegExp, mime, path, walk } from "../plugos/deps.ts";
+import { globToRegExp, mime, path, walk } from "../deps.ts";
 import { AssetBundle } from "./bundle.ts";
 
 export async function bundleAssets(

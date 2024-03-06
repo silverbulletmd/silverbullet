@@ -19,10 +19,6 @@ export type AppCommand = {
   run: (args?: any[]) => Promise<void>;
 };
 
-export type CommandHookT = {
-  command?: CommandDef;
-};
-
 export type CommandHookEvents = {
   commandsUpdated(commandMap: Map<string, AppCommand>): void;
 };

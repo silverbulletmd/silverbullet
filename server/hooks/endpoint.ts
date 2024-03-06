@@ -1,6 +1,7 @@
 import { Hook, Manifest } from "../../lib/plugos/types.ts";
 import { System } from "../../lib/plugos/system.ts";
 import type { Context, Next } from "hono/mod.ts";
+import { EndpointHookT } from "$lib/manifest.ts";
 
 export type EndpointRequest = {
   method: string;
@@ -14,15 +15,6 @@ export type EndpointResponse = {
   status: number;
   headers?: { [key: string]: string };
   body: any;
-};
-
-export type EndpointHookT = {
-  http?: EndPointDef | EndPointDef[];
-};
-
-export type EndPointDef = {
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "ANY";
-  path: string;
 };
 
 export class EndpointHook implements Hook<EndpointHookT> {

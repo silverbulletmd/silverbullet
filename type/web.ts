@@ -1,4 +1,4 @@
-import { Manifest } from "$common/manifest.ts";
+import { Manifest } from "../lib/manifest.ts";
 import { PageMeta } from "../plug-api/types.ts";
 import { AppCommand } from "../lib/command.ts";
 import { defaultSettings } from "$common/settings.ts";

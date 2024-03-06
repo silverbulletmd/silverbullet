@@ -1,5 +1,5 @@
 import type { SysCallMapping } from "../system.ts";
-import { mime, path, walk } from "../deps.ts";
+import { mime, path, walk } from "../../deps.ts";
 import { FileMeta } from "../../../plug-api/types.ts";
 import { base64DecodeDataUrl, base64Encode } from "../../crypto.ts";
 

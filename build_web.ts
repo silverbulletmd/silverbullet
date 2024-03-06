@@ -5,7 +5,7 @@ import { bundleFolder } from "./lib/asset_bundle/builder.ts";
 
 import { parse } from "$std/flags/mod.ts";
 import { patchDenoLibJS } from "./lib/plugos/compile.ts";
-import { denoPlugins, esbuild } from "./lib/plugos/deps.ts";
+import { denoPlugins, esbuild } from "./lib/deps.ts";
 
 export async function bundleAll(
   watch: boolean,
