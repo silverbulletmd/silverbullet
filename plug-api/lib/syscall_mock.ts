@@ -1,9 +1,9 @@
-import { YAML } from "../deps.ts";
+import { YAML } from "../../lib/deps.ts";
 
 globalThis.syscall = (name: string, ...args: readonly any[]) => {
   switch (name) {
     case "yaml.parse":
-      return Promise.resolve(YAML.load(args[0]));
+      return Promise.resolve(YAML.parse(args[0]));
     case "system.applyAttributeExtractors":
       return Promise.resolve({});
     default:
