@@ -40,7 +40,7 @@ class AdmonitionIconWidget extends WidgetType {
 type AdmonitionFields = {
   preSpaces: string;
   admonitionType: string;
-  postSyntax: string
+  postSyntax: string;
   postSpaces: string;
   admonitionTitle: string;
   admonitionContent: string;
@@ -89,6 +89,13 @@ export function admonitionPlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 
+    // Get admonition styles from stylesheets
+    const allStyles = [...document.styleSheets]
+      .map((styleSheet) => {
+        return [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
+      }).filter(Boolean).join("\n");
+    const admonitionStyles = allStyles.match(/(?<=admonition=").*?(?=")/g);
+
     syntaxTree(state).iterate({
       enter: (node: SyntaxNodeRef) => {
         const { type, from, to } = node;
@@ -105,7 +112,12 @@ export function admonitionPlugin(editor: Client) {
             return;
           }
 
-          const { preSpaces, admonitionType, postSyntax, postSpaces } = extractedFields;
+          const { preSpaces, admonitionType, postSyntax, postSpaces } =
+            extractedFields;
+
+          if (!admonitionStyles?.includes(admonitionType)) {
+            return;
+          }
 
           // A blockquote is actually rendered as many divs, one per line.
           // We need to keep track of the `from` offsets here, so we can attach css
@@ -122,11 +134,10 @@ export function admonitionPlugin(editor: Client) {
           // icon further down.
           const iconRange = {
             from: from + 1,
-            to: from + preSpaces.length + 2 + admonitionType.length + postSyntax.length +
+            to: from + preSpaces.length + 2 + admonitionType.length +
+              postSyntax.length +
               postSpaces.length + 1,
           };
-
-          const classes = ["sb-admonition"];
 
           // The first div is the title, attach title css class
           widgets.push(
