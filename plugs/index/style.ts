@@ -3,6 +3,7 @@ import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
+import { cleanPageRef } from "$sb/lib/resolve.ts";
 
 export type StyleObject = ObjectValue<{
   style: string;
@@ -17,6 +18,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
   if (!Array.isArray(customStylePages)) {
     customStylePages = [customStylePages];
   }
+  customStylePages = customStylePages.map((page: string) => cleanPageRef(page));
 
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");
@@ -27,7 +29,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     const fenceType = codeInfoNode.children![0].text!;
     if (fenceType !== "space-style") {
       if (
-        !customStylePages.includes("[[" + name + "]]") || fenceType !== "css"
+        !customStylePages.includes(name) || fenceType !== "css"
       ) {
         return;
       }
@@ -40,15 +42,12 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     }
     const codeText = codeTextNode.children![0].text!;
     let codeOrigin = "";
-    if (customStylePages.includes("[[" + name + "]]")) {
+    if (customStylePages.includes(name)) {
       codeOrigin = "settings";
-      console.log(codeOrigin);
-    } else if (name.includes("Library")) {
+    } else if (name.startsWith("Library/")) {
       codeOrigin = "library";
-      console.log(codeOrigin);
     } else {
       codeOrigin = "user";
-      console.log(codeOrigin);
     }
 
     allStyles.push({

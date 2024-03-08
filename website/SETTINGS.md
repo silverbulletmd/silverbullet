@@ -1,11 +1,8 @@
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` and `customStyles`, which require a reload.
+This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a reload.
 
 ```yaml
 # Initial page to load when launching SB, can contain template variables
 indexPage: "[[SilverBullet]]"
-
-# Load custom CSS styles from the following page, can also be an array
-customStyles: "[[STYLES]]"
 
 # Hide the sync button
 hideSyncButton: false
