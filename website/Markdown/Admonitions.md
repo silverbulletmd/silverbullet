@@ -8,7 +8,7 @@ Silverbullet supports [admonitions](https://github.com/community/community/discu
 
 Custom admonitions can be added in a [[Space Style]] using the following format:
 
-```css
+```space-style
 // Replace the keyword with a word or phrase of your choice
 .sb-admonition[admonition="keyword"] {
     // The icon can be a link or an embedded image like shown here
