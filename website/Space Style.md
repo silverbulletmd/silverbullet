@@ -1,18 +1,21 @@
+Space Style is [[Space Script]]‘s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Blocks]].
 
-Space Style allows you to add your own styling to silverbullet with `space-style` [[Blocks]]
+This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. 
 
-This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/web/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
+Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/web/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
 
+# Examples
+All the actual CSS in these examples is commented out as to not affect this very website. 
 ```space-style
 html {
   /* Changes to the default theme */
-  /* Such as the accent color /*
-  --ui-accent-color: #464cfc;
+  /* Such as the accent color */
+  /*--ui-accent-color: #464cfc;*/
 }
 
 html[data-theme="dark"] {
   /* Changes to the dark theme */
-  --ui-accent-color: #464cfc;
+  /*--ui-accent-color: #464cfc;*/
 }
 
 html {
@@ -24,11 +27,11 @@ html {
 
 /* Choose another header color */
 html {
-  --top-background-color: #e1e1e1;
+  /*--top-background-color: #eee;*/
 }
 /* Or modify the element directly */
 #sb-top {
-  background-color: #e1e1e1 !important;
+  /*background-color: #eee !important;*/
 }
 
 /* You can even change the appearance of buttons */
