@@ -2,6 +2,8 @@ Space Style is [[Space Script]]‘s stylish sibling. It enables you to add your 
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. 
 
+To apply the updated styles, either reload the client or run the {[System: Reload]} command.
+
 Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/web/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
 
 # Examples

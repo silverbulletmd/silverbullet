@@ -66,6 +66,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
         "system.loadSpaceScripts",
         [],
       );
+      await client.clientSystem.system.localSyscall(
+        "system.loadSpaceStyles",
+        [],
+      );
     },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       if (!existingWindow) {
