@@ -25,6 +25,7 @@ import type {
   CompleteEvent,
   SlashCompletions,
 } from "../plug-api/types.ts";
+import { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
@@ -1095,36 +1096,32 @@ export class Client {
   }
 
   async loadCustomStyles() {
-    if (this.settings.customStyles) {
-      const accumulatedCSS: string[] = [];
-      let customStylePages = this.settings.customStyles;
-      if (!Array.isArray(customStylePages)) {
-        customStylePages = [customStylePages];
-      }
-      for (const customStylesPage of customStylePages) {
-        try {
-          const { text: stylesText } = await this.space.readPage(
-            cleanPageRef(customStylesPage),
-          );
-          // Analogous to yamlSettingsRegex in settings.ts
-          const cssBlockRegex = /^(```+|~~~+)css\r?\n([\S\s]+)\1/m;
-          const match = cssBlockRegex.exec(stylesText);
-          if (!match) {
-            return;
-          }
-          accumulatedCSS.push(match[2]);
-        } catch (e: any) {
-          console.error("Failed to load custom styles", e);
-        }
-      }
-      const customStylesContent = accumulatedCSS.join("\n\n");
-      this.ui.viewDispatch({
-        type: "set-ui-option",
-        key: "customStyles",
-        value: customStylesContent,
-      });
-      document.getElementById("custom-styles")!.innerHTML = customStylesContent;
+    const spaceStyles = await this.clientSystem.queryObjects<StyleObject>(
+      "space-style",
+      {},
+    );
+    if (!spaceStyles) {
+      return;
     }
+
+    // Sort stylesheets (last declared styles take precedence)
+    // Order is 1: Imported styles, 2: Other styles, 3: customStyles from Settings
+    const sortOrder = ["library", "user", "settings"];
+    spaceStyles.sort((a, b) =>
+      sortOrder.indexOf(a.origin) - sortOrder.indexOf(b.origin)
+    );
+
+    const accumulatedCSS: string[] = [];
+    for (const s of spaceStyles) {
+      accumulatedCSS.push(s.style);
+    }
+    const customStylesContent = accumulatedCSS.join("\n\n");
+    this.ui.viewDispatch({
+      type: "set-ui-option",
+      key: "customStyles",
+      value: customStylesContent,
+    });
+    document.getElementById("custom-styles")!.innerHTML = customStylesContent;
   }
 
   async runCommandByName(name: string, args?: any[]) {

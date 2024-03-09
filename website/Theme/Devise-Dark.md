@@ -1,6 +1,6 @@
 Dark theme, originally [shared here](https://discord.com/channels/1028543811191836782/1028543811984568373/1141715540755361833). Make sure you switch SilverBullet to {[Editor: Toggle Dark Mode|dark mode]} to use.
 
-```css
+```space-style
 html[data-theme="dark"], html[data-theme="dark"]{
   --root-background-color: rgba(30,33,38,255);
   --root-color: rgba(255,255,255,0.6);

@@ -132,6 +132,12 @@ functions:
     events:
       - page:index
 
+    # Style
+  indexSpaceStyle:
+    path: style.ts:indexSpaceStyle
+    events:
+      - page:index
+
   # Hashtags
   indexTags:
     path: tags.ts:indexTags
