@@ -40,7 +40,9 @@ function preprocess(t: ParseTree, options: MarkdownRenderOptions = {}) {
       if (node.text?.startsWith("\n")) {
         const prevNodeIdx = node.parent!.children!.indexOf(node) - 1;
         const prevNodeType = node.parent!.children![prevNodeIdx]?.type;
-        if (prevNodeType?.includes("Heading")) {
+        if (
+          prevNodeType?.includes("Heading") || prevNodeType?.includes("Table")
+        ) {
           node.text = node.text.slice(1);
         }
       }
