@@ -56,7 +56,7 @@ functions:
     path: ./command.ts:processIndexQueue
     mqSubscriptions:
       - queue: indexQueue
-        batchSize: 10
+        batchSize: 3
         autoAck: true
   reindexSpace:
     path: "./command.ts:reindexSpace"
