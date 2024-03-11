@@ -20,8 +20,6 @@ export async function ensureSpaceIndex(ds: DataStore, system: System<any>) {
     console.info("Full space index complete.");
     await markFullSpaceIndexComplete(ds);
     indexOngoing = false;
-  } else {
-    console.info("Space index is up to date");
   }
 }
 

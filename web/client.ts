@@ -255,7 +255,7 @@ export class Client {
     this.syncService.start();
 
     // We're still booting, if a initial sync has already been completed we know this is the initial sync
-    const initialSync = !await this.syncService.hasInitialSyncCompleted();
+    let initialSync = !await this.syncService.hasInitialSyncCompleted();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -275,7 +275,7 @@ export class Client {
           ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
             console.error,
           );
-        } else {
+        } else { // initialSync
           // Let's load space scripts, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
           console.log(
@@ -284,6 +284,7 @@ export class Client {
           ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
             console.error,
           );
+          initialSync = false;
         }
       }
       if (operations) {
