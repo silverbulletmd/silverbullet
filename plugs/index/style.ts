@@ -10,16 +10,27 @@ export type StyleObject = ObjectValue<{
   origin: string;
 }>;
 
+let customStylePages: string[] = [];
+let lastCustomStyleRead: number | null = null;
+
 export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
   const allStyles: StyleObject[] = [];
 
-  // Also collect CSS from custom styles in settings
-  let customStylePages = await readSetting("customStyles", []);
-  if (!Array.isArray(customStylePages)) {
-    customStylePages = [customStylePages];
+  // Cache the setting for 10s
+  if (
+    lastCustomStyleRead === null || Date.now() > lastCustomStyleRead + 10000
+  ) {
+    customStylePages = await readSetting("customStyles", []);
+    lastCustomStyleRead = Date.now();
+    if (!Array.isArray(customStylePages)) {
+      customStylePages = [customStylePages];
+    }
+    customStylePages = customStylePages.map((page: string) =>
+      cleanPageRef(page)
+    );
   }
-  customStylePages = customStylePages.map((page: string) => cleanPageRef(page));
 
+  // Also collect CSS from custom styles in settings
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {

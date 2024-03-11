@@ -67,13 +67,13 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
   const parsed = await markdown.parseMarkdown(text);
 
   if (isTemplate(text)) {
-    console.log("Indexing", name, "as template");
+    // console.log("Indexing", name, "as template");
     await events.dispatchEvent("page:indexTemplate", {
       name,
       tree: parsed,
     });
   } else {
-    console.log("Indexing", name, "as page");
+    // console.log("Indexing", name, "as page");
     await events.dispatchEvent("page:index", {
       name,
       tree: parsed,
