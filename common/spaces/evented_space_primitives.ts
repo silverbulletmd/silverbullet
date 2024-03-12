@@ -29,13 +29,19 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    const newFileList = await this.wrapped.fetchFileList();
     if (this.alreadyFetching) {
-      // Avoid race conditions, let's just skip this in terms of event triggering: that's ok
-      return newFileList;
+      // Some other operation (read, write, list, meta) is already going on
+      // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
+      console.info(
+        "alreadyFetching is on, skipping even triggering for fetchFileList.",
+      );
+      return this.wrapped.fetchFileList();
     }
+    // Fetching mutex
+    this.alreadyFetching = true;
+    // Fetch the list
+    const newFileList = await this.wrapped.fetchFileList();
     try {
-      this.alreadyFetching = true;
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];

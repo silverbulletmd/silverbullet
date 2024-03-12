@@ -603,7 +603,6 @@ export class Client {
         if (
           this.space.watchInterval && `${this.currentPage}.md` === path
         ) {
-          console.trace();
           console.log(
             "Page changed elsewhere, reloading. Old hash",
             oldHash,
