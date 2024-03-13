@@ -210,7 +210,12 @@ function render(
       }
       let url = urlNode.children![0].text!;
       if (url.indexOf("://") === -1) {
-        url = `${options.attachmentUrlPrefix || ""}${url}`;
+        if (
+          options.attachmentUrlPrefix &&
+          !url.startsWith(options.attachmentUrlPrefix)
+        ) {
+          url = `${options.attachmentUrlPrefix}${url}`;
+        }
       }
       return {
         name: "a",
@@ -228,7 +233,12 @@ function render(
       }
       let url = urlNode!.children![0].text!;
       if (url.indexOf("://") === -1) {
-        url = `${options.attachmentUrlPrefix || ""}${url}`;
+        if (
+          options.attachmentUrlPrefix &&
+          !url.startsWith(options.attachmentUrlPrefix)
+        ) {
+          url = `${options.attachmentUrlPrefix}${url}`;
+        }
       }
       return {
         name: "img",
