@@ -118,6 +118,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     meta?: FileMeta,
   ): Promise<FileMeta> {
     try {
+      const wasFetching = this.alreadyFetching;
       this.alreadyFetching = true;
       const newMeta = await this.wrapped.writeFile(
         name,
@@ -125,7 +126,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         selfUpdate,
         meta,
       );
-      if (!selfUpdate) {
+      if (!selfUpdate && !wasFetching) {
         await this.dispatchEvent(
           "file:changed",
           name,
@@ -134,7 +135,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           newMeta.lastModified,
         );
       }
-      this.spaceSnapshot[name] = newMeta.lastModified;
+      if (!wasFetching) {
+        this.spaceSnapshot[name] = newMeta.lastModified;
+      }
 
       if (name.endsWith(".md")) {
         // Let's trigger some page-specific events
