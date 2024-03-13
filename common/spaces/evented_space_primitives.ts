@@ -12,7 +12,9 @@ import type { SpacePrimitives } from "./space_primitives.ts";
  * - page:deleted (string)
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
-  // Avoid file listing while performing another fetch (read, write, meta) operation
+  // Various operations may be going on at the same time, and we don't want to trigger events unnessarily.
+  // Therefore we use this variable to track if any operation is in flight, and if so, we skip event triggering.
+  // This is ok, because any event will be picked up in a following iteration.
   alreadyFetching = false;
 
   initialFileListLoad = true;
@@ -95,11 +97,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     try {
       // Fetching mutex
+      const wasFetching = this.alreadyFetching;
       this.alreadyFetching = true;
 
       // Fetch file
       const data = await this.wrapped.readFile(name);
-      this.triggerEventsAndCache(name, data.meta.lastModified);
+      if (!wasFetching) {
+        this.triggerEventsAndCache(name, data.meta.lastModified);
+      }
       return data;
     } finally {
       this.alreadyFetching = false;
@@ -162,9 +167,12 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
+      const wasFetching = this.alreadyFetching;
       this.alreadyFetching = true;
       const newMeta = await this.wrapped.getFileMeta(name);
-      this.triggerEventsAndCache(name, newMeta.lastModified);
+      if (!wasFetching) {
+        this.triggerEventsAndCache(name, newMeta.lastModified);
+      }
       return newMeta;
     } catch (e: any) {
       // console.log("Checking error", e, name);
