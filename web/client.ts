@@ -591,23 +591,37 @@ export class Client {
       this.eventHook,
     );
 
+    let lastSaveTimestamp: number | undefined;
+
+    this.eventHook.addLocalListener("editor:pageSaving", () => {
+      lastSaveTimestamp = Date.now();
+    });
+
     this.eventHook.addLocalListener(
       "file:changed",
       (
         path: string,
-        _localChange?: boolean,
-        oldHash?: number,
-        newHash?: number,
+        _localChange: boolean,
+        oldHash: number,
+        newHash: number,
       ) => {
         // Only reload when watching the current page (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval && `${this.currentPage}.md` === path
+          this.space.watchInterval && `${this.currentPage}.md` === path &&
+          // Avoid reloading if the page was just saved (5s window)
+          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
             oldHash,
             "new hash",
             newHash,
+          );
+          console.log(
+            "Last save timestamp",
+            lastSaveTimestamp,
+            "now",
+            Date.now(),
           );
           this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();

@@ -15,7 +15,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   // Various operations may be going on at the same time, and we don't want to trigger events unnessarily.
   // Therefore we use this variable to track if any operation is in flight, and if so, we skip event triggering.
   // This is ok, because any event will be picked up in a following iteration.
-  alreadyFetching = false;
+  operationInProgress = false;
 
   initialFileListLoad = true;
 
@@ -31,7 +31,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    if (this.alreadyFetching) {
+    if (this.operationInProgress) {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
       console.info(
@@ -40,10 +40,12 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return this.wrapped.fetchFileList();
     }
     // Fetching mutex
-    this.alreadyFetching = true;
-    // Fetch the list
-    const newFileList = await this.wrapped.fetchFileList();
+    this.operationInProgress = true;
     try {
+      // Fetch the list
+      const newFileList = await this.wrapped.fetchFileList();
+
+      // Now we have the list, let's compare it to the snapshot and trigger events appropriately
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];
@@ -88,7 +90,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.initialFileListLoad = false;
       return newFileList;
     } finally {
-      this.alreadyFetching = false;
+      this.operationInProgress = false;
     }
   }
 
@@ -97,8 +99,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     try {
       // Fetching mutex
-      const wasFetching = this.alreadyFetching;
-      this.alreadyFetching = true;
+      const wasFetching = this.operationInProgress;
+      this.operationInProgress = true;
 
       // Fetch file
       const data = await this.wrapped.readFile(name);
@@ -107,7 +109,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
       return data;
     } finally {
-      this.alreadyFetching = false;
+      this.operationInProgress = false;
     }
   }
 
@@ -118,15 +120,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     meta?: FileMeta,
   ): Promise<FileMeta> {
     try {
-      const wasFetching = this.alreadyFetching;
-      this.alreadyFetching = true;
+      this.operationInProgress = true;
       const newMeta = await this.wrapped.writeFile(
         name,
         data,
         selfUpdate,
         meta,
       );
-      if (!selfUpdate && !wasFetching) {
+      if (!selfUpdate) {
         await this.dispatchEvent(
           "file:changed",
           name,
@@ -135,9 +136,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           newMeta.lastModified,
         );
       }
-      if (!wasFetching) {
-        this.spaceSnapshot[name] = newMeta.lastModified;
-      }
+      this.spaceSnapshot[name] = newMeta.lastModified;
 
       if (name.endsWith(".md")) {
         // Let's trigger some page-specific events
@@ -154,7 +153,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
       return newMeta;
     } finally {
-      this.alreadyFetching = false;
+      this.operationInProgress = false;
     }
   }
 
@@ -170,8 +169,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
-      const wasFetching = this.alreadyFetching;
-      this.alreadyFetching = true;
+      const wasFetching = this.operationInProgress;
+      this.operationInProgress = true;
       const newMeta = await this.wrapped.getFileMeta(name);
       if (!wasFetching) {
         this.triggerEventsAndCache(name, newMeta.lastModified);
@@ -188,13 +187,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
       throw e;
     } finally {
-      this.alreadyFetching = false;
+      this.operationInProgress = false;
     }
   }
 
   async deleteFile(name: string): Promise<void> {
     try {
-      this.alreadyFetching = true;
+      this.operationInProgress = true;
       if (name.endsWith(".md")) {
         const pageName = name.substring(0, name.length - 3);
         await this.dispatchEvent("page:deleted", pageName);
@@ -204,7 +203,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       delete this.spaceSnapshot[name];
       await this.dispatchEvent("file:deleted", name);
     } finally {
-      this.alreadyFetching = false;
+      this.operationInProgress = false;
     }
   }
 }
