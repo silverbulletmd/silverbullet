@@ -12,9 +12,16 @@ type AnchorObject = ObjectValue<{
 
 export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
   const anchors: ObjectValue<AnchorObject>[] = [];
+  const anchorNames = new Set<string>();
 
   collectNodesOfType(tree, "NamedAnchor").forEach((n) => {
     const aName = n.children![0].text!.substring(1);
+    if (anchorNames.has(aName)) {
+      console.warn("Duplicate anchor", aName, "in", pageName);
+      return;
+    } else {
+      anchorNames.add(aName);
+    }
     anchors.push({
       ref: `${pageName}$${aName}`,
       tag: "anchor",
