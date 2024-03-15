@@ -11,7 +11,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 ---
 
 ## 0.7.6
-* We now have [[Space Style]] in addition to [[Space Script]], enabling CSS tweaks to SilverBullet itself from any page.
+* We now have [[Space Style]] in addition to [[Space Script]], enabling CSS tweaks to SilverBullet itself from any page (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/796))
 * Added [[Functions#contains(str, substr)]] function
 * Properly report errors when calling non-existing [[Functions]] in queries
 * It’s now possible to call [[Space Script#Custom functions]] in `indexPage` in [[SETTINGS]]
