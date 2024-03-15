@@ -1,4 +1,4 @@
-import { path, YAML } from "../lib/deps.ts";
+import { path, YAML } from "../lib/deps_server.ts";
 import { denoPlugins } from "esbuild_deno_loader";
 import * as esbuild from "esbuild";
 import { bundleAssets } from "../lib/asset_bundle/builder.ts";

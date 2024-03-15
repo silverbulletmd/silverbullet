@@ -1,5 +1,5 @@
 import { Hook, Manifest } from "../types.ts";
-import { Cron } from "../../deps.ts";
+import { Cron } from "../../deps_server.ts";
 import { System } from "../system.ts";
 import { CronHookT } from "$lib/manifest.ts";
 
