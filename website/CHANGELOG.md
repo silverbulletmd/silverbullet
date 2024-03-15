@@ -6,7 +6,25 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new since 0.7.6 yet!
+
+---
+
+## 0.7.6
+* We now have [[Space Style]] in addition to [[Space Script]], enabling CSS tweaks to SilverBullet itself from any page (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/796))
 * Added [[Functions#contains(str, substr)]] function
+* Properly report errors when calling non-existing [[Functions]] in queries
+* It’s now possible to call [[Space Script#Custom functions]] in `indexPage` in [[SETTINGS]]
+* Support custom [[Markdown/Admonitions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/786))
+* Improved snippets for [[Links]] indexing (visible in [[Linked Mentions]]) (a {[Space: Reindex]} is required to see this), attempts to include the entire surrounding sentence, and if that’s too long cuts it down, but not mid-word.
+* [[Objects#header]] containing [[Tags]] or [[Attributes]] are now properly indexed
+* (Hopefully) fixed [weird rendering bugs](https://github.com/silverbulletmd/silverbullet/issues/745) for markdown in templates
+* New {[Editor: Undo]} and {[Editor: Redo]} commands (so you can customize their keybindings or add them as actionButtons in [[SETTINGS]]).
+* Various bugfixes around frontmatter in [[Snippets]].
+* More attempts at fixing unnecessary “Page has changed elsewhere, reloading” reloads.
+* Various other bug fixes
+
+---
 
 ## 0.7.5
 * [[Plugs/Share]] using the {[Share: Page Or Selection]} command (bound to Ctrl-s/Cmd-s by default): allowing you to quickly share the current page (or selection) to the clipboard as:

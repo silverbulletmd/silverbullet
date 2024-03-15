@@ -42,6 +42,7 @@ import {
   highlightingExpressionParser,
   highlightingQueryParser,
 } from "./markdown_parser/parser.ts";
+import { cssLanguage } from "@codemirror/lang-css";
 
 export const builtinLanguages: Record<string, Language> = {
   "meta": StreamLanguage.define(yamlLanguage),
@@ -61,7 +62,8 @@ export const builtinLanguages: Record<string, Language> = {
   "postgres": StreamLanguage.define(postgresqlLanguage),
   "rust": StreamLanguage.define(rustLanguage),
   "rs": StreamLanguage.define(rustLanguage),
-  "css": StreamLanguage.define(sqlLanguage),
+  "css": cssLanguage,
+  "space-style": cssLanguage,
   "html": htmlLanguage,
   "python": StreamLanguage.define(pythonLanguage),
   "py": StreamLanguage.define(pythonLanguage),

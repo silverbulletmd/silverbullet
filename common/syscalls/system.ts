@@ -94,6 +94,12 @@ export function systemSyscalls(
         }
       }
     },
+    "system.loadSpaceStyles": async () => {
+      if (!client) {
+        throw new Error("Not supported on server");
+      }
+      await client.loadCustomStyles();
+    },
     "system.invokeSpaceFunction": (_ctx, name: string, ...args: any[]) => {
       return commonSystem.invokeSpaceFunction(name, args);
     },

@@ -21,6 +21,7 @@ import type {
   CompleteEvent,
   SlashCompletions,
 } from "../plug-api/types.ts";
+import { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
@@ -250,7 +251,7 @@ export class Client {
     this.syncService.start();
 
     // We're still booting, if a initial sync has already been completed we know this is the initial sync
-    const initialSync = !await this.syncService.hasInitialSyncCompleted();
+    let initialSync = !await this.syncService.hasInitialSyncCompleted();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       // console.log("Operations", operations);
@@ -270,7 +271,7 @@ export class Client {
           ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
             console.error,
           );
-        } else {
+        } else { // initialSync
           // Let's load space scripts, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
           console.log(
@@ -279,6 +280,7 @@ export class Client {
           ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
             console.error,
           );
+          initialSync = false;
         }
       }
       if (operations) {
@@ -585,23 +587,37 @@ export class Client {
       this.eventHook,
     );
 
+    let lastSaveTimestamp: number | undefined;
+
+    this.eventHook.addLocalListener("editor:pageSaving", () => {
+      lastSaveTimestamp = Date.now();
+    });
+
     this.eventHook.addLocalListener(
       "file:changed",
       (
         path: string,
-        _localChange?: boolean,
-        oldHash?: number,
-        newHash?: number,
+        _localChange: boolean,
+        oldHash: number,
+        newHash: number,
       ) => {
         // Only reload when watching the current page (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval && `${this.currentPage}.md` === path
+          this.space.watchInterval && `${this.currentPage}.md` === path &&
+          // Avoid reloading if the page was just saved (5s window)
+          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
             oldHash,
             "new hash",
             newHash,
+          );
+          console.log(
+            "Last save timestamp",
+            lastSaveTimestamp,
+            "now",
+            Date.now(),
           );
           this.flashNotification("Page changed elsewhere, reloading");
           this.reloadPage();
@@ -1091,36 +1107,32 @@ export class Client {
   }
 
   async loadCustomStyles() {
-    if (this.settings.customStyles) {
-      const accumulatedCSS: string[] = [];
-      let customStylePages = this.settings.customStyles;
-      if (!Array.isArray(customStylePages)) {
-        customStylePages = [customStylePages];
-      }
-      for (const customStylesPage of customStylePages) {
-        try {
-          const { text: stylesText } = await this.space.readPage(
-            cleanPageRef(customStylesPage),
-          );
-          // Analogous to yamlSettingsRegex in settings.ts
-          const cssBlockRegex = /^(```+|~~~+)css\r?\n([\S\s]+)\1/m;
-          const match = cssBlockRegex.exec(stylesText);
-          if (!match) {
-            return;
-          }
-          accumulatedCSS.push(match[2]);
-        } catch (e: any) {
-          console.error("Failed to load custom styles", e);
-        }
-      }
-      const customStylesContent = accumulatedCSS.join("\n\n");
-      this.ui.viewDispatch({
-        type: "set-ui-option",
-        key: "customStyles",
-        value: customStylesContent,
-      });
-      document.getElementById("custom-styles")!.innerHTML = customStylesContent;
+    const spaceStyles = await this.clientSystem.queryObjects<StyleObject>(
+      "space-style",
+      {},
+    );
+    if (!spaceStyles) {
+      return;
     }
+
+    // Sort stylesheets (last declared styles take precedence)
+    // Order is 1: Imported styles, 2: Other styles, 3: customStyles from Settings
+    const sortOrder = ["library", "user", "settings"];
+    spaceStyles.sort((a, b) =>
+      sortOrder.indexOf(a.origin) - sortOrder.indexOf(b.origin)
+    );
+
+    const accumulatedCSS: string[] = [];
+    for (const s of spaceStyles) {
+      accumulatedCSS.push(s.style);
+    }
+    const customStylesContent = accumulatedCSS.join("\n\n");
+    this.ui.viewDispatch({
+      type: "set-ui-option",
+      key: "customStyles",
+      value: customStylesContent,
+    });
+    document.getElementById("custom-styles")!.innerHTML = customStylesContent;
   }
 
   async runCommandByName(name: string, args?: any[]) {

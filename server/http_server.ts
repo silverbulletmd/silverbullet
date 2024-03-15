@@ -331,7 +331,7 @@ export class HttpServer {
     this.app.use("*", async (c, next) => {
       const req = c.req;
       const spaceServer = await this.ensureSpaceServer(req);
-      if (!spaceServer.auth) {
+      if (!spaceServer.auth && !spaceServer.authToken) {
         // Auth disabled in this config, skip
         return next();
       }

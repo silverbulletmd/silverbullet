@@ -43,6 +43,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         location.href = result.url;
         throw new Error("Not authenticated");
       }
+      if (result.status === 401) {
+        location.reload();
+        throw new Error("Not authenticated, got 403");
+      }
       return result;
     } catch (e: any) {
       // Errors when there is no internet connection:

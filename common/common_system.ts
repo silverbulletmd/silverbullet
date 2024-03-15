@@ -13,6 +13,9 @@ import { SlashCommandHook } from "../web/hooks/slash_command.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { ParseTree } from "../plug-api/lib/tree.ts";
 
+const mqTimeout = 10000; // 10s
+const mqTimeoutRetry = 3;
+
 export abstract class CommonSystem {
   system!: System<SilverBulletHooks>;
 
@@ -35,8 +38,7 @@ export abstract class CommonSystem {
     protected enableSpaceScript: boolean,
   ) {
     setInterval(() => {
-      // Timeout after 5s, retries 3 times, otherwise drops the message (no DLQ)
-      mq.requeueTimeouts(5000, 3, true).catch(console.error);
+      mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
     }, 20000); // Look to requeue every 20s
   }
 
