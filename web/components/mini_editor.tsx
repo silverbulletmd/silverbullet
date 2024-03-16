@@ -1,25 +1,22 @@
+import { useEffect, useRef } from "preact/hooks";
+import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
 import {
   autocompletion,
   closeBracketsKeymap,
   CompletionContext,
   completionKeymap,
   CompletionResult,
-  EditorState,
+} from "@codemirror/autocomplete";
+import { EditorState } from "@codemirror/state";
+import {
   EditorView,
   highlightSpecialChars,
-  history,
-  historyKeymap,
   keymap,
   placeholder,
-  standardKeymap,
-  useEffect,
-  useRef,
   ViewPlugin,
   ViewUpdate,
-  Vim,
-  vim,
-  vimGetCm,
-} from "../deps.ts";
+} from "@codemirror/view";
+import { getCM as vimGetCm, Vim, vim } from "@replit/codemirror-vim";
 import { createCommandKeyBindings } from "../editor_state.ts";
 
 type MiniEditorEvents = {

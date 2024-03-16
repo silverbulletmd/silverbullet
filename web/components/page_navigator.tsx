@@ -1,6 +1,6 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption } from "../../type/web.ts";
-import { CompletionContext, CompletionResult } from "../deps.ts";
+import { FilterOption } from "$lib/web.ts";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { PageMeta } from "../../plug-api/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";

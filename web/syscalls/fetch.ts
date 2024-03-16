@@ -3,7 +3,7 @@ import {
   performLocalFetch,
   ProxyFetchRequest,
   ProxyFetchResponse,
-} from "$common/proxy_fetch.ts";
+} from "../../lib/proxy_fetch.ts";
 import type { Client } from "../client.ts";
 import { base64Decode, base64Encode } from "$lib/crypto.ts";
 

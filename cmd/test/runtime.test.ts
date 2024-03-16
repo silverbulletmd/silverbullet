@@ -1,14 +1,14 @@
-import { createSandbox } from "./sandboxes/deno_worker_sandbox.ts";
-import { System } from "./system.ts";
-import { assert, assertEquals } from "$lib/test_deps.ts";
-import { compileManifest } from "./compile.ts";
-import { esbuild } from "./deps.ts";
+import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
+import { System } from "../../lib/plugos/system.ts";
+import { assert, assertEquals } from "$std/testing/asserts.ts";
+import { compileManifest } from "../compile.ts";
+import * as esbuild from "esbuild";
 import {
   createSandbox as createNoSandbox,
   runWithSystemLock,
-} from "./sandboxes/no_sandbox.ts";
-import { SysCallMapping } from "./system.ts";
-import { sleep } from "../async.ts";
+} from "../../lib/plugos/sandboxes/no_sandbox.ts";
+import { SysCallMapping } from "../../lib/plugos/system.ts";
+import { sleep } from "../../lib/async.ts";
 
 Deno.test("Run a deno sandbox", {
   sanitizeResources: false,
@@ -37,7 +37,7 @@ Deno.test("Run a deno sandbox", {
   const tempDir = await Deno.makeTempDir();
 
   const workerPath = await compileManifest(
-    new URL("test.plug.yaml", import.meta.url).pathname,
+    new URL("test_runtime.plug.yaml", import.meta.url).pathname,
     tempDir,
   );
 

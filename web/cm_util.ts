@@ -1,4 +1,4 @@
-import diff, { DELETE, INSERT } from "https://esm.sh/fast-diff@1.3.0";
+import diff, { DELETE, INSERT } from "fast-diff";
 import type { ChangeSpec } from "@codemirror/state";
 
 export function diffAndPrepareChanges(

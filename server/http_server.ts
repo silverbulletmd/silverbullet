@@ -1,12 +1,6 @@
-import {
-  Context,
-  cors,
-  deleteCookie,
-  getCookie,
-  Hono,
-  HonoRequest,
-  setCookie,
-} from "./deps.ts";
+import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
+import { cors } from "hono/middleware.ts";
+import { type Context, Hono, type HonoRequest } from "hono/mod.ts";
 import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { FileMeta } from "../plug-api/types.ts";
 import { ShellRequest } from "../type/rpc.ts";

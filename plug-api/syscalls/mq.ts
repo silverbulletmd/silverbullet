@@ -1,4 +1,4 @@
-import { syscall } from "$sb/syscall.ts";
+import { syscall } from "../syscall.ts";
 import type { MQStats } from "../types.ts";
 
 export function send(queue: string, body: any) {

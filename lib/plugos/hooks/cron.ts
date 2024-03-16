@@ -1,9 +1,7 @@
 import { Hook, Manifest } from "../types.ts";
-import { Cron } from "https://cdn.jsdelivr.net/gh/hexagon/croner@4/src/croner.js";
+import { Cron } from "../../deps_server.ts";
 import { System } from "../system.ts";
-export type CronHookT = {
-  cron?: string | string[];
-};
+import { CronHookT } from "$lib/manifest.ts";
 
 export class CronHook implements Hook<CronHookT> {
   tasks: Cron[] = [];

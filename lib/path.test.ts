@@ -1,4 +1,4 @@
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { folderName, resolve } from "./path.ts";
 
 Deno.test("Path functions", () => {

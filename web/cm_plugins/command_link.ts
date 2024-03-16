@@ -1,5 +1,6 @@
 import { ClickEvent } from "../../plug-api/types.ts";
-import { Decoration, syntaxTree } from "../deps.ts";
+import { syntaxTree } from "@codemirror/language";
+import { Decoration } from "@codemirror/view";
 import { Client } from "../client.ts";
 import {
   ButtonWidget,

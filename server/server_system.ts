@@ -1,5 +1,5 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "$common/manifest.ts";
+import { SilverBulletHooks } from "../lib/manifest.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";

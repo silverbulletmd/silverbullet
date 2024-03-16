@@ -1,4 +1,4 @@
-import { stemmer } from "https://esm.sh/porter-stemmer@0.9.1";
+import { stemmer } from "porter-stemmer";
 import { batchSet, query } from "../index/plug_api.ts";
 
 type ResultObject = {

@@ -6,7 +6,7 @@ import {
   traverseTreeAsync,
 } from "./tree.ts";
 import { expandPropertyNames } from "./json.ts";
-import { YAML } from "$sb/syscalls.ts";
+import { YAML } from "../syscalls.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 

@@ -1,7 +1,5 @@
-import { path } from "$common/deps.ts";
-import assets from "../dist/plug_asset_bundle.json" assert {
-  type: "json",
-};
+import { resolve } from "$std/path/mod.ts";
+import assets from "../dist/plug_asset_bundle.json" with { type: "json" };
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
@@ -10,7 +8,7 @@ import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { EndpointHook } from "../server/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
-import { Hono } from "../server/deps.ts";
+import { Hono } from "hono/mod.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { EventHook } from "../common/hooks/event.ts";
@@ -29,7 +27,7 @@ export async function plugRunCommand(
   functionName: string | undefined,
   ...args: string[]
 ) {
-  spacePath = path.resolve(spacePath);
+  spacePath = resolve(spacePath);
   console.log("Space path", spacePath);
   console.log("Function to run:", functionName, "with arguments", args);
 

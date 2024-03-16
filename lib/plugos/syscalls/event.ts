@@ -1,7 +1,7 @@
 import { SysCallMapping } from "../system.ts";
-import { EventHook } from "../../../common/hooks/event.ts";
+import { EventHookI } from "../eventhook.ts";
 
-export function eventSyscalls(eventHook: EventHook): SysCallMapping {
+export function eventSyscalls(eventHook: EventHookI): SysCallMapping {
   return {
     "event.dispatch": (_ctx, eventName: string, data: any) => {
       return eventHook.dispatchEvent(eventName, data);

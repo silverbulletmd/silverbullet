@@ -1,5 +1,4 @@
 import { syscall } from "../syscall.ts";
-
 import type { ParseTree } from "../lib/tree.ts";
 
 /**

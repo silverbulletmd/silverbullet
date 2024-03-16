@@ -2,7 +2,8 @@
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
 
-import { Decoration, syntaxTree, WidgetType } from "../deps.ts";
+import { syntaxTree } from "@codemirror/language";
+import { Decoration, WidgetType } from "@codemirror/view";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 const bulletListMarkerRE = /^[-+*]/;

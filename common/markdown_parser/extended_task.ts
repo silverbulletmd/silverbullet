@@ -3,7 +3,7 @@ import {
   LeafBlock,
   LeafBlockParser,
   MarkdownConfig,
-} from "../deps.ts";
+} from "@lezer/markdown";
 
 import { tags as t } from "@lezer/highlight";
 import { TaskStateTag } from "./customtags.ts";

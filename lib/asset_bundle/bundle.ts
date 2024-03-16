@@ -1,4 +1,4 @@
-import { base64Decode, base64EncodedDataUrl } from "$lib/crypto.ts";
+import { base64Decode, base64EncodedDataUrl } from "../crypto.ts";
 
 type DataUrl = string;
 

@@ -1,4 +1,4 @@
-import { SilverBulletHooks } from "$common/manifest.ts";
+import { SilverBulletHooks } from "../lib/manifest.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
@@ -12,7 +12,7 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { System } from "$lib/plugos/system.ts";
 import { BuiltinSettings } from "../type/web.ts";
 import { JWTIssuer } from "./crypto.ts";
-import { gitIgnoreCompiler } from "./deps.ts";
+import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import { ShellBackend } from "./shell_backend.ts";

@@ -1,30 +1,37 @@
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
 import {
+  history,
+  historyKeymap,
+  indentWithTab,
+  standardKeymap,
+} from "@codemirror/commands";
+import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
-  codeFolding,
   completionKeymap,
-  drawSelection,
-  dropCursor,
-  EditorState,
-  EditorView,
-  highlightSpecialChars,
-  history,
+} from "@codemirror/autocomplete";
+import {
+  codeFolding,
   indentOnInput,
-  indentWithTab,
-  KeyBinding,
-  keymap,
   LanguageDescription,
   LanguageSupport,
-  markdown,
-  standardKeymap,
   syntaxHighlighting,
+} from "@codemirror/language";
+import { EditorState } from "@codemirror/state";
+import {
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightSpecialChars,
+  KeyBinding,
+  keymap,
   ViewPlugin,
   ViewUpdate,
-  vim,
-} from "./deps.ts";
+} from "@codemirror/view";
+import { vim } from "@replit/codemirror-vim";
+import { markdown } from "@codemirror/lang-markdown";
 import { Client } from "./client.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";

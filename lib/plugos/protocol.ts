@@ -1,4 +1,4 @@
-import type { Manifest } from "$common/manifest.ts";
+import type { Manifest } from "../manifest.ts";
 
 // Messages received from the worker
 export type ControllerMessage =

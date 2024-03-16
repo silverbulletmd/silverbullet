@@ -1,22 +1,20 @@
 import { Client } from "../client.ts";
 import {
-  EditorView,
   foldAll,
   foldCode,
-  redo,
   toggleFold,
-  Transaction,
-  undo,
   unfoldAll,
   unfoldCode,
-  Vim,
-  vimGetCm,
-} from "../deps.ts";
+} from "@codemirror/language";
+import { redo, undo } from "@codemirror/commands";
+import { Transaction } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import { SysCallMapping } from "$lib/plugos/system.ts";
-import type { FilterOption } from "../../type/web.ts";
+import type { FilterOption } from "$lib/web.ts";
 import { UploadFile } from "../../plug-api/types.ts";
 import { PageRef } from "$sb/lib/page_ref.ts";
-import { openSearchPanel } from "../deps.ts";
+import { openSearchPanel } from "@codemirror/search";
 import { diffAndPrepareChanges } from "../cm_util.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {

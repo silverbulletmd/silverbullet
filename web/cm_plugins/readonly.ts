@@ -1,4 +1,4 @@
-import { EditorState } from "../deps.ts";
+import { EditorState } from "@codemirror/state";
 
 export function readonlyMode() {
   return EditorState.changeFilter.of((tr): boolean => {

@@ -21,10 +21,23 @@
     "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/view,@codemirror/state,@codemirror/lint,@lezer/common,@lezer/lr,@lezer/javascript,@codemirror/commands&target=es2022",
     "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.0.14?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
 
+    "@js-temporal/polyfill": "https://esm.sh/@js-temporal/polyfill@0.4.4",
+    "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.3/",
+    "denosass": "https://deno.land/x/denosass@1.0.4/mod.ts",
     "djwt": "https://deno.land/x/djwt@v3.0.1/mod.ts",
+    "esbuild": "https://deno.land/x/esbuild@v0.20.0/mod.js",
+    "esbuild_deno_loader": "https://deno.land/x/esbuild_deno_loader@0.8.5/mod.ts",
+    "fake-indexeddb/": "https://esm.sh/fake-indexeddb@4.0.2/",
+    "fast-diff": "https://esm.sh/fast-diff@1.3.0",
+    "fuse": "https://deno.land/x/fuse@v6.4.1/dist/fuse.esm.min.js",
+    "gitignore-parser": "https://esm.sh/gitignore-parser@0.0.2",
+    "hono/": "https://deno.land/x/hono@v3.12.2/",
     "js-yaml": "https://esm.sh/js-yaml@4.1.0",
     "mimetypes": "https://deno.land/x/mimetypes@v1.0.0/mod.ts",
-    "gitignore-parser": "https://esm.sh/gitignore-parser@0.0.2",
+    "porter-stemmer": "https://esm.sh/porter-stemmer@0.9.1",
+    "preact-feather": "https://esm.sh/preact-feather@4.2.1?external=preact",
+    "preact-feather/types": "https://esm.sh/preact-feather@4.2.1/dist/types?external=preact",
+    "s3_lite_client/": "https://deno.land/x/s3_lite_client@0.4.0/",
     "turndown": "https://cdn.skypack.dev/turndown@7.1.1",
     "turndown-plugin-gfm": "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.45",
 
@@ -33,6 +46,7 @@
     "$type/": "./type/",
 
     "preact": "https://esm.sh/preact@10.11.1",
+    "preact/": "https://esm.sh/preact@10.11.1/",
     "$sb/": "./plug-api/",
     "zod": "https://deno.land/x/zod@v3.22.4/mod.ts",
     "$std/": "https://deno.land/std@0.189.0/"

@@ -1,4 +1,6 @@
-import { Decoration, EditorState, Range, syntaxTree } from "../deps.ts";
+import { EditorState, Range } from "@codemirror/state";
+import { Decoration } from "@codemirror/view";
+import { syntaxTree } from "@codemirror/language";
 import { decoratorStateField } from "./util.ts";
 
 interface WrapElement {

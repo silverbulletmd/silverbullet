@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "../deps.ts";
+import { useEffect, useRef } from "https://esm.sh/preact@10.11.1/hooks";
 import { Client } from "../client.ts";
 import { PanelConfig } from "../../type/web.ts";
 import { panelHtml } from "./panel_html.ts";

@@ -1,5 +1,5 @@
 import.meta.main = false;
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/command.ts";
+import { Command } from "cliffy/command/command.ts";
 
 import { version } from "./version.ts";
 

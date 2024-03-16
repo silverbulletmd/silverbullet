@@ -1,4 +1,6 @@
-import { Decoration, EditorState, syntaxTree, WidgetType } from "../deps.ts";
+import { EditorState } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
+import { Decoration, WidgetType } from "@codemirror/view";
 import {
   decoratorStateField,
   invisibleDecoration,

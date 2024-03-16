@@ -1,27 +1,22 @@
-import { Hook, Manifest } from "../../lib/plugos/types.ts";
-import { System } from "../../lib/plugos/system.ts";
-import { Completion, CompletionContext, CompletionResult } from "../deps.ts";
+import { Hook, Manifest } from "$lib/plugos/types.ts";
+import { System } from "$lib/plugos/system.ts";
+import {
+  Completion,
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import { Client } from "../client.ts";
-import { syntaxTree } from "../deps.ts";
+import { syntaxTree } from "@codemirror/language";
 import {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
 import { safeRun } from "$lib/async.ts";
-
-export type SlashCommandDef = {
-  name: string;
-  description?: string;
-  boost?: number;
-};
+import { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
   run: () => Promise<void>;
-};
-
-export type SlashCommandHookT = {
-  slashCommand?: SlashCommandDef;
 };
 
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;

@@ -2,7 +2,9 @@
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
 
-import { Decoration, EditorState, syntaxTree } from "../deps.ts";
+import { EditorState } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
+import { Decoration } from "@codemirror/view";
 import {
   checkRangeOverlap,
   decoratorStateField,

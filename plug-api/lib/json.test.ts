@@ -1,4 +1,4 @@
-import { assertEquals } from "$lib/test_deps.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 import { deepEqual, deepObjectMerge, expandPropertyNames } from "./json.ts";
 
 Deno.test("utils", () => {

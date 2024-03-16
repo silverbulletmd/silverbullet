@@ -1,13 +1,8 @@
-import {
-  CompletionContext,
-  CompletionResult,
-  FeatherProps,
-  FunctionalComponent,
-  useEffect,
-  useRef,
-  useState,
-} from "../deps.ts";
-import { FilterOption } from "../../type/web.ts";
+import { FeatherProps } from "preact-feather/types";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { FunctionalComponent } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { FilterOption } from "$lib/web.ts";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../fuse_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";

@@ -1,9 +1,6 @@
 import { KV, KvKey } from "../../plug-api/types.ts";
 import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
-import {
-  createClient,
-  DynamoDBClient,
-} from "https://denopkg.com/chiefbiiko/dynamodb@master/mod.ts";
+import { createClient, DynamoDBClient } from "../deps_server.ts";
 
 export type AwsOptions = {
   accessKey: string;

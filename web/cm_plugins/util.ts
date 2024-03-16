@@ -1,16 +1,9 @@
 // Forked from https://codeberg.org/retronav/ixora
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
-import {
-  Decoration,
-  DecorationSet,
-  EditorState,
-  EditorView,
-  StateField,
-  Transaction,
-  WidgetType,
-} from "../deps.ts";
-
+import { EditorState, StateField, Transaction } from "@codemirror/state";
+import { DecorationSet } from "@codemirror/view";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 type LinkOptions = {
   text: string;
   href?: string;

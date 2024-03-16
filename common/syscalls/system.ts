@@ -1,7 +1,7 @@
 import { SyscallMeta } from "../../plug-api/types.ts";
 import { SysCallMapping, System } from "../../lib/plugos/system.ts";
 import type { Client } from "../../web/client.ts";
-import { CommandDef } from "../hooks/command.ts";
+import { CommandDef } from "$lib/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";

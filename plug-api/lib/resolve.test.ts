@@ -5,8 +5,8 @@ import {
   resolvePath,
   rewritePageRefs,
 } from "$sb/lib/resolve.ts";
-import { assertEquals } from "$lib/test_deps.ts";
-import { ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
+import { ParseTree, renderToText } from "./tree.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
