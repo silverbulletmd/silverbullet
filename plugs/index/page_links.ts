@@ -1,5 +1,5 @@
 import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
-import { IndexTreeEvent } from "../../plug-api/types.ts";
+import { AttachmentMeta, IndexTreeEvent } from "../../plug-api/types.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "../../plug-api/types.ts";
@@ -7,19 +7,23 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
+import { space } from "$sb/syscalls.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
-export type LinkObject = ObjectValue<{
-  // The page the link points to
-  toPage: string;
-  // The page the link occurs in
-  page: string;
-  pos: number;
-  snippet: string;
-  alias?: string;
-  asTemplate: boolean;
-}>;
+// Link can be to a page or to an attachment
+export type LinkObject = ObjectValue<
+  {
+    // The page the link points to
+    toPage: string;
+    // The page the link occurs in
+    page: string;
+    pos: number;
+    snippet: string;
+    alias?: string;
+    asTemplate: boolean;
+  }
+>;
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
@@ -83,6 +87,38 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         }
       }
     }
+
+    // Also index []() style links
+    if (n.type === "URL") {
+      const linkNode = findNodeOfType(n, "URL")!;
+      if (!linkNode) {
+        return false;
+      }
+
+      // Check if local link
+      let url = linkNode.children![0].text!;
+      if (
+        url.indexOf("://") >= 0 || url.startsWith("mailto:") ||
+        url.startsWith("!")
+      ) {
+        return false;
+      }
+      url = resolvePath(name, decodeURI(url));
+
+      const pos = linkNode.from!;
+      const link: LinkObject = {
+        ref: `${name}@${pos}`,
+        tag: "link",
+        toPage: url,
+        snippet: extractSnippetAroundIndex(pageText, pos),
+        pos,
+        page: name,
+        asTemplate: false,
+      };
+      updateITags(link, frontmatter);
+      links.push(link);
+      return true;
+    }
     return false;
   });
   // console.log("Found", links, "page link(s)");
@@ -95,4 +131,20 @@ export async function getBackLinks(
   return (await queryObjects<LinkObject>("link", {
     filter: ["=", ["attr", "toPage"], ["string", pageName]],
   }));
+}
+
+// Get list of attachments and any links that point to them
+type AttachmentLinks = AttachmentMeta & {
+  links?: LinkObject[];
+};
+
+export async function getAttachmentsWithLinks(): Promise<AttachmentLinks[]> {
+  //let attachments: AttachmentLinks[] = [];
+  const attachments: AttachmentLinks[] = await space.listAttachments();
+  const links = await queryObjects<LinkObject>("link", {});
+  for (let att of attachments) {
+    const linksTo = links.filter((l) => l.toPage === att.name);
+    att.links?.concat(linksTo);
+  }
+  return attachments;
 }
