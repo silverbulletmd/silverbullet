@@ -75,9 +75,15 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        return editor.openUrl(
-          resolveAttachmentPath(currentPage, decodeURI(url)),
-        );
+        if (/\.[a-zA-Z0-9]+$/.test(url)) {
+          return editor.openUrl(
+            resolveAttachmentPath(currentPage, decodeURI(url)),
+          );
+        } else {
+          return editor.navigate(
+            parsePageRef(url),
+          );
+        }
       } else {
         await editor.openUrl(url);
       }

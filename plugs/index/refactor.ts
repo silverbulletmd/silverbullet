@@ -88,9 +88,6 @@ async function renamePage(
     await editor.navigate({ page: newName, pos: 0 }, true);
   }
 
-  const pagesToUpdate = await getBackLinks(oldName);
-  console.log("All pages containing backlinks", pagesToUpdate);
-
   // Handling the edge case of a changing page name just in casing on a case insensitive FS
   const oldPageMeta = await space.getPageMeta(oldName);
   if (oldPageMeta.lastModified !== newPageMeta.lastModified) {
@@ -100,51 +97,41 @@ async function renamePage(
   }
 
   // This is the bit where we update all the links
-  const pageToUpdateSet = new Set<string>();
-  for (const pageToUpdate of pagesToUpdate) {
-    pageToUpdateSet.add(pageToUpdate.page);
-  }
-
+  const backLinks = await getBackLinks(oldName);
   let updatedReferences = 0;
 
-  for (const pageToUpdate of pageToUpdateSet) {
-    if (pageToUpdate === oldName) {
+  // Group by page to edit entire page at once
+  const backLinksByPage = Object.groupBy(backLinks, (o) => o.page);
+
+  console.log("All pages containing backlinks", backLinks);
+
+  for (const [pageToEdit, linksInPage] of Object.entries(backLinksByPage)) {
+    if (pageToEdit === oldName) {
       continue;
     }
-    console.log("Now going to update links in", pageToUpdate);
-    const text = await space.readPage(pageToUpdate);
-    // console.log("Received text", text);
+    console.log("Now going to update links in", pageToEdit);
+    const text = await space.readPage(pageToEdit);
+    let newText = "";
     if (!text) {
       // Page likely does not exist, but at least we can skip it
       continue;
     }
 
-    // Replace all links found in place following the patterns [[Page]] and [[Page@pos]] as well as [[Page$anchor]]
-    const newText = text.replaceAll(`[[${oldName}]]`, () => {
-      // Plain link format
-      updatedReferences++;
-      return `[[${newName}]]`;
-    }).replaceAll(`[[${oldName}|`, () => {
-      // Aliased link format
-      updatedReferences++;
-      return `[[${newName}|`;
-    }).replaceAll(`[[${oldName}@`, () => {
-      // Link with position format
-      updatedReferences++;
-      return `[[${newName}@`;
-    }).replaceAll(`[[${oldName}$`, () => {
-      // Link with anchor format
-      updatedReferences++;
-      return `[[${newName}$`;
-    }).replaceAll(`[[${oldName}#`, () => {
-      // Link with header format
-      updatedReferences++;
-      return `[[${newName}#`;
-    });
-    if (text !== newText) {
-      console.log("Changes made, saving...");
-      await space.writePage(pageToUpdate, newText);
+    // Use indexed positions to replace links
+    if (linksInPage) {
+      linksInPage.sort((a, b) => {
+        return a.pos - b.pos;
+      });
+      let position = 0;
+      for (const link of linksInPage) {
+        newText += text.substring(position, link.pos) + newName;
+        position = link.pos + link.toPage.length;
+        updatedReferences++;
+      }
+      newText += text.substring(position, text.length);
     }
+    console.log("Changes made, saving...");
+    await space.writePage(pageToEdit, newText);
   }
 
   return updatedReferences;
