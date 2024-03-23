@@ -12,6 +12,7 @@ import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { base64Encode } from "$lib/crypto.ts";
+import * as path from "$std/path/mod.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -462,6 +463,7 @@ export class HttpServer {
     });
 
     const filePathRegex = "/:path{[^!].*\\.[a-zA-Z]+}";
+    const mdExt = ".md";
 
     this.app.get(
       filePathRegex,
@@ -474,7 +476,7 @@ export class HttpServer {
           name,
         );
         if (
-          name.endsWith(".md") &&
+          name.endsWith(mdExt) &&
           // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
           !req.header("X-Sync-Mode") &&
           // This Accept header is used by federation to still work with CORS
@@ -486,7 +488,7 @@ export class HttpServer {
           console.warn(
             "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
           );
-          return c.redirect(`/${name.slice(0, -3)}`);
+          return c.redirect(`/${name.slice(0, -mdExt.length)}`, 401);
         }
         if (name.startsWith(".")) {
           // Don't expose hidden files
@@ -518,6 +520,16 @@ export class HttpServer {
             return c.text(e.message, 500);
           }
         }
+
+        const filename = path.posix.basename(name, mdExt);
+        if (filename.trim() !== filename) {
+          const newName = path.posix.join(
+            path.posix.dirname(name),
+            filename.trim(),
+          );
+          return c.redirect(`/${newName}`);
+        }
+
         try {
           if (req.header("X-Get-Meta")) {
             // Getting meta via GET request
@@ -555,6 +567,11 @@ export class HttpServer {
         if (name.startsWith(".")) {
           // Don't expose hidden files
           return c.text("Forbidden", 403);
+        }
+
+        const filename = path.posix.basename(name, mdExt);
+        if (filename.trim() !== filename) {
+          return c.text("Malformed filename", 400);
         }
 
         const body = await req.arrayBuffer();
