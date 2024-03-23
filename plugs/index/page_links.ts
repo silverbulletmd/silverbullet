@@ -36,7 +36,7 @@ export type AttachmentLinkObject = ObjectValue<
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
-  const attatchmentLinks: ObjectValue<AttachmentLinkObject>[] = [];
+  const attachmentLinks: ObjectValue<AttachmentLinkObject>[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
   const frontmatter = await extractFrontmatter(tree);
@@ -116,7 +116,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       }
       const pos = linkNode.from!;
 
-      // Assume link is to an attatchment if it has
+      // Assume link is to an attachment if it has
       // an extension, to a page otherwise
       if (/\.[a-zA-Z0-9]+$/.test(url)) {
         url = resolveAttachmentPath(name, url);
@@ -129,7 +129,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           page: name,
         };
         updateITags(link, frontmatter);
-        attatchmentLinks.push(link);
+        attachmentLinks.push(link);
         return true;
       } else {
         url = resolvePath(name, decodeURI(url));
@@ -152,7 +152,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   });
   // console.log("Found", links, "page link(s)");
   await indexObjects(name, links);
-  await indexObjects(name, attatchmentLinks);
+  await indexObjects(name, attachmentLinks);
 }
 
 export async function getBackLinks(
