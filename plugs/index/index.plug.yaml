@@ -131,12 +131,14 @@ functions:
     path: script.ts:indexSpaceScript
     events:
       - page:index
+      - page:indexTemplate
 
     # Style
   indexSpaceStyle:
     path: style.ts:indexSpaceStyle
     events:
       - page:index
+      - page:indexTemplate
 
   # Hashtags
   indexTags:

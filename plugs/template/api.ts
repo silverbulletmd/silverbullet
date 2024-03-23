@@ -2,9 +2,10 @@ import { markdown, template, YAML } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { TemplateObject } from "./types.ts";
 import { renderToText } from "$sb/lib/tree.ts";
+import { stripCodeBlocks } from "./util.ts";
 
 /**
- * Strips the template from its frontmatter and renders it.
+ * Strips the template from its frontmatter, space-scripts, space-styles and renders it.
  * The assumption is that the frontmatter has already been parsed and should not appear in thhe rendered output.
  * @param templateText the template text
  * @param data data to be rendered by the template
@@ -25,6 +26,7 @@ export async function renderTemplate(
         removeTags: ["template"],
       },
     );
+    stripCodeBlocks(tree, ["space-script", "space-style"]);
     templateText = renderToText(tree).trimStart();
     // If a 'frontmatter' key was specified in the frontmatter, use that as the frontmatter
     let frontmatterText: string | undefined;
@@ -52,7 +54,7 @@ export async function renderTemplate(
 }
 
 /**
- * Strips a template text from its frontmatter and #template tag
+ * Strips a template text from its frontmatter, #template tag, space-scripts, and space-styles
  */
 export async function cleanTemplate(
   templateText: string,
@@ -62,5 +64,6 @@ export async function cleanTemplate(
     removeFrontmatterSection: true,
     removeTags: ["template"],
   });
+  stripCodeBlocks(tree, ["space-script", "space-style"]);
   return renderToText(tree).trimStart();
 }
