@@ -7,6 +7,10 @@ export type Tag = {
 } | string;
 
 function htmlEscape(s: string): string {
+  if (typeof s !== "string") {
+    return s;
+  }
+
   s = s.replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
