@@ -10,7 +10,7 @@ export async function readFileTag(
     tagPrefix.length,
     name.length - ".md".length,
   );
-  const text = `These are all objects in your space tagged with #${tagName}.
+  const text = `All objects in your space tagged with #${tagName}:
 \`\`\`template
 template: |
     {{#if .}}
