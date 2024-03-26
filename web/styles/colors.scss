@@ -144,12 +144,22 @@
   }
 
   .cm-editor .cm-tooltip-autocomplete {
-    .cm-completionDetail {
-      color: var(--editor-completion-detail-color);
+    background-color: var(--root-background-color);
+
+    li {
+
+      .cm-completionLabel,
+      .cm-completionDetail {
+        color: var(--editor-completion-detail-color);
+      }
     }
 
-    li[aria-selected] .cm-completionDetail {
-      color: var(--editor-completion-detail-selected-color);
+    li[aria-selected] {
+
+      .cm-completionLabel,
+      .cm-completionDetail {
+        color: var(--editor-completion-detail-selected-color);
+      }
     }
   }
 
