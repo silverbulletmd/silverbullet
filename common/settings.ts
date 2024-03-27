@@ -32,6 +32,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
 export const defaultSettings: BuiltinSettings = {
   indexPage: "index",
   hideSyncButton: false,
+  maximumAttachmentSize: 10, // MiB
   actionButtons: [
     {
       icon: "Home",

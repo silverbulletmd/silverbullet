@@ -17,6 +17,7 @@ export type BuiltinSettings = {
   plugOverrides?: Record<string, Partial<Manifest>>;
   shortcuts?: Shortcut[];
   hideSyncButton?: boolean;
+  maximumAttachmentSize?: number;
   actionButtons: ActionButton[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
