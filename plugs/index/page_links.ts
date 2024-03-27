@@ -1,6 +1,6 @@
 import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
 import { IndexTreeEvent } from "../../plug-api/types.ts";
-import { resolvePath } from "$sb/lib/resolve.ts";
+import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { ObjectValue } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
@@ -10,19 +10,33 @@ import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 
 const pageRefRegex = /\[\[([^\]]+)\]\]/g;
 
-export type LinkObject = ObjectValue<{
-  // The page the link points to
-  toPage: string;
-  // The page the link occurs in
-  page: string;
-  pos: number;
-  snippet: string;
-  alias?: string;
-  asTemplate: boolean;
-}>;
+export type LinkObject = ObjectValue<
+  {
+    // The page the link points to
+    toPage: string;
+    // The page the link occurs in
+    page: string;
+    pos: number;
+    snippet: string;
+    alias?: string;
+    asTemplate: boolean;
+  }
+>;
+
+export type AttachmentLinkObject = ObjectValue<
+  {
+    // The file the link points to
+    toFile: string;
+    // The page the link occurs in
+    page: string;
+    pos: number;
+    snippet: string;
+  }
+>;
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
+  const attachmentLinks: ObjectValue<AttachmentLinkObject>[] = [];
   // [[Style Links]]
   // console.log("Now indexing links for", name);
   const frontmatter = await extractFrontmatter(tree);
@@ -83,10 +97,62 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         }
       }
     }
+
+    // Also index []() style links
+    if (n.type === "URL") {
+      const linkNode = findNodeOfType(n, "URL")!;
+      if (!linkNode) {
+        return false;
+      }
+
+      // Check if local link
+      let url = linkNode.children![0].text!;
+      url = url.replace(/^\//g, "");
+      if (
+        !url || url.indexOf("://") >= 0 ||
+        url.startsWith("mailto:") || url.startsWith("!")
+      ) {
+        return false;
+      }
+      const pos = linkNode.from!;
+
+      // Assume link is to an attachment if it has
+      // an extension, to a page otherwise
+      if (/\.[a-zA-Z0-9]+$/.test(url)) {
+        url = resolveAttachmentPath(name, url);
+        const link: AttachmentLinkObject = {
+          ref: `${name}@${pos}`,
+          tag: "attachment",
+          toFile: url,
+          snippet: extractSnippetAroundIndex(pageText, pos),
+          pos,
+          page: name,
+        };
+        updateITags(link, frontmatter);
+        attachmentLinks.push(link);
+        return true;
+      } else {
+        url = resolvePath(name, decodeURI(url));
+        url = parsePageRef(url).page;
+        const link: LinkObject = {
+          ref: `${name}@${pos}`,
+          tag: "link",
+          toPage: url,
+          snippet: extractSnippetAroundIndex(pageText, pos),
+          pos,
+          page: name,
+          asTemplate: false,
+        };
+        updateITags(link, frontmatter);
+        links.push(link);
+        return true;
+      }
+    }
     return false;
   });
   // console.log("Found", links, "page link(s)");
   await indexObjects(name, links);
+  await indexObjects(name, attachmentLinks);
 }
 
 export async function getBackLinks(

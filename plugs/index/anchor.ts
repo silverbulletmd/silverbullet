@@ -35,7 +35,7 @@ export async function indexAnchors({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function anchorComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]$:]*\$[\w\.\-\/]*)$/.exec(
+  const match = /(?:\[\[|\[.*?\]\()([^\]$:]*\$[\w\.\-\/]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match) {
