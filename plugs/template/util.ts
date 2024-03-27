@@ -1,6 +1,11 @@
 import { PageMeta } from "../../plug-api/types.ts";
 import { space, template } from "$sb/syscalls.ts";
 import { cleanTemplate } from "./plug_api.ts";
+import {
+  findNodeOfType,
+  ParseTree,
+  replaceNodesMatching,
+} from "$sb/lib/tree.ts";
 
 export function defaultJsonTransformer(v: any): string {
   if (v === undefined) {
@@ -86,4 +91,24 @@ export async function renderQueryTemplate(
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }
   return template.renderTemplate(templateText, data, { page: pageMeta });
+}
+
+// Removes codeblocks of given language(s) from parsetree
+export function stripCodeBlocks(
+  tree: ParseTree,
+  fenceTypes: string[],
+) {
+  replaceNodesMatching(tree, (t) => {
+    if (t.type === "FencedCode") {
+      const codeInfoNode = findNodeOfType(t, "CodeInfo");
+      if (!codeInfoNode) {
+        return undefined;
+      }
+      const fenceType = codeInfoNode.children![0].text!;
+      if (fenceTypes.includes(fenceType)) {
+        return null;
+      }
+    }
+    return undefined;
+  });
 }
