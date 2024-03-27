@@ -42,6 +42,9 @@ spaceIgnore: |
    largefolder
    *.mp4
 
+# Defines the maximum size of a file you can upload to the space (in MiB)
+maximumAttachmentSize: 10
+
 # Add alternative names to emoji picker
 emoji:
   aliases:
