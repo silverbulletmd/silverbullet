@@ -1,9 +1,9 @@
 import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
 import { cors } from "hono/middleware.ts";
 import { type Context, Hono, type HonoRequest } from "hono/mod.ts";
-import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import { FileMeta } from "../plug-api/types.ts";
-import { ShellRequest } from "../type/rpc.ts";
+import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
+import { FileMeta } from "$sb/types.ts";
+import { ShellRequest } from "$type/rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";

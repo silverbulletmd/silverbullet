@@ -20,6 +20,9 @@ export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 export const tagRegex =
   /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
 
+export const imageWithSizeRegex =
+  /^!\[([^\]]*)\]\(([^=]+)\s+=((\d+.*)?x\d+.*|\d+.*x(\d+.*)?)\)/;
+
 const WikiLink: MarkdownConfig = {
   defineNodes: [
     { name: "WikiLink", style: ct.WikiLinkTag },
@@ -594,6 +597,47 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
+const ImageWithSize: MarkdownConfig = {
+  defineNodes: [
+    { name: "ImageWithSize" },
+    { name: "ImageWithSizeAlt" },
+    { name: "ImageWithSizeURL" },
+    { name: "ImageWithSizeSize" },
+  ],
+  parseInline: [
+    {
+      name: "ImageWithSize",
+      parse: (cx, next, pos) => {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 33 /* ! */ ||
+          !(match = imageWithSizeRegex.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        const [fullMatch, altText, url, size] = match;
+
+        const endPos = pos + fullMatch.length;
+        const altPosStart = pos + 2;
+        const altPosEnd = altPosStart + altText.length;
+        const urlPosStart = altPosEnd + 2;
+        const urlPosEnd = urlPosStart + url.length;
+        const sizePosStart = fullMatch.indexOf(size, urlPosEnd);
+        const sizePosEnd = sizePosStart + size.length;
+
+        return cx.addElement(
+          cx.elt("ImageWithSize", pos, endPos, [
+            cx.elt("ImageWithSizeAlt", altPosStart, altPosEnd),
+            cx.elt("ImageWithSizeURL", urlPosStart, urlPosEnd),
+            cx.elt("ImageWithSizeSize", sizePosStart, sizePosEnd),
+          ]),
+        );
+      },
+      before: "Image",
+    },
+  ],
+};
+
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
@@ -610,6 +654,7 @@ export const extendedMarkdownLanguage = markdown({
     Hashtag,
     TaskDeadline,
     NamedAnchor,
+    ImageWithSize,
     {
       props: [
         foldNodeProp.add({

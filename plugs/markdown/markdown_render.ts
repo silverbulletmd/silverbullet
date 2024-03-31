@@ -33,7 +33,7 @@ function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
   return result;
 }
 
-function preprocess(t: ParseTree, options: MarkdownRenderOptions = {}) {
+function preprocess(t: ParseTree) {
   addParentPointers(t);
   traverseTree(t, (node) => {
     if (!node.type) {
@@ -338,6 +338,18 @@ function render(
         },
         body: "",
       };
+    case "ImageWithSize": {
+      const alt = findNodeOfType(t, "ImageWithSizeAlt")!.children![0].text!;
+      const src = findNodeOfType(t, "ImageWithSizeURL")!.children![0].text!;
+      return {
+        name: "img",
+        attrs: {
+          alt,
+          src,
+        },
+        body: "",
+      };
+    }
     case "CommandLink": {
       // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
       const command = t.children![1].children![0].text!;
@@ -493,7 +505,7 @@ export function renderMarkdownToHtml(
   t: ParseTree,
   options: MarkdownRenderOptions = {},
 ) {
-  preprocess(t, options);
+  preprocess(t);
   const htmlTree = posPreservingRender(t, options);
   if (htmlTree && options.translateUrls) {
     traverseTag(htmlTree, (t) => {
