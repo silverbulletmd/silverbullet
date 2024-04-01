@@ -19,13 +19,13 @@ Make sure you have [installed Deno locally](https://docs.deno.com/runtime/manual
 Then, install `deployctl` via:
 
 ```shell
-$ deno install -Arf https://deno.land/x/deploy/deployctl.ts
+deno install -Arf https://deno.land/x/deploy/deployctl.ts
 ```
 
 To deploy, run:
 
 ```shell
-$ deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
+deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
 ```
 
 This will ask you to authenticate with your Deno Deploy account, and then deploy SilverBullet.
