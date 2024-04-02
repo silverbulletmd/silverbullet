@@ -9,7 +9,7 @@ Date.prototype.toTemporalInstant = toTemporalInstant;
 // @ts-ignore: Temporal polyfill
 globalThis.Temporal = Temporal;
 // @ts-ignore: Intl polyfill
-globalThis.Intl = Intl;
+Object.apply(globalThis.Intl, Intl);
 
 type FunctionDef = {
   name: string;
