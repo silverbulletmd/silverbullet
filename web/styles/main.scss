@@ -70,7 +70,7 @@ body {
       flex-direction: row;
 
       .wrapper {
-        width: 100%;
+        width: env(titlebar-area-width, 100%);
         padding: 0 20px;
         display: flex;
         box-sizing: border-box;
