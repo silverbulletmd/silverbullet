@@ -103,6 +103,8 @@ body {
       text-align: left;
       display: block;
 
+      -webkit-app-region: drag;
+      
       .cm-scroller {
         font-family: var(--ui-font);
       }
