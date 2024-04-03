@@ -6,6 +6,7 @@ import { FilterOption } from "$lib/web.ts";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../fuse_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
+import { AlwaysShownModal } from "./basic_modals.tsx";
 
 export function FilterList({
   placeholder,
@@ -93,7 +94,11 @@ export function FilterList({
   }, []);
 
   const returnEl = (
-    <div className="sb-modal-box">
+    <AlwaysShownModal
+      onCancel={() => {
+        onSelect(undefined);
+      }}
+    >
       <div
         className="sb-header"
         onClick={(e) => {
@@ -203,7 +208,7 @@ export function FilterList({
           ))
           : null}
       </div>
-    </div>
+    </AlwaysShownModal>
   );
 
   useEffect(() => {

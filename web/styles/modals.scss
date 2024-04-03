@@ -1,11 +1,6 @@
 .sb-modal-box {
-  position: absolute;
-  // At the toppest of the toppest
-  z-index: 1000;
-
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
+  margin-top: 60px;
+  padding: 0;
   width: 700px;
   max-width: 90%;
 
@@ -45,6 +40,13 @@
       width: 100%;
       border: 0;
       outline: none;
+    }
+
+    .sb-prompt-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+      gap: 10px;
     }
   }
 
