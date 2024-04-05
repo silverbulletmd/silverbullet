@@ -175,7 +175,7 @@ export function FilterList({
         dangerouslySetInnerHTML={{ __html: helpText }}
       >
       </div>
-      <div className="sb-result-list">
+      <div className="sb-result-list" tabIndex={-1}>
         {matchingOptions && matchingOptions.length > 0
           ? matchingOptions.map((option, idx) => (
             <div
