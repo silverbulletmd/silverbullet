@@ -58,6 +58,7 @@ export function linkPlugin(client: Client) {
             attributes: {
               href: cleanLink,
               title: `Click to visit ${cleanLink}`,
+              contenteditable: "false",
             },
           }).range(from + 1, from + cleanAnchor.length + 1),
         );
