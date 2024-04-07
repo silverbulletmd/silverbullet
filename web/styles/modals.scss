@@ -36,9 +36,11 @@
     }
 
     .sb-mini-editor {
+      background-color: var(--text-field-background-color);
       margin: 10px 0;
-      width: 100%;
+      padding: 0.2em 0.5em;
       border: 0;
+      border-radius: 0.5em;
       outline: none;
     }
 
