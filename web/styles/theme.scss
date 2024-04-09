@@ -66,7 +66,7 @@ html {
   --editor-panels-bottom-color: inherit;
   --editor-panels-bottom-background-color: #e1e1e1;
   --editor-panels-bottom-border-color: #cacaca;
-  --editor-completion-detail-color: #d2d2d2;
+  --editor-completion-detail-color: #555;
   --editor-completion-detail-selected-color: #d2d2d2;
   --editor-list-bullet-color: rgb(150, 150, 150);
   --editor-heading-color: #333;
@@ -124,7 +124,7 @@ html {
   --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --editor-font: "JetBrains Mono", "Menlo";
+  --editor-font: "iA-Mono", "Menlo";
   --editor-width: 800px;
 }
 
@@ -198,7 +198,7 @@ html[data-theme="dark"] {
   --editor-panels-bottom-color: #fff;
   --editor-panels-bottom-background-color: #262626;
   --editor-panels-bottom-border-color: rgb(62, 62, 62);
-  --editor-completion-detail-color: #555;
+  --editor-completion-detail-color: #aaa;
   --editor-completion-detail-selected-color: #d2d2d2;
   --editor-list-bullet-color: rgb(150, 150, 150);
   --editor-heading-color: #d1d1d1;
