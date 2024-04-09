@@ -107,7 +107,7 @@
     background-color: var(--hover-background-color);
   }
 
-  &:focus-visible {
+  &:focus {
     outline: 2px solid var(--color);
     outline-offset: -3px;
   }
