@@ -107,37 +107,27 @@ export function MiniEditor(
     }
   }, [text, vimMode]);
 
-  useEffect(() => {
-    // So, for some reason, CM doesn't propagate the keydown event, therefore we'll capture it here
-    // And check if it's the same editor element
-    function onKeyDown(e: KeyboardEvent) {
-      const parent = (e.target as any).parentElement.parentElement;
-      if (parent !== editorViewRef.current?.dom) {
-        // Different editor element
-        return;
-      }
-      let stopPropagation = false;
-      if (callbacksRef.current!.onKeyDown) {
-        stopPropagation = callbacksRef.current!.onKeyDown(
-          editorViewRef.current!,
-          e,
-        );
-      }
-      if (stopPropagation) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
-
   let onBlurred = false, onEntered = false;
 
-  return <div class="sb-mini-editor" ref={editorDiv} />;
+  return (
+    <div
+      class="sb-mini-editor"
+      onKeyDown={(e) => {
+        let stopPropagation = false;
+        if (callbacksRef.current!.onKeyDown) {
+          stopPropagation = callbacksRef.current!.onKeyDown(
+            editorViewRef.current!,
+            e,
+          );
+        }
+        if (stopPropagation) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      ref={editorDiv}
+    />
+  );
 
   function buildEditorState() {
     // When vim mode is active, we need for CM to have created the new state
