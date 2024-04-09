@@ -157,5 +157,15 @@ export function AlwaysShownModal({
       onCancel?.();
     });
   });
-  return <dialog className="sb-modal-box" ref={dialogRef}>{children}</dialog>;
+  return (
+    <dialog
+      className="sb-modal-box"
+      onKeyDown={(e) => {
+        e.stopPropagation();
+      }}
+      ref={dialogRef}
+    >
+      {children}
+    </dialog>
+  );
 }
