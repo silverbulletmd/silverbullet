@@ -195,11 +195,10 @@ export function attachmentExtension(editor: Client) {
     suggestedName: string,
     mimeType: string,
   ) {
-    if (data!.byteLength > maximumAttachmentSize) {
+    const maxSize = editor.settings.maximumAttachmentSize || maximumAttachmentSize;
+    if (data!.byteLength > (maxSize * 1024 * 1024)) {
       editor.flashNotification(
-        `Attachment is too large, maximum is ${
-          maximumAttachmentSize / 1024 / 1024
-        }MB`,
+        `Attachment is too large, maximum is ${maxSize}MiB`,
         "error",
       );
       return;

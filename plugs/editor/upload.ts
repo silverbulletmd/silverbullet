@@ -1,7 +1,7 @@
 import { editor, space } from "$sb/syscalls.ts";
 import { UploadFile } from "../../plug-api/types.ts";
+import { maximumAttachmentSize } from "../../web/constants.ts";
 
-const maximumAttachmentSize = 1024 * 1024 * 10; // 10MB
 
 function folderName(path: string) {
   return path.split("/").slice(0, -1).join("/");
