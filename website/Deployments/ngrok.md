@@ -12,24 +12,24 @@ It is **absolutely key** to enable [[Authentication]] on SilverBullet, otherwise
 
 Generally the steps are to run SilverBullet (e.g. via Deno) (see [[Install]] for more options) — note the port here (`3000`):
 
-```bash
-$ silverbullet -p 3000 --user mysuser:mypassword path/to/space
+```shell
+silverbullet -p 3000 --user mysuser:mypassword path/to/space
 ```
 
 Then, create a free [ngrok](https://dashboard.ngrok.com/) account, and follow the instructions to download the ngrok client for your platform, and authenticate it (look for the `ngrok config add-authtoken` command).
 
 Then, in another terminal run `ngrok`:
 
-```bash
-$ ngrok http 3000
+```shell
+ngrok http 3000
 ```
 
 This will give you a `https://xxx.ngrok-free.app` style URL you can open in your browser.
 
 Note that this URL changes every time, which is inconvenient. Therefore it’s **recommended you create a domain** as well (you get 1 for free). Follow the [instructions on the domains page](https://dashboard.ngrok.com/cloud-edge/domains) in the ngrok dashboard on how to do this. Once you created your domain, you can launch `ngrok` as follows:
 
-```bash
-$ ngrok http --domain=your-domain.ngrok-free.app 3000
+```shell
+ngrok http --domain=your-domain.ngrok-free.app 3000
 ```
 
 Enjoy!

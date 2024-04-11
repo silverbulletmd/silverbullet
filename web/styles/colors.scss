@@ -144,7 +144,10 @@
   }
 
   .cm-editor .cm-tooltip-autocomplete {
-    .cm-completionDetail {
+    background-color: var(--root-background-color);
+    color: var(--modal-color);
+
+    li .cm-completionDetail {
       color: var(--editor-completion-detail-color);
     }
 

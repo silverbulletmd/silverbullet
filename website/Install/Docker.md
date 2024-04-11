@@ -18,9 +18,9 @@ For your first run, you can run the following:
 
 ```shell
 # Create a local folder "space" to keep files in
-$ mkdir -p space
+mkdir -p space
 # Run the SilverBullet docker container in the foreground
-$ sudo docker run -it -p 3000:3000 -v ./space:/space zefhemel/silverbullet
+sudo docker run -it -p 3000:3000 -v ./space:/space zefhemel/silverbullet
 ```
 
 This will run SilverBullet in the foreground, interactively, so you can see the logs and instructions. 
@@ -30,7 +30,7 @@ If this all works fine, just kill the thing with `Ctrl-c` (don’t worry, it’s
 Now you probably want to run the container in daemon (background) mode, give it a name, and automatically have it restart after you e.g. reboot your machine:
 
 ```shell
-$ docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space zefhemel/silverbullet
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space zefhemel/silverbullet
 ```
 
 There you go!
@@ -45,13 +45,13 @@ You can upgrade SilverBullet as follows:
 
 ```shell
 # Pull the latest version of the image
-$ docker pull zefhemel/silverbullet
+docker pull zefhemel/silverbullet
 # Kill the running container
-$ docker kill silverbullet
+docker kill silverbullet
 # Remove the old container
-$ docker rm silverbullet
+docker rm silverbullet
 # Start a fresh one (same command as before)
-$ docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PW/space:/space zefhemel/silverbullet
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PW/space:/space zefhemel/silverbullet
 ```
 
 Since this is somewhat burdensome, it is recommended you use a tool like [watchtower](https://github.com/containrrr/watchtower) to automatically update your docker images and restart them. However, if we go there — we may as well use a tool like _docker compose_ to manage your containers, no?
@@ -86,11 +86,11 @@ services:
 Boot this up via:
 
 ```shell
-$ docker-compose up -d
+docker-compose up -d
 ```
 
 And watch for logs with:
 
 ```shell
-$ docker-compose logs -f
+docker-compose logs -f
 ```
