@@ -1,5 +1,5 @@
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { MiniEditor } from "./mini_editor.tsx";
 import { ComponentChildren, Ref } from "preact";
 
@@ -150,16 +150,19 @@ export function AlwaysShownModal({
   onCancel?: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  setTimeout(() => {
+
+  useEffect(() => {
     dialogRef.current?.showModal();
-    dialogRef.current?.addEventListener("cancel", (e) => {
-      e.preventDefault();
-      onCancel?.();
-    });
-  });
+  }, []);
+
   return (
     <dialog
       className="sb-modal-box"
+      // @ts-ignore
+      onCancel={(e: Event) => {
+        e.preventDefault();
+        onCancel?.();
+      }}
       onKeyDown={(e) => {
         e.stopPropagation();
       }}

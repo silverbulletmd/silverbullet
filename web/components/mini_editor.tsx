@@ -252,12 +252,6 @@ export function MiniEditor(
             // Reset the state
             view.setState(buildEditorState());
           });
-      } else if (focus) {
-        // console.log("BLURRING WHILE KEEPING FOCUSE");
-        // Automatically refocus blurred
-        if (editorViewRef.current) {
-          editorViewRef.current.focus();
-        }
       }
       // Event may occur again in 500ms
       setTimeout(() => {
