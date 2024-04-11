@@ -20,7 +20,11 @@ export function Prompt({
 }) {
   const [text, setText] = useState(defaultValue || "");
   const returnEl = (
-    <AlwaysShownModal>
+    <AlwaysShownModal
+      onCancel={() => {
+        callback();
+      }}
+    >
       <div className="sb-prompt">
         <label>{message}</label>
         <MiniEditor
@@ -86,7 +90,7 @@ export function Confirm({
         <label>{message}</label>
         <div className="sb-prompt-buttons">
           <Button
-            ref={okButtonRef}
+            buttonRef={okButtonRef}
             primary={true}
             onActivate={() => {
               callback(true);
@@ -113,16 +117,16 @@ export function Button({
   children,
   primary,
   onActivate,
-  ref,
+  buttonRef,
 }: {
   children: ComponentChildren;
   primary?: boolean;
   onActivate: () => void;
-  ref?: Ref<HTMLButtonElement>;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
-      ref={ref}
+      ref={buttonRef}
       className={primary ? "sb-button-primary" : "sb-button"}
       onClick={(e) => {
         e.stopPropagation();

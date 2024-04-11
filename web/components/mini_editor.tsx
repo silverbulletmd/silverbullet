@@ -64,19 +64,24 @@ export function MiniEditor(
   const callbacksRef = useRef<MiniEditorEvents>();
 
   useEffect(() => {
-    if (editorDiv.current) {
+    const currentEditorDiv = editorDiv.current;
+    if (currentEditorDiv) {
       // console.log("Creating editor view");
       const editorView = new EditorView({
         state: buildEditorState(),
-        parent: editorDiv.current!,
+        parent: currentEditorDiv,
       });
       editorViewRef.current = editorView;
+
+      const focusEditorView = editorView.focus.bind(editorView);
+      currentEditorDiv.addEventListener("focusin", focusEditorView);
 
       if (focus) {
         editorView.focus();
       }
 
       return () => {
+        currentEditorDiv.removeEventListener("focusin", focusEditorView);
         if (editorViewRef.current) {
           editorViewRef.current.destroy();
         }
