@@ -1,8 +1,8 @@
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { editor, space } from "$sb/syscalls.ts";
 import { UploadFile } from "../../plug-api/types.ts";
+import { maximumAttachmentSize } from "../../web/constants.ts";
 
-const maximumAttachmentSize = 10; // MiB
 
 function folderName(path: string) {
   return path.split("/").slice(0, -1).join("/");
