@@ -2,10 +2,11 @@ import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { Notification } from "$lib/web.ts";
 import { FeatherProps } from "preact-feather/types";
+import { IconBaseProps } from "react-icons/types";
 import { MiniEditor } from "./mini_editor.tsx";
 
 export type ActionButton = {
-  icon: FunctionalComponent<FeatherProps>;
+  icon: FunctionalComponent<FeatherProps | IconBaseProps>;
   description: string;
   class?: string;
   callback: () => void;

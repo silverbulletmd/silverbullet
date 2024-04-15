@@ -6,6 +6,7 @@ import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "../type/web.ts";
 import * as featherIcons from "preact-feather";
+import * as mdi from "react-icons/md"
 import { h, render as preactRender } from "preact";
 import { useEffect, useReducer } from "preact/hooks";
 import { closeSearchPanel } from "@codemirror/search";
@@ -251,13 +252,14 @@ export class MainUI {
               )
               .map((button) => {
                 const parsedCommand = parseCommand(button.command);
+                let mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
                 let featherIcon =
                   (featherIcons as any)[kebabToCamel(button.icon)];
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
                 return {
-                  icon: featherIcon,
+                  icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
                   callback: () => {
                     client.runCommandByName(
