@@ -148,7 +148,9 @@ export function FilterList({
                 setSelectionOption(Math.max(0, selectedOption - 5));
                 return true;
               case "PageDown":
-                setSelectionOption(Math.max(0, selectedOption + 5));
+                setSelectionOption(
+                  Math.min(matchingOptions.length - 1, selectedOption + 5),
+                );
                 return true;
               case "Home":
                 setSelectionOption(0);
