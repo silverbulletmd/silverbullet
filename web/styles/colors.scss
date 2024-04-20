@@ -80,6 +80,39 @@
   color: var(--action-button-hover-color);
 }
 
+.sb-button, .sb-button-primary {
+  --color: var(--button-color);
+  --background-color: var(--button-background-color);
+  --hover-background-color: var(--button-hover-background-color);
+  --border-color: var(--button-border-color);
+
+  &.sb-button-primary {
+    --color: var(--primary-button-color);
+    --background-color: var(--primary-button-background-color);
+    --hover-background-color: var(--primary-button-hover-background-color);
+    --border-color: var(--primary-button-border-color);
+  }
+
+  background-color: var(--background-color);
+  color: var(--color);
+
+  box-shadow: 0 0 0.2em rgba(0, 0, 0, 0.05);
+
+  border: 1px solid var(--border-color);
+  border-radius: 0.5em;
+  padding: 0.2em 0.5em;
+  font-size: 0.9em;
+
+  &:hover {
+    background-color: var(--hover-background-color);
+  }
+
+  &:focus {
+    outline: 2px solid var(--color);
+    outline-offset: -3px;
+  }
+}
+
 /* Modal boxes */
 .sb-modal-box {
   color: var(--modal-color);

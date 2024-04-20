@@ -1,11 +1,6 @@
 .sb-modal-box {
-  position: absolute;
-  // At the toppest of the toppest
-  z-index: 1000;
-
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
+  margin-top: 60px;
+  padding: 0;
   width: 700px;
   max-width: 90%;
 
@@ -27,6 +22,11 @@
     label {
       margin: 3px;
     }
+
+    .sb-mini-editor {
+      flex-grow: 1;
+      min-width: 0;
+    }
   }
 
   .sb-prompt {
@@ -37,10 +37,19 @@
     }
 
     .sb-mini-editor {
+      background-color: var(--text-field-background-color);
       margin: 10px 0;
-      width: 100%;
+      padding: 0.2em 0.5em;
       border: 0;
+      border-radius: 0.5em;
       outline: none;
+    }
+
+    .sb-prompt-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+      gap: 10px;
     }
   }
 

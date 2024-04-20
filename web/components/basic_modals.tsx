@@ -1,6 +1,7 @@
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { MiniEditor } from "./mini_editor.tsx";
+import { ComponentChildren, Ref } from "preact";
 
 export function Prompt({
   message,
@@ -19,7 +20,11 @@ export function Prompt({
 }) {
   const [text, setText] = useState(defaultValue || "");
   const returnEl = (
-    <div className="sb-modal-box">
+    <AlwaysShownModal
+      onCancel={() => {
+        callback();
+      }}
+    >
       <div className="sb-prompt">
         <label>{message}</label>
         <MiniEditor
@@ -40,22 +45,25 @@ export function Prompt({
             setText(text);
           }}
         />
-        <button
-          onClick={() => {
-            callback(text);
-          }}
-        >
-          Ok
-        </button>
-        <button
-          onClick={() => {
-            callback();
-          }}
-        >
-          Cancel
-        </button>
+        <div className="sb-prompt-buttons">
+          <Button
+            primary={true}
+            onActivate={() => {
+              callback(text);
+            }}
+          >
+            Ok
+          </Button>
+          <Button
+            onActivate={() => {
+              callback();
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
-    </div>
+    </AlwaysShownModal>
   );
 
   return returnEl;
@@ -73,49 +81,98 @@ export function Confirm({
     okButtonRef.current?.focus();
   });
   const returnEl = (
-    <div className="sb-modal-wrapper">
-      <div className="sb-modal-box">
-        <div
-          className="sb-prompt"
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            switch (e.key) {
-              case "Enter":
-                callback(true);
-                break;
-              case "Escape":
-                callback(false);
-                break;
-            }
-          }}
-        >
-          <label>{message}</label>
-          <div>
-            <button
-              ref={okButtonRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                callback(true);
-              }}
-            >
-              Ok
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                callback(false);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
+    <AlwaysShownModal
+      onCancel={() => {
+        callback(false);
+      }}
+    >
+      <div className="sb-prompt">
+        <label>{message}</label>
+        <div className="sb-prompt-buttons">
+          <Button
+            buttonRef={okButtonRef}
+            primary={true}
+            onActivate={() => {
+              callback(true);
+            }}
+          >
+            Ok
+          </Button>
+          <Button
+            onActivate={() => {
+              callback(false);
+            }}
+          >
+            Cancel
+          </Button>
         </div>
       </div>
-    </div>
+    </AlwaysShownModal>
   );
 
   return returnEl;
+}
+
+export function Button({
+  children,
+  primary,
+  onActivate,
+  buttonRef,
+}: {
+  children: ComponentChildren;
+  primary?: boolean;
+  onActivate: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
+}) {
+  return (
+    <button
+      ref={buttonRef}
+      className={primary ? "sb-button-primary" : "sb-button"}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onActivate();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.stopPropagation();
+          e.preventDefault();
+          onActivate();
+        }
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function AlwaysShownModal({
+  children,
+  onCancel,
+}: {
+  children: ComponentChildren;
+  onCancel?: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+
+  return (
+    <dialog
+      className="sb-modal-box"
+      // @ts-ignore
+      onCancel={(e: Event) => {
+        e.preventDefault();
+        onCancel?.();
+      }}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+      }}
+      ref={dialogRef}
+    >
+      {children}
+    </dialog>
+  );
 }

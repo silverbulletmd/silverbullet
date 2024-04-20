@@ -1,5 +1,7 @@
 html {
   --ui-accent-color: #464cfc;
+  --ui-accent-text-color: var(--ui-accent-color);
+  --ui-accent-contrast-color: #eee;
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #0330cb;
   --link-missing-color: #9e4705;
@@ -29,11 +31,11 @@ html {
   --modal-color: inherit;
   --modal-background-color: #fff;
   --modal-border-color: rgb(108, 108, 108);
-  --modal-header-label-color: var(--ui-accent-color);
+  --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #eee;
   --modal-help-color: #555;
   --modal-selected-option-background-color: var(--ui-accent-color);
-  --modal-selected-option-color: #eee;
+  --modal-selected-option-color: var(--ui-accent-contrast-color);
   --modal-hint-background-color: #212476;
   --modal-hint-color: #eee;
   --modal-description-color: #aaa;
@@ -42,6 +44,17 @@ html {
   --notifications-border-color: rgb(41, 41, 41);
   --notification-info-background-color: rgb(187, 221, 247);
   --notification-error-background-color: rgb(255, 84, 84);
+
+  --button-background-color: #eee;
+  --button-hover-background-color: inherit;
+  --button-color: black;
+  --button-border-color: #6c6c6c;
+  --primary-button-background-color: var(--ui-accent-color);
+  --primary-button-hover-background-color: color-mix(in srgb, var(--ui-accent-color), black 35%);
+  --primary-button-color: var(--ui-accent-contrast-color);
+  --primary-button-border-color: transparent;
+
+  --text-field-background-color: var(--button-background-color);
 
   --action-button-background-color: transparent;
   --action-button-color: #292929;
@@ -116,7 +129,11 @@ html {
 }
 
 html[data-theme="dark"] {
+  color-scheme: dark;
+
   --ui-accent-color: #464cfc;
+  --ui-accent-text-color: var(--ui-accent-color);
+  --ui-accent-text-color: color-mix(in srgb, var(--ui-accent-color), white 50%);
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #7e99fc;
   --link-missing-color: #9e4705;
@@ -146,7 +163,7 @@ html[data-theme="dark"] {
   --modal-color: #ccc;
   --modal-background-color: #262626;
   --modal-border-color: #6c6c6c;
-  --modal-header-label-color: var(--ui-accent-color);
+  --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #333;
   --modal-help-color: #ccc;
   --modal-selected-option-background-color: var(--ui-accent-color);
@@ -159,6 +176,17 @@ html[data-theme="dark"] {
   --notifications-border-color: rgb(197, 197, 197);
   --notification-info-background-color: #1b76bb;
   --notification-error-background-color: #a32121;
+
+  --button-background-color: #555;
+  --button-hover-background-color: #777;
+  --button-color: white;
+  --button-border-color: #666;
+  --primary-button-background-color: var(--ui-accent-color);
+  --primary-button-hover-background-color: color-mix(in srgb, var(--ui-accent-color), black 35%);
+  --primary-button-color: var(--ui-accent-contrast-color);
+  --primary-button-border-color: transparent;
+
+  --text-field-background-color: var(--button-background-color);
 
   --action-button-background-color: transparent;
   --action-button-color: #adadad;
