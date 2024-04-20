@@ -1,9 +1,9 @@
 import { Client } from "../client.ts";
 import { Range } from "@codemirror/state";
-import { DecorationSet } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import {
   Decoration,
+  DecorationSet,
   EditorView,
   ViewPlugin,
   ViewUpdate,
