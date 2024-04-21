@@ -119,10 +119,25 @@ export async function serveCommand(
       new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
     );
   }
+
+  const clientAssets = new AssetBundle(clientAssetBundle as AssetJson);
+  const manifestName = Deno.env.get("SB_NAME");
+  const manifestDescription = Deno.env.get("SB_DESCRIPTION");
+
+  if (manifestName || manifestDescription) {
+    const manifestData = JSON.parse(clientAssets.readTextFileSync('.client/manifest.json'));
+    if (manifestName) {
+      manifestData.name = manifestData.short_name = manifestName;
+    }
+    if (manifestDescription) {
+      manifestData.description = manifestDescription;
+    }
+    clientAssets.writeTextFileSync('.client/manifest.json', 'application/json', JSON.stringify(manifestData));
+  }
   const httpServer = new HttpServer({
     hostname,
     port,
-    clientAssetBundle: new AssetBundle(clientAssetBundle as AssetJson),
+    clientAssetBundle: clientAssets,
     plugAssetBundle: plugAssets,
     baseKvPrimitives,
     keyFile: options.key,
