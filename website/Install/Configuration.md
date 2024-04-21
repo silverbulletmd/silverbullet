@@ -91,3 +91,10 @@ Configuration only relevant to docker deployments:
 
 * `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
 * `GUID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)
+
+# Web app manifest
+Configure aspects of web app appearance:
+
+* `SB_NAME`: Sets `name` and `short_name` members of web app manifest to whatever specified in `SB_NAME`
+* `SB_DESCRIPTION`: Sets `description` member of web app manifest to whatever specified in `SB_DESCRIPTION`
+
