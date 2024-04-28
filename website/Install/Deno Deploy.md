@@ -25,7 +25,7 @@ deno install -Arf https://deno.land/x/deploy/deployctl.ts
 To deploy, run:
 
 ```shell
-deployctl deploy -p=your-project --entrypoint=https://silverbullet.md/silverbullet.js --include= --prod
+deployctl deploy -p=your-project --entrypoint=https://edge.silverbullet.md/silverbullet.js --include= --prod
 ```
 
 This will ask you to authenticate with your Deno Deploy account, and then deploy SilverBullet.
