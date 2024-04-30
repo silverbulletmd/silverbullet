@@ -6,7 +6,22 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new since 0.7.6 yet!
+* Nothing new since 0.7.7 yet!
+
+---
+
+## 0.7.7
+* Added ability to configure PWA app name and description (web app manifest) via [[Install/Configuration]] variables (by [s1gnate-sync](https://github.com/silverbulletmd/silverbullet/pull/854))
+* Improved styling for modals (by [Daniel](https://github.com/silverbulletmd/silverbullet/pull/840))
+* Allow middle click to open links (by [Daniel](https://github.com/silverbulletmd/silverbullet/pull/841))
+* Various theme fixes (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/831))
+* Fix Int polyfill (by [Daniel](https://github.com/silverbulletmd/silverbullet/pull/836))
+* Make maximum attachment size configurable (by [Thomas](https://github.com/silverbulletmd/silverbullet/pull/832))
+* Fix frontmatter tag indexing when tags are numbers (by [Justyn](https://github.com/silverbulletmd/silverbullet/pull/830))
+* Fix for supporting page names with spaces at the tail or front end (by [Florent](https://github.com/silverbulletmd/silverbullet/pull/817))
+* On the technical side:
+  * Radically improved dependency management in the code base (by [Maks](https://github.com/silverbulletmd/silverbullet/pull/770))
+* Dependency bumps for a lot of codemirror-related packages as well as Deno itself
 
 ---
 
