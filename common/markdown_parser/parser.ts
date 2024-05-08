@@ -599,10 +599,10 @@ export const FrontMatter: MarkdownConfig = {
 
 const ImageWithSize: MarkdownConfig = {
   defineNodes: [
-    { name: "ImageWithSize" },
-    { name: "ImageWithSizeAlt" },
-    { name: "ImageWithSizeURL" },
-    { name: "ImageWithSizeSize" },
+    { name: "ImageWithSize", style: t.link, block: true },
+    { name: "ImageWithSizeAlt", style: t.link },
+    { name: "ImageWithSizeURL", style: t.url },
+    { name: "ImageWithSizeSize", style: t.meta },
   ],
   parseInline: [
     {
@@ -622,12 +622,14 @@ const ImageWithSize: MarkdownConfig = {
         const altPosEnd = altPosStart + altText.length;
         const urlPosStart = altPosEnd + 2;
         const urlPosEnd = urlPosStart + url.length;
-        const sizePosStart = fullMatch.indexOf(size, urlPosEnd);
+        const sizePosStart = fullMatch.indexOf(size, urlPosEnd - pos);
         const sizePosEnd = sizePosStart + size.length;
 
         return cx.addElement(
           cx.elt("ImageWithSize", pos, endPos, [
+            cx.elt("LinkMark", pos, altPosStart),
             cx.elt("ImageWithSizeAlt", altPosStart, altPosEnd),
+            cx.elt("LinkMark", altPosEnd, urlPosStart),
             cx.elt("ImageWithSizeURL", urlPosStart, urlPosEnd),
             cx.elt("ImageWithSizeSize", sizePosStart, sizePosEnd),
           ]),

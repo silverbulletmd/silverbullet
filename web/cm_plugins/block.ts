@@ -27,7 +27,7 @@ export function cleanBlockPlugin() {
           }
 
           if (
-            node.name === "Image" &&
+            ["Image", "ImageWithSize"].includes(node.name) &&
             !isCursorInRange(state, [node.from, node.to])
           ) {
             widgets.push(invisibleDecoration.range(node.from, node.to));

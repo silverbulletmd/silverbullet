@@ -341,11 +341,15 @@ function render(
     case "ImageWithSize": {
       const alt = findNodeOfType(t, "ImageWithSizeAlt")!.children![0].text!;
       const src = findNodeOfType(t, "ImageWithSizeURL")!.children![0].text!;
+      const dimensionsToParse = findNodeOfType(t, "ImageWithSizeSize")!.children![0].text!;
+      const [, width, widthUnit = "px", height, heightUnit = "px"] =
+        dimensionsToParse.match(/(\d*)(%)?x(\d*)(%)?/) ?? [];
       return {
         name: "img",
         attrs: {
           alt,
           src,
+          style: `width: ${width}${widthUnit}; height: ${height}${heightUnit};`
         },
         body: "",
       };

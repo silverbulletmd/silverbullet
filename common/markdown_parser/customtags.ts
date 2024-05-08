@@ -30,4 +30,4 @@ export const NakedURLTag = Tag.define();
 export const DirectiveMarkTag = Tag.define();
 export const DirectiveTag = Tag.define();
 
-export const ImageWithResolution = Tag.define();
+export const ImageWithSize = Tag.define();

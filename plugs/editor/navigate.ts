@@ -24,6 +24,7 @@ async function actionClickOrActionEnter(
       "WikiLink",
       "Link",
       "Image",
+      "ImageWithSize",
       "URL",
       "NakedURL",
       "Link",
@@ -64,6 +65,7 @@ async function actionClickOrActionEnter(
     case "NakedURL":
       await editor.openUrl(mdTree.children![0].text!);
       break;
+    case "ImageWithSize":
     case "Image":
     case "Link": {
       const urlNode = findNodeOfType(mdTree, "URL");
