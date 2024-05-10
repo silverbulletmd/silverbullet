@@ -40,6 +40,8 @@ functions:
     events:
       - page:saved
       - page:deleted
+      - file:deleted
+      - file:changed
 
   parseIndexTextRepublish:
     path: "./command.ts:parseIndexTextRepublish"
@@ -61,6 +63,15 @@ functions:
   reindexSpace:
     path: "./command.ts:reindexSpace"
     env: server
+  reindexAttachments:
+    path: "./attachment.ts:reindexAttachments"
+    env: server
+
+  indexAttachment:
+    path: "./attachment.ts:indexAttachment"
+    events:
+      - file:changed
+      - file:listed
 
   indexPage:
     path: page.ts:indexPage

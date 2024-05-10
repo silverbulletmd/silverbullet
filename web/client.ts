@@ -59,6 +59,8 @@ import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
+import { plugPrefix } from "$common/spaces/constants.ts";
+
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
@@ -643,6 +645,9 @@ export class Client {
         allFiles.forEach((f) => {
           if (f.name.endsWith(".md")) {
             this.clientSystem.allKnownPages.add(f.name.slice(0, -3));
+            // Also cache attachments
+          } else if (!f.name.startsWith(plugPrefix)) {
+            this.clientSystem.allKnownAttachments.add(f.name);
           }
         });
       },

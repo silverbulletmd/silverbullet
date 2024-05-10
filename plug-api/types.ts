@@ -21,14 +21,16 @@ export type PageMeta = ObjectValue<
   } & Record<string, any>
 >;
 
-export type AttachmentMeta = {
-  name: string;
-  contentType: string;
-  created: number;
-  lastModified: number;
-  size: number;
-  perm: "ro" | "rw";
-};
+export type AttachmentMeta = ObjectValue<
+  {
+    name: string;
+    contentType: string;
+    created: string;
+    lastModified: string;
+    size: number;
+    perm: "ro" | "rw";
+  } & Record<string, any>
+>;
 
 export type SyscallMeta = {
   name: string;

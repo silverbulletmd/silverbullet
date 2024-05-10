@@ -27,6 +27,7 @@ export abstract class CommonSystem {
   panelWidgetHook!: PanelWidgetHook;
 
   readonly allKnownPages = new Set<string>();
+  readonly allKnownAttachments = new Set<string>();
   readonly spaceScriptCommands = new Map<string, AppCommand>();
   scriptEnv: ScriptEnvironment = new ScriptEnvironment();
 
