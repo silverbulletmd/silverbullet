@@ -6,45 +6,107 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
+import { mdLinkRegex, wikiLinkRegex } from "$common/markdown_parser/parser.ts";
 
-const pageRefRegex = /\[\[([^\]]+)\]\]/g;
-
-export type LinkObject = ObjectValue<{
-  // The page the link points to
-  toPage: string;
-  // The page the link occurs in
-  page: string;
-  pos: number;
-  snippet: string;
-  alias?: string;
-  asTemplate: boolean;
-}>;
+export type LinkObject = ObjectValue<
+  {
+    //Page Link
+    // The page the link points to
+    toPage: string;
+    // The page the link occurs in
+    page: string;
+    pos: number;
+    snippet: string;
+    alias?: string;
+    asTemplate: boolean;
+    toFile?: never;
+  } | {
+    // Attachment Link
+    // The file the link points to
+    toFile: string;
+    // The page the link occurs in
+    page: string;
+    pos: number;
+    snippet: string;
+    alias?: string;
+    asTemplate: boolean;
+    toPage?: never;
+  }
+>;
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
-  // [[Style Links]]
-  // console.log("Now indexing links for", name);
   const frontmatter = await extractFrontmatter(tree);
   const pageText = renderToText(tree);
 
   traverseTree(tree, (n): boolean => {
+    // Index [[WikiLinks]]
     if (n.type === "WikiLink") {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
       const url = resolvePath(name, "/" + wikiLinkPage.children![0].text!);
       const pos = wikiLinkPage.from!;
-      toPage = parsePageRef(toPage).page;
-      const link: LinkObject = {
+
+      const link: any = {
         ref: `${name}@${pos}`,
         tag: "link",
-        toPage: toPage,
         snippet: extractSnippetAroundIndex(pageText, pos),
         pos,
         page: name,
         asTemplate: false,
       };
+      // Assume link is to an attachment if it has
+      // an extension, to a page otherwise
+      if (/\.[a-zA-Z0-9]+$/.test(url)) {
+        link.toFile = url;
+      } else {
+        link.toPage = parsePageRef(url).page;
+      }
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
+      }
+      updateITags(link, frontmatter);
+      links.push(link);
+      return true;
+    }
+
+    // Also index [Markdown style]() links
+    if (n.type === "URL") {
+      const linkNode = findNodeOfType(n, "URL")!;
+      if (!linkNode) {
+        return false;
+      }
+      const text = /\[(?<title>[^\]]*)\]\((?<url>.+)\)/
+        .exec(renderToText(linkNode.parent));
+      if (!text) {
+        return false;
+      }
+      let [/* fullMatch */, alias, url] = text;
+
+      // Check if local link
+      if (!isLocalPath(url)) {
+        return false;
+      }
+      const pos = linkNode.from!;
+      url = resolvePath(name, decodeURI(url));
+
+      const link: any = {
+        ref: `${name}@${pos}`,
+        tag: "link",
+        snippet: extractSnippetAroundIndex(pageText, pos),
+        pos,
+        page: name,
+        asTemplate: false,
+      };
+      // Assume link is to an attachment if it has
+      // an extension, to a page otherwise
+      if (/\.[a-zA-Z0-9]+$/.test(url)) {
+        link.toFile = url;
+      } else {
+        link.toPage = parsePageRef(url).page;
+      }
+      if (alias) {
+        link.alias = alias;
       }
       updateITags(link, frontmatter);
       links.push(link);
@@ -64,19 +126,51 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           return false;
         }
         const code = codeText.children![0].text!;
-        const matches = code.matchAll(pageRefRegex);
-        for (const match of matches) {
-          const pageRefName = resolvePath(name, parsePageRef(match[1]).page);
-          const pos = codeText.from! + match.index! + 2;
-          const link = {
+        const wikiLinkMatches = code.matchAll(wikiLinkRegex);
+        for (const match of wikiLinkMatches) {
+          const [_fullMatch, firstMark, url, alias, _lastMark] = match;
+          const pos = codeText.from! + match.index! + firstMark.length;
+          const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
-            toPage: pageRefName,
             page: name,
             snippet: extractSnippetAroundIndex(pageText, pos),
             pos: pos,
             asTemplate: true,
           };
+          // Assume link is to an attachment if it has
+          // an extension, to a page otherwise
+          if (/\.[a-zA-Z0-9]+$/.test(url)) {
+            link.toFile = resolvePath(name, "/" + url);
+          } else {
+            link.toPage = resolvePath(name, "/" + parsePageRef(url).page);
+          }
+          if (alias) {
+            link.alias = alias;
+          }
+          updateITags(link, frontmatter);
+          links.push(link);
+        }
+        const mdLinkMatches = code.matchAll(mdLinkRegex);
+        for (const match of mdLinkMatches) {
+          const [_fullMatch, alias, url] = match;
+          const pos = codeText.from! + match.index! + 1;
+          const link: any = {
+            ref: `${name}@${pos}`,
+            tag: "link",
+            page: name,
+            snippet: extractSnippetAroundIndex(pageText, pos),
+            pos: pos,
+            asTemplate: true,
+          };
+          if (/\.[a-zA-Z0-9]+$/.test(url)) {
+            link.toFile = resolvePath(name, url);
+          } else {
+            link.toPage = resolvePath(name, parsePageRef(url).page);
+          }
+          if (alias) {
+            link.alias = alias;
+          }
           updateITags(link, frontmatter);
           links.push(link);
         }
@@ -89,9 +183,12 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 }
 
 export async function getBackLinks(
-  pageName: string,
+  name: string,
 ): Promise<LinkObject[]> {
   return (await queryObjects<LinkObject>("link", {
-    filter: ["=", ["attr", "toPage"], ["string", pageName]],
+    filter: ["or", ["=", ["attr", "toPage"], ["string", name]], ["=", [
+      "attr",
+      "toFile",
+    ], ["string", name]]],
   }));
 }
