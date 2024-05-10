@@ -43,18 +43,26 @@ async function actionClickOrActionEnter(
   const currentPage = await editor.getCurrentPage();
   switch (mdTree.type) {
     case "WikiLink": {
-      const pageLink = mdTree.children![1]!.children![0].text!;
-      const pageRef = parsePageRef(pageLink);
-      pageRef.page = resolvePath(currentPage, pageRef.page);
-      if (!pageRef.page) {
-        pageRef.page = currentPage;
+      const link = mdTree.children![1]!.children![0].text!;
+      // Assume is attachment if it has extension
+      if (/\.[a-zA-Z0-9]+$/.test(link)) {
+        const attachmentPath = resolvePath(
+          currentPage,
+          "/" + decodeURI(link),
+        );
+        return editor.openUrl(attachmentPath);
+      } else {
+        const pageRef = parsePageRef(link);
+        pageRef.page = resolvePath(currentPage, "/" + pageRef.page);
+        if (!pageRef.page) {
+          pageRef.page = currentPage;
+        }
+        // This is an explicit navigate, move to the top
+        if (pageRef.pos === undefined) {
+          pageRef.pos = 0;
+        }
+        return editor.navigate(pageRef, false);
       }
-      // This is an explicit navigate, move to the top
-      if (pageRef.pos === undefined) {
-        pageRef.pos = 0;
-      }
-      await editor.navigate(pageRef, false, inNewWindow);
-      break;
     }
     case "PageRef": {
       const pageName = parsePageRef(mdTree.children![0].text!).page;

@@ -227,8 +227,14 @@ function render(
       };
     }
     case "Image": {
-      const altText = t.children![1].text!;
-      const urlNode = findNodeOfType(t, "URL");
+      const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
+        t.children![1];
+      const altText = altTextNode && altTextNode.type !== "LinkMark"
+        ? renderToText(altTextNode)
+        : "";
+
+      const urlNode = findNodeOfType(t, "WikiLinkPage") ||
+        findNodeOfType(t, "URL");
       if (!urlNode) {
         return renderToText(t);
       }
@@ -511,6 +517,9 @@ export function renderMarkdownToHtml(
 
       if (t.name === "a" && t.attrs!.href) {
         t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
+        if (t.body.length === 0) {
+          t.body = [t.attrs!.href];
+        }
       }
     });
   }

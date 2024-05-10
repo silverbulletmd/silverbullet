@@ -15,10 +15,11 @@ import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 
-export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
-
+export const wikiLinkRegex = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g; // [fullMatch, firstMark, url, alias, lastMark]
+export const mdLinkRegex = /!?\[(?<title>[^\]]*)\]\((?<url>.+)\)/g; // [fullMatch, alias, url]
 export const tagRegex =
   /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
+const pWikiLinkRegex = new RegExp("^" + wikiLinkRegex.source); // Modified regex used only in parser
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
@@ -33,33 +34,45 @@ const WikiLink: MarkdownConfig = {
       parse(cx, next, pos) {
         let match: RegExpMatchArray | null;
         if (
-          next != 91 /* '[' */ ||
-          !(match = pageLinkRegex.exec(cx.slice(pos, cx.end)))
+          next != 91 /* '[' */ &&
+            next != 33 /* '!' */ ||
+          !(match = pWikiLinkRegex.exec(cx.slice(pos, cx.end)))
         ) {
           return -1;
         }
-        const [fullMatch, page, pipePart, label] = match;
+
+        const [fullMatch, firstMark, page, alias, _lastMark] = match;
         const endPos = pos + fullMatch.length;
         let aliasElts: any[] = [];
-        if (pipePart) {
-          const pipeStartPos = pos + 2 + page.length;
+        if (alias) {
+          const pipeStartPos = pos + firstMark.length + page.length;
           aliasElts = [
             cx.elt("WikiLinkMark", pipeStartPos, pipeStartPos + 1),
             cx.elt(
               "WikiLinkAlias",
               pipeStartPos + 1,
-              pipeStartPos + 1 + label.length,
+              pipeStartPos + 1 + alias.length,
             ),
           ];
         }
-        return cx.addElement(
-          cx.elt("WikiLink", pos, endPos, [
-            cx.elt("WikiLinkMark", pos, pos + 2),
-            cx.elt("WikiLinkPage", pos + 2, pos + 2 + page.length),
-            ...aliasElts,
-            cx.elt("WikiLinkMark", endPos - 2, endPos),
-          ]),
-        );
+
+        let allElts = cx.elt("WikiLink", pos, endPos, [
+          cx.elt("WikiLinkMark", pos, pos + firstMark.length),
+          cx.elt(
+            "WikiLinkPage",
+            pos + firstMark.length,
+            pos + firstMark.length + page.length,
+          ),
+          ...aliasElts,
+          cx.elt("WikiLinkMark", endPos - 2, endPos),
+        ]);
+
+        // If inline image
+        if (next == 33) {
+          allElts = cx.elt("Image", pos, endPos, [allElts]);
+        }
+
+        return cx.addElement(allElts);
       },
       after: "Emphasis",
     },
