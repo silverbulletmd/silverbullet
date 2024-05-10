@@ -64,7 +64,7 @@ export function inlineImagesPlugin(client: Client) {
         const text = state.sliceDoc(node.from, node.to);
         let url: string | null, alias: string | null = null;
         let match: RegExpExecArray | null;
-        if ((match = mdLinkRegex.exec(text))) {
+        if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
         } else if (
           (match = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g.exec(text))
