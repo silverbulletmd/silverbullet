@@ -62,9 +62,12 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     const prefixText = prefix.text;
     const options: Completion[] = [];
 
-    // No slash commands in comment blocks (queries and such)
+    // No slash commands in comment blocks (queries and such) or links
     const currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos);
-    if (currentNode.type.name === "CommentBlock") {
+    if (
+      currentNode.type.name === "CommentBlock" ||
+      currentNode.type.name === "Link"
+    ) {
       return null;
     }
 

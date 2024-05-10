@@ -1,6 +1,10 @@
 import { collectNodesOfType } from "$sb/lib/tree.ts";
-import type { CompleteEvent, IndexTreeEvent } from "../../plug-api/types.ts";
-import { ObjectValue, QueryExpression } from "../../plug-api/types.ts";
+import type {
+  CompleteEvent,
+  IndexTreeEvent,
+  ObjectValue,
+  QueryExpression,
+} from "$sb/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 

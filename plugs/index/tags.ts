@@ -54,7 +54,9 @@ const taskPrefixRegex = /^\s*[\-\*]\s+\[([^\]]+)\]/;
 const itemPrefixRegex = /^\s*[\-\*]\s+/;
 
 export async function tagComplete(completeEvent: CompleteEvent) {
-  const inLinkMatch = /\[\[([^\]]*)$/.exec(completeEvent.linePrefix);
+  const inLinkMatch = /(?:\[\[|\[.*\]\()([^\]]*)$/.exec(
+    completeEvent.linePrefix,
+  );
   if (inLinkMatch) {
     return null;
   }
