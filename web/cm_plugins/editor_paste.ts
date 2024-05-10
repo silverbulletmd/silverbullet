@@ -14,7 +14,7 @@ import {
   nodeAtPos,
 } from "../../plug-api/lib/tree.ts";
 import { folderName, resolve } from "$lib/path.ts";
-import { maximumAttachmentSize } from "../constants.ts";
+import { defaultLinkStyle, maximumAttachmentSize } from "../constants.ts";
 import { safeRun } from "$lib/async.ts";
 
 const turndownService = new TurndownService({
@@ -195,7 +195,8 @@ export function attachmentExtension(editor: Client) {
     suggestedName: string,
     mimeType: string,
   ) {
-    const maxSize = editor.settings.maximumAttachmentSize || maximumAttachmentSize;
+    const maxSize = editor.settings.maximumAttachmentSize ||
+      maximumAttachmentSize;
     if (data!.byteLength > (maxSize * 1024 * 1024)) {
       editor.flashNotification(
         `Attachment is too large, maximum is ${maxSize}MiB`,
@@ -215,9 +216,16 @@ export function attachmentExtension(editor: Client) {
       resolve(folderName(editor.currentPage), finalFileName),
       new Uint8Array(data),
     );
-    let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
+    const linkStyle = editor.settings.defaultLinkStyle ||
+      defaultLinkStyle.toLowerCase();
+    let attachmentMarkdown = "";
+    if (linkStyle === "wikilink") {
+      attachmentMarkdown = `[[${finalFileName}]]`;
+    } else {
+      attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
+    }
     if (mimeType.startsWith("image/")) {
-      attachmentMarkdown = `![](${encodeURI(finalFileName)})`;
+      attachmentMarkdown = "!" + attachmentMarkdown;
     }
     editor.editorView.dispatch({
       changes: [

@@ -18,6 +18,7 @@ export type BuiltinSettings = {
   shortcuts?: Shortcut[];
   hideSyncButton?: boolean;
   maximumAttachmentSize?: number;
+  defaultLinkStyle?: string;
   actionButtons: ActionButton[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
