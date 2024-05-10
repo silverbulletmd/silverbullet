@@ -7,7 +7,7 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
-import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { tagPrefix } from "../index/constants.ts";
 
@@ -58,12 +58,10 @@ async function actionClickOrActionEnter(
     }
     case "PageRef": {
       const pageName = parsePageRef(mdTree.children![0].text!).page;
-      await editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
-      break;
+      return editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
     }
     case "NakedURL":
-      await editor.openUrl(mdTree.children![0].text!);
-      break;
+      return editor.openUrl(mdTree.children![0].text!);
     case "Image":
     case "Link": {
       const urlNode = findNodeOfType(mdTree, "URL");
@@ -74,14 +72,19 @@ async function actionClickOrActionEnter(
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
-      if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        return editor.openUrl(
-          resolveAttachmentPath(currentPage, decodeURI(url)),
-        );
+      if (isLocalPath(url)) {
+        if (/\.[a-zA-Z0-9]+$/.test(url)) {
+          return editor.openUrl(
+            resolvePath(currentPage, decodeURI(url)),
+          );
+        } else {
+          return editor.navigate(
+            parsePageRef(resolvePath(currentPage, decodeURI(url))),
+          );
+        }
       } else {
-        await editor.openUrl(url);
+        return editor.openUrl(url);
       }
-      break;
     }
     case "CommandLink": {
       const commandName = mdTree.children![1]!.children![0].text!;

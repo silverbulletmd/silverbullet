@@ -6,9 +6,10 @@ import {
   removeParentPointers,
   renderToText,
   traverseTree,
-} from "../../plug-api/lib/tree.ts";
+} from "$sb/lib/tree.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
+import { isLocalPath } from "$sb/lib/resolve.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -209,7 +210,7 @@ function render(
         return renderToText(t);
       }
       let url = urlNode.children![0].text!;
-      if (url.indexOf("://") === -1) {
+      if (isLocalPath(url)) {
         if (
           options.attachmentUrlPrefix &&
           !url.startsWith(options.attachmentUrlPrefix)
@@ -231,15 +232,19 @@ function render(
       if (!urlNode) {
         return renderToText(t);
       }
-      let url = urlNode!.children![0].text!;
-      if (url.indexOf("://") === -1) {
-        if (
-          options.attachmentUrlPrefix &&
-          !url.startsWith(options.attachmentUrlPrefix)
-        ) {
-          url = `${options.attachmentUrlPrefix}${url}`;
-        }
+      let url = renderToText(urlNode);
+      if (urlNode.type === "WikiLinkPage") {
+        url = "/" + url;
       }
+
+      if (
+        isLocalPath(url) &&
+        options.attachmentUrlPrefix &&
+        !url.startsWith(options.attachmentUrlPrefix)
+      ) {
+        url = `${options.attachmentUrlPrefix}${url}`;
+      }
+
       return {
         name: "img",
         attrs: {

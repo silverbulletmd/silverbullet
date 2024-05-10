@@ -1,8 +1,7 @@
 import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
-import { IndexTreeEvent } from "../../plug-api/types.ts";
-import { resolvePath } from "$sb/lib/resolve.ts";
+import { IndexTreeEvent, ObjectValue } from "$sb/types.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
@@ -32,7 +31,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     if (n.type === "WikiLink") {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
-      let toPage = resolvePath(name, wikiLinkPage.children![0].text!);
+      const url = resolvePath(name, "/" + wikiLinkPage.children![0].text!);
       const pos = wikiLinkPage.from!;
       toPage = parsePageRef(toPage).page;
       const link: LinkObject = {

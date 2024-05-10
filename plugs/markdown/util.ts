@@ -4,6 +4,7 @@ import {
   replaceNodesMatching,
 } from "$sb/lib/tree.ts";
 import { markdown } from "$sb/syscalls.ts";
+import { isLocalPath } from "$sb/lib/resolve.ts";
 
 export function encodePageUrl(name: string): string {
   return name;
@@ -43,7 +44,7 @@ export async function cleanMarkdown(
     }
     if (n.type === "URL") {
       const url = n.children![0].text!;
-      if (url.indexOf("://") === -1) {
+      if (isLocalPath(url)) {
         n.children![0].text = `fs/${url}`;
       }
       console.log("Link", url);

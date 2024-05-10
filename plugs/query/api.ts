@@ -32,7 +32,7 @@ export async function renderQuery(
     // Configured a custom rendering template, let's use it!
     const templatePage = resolvePath(
       variables?.page?.name,
-      parsedQuery.render,
+      "/" + parsedQuery.render,
     );
     const rendered = await renderQueryTemplate(
       variables?.page,
