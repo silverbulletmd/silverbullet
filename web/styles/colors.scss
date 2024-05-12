@@ -31,13 +31,22 @@
   color: var(--top-loading-color);
 }
 
-.sb-panel {
-  border-left: 1px solid var(--panel-border-color);
-  background-color: var(--panel-background-color);
+#sb-main {
+  .sb-panel:last-child {
+    border-left: 1px solid var(--panel-border-color);
+  }
+
+  .sb-panel:first-child {
+    border-right: 1px solid var(--panel-border-color);
+  }
+
+  .sb-panel {
+    background-color: var(--panel-background-color);
+  }
 }
 
 .sb-bhs {
-  border-top: var(--bhs-border-color) 1px solid;
+  border-top: 1px solid var(--bhs-border-color);
   background-color: var(--bhs-background-color);
 }
 
