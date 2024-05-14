@@ -89,7 +89,8 @@
   color: var(--action-button-hover-color);
 }
 
-.sb-button, .sb-button-primary {
+.sb-button,
+.sb-button-primary {
   --color: var(--button-color);
   --background-color: var(--button-background-color);
   --hover-background-color: var(--button-hover-background-color);
@@ -205,7 +206,9 @@
   .sb-line-h1,
   .sb-line-h2,
   .sb-line-h3,
-  .sb-line-h4 {
+  .sb-line-h4,
+  .sb-line-h5,
+  .sb-line-h6 {
     // background-color: rgba(0, 30, 77, 0.5);
     color: var(--editor-heading-color);
   }
@@ -213,218 +216,221 @@
   .sb-line-h1 .sb-meta,
   .sb-line-h2 .sb-meta,
   .sb-line-h3 .sb-meta,
-  .sb-line-h4 .sb-meta {
-    color: var(--editor-heading-meta-color);
+  .sb-line-h4 .sb-meta,
+  .sb-line-h5 .sb-meta,
+  .sb-line-h6 .sb-meta,
+  {
+  color: var(--editor-heading-meta-color);
+}
+
+.sb-hashtag,
+.hashtag {
+  color: var(--editor-hashtag-color);
+  background-color: var(--editor-hashtag-background-color);
+  border: 1px solid var(--editor-hashtag-border-color);
+  cursor: pointer;
+}
+
+.sb-line-hr {
+  border-top: var(--editor-ruler-color) solid 1px;
+}
+
+.sb-naked-url {
+  color: var(--editor-naked-url-color);
+}
+
+.sb-named-anchor {
+  color: var(--editor-named-anchor-color);
+}
+
+.sb-command-button {
+  font-family: var(--editor-font);
+  color: var(--editor-command-button-color);
+  background-color: var(--editor-command-button-background-color);
+  border: 1px solid var(--editor-command-button-border-color);
+}
+
+.sb-command-button:hover {
+  background-color: var(--editor-command-button-hover-background-color);
+}
+
+.sb-command-link {
+  &.sb-meta {
+    color: var(--editor-command-button-meta-color);
   }
 
-  .sb-hashtag,
-  .hashtag {
-    color: var(--editor-hashtag-color);
-    background-color: var(--editor-hashtag-background-color);
-    border: 1px solid var(--editor-hashtag-border-color);
-    cursor: pointer;
-  }
-
-  .sb-line-hr {
-    border-top: var(--editor-ruler-color) solid 1px;
-  }
-
-  .sb-naked-url {
-    color: var(--editor-naked-url-color);
-  }
-
-  .sb-named-anchor {
-    color: var(--editor-named-anchor-color);
-  }
-
-  .sb-command-button {
-    font-family: var(--editor-font);
-    color: var(--editor-command-button-color);
+  &.sb-command-link-name {
+    background-color: var(--editor-command-button-color);
     background-color: var(--editor-command-button-background-color);
     border: 1px solid var(--editor-command-button-border-color);
   }
 
-  .sb-command-button:hover {
+  &.sb-command-link-name:hover {
     background-color: var(--editor-command-button-hover-background-color);
   }
+}
 
-  .sb-command-link {
-    &.sb-meta {
-      color: var(--editor-command-button-meta-color);
-    }
+/* Color list items when the cursor is on it */
+.sb-li-cursor .sb-meta {
+  color: var(--editor-line-meta-color);
+}
 
-    &.sb-command-link-name {
-      background-color: var(--editor-command-button-color);
-      background-color: var(--editor-command-button-background-color);
-      border: 1px solid var(--editor-command-button-border-color);
-    }
+thead tr {
+  background-color: var(--editor-table-head-background-color);
+  color: var(--editor-table-head-color);
+}
 
-    &.sb-command-link-name:hover {
-      background-color: var(--editor-command-button-hover-background-color);
-    }
-  }
+tbody tr:nth-of-type(even) {
+  background-color: var(--editor-table-even-background-color);
+}
 
-  /* Color list items when the cursor is on it */
-  .sb-li-cursor .sb-meta {
-    color: var(--editor-line-meta-color);
-  }
+.sb-line-blockquote {
+  background-color: var(--editor-blockquote-background-color);
+  color: var(--editor-blockquote-color);
+  border-left: 1px solid var(--editor-blockquote-border-color);
+}
 
-  thead tr {
-    background-color: var(--editor-table-head-background-color);
-    color: var(--editor-table-head-color);
-  }
+.sb-line-code {
+  background-color: var(--editor-code-background-color);
+}
 
-  tbody tr:nth-of-type(even) {
-    background-color: var(--editor-table-even-background-color);
-  }
+.sb-struct {
+  color: var(--editor-struct-color);
+}
 
-  .sb-line-blockquote {
-    background-color: var(--editor-blockquote-background-color);
-    color: var(--editor-blockquote-color);
-    border-left: 1px solid var(--editor-blockquote-border-color);
-  }
+.sb-code {
+  background-color: var(--editor-code-background-color);
+}
 
-  .sb-line-code {
-    background-color: var(--editor-code-background-color);
-  }
+.sb-line-fenced-code .sb-code {
+  color: var(--editor-code-color);
+}
 
-  .sb-struct {
-    color: var(--editor-struct-color);
-  }
+.sb-directive-mark {
+  color: var(--editor-directive-color);
+  font-weight: bold;
+}
 
-  .sb-code {
-    background-color: var(--editor-code-background-color);
-  }
+.sb-directive {
+  color: var(--editor-directive-color);
+  font-weight: bold;
+}
 
-  .sb-line-fenced-code .sb-code {
-    color: var(--editor-code-color);
-  }
+.sb-highlight {
+  background-color: var(--editor-highlight-background-color);
+}
 
-  .sb-directive-mark {
-    color: var(--editor-directive-color);
-    font-weight: bold;
-  }
+.sb-line-fenced-code {
+  background-color: var(--editor-code-background-color);
+}
 
-  .sb-directive {
-    color: var(--editor-directive-color);
-    font-weight: bold;
-  }
+.sb-line-fenced-code .sb-comment {
+  color: var(--editor-code-comment-color);
+}
 
-  .sb-highlight {
-    background-color: var(--editor-highlight-background-color);
-  }
+.sb-variableName {
+  color: var(--editor-code-variable-color);
+}
 
-  .sb-line-fenced-code {
-    background-color: var(--editor-code-background-color);
-  }
+.sb-typeName {
+  color: var(--editor-code-typename-color);
+}
 
-  .sb-line-fenced-code .sb-comment {
-    color: var(--editor-code-comment-color);
-  }
+.sb-string,
+.sb-string2 {
+  color: var(--editor-code-string-color);
+}
 
-  .sb-variableName {
-    color: var(--editor-code-variable-color);
-  }
+.sb-number {
+  color: var(--editor-code-number-color);
+}
 
-  .sb-typeName {
-    color: var(--editor-code-typename-color);
-  }
+.sb-operator {
+  color: var(--editor-code-operator-color);
+}
 
-  .sb-string,
-  .sb-string2 {
-    color: var(--editor-code-string-color);
-  }
+.sb-meta {
+  color: var(--editor-meta-color);
+}
 
-  .sb-number {
-    color: var(--editor-code-number-color);
-  }
+// Admonitions
 
-  .sb-operator {
-    color: var(--editor-code-operator-color);
-  }
+.sb-admonition {
+  border-left-color: var(--admonition-color);
+}
 
-  .sb-meta {
-    color: var(--editor-meta-color);
-  }
+.sb-admonition-title {
+  background-color: color-mix(in srgb, var(--admonition-color), transparent 90%)
+}
 
-  // Admonitions
+.sb-admonition-icon {
+  background-color: var(--admonition-color);
+}
 
-  .sb-admonition {
-    border-left-color: var(--admonition-color);
-  }
+// Frontmatter
 
-  .sb-admonition-title {
-    background-color: color-mix(in srgb, var(--admonition-color), transparent 90%)
-  }
+.sb-frontmatter {
+  background-color: var(--editor-frontmatter-background-color);
+  color: var(--editor-frontmatter-color);
+}
 
-  .sb-admonition-icon {
-    background-color: var(--admonition-color);
-  }
+.sb-frontmatter-marker {
+  color: var(--editor-frontmatter-marker-color);
+}
 
-  // Frontmatter
+.sb-emphasis {
+  font-style: italic;
+}
 
-  .sb-frontmatter {
-    background-color: var(--editor-frontmatter-background-color);
-    color: var(--editor-frontmatter-color);
-  }
+.sb-strong {
+  font-weight: 900;
+}
 
-  .sb-frontmatter-marker {
-    color: var(--editor-frontmatter-marker-color);
-  }
+.sb-line-code-outside .sb-code-info {
+  color: var(--editor-code-info-color);
+}
 
-  .sb-emphasis {
-    font-style: italic;
-  }
+a,
+.sb-link:not(.sb-meta, .sb-url) {
+  color: var(--editor-link-color);
+}
 
-  .sb-strong {
-    font-weight: 900;
-  }
+.sb-link.sb-url {
+  color: var(--editor-link-meta-color);
+}
 
-  .sb-line-code-outside .sb-code-info {
-    color: var(--editor-code-info-color);
-  }
+.sb-url:not(.sb-link) {
+  color: var(--editor-link-url-color);
+}
 
-  a,
-  .sb-link:not(.sb-meta, .sb-url) {
-    color: var(--editor-link-color);
-  }
+.sb-atom {
+  color: var(--editor-code-atom-color);
+}
 
-  .sb-link.sb-url {
-    color: var(--editor-link-meta-color);
-  }
+.sb-wiki-link-page {
+  color: var(--editor-wiki-link-page-color);
+  background-color: var(--editor-wiki-link-page-background-color);
+}
 
-  .sb-url:not(.sb-link) {
-    color: var(--editor-link-url-color);
-  }
+a.sb-wiki-link-page-missing,
+.sb-wiki-link-page-missing>.sb-wiki-link-page {
+  color: var(--editor-wiki-link-page-missing-color);
+  background-color: var(--editor-wiki-link-page-background-color);
+}
 
-  .sb-atom {
-    color: var(--editor-code-atom-color);
-  }
+.sb-wiki-link {
+  color: var(--editor-wiki-link-page-color); // #8f96c2;
+}
 
-  .sb-wiki-link-page {
-    color: var(--editor-wiki-link-page-color);
-    background-color: var(--editor-wiki-link-page-background-color);
-  }
+.sb-task-mark {
+  color: var(--editor-task-marker-color);
+}
 
-  a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing>.sb-wiki-link-page {
-    color: var(--editor-wiki-link-page-missing-color);
-    background-color: var(--editor-wiki-link-page-background-color);
-  }
+.sb-task-state {
+  color: var(--editor-task-state-color);
+}
 
-  .sb-wiki-link {
-    color: var(--editor-wiki-link-page-color); // #8f96c2;
-  }
-
-  .sb-task-mark {
-    color: var(--editor-task-marker-color);
-  }
-
-  .sb-task-state {
-    color: var(--editor-task-state-color);
-  }
-
-  .sb-line-comment {
-    background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
-  }
+.sb-line-comment {
+  background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
+}
 }

@@ -132,6 +132,8 @@ export function createEditorState(
         { selector: "ATXHeading2", class: "sb-line-h2" },
         { selector: "ATXHeading3", class: "sb-line-h3" },
         { selector: "ATXHeading4", class: "sb-line-h4" },
+        { selector: "ATXHeading5", class: "sb-line-h5" },
+        { selector: "ATXHeading6", class: "sb-line-h6" },
         { selector: "ListItem", class: "sb-line-li", nesting: true },
         { selector: "Blockquote", class: "sb-line-blockquote" },
         { selector: "Task", class: "sb-line-task" },
