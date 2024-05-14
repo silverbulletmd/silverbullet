@@ -20,6 +20,10 @@ export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
 export const tagRegex =
   /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
 
+// Matches images that includes size, like:
+// ![some title](https://example.org/image.png =42x42)
+// Or with only the height or the width: "=42x", "=x42", "=42%x42%", ...
+// Or with units, like: "=42%x42%"
 export const imageWithSizeRegex =
   /^!\[([^\]]*)\]\(([^=]+)\s+=((\d+.*)?x\d+.*|\d+.*x(\d+.*)?)\)/;
 
