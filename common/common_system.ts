@@ -26,8 +26,7 @@ export abstract class CommonSystem {
   codeWidgetHook!: CodeWidgetHook;
   panelWidgetHook!: PanelWidgetHook;
 
-  readonly allKnownPages = new Set<string>();
-  readonly allKnownAttachments = new Set<string>();
+  readonly allKnownFiles = new Set<string>();
   readonly spaceScriptCommands = new Map<string, AppCommand>();
   scriptEnv: ScriptEnvironment = new ScriptEnvironment();
 
@@ -45,7 +44,7 @@ export abstract class CommonSystem {
 
   async loadSpaceScripts() {
     let functions = buildQueryFunctions(
-      this.allKnownPages,
+      this.allKnownFiles,
       this.system,
     );
     if (this.enableSpaceScript) {

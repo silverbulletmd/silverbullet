@@ -14,12 +14,7 @@ export function cleanWikiLinkPlugin(client: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
     // let parentRange: [number, number];
-    const allKnownFiles = new Set<string>(
-      [
-        ...client.clientSystem.allKnownPages,
-        ...client.clientSystem.allKnownAttachments,
-      ],
-    );
+    const allKnownFiles = client.clientSystem.allKnownFiles;
     syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
         if (type.name !== "WikiLink") {
@@ -43,7 +38,9 @@ export function cleanWikiLinkPlugin(client: Client) {
         const lowerCasePageName = pageRef.page.toLowerCase();
 
         for (const fileName of allKnownFiles) {
-          if (fileName.toLowerCase() === lowerCasePageName) {
+          if (
+            fileName.toLowerCase().replace(/\.md$/, "") === lowerCasePageName
+          ) {
             fileExists = true;
             break;
           }

@@ -176,13 +176,10 @@ export class ServerSystem extends CommonSystem {
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages and attachments
-        this.allKnownPages.clear();
-        this.allKnownAttachments.clear();
+        this.allKnownFiles.clear();
         allFiles.forEach((f) => {
-          if (f.name.endsWith(".md")) {
-            this.allKnownPages.add(f.name.slice(0, -3));
-          } else if (!f.name.startsWith(plugPrefix)) {
-            this.allKnownAttachments.add(f.name);
+          if (!f.name.startsWith(plugPrefix)) {
+            this.allKnownFiles.add(f.name);
           }
         });
       },

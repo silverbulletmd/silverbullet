@@ -627,27 +627,24 @@ export class Client {
       },
     );
 
-    // Caching a list of known pages for the wiki_link highlighter (that checks if a page exists)
-    this.eventHook.addLocalListener("page:saved", (pageName: string) => {
-      // Make sure this page is in the list of known pages
-      this.clientSystem.allKnownPages.add(pageName);
+    // Caching a list of known files for the wiki_link highlighter (that checks if a file exists)
+    this.eventHook.addLocalListener("file:changed", (fileName: string) => {
+      // Make sure this file is in the list of known pages
+      this.clientSystem.allKnownFiles.add(fileName);
     });
 
-    this.eventHook.addLocalListener("page:deleted", (pageName: string) => {
-      this.clientSystem.allKnownPages.delete(pageName);
+    this.eventHook.addLocalListener("file:deleted", (fileName: string) => {
+      this.clientSystem.allKnownFiles.delete(fileName);
     });
 
     this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
         // Update list of known pages
-        this.clientSystem.allKnownPages.clear();
+        this.clientSystem.allKnownFiles.clear();
         allFiles.forEach((f) => {
-          if (f.name.endsWith(".md")) {
-            this.clientSystem.allKnownPages.add(f.name.slice(0, -3));
-            // Also cache attachments
-          } else if (!f.name.startsWith(plugPrefix)) {
-            this.clientSystem.allKnownAttachments.add(f.name);
+          if (!f.name.startsWith(plugPrefix)) {
+            this.clientSystem.allKnownFiles.add(f.name);
           }
         });
       },

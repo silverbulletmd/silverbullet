@@ -7,10 +7,15 @@ import { LimitedMap } from "$lib/limited_map.ts";
 const pageCacheTtl = 10 * 1000; // 10s
 
 export function buildQueryFunctions(
-  allKnownPages: Set<string>,
+  allKnownFiles: Set<string>,
   system: System<any>,
 ): FunctionMap {
   const pageCache = new LimitedMap<string>(10);
+  allKnownFiles.forEach((file) => {
+    if (!file.endsWith(".md")) {
+      allKnownFiles.delete(file);
+    }
+  });
 
   return {
     ...builtinFunctions,
@@ -23,7 +28,7 @@ export function buildQueryFunctions(
         // Let's assume federated pages exist, and ignore template variable ones
         return true;
       }
-      return allKnownPages.has(name);
+      return allKnownFiles.has(name);
     },
     async template(template: unknown, obj: unknown) {
       if (typeof template !== "string") {
