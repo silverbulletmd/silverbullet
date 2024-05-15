@@ -34,9 +34,6 @@ export async function renamePageCommand(cmdDef: any) {
  */
 export async function batchRenameFiles(fileList: [string, string][]) {
   await editor.save();
-  // Make sure index is up to date
-  await system.invokeFunction("index.reindexSpace");
-  await system.invokeFunction("index.reindexAttachments");
 
   // Skip unchanged names
   fileList = fileList.filter(([oldName, newName]) => {
