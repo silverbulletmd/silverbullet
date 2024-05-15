@@ -81,7 +81,7 @@ async function actionClickOrActionEnter(
         return editor.flashNotification("Empty link, ignoring", "error");
       }
       if (isLocalPath(url)) {
-        if (/\.[a-zA-Z0-9]+$/.test(url)) {
+        if (/\.[a-zA-Z0-9>]+$/.test(url)) {
           return editor.openUrl(
             resolvePath(currentPage, decodeURI(url)),
           );
