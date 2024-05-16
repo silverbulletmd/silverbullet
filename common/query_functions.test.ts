@@ -11,7 +11,7 @@ let functions: ReturnType<typeof buildQueryFunctions>;
 
 beforeEach(() => {
   functions = buildQueryFunctions(
-    new Set(["page1"]),
+    new Set(["page1.md"]),
     {} as System<unknown>,
   );
 });

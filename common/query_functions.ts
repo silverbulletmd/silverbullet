@@ -11,11 +11,11 @@ export function buildQueryFunctions(
   system: System<any>,
 ): FunctionMap {
   const pageCache = new LimitedMap<string>(10);
-  allKnownFiles.forEach((file) => {
-    if (!file.endsWith(".md")) {
-      allKnownFiles.delete(file);
-    }
-  });
+  allKnownFiles = new Set(
+    [...allKnownFiles].flatMap((file) =>
+      (file.endsWith(".md")) ? [file.slice(0, -3)] : []
+    ),
+  );
 
   return {
     ...builtinFunctions,
