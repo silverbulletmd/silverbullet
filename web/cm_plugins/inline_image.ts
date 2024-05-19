@@ -9,6 +9,7 @@ class InlineImageWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
+    readonly dim: string | null,
     readonly client: Client,
   ) {
     super();
@@ -16,13 +17,20 @@ class InlineImageWidget extends WidgetType {
   }
 
   eq(other: InlineImageWidget) {
-    return other.url === this.url && other.title === this.title;
+    return other.url === this.url && other.title === this.title &&
+      other.dim === this.dim;
   }
 
   get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
     // console.log("Estimated height requested", this.url, cachedHeight);
     return cachedHeight;
+  }
+
+  private getDimensions(dimensionsToParse: string) {
+    const [, width, widthUnit = "px", height, heightUnit = "px"] =
+      dimensionsToParse.match(/(\d*)(%)?x(\d*)(%)?/) ?? [];
+    return { width, widthUnit, height, heightUnit };
   }
 
   toDOM() {
@@ -44,7 +52,13 @@ class InlineImageWidget extends WidgetType {
     img.title = this.title;
     img.style.display = "block";
     img.className = "sb-inline-img";
-    if (cachedImageHeight > 0) {
+    if (this.dim) {
+      const { width, widthUnit, height, heightUnit } = this.getDimensions(
+        this.dim,
+      );
+      img.style.height = height ? `${height}${heightUnit}` : "";
+      img.style.width = width ? `${width}${widthUnit}` : "";
+    } else if (cachedImageHeight > 0) {
       img.height = cachedImageHeight;
     }
 
@@ -55,11 +69,12 @@ class InlineImageWidget extends WidgetType {
 export function inlineImagesPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
-    const imageRegex = /!\[(?<title>[^\]]*)\]\((?<url>.+)\)/;
+    const imageRegex =
+      /!\[(?<title>[^\]]*)\]\((?<url>\S+)(?:\s+=(?<dim>\d*%?x\d+%?|\d+%?x\d*%?))?\)/;
 
     syntaxTree(state).iterate({
       enter: (node) => {
-        if (node.name !== "Image") {
+        if (!["Image", "ImageWithSize"].includes(node.name)) {
           return;
         }
 
@@ -71,14 +86,14 @@ export function inlineImagesPlugin(client: Client) {
         }
 
         let url = imageRexexResult.groups.url;
-        const title = imageRexexResult.groups.title;
+        const { title, dim } = imageRexexResult.groups;
 
         if (url.indexOf("://") === -1 && !url.startsWith("/")) {
           url = resolveAttachmentPath(client.currentPage, decodeURI(url));
         }
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title, client),
+            widget: new InlineImageWidget(url, title, dim, client),
             block: true,
           }).range(node.to),
         );
