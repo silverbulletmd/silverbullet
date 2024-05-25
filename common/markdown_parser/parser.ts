@@ -21,6 +21,13 @@ export const tagRegex =
   /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
 const pWikiLinkRegex = new RegExp("^" + wikiLinkRegex.source); // Modified regex used only in parser
 
+// Matches images that includes size, like:
+// ![some title](https://example.org/image.png =42x42)
+// Or with only the height or the width: "=42x", "=x42", "=42%x42%", ...
+// Or with units, like: "=42%x42%"
+export const imageWithSizeRegex =
+  /^!\[([^\]]*)\]\(([^=]+)\s+=((\d+.*)?x\d+.*|\d+.*x(\d+.*)?)\)/;
+
 const WikiLink: MarkdownConfig = {
   defineNodes: [
     { name: "WikiLink", style: ct.WikiLinkTag },
@@ -607,6 +614,49 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
+const ImageWithSize: MarkdownConfig = {
+  defineNodes: [
+    { name: "ImageWithSize", style: t.link, block: true },
+    { name: "ImageWithSizeAlt", style: t.link },
+    { name: "ImageWithSizeURL", style: t.url },
+    { name: "ImageWithSizeSize", style: t.meta },
+  ],
+  parseInline: [
+    {
+      name: "ImageWithSize",
+      parse: (cx, next, pos) => {
+        let match: RegExpMatchArray | null;
+        if (
+          next != 33 /* ! */ ||
+          !(match = imageWithSizeRegex.exec(cx.slice(pos, cx.end)))
+        ) {
+          return -1;
+        }
+        const [fullMatch, altText, url, size] = match;
+
+        const endPos = pos + fullMatch.length;
+        const altPosStart = pos + 2;
+        const altPosEnd = altPosStart + altText.length;
+        const urlPosStart = altPosEnd + 2;
+        const urlPosEnd = urlPosStart + url.length;
+        const sizePosStart = fullMatch.indexOf(size, urlPosEnd - pos);
+        const sizePosEnd = sizePosStart + size.length;
+
+        return cx.addElement(
+          cx.elt("ImageWithSize", pos, endPos, [
+            cx.elt("LinkMark", pos, altPosStart),
+            cx.elt("ImageWithSizeAlt", altPosStart, altPosEnd),
+            cx.elt("LinkMark", altPosEnd, urlPosStart),
+            cx.elt("ImageWithSizeURL", urlPosStart, urlPosEnd),
+            cx.elt("ImageWithSizeSize", sizePosStart, sizePosEnd),
+          ]),
+        );
+      },
+      before: "Image",
+    },
+  ],
+};
+
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
@@ -623,6 +673,7 @@ export const extendedMarkdownLanguage = markdown({
     Hashtag,
     TaskDeadline,
     NamedAnchor,
+    ImageWithSize,
     {
       props: [
         foldNodeProp.add({

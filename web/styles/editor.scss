@@ -20,7 +20,9 @@
     &.sb-line-h1,
     &.sb-line-h2,
     &.sb-line-h3,
-    &.sb-line-h4 {
+    &.sb-line-h4,
+    &.sb-line-h5,
+    &.sb-line-h6 {
       font-weight: bold;
       padding: 2px;
     }
@@ -42,7 +44,9 @@
     font-size: 1.1em;
   }
 
-  .sb-line-h4 {
+  .sb-line-h4,
+  .sb-line-h5,
+  .sb-line-h6 {
     font-size: 1em;
   }
 
@@ -232,6 +236,14 @@
 
   .sb-header-inside.sb-line-h4 {
     text-indent: -5ch;
+  }
+
+  .sb-header-inside.sb-line-h5 {
+    text-indent: -6ch;
+  }
+
+  .sb-header-inside.sb-line-h6 {
+    text-indent: -7ch;
   }
 
   .sb-checkbox>input[type="checkbox"] {

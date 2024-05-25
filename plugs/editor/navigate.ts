@@ -24,6 +24,7 @@ async function actionClickOrActionEnter(
       "WikiLink",
       "Link",
       "Image",
+      "ImageWithSize",
       "URL",
       "NakedURL",
       "Link",

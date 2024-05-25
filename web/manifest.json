@@ -11,6 +11,7 @@
   "capture_links": "new-client",
   "start_url": "/#boot",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "scope": "/",
   "theme_color": "#e1e1e1",
   "description": "Markdown as a platform"
