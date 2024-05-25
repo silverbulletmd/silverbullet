@@ -211,3 +211,7 @@ export function openSearchPanel() {
 export function copyToClipboard(data: string | Blob): Promise<void> {
   return syscall("editor.copyToClipboard", data);
 }
+
+export function deleteLine() {
+  return syscall("editor.deleteLine");
+}

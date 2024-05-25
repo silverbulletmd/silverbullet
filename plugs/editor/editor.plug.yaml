@@ -163,6 +163,12 @@ functions:
       name: "Navigate: Center Cursor"
       key: "Ctrl-Alt-l"
       requireMode: rw
+  deleteLine:
+    path: "./editor.ts:deleteLineCommand"
+    command:
+      name: "Delete Line"
+      key: "Ctrl-d"
+      requireMode: rw
 
   # Debug commands
   parseCommand:
