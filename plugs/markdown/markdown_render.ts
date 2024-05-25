@@ -229,9 +229,22 @@ function render(
     case "Image": {
       const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
         t.children![1];
-      const altText = altTextNode && altTextNode.type !== "LinkMark"
+      let altText = altTextNode && altTextNode.type !== "LinkMark"
         ? renderToText(altTextNode)
         : "";
+      const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(altText);
+      let style = "";
+      if (dimReg) {
+        const [, width, widthUnit = "px", height, heightUnit = "px"] =
+          dimReg[0].match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
+        if (width) {
+          style += `width: ${width}${widthUnit};`;
+        }
+        if (height) {
+          style += `height: ${height}${heightUnit};`;
+        }
+        altText = altText.replace(dimReg[0], "").replace("|", "");
+      }
 
       const urlNode = findNodeOfType(t, "WikiLinkPage") ||
         findNodeOfType(t, "URL");
@@ -256,6 +269,7 @@ function render(
         attrs: {
           src: url,
           alt: altText,
+          style: style,
         },
         body: "",
       };
@@ -349,22 +363,6 @@ function render(
         },
         body: "",
       };
-    case "ImageWithSize": {
-      const alt = findNodeOfType(t, "ImageWithSizeAlt")!.children![0].text!;
-      const src = findNodeOfType(t, "ImageWithSizeURL")!.children![0].text!;
-      const dimensionsToParse = findNodeOfType(t, "ImageWithSizeSize")!.children![0].text!;
-      const [, width, widthUnit = "px", height, heightUnit = "px"] =
-        dimensionsToParse.match(/(\d*)(%)?x(\d*)(%)?/) ?? [];
-      return {
-        name: "img",
-        attrs: {
-          alt,
-          src,
-          style: `width: ${width}${widthUnit}; height: ${height}${heightUnit};`
-        },
-        body: "",
-      };
-    }
     case "CommandLink": {
       // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
       const command = t.children![1].children![0].text!;

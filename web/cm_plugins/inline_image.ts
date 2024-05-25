@@ -30,7 +30,7 @@ class InlineImageWidget extends WidgetType {
 
   private getDimensions(dimensionsToParse: string) {
     const [, width, widthUnit = "px", height, heightUnit = "px"] =
-      dimensionsToParse.match(/(\d*)(%)?x(\d*)(%)?/) ?? [];
+      dimensionsToParse.match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
     return { width, widthUnit, height, heightUnit };
   }
 
@@ -68,17 +68,15 @@ class InlineImageWidget extends WidgetType {
 export function inlineImagesPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
-    const imageRegex =
-      /!\[(?<title>[^\]]*)\]\((?<url>\S+)(?:\s+=(?<dim>\d*%?x\d+%?|\d+%?x\d*%?))?\)/;
 
     syntaxTree(state).iterate({
       enter: (node) => {
-        if (!["Image", "ImageWithSize"].includes(node.name)) {
+        if (node.name !== "Image") {
           return;
         }
 
         const text = state.sliceDoc(node.from, node.to);
-        let url: string | null, alias: string | null = null;
+        let [url, alias, dim]: (string | null)[] = [null, null, null];
         let match: RegExpExecArray | null;
         if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
@@ -91,16 +89,23 @@ export function inlineImagesPlugin(client: Client) {
           return;
         }
 
-        if (!alias) {
+        if (alias) {
+          const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(alias);
+          if (dimReg) {
+            dim = dimReg[0];
+            alias = alias.replace(dim, "").replace("|", "");
+          }
+        } else {
           alias = "";
         }
+
         if (isLocalPath(url)) {
           url = resolvePath(client.currentPage, decodeURI(url), true);
         }
 
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, title, dim, client),
+            widget: new InlineImageWidget(url, alias, dim, client),
             block: true,
           }).range(node.to),
         );
