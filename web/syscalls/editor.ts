@@ -6,7 +6,7 @@ import {
   unfoldAll,
   unfoldCode,
 } from "@codemirror/language";
-import { redo, undo } from "@codemirror/commands";
+import { deleteLine, redo, undo } from "@codemirror/commands";
 import { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
@@ -271,6 +271,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         type: "show-palette",
         context: client.getContext(),
       });
+    },
+    "editor.deleteLine": () => {
+      deleteLine(client.editorView);
     },
     // Folding
     "editor.fold": () => {

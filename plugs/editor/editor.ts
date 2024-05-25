@@ -64,3 +64,7 @@ export function undoCommand() {
 export function redoCommand() {
   return editor.redo();
 }
+
+export function deleteLineCommand() {
+  return editor.deleteLine();
+}
