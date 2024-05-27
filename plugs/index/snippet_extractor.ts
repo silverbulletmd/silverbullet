@@ -7,9 +7,20 @@ export function extractSnippetAroundIndex(
   const sentenceSegmenter = new Intl.Segmenter("en", {
     granularity: "sentence",
   });
-  const sentences = [...sentenceSegmenter.segment(text)].map((segment) =>
+  let sentences = [...sentenceSegmenter.segment(text)].map((segment) =>
     segment.segment
   );
+  // Manual fixes for markdown notation
+  const tempSentences: string[] = [];
+  for (let i = 0; i < sentences.length; i++) {
+    if (sentences[i] === "[[!" && sentences[i + 1]) {
+      tempSentences.push(sentences[i] + sentences[i + 1]);
+      i++;
+    } else {
+      tempSentences.push(sentences[i]);
+    }
+  }
+  sentences = tempSentences;
 
   // Find the sentence that contains the index
   let currentLength = 0;

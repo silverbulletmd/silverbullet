@@ -1,6 +1,9 @@
-import { editor, space } from "$sb/syscalls.ts";
-import { validatePageName } from "../../plug-api/lib/page_ref.ts";
-import { getBackLinks } from "./page_links.ts";
+import { editor, space, system } from "$sb/syscalls.ts";
+import { validatePageName } from "$sb/lib/page_ref.ts";
+import { getBackLinks, LinkObject } from "./page_links.ts";
+import { queryObjects } from "./api.ts";
+import { absoluteToRelativePath, folderName } from "$sb/lib/resolve.ts";
+import { ObjectValue } from "$sb/types.ts";
 
 /**
  * Renames a single page.
@@ -9,63 +12,112 @@ import { getBackLinks } from "./page_links.ts";
  *   the current page selected in the editor.
  * @param cmdDef.page The name to rename the page to. If not provided the
  *   user will be prompted to enter a new name.
- * @param cmdDef.navigateThere When true, the user will be navigated to the
- *   renamed page. Defaults to true.
  * @returns True if the rename succeeded; otherwise, false.
  */
 export async function renamePageCommand(cmdDef: any) {
-  const oldName = cmdDef.oldPage || await editor.getCurrentPage();
-  console.log("Old name is", oldName);
-  const newName = cmdDef.page ||
+  const oldName: string = cmdDef.oldPage || await editor.getCurrentPage();
+  const newName: string = cmdDef.page ||
     await editor.prompt(`Rename ${oldName} to:`, oldName);
   if (!newName) {
     return false;
   }
+  const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
+  await batchRenameFiles(pageList);
+  return true;
+}
 
-  try {
-    validatePageName(newName);
-  } catch (e: any) {
-    await editor.flashNotification(e.message, "error");
-    return false;
-  }
-
-  console.log("New name", newName);
-
-  if (newName.trim() === oldName.trim()) {
-    // Nothing to do here
-    console.log("Name unchanged, exiting");
-    return false;
-  }
-
+/**
+ * Renames any amount of files.
+ * If renaming pages, names should be passed with a .md extension
+ * @param fileList An array of tuples containing [FileToBeRenamed, NewFileName]
+ * @returns True if the rename succeeded; otherwise, false.
+ */
+export async function batchRenameFiles(fileList: [string, string][]) {
   await editor.save();
 
+  // Skip unchanged names
+  fileList = fileList.filter(([oldName, newName]) => {
+    if (oldName.trim() === newName.trim()) {
+      console.log(`${oldName}'s name unchanged, skipping`);
+    } else {
+      return [oldName, newName];
+    }
+  });
+
   try {
-    console.log(
-      "Checking if target page already exists, this should result in a 'Not found' error",
-    );
-    try {
-      // This throws an error if the page does not exist, which we expect to be the case
-      await space.getPageMeta(newName);
-      // So when we get to this point, we error out
-      throw new Error(
-        `Page ${newName} already exists, cannot rename to existing page.`,
-      );
-    } catch (e: any) {
-      if (e.message === "Not found") {
-        // Expected not found error, so we can continue
-      } else {
+    // Pre-flight checks
+    await Promise.all(fileList.map(async ([_oldName, newName]) => {
+      try {
+        if (newName.endsWith(".md")) {
+          validatePageName(newName.slice(0, -3));
+          // New name is valid
+        }
+        // Check if target file already exists
+        await space.getFileMeta(newName);
+        // If we got here, the file exists, so we error out
+        throw new Error(
+          `${newName} already exists, cannot rename to existing file.`,
+        );
+      } catch (e: any) {
+        if (e.message === "Not found") {
+          // Expected not found error, so we can continue
+        } else {
+          throw e;
+        }
+      }
+    }));
+
+    // All new names are available, proceeding with rename
+    for (const [oldName, newName] of fileList) {
+      console.log("Renaming", oldName, "to", newName);
+      try {
+        if (newName.endsWith(".md")) {
+          await renamePage(oldName.slice(0, -3), newName.slice(0, -3));
+        } else {
+          await renameAttachment(oldName, newName);
+        }
+      } catch (e: any) {
+        if (e.message === "Not found") {
+          console.log(`${oldName} does not exist, skipping`);
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    /* Deleting folders not yet implemented
+    // Cleanup empty folders
+    const folders = new Set(fileList.flatMap((f) => {
+      let fileFolder = folderName(f[0]);
+      const splitFolders: string[] = [];
+      while (fileFolder) {
+        splitFolders.push(fileFolder);
+        const pos = fileFolder.lastIndexOf("/");
+        fileFolder = fileFolder.slice(0, pos === -1 ? 0 : pos);
+      }
+      return splitFolders;
+    }));
+
+    const allFiles = await space.listFiles();
+    for (const fol of folders) {
+      console.log(allFiles.some((f) => f.name.startsWith(fol + "/")));
+      if (allFiles.some((f) => f.name.startsWith(fol + "/"))) {
+        folders.delete(fol);
+      }
+    }
+
+    if (folders.size > 0) {
+      try {
+        for (const fol of folders) {
+          console.log("Deleting empty folder", fol);
+          await space.deleteFolder(fol);
+        }
+      } catch (e: any) {
         throw e;
       }
     }
-    const updatedReferences = await renamePage(
-      oldName,
-      newName,
-      cmdDef.navigateThere ?? true,
-    );
+    */
 
-    await editor.flashNotification(
-      `Renamed page, and updated ${updatedReferences} references`,
-    );
     return true;
   } catch (e: any) {
     await editor.flashNotification(e.message, "error");
@@ -73,81 +125,119 @@ export async function renamePageCommand(cmdDef: any) {
   }
 }
 
-async function renamePage(
-  oldName: string,
-  newName: string,
-  navigateThere = false,
-): Promise<number> {
-  const text = await space.readPage(oldName);
+// Rename a page, update any backlinks and linked attachments
+async function renamePage(oldName: string, newName: string) {
+  let text = await space.readPage(oldName);
 
-  console.log("Writing new page to space");
-  const newPageMeta = await space.writePage(newName, text);
+  // Update relative links and attachments on this page
+  const oldFolder = folderName(oldName);
+  const newFolder = folderName(newName);
+  const attachmentsToMove = new Set<string>();
+  // Links only need to be updated if the folder changes
+  if (oldFolder !== newFolder) {
+    const linksInPage = await queryObjects<LinkObject>("link", {
+      filter: ["=", ["attr", "page"], ["string", oldName]],
+    });
 
-  if (navigateThere) {
-    console.log("Navigating to new page");
-    await editor.navigate({ page: newName, pos: 0 }, true);
+    const linksToUpdate: ObjectValue<LinkObject>[] = [];
+    for (const link of linksInPage) {
+      if (link.toFile && folderName(link.toFile) === oldFolder) {
+        const attBackLinks = await getBackLinks(link.toFile);
+        if (attBackLinks.filter((a) => a.page !== oldName).length === 0) {
+          // Attachments is in the same folder as the page
+          // and is only linked to on this page, move it along with the page
+          attachmentsToMove.add(link.toFile);
+          continue;
+        }
+      }
+      linksToUpdate.push(link);
+    }
+
+    // Sort links by position
+    linksToUpdate.sort((a, b) => {
+      // Backwards to prevent errors from position changes
+      return b.pos - a.pos;
+    });
+
+    for (const link of linksToUpdate) {
+      let newLink = link.toPage || link.toFile!;
+      let newTail = text.substring(link.pos);
+
+      // Only relative links need to be updated
+      if (/^[^/][^\]]+?(?<!]])\)/.test(newTail)) {
+        newLink = absoluteToRelativePath(newName, newLink);
+        newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
+        // Wrap in <> if link has spaces
+        if (newLink.includes(" ")) {
+          newTail = "<" + newTail.replace(")", ">)");
+        }
+        text = text.substring(0, link.pos) + newTail;
+      }
+    }
   }
 
-  const pagesToUpdate = await getBackLinks(oldName);
-  console.log("All pages containing backlinks", pagesToUpdate);
+  // Write the new page
+  const newPageMeta = await space.writePage(newName, text);
 
+  // Move attachements along with page
+  const batchRenameAttachments: [string, string][] = [];
+  for (const att of attachmentsToMove) {
+    const newAttName = oldFolder.length === 0
+      ? newFolder + "/" + att
+      : att.replace(oldFolder, newFolder).replace(/^\//, "");
+    batchRenameAttachments.push([att, newAttName]);
+  }
+  if (batchRenameAttachments.length > 0) {
+    await batchRenameFiles(batchRenameAttachments);
+  }
+
+  // Navigate to new page if currently viewing old page
+  if (await editor.getCurrentPage() === oldName) {
+    await editor.navigate({ page: newName, pos: 0 }, true);
+  }
   // Handling the edge case of a changing page name just in casing on a case insensitive FS
   const oldPageMeta = await space.getPageMeta(oldName);
   if (oldPageMeta.lastModified !== newPageMeta.lastModified) {
     // If they're the same, let's assume it's the same file (case insensitive FS) and not delete, otherwise...
-    console.log("Deleting page from space");
     await space.deletePage(oldName);
   }
 
-  // This is the bit where we update all the links
-  const pageToUpdateSet = new Set<string>();
-  for (const pageToUpdate of pagesToUpdate) {
-    pageToUpdateSet.add(pageToUpdate.page);
+  // Update backlinks to this page
+  const updatedRefences = await updateBacklinks(oldName, newName);
+
+  let message = `Renamed ${oldName} to ${newName}`;
+  if (updatedRefences > 0) {
+    message = `${message}, updated ${updatedRefences} backlinks`;
+  }
+  if (attachmentsToMove.size > 0) {
+    message = `${message}, moved ${attachmentsToMove.size} attachments`;
+  }
+  await editor.flashNotification(message, "info");
+}
+
+// Rename an attachment and update any backlinks
+async function renameAttachment(
+  oldName: string,
+  newName: string,
+) {
+  // Move the file
+  const oldFile = await space.readAttachment(oldName);
+  const newFileMeta = await space.writeAttachment(newName, oldFile);
+
+  // Handling the edge case of a changing file name just in casing on a case insensitive FS
+  const oldFileMeta = await space.getAttachmentMeta(oldName);
+  if (oldFileMeta.lastModified !== newFileMeta.lastModified) {
+    // If they're the same, let's assume it's the same file (case insensitive FS) and not delete, otherwise...
+    await space.deleteAttachment(oldName);
   }
 
-  let updatedReferences = 0;
-
-  for (const pageToUpdate of pageToUpdateSet) {
-    if (pageToUpdate === oldName) {
-      continue;
-    }
-    console.log("Now going to update links in", pageToUpdate);
-    const text = await space.readPage(pageToUpdate);
-    // console.log("Received text", text);
-    if (!text) {
-      // Page likely does not exist, but at least we can skip it
-      continue;
-    }
-
-    // Replace all links found in place following the patterns [[Page]] and [[Page@pos]] as well as [[Page$anchor]]
-    const newText = text.replaceAll(`[[${oldName}]]`, () => {
-      // Plain link format
-      updatedReferences++;
-      return `[[${newName}]]`;
-    }).replaceAll(`[[${oldName}|`, () => {
-      // Aliased link format
-      updatedReferences++;
-      return `[[${newName}|`;
-    }).replaceAll(`[[${oldName}@`, () => {
-      // Link with position format
-      updatedReferences++;
-      return `[[${newName}@`;
-    }).replaceAll(`[[${oldName}$`, () => {
-      // Link with anchor format
-      updatedReferences++;
-      return `[[${newName}$`;
-    }).replaceAll(`[[${oldName}#`, () => {
-      // Link with header format
-      updatedReferences++;
-      return `[[${newName}#`;
-    });
-    if (text !== newText) {
-      console.log("Changes made, saving...");
-      await space.writePage(pageToUpdate, newText);
-    }
+  // Update any backlinks
+  const updatedRefences = await updateBacklinks(oldName, newName);
+  let message = `Renamed ${oldName} to ${newName}`;
+  if (updatedRefences > 0) {
+    message = `${message}, updated ${updatedRefences} backlinks`;
   }
-
-  return updatedReferences;
+  await editor.flashNotification(message, "info");
 }
 
 /**
@@ -165,68 +255,38 @@ async function renamePage(
 export async function renamePrefixCommand(cmdDef: any) {
   const oldPrefix = cmdDef.oldPrefix ??
     await editor.prompt("Prefix to rename:", "");
-
   if (!oldPrefix) {
     return false;
   }
 
   const newPrefix = cmdDef.newPrefix ??
     await editor.prompt("New prefix:", oldPrefix);
-
   if (!newPrefix) {
     return false;
   }
 
+  const allAttachments = await space.listAttachments();
   const allPages = await space.listPages();
-  const allAffectedPages = allPages.map((page) => page.name).filter((page) =>
-    page.startsWith(oldPrefix)
+  let allAffectedFiles = allAttachments.map((file) => file.name).filter((
+    file,
+  ) => file.startsWith(oldPrefix));
+  allAffectedFiles = allAffectedFiles.concat(
+    allPages.map((page) => page.name + ".md").filter((page) =>
+      page.startsWith(oldPrefix)
+    ),
   );
 
   if (
     cmdDef.disableConfirmation !== true && !(await editor.confirm(
-      `This will affect ${allAffectedPages.length} pages. Are you sure?`,
+      `This will affect ${allAffectedFiles.length} files. Are you sure?`,
     ))
   ) {
     return false;
   }
 
-  const allNewNames = allAffectedPages.map((name) =>
-    // This may seem naive, but it's actually fine, because we're only renaming the first occurrence (which will be the prefix)
-    name.replace(oldPrefix, newPrefix)
-  );
-
-  try {
-    console.log("Pre-flight check to see if all new names are available");
-    await Promise.all(allNewNames.map(async (name) => {
-      try {
-        await space.getPageMeta(name);
-        // If we got here, the page exists, so we error out
-        throw Error(
-          `Target ${name} already exists, cannot perform batch rename when one of the target pages already exists.`,
-        );
-      } catch (e: any) {
-        if (e.message === "Not found") {
-          // Expected not found error, so we can continue
-        } else {
-          throw e;
-        }
-      }
-    }));
-
-    console.log("All new names are available, proceeding with rename");
-    for (let i = 0; i < allAffectedPages.length; i++) {
-      const oldName = allAffectedPages[i];
-      const newName = allNewNames[i];
-      console.log("Now renaming", oldName, "to", newName);
-      await renamePage(oldName, newName);
-    }
-
-    await editor.flashNotification("Batch rename complete", "info");
-    return true;
-  } catch (e: any) {
-    await editor.flashNotification(e.message, "error");
-    return false;
-  }
+  const allNewNames: [string, string][] = allAffectedFiles.map((name) => // This may seem naive, but it's actually fine, because we're only renaming the first occurrence (which will be the prefix)
+  [name, name.replace(oldPrefix, newPrefix)]);
+  await batchRenameFiles(allNewNames);
 }
 
 export async function extractToPageCommand() {
@@ -246,8 +306,6 @@ export async function extractToPageCommand() {
   if (!newName) {
     return;
   }
-
-  console.log("New name", newName);
 
   try {
     // This throws an error if the page does not exist, which we expect to be the case
@@ -269,4 +327,78 @@ export async function extractToPageCommand() {
   await space.writePage(newName, text);
   console.log("Navigating to new page");
   await editor.navigate({ page: newName });
+}
+
+/**
+ * Updates backlinks across all pages
+ * @param oldName Full path to old page/file
+ * @param newName Full path to new page/file
+ * @returns The number of references updated
+ */
+async function updateBacklinks(
+  oldName: string,
+  newName: string,
+): Promise<number> {
+  // This is the bit where we update all the links
+  const backLinks = await getBackLinks(oldName);
+  let updatedReferences = 0;
+
+  // Group by page to edit entire page at once
+  const backLinksByPage = backLinks.reduce(
+    (group: Record<string, LinkObject[]>, link) => {
+      const { page } = link;
+      group[page] = group[page] ?? [];
+      group[page].push(link);
+      return group;
+    },
+    {},
+  );
+
+  console.log("All pages containing backlinks", backLinks);
+  for (const [pageToEdit, linksInPage] of Object.entries(backLinksByPage)) {
+    if (pageToEdit === oldName) {
+      continue;
+    }
+
+    let text = await space.readPage(pageToEdit);
+    if (!text) {
+      // Page likely does not exist, but at least we can skip it
+      continue;
+    }
+
+    // Use indexed positions to replace links
+    linksInPage.sort((a, b) => {
+      // Backwards to prevent errors from position changes
+      return b.pos - a.pos;
+    });
+
+    for (const link of linksInPage) {
+      let newTail = text.substring(link.pos);
+      let newLink = newName;
+      if (/^[^\]]+?(?<!]])\)/.test(newTail)) {
+        // Is [Markdown link]()
+        if (newTail.startsWith("/") || newTail.startsWith("</")) {
+          // Is absolute mdlink, update with full path with leading /
+          newLink = "/" + newLink;
+        } else {
+          // Is relative mdlink
+          newLink = absoluteToRelativePath(pageToEdit, newLink);
+        }
+        newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
+
+        // Wrap in <> if link has spaces
+        if (newLink.includes(" ")) {
+          newTail = "<" + newTail.replace(")", ">)");
+        }
+      } else {
+        // Is wikilink, replace with full path
+        newTail = newLink + newTail.slice(oldName.length);
+      }
+
+      text = text.substring(0, link.pos) + newTail;
+      updatedReferences++;
+    }
+    await space.writePage(pageToEdit, text);
+  }
+  return updatedReferences;
 }

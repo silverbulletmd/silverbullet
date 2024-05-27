@@ -33,6 +33,7 @@ export const defaultSettings: BuiltinSettings = {
   indexPage: "index",
   hideSyncButton: false,
   maximumAttachmentSize: 10, // MiB
+  defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
   actionButtons: [
     {
       icon: "Home",

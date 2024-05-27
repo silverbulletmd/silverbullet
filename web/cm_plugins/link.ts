@@ -1,4 +1,4 @@
-import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { Client } from "../client.ts";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
@@ -36,8 +36,8 @@ export function linkPlugin(client: Client) {
         const cleanAnchor = anchorPart.substring(1); // cut off the initial [
         let cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
 
-        if (!cleanLink.includes("://")) {
-          cleanLink = resolveAttachmentPath(
+        if (isLocalPath(cleanLink)) {
+          cleanLink = resolvePath(
             client.currentPage,
             decodeURI(cleanLink),
           );
@@ -58,7 +58,6 @@ export function linkPlugin(client: Client) {
             attributes: {
               href: cleanLink,
               title: `Click to visit ${cleanLink}`,
-              contenteditable: "false",
             },
           }).range(from + 1, from + cleanAnchor.length + 1),
         );

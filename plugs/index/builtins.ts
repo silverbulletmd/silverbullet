@@ -1,7 +1,6 @@
-import { ObjectValue } from "../../plug-api/types.ts";
 import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
-import { QueryProviderEvent } from "../../plug-api/types.ts";
+import { ObjectValue, QueryProviderEvent } from "$sb/types.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 
@@ -20,6 +19,15 @@ export const builtins: Record<string, Record<string, string>> = {
     contentType: "!string",
     size: "!number",
     tags: "string[]",
+  },
+  attachment: {
+    ref: "!string",
+    name: "!string",
+    created: "!date",
+    lastModified: "!date",
+    perm: "!rw|ro",
+    contentType: "!string",
+    size: "!number",
   },
   task: {
     ref: "!string",

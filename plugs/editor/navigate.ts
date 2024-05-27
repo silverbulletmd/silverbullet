@@ -7,7 +7,7 @@ import {
   nodeAtPos,
   ParseTree,
 } from "$sb/lib/tree.ts";
-import { resolveAttachmentPath, resolvePath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { tagPrefix } from "../index/constants.ts";
 
@@ -24,7 +24,6 @@ async function actionClickOrActionEnter(
       "WikiLink",
       "Link",
       "Image",
-      "ImageWithSize",
       "URL",
       "NakedURL",
       "Link",
@@ -44,28 +43,33 @@ async function actionClickOrActionEnter(
   const currentPage = await editor.getCurrentPage();
   switch (mdTree.type) {
     case "WikiLink": {
-      const pageLink = mdTree.children![1]!.children![0].text!;
-      const pageRef = parsePageRef(pageLink);
-      pageRef.page = resolvePath(currentPage, pageRef.page);
-      if (!pageRef.page) {
-        pageRef.page = currentPage;
+      const link = mdTree.children![1]!.children![0].text!;
+      // Assume is attachment if it has extension
+      if (/\.[a-zA-Z0-9]+$/.test(link)) {
+        const attachmentPath = resolvePath(
+          currentPage,
+          "/" + decodeURI(link),
+        );
+        return editor.openUrl(attachmentPath);
+      } else {
+        const pageRef = parsePageRef(link);
+        pageRef.page = resolvePath(currentPage, "/" + pageRef.page);
+        if (!pageRef.page) {
+          pageRef.page = currentPage;
+        }
+        // This is an explicit navigate, move to the top
+        if (pageRef.pos === undefined) {
+          pageRef.pos = 0;
+        }
+        return editor.navigate(pageRef, false);
       }
-      // This is an explicit navigate, move to the top
-      if (pageRef.pos === undefined) {
-        pageRef.pos = 0;
-      }
-      await editor.navigate(pageRef, false, inNewWindow);
-      break;
     }
     case "PageRef": {
       const pageName = parsePageRef(mdTree.children![0].text!).page;
-      await editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
-      break;
+      return editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
     }
     case "NakedURL":
-      await editor.openUrl(mdTree.children![0].text!);
-      break;
-    case "ImageWithSize":
+      return editor.openUrl(mdTree.children![0].text!);
     case "Image":
     case "Link": {
       const urlNode = findNodeOfType(mdTree, "URL");
@@ -76,14 +80,19 @@ async function actionClickOrActionEnter(
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
-      if (url.indexOf("://") === -1 && !url.startsWith("mailto:")) {
-        return editor.openUrl(
-          resolveAttachmentPath(currentPage, decodeURI(url)),
-        );
+      if (isLocalPath(url)) {
+        if (/\.[a-zA-Z0-9>]+$/.test(url)) {
+          return editor.openUrl(
+            resolvePath(currentPage, decodeURI(url)),
+          );
+        } else {
+          return editor.navigate(
+            parsePageRef(resolvePath(currentPage, decodeURI(url))),
+          );
+        }
       } else {
-        await editor.openUrl(url);
+        return editor.openUrl(url);
       }
-      break;
     }
     case "CommandLink": {
       const commandName = mdTree.children![1]!.children![0].text!;

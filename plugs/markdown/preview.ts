@@ -1,6 +1,6 @@
 import { asset, clientStore, editor, markdown, system } from "$sb/syscalls.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { expandCodeWidgets } from "./api.ts";
 
 export async function updateMarkdownPreview() {
@@ -19,8 +19,8 @@ export async function updateMarkdownPreview() {
     smartHardBreak: true,
     annotationPositions: true,
     translateUrls: (url) => {
-      if (!url.includes("://")) {
-        url = resolveAttachmentPath(currentPage, decodeURI(url));
+      if (isLocalPath(url)) {
+        url = resolvePath(currentPage, decodeURI(url));
       }
       return url;
     },

@@ -47,7 +47,7 @@ export async function lintQuery(
         if (parsedQuery.render) {
           const templatePage = resolvePath(
             name,
-            cleanPageRef(parsedQuery.render),
+            "/" + cleanPageRef(parsedQuery.render),
           );
           try {
             await space.getPageMeta(templatePage);

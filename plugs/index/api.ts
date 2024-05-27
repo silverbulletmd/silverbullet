@@ -36,24 +36,27 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
 }
 
 /**
- * Clears all keys for a given page
- * @param page
+ * Clears all keys for a given file
+ * @param file
  */
-export async function clearPageIndex(page: string): Promise<void> {
+export async function clearFileIndex(file: string): Promise<void> {
+  if (file.endsWith(".md")) {
+    file = file.replace(/\.md$/, "");
+  }
   const allKeys: KvKey[] = [];
   for (
     const { key } of await datastore.query({
-      prefix: [pageKey, page],
+      prefix: [pageKey, file],
     })
   ) {
     allKeys.push(key);
-    allKeys.push([indexKey, ...key.slice(2), page]);
+    allKeys.push([indexKey, ...key.slice(2), file]);
   }
   await datastore.batchDel(allKeys);
 }
 
 /**
- * Clears the entire page index
+ * Clears the entire index
  */
 export async function clearIndex(): Promise<void> {
   const allKeys: KvKey[] = [];

@@ -1,6 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Client } from "../client.ts";
+import { UploadFile } from "$sb/types.ts";
 
 // We use turndown to convert HTML to Markdown
 import TurndownService from "turndown";
@@ -12,10 +13,10 @@ import {
   addParentPointers,
   findParentMatching,
   nodeAtPos,
-} from "../../plug-api/lib/tree.ts";
-import { folderName, resolve } from "$lib/path.ts";
-import { maximumAttachmentSize } from "../constants.ts";
+} from "$sb/lib/tree.ts";
+import { defaultLinkStyle, maximumAttachmentSize } from "../constants.ts";
 import { safeRun } from "$lib/async.ts";
+import { resolvePath } from "$sb/lib/resolve.ts";
 
 const turndownService = new TurndownService({
   hr: "---",
@@ -171,7 +172,12 @@ export function attachmentExtension(editor: Client) {
   async function processFileTransfer(payload: File[]) {
     const data = await payload[0].arrayBuffer();
     // data.byteLength > maximumAttachmentSize;
-    await saveFile(data!, payload[0].name, payload[0].type);
+    const fileData: UploadFile = {
+      name: payload[0].name,
+      contentType: payload[0].type,
+      content: new Uint8Array(data),
+    };
+    await saveFile(fileData);
   }
 
   async function processItemTransfer(payload: DataTransferItem[]) {
@@ -187,16 +193,21 @@ export function attachmentExtension(editor: Client) {
       .replace("T", "_")
       .replaceAll(":", "-");
     const data = await file!.getAsFile()?.arrayBuffer();
-    await saveFile(data!, `${fileName}.${ext}`, fileType);
+    if (!data) {
+      return false;
+    }
+    const fileData: UploadFile = {
+      name: `${fileName}.${ext}`,
+      contentType: fileType,
+      content: new Uint8Array(data),
+    };
+    await saveFile(fileData);
   }
 
-  async function saveFile(
-    data: ArrayBuffer,
-    suggestedName: string,
-    mimeType: string,
-  ) {
-    const maxSize = editor.settings.maximumAttachmentSize || maximumAttachmentSize;
-    if (data!.byteLength > (maxSize * 1024 * 1024)) {
+  async function saveFile(file: UploadFile) {
+    const maxSize = editor.settings.maximumAttachmentSize ||
+      maximumAttachmentSize;
+    if (file.content.length > maxSize * 1024 * 1024) {
       editor.flashNotification(
         `Attachment is too large, maximum is ${maxSize}MiB`,
         "error",
@@ -206,18 +217,23 @@ export function attachmentExtension(editor: Client) {
 
     const finalFileName = await editor.prompt(
       "File name for pasted attachment",
-      suggestedName,
+      file.name,
     );
     if (!finalFileName) {
       return;
     }
-    await editor.space.writeAttachment(
-      resolve(folderName(editor.currentPage), finalFileName),
-      new Uint8Array(data),
-    );
-    let attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
-    if (mimeType.startsWith("image/")) {
-      attachmentMarkdown = `![](${encodeURI(finalFileName)})`;
+    const attachmentPath = resolvePath(editor.currentPage, finalFileName);
+    await editor.space.writeAttachment(attachmentPath, file.content);
+    const linkStyle = editor.settings.defaultLinkStyle ||
+      defaultLinkStyle.toLowerCase();
+    let attachmentMarkdown = "";
+    if (linkStyle === "wikilink") {
+      attachmentMarkdown = `[[${attachmentPath}]]`;
+    } else {
+      attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
+    }
+    if (file.contentType.startsWith("image/")) {
+      attachmentMarkdown = "!" + attachmentMarkdown;
     }
     editor.editorView.dispatch({
       changes: [

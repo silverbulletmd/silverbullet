@@ -1,15 +1,28 @@
-import { CompleteEvent, FileMeta, PageMeta } from "../../plug-api/types.ts";
+import {
+  AttachmentMeta,
+  CompleteEvent,
+  FileMeta,
+  PageMeta,
+} from "$sb/types.ts";
 import { cacheFileListing } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
+import { folderName } from "$sb/lib/resolve.ts";
 
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]@$#:\{}]*)$/.exec(completeEvent.linePrefix);
+  // Try to match [[wikilink]]
+  let isWikilink = true;
+  let match = /\[\[([^\]@$#:\{}]*)$/.exec(completeEvent.linePrefix);
+  if (!match) {
+    // Try to match [markdown link]()
+    match = /\[.*\]\(([^\]\)@$#:\{}]*)$/.exec(completeEvent.linePrefix);
+    isWikilink = false;
+  }
   if (!match) {
     return null;
   }
 
-  let allPages: PageMeta[] = [];
+  let allPages: (PageMeta | AttachmentMeta)[] = [];
 
   if (
     completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
@@ -33,6 +46,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     allPages = await queryObjects<PageMeta>("page", {
       filter: ["!=", ["attr", "tags"], ["string", "template"]],
     }, 5);
+    // and attachments
+    allPages = allPages.concat(
+      await queryObjects<AttachmentMeta>("attachment", {}, 5),
+    );
   }
 
   const prefix = match[1];
@@ -56,39 +73,60 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       }
     }
   }
+
+  const folder = folderName(completeEvent.pageName);
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
       const completions: any[] = [];
-      if (pageMeta.displayName) {
-        completions.push({
-          label: `${pageMeta.displayName}`,
-          boost: new Date(pageMeta.lastModified).getTime(),
-          apply: pageMeta.tag === "template"
-            ? pageMeta.name
-            : `${pageMeta.name}|${pageMeta.displayName}`,
-          detail: `displayName for: ${pageMeta.name}`,
-          type: "page",
-        });
-      }
-      if (Array.isArray(pageMeta.aliases)) {
-        for (const alias of pageMeta.aliases) {
+      if (isWikilink) {
+        if (pageMeta.displayName) {
           completions.push({
-            label: `${alias}`,
+            label: `${pageMeta.displayName}`,
             boost: new Date(pageMeta.lastModified).getTime(),
             apply: pageMeta.tag === "template"
               ? pageMeta.name
-              : `${pageMeta.name}|${alias}`,
-            detail: `alias to: ${pageMeta.name}`,
+              : `${pageMeta.name}|${pageMeta.displayName}`,
+            detail: `displayName for: ${pageMeta.name}`,
             type: "page",
           });
         }
+        if (Array.isArray(pageMeta.aliases)) {
+          for (const alias of pageMeta.aliases) {
+            completions.push({
+              label: `${alias}`,
+              boost: new Date(pageMeta.lastModified).getTime(),
+              apply: pageMeta.tag === "template"
+                ? pageMeta.name
+                : `${pageMeta.name}|${alias}`,
+              detail: `alias to: ${pageMeta.name}`,
+              type: "page",
+            });
+          }
+        }
+        completions.push({
+          label: `${pageMeta.name}`,
+          boost: new Date(pageMeta.lastModified).getTime(),
+          type: "page",
+        });
+      } else {
+        let labelText = pageMeta.name;
+        let boost = new Date(pageMeta.lastModified).getTime();
+        // Relative path if in the same folder or a subfolder
+        if (folder.length > 0 && labelText.startsWith(folder)) {
+          labelText = labelText.slice(folder.length + 1);
+          boost = boost * 1.1;
+        } else {
+          // Absolute path otherwise
+          labelText = "/" + labelText;
+        }
+        completions.push({
+          label: labelText,
+          boost: boost,
+          apply: labelText.includes(" ") ? "<" + labelText + ">" : labelText,
+          type: "page",
+        });
       }
-      completions.push({
-        label: `${pageMeta.name}`,
-        boost: new Date(pageMeta.lastModified).getTime(),
-        type: "page",
-      });
       return completions;
     }).flat(),
   };

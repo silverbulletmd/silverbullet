@@ -11,7 +11,7 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
-import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
@@ -43,8 +43,8 @@ class TableViewWidget extends WidgetType {
       // the cursor there when the user clicks on the table.
       annotationPositions: true,
       translateUrls: (url) => {
-        if (!url.includes("://")) {
-          url = resolveAttachmentPath(this.client.currentPage, decodeURI(url));
+        if (isLocalPath(url)) {
+          url = resolvePath(this.client.currentPage, decodeURI(url));
         }
 
         return url;

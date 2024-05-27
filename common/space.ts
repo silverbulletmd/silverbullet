@@ -98,10 +98,11 @@ export class Space {
   }
 
   async fetchAttachmentList(): Promise<AttachmentMeta[]> {
-    return (await this.deduplicatedFileList()).filter(
-      (fileMeta) =>
-        !this.isListedPage(fileMeta) &&
-        !fileMeta.name.endsWith(".plug.js"),
+    return (await this.deduplicatedFileList()).flatMap((fileMeta) =>
+      !this.isListedPage(fileMeta) &&
+        !fileMeta.name.endsWith(".plug.js")
+        ? [fileMetaToAttachmentMeta(fileMeta)]
+        : []
     );
   }
 
@@ -126,22 +127,27 @@ export class Space {
    * @param name path of the attachment
    * @returns
    */
-  readAttachment(
+  async readAttachment(
     name: string,
   ): Promise<{ data: Uint8Array; meta: AttachmentMeta }> {
-    return this.spacePrimitives.readFile(name);
+    const file = await this.spacePrimitives.readFile(name);
+    return { data: file.data, meta: fileMetaToAttachmentMeta(file.meta) };
   }
 
-  getAttachmentMeta(name: string): Promise<AttachmentMeta> {
-    return this.spacePrimitives.getFileMeta(name);
+  async getAttachmentMeta(name: string): Promise<AttachmentMeta> {
+    return fileMetaToAttachmentMeta(
+      await this.spacePrimitives.getFileMeta(name),
+    );
   }
 
-  writeAttachment(
+  async writeAttachment(
     name: string,
     data: Uint8Array,
     selfUpdate?: boolean,
   ): Promise<AttachmentMeta> {
-    return this.spacePrimitives.writeFile(name, data, selfUpdate);
+    return fileMetaToAttachmentMeta(
+      await this.spacePrimitives.writeFile(name, data, selfUpdate),
+    );
   }
 
   deleteAttachment(name: string): Promise<void> {
@@ -194,6 +200,23 @@ export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
     } as PageMeta;
   } catch (e) {
     console.error("Failed to convert fileMeta to pageMeta", fileMeta, e);
+    throw e;
+  }
+}
+
+export function fileMetaToAttachmentMeta(
+  fileMeta: FileMeta,
+): AttachmentMeta {
+  try {
+    return {
+      ...fileMeta,
+      ref: fileMeta.name,
+      tag: "attachment",
+      created: new Date(fileMeta.created).toISOString(),
+      lastModified: new Date(fileMeta.lastModified).toISOString(),
+    } as AttachmentMeta;
+  } catch (e) {
+    console.error("Failed to convert fileMeta to attachmentMeta", fileMeta, e);
     throw e;
   }
 }

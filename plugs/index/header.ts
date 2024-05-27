@@ -61,7 +61,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {
-  const match = /\[\[([^\]$:#]*#[^\]]*)$/.exec(
+  const match = /(?:\[\[|\[.*?\]\()([^\]$:#]*#[^\]\)]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match) {

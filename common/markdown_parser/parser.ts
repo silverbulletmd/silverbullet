@@ -15,23 +15,18 @@ import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 
-export const pageLinkRegex = /^\[\[([^\]\|]+)(\|([^\]]+))?\]\]/;
-
+export const wikiLinkRegex = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g; // [fullMatch, firstMark, url, alias, lastMark]
+export const mdLinkRegex = /!?\[(?<title>[^\]]*)\]\((?<url>.+)\)/g; // [fullMatch, alias, url]
 export const tagRegex =
   /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
-
-// Matches images that includes size, like:
-// ![some title](https://example.org/image.png =42x42)
-// Or with only the height or the width: "=42x", "=x42", "=42%x42%", ...
-// Or with units, like: "=42%x42%"
-export const imageWithSizeRegex =
-  /^!\[([^\]]*)\]\(([^=]+)\s+=((\d+.*)?x\d+.*|\d+.*x(\d+.*)?)\)/;
+const pWikiLinkRegex = new RegExp("^" + wikiLinkRegex.source); // Modified regex used only in parser
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
     { name: "WikiLink", style: ct.WikiLinkTag },
     { name: "WikiLinkPage", style: ct.WikiLinkPageTag },
     { name: "WikiLinkAlias", style: ct.WikiLinkPageTag },
+    { name: "WikiLinkDimensions", style: ct.WikiLinkPageTag },
     { name: "WikiLinkMark", style: t.processingInstruction },
   ],
   parseInline: [
@@ -40,33 +35,45 @@ const WikiLink: MarkdownConfig = {
       parse(cx, next, pos) {
         let match: RegExpMatchArray | null;
         if (
-          next != 91 /* '[' */ ||
-          !(match = pageLinkRegex.exec(cx.slice(pos, cx.end)))
+          next != 91 /* '[' */ &&
+            next != 33 /* '!' */ ||
+          !(match = pWikiLinkRegex.exec(cx.slice(pos, cx.end)))
         ) {
           return -1;
         }
-        const [fullMatch, page, pipePart, label] = match;
+
+        const [fullMatch, firstMark, page, alias, _lastMark] = match;
         const endPos = pos + fullMatch.length;
         let aliasElts: any[] = [];
-        if (pipePart) {
-          const pipeStartPos = pos + 2 + page.length;
+        if (alias) {
+          const pipeStartPos = pos + firstMark.length + page.length;
           aliasElts = [
             cx.elt("WikiLinkMark", pipeStartPos, pipeStartPos + 1),
             cx.elt(
               "WikiLinkAlias",
               pipeStartPos + 1,
-              pipeStartPos + 1 + label.length,
+              pipeStartPos + 1 + alias.length,
             ),
           ];
         }
-        return cx.addElement(
-          cx.elt("WikiLink", pos, endPos, [
-            cx.elt("WikiLinkMark", pos, pos + 2),
-            cx.elt("WikiLinkPage", pos + 2, pos + 2 + page.length),
-            ...aliasElts,
-            cx.elt("WikiLinkMark", endPos - 2, endPos),
-          ]),
-        );
+
+        let allElts = cx.elt("WikiLink", pos, endPos, [
+          cx.elt("WikiLinkMark", pos, pos + firstMark.length),
+          cx.elt(
+            "WikiLinkPage",
+            pos + firstMark.length,
+            pos + firstMark.length + page.length,
+          ),
+          ...aliasElts,
+          cx.elt("WikiLinkMark", endPos - 2, endPos),
+        ]);
+
+        // If inline image
+        if (next == 33) {
+          allElts = cx.elt("Image", pos, endPos, [allElts]);
+        }
+
+        return cx.addElement(allElts);
       },
       after: "Emphasis",
     },
@@ -601,49 +608,6 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
-const ImageWithSize: MarkdownConfig = {
-  defineNodes: [
-    { name: "ImageWithSize", style: t.link, block: true },
-    { name: "ImageWithSizeAlt", style: t.link },
-    { name: "ImageWithSizeURL", style: t.url },
-    { name: "ImageWithSizeSize", style: t.meta },
-  ],
-  parseInline: [
-    {
-      name: "ImageWithSize",
-      parse: (cx, next, pos) => {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 33 /* ! */ ||
-          !(match = imageWithSizeRegex.exec(cx.slice(pos, cx.end)))
-        ) {
-          return -1;
-        }
-        const [fullMatch, altText, url, size] = match;
-
-        const endPos = pos + fullMatch.length;
-        const altPosStart = pos + 2;
-        const altPosEnd = altPosStart + altText.length;
-        const urlPosStart = altPosEnd + 2;
-        const urlPosEnd = urlPosStart + url.length;
-        const sizePosStart = fullMatch.indexOf(size, urlPosEnd - pos);
-        const sizePosEnd = sizePosStart + size.length;
-
-        return cx.addElement(
-          cx.elt("ImageWithSize", pos, endPos, [
-            cx.elt("LinkMark", pos, altPosStart),
-            cx.elt("ImageWithSizeAlt", altPosStart, altPosEnd),
-            cx.elt("LinkMark", altPosEnd, urlPosStart),
-            cx.elt("ImageWithSizeURL", urlPosStart, urlPosEnd),
-            cx.elt("ImageWithSizeSize", sizePosStart, sizePosEnd),
-          ]),
-        );
-      },
-      before: "Image",
-    },
-  ],
-};
-
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
@@ -660,7 +624,6 @@ export const extendedMarkdownLanguage = markdown({
     Hashtag,
     TaskDeadline,
     NamedAnchor,
-    ImageWithSize,
     {
       props: [
         foldNodeProp.add({

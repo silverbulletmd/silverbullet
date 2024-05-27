@@ -5,7 +5,7 @@ import type {
   CodeWidgetCallback,
 } from "../../plug-api/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
-import { resolveAttachmentPath } from "$sb/lib/resolve.ts";
+import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { parsePageRef } from "../../plug-api/lib/page_ref.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
@@ -99,8 +99,8 @@ export class MarkdownWidget extends WidgetType {
       // the cursor there when the user clicks on the table.
       annotationPositions: true,
       translateUrls: (url) => {
-        if (!url.includes("://")) {
-          url = resolveAttachmentPath(
+        if (isLocalPath(url)) {
+          url = resolvePath(
             this.client.currentPage,
             decodeURI(url),
           );

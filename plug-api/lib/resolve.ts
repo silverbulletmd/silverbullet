@@ -1,37 +1,41 @@
 import { findNodeOfType, ParseTree, traverseTree } from "./tree.ts";
 
+// [[Wikilinks]] use absolute paths and should pass pathToResolve with a leading / to this function
+// [Markdown links]() are relative unless it has a leading /
 export function resolvePath(
   currentPage: string,
   pathToResolve: string,
   fullUrl = false,
 ): string {
-  if (isFederationPath(currentPage) && !isFederationPath(pathToResolve)) {
-    let domainPart = currentPage.split("/")[0];
-    if (fullUrl) {
-      domainPart = federatedPathToUrl(domainPart);
-    }
-    return `${domainPart}/${pathToResolve}`;
-  } else {
+  // [Markdown links]() with spaces in the url need to be uri encoded or wrapped in <>
+  if (pathToResolve.startsWith("<") && pathToResolve.endsWith(">")) {
+    pathToResolve = pathToResolve.slice(1, -1);
+  }
+  if (isFederationPath(pathToResolve)) {
     return pathToResolve;
-  }
-}
+  } else if (pathToResolve.startsWith("/")) {
+    if (isFederationPath(currentPage)) {
+      const domainPart = currentPage.split("/")[0];
+      pathToResolve = domainPart + pathToResolve;
+    } else {
+      pathToResolve = pathToResolve.slice(1);
+    }
+  } else {
+    pathToResolve = relativeToAbsolutePath(currentPage, pathToResolve);
 
-export function resolveAttachmentPath(
-  currentPage: string,
-  pathToResolve: string,
-): string {
-  const folder = folderName(currentPage);
-  if (folder && !pathToResolve.startsWith("/")) {
-    pathToResolve = folder + "/" + pathToResolve;
+    if (isFederationPath(currentPage) && !isFederationPath(pathToResolve)) {
+      const domainPart = currentPage.split("/")[0];
+      pathToResolve = domainPart + "/" + pathToResolve;
+    }
   }
-  if (pathToResolve.startsWith("/")) {
-    pathToResolve = pathToResolve.slice(1);
+  if (fullUrl) {
+    pathToResolve = federatedPathToUrl(pathToResolve);
   }
-  return federatedPathToUrl(resolvePath(currentPage, pathToResolve));
+  return pathToResolve;
 }
 
 export function federatedPathToUrl(path: string): string {
-  if (!path.startsWith("!")) {
+  if (!isFederationPath(path)) {
     return path;
   }
   path = path.substring(1);
@@ -45,6 +49,10 @@ export function federatedPathToUrl(path: string): string {
 
 export function isFederationPath(path: string) {
   return path.startsWith("!");
+}
+
+export function isLocalPath(path: string) {
+  return !path.includes("://") && !path.startsWith("mailto:");
 }
 
 export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
@@ -70,7 +78,7 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
     if (n.type === "WikiLinkPage") {
       n.children![0].text = resolvePath(
         containerPageName,
-        n.children![0].text!,
+        "/" + n.children![0].text!,
       );
       return true;
     }
@@ -84,7 +92,7 @@ export function rewritePageRefsInString(
   containerPageName: string,
 ) {
   return bodyText.replaceAll(/\[\[(.+)\]\]/g, (_match, pageRefName) => {
-    return `[[${resolvePath(containerPageName, pageRefName)}]]`;
+    return `[[${resolvePath(containerPageName, "/" + pageRefName)}]]`;
   });
 }
 
@@ -98,4 +106,40 @@ export function cleanPageRef(pageRef: string) {
 
 export function folderName(path: string) {
   return path.split("/").slice(0, -1).join("/");
+}
+
+export function absoluteToRelativePath(page: string, linkTo: string) {
+  // Remove leading /
+  page = page.startsWith("/") ? page.slice(1) : page;
+  linkTo = linkTo.startsWith("/") ? linkTo.slice(1) : linkTo;
+
+  const splitLink = linkTo.split("/");
+  const splitPage = page.split("/");
+  splitPage.pop();
+
+  while (splitPage && splitPage[0] === splitLink[0]) {
+    splitPage.shift();
+    splitLink.shift();
+  }
+
+  splitPage.fill("..");
+
+  return [...splitPage, ...splitLink].join("/");
+}
+
+export function relativeToAbsolutePath(page: string, linkTo: string) {
+  // Remove leading /
+  page = page.startsWith("/") ? page.slice(1) : page;
+  linkTo = linkTo.startsWith("/") ? linkTo.slice(1) : linkTo;
+
+  const splitPage = page.split("/").slice(0, -1);
+
+  const splitLink = linkTo.split("/");
+
+  while (splitLink && splitLink[0] === "..") {
+    splitPage.pop();
+    splitLink.shift();
+  }
+
+  return [...splitPage, ...splitLink].join("/");
 }

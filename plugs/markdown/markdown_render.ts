@@ -6,9 +6,10 @@ import {
   removeParentPointers,
   renderToText,
   traverseTree,
-} from "../../plug-api/lib/tree.ts";
+} from "$sb/lib/tree.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
+import { isLocalPath } from "$sb/lib/resolve.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -209,7 +210,7 @@ function render(
         return renderToText(t);
       }
       let url = urlNode.children![0].text!;
-      if (url.indexOf("://") === -1) {
+      if (isLocalPath(url)) {
         if (
           options.attachmentUrlPrefix &&
           !url.startsWith(options.attachmentUrlPrefix)
@@ -226,25 +227,49 @@ function render(
       };
     }
     case "Image": {
-      const altText = t.children![1].text!;
-      const urlNode = findNodeOfType(t, "URL");
+      const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
+        t.children![1];
+      let altText = altTextNode && altTextNode.type !== "LinkMark"
+        ? renderToText(altTextNode)
+        : "";
+      const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(altText);
+      let style = "";
+      if (dimReg) {
+        const [, width, widthUnit = "px", height, heightUnit = "px"] =
+          dimReg[0].match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
+        if (width) {
+          style += `width: ${width}${widthUnit};`;
+        }
+        if (height) {
+          style += `height: ${height}${heightUnit};`;
+        }
+        altText = altText.replace(dimReg[0], "").replace("|", "");
+      }
+
+      const urlNode = findNodeOfType(t, "WikiLinkPage") ||
+        findNodeOfType(t, "URL");
       if (!urlNode) {
         return renderToText(t);
       }
-      let url = urlNode!.children![0].text!;
-      if (url.indexOf("://") === -1) {
-        if (
-          options.attachmentUrlPrefix &&
-          !url.startsWith(options.attachmentUrlPrefix)
-        ) {
-          url = `${options.attachmentUrlPrefix}${url}`;
-        }
+      let url = renderToText(urlNode);
+      if (urlNode.type === "WikiLinkPage") {
+        url = "/" + url;
       }
+
+      if (
+        isLocalPath(url) &&
+        options.attachmentUrlPrefix &&
+        !url.startsWith(options.attachmentUrlPrefix)
+      ) {
+        url = `${options.attachmentUrlPrefix}${url}`;
+      }
+
       return {
         name: "img",
         attrs: {
           src: url,
           alt: altText,
+          style: style,
         },
         body: "",
       };
@@ -338,22 +363,6 @@ function render(
         },
         body: "",
       };
-    case "ImageWithSize": {
-      const alt = findNodeOfType(t, "ImageWithSizeAlt")!.children![0].text!;
-      const src = findNodeOfType(t, "ImageWithSizeURL")!.children![0].text!;
-      const dimensionsToParse = findNodeOfType(t, "ImageWithSizeSize")!.children![0].text!;
-      const [, width, widthUnit = "px", height, heightUnit = "px"] =
-        dimensionsToParse.match(/(\d*)(%)?x(\d*)(%)?/) ?? [];
-      return {
-        name: "img",
-        attrs: {
-          alt,
-          src,
-          style: `width: ${width}${widthUnit}; height: ${height}${heightUnit};`
-        },
-        body: "",
-      };
-    }
     case "CommandLink": {
       // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
       const command = t.children![1].children![0].text!;
@@ -522,6 +531,9 @@ export function renderMarkdownToHtml(
 
       if (t.name === "a" && t.attrs!.href) {
         t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
+        if (t.body.length === 0) {
+          t.body = [t.attrs!.href];
+        }
       }
     });
   }

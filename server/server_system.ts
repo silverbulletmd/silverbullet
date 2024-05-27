@@ -175,11 +175,11 @@ export class ServerSystem extends CommonSystem {
     this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
-        // Update list of known pages
-        this.allKnownPages.clear();
+        // Update list of known pages and attachments
+        this.allKnownFiles.clear();
         allFiles.forEach((f) => {
-          if (f.name.endsWith(".md")) {
-            this.allKnownPages.add(f.name.slice(0, -3));
+          if (!f.name.startsWith(plugPrefix)) {
+            this.allKnownFiles.add(f.name);
           }
         });
       },

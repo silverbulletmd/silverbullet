@@ -35,11 +35,11 @@ functions:
     env: server
 
   clearDSIndex:
-    path: api.ts:clearPageIndex
+    path: api.ts:clearFileIndex
     env: server
     events:
-      - page:saved
-      - page:deleted
+      - file:deleted
+      - file:changed
 
   parseIndexTextRepublish:
     path: "./command.ts:parseIndexTextRepublish"
@@ -61,6 +61,12 @@ functions:
   reindexSpace:
     path: "./command.ts:reindexSpace"
     env: server
+
+  indexAttachment:
+    path: "./attachment.ts:indexAttachment"
+    events:
+      - file:changed
+      - file:listed
 
   indexPage:
     path: page.ts:indexPage
