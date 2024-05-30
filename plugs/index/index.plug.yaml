@@ -65,7 +65,7 @@ functions:
   indexAttachment:
     path: "./attachment.ts:indexAttachment"
     events:
-      - file:changed
+      - attachment:index
 
   indexPage:
     path: page.ts:indexPage

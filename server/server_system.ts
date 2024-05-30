@@ -153,15 +153,19 @@ export class ServerSystem extends CommonSystem {
     this.eventHook.addLocalListener(
       "file:changed",
       async (path, localChange) => {
-        if (!localChange && path.endsWith(".md")) {
-          const pageName = path.slice(0, -3);
-          const data = await this.spacePrimitives.readFile(path);
-          console.log("Outside page change: reindexing", pageName);
+        if (!localChange) {
+          console.log("Outside file change: reindexing", path);
           // Change made outside of editor, trigger reindex
-          await this.eventHook.dispatchEvent("page:index_text", {
-            name: pageName,
-            text: new TextDecoder().decode(data.data),
-          });
+          if (path.endsWith(".md")) {
+            const pageName = path.slice(0, -3);
+            const data = await this.spacePrimitives.readFile(path);
+            await this.eventHook.dispatchEvent("page:index_text", {
+              name: pageName,
+              text: new TextDecoder().decode(data.data),
+            });
+          } else if (!path.startsWith(plugPrefix)) {
+            await this.eventHook.dispatchEvent("attachment:index", path);
+          }
         }
 
         if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
