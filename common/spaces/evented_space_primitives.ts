@@ -1,5 +1,6 @@
-import { FileMeta } from "../../plug-api/types.ts";
-import { EventHook } from "../hooks/event.ts";
+import { FileMeta } from "$sb/types.ts";
+import { EventHook } from "$common/hooks/event.ts";
+import { plugPrefix } from "$common/spaces/constants.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
 
@@ -150,6 +151,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           name: pageName,
           text,
         });
+      } else if (!name.endsWith(plugPrefix)) {
+        await this.dispatchEvent("attachment:index", name, newMeta);
       }
       return newMeta;
     } finally {
