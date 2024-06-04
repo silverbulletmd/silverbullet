@@ -4,7 +4,7 @@ import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { expandPropertyNames } from "../plug-api/lib/json.ts";
 import type { BuiltinSettings } from "../type/web.ts";
 
-const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+)\1/m;
+const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
 
 /**
  * Parses YAML settings from a Markdown string.
