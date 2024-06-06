@@ -53,6 +53,8 @@ export default function highlightStyles() {
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
     { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
+    { tag: ct.SubscriptTag, class: "sb-sub" },
+    { tag: ct.SuperscriptTag, class: "sb-sup" },
 
     { tag: ct.DirectiveMarkTag, class: "sb-directive-mark" },
     { tag: ct.DirectiveTag, class: "sb-directive" },
