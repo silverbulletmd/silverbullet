@@ -15,4 +15,5 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)
 * [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)
 * [Automatic URL linking](https://www.markdownguide.org/extended-syntax/#automatic-url-linking)
+* [Subscript](https://www.markdownguide.org/extended-syntax/#subscript) and [superscript](https://www.markdownguide.org/extended-syntax/#superscript)
 * Any addition custom markdown extensions provided by [[Plugs]]
