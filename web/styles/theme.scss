@@ -128,6 +128,10 @@ html {
   --editor-width: 800px;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
 html[data-theme="dark"] {
   color-scheme: dark;
 

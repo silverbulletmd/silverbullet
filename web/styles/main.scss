@@ -104,7 +104,7 @@ body {
       display: block;
 
       -webkit-app-region: drag;
-      
+
       .cm-scroller {
         font-family: var(--ui-font);
       }
@@ -178,14 +178,6 @@ body {
 
   .sb-panel {
     flex: 1;
-
-    iframe {
-      border: 0;
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      margin: 0;
-    }
   }
 }
 
@@ -203,14 +195,6 @@ body {
 
   .sb-panel {
     height: 100%;
-
-    iframe {
-      border: 0;
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      margin: 0;
-    }
   }
 }
 
@@ -220,13 +204,16 @@ body {
 
   .sb-panel {
     height: 100%;
+  }
+}
 
-    iframe {
-      border: 0;
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      margin: 0;
-    }
+.sb-panel {
+  iframe {
+    background-color: var(--root-background-color);
+    border: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
   }
 }

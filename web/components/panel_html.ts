@@ -3,6 +3,7 @@ export const panelHtml = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <base target="_top">
+    <meta name='color-scheme' content='dark light'>
 <script>
 const pendingRequests = new Map();
 let syscallReqId = 0;
@@ -80,7 +81,7 @@ function updateHeight() {
   if(height !== oldHeight) {
     oldHeight = height;
     api({
-      type: "setHeight", 
+      type: "setHeight",
       height: height,
     });
   }
