@@ -52,10 +52,12 @@ export function prepareSandboxIFrame(): PreloadedIFrame {
   // Empty page with current origin. Handled this differently before, but "dock apps" in Safari (PWA implementation) seem to have various restrictions
   // This one works in all browsers, although it's probably less secure
   iframe.src = "about:blank";
+  iframe.style.visibility = "hidden";
 
   const ready = new Promise<void>((resolve) => {
     iframe.onload = () => {
       iframe.contentDocument!.write(panelHtml);
+      iframe.style.visibility = "visible";
       // Now ready to use
       resolve();
     };
