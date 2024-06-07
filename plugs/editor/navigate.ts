@@ -41,7 +41,6 @@ async function actionClickOrActionEnter(
     }
   }
   const currentPage = await editor.getCurrentPage();
-  console.log("CLicked got", mdTree);
   switch (mdTree.type) {
     case "WikiLink": {
       const link = mdTree.children![1]!.children![0].text!;
