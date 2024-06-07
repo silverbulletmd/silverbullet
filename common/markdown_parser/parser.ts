@@ -8,6 +8,8 @@ import {
   Line,
   MarkdownConfig,
   Strikethrough,
+  Subscript,
+  Superscript,
 } from "@lezer/markdown";
 import { markdown } from "@codemirror/lang-markdown";
 import { StreamLanguage } from "@codemirror/language";
@@ -624,6 +626,8 @@ export const extendedMarkdownLanguage = markdown({
     Hashtag,
     TaskDeadline,
     NamedAnchor,
+    Superscript,
+    Subscript,
     {
       props: [
         foldNodeProp.add({
@@ -646,8 +650,9 @@ export const extendedMarkdownLanguage = markdown({
           Task: ct.TaskTag,
           TaskMark: ct.TaskMarkTag,
           Comment: ct.CommentTag,
-          "TableDelimiter SubscriptMark SuperscriptMark StrikethroughMark":
-            t.processingInstruction,
+          "Subscript": ct.SubscriptTag,
+          "Superscript": ct.SuperscriptTag,
+          "TableDelimiter StrikethroughMark": t.processingInstruction,
           "TableHeader/...": t.heading,
           TableCell: t.content,
           CodeInfo: ct.CodeInfoTag,

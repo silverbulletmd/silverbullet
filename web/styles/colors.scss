@@ -218,9 +218,9 @@
   .sb-line-h3 .sb-meta,
   .sb-line-h4 .sb-meta,
   .sb-line-h5 .sb-meta,
-  .sb-line-h6 .sb-meta,
-  {
-  color: var(--editor-heading-meta-color);
+  .sb-line-h6 .sb-meta {
+    color: var(--editor-heading-meta-color);
+  }
 }
 
 .sb-hashtag,
@@ -386,6 +386,16 @@ tbody tr:nth-of-type(even) {
   font-weight: 900;
 }
 
+.sb-sub {
+  vertical-align: sub;
+  font-size: smaller;
+}
+
+.sb-sup {
+  vertical-align: super;
+  font-size: smaller;
+}
+
 .sb-line-code-outside .sb-code-info {
   color: var(--editor-code-info-color);
 }
@@ -432,5 +442,4 @@ a.sb-wiki-link-page-missing,
 
 .sb-line-comment {
   background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
-}
 }

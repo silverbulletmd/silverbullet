@@ -477,6 +477,16 @@ function render(
         body: renderToText(t),
       };
     }
+    case "Superscript":
+      return {
+        name: "sup",
+        body: cleanTags(mapRender(t.children!)),
+      };
+    case "Subscript":
+      return {
+        name: "sub",
+        body: cleanTags(mapRender(t.children!)),
+      };
 
     // Text
     case undefined:

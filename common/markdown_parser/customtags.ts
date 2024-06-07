@@ -29,3 +29,6 @@ export const NakedURLTag = Tag.define();
 
 export const DirectiveMarkTag = Tag.define();
 export const DirectiveTag = Tag.define();
+
+export const SubscriptTag = Tag.define();
+export const SuperscriptTag = Tag.define();
