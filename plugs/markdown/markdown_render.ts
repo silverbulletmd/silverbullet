@@ -118,6 +118,11 @@ function render(
         name: "h5",
         body: cleanTags(mapRender(t.children!)),
       };
+    case "ATXHeading6":
+      return {
+        name: "h6",
+        body: cleanTags(mapRender(t.children!)),
+      };
     case "Paragraph":
       return {
         name: "span",
