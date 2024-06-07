@@ -41,6 +41,7 @@ async function actionClickOrActionEnter(
     }
   }
   const currentPage = await editor.getCurrentPage();
+  console.log("CLicked got", mdTree);
   switch (mdTree.type) {
     case "WikiLink": {
       const link = mdTree.children![1]!.children![0].text!;
@@ -69,6 +70,7 @@ async function actionClickOrActionEnter(
       return editor.navigate({ page: pageName, pos: 0 }, false, inNewWindow);
     }
     case "NakedURL":
+    case "URL":
       return editor.openUrl(mdTree.children![0].text!);
     case "Image":
     case "Link": {
