@@ -11,24 +11,30 @@ export function Panel({
   editor: Client;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
-  useEffect(() => {
-    function loadContent() {
-      if (iFrameRef.current?.contentWindow) {
-        iFrameRef.current.contentWindow.postMessage({
-          type: "html",
-          html: config.html,
-          script: config.script,
-        });
-      }
-    }
-    if (!iFrameRef.current) {
+
+  function updateContent() {
+    if (!iFrameRef.current?.contentWindow) {
       return;
     }
+
+    iFrameRef.current.contentWindow.postMessage({
+      type: "html",
+      html: config.html,
+      script: config.script,
+    });
+  }
+
+  useEffect(() => {
     const iframe = iFrameRef.current;
-    iframe.onload = loadContent;
-    loadContent();
+    if (!iframe) {
+      return;
+    }
+
+    iframe.addEventListener("load", updateContent)
+    updateContent();
+
     return () => {
-      iframe.onload = null;
+      iframe.removeEventListener("load", updateContent);
     };
   }, [config.html, config.script]);
 
@@ -82,7 +88,7 @@ export function Panel({
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
-      <iframe srcDoc={panelHtml} ref={iFrameRef} />
+      <iframe srcDoc={panelHtml} ref={iFrameRef} style={{ visibility: 'hidden' }} onLoad={() => iFrameRef.current!.style.visibility = "visible" }/>
     </div>
   );
 }

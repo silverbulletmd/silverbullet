@@ -31,18 +31,15 @@ export async function updateMarkdownPreview() {
   await editor.showPanel(
     "rhs",
     2,
-    `<html>
-      <head>
-        <link rel="stylesheet" href="/.client/main.css" />
-        <style>
-          ${css}
-          ${customStyles ?? ""}
-        </style>
-      </head>
-      <body>
-        <div id="root" class="sb-preview">${html}</div>
-      </body>
-    </html>`,
+    `
+      <link rel="stylesheet" href="/.client/main.css" />
+      <style>
+        ${css}
+        ${customStyles ?? ""}
+      </style>
+
+      <div id="root" class="sb-preview">${html}</div>
+    `,
     `
       document.documentElement.dataset.theme = ${JSON.stringify(theme)};
 
