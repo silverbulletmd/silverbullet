@@ -26,8 +26,6 @@ export async function updateMarkdownPreview() {
     },
   });
   const customStyles = await editor.getUiOption("customStyles");
-  const darkMode = await clientStore.get("darkMode");
-  const theme = darkMode ? "dark" : "light";
   await editor.showPanel(
     "rhs",
     2,
@@ -40,11 +38,7 @@ export async function updateMarkdownPreview() {
 
       <div id="root" class="sb-preview">${html}</div>
     `,
-    `
-      document.documentElement.dataset.theme = ${JSON.stringify(theme)};
-
-      ${js}
-    `,
+    js,
   );
 }
 

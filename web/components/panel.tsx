@@ -21,6 +21,7 @@ export function Panel({
       type: "html",
       html: config.html,
       script: config.script,
+      theme: document.getElementsByTagName("html")[0].dataset.theme
     });
   }
 
