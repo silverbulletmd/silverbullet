@@ -1,6 +1,11 @@
 import { editor, markdown, YAML } from "$sb/syscalls.ts";
 import { CodeWidgetContent } from "../../plug-api/types.ts";
-import { renderToText, traverseTree } from "$sb/lib/tree.ts";
+import {
+  findNodeOfType,
+  ParseTree,
+  renderToText,
+  traverseTree,
+} from "$sb/lib/tree.ts";
 
 type Header = {
   name: string;
@@ -31,7 +36,11 @@ export async function widget(
   traverseTree(tree, (n) => {
     if (n.type?.startsWith("ATXHeading")) {
       headers.push({
-        name: n.children!.slice(1).map(renderToText).join("").trim(),
+        name: n.children!
+          .slice(1)
+          .map(stripMarkdown)
+          .join("")
+          .trim(),
         pos: n.from!,
         level: +n.type[n.type.length - 1],
       });
@@ -93,4 +102,99 @@ export async function widget(
       },
     ],
   };
+}
+
+function stripMarkdown(
+  tree: ParseTree,
+): string {
+  if (tree.type?.endsWith("Mark") || tree.type?.endsWith("Delimiter")) {
+    return "";
+  }
+
+  const stripArray = (arr: ParseTree[]) => arr.map(stripMarkdown).join("");
+
+  switch (tree.type) {
+    case "Emphasis":
+    case "Highlight":
+    case "Strikethrough":
+    case "InlineCode":
+    case "StrongEmphasis":
+    case "Superscript":
+    case "Subscript":
+    case "HTMLTag": {
+      return stripArray(tree.children!);
+    }
+
+    case "Link": {
+      const linkTextChildren = tree.children!.slice(1, -4);
+      return stripArray(linkTextChildren);
+    }
+
+    case "Image": {
+      const altTextNode = findNodeOfType(tree, "WikiLinkAlias") ||
+        tree.children![1];
+      let altText = altTextNode && altTextNode.type !== "LinkMark"
+        ? renderToText(altTextNode)
+        : "<Image>";
+
+      const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(altText);
+      if (dimReg) {
+        altText = altText.replace(dimReg[0], "").replace("|", "");
+      }
+
+      return altText;
+    }
+
+    case "WikiLink": {
+      const aliasNode = findNodeOfType(tree, "WikiLinkAlias");
+
+      let linkText;
+      if (aliasNode) {
+        linkText = aliasNode.children![0].text!;
+      } else {
+        const ref = findNodeOfType(tree, "WikiLinkPage")!.children![0].text!;
+        linkText = ref.split("/").pop()!;
+      }
+
+      return linkText;
+    }
+
+    case "NakedURL": {
+      const url = tree.children![0].text!;
+      return url;
+    }
+
+    case "CommandLink": {
+      const aliasNode = findNodeOfType(tree, "CommandLinkAlias");
+
+      let command;
+      if (aliasNode) {
+        command = aliasNode.children![0].text!;
+      } else {
+        command = tree.children![1].children![0].text!;
+      }
+
+      return command;
+    }
+
+    case "Escape": {
+      return tree.children![0].text!.slice(1);
+    }
+
+    case "Entity": {
+      return tree.children![0].text!;
+    }
+
+    case "Hashtag":
+    case "Attribute": {
+      return "";
+    }
+
+    case undefined:
+      return tree.text!;
+
+    default:
+      console.log("Unknown tree type: ", tree.type);
+      return "";
+  }
 }
