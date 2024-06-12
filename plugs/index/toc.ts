@@ -1,6 +1,7 @@
 import { editor, markdown, YAML } from "$sb/syscalls.ts";
-import { CodeWidgetContent } from "../../plug-api/types.ts";
-import { renderToText, traverseTree } from "$sb/lib/tree.ts";
+import { CodeWidgetContent } from "$sb/types.ts";
+import { stripMarkdown } from "$sb/lib/markdown.ts";
+import { traverseTree } from "$sb/lib/tree.ts";
 
 type Header = {
   name: string;
@@ -31,7 +32,11 @@ export async function widget(
   traverseTree(tree, (n) => {
     if (n.type?.startsWith("ATXHeading")) {
       headers.push({
-        name: n.children!.slice(1).map(renderToText).join("").trim(),
+        name: n.children!
+          .slice(1)
+          .map(stripMarkdown)
+          .join("")
+          .trim(),
         pos: n.from!,
         level: +n.type[n.type.length - 1],
       });
