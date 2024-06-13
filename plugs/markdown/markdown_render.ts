@@ -231,6 +231,28 @@ function render(
         body: cleanTags(mapRender(linkTextChildren)),
       };
     }
+    case "Autolink": {
+      const urlNode = findNodeOfType(t, "URL");
+      if (!urlNode) {
+        return renderToText(t);
+      }
+      let url = urlNode.children![0].text!;
+      if (isLocalPath(url)) {
+        if (
+          options.attachmentUrlPrefix &&
+          !url.startsWith(options.attachmentUrlPrefix)
+        ) {
+          url = `${options.attachmentUrlPrefix}${url}`;
+        }
+      }
+      return {
+        name: "a",
+        attrs: {
+          href: url,
+        },
+        body: url,
+      };
+    }
     case "Image": {
       const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
         t.children![1];
