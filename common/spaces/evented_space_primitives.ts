@@ -25,6 +25,18 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
   ) {
+    // Translate file change events for attachments into attachment:index events
+    this.eventHook.addLocalListener(
+      "file:changed",
+      async (
+        name: string,
+      ) => {
+        if (!name.endsWith(".md") && !name.startsWith(plugPrefix)) {
+          // Not a page nor plug, so an attachment!
+          await this.dispatchEvent("attachment:index", name);
+        }
+      },
+    );
   }
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
@@ -150,8 +162,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           name: pageName,
           text,
         });
-      } else if (!name.endsWith(plugPrefix)) {
-        await this.dispatchEvent("attachment:index", name, newMeta);
       }
       return newMeta;
     } finally {

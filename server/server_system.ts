@@ -163,8 +163,6 @@ export class ServerSystem extends CommonSystem {
               name: pageName,
               text: new TextDecoder().decode(data.data),
             });
-          } else if (!path.startsWith(plugPrefix)) {
-            await this.eventHook.dispatchEvent("attachment:index", path);
           }
         }
 
