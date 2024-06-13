@@ -117,6 +117,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async writeFile(
     name: string,
     data: Uint8Array,
+    // TODO: Is self update still used or can it now be removed?
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
@@ -128,15 +129,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         selfUpdate,
         meta,
       );
-      if (!selfUpdate) {
-        await this.dispatchEvent(
-          "file:changed",
-          name,
-          true,
-          undefined,
-          newMeta.lastModified,
-        );
-      }
+      await this.dispatchEvent(
+        "file:changed",
+        name,
+        true,
+        undefined,
+        newMeta.lastModified,
+      );
       this.spaceSnapshot[name] = newMeta.lastModified;
 
       if (name.endsWith(".md")) {
