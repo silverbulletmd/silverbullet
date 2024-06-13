@@ -442,7 +442,8 @@ export class Client {
           "lastOpenedPage",
         ]);
         if (lastPage) {
-          await this.navigate(lastPage);
+          console.log("Navigating to last opened page", lastPage);
+          await this.navigate({ page: lastPage });
         }
       })().catch(console.error);
     }
