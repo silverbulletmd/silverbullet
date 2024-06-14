@@ -600,13 +600,12 @@ export class Client {
       "file:changed",
       (
         path: string,
-        localChange: boolean,
+        _localChange: boolean,
         oldHash: number,
         newHash: number,
       ) => {
         // Only reload when watching the current page (to avoid reloading when switching pages)
         if (
-          !localChange &&
           this.space.watchInterval && `${this.currentPage}.md` === path &&
           // Avoid reloading if the page was just saved (5s window)
           (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
