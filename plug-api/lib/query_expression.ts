@@ -25,7 +25,7 @@ export function evalQueryExpression(
       } else if (op1Val) {
         return evalQueryExpression(val[2], obj, variables, functionMap);
       } else {
-        return false;
+        return op1Val;
       }
     }
     case "or": {
@@ -41,7 +41,7 @@ export function evalQueryExpression(
           evalQueryExpression(val[2], obj, variables, functionMap)
         );
       } else if (op1Val) {
-        return true;
+        return op1Val;
       } else {
         return evalQueryExpression(val[2], obj, variables, functionMap);
       }
