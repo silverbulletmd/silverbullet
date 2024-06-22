@@ -43,24 +43,23 @@ function keyBindingForQuote(
       }
 
       // Ok, still here, let's use a smart quote
-      let quote = right;
-      if (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore)) {
-        quote = left;
-      }
-
       const changes = target.state.changeByRange((range) => {
         if (!range.empty) {
           return {
             changes: [
-              { insert: quote, from: range.from },
-              { insert: quote, from: range.to },
+              { insert: left, from: range.from },
+              { insert: right, from: range.to },
             ],
             range: EditorSelection.range(
-              range.anchor + quote.length,
-              range.head + quote.length,
+              range.anchor + left.length,
+              range.head + left.length,
             ),
           };
         } else {
+          const quote = (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore))
+            ? left
+            : right;
+
           return {
             changes: {
               insert: quote,
