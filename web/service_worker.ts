@@ -97,7 +97,11 @@ self.addEventListener("fetch", (event: any) => {
 
       const pathname = requestUrl.pathname;
 
-      if (pathname === "/.auth" || pathname === "/index.json") {
+      if (
+        pathname === "/.auth" ||
+        pathname === "/.logout" ||
+        pathname === "/index.json"
+      ) {
         return fetch(request);
       } else if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
         // If this is a /*.* request, this can either be a plug worker load or an attachment load

@@ -76,9 +76,22 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
+
     const error = params.get('error');
-    if (error === "1") {
+    if (error === "0") {
+      document.querySelector('.error-message').innerText = "The sent data was invalid";
+    } else if (error === "1") {
       document.querySelector('.error-message').innerText = "Invalid username or password";
+    }
+
+    const from = params.get("from");
+    if (from) {
+      var input = document.createElement("input");
+      input.setAttribute("type", "hidden");
+      input.setAttribute("name", "from");
+      input.setAttribute("value", from);
+
+      document.getElementById("login").appendChild(input);
     }
   </script>
 </body>
