@@ -18,7 +18,7 @@ Deno.test("Test template", () => {
     ]], "}"]],
   ]]]);
 
-  assertEquals(parseTemplate(`{{escapeRegexp @page.name}}`), ["Template", [
+  assertEquals(parseTemplate(`{{escapeRegexp(@page.name)}}`), ["Template", [
     "TemplateElement",
     ["ExpressionDirective", ["Expression", [
       "Call",
