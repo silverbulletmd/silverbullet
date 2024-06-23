@@ -28,7 +28,6 @@ Attribute of variable: {{@page.name}}
 
 # Function calls
 * `functionName(argument1, argument2, ...)`: call function `functionName`
-* `functionName`: call `functionName` without any arguments
 
 ## Examples
 ```template
