@@ -11,11 +11,6 @@ export function buildQueryFunctions(
   system: System<any>,
 ): FunctionMap {
   const pageCache = new LimitedMap<string>(10);
-  allKnownFiles = new Set(
-    [...allKnownFiles].flatMap((file) =>
-      (file.endsWith(".md")) ? [file.slice(0, -3)] : []
-    ),
-  );
 
   return {
     ...builtinFunctions,
@@ -28,7 +23,14 @@ export function buildQueryFunctions(
         // Let's assume federated pages exist, and ignore template variable ones
         return true;
       }
-      return allKnownFiles.has(name);
+
+      const flattendFiles = new Set(
+        [...allKnownFiles].flatMap((file) =>
+          (file.endsWith(".md")) ? [file.slice(0, -3)] : []
+        ),
+      );
+
+      return flattendFiles.has(name);
     },
     async template(template: unknown, obj: unknown) {
       if (typeof template !== "string") {
