@@ -1,5 +1,6 @@
 import { KeyBinding } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
+import { EditorSelection } from "@codemirror/state";
 
 const straightQuoteContexts = [
   "CommentBlock",
@@ -14,7 +15,7 @@ const straightQuoteContexts = [
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)
 function keyBindingForQuote(
-  quote: string,
+  originalQuote: string,
   left: string,
   right: string,
 ): KeyBinding {
@@ -22,7 +23,7 @@ function keyBindingForQuote(
     any: (target, event): boolean => {
       // Moving this check here rather than using the regular "key" property because
       // for some reason the "ä" key is not recognized as a quote key by CodeMirror.
-      if (event.key !== quote) {
+      if (event.key !== originalQuote) {
         return false;
       }
       const cursorPos = target.state.selection.main.from;
@@ -42,19 +43,36 @@ function keyBindingForQuote(
       }
 
       // Ok, still here, let's use a smart quote
-      let q = right;
-      if (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore)) {
-        q = left;
-      }
-      target.dispatch({
-        changes: {
-          insert: q,
-          from: cursorPos,
-        },
-        selection: {
-          anchor: cursorPos + 1,
-        },
+      const changes = target.state.changeByRange((range) => {
+        if (!range.empty) {
+          return {
+            changes: [
+              { insert: left, from: range.from },
+              { insert: right, from: range.to },
+            ],
+            range: EditorSelection.range(
+              range.anchor + left.length,
+              range.head + left.length,
+            ),
+          };
+        } else {
+          const quote = (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore))
+            ? left
+            : right;
+
+          return {
+            changes: {
+              insert: quote,
+              from: cursorPos,
+            },
+            range: EditorSelection.cursor(
+              range.anchor + quote.length,
+            ),
+          };
+        }
       });
+      target.dispatch(changes);
+
       return true;
     },
   };
