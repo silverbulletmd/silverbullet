@@ -89,10 +89,8 @@ export function decoratorStateField(
     },
 
     update(value: DecorationSet, tr: Transaction) {
-      // if (tr.docChanged || tr.selection) {
+      if (tr.isUserEvent("select.pointer")) return value;
       return stateToDecoratorMapper(tr.state);
-      // }
-      // return value;
     },
 
     provide: (f) => EditorView.decorations.from(f),
@@ -159,21 +157,6 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
   return state.selection.ranges.some((selection) =>
     checkRangeOverlap(range, [selection.from, selection.to])
   );
-}
-
-export function shouldRenderAsCode(
-  state: EditorState,
-  range: [number, number],
-) {
-  const mainSelection = state.selection.main;
-  // When the selection is empty, we need to check if the cursor is inside the fenced code
-  if (mainSelection.empty) {
-    return checkRangeOverlap(range, [mainSelection.from, mainSelection.to]);
-  } else {
-    // If the selection is encompassing the fenced code we render as code, or vice versa
-    return checkRangeSubset([mainSelection.from, mainSelection.to], range) ||
-      checkRangeSubset(range, [mainSelection.from, mainSelection.to]);
-  }
 }
 
 /**
