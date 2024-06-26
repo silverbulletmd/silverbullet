@@ -24,10 +24,6 @@ export class LinkWidget extends WidgetType {
 
     // Mouse handling
     anchor.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-    anchor.addEventListener("mouseup", (e) => {
       if (e.button !== 0) {
         return;
       }

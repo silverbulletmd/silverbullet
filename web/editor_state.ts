@@ -200,7 +200,7 @@ export function createEditorState(
           touchCount = 0;
         },
 
-        mousedown: (event: MouseEvent, view: EditorView) => {
+        click: (event: MouseEvent, view: EditorView) => {
           const pos = view.posAtCoords(event);
           if (event.button !== 0) {
             return;
