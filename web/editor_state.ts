@@ -21,7 +21,6 @@ import {
 } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import {
-  drawSelection,
   dropCursor,
   EditorView,
   highlightSpecialChars,
@@ -115,7 +114,6 @@ export function createEditorState(
       codeCopyPlugin(client),
       highlightSpecialChars(),
       history(),
-      drawSelection(),
       dropCursor(),
       codeFolding({
         placeholderText: "…",
