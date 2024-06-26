@@ -1,8 +1,8 @@
-import { FunctionMap } from "../plug-api/types.ts";
-import { builtinFunctions } from "../lib/builtin_query_functions.ts";
-import { System } from "../lib/plugos/system.ts";
-import { Query } from "../plug-api/types.ts";
+import { FunctionMap, Query } from "$sb/types.ts";
+import { builtinFunctions } from "$lib/builtin_query_functions.ts";
+import { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 const pageCacheTtl = 10 * 1000; // 10s
 
@@ -54,11 +54,40 @@ export function buildQueryFunctions(
       const cachedPage = pageCache.get(name);
       if (cachedPage) {
         return cachedPage;
-      } else {
-        return system.localSyscall("space.readPage", [name]).then((page) => {
-          pageCache.set(name, page, pageCacheTtl);
-          return page;
-        }).catch((e: any) => {
+      } else {        const pageRef = parsePageRef(name);
+        return system.localSyscall("space.readPage", [pageRef.page]).then(
+          (page) => {
+            // Extract page section if pos, anchor, or header are included
+            if (pageRef.pos) {
+              page = page.slice(pageRef.pos);
+            } else if (pageRef.anchor) {
+              const pos = page.indexOf(`$${pageRef.anchor}`);
+              page = page.slice(pos);
+            } else if (pageRef.header) {
+              let pos = page.indexOf(`# ${pageRef.header}\n`);
+              let headingLevel = 1;
+              while (page.charAt(pos - 1) === "#") {
+                pos--;
+                headingLevel++;
+              }
+              page = page.slice(pos);
+
+              // Slice up to the next equal or higher level heading
+              const headRegex = new RegExp(
+                `[^#]#{1,${headingLevel}} [^\n]*\n`,
+                "g",
+              );
+              const endPos = page.slice(headingLevel).search(headRegex) +
+                headingLevel;
+              if (endPos) {
+                page = page.slice(0, endPos);
+              }
+            }
+
+            pageCache.set(name, page, pageCacheTtl);
+            return page;
+          },
+        ).catch((e: any) => {
           if (e.message === "Not found") {
             throw new Error(`Page not found: ${name}`);
           }
