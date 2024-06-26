@@ -13,6 +13,7 @@ import { cleanWikiLinkPlugin } from "./wiki_link.ts";
 import { cleanCommandLinkPlugin } from "./command_link.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
+import { cleanEscapePlugin } from "./escapes.ts";
 
 export function cleanModePlugins(client: Client) {
   return [
@@ -42,5 +43,6 @@ export function cleanModePlugins(client: Client) {
     tablePlugin(client),
     cleanWikiLinkPlugin(client),
     cleanCommandLinkPlugin(client),
+    cleanEscapePlugin(),
   ] as Extension[];
 }
