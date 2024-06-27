@@ -93,7 +93,7 @@ export class MarkdownWidget extends WidgetType {
       extendedMarkdownLanguage,
       trimmedMarkdown,
     );
-
+    
     const html = renderMarkdownToHtml(mdTree, {
       // Annotate every element with its position so we can use it to put
       // the cursor there when the user clicks on the table.
@@ -109,7 +109,7 @@ export class MarkdownWidget extends WidgetType {
         return url;
       },
       preserveAttributes: true,
-    });
+    }, this.client.ui.viewState.allPages);
 
     if (cachedHtml === html) {
       // HTML still same as in cache, no need to re-render
