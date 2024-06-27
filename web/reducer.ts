@@ -20,6 +20,14 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = window.matchMedia("(any-pointer:fine)").matches;
+      const pageMeta = state.allPages.filter(p => p.name == action.meta.name);
+      let namePrefix = "";
+      const decor = state.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
+      if (decor === undefined || decor.length == 0) {
+        namePrefix = "";
+      } else {
+        namePrefix = decor[0].prefix;
+      }
       return {
         ...state,
         isLoading: false,
@@ -31,6 +39,7 @@ export default function reducer(
         ),
         currentPage: action.meta.name,
         currentPageMeta: action.meta,
+        pageNamePrefix: namePrefix,
       };
     }
     case "page-changed":
@@ -64,10 +73,18 @@ export default function reducer(
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
       }
-
+      const pageMeta = action.allPages.filter(p => p.name == state.currentPage);
+      let namePrefix = "";
+      const decor = state.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
+      if (decor === undefined || decor.length == 0) {
+        namePrefix = "";
+      } else {
+        namePrefix = decor[0].prefix;
+      }
       return {
         ...state,
         allPages: action.allPages,
+        pageNamePrefix: namePrefix,
       };
     }
     case "start-navigate": {

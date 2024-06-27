@@ -1,5 +1,5 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption } from "$lib/web.ts";
+import { FilterOption, Decoration } from "$lib/web.ts";
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { PageMeta } from "../../plug-api/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
@@ -15,6 +15,7 @@ export function PageNavigator({
   mode,
   darkMode,
   currentPage,
+  pageDecorations,
 }: {
   allPages: PageMeta[];
   vimMode: boolean;
@@ -23,6 +24,7 @@ export function PageNavigator({
   onNavigate: (page: string | undefined) => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
+  pageDecorations?: Decoration[];
 }) {
   const options: FilterOption[] = [];
   for (const pageMeta of allPages) {
@@ -49,12 +51,21 @@ export function PageNavigator({
     if (mode === "page") {
       // Special behavior for regular pages
       let description: string | undefined;
+      let namePrefix: string | undefined;
       let aliases: string[] = [];
       if (pageMeta.displayName) {
         aliases.push(pageMeta.displayName);
       }
       if (Array.isArray(pageMeta.aliases)) {
         aliases = aliases.concat(pageMeta.aliases);
+      }
+      if (pageDecorations) {
+        const decor = pageDecorations?.filter(d => pageMeta.tags?.some(t => d.tag === t));
+        if (decor === undefined || decor.length == 0) {
+          namePrefix = "";
+        } else {
+          namePrefix = decor[0].prefix;
+        }
       }
       if (aliases.length > 0) {
         description = "(a.k.a. " + aliases.join(", ") + ") ";
@@ -65,6 +76,7 @@ export function PageNavigator({
       }
       options.push({
         ...pageMeta,
+        name: namePrefix + pageMeta.name,
         description,
         orderId: orderId,
       });
