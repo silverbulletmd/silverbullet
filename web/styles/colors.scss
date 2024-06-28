@@ -174,10 +174,12 @@
 #sb-editor {
   .cm-content {
     font-family: var(--editor-font);
+    caret-color: var(--editor-caret-color);
   }
 
-  .cm-selectionBackground {
+  ::selection {
     background-color: var(--editor-selection-background-color);
+    caret-color: var(--editor-caret-color);
   }
 
   .cm-panels-bottom {

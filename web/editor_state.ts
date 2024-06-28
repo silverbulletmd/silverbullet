@@ -21,7 +21,6 @@ import {
 } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import {
-  drawSelection,
   dropCursor,
   EditorView,
   highlightSpecialChars,
@@ -115,7 +114,6 @@ export function createEditorState(
       codeCopyPlugin(client),
       highlightSpecialChars(),
       history(),
-      drawSelection(),
       dropCursor(),
       codeFolding({
         placeholderText: "…",
@@ -200,7 +198,7 @@ export function createEditorState(
           touchCount = 0;
         },
 
-        mousedown: (event: MouseEvent, view: EditorView) => {
+        click: (event: MouseEvent, view: EditorView) => {
           const pos = view.posAtCoords(event);
           if (event.button !== 0) {
             return;
