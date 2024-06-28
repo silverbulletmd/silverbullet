@@ -1,9 +1,11 @@
 import { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
+import { MarkdownWidget } from "./markdown_widget.ts";
 import { decoratorStateField } from "./util.ts";
 import type { Client } from "../client.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { mdLinkRegex, wikiLinkRegex } from "$common/markdown_parser/parser.ts";
 
 class InlineImageWidget extends WidgetType {
@@ -84,7 +86,9 @@ export function inlineImagesPlugin(client: Client) {
           (match = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g.exec(text))
         ) {
           [/* fullMatch */, /* firstMark */ , url, alias] = match;
-          url = "/" + url;
+          if (!isFederationPath(url)) {
+            url = "/" + url;
+          }
         } else {
           return;
         }
@@ -101,6 +105,40 @@ export function inlineImagesPlugin(client: Client) {
 
         if (isLocalPath(url)) {
           url = resolvePath(client.currentPage, decodeURI(url), true);
+          const pageRef = parsePageRef(url);
+          if (
+            isFederationPath(pageRef.page) ||
+            client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
+          ) {
+            // Is a page. Render as markdown widget
+            const codeWidgetCallback = client.clientSystem.codeWidgetHook
+              .codeWidgetCallbacks.get("template");
+
+            if (!codeWidgetCallback) {
+              return;
+            }
+
+            widgets.push(
+              Decoration.line({
+                class: "sb-fenced-code-iframe",
+              }).range(node.to),
+            );
+
+            widgets.push(
+              Decoration.widget({
+                widget: new MarkdownWidget(
+                  node.from,
+                  client,
+                  `widget:${client.currentPage}:${text}`,
+                  `{{[[${url}]]}}`,
+                  codeWidgetCallback,
+                  "sb-markdown-widget sb-markdown-widget-inline",
+                ),
+                block: true,
+              }).range(node.to),
+            );
+            return;
+          }
         }
 
         widgets.push(
