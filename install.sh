@@ -10,10 +10,7 @@ fi
 case $(uname -sm) in
 "Darwin x86_64") target="darwin-x86_64" ;;
 "Darwin arm64") target="darwin-aarch64" ;;
-"Linux aarch64")
-    echo "Error: Official SilverBullet builds for Linux aarch64 are not available." 1>&2
-    exit 1
-    ;;
+"Linux arm64") target="linux-aarch64" ;;
 *) target="linux-x86_64" ;;
 esac
 

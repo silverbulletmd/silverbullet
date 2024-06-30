@@ -20,6 +20,7 @@
     // Compile
     "compile": "deno task bundle && deno compile -A --unstable-kv --unstable-worker-options -o silverbullet dist/silverbullet.js",
     "server:dist:linux-x86_64": "deno task bundle && deno compile -A --unstable-kv --unstable-worker-options --target x86_64-unknown-linux-gnu -o silverbullet dist/silverbullet.js && zip silverbullet-server-linux-x86_64.zip silverbullet",
+    "server:dist:linux-aarch64": "deno task bundle && deno compile -A --unstable-kv --unstable-worker-options --target aarch64-unknown-linux-gnu -o silverbullet dist/silverbullet.js && zip silverbullet-server-linux-aarch64 silverbullet",
     "server:dist:darwin-x86_64": "deno task bundle && deno compile -A --unstable-kv  --unstable-worker-options --target x86_64-apple-darwin -o silverbullet dist/silverbullet.js && zip silverbullet-server-darwin-x86_64.zip silverbullet",
     "server:dist:darwin-aarch64": "deno task bundle && deno compile -A --unstable-kv --unstable-worker-options --target aarch64-apple-darwin -o silverbullet dist/silverbullet.js  && zip silverbullet-server-darwin-aarch64.zip silverbullet",
     "server:dist:windows-x86_64": "deno task bundle && deno compile -A --unstable-kv --unstable-worker-options --target x86_64-pc-windows-msvc -o silverbullet.exe dist/silverbullet.js && zip silverbullet-server-windows-x86_64.zip silverbullet.exe"
