@@ -21,12 +21,11 @@ export default function reducer(
     case "page-loaded": {
       const mouseDetected = window.matchMedia("(any-pointer:fine)").matches;
       const pageMeta = state.allPages.filter(p => p.name == action.meta.name);
-      let namePrefix = "";
       const decor = state.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
       if (decor === undefined || decor.length == 0) {
-        namePrefix = "";
+        // Do nothing
       } else {
-        namePrefix = decor[0].prefix;
+        action.meta.namePrefix = decor[0].prefix;
       }
       return {
         ...state,
@@ -39,7 +38,6 @@ export default function reducer(
         ),
         currentPage: action.meta.name,
         currentPageMeta: action.meta,
-        pageNamePrefix: namePrefix,
       };
     }
     case "page-changed":
@@ -72,19 +70,18 @@ export default function reducer(
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
-      }
-      const pageMeta = action.allPages.filter(p => p.name == state.currentPage);
-      let namePrefix = "";
-      const decor = state.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
-      if (decor === undefined || decor.length == 0) {
-        namePrefix = "";
-      } else {
-        namePrefix = decor[0].prefix;
+        let namePrefix = "";
+        const decor = state.settings.decorations?.filter(d => pageMeta.tags?.some((t: any) => d.tag === t));
+        if (decor === undefined || decor.length == 0) {
+          namePrefix = "";
+        } else {
+          namePrefix = decor[0].prefix;
+        }
+        pageMeta.namePrefix = namePrefix;
       }
       return {
         ...state,
         allPages: action.allPages,
-        pageNamePrefix: namePrefix,
       };
     }
     case "start-navigate": {

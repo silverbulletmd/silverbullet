@@ -82,8 +82,6 @@ export type AppViewState = {
   confirmMessage?: string;
   confirmCallback?: (value: boolean) => void;
 
-  // Page Decorations
-  pageNamePrefix?: string;
 };
 
 export const initialViewState: AppViewState = {

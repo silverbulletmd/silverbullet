@@ -68,15 +68,8 @@ export function cleanWikiLinkPlugin(client: Client) {
           return;
         }
         const pageMeta = client.ui.viewState.allPages.filter(p => p.name == url);
-        let namePrefix = "";
-        const decor = client.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
-        if (decor === undefined || decor.length == 0) {
-          namePrefix = "";
-        } else {
-          namePrefix = decor[0].prefix;
-        }
         const linkText = alias ||
-          namePrefix + (url.includes("/") ? url.split("/").pop()! : url);
+          (pageMeta[0]?.namePrefix ?? "") + (url.includes("/") ? url.split("/").pop()! : url);
 
         // And replace it with a widget
         widgets.push(

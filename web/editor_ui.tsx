@@ -107,7 +107,6 @@ export class MainUI {
             completer={client.miniEditorComplete.bind(client)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
-            pageDecorations={viewState.settings.decorations}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
@@ -284,7 +283,7 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.pageNamePrefix}
+          pageNamePrefix={viewState.currentPageMeta?.namePrefix ?? ""}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
