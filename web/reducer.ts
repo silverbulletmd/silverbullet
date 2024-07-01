@@ -20,6 +20,13 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = window.matchMedia("(any-pointer:fine)").matches;
+      const pageMeta = state.allPages.filter(p => p.name == action.meta.name);
+      const decor = state.settings.decorations?.filter(d => pageMeta[0]?.tags?.some(t => d.tag === t));
+      if (decor === undefined || decor.length == 0) {
+        // Do nothing
+      } else {
+        action.meta.namePrefix = decor[0].prefix;
+      }
       return {
         ...state,
         isLoading: false,
@@ -63,8 +70,15 @@ export default function reducer(
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
+        let namePrefix = "";
+        const decor = state.settings.decorations?.filter(d => pageMeta.tags?.some((t: any) => d.tag === t));
+        if (decor === undefined || decor.length == 0) {
+          namePrefix = "";
+        } else {
+          namePrefix = decor[0].prefix;
+        }
+        pageMeta.namePrefix = namePrefix;
       }
-
       return {
         ...state,
         allPages: action.allPages,

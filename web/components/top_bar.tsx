@@ -30,6 +30,7 @@ export function TopBar({
   lhs,
   onClick,
   rhs,
+  pageNamePrefix,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -46,6 +47,7 @@ export function TopBar({
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
+  pageNamePrefix?: string;
 }) {
   return (
     <div
@@ -66,19 +68,21 @@ export function TopBar({
                 : "sb-saved"}
             >
               <MiniEditor
-                text={pageName ?? ""}
+                text={(pageNamePrefix ?? "") + (pageName ?? "")}
                 vimMode={vimMode}
                 darkMode={darkMode}
                 onBlur={(newName) => {
-                  if (newName !== pageName) {
-                    return onRename(newName);
+                  if (newName !== (pageNamePrefix ?? "") + (pageName ?? "")) {
+                    return onRename(newName.startsWith(pageNamePrefix ?? "")? newName.slice(pageNamePrefix?.length) : newName);
                   } else {
                     return onRename();
                   }
                 }}
                 completer={completer}
                 onEnter={(newName) => {
-                  onRename(newName);
+                  if (newName !== (pageNamePrefix ?? "") + (pageName ?? "")) {
+                    onRename(newName.startsWith(pageNamePrefix ?? "")? newName.slice(pageNamePrefix?.length) : newName);
+                  }
                 }}
               />
             </span>

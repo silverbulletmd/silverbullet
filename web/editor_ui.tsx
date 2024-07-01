@@ -283,6 +283,7 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
+          pageNamePrefix={viewState.currentPageMeta?.namePrefix ?? ""}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
