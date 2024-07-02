@@ -53,6 +53,13 @@ export class LinkWidget extends WidgetType {
     anchor.href = this.options.href || "#";
     return anchor;
   }
+
+  eq(other: WidgetType): boolean {
+    return other instanceof LinkWidget &&
+      this.options.text === other.options.text &&
+      this.options.href === other.options.href &&
+      this.options.title === other.options.title;
+  }
 }
 
 export class HtmlWidget extends WidgetType {
