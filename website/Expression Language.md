@@ -28,10 +28,11 @@ Attribute of variable: {{@page.name}}
 
 # Function calls
 * `functionName(argument1, argument2, ...)`: call function `functionName`
-* `functionName`: call `functionName` without any arguments
+* `functionName()` or `functionName`: call function `functionName` without arguments
 
 ## Examples
 ```template
+contains with argument list: {{contains("FizzBuzz", "Fizz")}}
 Today with argument list: {{today()}}
 Today without an argument list: {{today}}
 ```
