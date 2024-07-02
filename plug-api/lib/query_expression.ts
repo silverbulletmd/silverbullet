@@ -274,6 +274,8 @@ function evalSimpleExpression(type: string, val1: any, val2: any, val3: any) {
       return val2.includes(val1);
     case "?":
       return val1 ? val2 : val3;
+    case "??":
+      return val1 ?? val2;
     default:
       throw new Error(`Unupported operator: ${type}`);
   }
