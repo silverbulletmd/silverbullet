@@ -1,5 +1,5 @@
 import { encodePageRef, parsePageRef, validatePageName } from "./page_ref.ts";
-import { assert, assertEquals, assertThrows, AssertionError } from "$std/testing/asserts.ts";
+import { assertEquals, assertThrows, AssertionError } from "$std/testing/asserts.ts";
 
 Deno.test("Page utility functions", () => {
   // Base cases
@@ -39,11 +39,11 @@ Deno.test("Page utility functions", () => {
   assertThrows(() => validatePageName(".hidden"), Error);
   assertThrows(() => validatePageName(".."), Error);
 
-  for (let extension in ["md", "txt", "exe", "cc", "ts"]) {
+  for (const extension of ["md", "txt", "exe", "cc", "ts"]) {
     assertThrows(() => validatePageName(`extensions-are-not-welcome.${extension}`), Error);
   }
 
-  for (let extension in ["db2", "woff2", "sqlite3", "42", "0"]) {
+  for (const extension of ["db2", "woff2", "sqlite3", "42", "0"]) {
     assertThrows(() => validatePageName(`extensions-can-contain-numbers-too.${extension}`), Error);
   }
 });
