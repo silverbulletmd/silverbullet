@@ -174,7 +174,7 @@ export class MarkdownWidget extends WidgetType {
         e.preventDefault();
         e.stopPropagation();
         const pageRef = parsePageRef(el.dataset.ref!);
-        this.client.navigate(pageRef);
+        this.client.navigate(pageRef, false, e.ctrlKey || e.metaKey);
       });
     });
 

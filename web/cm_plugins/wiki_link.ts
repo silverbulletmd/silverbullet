@@ -5,7 +5,6 @@ import { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
-import { wikiLinkRegex } from "$common/markdown_parser/parser.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
