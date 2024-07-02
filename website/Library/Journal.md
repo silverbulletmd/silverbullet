@@ -8,7 +8,7 @@ To import this library, run the {[Library: Import]} command in your SilverBullet
 # Included templates
 ```query
 page
-where name =~ /^{{escapeRegexp @page.name}}\//
+where name =~ /^{{escapeRegexp(@page.name)}}\//
 render [[Library/Core/Query/Page]]
 ```
 

@@ -99,6 +99,8 @@ BinExpression {
 | Expression !mulop "%" Expression
 | Expression !addop "+" Expression
 | Expression !addop "-" Expression
+
+| Expression !or "??" Expression
 }
 
 TernaryExpression {

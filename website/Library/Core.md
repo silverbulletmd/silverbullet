@@ -13,13 +13,13 @@ To import this library, run the {[Library: Import]} command in your SilverBullet
 # Included templates
 ```query
 template
-where name =~ /^{{escapeRegexp @page.name}}\//
+where name =~ /^{{escapeRegexp(@page.name)}}\//
 render [[Library/Core/Query/Template]]
 ```
 
 # Included utility pages
 ```query
 page
-where name =~ /^{{escapeRegexp @page.name}}\// and tags != "template"
+where name =~ /^{{escapeRegexp(@page.name)}}\// and tags != "template"
 render [[Library/Core/Query/Page]]
 ```
