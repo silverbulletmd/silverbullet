@@ -30,20 +30,20 @@ Deno.test("Page utility functions", () => {
   // Page name validation
 
   try {
-    validatePageName("perfectly fine page name")
+    validatePageName("perfectly fine page name");
   } catch (error) {
     throw new AssertionError(`Something is very wrong with the validatePageName function: ${error}`);
   }
 
-  assertThrows(() => validatePageName(""), Error)
-  assertThrows(() => validatePageName(".hidden"), Error)
-  assertThrows(() => validatePageName(".."), Error)
+  assertThrows(() => validatePageName(""), Error);
+  assertThrows(() => validatePageName(".hidden"), Error);
+  assertThrows(() => validatePageName(".."), Error);
 
   for (let extension in ["md", "txt", "exe", "cc", "ts"]) {
-    assertThrows(() => validatePageName(`extensions-are-not-welcome.${extension}`), Error)
+    assertThrows(() => validatePageName(`extensions-are-not-welcome.${extension}`), Error);
   }
 
   for (let extension in ["db2", "woff2", "sqlite3", "42", "0"]) {
-    assertThrows(() => validatePageName(`extensions-can-contain-numbers-too.${extension}`), Error)
+    assertThrows(() => validatePageName(`extensions-can-contain-numbers-too.${extension}`), Error);
   }
 });
