@@ -55,7 +55,6 @@ Convinced to install this yourself? Please proceed to [[Install]], and enjoy!
 * [Roadmap](https://github.com/orgs/silverbulletmd/projects/2/views/1): currently planned features and priorities.
 * [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
 * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.
-* [Discord](https://discord.gg/EvXbFucTxn): for more real-time support and discussion.
 * [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/).
 
 
