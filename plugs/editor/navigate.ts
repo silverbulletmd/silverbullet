@@ -18,7 +18,6 @@ async function actionClickOrActionEnter(
   if (!mdTree) {
     return;
   }
-  // console.log("Got a click on", mdTree);
   const navigationNodeFinder = (t: ParseTree) =>
     [
       "WikiLink",
@@ -61,7 +60,7 @@ async function actionClickOrActionEnter(
         if (pageRef.pos === undefined) {
           pageRef.pos = 0;
         }
-        return editor.navigate(pageRef, false);
+        return editor.navigate(pageRef, false, inNewWindow);
       }
     }
     case "PageRef": {
@@ -89,6 +88,8 @@ async function actionClickOrActionEnter(
         } else {
           return editor.navigate(
             parsePageRef(resolvePath(currentPage, decodeURI(url))),
+            false,
+            inNewWindow,
           );
         }
       } else {
