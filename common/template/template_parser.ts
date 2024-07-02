@@ -41,17 +41,8 @@ function processTree(tree: AST): AST {
     case "TemplateElement":
       return ["TemplateElement", ...(tree.slice(1) as AST[]).map(processTree)];
     case "ExpressionDirective": {
-      let exprString = tree[2][1] as string;
-      const legacyCallSyntax = /^([A-Za-z]+)\s+([^(]+$)/.exec(exprString);
-      if (legacyCallSyntax) {
-        // Translates "escapeRegex @page.name" -> "escapeRegex(@page.name)"
-        const [_, fn, args] = legacyCallSyntax;
-        exprString = `${fn}(${args})`;
-        console.warn(
-          "Translated legacy function call to new syntax",
-          exprString,
-        );
-      }
+      const exprString = tree[2][1] as string;
+
       const expressionTree = parseTreeToAST(parse(
         expressionLanguage,
         exprString,
