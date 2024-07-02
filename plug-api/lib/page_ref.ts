@@ -6,7 +6,7 @@ export function validatePageName(name: string) {
   if (name.startsWith(".")) {
     throw new Error("Page name cannot start with a '.'");
   }
-  if (/\.[a-zA-Z]+$/.test(name)) {
+  if (/\.[a-zA-Z0-9]+$/.test(name)) {
     throw new Error("Page name can not end with a file extension");
   }
 }
