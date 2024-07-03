@@ -401,6 +401,10 @@
   }
 
   .sb-line-code-outside .sb-code-info {
+    &::selection {
+      background-color: transparent;
+    }
+
     display: block;
     float: right;
     font-size: 90%;
@@ -408,6 +412,10 @@
   }
 
   .sb-code-copy-button {
+    &::selection {
+      background-color: transparent;
+    }
+
     float: right;
     cursor: pointer;
     margin: 0 3px;

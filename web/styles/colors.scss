@@ -4,7 +4,8 @@
   color: var(--root-color);
 }
 
-.cm-cursor {
+.cm-cursor,
+.cm-dropCursor {
   border-left: 1.2px solid var(--editor-caret-color) !important;
 }
 
@@ -174,9 +175,10 @@
 #sb-editor {
   .cm-content {
     font-family: var(--editor-font);
+    caret-color: transparent;
   }
 
-  .cm-selectionBackground {
+  ::selection {
     background-color: var(--editor-selection-background-color);
   }
 
