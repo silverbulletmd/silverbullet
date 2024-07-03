@@ -19,13 +19,15 @@ import {
   LanguageSupport,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import {
   dropCursor,
   EditorView,
   highlightSpecialChars,
   KeyBinding,
   keymap,
+  layer,
+  RectangleMarker,
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
@@ -122,8 +124,46 @@ export function createEditorState(
       ...cleanModePlugins(client),
       EditorView.lineWrapping,
       plugLinter(client),
-      // lintGutter(),
-      //       gutters(),
+      // Taken from https://github.com/codemirror/view/blob/main/src/draw-selection.ts
+      layer({
+        above: true,
+        markers(view) {
+          const safari = /Apple Computer/.test(navigator.vendor);
+          const ios = safari &&
+            (/Mobile\/\w+/.test(navigator.userAgent) ||
+              navigator.maxTouchPoints > 2);
+
+          const { state } = view;
+          const cursors = [];
+          for (const r of state.selection.ranges) {
+            const prim = r == state.selection.main;
+            if (!r.empty || !prim || !ios) {
+              const className = prim
+                ? "cm-cursor cm-cursor-primary"
+                : "cm-cursor cm-cursor-secondary";
+              const cursor = r.empty
+                ? r
+                : EditorSelection.cursor(r.head, r.head > r.anchor ? -1 : 1);
+              for (
+                const piece of RectangleMarker.forRange(view, className, cursor)
+              ) cursors.push(piece);
+            }
+          }
+          return cursors;
+        },
+        update(update, dom) {
+          if (update.transactions.some((tr) => tr.selection)) {
+            dom.style.animationName = dom.style.animationName == "cm-blink"
+              ? "cm-blink2"
+              : "cm-blink";
+          }
+          return update.docChanged || update.selectionSet;
+        },
+        mount(dom) {
+          dom.style.animationDuration = "1200ms";
+        },
+        class: "cm-cursorLayer",
+      }),
       postScriptPrefacePlugin(client),
       lineWrapper([
         { selector: "ATXHeading1", class: "sb-line-h1" },
