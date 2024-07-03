@@ -60,6 +60,12 @@ export class MainUI {
         });
       }
     });
+
+    globalThis.addEventListener("mouseup", (_) => {
+      setTimeout(() => {
+        client.editorView.dispatch({});
+      })
+    });
   }
 
   ViewComponent() {

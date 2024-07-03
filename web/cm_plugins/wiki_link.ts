@@ -86,9 +86,11 @@ export function cleanWikiLinkPlugin(client: Client) {
                 callback: (e) => {
                   if (e.altKey) {
                     // Move cursor into the link
-                    return client.editorView.dispatch({
+                    client.editorView.dispatch({
                       selection: { anchor: from + firstMark.length },
                     });
+                    client.focus();
+                    return;
                   }
                   // Dispatch click event to navigate there without moving the cursor
                   const clickEvent: ClickEvent = {
