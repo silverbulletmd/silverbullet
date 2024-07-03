@@ -1,5 +1,5 @@
-import { encodePageRef, parsePageRef } from "./page_ref.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { encodePageRef, parsePageRef, validatePageName } from "./page_ref.ts";
+import { assertEquals, assertThrows, AssertionError } from "$std/testing/asserts.ts";
 
 Deno.test("Page utility functions", () => {
   // Base cases
@@ -26,4 +26,24 @@ Deno.test("Page utility functions", () => {
   assertEquals(encodePageRef({ page: "foo", pos: 10 }), "foo@10");
   assertEquals(encodePageRef({ page: "foo", anchor: "bar" }), "foo$bar");
   assertEquals(encodePageRef({ page: "foo", header: "bar" }), "foo#bar");
+
+  // Page name validation
+
+  try {
+    validatePageName("perfectly fine page name");
+  } catch (error) {
+    throw new AssertionError(`Something is very wrong with the validatePageName function: ${error}`);
+  }
+
+  assertThrows(() => validatePageName(""), Error);
+  assertThrows(() => validatePageName(".hidden"), Error);
+  assertThrows(() => validatePageName(".."), Error);
+
+  for (const extension of ["md", "txt", "exe", "cc", "ts"]) {
+    assertThrows(() => validatePageName(`extensions-are-not-welcome.${extension}`), Error);
+  }
+
+  for (const extension of ["db2", "woff2", "sqlite3", "42", "0"]) {
+    assertThrows(() => validatePageName(`extensions-can-contain-numbers-too.${extension}`), Error);
+  }
 });
