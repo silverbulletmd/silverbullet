@@ -9,11 +9,14 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Attachments are now indexed, and smartly moved when pages are renamed (by onespaceman)
 * Images can now be resized: [[Attachments#Embedding]] (initial work done by [Florent](https://github.com/silverbulletmd/silverbullet/pull/833), later adapted by onespaceman)
 * Super^script^ and Sub~script~ are now supported (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/879))
+* To make pure reading and browsing on touch devices a nicer experience, there is now a new **edit toggle** (top right). When _disabled_, you switch to _reader mode_ which makes sure your software keyboard doesn’t block the screen when navigating your space. This button is only visible on mobile devices (no physical keyboard attached) only. Can be disabled via the `hideEditButton` [[SETTINGS]] (and is disabled on this website, that’s why you don’t see it).
 * Added a {[Delete Line]} command (by [pihentagy](https://github.com/silverbulletmd/silverbullet/pull/866))
 * The `#boot` PWA loading the last opened page feature is back (put `#boot` at the end of your SilverBullet URL to auto load the last opened page)
+* Improved selection behavior (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/904))
+* Hide `\` escapes in [[Live Preview]] (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/901))
+* Added Erlang [[Markdown/Syntax Highlighting]]
 * Numerous other bug fixes (thanks MrMugame and onespaceman)
-* Added Erlang support
-
+  
 ---
 
 ## 0.7.7
