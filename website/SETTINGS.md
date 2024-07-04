@@ -6,6 +6,8 @@ indexPage: "[[SilverBullet]]"
 
 # Hide the sync button
 hideSyncButton: false
+# Hide the edit button (available on mobile only)
+hideEditButton: true # defaults to 'false'
 
 # Configure the shown action buttons (top right bar)
 actionButtons:

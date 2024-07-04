@@ -17,6 +17,7 @@ export type BuiltinSettings = {
   plugOverrides?: Record<string, Partial<Manifest>>;
   shortcuts?: Shortcut[];
   hideSyncButton?: boolean;
+  hideEditButton?: boolean;
   maximumAttachmentSize?: number;
   defaultLinkStyle?: string;
   actionButtons: ActionButton[];
