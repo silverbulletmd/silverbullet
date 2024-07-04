@@ -6,7 +6,7 @@ import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
 import { Action, AppViewState, initialViewState } from "../type/web.ts";
 import * as featherIcons from "preact-feather";
-import * as mdi from "./filtered_material_icons.ts"
+import * as mdi from "./filtered_material_icons.ts";
 import { h, render as preactRender } from "preact";
 import { useEffect, useReducer } from "preact/hooks";
 import { closeSearchPanel } from "@codemirror/search";
@@ -64,7 +64,7 @@ export class MainUI {
     globalThis.addEventListener("mouseup", (_) => {
       setTimeout(() => {
         client.editorView.dispatch({});
-      })
+      });
     });
   }
 
@@ -219,6 +219,7 @@ export class MainUI {
             client.focus();
           }}
           actionButtons={[
+            // Sync button
             ...(!window.silverBulletConfig.syncOnly &&
                 !viewState.settings.hideSyncButton)
               // If we support syncOnly, don't show this toggle button
@@ -251,6 +252,30 @@ export class MainUI {
                 },
               }]
               : [],
+            // Edit (reader/writer) button ONLY on mobile
+            ...(viewState.isMobile && !viewState.settings.hideEditButton)
+              ? [{
+                icon: featherIcons.Edit3,
+                description: viewState.uiOptions.forcedROMode
+                  ? "Currently in reader mode, click to switch to writer mode"
+                  : "Currently in writer mode, click to switch to reader mode",
+                class: !viewState.uiOptions.forcedROMode
+                  ? "sb-enabled"
+                  : undefined,
+                callback: () => {
+                  dispatch({
+                    type: "set-ui-option",
+                    key: "forcedROMode",
+                    value: !viewState.uiOptions.forcedROMode,
+                  });
+                  // After a tick (to have the dispatch update the state), rebuild the editor
+                  setTimeout(() => {
+                    client.rebuildEditorState();
+                  });
+                },
+              }]
+              : [],
+            // Custom action buttons
             ...viewState.settings.actionButtons
               .filter((button) =>
                 (typeof button.mobile === "undefined") ||

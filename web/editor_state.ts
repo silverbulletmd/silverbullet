@@ -1,11 +1,5 @@
-import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
-import {
-  history,
-  historyKeymap,
-  indentWithTab,
-  standardKeymap,
-} from "@codemirror/commands";
+import { history, indentWithTab, standardKeymap } from "@codemirror/commands";
 import {
   autocompletion,
   closeBrackets,
@@ -73,13 +67,14 @@ export function createEditorState(
       EditorView.theme({}, {
         dark: client.ui.viewState.uiOptions.darkMode,
       }),
+
       // Enable vim mode, or not
       [
         ...client.ui.viewState.uiOptions.vimMode ? [vim({ status: true })] : [],
       ],
       [
         ...readOnly || client.ui.viewState.uiOptions.forcedROMode
-          ? [readonlyMode()]
+          ? [EditorView.editable.of(false)]
           : [],
       ],
 

@@ -154,7 +154,7 @@ export class Client {
       this.mq,
       this.stateDataStore,
       this.eventHook,
-      window.silverBulletConfig.readOnly,
+      this.readOnlyMode,
     );
 
     const localSpacePrimitives = await this.initSpace();
