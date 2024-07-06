@@ -14,8 +14,9 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 
 export type ItemObject = ObjectValue<
   {
-    name: string;
     page: string;
+    name: string;
+    text: string;
     pos: number;
   } & Record<string, any>
 >;
@@ -27,7 +28,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 
   const coll = collectNodesOfType(tree, "ListItem");
 
-  for (let n of coll) {
+  for (const n of coll) {
     if (!n.children) {
       continue;
     }
@@ -40,12 +41,15 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     const item: ItemObject = {
       ref: `${name}@${n.from}`,
       tag: "item",
-      name: "", // to be replaced
+      name: "",
+      text: "",
       page: name,
       pos: n.from!,
     };
 
     const textNodes: ParseTree[] = [];
+
+    const fullText = renderToText(n);
 
     collectNodesOfType(n, "Hashtag").forEach((h) => {
       // Push tag to the list, removing the initial #
@@ -69,6 +73,8 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     }
 
     item.name = textNodes.map(renderToText).join("").trim();
+    item.text = fullText;
+
     if (tags.size > 0) {
       item.tags = [...tags];
     }

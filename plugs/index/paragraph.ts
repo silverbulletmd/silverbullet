@@ -14,9 +14,9 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
   {
-    text: string;
     page: string;
     pos: number;
+    text: string;
   } & Record<string, any>
 >;
 
@@ -35,7 +35,9 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
       return false;
     }
 
-    // So we're looking at indexable a paragraph now
+    const fullText = renderToText(p);
+
+    // Collect tags and remove from the tree
     const tags = new Set<string>();
     collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
       tags.add(tagNode.children![0].text!.substring(1));
@@ -54,9 +56,9 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
 
     const pos = p.from!;
     const paragraph: ParagraphObject = {
-      ref: `${page}@${pos}`,
-      text,
       tag: "paragraph",
+      ref: `${page}@${pos}`,
+      text: fullText,
       page,
       pos,
       ...attrs,
