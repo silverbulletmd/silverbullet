@@ -34,8 +34,31 @@ export function deepEqual(a: any, b: any): boolean {
   return false;
 }
 
-// Expands property names in an object containing a .-separated path
-export function expandPropertyNames(a: any): any {
+// Converts a Date object to a date string in the format YYYY-MM-DD if it just contains a date (and no significant time), or a full ISO string otherwise
+export function cleanStringDate(d: Date): string {
+  function pad(n: number) {
+    let s = String(n);
+    if (s.length === 1) {
+      s = "0" + s;
+    }
+    return s;
+  }
+
+  // If no significant time, return a date string only
+  if (
+    d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
+  ) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" +
+      pad(d.getDate());
+  } else {
+    return d.toISOString();
+  }
+}
+
+// Processes a JSON (typically coming from parse YAML frontmatter) in two ways:
+// 1. Expands property names in an object containing a .-separated path
+// 2. Converts dates to strings in sensible ways
+export function cleanupJSON(a: any): any {
   if (!a) {
     return a;
   }
@@ -43,7 +66,11 @@ export function expandPropertyNames(a: any): any {
     return a;
   }
   if (Array.isArray(a)) {
-    return a.map(expandPropertyNames);
+    return a.map(cleanupJSON);
+  }
+  // If a is a date, convert to a string
+  if (a instanceof Date) {
+    return cleanStringDate(a);
   }
   const expanded: any = {};
   for (const key of Object.keys(a)) {
@@ -56,7 +83,7 @@ export function expandPropertyNames(a: any): any {
       }
       target = target[part];
     }
-    target[parts[parts.length - 1]] = expandPropertyNames(a[key]);
+    target[parts[parts.length - 1]] = cleanupJSON(a[key]);
   }
   return expanded;
 }
