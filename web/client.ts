@@ -60,6 +60,8 @@ import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
+import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
+import { findNodeMatching } from "$sb/lib/tree.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -352,14 +354,26 @@ export class Client {
       console.log("Navigating to anchor", pageState.anchor);
       const pageText = this.editorView.state.sliceDoc();
 
-      // This is somewhat of a simplistic way to find the anchor, but it works for now
-      pos = pageText.indexOf(`$${pageState.anchor}`);
+      const sTree = syntaxTree(this.editorView.state);
+      const tree = lezerToParseTree(pageText, sTree.topNode);
 
-      if (pos === -1) {
+      const foundNode = findNodeMatching(tree, (node) => {
+        if (
+          node.type === "NamedAnchor" &&
+          node.children![0].text === `$${pageState.anchor}`
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (!foundNode) {
         return this.flashNotification(
           `Could not find anchor $${pageState.anchor}`,
           "error",
         );
+      } else {
+        pos = foundNode.from;
       }
 
       adjustedPosition = true;
