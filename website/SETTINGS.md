@@ -26,10 +26,10 @@ actionButtons:
 - icon: terminal
   command: "{[Open Command Palette]}"
   description: Run command
-- icon: arrow-left
-  command: "{[Navigate: Back in History]}"
-  description: "Go to the previous page"
-  mobile: true # Only show on mobile devices, set to false to show only on desktop
+#- icon: arrow-left
+#  command: "{[Navigate: Back in History]}"
+#  description: "Go to the previous page"
+#  mobile: true # Only show on mobile devices, set to false to show only on desktop
 
 # Override keyboard shortcuts and command priority
 shortcuts:
