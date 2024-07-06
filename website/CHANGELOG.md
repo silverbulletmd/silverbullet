@@ -16,6 +16,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Hide `\` escapes in [[Live Preview]] (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/901))
 * Added Erlang [[Markdown/Syntax Highlighting]]
 * Dates (formatted as e.g. `2023-07-01` or `2023-07-01 23:33`) in [[Frontmatter]] are now converted into strings (rather than empty objects)
+* `task` and `item` objects now have an additional `text` attribute that contains the full text of the item and/or task, with any [[Attributes]] and [[Tags]] intact (whereas they are removed from `name`)
 * Numerous other bug fixes (thanks MrMugame and onespaceman)
   
 ---

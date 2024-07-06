@@ -28,6 +28,7 @@ export type TaskObject = ObjectValue<
     page: string;
     pos: number;
     name: string;
+    text: string;
     done: boolean;
     state: string;
     deadline?: string;
@@ -70,6 +71,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       ref: `${name}@${n.from}`,
       tag: "task",
       name: "",
+      text: "",
       done: complete,
       page: name,
       pos: n.from!,
@@ -78,6 +80,10 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
 
     rewritePageRefs(n, name);
 
+    // The task text is everything after the task marker
+    task.text = n.children!.slice(1).map(renderToText).join("").trim();
+
+    // This finds the deadline and tags, and removes them from the tree
     replaceNodesMatching(n, (tree) => {
       if (tree.type === "DeadlineDate") {
         task.deadline = getDeadline(tree);
@@ -96,7 +102,6 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     });
 
     // Extract attributes and remove from tree
-    task.name = n.children!.slice(1).map(renderToText).join("").trim();
     const extractedAttributes = await extractAttributes(
       ["task", ...task.tags || []],
       n,
