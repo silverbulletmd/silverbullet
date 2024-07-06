@@ -7,11 +7,16 @@ import type { Client } from "../client.ts";
 import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 
+type ImageDimensions = {
+  width?: number;
+  height?: number;
+};
+
 class InlineContentWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
-    readonly dim: string | null,
+    readonly dim: ImageDimensions | undefined,
     readonly client: Client,
   ) {
     super();
@@ -19,18 +24,12 @@ class InlineContentWidget extends WidgetType {
 
   eq(other: InlineContentWidget) {
     return other.url === this.url && other.title === this.title &&
-      other.dim === this.dim;
+      JSON.stringify(other.dim) === JSON.stringify(this.dim);
   }
 
   get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
     return cachedHeight;
-  }
-
-  private getDimensions(dimensionsToParse: string) {
-    const [, width, widthUnit = "px", height, heightUnit = "px"] =
-      dimensionsToParse.match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
-    return { width, widthUnit, height, heightUnit };
   }
 
   toDOM() {
@@ -51,17 +50,48 @@ class InlineContentWidget extends WidgetType {
     img.style.display = "block";
     img.className = "sb-inline-img";
     if (this.dim) {
-      const { width, widthUnit, height, heightUnit } = this.getDimensions(
-        this.dim,
-      );
-      img.style.height = height ? `${height}${heightUnit}` : "";
-      img.style.width = width ? `${width}${widthUnit}` : "";
+      img.style.height = this.dim.height ? `${this.dim.height}px` : "";
+      img.style.width = this.dim.width ? `${this.dim.width}px` : "";
     } else if (cachedImageHeight > 0) {
       img.height = cachedImageHeight;
     }
 
     return img;
   }
+}
+
+// Parse an alias, possibly containing image dimensions into an object
+// Formats supported: "alias", "alias|100", "alias|100x200", "100", "100x200"
+function parseAlias(
+  text: string,
+): { alias?: string; dim?: ImageDimensions } {
+  let alias: string | undefined;
+  let dim: ImageDimensions | undefined;
+  if (text.includes("|")) {
+    const [aliasPart, dimPart] = text.split("|");
+    alias = aliasPart;
+    const [width, height] = dimPart.split("x");
+    dim = {};
+    if (width) {
+      dim.width = parseInt(width);
+    }
+    if (height) {
+      dim.height = parseInt(height);
+    }
+  } else if (/^[x\d]/.test(text)) {
+    const [width, height] = text.split("x");
+    dim = {};
+    if (width) {
+      dim.width = parseInt(width);
+    }
+    if (height) {
+      dim.height = parseInt(height);
+    }
+  } else {
+    alias = text;
+  }
+
+  return { alias, dim };
 }
 
 export function inlineImagesPlugin(client: Client) {
@@ -75,7 +105,8 @@ export function inlineImagesPlugin(client: Client) {
         }
 
         const text = state.sliceDoc(node.from, node.to);
-        let [url, alias, dim]: (string | null)[] = [null, null, null];
+        let [url, alias]: (string | null)[] = [null, null];
+        let dim: ImageDimensions | undefined;
         let match: RegExpExecArray | null;
         if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
@@ -91,11 +122,11 @@ export function inlineImagesPlugin(client: Client) {
         }
 
         if (alias) {
-          const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(alias);
-          if (dimReg) {
-            dim = dimReg[0];
-            alias = alias.replace(dim, "").replace("|", "");
+          const { alias: parsedAlias, dim: parsedDim } = parseAlias(alias);
+          if (parsedAlias) {
+            alias = parsedAlias;
           }
+          dim = parsedDim;
         } else {
           alias = "";
         }
