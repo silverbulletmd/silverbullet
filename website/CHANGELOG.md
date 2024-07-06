@@ -15,6 +15,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Improved selection behavior (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/904))
 * Hide `\` escapes in [[Live Preview]] (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/901))
 * Added Erlang [[Markdown/Syntax Highlighting]]
+* Dates (formatted as e.g. `2023-07-01` or `2023-07-01 23:33`) in [[Frontmatter]] are now converted into strings (rather than empty objects)
 * Numerous other bug fixes (thanks MrMugame and onespaceman)
   
 ---

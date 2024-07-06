@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
   traverseTreeAsync,
 } from "./tree.ts";
-import { expandPropertyNames } from "./json.ts";
+import { cleanupJSON } from "./json.ts";
 import { YAML } from "../syscalls.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
@@ -73,6 +73,7 @@ export async function extractFrontmatter(
       const yamlText = renderToText(yamlNode);
       try {
         const parsedData: any = await YAML.parse(yamlText);
+        console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };
         // Make sure we have a tags array
@@ -130,7 +131,7 @@ export async function extractFrontmatter(
 
   // console.log("Extracted tags", data.tags);
   // Expand property names (e.g. "foo.bar" => { foo: { bar: true } })
-  data = expandPropertyNames(data);
+  data = cleanupJSON(data);
 
   return data;
 }

@@ -1,5 +1,5 @@
 import { assertEquals } from "$std/testing/asserts.ts";
-import { deepEqual, deepObjectMerge, expandPropertyNames } from "./json.ts";
+import { cleanupJSON, deepEqual, deepObjectMerge } from "./json.ts";
 
 Deno.test("utils", () => {
   assertEquals(deepEqual({ a: 1 }, { a: 1 }), true);
@@ -11,11 +11,11 @@ Deno.test("utils", () => {
   assertEquals(deepObjectMerge({ a: { b: 1 } }, { a: { c: 2 } }), {
     a: { b: 1, c: 2 },
   });
-  assertEquals(expandPropertyNames({ "a.b": 1 }), { a: { b: 1 } });
-  assertEquals(expandPropertyNames({ a: { "a.b": 1 } }), {
+  assertEquals(cleanupJSON({ "a.b": 1 }), { a: { b: 1 } });
+  assertEquals(cleanupJSON({ a: { "a.b": 1 } }), {
     a: { a: { b: 1 } },
   });
-  assertEquals(expandPropertyNames({ a: [{ "a.b": 1 }] }), {
+  assertEquals(cleanupJSON({ a: [{ "a.b": 1 }] }), {
     a: [{ a: { b: 1 } }],
   });
 });

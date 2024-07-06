@@ -1,7 +1,7 @@
 import YAML from "js-yaml";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
-import { expandPropertyNames } from "../plug-api/lib/json.ts";
+import { cleanupJSON } from "../plug-api/lib/json.ts";
 import type { BuiltinSettings } from "../type/web.ts";
 
 const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
@@ -97,6 +97,6 @@ export async function ensureAndLoadSettingsAndIndex(
   }
 
   const settings: any = parseYamlSettings(settingsText);
-  expandPropertyNames(settings);
+  cleanupJSON(settings);
   return { ...defaultSettings, ...settings };
 }
