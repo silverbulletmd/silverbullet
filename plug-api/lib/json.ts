@@ -36,20 +36,13 @@ export function deepEqual(a: any, b: any): boolean {
 
 // Converts a Date object to a date string in the format YYYY-MM-DD if it just contains a date (and no significant time), or a full ISO string otherwise
 export function cleanStringDate(d: Date): string {
-  function pad(n: number) {
-    let s = String(n);
-    if (s.length === 1) {
-      s = "0" + s;
-    }
-    return s;
-  }
-
   // If no significant time, return a date string only
   if (
     d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
   ) {
-    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" +
-      pad(d.getDate());
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
   } else {
     return d.toISOString();
   }
