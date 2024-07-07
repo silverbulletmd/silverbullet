@@ -50,6 +50,17 @@
     font-size: 1em;
   }
 
+  // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
+  .sb-line-h1:has(> span.sb-hashtag:only-child) {
+    font-size: 1em;
+    padding: 0;
+    font-weight: normal;
+
+    .sb-meta {
+      color: var(--editor-hashtag-color);
+    }
+  }
+
   .sb-inline-img {
     max-width: 100%;
   }
