@@ -54,7 +54,7 @@ hooks.snippet.slashCommand: meeting-notes
 |^|
 ```
 
-A more advanced example using `matchRegex`: a variant of the [[Library/Core/Snippet/Task]] template which adds a `creationDate` [[Attributes|attribute]] at the end:
+A more advanced example using `matchRegex`: a variant of the [[Library/Core/Snippet/task]] template which adds a `creationDate` [[Attributes|attribute]] at the end:
 
 ```
 ---
