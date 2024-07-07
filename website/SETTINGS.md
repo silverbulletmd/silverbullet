@@ -1,3 +1,7 @@
+---
+tags: meta
+---
+
 This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a reload.
 
 ```yaml

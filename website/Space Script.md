@@ -1,14 +1,13 @@
 Space Script allows you to extend SilverBullet with JavaScript from within your space using `space-script` [[Blocks]]. It’s script... in (your) [[Spaces|space]]. Get it?
 
-> **warning** **Experimental**
-> This is an experimental feature that is under active development and consideration. Its APIs are likely to evolve, and the feature could potentially be removed altogether. Feel free to experiment with it and give feedback on [our community](https://community.silverbullet.md/).
-
 > **warning** **Security**
 > Space script allows for arbitrary JavaScript to be run in the client and server, there are security risks involved **if malicious users get write access to your space (folder)** or if you copy & paste random scripts from the Internet without understanding what they do.
 > If this makes you very queazy, you can disable Space Script by setting the `SB_SPACE_SCRIPT` environment variable to `off`
 
 # Creating scripts
-Space scripts are defined by simply using `space-script` fenced code blocks in your space. You will get JavaScript [[Markdown/Syntax Highlighting]] for these blocks.
+Space scripts are defined by simply using `space-script` fenced code blocks in your space. This can happen on any [[Pages]] you like, but for organizational reasons it’s recommended you put them on [[Meta Pages]].
+
+You will get JavaScript [[Markdown/Syntax Highlighting]] for these blocks.
 
 Here is a trivial example:
 

@@ -6,10 +6,12 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* The old **Template Picker** has now been rebranded to [[Meta Picker]] and surfaces pages in your space tagged as `#template` or `#meta`. Read more about this in [[Meta Pages]].
+* For new spaces, the default [[SETTINGS]] page is now tagged with `#meta`, which means it will only appear in the [[Meta Picker]]. There is also a new {[Navigate: Open SETTINGS]} command (bound to `Ctrl-,` and `Cmd-,`).
 * Attachments are now indexed, and smartly moved when pages are renamed (by onespaceman)
 * Images can now be resized: [[Attachments#Embedding]] (initial work done by [Florent](https://github.com/silverbulletmd/silverbullet/pull/833), later adapted by onespaceman)
-* Super^script^ and Sub~script~ are now supported (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/879))
 * To make pure reading and browsing on touch devices a nicer experience, there is now a new **edit toggle** (top right). When _disabled_, you switch to _reader mode_ which makes sure your software keyboard doesn’t block the screen when navigating your space. This button is only visible on mobile devices (no physical keyboard attached) only. Can be disabled via the `hideEditButton` [[SETTINGS]] (and is disabled on this website, that’s why you don’t see it).
+* Super^script^ and Sub~script~ are now supported (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/879))
 * Added a {[Delete Line]} command (by [pihentagy](https://github.com/silverbulletmd/silverbullet/pull/866))
 * The `#boot` PWA loading the last opened page feature is back (put `#boot` at the end of your SilverBullet URL to auto load the last opened page)
 * Improved selection behavior (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/904))
@@ -162,7 +164,7 @@ So, what’s the fuss all about?
   * Reload your page 2-3x to be sure you have the latest front-end code running.
   * Run the {[Library: Import]} command in your space, and enter the following federation URL: `!silverbullet.md/Library/` This will import both the [[Library/Core]] and [[Library/Journal]] libraries into your space, bringing you roughly on par with 0.5.x versions in terms of functionality (this will include the daily note, weekly note, various slash commands etc.)
 * A **quick FAQ** on the new template system:
-  * **Where did my templates go!?** They have now moved to the [[Template Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux) to get to them.
+  * **Where did my templates go!?** They have now moved to the [[Meta Picker]], run {[Navigate: Page Picker]} (or press `Cmd-Shift-t` on Mac or `Ctrl-Shift-t` on Windows/Linux) to get to them.
   * **Where did all my slash commands go?!** They are now distributed via [[Libraries]]. Yep, Libraries are here, enabling an easier way to distribute templates and pages. Read [[Libraries]] for more info.
   * **But, what about slash templates etc.?!** Yeah, we did some rebranding and changed how these are defined. Slash templates are now [[Snippets]] and cannot _just_ be instantiated via [[Slash Commands]], but through [[Commands]] and custom keybindings as well. Awesomeness.
   * **And my page templates broke!?** Yeah, same story as with [[Snippets]]: the format for defining these changed a bit, but it should be easy to update to the new format: check [[Page Templates]].
@@ -174,7 +176,7 @@ So, what’s the fuss all about?
   * The new `itags` attribute (available in many objects) includes both the `tag` and `tags` as well as any tags inherited from the page the object appears in.
   * Page tags now no longer need to appear at the top of the page, but can appear anywhere as long as they are the only thing appearing in a paragraph with no additional text; see [[Objects#page]].
 * New [[Markdown/Code Widgets|Code Widget]]: `toc` to manually include a [[Table of Contents]]
-* Filter list (used by [[Page Picker]], [[Template Picker]] and [[Command Palette]]) improvements:
+* Filter list (used by [[Page Picker]], [[Meta Picker]] and [[Command Palette]]) improvements:
   * Better ranking
   * Better positioning of modal (especially on mobile)
   * Better mouse behavior

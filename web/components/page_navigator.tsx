@@ -19,7 +19,7 @@ export function PageNavigator({
   allPages: PageMeta[];
   vimMode: boolean;
   darkMode: boolean;
-  mode: "page" | "template";
+  mode: "page" | "meta";
   onNavigate: (page: string | undefined) => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
@@ -69,13 +69,14 @@ export function PageNavigator({
         orderId: orderId,
       });
     } else {
-      // Special behavior for templates
+      // Special behavior for #template and #meta pages
       options.push({
         ...pageMeta,
         // Use the displayName or last bit of the path as the name
         name: pageMeta.displayName || pageMeta.name.split("/").pop()!,
         // And use the full path as the description
         description: pageMeta.name,
+        hint: pageMeta.tags![0],
         orderId: orderId,
       });
     }
@@ -89,7 +90,7 @@ export function PageNavigator({
   }
   return (
     <FilterList
-      placeholder={mode === "page" ? "Page" : "Template"}
+      placeholder={mode === "page" ? "Page" : "#template or #meta page"}
       label="Open"
       options={options}
       vimMode={vimMode}
@@ -114,14 +115,17 @@ export function PageNavigator({
               );
             });
           }
+          // Remove pages that are tagged as templates or meta
           options = options.filter((pageMeta) => {
-            return !pageMeta.tags?.includes("template");
+            return !pageMeta.tags?.includes("template") &&
+              !pageMeta.tags?.includes("meta");
           });
           return options;
         } else {
-          // Filter on pages tagged with "template"
+          // Filter on pages tagged with "template" or "meta"
           options = options.filter((pageMeta) => {
-            return pageMeta.tags?.includes("template");
+            return pageMeta.tags?.includes("template") ||
+              pageMeta.tags?.includes("meta");
           });
           return options;
         }

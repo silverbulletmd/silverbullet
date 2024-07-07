@@ -754,7 +754,7 @@ export class Client {
     );
   }
 
-  startPageNavigate(mode: "page" | "template") {
+  startPageNavigate(mode: "page" | "meta") {
     // Then show the page navigator
     this.ui.viewDispatch({ type: "start-navigate", mode });
     this.updatePageListCache().catch(console.error);
