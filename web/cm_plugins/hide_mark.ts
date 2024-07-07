@@ -92,6 +92,17 @@ export function hideHeaderMarkPlugin() {
         }
         // Get the active line
         const line = state.sliceDoc(from, to);
+        if (line === "#") {
+          // Empty header, potentially a tag, style it as such
+          widgets.push(
+            Decoration.mark({
+              tagName: "span",
+              class: "sb-hashtag",
+            }).range(from, from + 1),
+          );
+
+          return;
+        }
         if (isCursorInRange(state, [from, to])) {
           widgets.push(
             Decoration.line({ class: "sb-header-inside" }).range(from),
