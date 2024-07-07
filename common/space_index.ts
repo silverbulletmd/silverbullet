@@ -4,7 +4,7 @@ import { System } from "$lib/plugos/system.ts";
 const indexVersionKey = ["$indexVersion"];
 
 // Bump this one every time a full reinxex is needed
-const desiredIndexVersion = 4;
+const desiredIndexVersion = 5;
 
 let indexOngoing = false;
 
