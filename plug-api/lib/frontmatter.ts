@@ -73,7 +73,7 @@ export async function extractFrontmatter(
       const yamlText = renderToText(yamlNode);
       try {
         const parsedData: any = await YAML.parse(yamlText);
-        console.log("Parsed front matter", parsedData);
+        // console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };
         // Make sure we have a tags array
