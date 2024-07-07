@@ -259,6 +259,9 @@ function evalSimpleExpression(type: string, val1: any, val2: any, val3: any) {
       return r.test(val1);
     }
     case "!=~": {
+      if (typeof val2 === "string") {
+        val2 = [val2, "i"];
+      }
       if (!Array.isArray(val2)) {
         throw new Error(`Invalid regexp: ${val2}`);
       }
