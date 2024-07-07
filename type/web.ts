@@ -60,7 +60,7 @@ export type AppViewState = {
   };
 
   // Page navigator mode
-  pageNavigatorMode: "page" | "template";
+  pageNavigatorMode: "page" | "meta";
 
   // Filter box
   showFilterBox: boolean;
@@ -125,7 +125,7 @@ export type Action =
   | { type: "sync-change"; syncSuccess: boolean }
   | { type: "update-page-list"; allPages: PageMeta[] }
   | { type: "settings-loaded"; settings: BuiltinSettings }
-  | { type: "start-navigate"; mode: "page" | "template" }
+  | { type: "start-navigate"; mode: "page" | "meta" }
   | { type: "stop-navigate" }
   | {
     type: "update-commands";

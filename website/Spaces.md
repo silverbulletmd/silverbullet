@@ -10,3 +10,5 @@ A space consists of
 # Folder lay-out
 Every space in SilverBullet at the very least has an index page (by default named `index.md`) and a [[SETTINGS]] page (named `SETTINGS.md`). If you install custom [[Plugs]], these will be kept under `_plug` in your space’s folder.
 
+Likely you will be using [[Libraries]] that implement core functionality. In this case there will be a `Library` folder in your space as well.
+

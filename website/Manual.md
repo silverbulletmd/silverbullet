@@ -50,7 +50,7 @@ These are the core concepts used in SilverBullet:
 # Navigation
 The main ways to roam your space, beside following page links, are:
 * [[Page Picker]]
-* [[Template Picker]]
+* [[Meta Picker]]
 * [[Full Text Search]]
 
 # Advanced topics

@@ -1,3 +1,7 @@
+---
+tags: meta
+---
+
 This page lists all templates currently available in your space.
 
 # New Page

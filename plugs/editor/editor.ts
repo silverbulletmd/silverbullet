@@ -18,8 +18,8 @@ export async function openPageNavigator() {
   await editor.openPageNavigator("page");
 }
 
-export async function openTemplateNavigator() {
-  await editor.openPageNavigator("template");
+export async function openMetaNavigator() {
+  await editor.openPageNavigator("meta");
 }
 
 export async function toggleDarkMode() {

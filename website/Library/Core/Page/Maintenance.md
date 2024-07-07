@@ -1,3 +1,6 @@
+---
+tags: meta
+---
 We would like to keep our space clean, these are some tools that help you do that.
 
 # Broken links

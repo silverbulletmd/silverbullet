@@ -25,12 +25,12 @@ functions:
       key: "Ctrl-k"
       mac: "Cmd-k"
 
-  openTemplateNavigator:
-    path: editor.ts:openTemplateNavigator
+  openMetaNavigator:
+    path: editor.ts:openMetaNavigator
     command:
-      name: "Navigate: Template Picker"
-      key: "Ctrl-Shift-t"
-      mac: "Cmd-Shift-t"
+      name: "Navigate: Meta Picker"
+      key: "Ctrl-Shift-k"
+      mac: "Cmd-Shift-k"
 
   # Page operations
   deletePage:
@@ -77,6 +77,13 @@ functions:
       name: "Navigate: Home"
       key: "Alt-h"
       page: ""
+  navigateToSettings:
+    path: "./navigate.ts:navigateCommand"
+    command:
+      name: "Navigate: Open SETTINGS"
+      key: "Ctrl-,"
+      mac: "Cmd-,"
+      page: "SETTINGS"
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
     command:
@@ -124,8 +131,6 @@ functions:
     path: ./text.ts:linkSelection
     command:
       name: "Text: Link Selection"
-      key: "Ctrl-Shift-k"
-      mac: "Cmd-Shift-k"
       requireMode: rw
   bold:
     path: ./text.ts:wrapSelection
