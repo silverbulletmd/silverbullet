@@ -50,9 +50,6 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
   );
 }
 
-const taskPrefixRegex = /^\s*[\-\*]\s+\[([^\]]+)\]/;
-const itemPrefixRegex = /^\s*[\-\*]\s+/;
-
 export async function tagComplete(completeEvent: CompleteEvent) {
   const inLinkMatch = /(?:\[\[|\[.*\]\()([^\]]*)$/.exec(
     completeEvent.linePrefix,
@@ -66,28 +63,12 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
   const tagPrefix = match[0].substring(1);
-  let parent = "page";
-  if (!completeEvent.parentNodes.find((n) => n.startsWith("FrontMatter:"))) {
-    if (taskPrefixRegex.test(completeEvent.linePrefix)) {
-      parent = "task";
-    } else if (itemPrefixRegex.test(completeEvent.linePrefix)) {
-      parent = "item";
-    }
-  }
 
   // Query all tags with a matching parent
   const allTags: any[] = await queryObjects<TagObject>("tag", {
-    filter: ["=", ["attr", "parent"], ["string", parent]],
     select: [{ name: "name" }],
     distinct: true,
   }, 5);
-
-  if (parent === "page") {
-    // Also add template, even though that would otherwise not appear because has "builtin" as a parent
-    allTags.push({
-      name: "template",
-    });
-  }
 
   return {
     from: completeEvent.pos - tagPrefix.length,
