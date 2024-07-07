@@ -87,7 +87,7 @@ Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 * `<=` less than or equals, e.g. `age <= 10`
 * `>` greater than, e.g. `age > 10`
 * `>=` greater than or equals, e.g. `age >= 10`
-* `=~` to match against a regular expression, e.g. `name =~ /^template\//`
+* `=~` to match against a regular expression, e.g. `name =~ /^template\//` (the operand can either be a regular expression or a string expression that will be turned into a regular expression)
 * `!=~` to not match a regular expression, e.g. `name !=~ /^template\//`
 * `in` member of a list (e.g. `prop in ["foo", "bar"]`)
 * `+` addition (can also concatenate strings), e.g. `10 + 12` or `name + "!!!"`
