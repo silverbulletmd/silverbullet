@@ -45,12 +45,4 @@ task where page = @page.name
 ```
 
 ## Rendering
-There is a [[!silverbullet.md/template/tasks/task]] template you can use to render tasks nicely rather than using the default table (as demonstrated above). When you use this template, you can even cycle through the states of the task by click on its state _inside_ the rendered query, and it will update the state of the _original_ task automatically (although not yet in reverse) — this works across pages.
-
-Try it (by clicking on the checkbox inside of the query):
-
-```query
-task where page = @page.name and name = "Remote toggle me" render [[Library/Core/Query/Task]] 
-```
-
-* [ ] Remote toggle me
+There is a [[!silverbullet.md/template/tasks/task]] template you can use to render tasks nicely rather than using the default table (as demonstrated above). When you use this template, you can even cycle through the states of the task by click on its state _inside_ the rendered query, and it will update the state of the _original_ task automatically, this works across pages.

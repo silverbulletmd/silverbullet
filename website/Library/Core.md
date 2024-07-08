@@ -1,7 +1,9 @@
-This library is highly recommended for everybody to import immediately. It provides a lot of functionality you’ll likely appreciate (and may be used to having out of the box, if you’re longer-term SilverBullet user).
+This library is highly recommended for everybody to import immediately. It provides a lot of functionality you’ll likely appreciate.
 
 Some examples:
-* [[Table of Contents]] and [[Linked Mentions]]
+* [[Table of Contents]]
+* [[Linked Mentions]]
+* [[Linked Tasks]]
 * All the slash commands you know and love, ranging from `/h1` to `/task` to `/table` to `/code` to `/query` to `/template` to `/today` to...
 * Some useful general purpose pages such as [[Library/Core/Page/Maintenance]], [[Library/Core/Quick Notes]] and [[Library/Core/Page/Template Index]].
 

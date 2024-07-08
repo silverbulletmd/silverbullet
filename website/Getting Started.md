@@ -3,7 +3,7 @@ Welcome to the wondrous world of SilverBullet. A world that once you discover an
 
 _One of us!_
 
-Out of the box SilverBullet is fairly minimal in terms of functionality. To give you a good “first run” experience, we recommend you start by importing the [[Library/Core]] library into your space. This will give you a couple of useful pages, slash commands, page templates and widgets such as [[Table of Contents]] and [[Linked Mentions]] to start of with. If you have no idea what those are — don’t worry about it. Just keep going, you’ll get the hang of things.
+Out of the box SilverBullet is fairly minimal in terms of functionality. To give you a good “first run” experience, we recommend you start by importing the [[Library/Core]] library into your space. This will give you a couple of useful pages, slash commands, page templates and widgets such as [[Table of Contents]], [[Linked Mentions]] and [[Linked Tasks]] to start of with. If you have no idea what those are — don’t worry about it. Just keep going, you’ll get the hang of things.
 
 Just push this button: {[Library: Import|Import Core Library]("!silverbullet.md/Library/Core/")}
 
