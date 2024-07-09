@@ -50,48 +50,56 @@ export function buildQueryFunctions(
       ]);
     },
     // INTERNAL: Used to implement resolving [[links]] in expressions
-    readPage(name: string): Promise<string> | string {
+    async readPage(name: string): Promise<string> {
       const cachedPage = pageCache.get(name);
       if (cachedPage) {
         return cachedPage;
-      } else {        const pageRef = parsePageRef(name);
-        return system.localSyscall("space.readPage", [pageRef.page]).then(
-          (page) => {
-            // Extract page section if pos, anchor, or header are included
-            if (pageRef.pos) {
-              page = page.slice(pageRef.pos);
-            } else if (pageRef.anchor) {
-              const pos = page.indexOf(`$${pageRef.anchor}`);
-              page = page.slice(pos);
-            } else if (pageRef.header) {
-              let pos = page.indexOf(`# ${pageRef.header}\n`);
-              let headingLevel = 1;
-              while (page.charAt(pos - 1) === "#") {
-                pos--;
-                headingLevel++;
-              }
-              page = page.slice(pos);
+      } else {
+        const pageRef = parsePageRef(name);
+        try {
+          let page: string = await system.localSyscall("space.readPage", [
+            pageRef.page,
+          ]);
+          pageCache.set(name, page, pageCacheTtl);
 
-              // Slice up to the next equal or higher level heading
-              const headRegex = new RegExp(
-                `[^#]#{1,${headingLevel}} [^\n]*\n`,
-                "g",
-              );
-              const endPos = page.slice(headingLevel).search(headRegex) +
-                headingLevel;
-              if (endPos) {
-                page = page.slice(0, endPos);
-              }
+          // Extract page section if pos, anchor, or header are included
+          if (pageRef.pos) {
+            // If the page link includes a position, slice the page from that position
+            page = page.slice(pageRef.pos);
+          } else if (pageRef.anchor) {
+            // If the page link includes an anchor, slice the page from that anchor
+            const pos = page.indexOf(`$${pageRef.anchor}`);
+            page = page.slice(pos);
+          } else if (pageRef.header) {
+            // If the page link includes a header, select that header (up to the next header at the same level)
+            // Note: this an approximation, should ideally use the AST
+            let pos = page.indexOf(`# ${pageRef.header}\n`);
+            let headingLevel = 1;
+            while (page.charAt(pos - 1) === "#") {
+              pos--;
+              headingLevel++;
             }
+            page = page.slice(pos);
 
-            pageCache.set(name, page, pageCacheTtl);
-            return page;
-          },
-        ).catch((e: any) => {
+            // Slice up to the next equal or higher level heading
+            const headRegex = new RegExp(
+              `[^#]#{1,${headingLevel}} [^\n]*\n`,
+              "g",
+            );
+            const endPos = page.slice(headingLevel).search(headRegex) +
+              headingLevel;
+            if (endPos) {
+              page = page.slice(0, endPos);
+            }
+          }
+
+          return page;
+        } catch (e: any) {
           if (e.message === "Not found") {
             throw new Error(`Page not found: ${name}`);
           }
-        });
+          throw e;
+        }
       }
     },
   };

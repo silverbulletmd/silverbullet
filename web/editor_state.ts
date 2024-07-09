@@ -1,11 +1,6 @@
 import { readonlyMode } from "./cm_plugins/readonly.ts";
 import customMarkdownStyle from "./style.ts";
-import {
-  history,
-  historyKeymap,
-  indentWithTab,
-  standardKeymap,
-} from "@codemirror/commands";
+import { history, indentWithTab, standardKeymap } from "@codemirror/commands";
 import {
   autocompletion,
   closeBrackets,
@@ -33,7 +28,7 @@ import {
 import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
 import { Client } from "./client.ts";
-import { inlineImagesPlugin } from "./cm_plugins/inline_image.ts";
+import { inlineImagesPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";

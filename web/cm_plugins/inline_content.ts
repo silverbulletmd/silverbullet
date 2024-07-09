@@ -6,9 +6,8 @@ import { decoratorStateField } from "./util.ts";
 import type { Client } from "../client.ts";
 import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
-import { mdLinkRegex, wikiLinkRegex } from "$common/markdown_parser/parser.ts";
 
-class InlineImageWidget extends WidgetType {
+class InlineContentWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
@@ -16,17 +15,15 @@ class InlineImageWidget extends WidgetType {
     readonly client: Client,
   ) {
     super();
-    // console.log("Creating widget", url);
   }
 
-  eq(other: InlineImageWidget) {
+  eq(other: InlineContentWidget) {
     return other.url === this.url && other.title === this.title &&
       other.dim === this.dim;
   }
 
   get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
-    // console.log("Estimated height requested", this.url, cachedHeight);
     return cachedHeight;
   }
 
@@ -143,7 +140,7 @@ export function inlineImagesPlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, alias, dim, client),
+            widget: new InlineContentWidget(url, alias, dim, client),
             block: true,
           }).range(node.to),
         );
