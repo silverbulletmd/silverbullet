@@ -22,6 +22,8 @@ Images can also be embedded using the [[#Linking]] syntax, but prefixed with an 
 
 These follow the same relative/absolute path rules as links described before.
 
+## Image resizing
+
 In addition, images can be _sized_ using the following syntax:
 * Specifying only a width: `![Alt text|300](image.png)` or `![[image.png|300]]`
 * Specifying both width and height: `![Hello|300x300](image.png)` or `![[image.png|300x300]]`
