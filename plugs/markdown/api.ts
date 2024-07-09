@@ -10,6 +10,8 @@ import {
   MarkdownRenderOptions,
   renderMarkdownToHtml,
 } from "./markdown_render.ts";
+import { validatePageName } from "$sb/lib/page_ref.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree
@@ -57,6 +59,48 @@ export async function expandCodeWidgets(
           console.trace();
           console.error("Error rendering code", e.message);
         }
+      }
+    } else if (n.type === "Image") {
+      // Let's scan for ![[embeds]] that are codified as Images, confusingly
+      const wikiLinkMark = findNodeOfType(n, "WikiLinkMark");
+      if (!wikiLinkMark) {
+        return;
+      }
+      const wikiLinkPage = findNodeOfType(n, "WikiLinkPage");
+      if (!wikiLinkPage) {
+        return;
+      }
+
+      const page = wikiLinkPage.children![0].text!;
+
+      // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
+      try {
+        const ref = parsePageRef(page);
+        validatePageName(ref.page);
+      } catch {
+        // Not a valid page name, so not a page reference
+        return;
+      }
+
+      // Internally translate this to a template that inlines a page, then render that
+      const result = await codeWidget.render(
+        "template",
+        `{{[[${page}]]}}`,
+        page,
+      );
+      if (!result) {
+        return {
+          text: "",
+        };
+      }
+      // Only do this for "markdown" widgets, that is: that can render to markdown
+      if (result.markdown !== undefined) {
+        const parsedBody = await parseMarkdown(result.markdown);
+        // Recursively process
+        return expandCodeWidgets(
+          parsedBody,
+          page,
+        );
       }
     }
   });

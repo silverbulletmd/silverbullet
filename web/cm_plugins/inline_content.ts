@@ -1,16 +1,18 @@
 import { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
+import { MarkdownWidget } from "./markdown_widget.ts";
 import { decoratorStateField } from "./util.ts";
 import type { Client } from "../client.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 type ImageDimensions = {
   width?: number;
   height?: number;
 };
 
-class InlineImageWidget extends WidgetType {
+class InlineContentWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
@@ -20,14 +22,13 @@ class InlineImageWidget extends WidgetType {
     super();
   }
 
-  eq(other: InlineImageWidget) {
+  eq(other: InlineContentWidget) {
     return other.url === this.url && other.title === this.title &&
       JSON.stringify(other.dim) === JSON.stringify(this.dim);
   }
 
   get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
-    // console.log("Estimated height requested", this.url, cachedHeight);
     return cachedHeight;
   }
 
@@ -113,7 +114,9 @@ export function inlineImagesPlugin(client: Client) {
           (match = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g.exec(text))
         ) {
           [/* fullMatch */, /* firstMark */ , url, alias] = match;
-          url = "/" + url;
+          if (!isFederationPath(url)) {
+            url = "/" + url;
+          }
         } else {
           return;
         }
@@ -130,11 +133,45 @@ export function inlineImagesPlugin(client: Client) {
 
         if (isLocalPath(url)) {
           url = resolvePath(client.currentPage, decodeURI(url), true);
+          const pageRef = parsePageRef(url);
+          if (
+            isFederationPath(pageRef.page) ||
+            client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
+          ) {
+            // This is a page reference, let's inline the content
+            const codeWidgetCallback = client.clientSystem.codeWidgetHook
+              .codeWidgetCallbacks.get("template");
+
+            if (!codeWidgetCallback) {
+              return;
+            }
+
+            widgets.push(
+              Decoration.line({
+                class: "sb-fenced-code-iframe",
+              }).range(node.to),
+            );
+
+            widgets.push(
+              Decoration.widget({
+                widget: new MarkdownWidget(
+                  node.from,
+                  client,
+                  `widget:${client.currentPage}:${text}`,
+                  `{{[[${url}]]}}`,
+                  codeWidgetCallback,
+                  "sb-markdown-widget sb-markdown-widget-inline",
+                ),
+                block: true,
+              }).range(node.to),
+            );
+            return;
+          }
         }
 
         widgets.push(
           Decoration.widget({
-            widget: new InlineImageWidget(url, alias, dim, client),
+            widget: new InlineContentWidget(url, alias, dim, client),
             block: true,
           }).range(node.to),
         );

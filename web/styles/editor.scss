@@ -581,6 +581,14 @@
     }
   }
 
+  .sb-markdown-widget-inline {
+    margin: 0 0 0 0;
+
+    &:hover .button-bar {
+      display: none !important;
+    }
+  }
+
   .sb-fenced-code-iframe {
     background-color: transparent;
 

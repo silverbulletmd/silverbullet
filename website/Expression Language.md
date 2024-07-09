@@ -63,9 +63,9 @@ A rendered query:
 Page references use the `[[page name]]` syntax and evaluate to the content of the referenced page (as a string), this makes them a good candidate to be used in conjunction with [[Functions#template(text, value)]] or to simply inline another page:
 
 ```template
-Including another page directly, without template rendering: {{[[internal/test page]]}}
+Including another page directly, without template rendering: {{[[internal/test page with template]]}}
 
-And rendered as a template: {{template([[internal/test page]], "actual value")}}
+And rendered as a template: {{template([[internal/test page with template]], "actual value")}}
 ```
 
 # Logical expressions 
