@@ -5,6 +5,8 @@ import {
   replaceNodesMatchingAsync,
 } from "./tree.ts";
 
+import { cleanupJSON } from "$sb/lib/json.ts";
+
 import { system, YAML } from "../syscalls.ts";
 
 /**
@@ -31,7 +33,7 @@ export async function extractAttributes(
         const name = nameNode.children![0].text!;
         const val = valueNode.children![0].text!;
         try {
-          attributes[name] = await YAML.parse(val);
+          attributes[name] = cleanupJSON(await YAML.parse(val));
         } catch (e: any) {
           console.error("Error parsing attribute value as YAML", val, e);
         }
