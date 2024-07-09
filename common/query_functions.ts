@@ -49,7 +49,7 @@ export function buildQueryFunctions(
         variables,
       ]);
     },
-    // INTERNAL: Used to implement resolving [[links]] in expressions
+    // INTERNAL: Used to implement resolving [[links]] in expressions, also supports [[link#header]] and [[link$pos]] as well as [[link$anchor]]
     async readPage(name: string): Promise<string> {
       const cachedPage = pageCache.get(name);
       if (cachedPage) {
@@ -60,7 +60,6 @@ export function buildQueryFunctions(
           let page: string = await system.localSyscall("space.readPage", [
             pageRef.page,
           ]);
-          pageCache.set(name, page, pageCacheTtl);
 
           // Extract page section if pos, anchor, or header are included
           if (pageRef.pos) {
@@ -92,6 +91,8 @@ export function buildQueryFunctions(
               page = page.slice(0, endPos);
             }
           }
+
+          pageCache.set(name, page, pageCacheTtl);
 
           return page;
         } catch (e: any) {

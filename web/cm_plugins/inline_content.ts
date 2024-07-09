@@ -138,7 +138,7 @@ export function inlineImagesPlugin(client: Client) {
             isFederationPath(pageRef.page) ||
             client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
           ) {
-            // Is a page. Render as markdown widget
+            // This is a page reference, let's inline the content
             const codeWidgetCallback = client.clientSystem.codeWidgetHook
               .codeWidgetCallbacks.get("template");
 
