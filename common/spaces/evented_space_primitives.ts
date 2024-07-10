@@ -18,12 +18,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   // This is ok, because any event will be picked up in a following iteration.
   operationInProgress = false;
 
-  initialFileListLoad = true;
+  initialFileListLoad: boolean;
 
-  spaceSnapshot: Record<string, number> = {};
+  public enabled = true;
+
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
+    private spaceSnapshot: Record<string, number> = {},
   ) {
     // Translate file change events for attachments into attachment:index events
     this.eventHook.addLocalListener(
@@ -37,6 +39,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         }
       },
     );
+    this.initialFileListLoad = Object.keys(this.spaceSnapshot).length === 0;
+    // console.log("Loaded space snapshot", spaceSnapshot);
   }
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
@@ -44,6 +48,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
+    if (!this.enabled) {
+      return this.wrapped.fetchFileList();
+    }
     if (this.operationInProgress) {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
@@ -52,6 +59,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       );
       return this.wrapped.fetchFileList();
     }
+    // console.log("Fetching file list");
     // Fetching mutex
     this.operationInProgress = true;
     try {
@@ -77,6 +85,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             oldHash !== newHash
           )
         ) {
+          console.log("Detected file change", meta.name, oldHash, newHash);
           await this.dispatchEvent(
             "file:changed",
             meta.name,
@@ -100,6 +109,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       await this.dispatchEvent("file:listed", newFileList);
+      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
       this.initialFileListLoad = false;
       return newFileList;
     } finally {
@@ -110,6 +120,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    if (!this.enabled) {
+      return this.wrapped.readFile(name);
+    }
     try {
       // Fetching mutex
       const wasFetching = this.operationInProgress;
@@ -133,6 +146,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
+    if (!this.enabled) {
+      return this.wrapped.writeFile(name, data, selfUpdate, meta);
+    }
     try {
       this.operationInProgress = true;
       const newMeta = await this.wrapped.writeFile(
@@ -163,6 +179,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           text,
         });
       }
+      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
       return newMeta;
     } finally {
       this.operationInProgress = false;
@@ -180,6 +197,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
+    if (!this.enabled) {
+      return this.wrapped.getFileMeta(name);
+    }
     try {
       const wasFetching = this.operationInProgress;
       this.operationInProgress = true;
@@ -204,6 +224,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(name: string): Promise<void> {
+    if (!this.enabled) {
+      return this.wrapped.deleteFile(name);
+    }
     try {
       this.operationInProgress = true;
       if (name.endsWith(".md")) {
@@ -214,6 +237,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       await this.wrapped.deleteFile(name);
       delete this.spaceSnapshot[name];
       await this.dispatchEvent("file:deleted", name);
+      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
     } finally {
       this.operationInProgress = false;
     }

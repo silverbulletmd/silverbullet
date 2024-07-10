@@ -97,13 +97,31 @@ export class ServerSystem extends CommonSystem {
 
     this.system.addHook(codeWidgetHook);
 
-    this.spacePrimitives = new EventedSpacePrimitives(
+    // Look up spaceCache meta data in KV
+    const spaceCache = (await this.ds.get(["$spaceCache"])) || {};
+
+    const eventedSpacePrimitives = new EventedSpacePrimitives(
       new PlugSpacePrimitives(
         this.spacePrimitives,
         plugNamespaceHook,
       ),
       this.eventHook,
+      spaceCache,
     );
+
+    // Disable events until everything is set up
+    eventedSpacePrimitives.enabled = false;
+
+    this.spacePrimitives = eventedSpacePrimitives;
+
+    this.eventHook.addLocalListener(
+      "file:spaceSnapshotted",
+      (snapshot: Record<string, any>) => {
+        console.log("Space snapshot updated");
+        return this.ds.set(["$spaceCache"], snapshot);
+      },
+    );
+
     const space = new Space(this.spacePrimitives, this.eventHook);
 
     // Add syscalls
@@ -186,6 +204,11 @@ export class ServerSystem extends CommonSystem {
         });
       },
     );
+
+    // All setup, enable eventing
+    eventedSpacePrimitives.enabled = true;
+
+    space.updatePageList().catch(console.error);
 
     // Ensure a valid index
     const indexPromise = ensureSpaceIndex(this.ds, this.system);
