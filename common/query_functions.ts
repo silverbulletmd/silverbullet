@@ -3,6 +3,11 @@ import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { traverseTree } from "$sb/lib/tree.ts";
+import { renderToText } from "$sb/lib/tree.ts";
+import { findNodeOfType } from "$sb/lib/tree.ts";
 
 const pageCacheTtl = 10 * 1000; // 10s
 
@@ -48,6 +53,31 @@ export function buildQueryFunctions(
         query,
         variables,
       ]);
+    },
+    // INTERNAL: Used to rewrite task references in transclusions
+    rewriteTaskRefs(template: string, page: string) {
+      // Rewrite all task references to include a page ref
+      // Parse template into a tree
+      const tree = parse(extendedMarkdownLanguage, template);
+      // Find tasks
+      traverseTree(tree, (node) => {
+        if (node.type === "Task") {
+          const taskRefWikiLink = findNodeOfType(node, "WikiLinkPage");
+          if (taskRefWikiLink) {
+            // Check if this looks like a task reference
+            const taskRef = taskRefWikiLink.children![0].text!;
+            if (taskRef.includes("@")) {
+              // Ok, this already has a page ref, skipping
+              return true;
+            }
+          }
+          // No task ref found, let's splice it in
+          node.children!.splice(1, 0, { text: ` [[${page}@${node.from!}]]` });
+          return true;
+        }
+        return false;
+      });
+      return renderToText(tree);
     },
     // INTERNAL: Used to implement resolving [[links]] in expressions, also supports [[link#header]] and [[link$pos]] as well as [[link$anchor]]
     async readPage(name: string): Promise<string> {

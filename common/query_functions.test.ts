@@ -42,6 +42,17 @@ describe("pageExists", () => {
   });
 });
 
+describe("$rewriteTaskRefs", () => {
+  it("should rewrite all task references to include a page ref", () => {
+    const template1 =
+      "* [ ] My task\n* [ ] [[other@2]] Ignore me\n* [ ] Rewrite me too [[other page]]\n";
+    assertEquals(
+      functions.rewriteTaskRefs(template1, "page1"),
+      "* [ ] [[page1@2]] My task\n* [ ] [[other@2]] Ignore me\n* [ ] [[page1@44]] Rewrite me too [[other page]]\n",
+    );
+  });
+});
+
 describe("template", () => {
   const invalidValues = [/hello/, 1, null, undefined, true, {}];
   for (const value of invalidValues) {
