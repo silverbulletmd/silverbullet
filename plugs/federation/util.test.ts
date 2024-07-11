@@ -3,8 +3,10 @@ import { federatedPathToLocalPath, wildcardPathToRegex } from "./util.ts";
 
 Deno.test("Test wildcardPathToRegex", () => {
     assert(wildcardPathToRegex("test").test("test"));
+    assert(wildcardPathToRegex("test").test("test.md"));
     assert(wildcardPathToRegex("test*").test("test"));
     assert(wildcardPathToRegex("test/*").test("test/bla"));
+    assert(wildcardPathToRegex("test/*").test("test/bla.md"));
     assert(wildcardPathToRegex("test/*").test("test/bla/bla"));
     assert(!wildcardPathToRegex("test/*").test("tests/bla/bla"));
 });

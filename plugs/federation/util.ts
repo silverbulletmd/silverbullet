@@ -6,7 +6,7 @@ export function wildcardPathToRegex(pattern: string): RegExp {
     const regexPattern = escapedPattern.replace(/\*/g, ".*");
 
     // Create a new regular expression with the converted pattern
-    return new RegExp(`^${regexPattern}$`);
+    return new RegExp(`^${regexPattern}(\\.md)?$`);
 }
 
 export function federatedPathToLocalPath(path: string): string {
