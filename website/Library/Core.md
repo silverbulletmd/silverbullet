@@ -1,4 +1,4 @@
-This library is highly recommended for everybody to import immediately. It provides a lot of functionality you’ll likely appreciate.
+This library is highly recommended for everybody to import. It provides a lot of basic functionality in SilverBullet that you’ll appreciate.
 
 Some examples:
 * [[Table of Contents]]
@@ -8,9 +8,14 @@ Some examples:
 * Some useful general purpose pages such as [[Library/Core/Page/Maintenance]], [[Library/Core/Quick Notes]] and [[Library/Core/Page/Template Index]].
 
 # Installation
-To import this library, run the {[Library: Import]} command in your SilverBullet space and enter:
+In your [[SETTINGS]] list the following under `libraries:`
+```yaml
+libraries:
+- source: "[[!silverbullet.md/Library/Core/*]]"
+```
+Then run the {[Libraries: Update]} command to install it.
 
-    !silverbullet.md/Library/Core/
+See [[Libraries#Configuring libraries]] for more details.
 
 # Included templates
 ```query

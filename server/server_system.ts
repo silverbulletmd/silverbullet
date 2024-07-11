@@ -117,7 +117,7 @@ export class ServerSystem extends CommonSystem {
     this.eventHook.addLocalListener(
       "file:spaceSnapshotted",
       (snapshot: Record<string, any>) => {
-        console.log("Space snapshot updated");
+        // console.log("Space snapshot updated");
         return this.ds.set(["$spaceCache"], snapshot);
       },
     );

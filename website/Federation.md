@@ -1,28 +1,25 @@
-Federation enables _browsing_, and _synchronizing_ (parts of) spaces _outside_ the user’s space into your SilverBullet client.
+Federation enables _browsing_ content from spaces _outside_ the user’s space, specified by quasi-URLs in the shape of `!domain.tld/path`. An example would be: [[!silverbullet.md/CHANGELOG]].
 
 This enables a few things:
 
-* **Linking and browsing** to other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]). For instance the [[!silverbullet.md/CHANGELOG|SilverBullet CHANGELOG]] without leaving the comfort of your own SilverBullet client.
-* **Reusing** content from externally hosted sources, such as:
-  * [[Libraries]] synchronization. By federating with `silverbullet.md/Library/Core`, you will get you access to the templates hosted there without copying ({[Library: Import]}‘ing) them and automatically pull in the latest versions.
-  * _Data_: such as tasks, item, data hosted elsewhere that you want to query from your own space.
+* **Browsing** other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]) within the comfort of your own SilverBullet client. One use case of this is [[Transclusions|transcluding]] the [[Getting Started]] page in the user’s automatically generated index page when setting up a fresh space.
+* **Referencing** other spaces for other purposes, which is leveraged in [[Libraries]].
 
-**Note:** Federation does not support authentication yet, so all federated spaces need to be unauthenticated and will be _read-only_.
+# How it works
+Effectively, any page [[Links|link]] starting with `!` is rewritten as follows:
 
-## Browsing
-Browsing other publicly hosted spaces is as simple as navigating to a page starting with `!` such as [[!silverbullet.md/CHANGELOG]].
+* Replace the initial `!` with `https://`
+* Append `.md` at the end
 
-## Federating
-To synchronize federated content into your client, you need to list these URIs in your [[SETTINGS]] under the `federate` key. For instance:
+The resulting URL is then fetched and displayed in the editor in read-only mode. This means that you can navigate to _any markdown_ file on the (public) Internet.
 
-```yaml
-federate:
-- uri: silverbullet.md/Library/Core/
-```
+For example: `https://raw.githubusercontent.com/silverbulletmd/silverbullet/main/README.md`
+Can be written to federation syntax as follows: `!raw.githubusercontent.com/silverbulletmd/silverbullet/main/README`
+And used as a link: [[!raw.githubusercontent.com/silverbulletmd/silverbullet/main/README]]
 
-This will synchronize all content under `!silverbullet.md` with a `Library/Core/` prefix (so all templates hosted there) locally.
+If the target server supports the SilverBullet [[API]] (specifically its `/index.json` endpoint), page completion will be provided as well.
 
-Currently, content can only be synchronized in read-only mode, so you can not edit the synchronized files. This will likely change in the future.
+Upon fetching of the page content, a best effort attempt will be made to rewrite any local page links in the page to the appropriate federated paths.
 
 ## Hosting
-Tooling to make hosting public spaces is still a work in progress.
+Tooling to make hosting public spaces easier is still a work in progress. The way it is enabled on `silverbullet.md` is by running a dedicated SilverBullet instance in read-only mode (see [[Install/Configuration#Run mode]]).

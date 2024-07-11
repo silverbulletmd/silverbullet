@@ -1,13 +1,19 @@
----
-tags: meta
----
+#meta
 
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a reload.
+This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a page reload.
 
 ```yaml
 # Initial page to load when launching SB, can contain template variables
 indexPage: "[[SilverBullet]]"
+libraries:
+# The "Core" library is recommended for all users
+- source: "[[!silverbullet.md/Library/Core/*]]"
+  # You can exclude items from the import using exclude (also supports wildcards):
+  # exclude:
+  # - [[!silverbullet.md/Table of Contents]]
+  # - [[!silverbullet.md/Library/Core/Widget/*]]
 
+## UI TWEAKS
 # Hide the sync button
 hideSyncButton: false
 # Hide the edit button (available on mobile only)

@@ -9,6 +9,7 @@ type LinkOptions = {
   href?: string;
   title: string;
   cssClass: string;
+  from: number;
   callback: (e: MouseEvent) => void;
 };
 export class LinkWidget extends WidgetType {
@@ -56,6 +57,7 @@ export class LinkWidget extends WidgetType {
 
   eq(other: WidgetType): boolean {
     return other instanceof LinkWidget &&
+      this.options.from === other.options.from &&
       this.options.text === other.options.text &&
       this.options.href === other.options.href &&
       this.options.title === other.options.title;
