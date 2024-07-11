@@ -6,6 +6,11 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new since 0.8.0 yet!
+
+---
+
+## 0.8.0
 * The old **Template Picker** has now been rebranded to [[Meta Picker]] and surfaces pages in your space tagged as `#template` or `#meta`. Read more about this in [[Meta Pages]].
 * [[Transclusions]] has now been implemented, allowing inline embedding of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
 * [[Libraries]] management has been rethought. You can now decoratively specify them in [[SETTINGS]] and keep them up to date with the {[Libraries: Update]} command.
