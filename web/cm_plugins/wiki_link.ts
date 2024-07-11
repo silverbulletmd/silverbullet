@@ -83,8 +83,8 @@ export function cleanWikiLinkPlugin(client: Client) {
                 cssClass: fileExists
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",
+                from,
                 callback: (e) => {
-                  console.log("Link clicked", e, pageRef.page);
                   if (e.altKey) {
                     // Move cursor into the link
                     client.editorView.dispatch({
