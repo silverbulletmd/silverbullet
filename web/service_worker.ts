@@ -103,7 +103,7 @@ self.addEventListener("fetch", (event: any) => {
         pathname === "/index.json"
       ) {
         return fetch(request);
-      } else if (/\/.+\.[a-zA-Z]+$/.test(pathname)) {
+      } else if (/\/.+\.[a-zA-Z0-9]+$/.test(pathname)) {
         // If this is a /*.* request, this can either be a plug worker load or an attachment load
         return handleLocalFileRequest(request, pathname);
       } else {
