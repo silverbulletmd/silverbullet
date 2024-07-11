@@ -48,13 +48,12 @@ Libraries are kept in your space’s `Library/` folder. Since these are just reg
 
 If you would like to keep your own templates as a library as well, we recommend putting them in `Library/Personal` as a convention. Then, when you identify a set that may be valuable to other people, you can move them elsewhere under `Library/`.
 
-# Can I change libraries?
+# Can I change libraries locally?
 Technically there is nothing stopping you from making local changes to library content, however **these changes would be reset on every library update**.
 
 Therefore, the recommended approach when requiring to make local adjustments is:
-
 1. Make a copy (copy & paste or {[Page: Copy]}) of the page or template you want to change _outside_ the original library path, e.g. under `Library/Personal`.
-2. _Exclude_ the page in question using the `exclude` attribute explained under [[#Configuring libraries]].
+2. _Exclude_ the page in question using the `exclude` attribute explained under [[#Configuring libraries]] and then run {[Libraries: Update]} again, to remove the excluded (non-modified) version of the page from your space.
 3. Profit
 
 # How to host a library?

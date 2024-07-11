@@ -7,7 +7,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
     * [[Live Queries]]
     * [[Live Templates]]
     * [[Table of Contents]]
-* [[Transclusion]] syntax
+* [[Transclusions]] syntax
 * [[Markdown/Anchors]]
 * [[Markdown/Admonitions]]
 * Hashtags, e.g. `#mytag`.

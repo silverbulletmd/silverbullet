@@ -7,7 +7,8 @@ release.
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
 * The old **Template Picker** has now been rebranded to [[Meta Picker]] and surfaces pages in your space tagged as `#template` or `#meta`. Read more about this in [[Meta Pages]].
-* [[Transclusion]] has now been implemented, allowing inline embeddings of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
+* [[Transclusions]] has now been implemented, allowing inline embeddings of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
+* [[Libraries]] management has been rethought. You can now declaratively specify them in [[SETTINGS]] and keep them up to date with the {[Libraries: Update]} command.
 * For new spaces, the default [[SETTINGS]] page is now tagged with `#meta`, which means it will only appear in the [[Meta Picker]]. There is also a new {[Navigate: Open SETTINGS]} command (bound to `Ctrl-,` and `Cmd-,`).
 * Attachments are now indexed, and smartly moved when pages are renamed (by onespaceman)
 * Images can now be resized: [[Attachments#Embedding]] (initial work done by [Florent](https://github.com/silverbulletmd/silverbullet/pull/833), later adapted by onespaceman)

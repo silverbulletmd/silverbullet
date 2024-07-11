@@ -2,7 +2,7 @@ Federation enables _browsing_ content from spaces _outside_ the user’s space, 
 
 This enables a few things:
 
-* **Browsing** other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]) within the comfort of your own SilverBullet client. One use case of this is [[Transclusion|transcluding]] the [[Getting Started]] page in the user’s automatically generated index page when setting up a fresh space.
+* **Browsing** other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]) within the comfort of your own SilverBullet client. One use case of this is [[Transclusions|transcluding]] the [[Getting Started]] page in the user’s automatically generated index page when setting up a fresh space.
 * **Referencing** other spaces for other purposes, which is leveraged in [[Libraries]].
 
 # How it works
