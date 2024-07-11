@@ -7,22 +7,22 @@ release.
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
 * The old **Template Picker** has now been rebranded to [[Meta Picker]] and surfaces pages in your space tagged as `#template` or `#meta`. Read more about this in [[Meta Pages]].
-* [[Transclusions]] has now been implemented, allowing inline embeddings of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
-* [[Libraries]] management has been rethought. You can now declaratively specify them in [[SETTINGS]] and keep them up to date with the {[Libraries: Update]} command.
+* [[Transclusions]] has now been implemented, allowing inline embedding of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
+* [[Libraries]] management has been rethought. You can now decoratively specify them in [[SETTINGS]] and keep them up to date with the {[Libraries: Update]} command.
 * For new spaces, the default [[SETTINGS]] page is now tagged with `#meta`, which means it will only appear in the [[Meta Picker]]. There is also a new {[Navigate: Open SETTINGS]} command (bound to `Ctrl-,` and `Cmd-,`).
 * Attachments are now indexed, and smartly moved when pages are renamed (by onespaceman)
 * Images can now be resized: [[Attachments#Embedding]] (initial work done by [Florent](https://github.com/silverbulletmd/silverbullet/pull/833), later adapted by onespaceman)
 * To make pure reading and browsing on touch devices a nicer experience, there is now a new **edit toggle** (top right). When _disabled_, you switch to _reader mode_ which makes sure your software keyboard doesn’t block the screen when navigating your space. This button is only visible on mobile devices (no physical keyboard attached) only. Can be disabled via the `hideEditButton` [[SETTINGS]] (and is disabled on this website, that’s why you don’t see it).
 * Super^script^ and Sub~script~ are now supported (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/879))
 * Added a {[Delete Line]} command (by [pihentagy](https://github.com/silverbulletmd/silverbullet/pull/866))
-* The `#boot` PWA loading the last opened page feature is back (put `#boot` at the end of your SilverBullet URL to auto load the last opened page)
 * Improved selection behavior (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/904))
 * Hide `\` escapes in [[Live Preview]] (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/901))
 * Added Erlang [[Markdown/Syntax Highlighting]]
 * Dates (formatted as e.g. `2023-07-01` or `2023-07-01 23:33`) in [[Frontmatter]] are now converted into strings (rather than empty objects)
+* **Breaking change:** The legacy handlebars template syntax that supported `{{escapeRegex "something"}}` function calls (rather than `{{escapeRegex("something")}}`) has now been removed.
 * `task` and `item` objects now have an additional `text` attribute that contains the full text of the item and/or task, with any [[Attributes]] and [[Tags]] intact (whereas they are removed from `name`)
+* The `#boot` PWA loading the last opened page feature is back (put `#boot` at the end of your SilverBullet URL to auto load the last opened page)
 * Numerous other bug fixes (thanks MrMugame and onespaceman)
-  
 ---
 
 ## 0.7.7
