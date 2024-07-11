@@ -3,6 +3,7 @@ import { federatedPathToUrl } from "$sb/lib/resolve.ts";
 import { readFederationConfigs } from "./config.ts";
 import { datastore } from "$sb/syscalls.ts";
 import type { FileMeta } from "../../plug-api/types.ts";
+import { wildcardPathToRegex } from "./util.ts";
 
 async function responseToFileMeta(
   r: Response,
@@ -31,7 +32,7 @@ async function responseToFileMeta(
 }
 
 const fileListingPrefixCacheKey = `federationListCache`;
-const listingCacheTimeout = 1000 * 30;
+const listingCacheTimeout = 1000 * 5;
 const listingFetchTimeout = 2000;
 
 type FileListingCacheEntry = {
@@ -44,7 +45,7 @@ export async function listFiles(): Promise<FileMeta[]> {
   // Fetch them all in parallel
   try {
     await Promise.all((await readFederationConfigs()).map(async (config) => {
-      const items = await cacheFileListing(config.uri);
+      const items = await listFilesCached(config.uri);
       fileMetas = fileMetas.concat(items);
     }));
 
@@ -56,63 +57,78 @@ export async function listFiles(): Promise<FileMeta[]> {
   }
 }
 
-export async function cacheFileListing(uri: string): Promise<FileMeta[]> {
+export async function listFilesCached(
+  uri: string,
+  supportWildcards = false,
+): Promise<FileMeta[]> {
+  const uriParts = uri.split("/");
+  const rootUri = uriParts[0];
+  const prefix = uriParts.slice(1).join("/");
+  console.log(
+    "Fetching listing from federated",
+    rootUri,
+    "with prefix",
+    prefix,
+  );
   const cachedListing = await datastore.get(
-    [fileListingPrefixCacheKey, uri],
+    [fileListingPrefixCacheKey, rootUri],
   ) as FileListingCacheEntry;
+  let items: FileMeta[] = [];
   if (
     cachedListing &&
     cachedListing.lastUpdated > Date.now() - listingCacheTimeout
   ) {
-    // console.info("Using cached listing", cachedListing);
-    return cachedListing.items;
-  }
-  console.log("Fetching listing from federated", uri);
-  const uriParts = uri.split("/");
-  const rootUri = uriParts[0];
-  const prefix = uriParts.slice(1).join("/");
-  const indexUrl = `${federatedPathToUrl(rootUri)}/index.json`;
-  try {
-    const fetchController = new AbortController();
-    const timeout = setTimeout(
-      () => fetchController.abort(),
-      listingFetchTimeout,
-    );
+    console.info("Using cached listing", cachedListing.items.length);
+    items = cachedListing.items;
+  } else {
+    const indexUrl = `${federatedPathToUrl(rootUri)}/index.json`;
+    try {
+      const fetchController = new AbortController();
+      const timeout = setTimeout(
+        () => fetchController.abort(),
+        listingFetchTimeout,
+      );
 
-    const r = await nativeFetch(indexUrl, {
-      method: "GET",
-      headers: {
-        "X-Sync-Mode": "true",
-        "Cache-Control": "no-cache",
-      },
-      signal: fetchController.signal,
-    });
-    clearTimeout(timeout);
+      const r = await nativeFetch(indexUrl, {
+        method: "GET",
+        headers: {
+          "X-Sync-Mode": "true",
+          "Cache-Control": "no-cache",
+        },
+        signal: fetchController.signal,
+      });
+      clearTimeout(timeout);
 
-    if (r.status !== 200) {
-      throw new Error(`Got status ${r.status}`);
-    }
-    const jsonResult = await r.json();
-    const items: FileMeta[] = jsonResult.filter((meta: FileMeta) =>
-      meta.name.startsWith(prefix)
-    ).map((meta: FileMeta) => ({
-      ...meta,
-      perm: "ro",
-      name: `${rootUri}/${meta.name}`,
-    }));
-    await datastore.set([fileListingPrefixCacheKey, uri], {
-      items,
-      lastUpdated: Date.now(),
-    } as FileListingCacheEntry);
-    return items;
-  } catch (e: any) {
-    console.error("Failed to process", indexUrl, e);
-    if (cachedListing) {
-      console.info("Using cached listing");
-      return cachedListing.items;
+      if (r.status !== 200) {
+        throw new Error(`Got status ${r.status}`);
+      }
+      const jsonResult = await r.json();
+      // Transform them a little bit
+      items = jsonResult.map((meta: FileMeta) => ({
+        ...meta,
+        perm: "ro",
+        name: `${rootUri}/${meta.name}`,
+      }));
+      // Cache the entire listing
+      await datastore.set([fileListingPrefixCacheKey, rootUri], {
+        items,
+        lastUpdated: Date.now(),
+      } as FileListingCacheEntry);
+    } catch (e: any) {
+      console.error("Failed to process", indexUrl, e);
+      if (cachedListing) {
+        console.info("Using cached listing");
+        return cachedListing.items;
+      }
     }
   }
-  return [];
+  // And then filter based on prefix before returning
+  if (!supportWildcards) {
+    return items.filter((meta: FileMeta) => meta.name.startsWith(uri));
+  } else {
+    const prefixRegex = wildcardPathToRegex(uri);
+    return items.filter((meta) => prefixRegex.test(meta.name));
+  }
 }
 
 export async function readFile(

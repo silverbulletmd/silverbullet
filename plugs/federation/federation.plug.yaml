@@ -29,9 +29,12 @@ functions:
       pattern: "!.+"
       operation: getFileMeta
 
-  # Library management
-  importLibraryCommand:
-    path: library.ts:importLibraryCommand
+  # Library management commands
+  updateLibrariesCommand:
+    path: library.ts:updateLibrariesCommand
     command:
-      name: "Library: Import"
+      name: "Libraries: Update"
       requireMode: rw
+  updateLibraries:
+    path: library.ts:updateLibraries
+    env: server

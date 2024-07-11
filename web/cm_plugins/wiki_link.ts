@@ -84,6 +84,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                   ? "sb-wiki-link-page"
                   : "sb-wiki-link-page-missing",
                 callback: (e) => {
+                  console.log("Link clicked", e, pageRef.page);
                   if (e.altKey) {
                     // Move cursor into the link
                     client.editorView.dispatch({

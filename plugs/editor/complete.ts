@@ -4,7 +4,7 @@ import {
   FileMeta,
   PageMeta,
 } from "$sb/types.ts";
-import { cacheFileListing } from "../federation/federation.ts";
+import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "$sb/lib/resolve.ts";
 
@@ -39,12 +39,15 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       node.startsWith("FencedCode:template")
     )
   ) {
-    // Include both pages and templates in page completion in ```include and ```template blocks
+    // Include both pages and meta in page completion in ```include and ```template blocks
     allPages = await queryObjects<PageMeta>("page", {}, 5);
   } else {
-    // Otherwise, just complete non-template pages
+    // Otherwise, just complete non-meta pages
     allPages = await queryObjects<PageMeta>("page", {
-      filter: ["!=", ["attr", "tags"], ["string", "template"]],
+      filter: ["and", ["!=", ["attr", "tags"], ["string", "template"]], ["!=", [
+        "attr",
+        "tags",
+      ], ["string", "meta"]]],
     }, 5);
     // and attachments
     allPages = allPages.concat(
@@ -64,7 +67,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         // Yep
         const domain = prefix.split("/")[0];
         // Cached listing
-        const federationPages = (await cacheFileListing(domain)).filter((fm) =>
+        const federationPages = (await listFilesCached(domain)).filter((fm) =>
           fm.name.endsWith(".md")
         ).map(fileMetaToPageMeta);
         if (federationPages.length > 0) {
