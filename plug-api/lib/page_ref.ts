@@ -1,3 +1,24 @@
+
+/** 
+ * Possible HACK.
+ * 
+ * Normally we don't want to allow pages have dots in their names,
+ * because we need to serve files with extensions. But there are special cases like
+ * "conflicted" pages. Maybe there will be some more special cases in future. This 
+ * is why this function exists.
+ * 
+ */
+export function isThisPageSpecial(name: string): boolean {
+  const namePatterns: RegExp[] = [
+    /\.conflicted\./
+  ];
+  return namePatterns.some(expr => expr.test(name));
+}
+
+export function looksLikeFileName(name: string): boolean {
+  return /\.[a-zA-Z0-9]+$/.test(name) && !isThisPageSpecial(name)
+}
+
 export function validatePageName(name: string) {
   // Page can not be empty and not end with a file extension (e.g. "bla.md")
   if (name === "") {
@@ -6,7 +27,7 @@ export function validatePageName(name: string) {
   if (name.startsWith(".")) {
     throw new Error("Page name cannot start with a '.'");
   }
-  if (/\.[a-zA-Z0-9]+$/.test(name)) {
+  if (looksLikeFileName(name)) {
     throw new Error("Page name can not end with a file extension");
   }
 }
