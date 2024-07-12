@@ -31,6 +31,7 @@ Deno.test("Page utility functions", () => {
 
   try {
     validatePageName("perfectly fine page name");
+    validatePageName("this is special case of a.conflicted.page")
   } catch (error) {
     throw new AssertionError(`Something is very wrong with the validatePageName function: ${error}`);
   }
