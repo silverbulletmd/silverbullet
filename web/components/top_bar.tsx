@@ -30,6 +30,7 @@ export function TopBar({
   lhs,
   onClick,
   rhs,
+  pageNamePrefix,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -46,6 +47,7 @@ export function TopBar({
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
+  pageNamePrefix?: string;
 }) {
   return (
     <div
@@ -57,6 +59,7 @@ export function TopBar({
       <div className="main">
         <div className="inner">
           <div className="wrapper">
+          <div className="sb-page-prefix">{pageNamePrefix}</div>
             <span
               id="sb-current-page"
               className={isLoading

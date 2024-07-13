@@ -5,6 +5,7 @@ import { defaultSettings } from "$common/settings.ts";
 import {
   ActionButton,
   EmojiConfig,
+  Decoration,
   FilterOption,
   Notification,
   PanelMode,
@@ -24,6 +25,7 @@ export type BuiltinSettings = {
   // Format: compatible with docker ignore
   spaceIgnore?: string;
   emoji?: EmojiConfig;
+  decorations?: Decoration[];
 };
 
 export type PanelConfig = {

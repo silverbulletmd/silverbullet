@@ -10,6 +10,7 @@ import {
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
 import { Fragment, renderHtml, Tag } from "./html_render.ts";
 import { isLocalPath } from "$sb/lib/resolve.ts";
+import { PageMeta } from "$sb/types.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -554,20 +555,29 @@ function traverseTag(
 export function renderMarkdownToHtml(
   t: ParseTree,
   options: MarkdownRenderOptions = {},
+  allPages: PageMeta[] = [],
 ) {
   preprocess(t);
   const htmlTree = posPreservingRender(t, options);
-  if (htmlTree && options.translateUrls) {
+  if (htmlTree) {
     traverseTag(htmlTree, (t) => {
       if (typeof t === "string") {
         return;
       }
-      if (t.name === "img") {
+      if (t.name === "img" && options.translateUrls) {
         t.attrs!.src = options.translateUrls!(t.attrs!.src!, "image");
       }
 
       if (t.name === "a" && t.attrs!.href) {
-        t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
+        if (options.translateUrls) {
+          t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
+        }
+        if (t.attrs!["data-ref"]?.length) {
+          const pageMeta = allPages.find(p => t.attrs!["data-ref"]!.startsWith(p.name));
+          if (pageMeta) {
+            t.body = [(pageMeta.pageDecorations?.prefix ?? "") + t.body]
+          }
+        }
         if (t.body.length === 0) {
           t.body = [t.attrs!.href];
         }

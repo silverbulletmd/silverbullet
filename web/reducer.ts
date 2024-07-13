@@ -1,4 +1,6 @@
+import { PageMeta } from "../plug-api/types.ts";
 import { Action, AppViewState } from "../type/web.ts";
+import { PageState } from "./navigator.ts";
 
 export default function reducer(
   state: AppViewState,
@@ -20,6 +22,18 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = window.matchMedia("(pointer:fine)").matches;
+      const pageMeta = state.allPages.find(p => p.name == action.meta.name);
+      const decor = state.settings.decorations?.filter(d => pageMeta?.tags?.some(t => d.tag === t));
+      if (decor && decor.length > 0) {
+        const mergedDecorations = decor.reduceRight((accumulator, el) => {
+          accumulator = {...accumulator, ...el};
+          return accumulator;
+        });
+        if (mergedDecorations) {
+          const { tag, ...currPageDecorations } = mergedDecorations;
+          action.meta.pageDecorations = currPageDecorations;
+        }
+      }
       return {
         ...state,
         isLoading: false,
@@ -58,16 +72,37 @@ export default function reducer(
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
       );
+      let currPageMeta = oldPageMeta.get(state.currentPage!);
+      if (currPageMeta === undefined) {
+        currPageMeta = {} as PageMeta;
+      }
       for (const pageMeta of action.allPages) {
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
+        const decor = state.settings.decorations?.filter(d => pageMeta.tags?.some((t: any) => d.tag === t));
+        // Page can have multiple decorations applied via different tags, accumulate them.
+        // The decorations higher in the decorations list defined in SETTINGS gets
+        // higher precedence.
+        if (decor && decor.length > 0) {
+          const mergedDecorations = decor.reduceRight((accumulator, el) => {
+            accumulator = {...accumulator, ...el};
+            return accumulator;
+          });
+          if (mergedDecorations) {
+            const { tag, ...currPageDecorations} = mergedDecorations;
+            pageMeta.pageDecorations = currPageDecorations;
+            if (pageMeta.name === state.currentPage) {
+              currPageMeta!.pageDecorations = currPageDecorations;
+            }
+          }
+        }
       }
-
       return {
         ...state,
         allPages: action.allPages,
+        currentPageMeta: currPageMeta,
       };
     }
     case "start-navigate": {

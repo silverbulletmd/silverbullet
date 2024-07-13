@@ -207,6 +207,16 @@ body {
   }
 }
 
+.sb-page-prefix {
+  display: flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+  text-align: left;
+  padding: 1px;
+  margin-right: 3px;
+  font-family: var(--ui-font);
+}
+
 .sb-panel {
   iframe {
     background-color: var(--root-background-color);

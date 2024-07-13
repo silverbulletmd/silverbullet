@@ -66,9 +66,9 @@ export function cleanWikiLinkPlugin(client: Client) {
           }
           return;
         }
-
+        const pageMeta = client.ui.viewState.allPages.find(p => p.name == url);
         const linkText = alias ||
-          (url.includes("/") ? url.split("/").pop()! : url);
+          (pageMeta?.pageDecorations.prefix ?? "") + (url.includes("/") ? url.split("/").pop()! : url);
 
         // And replace it with a widget
         widgets.push(
