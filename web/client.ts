@@ -713,6 +713,18 @@ export class Client {
                   this.currentPage,
                   meta,
                 );
+                const enrichedMeta = await this.clientSystem.getObjectByRef<
+                  PageMeta
+                >(
+                  this.currentPage,
+                  "page",
+                  this.currentPage,
+                );
+                this.ui.viewDispatch({
+                  type: "update-current-page-meta",
+                  meta: enrichedMeta,
+                });
+
                 resolve();
               })
               .catch((e) => {

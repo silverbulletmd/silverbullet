@@ -215,6 +215,11 @@ body {
   padding: 1px;
   margin-right: 3px;
   font-family: var(--ui-font);
+
+  &:empty {
+    margin-right: 0;
+    padding: 0;
+  }
 }
 
 .sb-panel {

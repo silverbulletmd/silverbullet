@@ -240,4 +240,11 @@ export class ClientSystem extends CommonSystem {
       ["index.queryObjects", tag, query],
     );
   }
+
+  getObjectByRef<T>(page: string, tag: string, ref: string) {
+    return this.localSyscall(
+      "system.invokeFunction",
+      ["index.getObjectByRef", page, tag, ref],
+    );
+  }
 }

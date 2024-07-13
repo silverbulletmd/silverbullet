@@ -1,6 +1,6 @@
+import { Decoration } from "$lib/web.ts";
 import { PageMeta } from "../plug-api/types.ts";
 import { Action, AppViewState } from "../type/web.ts";
-import { PageState } from "./navigator.ts";
 
 export default function reducer(
   state: AppViewState,
@@ -22,11 +22,13 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = window.matchMedia("(pointer:fine)").matches;
-      const pageMeta = state.allPages.find(p => p.name == action.meta.name);
-      const decor = state.settings.decorations?.filter(d => pageMeta?.tags?.some(t => d.tag === t));
+      const pageMeta = state.allPages.find((p) => p.name == action.meta.name);
+      const decor = state.settings.decorations?.filter((d) =>
+        pageMeta?.tags?.some((t) => d.tag === t)
+      );
       if (decor && decor.length > 0) {
         const mergedDecorations = decor.reduceRight((accumulator, el) => {
-          accumulator = {...accumulator, ...el};
+          accumulator = { ...accumulator, ...el };
           return accumulator;
         });
         if (mergedDecorations) {
@@ -52,11 +54,26 @@ export default function reducer(
         ...state,
         unsavedChanges: true,
       };
-    case "page-saved":
+    case "page-saved": {
       return {
         ...state,
         unsavedChanges: false,
       };
+    }
+    case "update-current-page-meta": {
+      if (state.settings.decorations) {
+        decoratePageMeta(
+          action.meta,
+          "",
+          action.meta,
+          state.settings.decorations,
+        );
+      }
+      return {
+        ...state,
+        currentPageMeta: action.meta,
+      };
+    }
     case "sync-change":
       return {
         ...state,
@@ -81,22 +98,13 @@ export default function reducer(
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
-        const decor = state.settings.decorations?.filter(d => pageMeta.tags?.some((t: any) => d.tag === t));
-        // Page can have multiple decorations applied via different tags, accumulate them.
-        // The decorations higher in the decorations list defined in SETTINGS gets
-        // higher precedence.
-        if (decor && decor.length > 0) {
-          const mergedDecorations = decor.reduceRight((accumulator, el) => {
-            accumulator = {...accumulator, ...el};
-            return accumulator;
-          });
-          if (mergedDecorations) {
-            const { tag, ...currPageDecorations} = mergedDecorations;
-            pageMeta.pageDecorations = currPageDecorations;
-            if (pageMeta.name === state.currentPage) {
-              currPageMeta!.pageDecorations = currPageDecorations;
-            }
-          }
+        if (state.settings.decorations) {
+          decoratePageMeta(
+            pageMeta,
+            state.currentPage!,
+            currPageMeta,
+            state.settings.decorations,
+          );
         }
       }
       return {
@@ -237,5 +245,34 @@ export default function reducer(
         progressPerc: action.progressPerc,
       };
   }
-  return state;
+}
+
+/**
+ * Decorates (= attaches a pageDecorations field) to the pageMeta object when a matching decorator is found
+ */
+function decoratePageMeta(
+  pageMeta: PageMeta,
+  currentPage: string,
+  currPageMeta: PageMeta,
+  decorations: Decoration[],
+) {
+  const decor = decorations.filter((d) =>
+    pageMeta.tags?.some((t: any) => d.tag === t)
+  );
+  // Page can have multiple decorations applied via different tags, accumulate them.
+  // The decorations higher in the decorations list defined in SETTINGS gets
+  // higher precedence.
+  if (decor && decor.length > 0) {
+    const mergedDecorations = decor.reduceRight((accumulator, el) => {
+      accumulator = { ...accumulator, ...el };
+      return accumulator;
+    });
+    if (mergedDecorations) {
+      const { tag, ...currPageDecorations } = mergedDecorations;
+      pageMeta.pageDecorations = currPageDecorations;
+      if (pageMeta.name === currentPage) {
+        currPageMeta!.pageDecorations = currPageDecorations;
+      }
+    }
+  }
 }

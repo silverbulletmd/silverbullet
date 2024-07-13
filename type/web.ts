@@ -4,8 +4,8 @@ import { AppCommand } from "../lib/command.ts";
 import { defaultSettings } from "$common/settings.ts";
 import {
   ActionButton,
-  EmojiConfig,
   Decoration,
+  EmojiConfig,
   FilterOption,
   Notification,
   PanelMode,
@@ -125,6 +125,7 @@ export type Action =
   | { type: "page-changed" }
   | { type: "page-saved" }
   | { type: "sync-change"; syncSuccess: boolean }
+  | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
   | { type: "settings-loaded"; settings: BuiltinSettings }
   | { type: "start-navigate"; mode: "page" | "meta" }
