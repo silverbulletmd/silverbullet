@@ -77,9 +77,11 @@ export class MainUI {
 
     useEffect(() => {
       if (viewState.currentPage) {
-        document.title = viewState.currentPage;
+        document.title =
+          (viewState.currentPageMeta?.pageDecorations?.prefix ?? "") +
+          viewState.currentPage;
       }
-    }, [viewState.currentPage]);
+    }, [viewState.currentPage, viewState.currentPageMeta]);
 
     useEffect(() => {
       client.tweakEditorDOM(
@@ -314,7 +316,8 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.currentPageMeta?.pageDecorations?.prefix ?? ""}
+          pageNamePrefix={viewState.currentPageMeta?.pageDecorations?.prefix ??
+            ""}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
