@@ -8,7 +8,7 @@ import {
   ParseTree,
 } from "$sb/lib/tree.ts";
 import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
 import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(
@@ -44,7 +44,7 @@ async function actionClickOrActionEnter(
     case "WikiLink": {
       const link = mdTree.children![1]!.children![0].text!;
       // Assume is attachment if it has extension
-      if (/\.[a-zA-Z0-9]+$/.test(link)) {
+      if (looksLikePathWithExtension(link)) {
         const attachmentPath = resolvePath(
           currentPage,
           "/" + decodeURI(link),

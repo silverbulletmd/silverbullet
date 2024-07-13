@@ -2,6 +2,7 @@ import type { FileContent } from "$common/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "$lib/crypto.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
+import { looksLikePathWithExtension } from "$sb/lib/page_ref.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 
@@ -103,7 +104,7 @@ self.addEventListener("fetch", (event: any) => {
         pathname === "/index.json"
       ) {
         return fetch(request);
-      } else if (/\/.+\.[a-zA-Z0-9]+$/.test(pathname)) {
+      } else if (looksLikePathWithExtension(pathname)) {
         // If this is a /*.* request, this can either be a plug worker load or an attachment load
         return handleLocalFileRequest(request, pathname);
       } else {

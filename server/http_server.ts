@@ -10,7 +10,7 @@ import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
 import { base64Encode } from "$lib/crypto.ts";
 import * as path from "$std/path/mod.ts";
 
@@ -511,7 +511,7 @@ export class HttpServer {
         console.warn(
           "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
         );
-        return c.redirect(`/${name.slice(0, -mdExt.length)}`, 401);
+        return c.redirect(`/${name.slice(0, -mdExt.length)}`);
       }
       if (name.startsWith(".")) {
         // Don't expose hidden files
@@ -643,7 +643,7 @@ export class HttpServer {
         let url = req.param("uri")!.slice(1);
         if (!req.header("X-Proxy-Request")) {
           // Direct browser request, not explicity fetch proxy request
-          if (!/\.[a-zA-Z0-9]+$/.test(url)) {
+          if (!looksLikePathWithExtension(url)) {
             console.log("Directly loading federation page via URL:", url);
             // This is not a direct file reference so LIKELY a page request, fall through and load the SB UI
             return next();

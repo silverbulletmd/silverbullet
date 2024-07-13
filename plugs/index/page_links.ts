@@ -4,7 +4,7 @@ import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import { mdLinkRegex, wikiLinkRegex } from "$common/markdown_parser/parser.ts";
 
@@ -57,7 +57,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       };
       // Assume link is to an attachment if it has
       // an extension, to a page otherwise
-      if (/\.[a-zA-Z0-9]+$/.test(url)) {
+      if (looksLikePathWithExtension(url)) {
         link.toFile = url;
       } else {
         link.toPage = parsePageRef(url).page;
@@ -100,7 +100,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       };
       // Assume link is to an attachment if it has
       // an extension, to a page otherwise
-      if (/\.[a-zA-Z0-9]+$/.test(url)) {
+      if (looksLikePathWithExtension(url)) {
         link.toFile = url;
       } else {
         link.toPage = parsePageRef(url).page;
@@ -140,7 +140,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           };
           // Assume link is to an attachment if it has
           // an extension, to a page otherwise
-          if (/\.[a-zA-Z0-9]+$/.test(url)) {
+          if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, "/" + url);
           } else {
             link.toPage = resolvePath(name, "/" + parsePageRef(url).page);
@@ -163,7 +163,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             pos: pos,
             asTemplate: true,
           };
-          if (/\.[a-zA-Z0-9]+$/.test(url)) {
+          if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, url);
           } else {
             link.toPage = resolvePath(name, parsePageRef(url).page);

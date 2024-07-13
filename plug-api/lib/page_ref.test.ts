@@ -1,5 +1,9 @@
 import { encodePageRef, parsePageRef, validatePageName } from "./page_ref.ts";
-import { assertEquals, assertThrows, AssertionError } from "$std/testing/asserts.ts";
+import {
+  assertEquals,
+  AssertionError,
+  assertThrows,
+} from "$std/testing/asserts.ts";
 
 Deno.test("Page utility functions", () => {
   // Base cases
@@ -31,9 +35,11 @@ Deno.test("Page utility functions", () => {
 
   try {
     validatePageName("perfectly fine page name");
-    validatePageName("this is special case of a.conflicted.page")
+    validatePageName("this is special case of a.conflicted.1234");
   } catch (error) {
-    throw new AssertionError(`Something is very wrong with the validatePageName function: ${error}`);
+    throw new AssertionError(
+      `Something is very wrong with the validatePageName function: ${error}`,
+    );
   }
 
   assertThrows(() => validatePageName(""), Error);
@@ -41,10 +47,16 @@ Deno.test("Page utility functions", () => {
   assertThrows(() => validatePageName(".."), Error);
 
   for (const extension of ["md", "txt", "exe", "cc", "ts"]) {
-    assertThrows(() => validatePageName(`extensions-are-not-welcome.${extension}`), Error);
+    assertThrows(
+      () => validatePageName(`extensions-are-not-welcome.${extension}`),
+      Error,
+    );
   }
 
   for (const extension of ["db2", "woff2", "sqlite3", "42", "0"]) {
-    assertThrows(() => validatePageName(`extensions-can-contain-numbers-too.${extension}`), Error);
+    assertThrows(
+      () => validatePageName(`extensions-can-contain-numbers-too.${extension}`),
+      Error,
+    );
   }
 });
