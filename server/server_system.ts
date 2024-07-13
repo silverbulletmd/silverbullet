@@ -116,9 +116,14 @@ export class ServerSystem extends CommonSystem {
 
     this.eventHook.addLocalListener(
       "file:spaceSnapshotted",
-      (snapshot: Record<string, any>) => {
+      async (snapshot: Record<string, any>) => {
         // console.log("Space snapshot updated");
-        return this.ds.set(["$spaceCache"], snapshot);
+        try {
+          await this.ds.set(["$spaceCache"], snapshot);
+        } catch {
+          // This may fail if the space is too large, that's fine, persisting the snapshot is not critical
+          // EXPLIT IGNORE
+        }
       },
     );
 
