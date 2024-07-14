@@ -19,7 +19,8 @@ Every page decoration has two parts:
 
 For example:
 ```yaml
-- where: 'tags = "person"'
+pageDecorations:
+- where: "tags = 'person'"
   prefix: "🧑 "
 ```
 
