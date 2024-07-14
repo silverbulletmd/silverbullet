@@ -713,6 +713,11 @@ export class Client {
                   this.currentPage,
                   meta,
                 );
+
+                // At this all the essential stuff is done, let's proceed
+                resolve();
+
+                // In the background we'll fetch any enriched meta data, if any
                 const enrichedMeta = await this.clientSystem.getObjectByRef<
                   PageMeta
                 >(
@@ -720,12 +725,12 @@ export class Client {
                   "page",
                   this.currentPage,
                 );
-                this.ui.viewDispatch({
-                  type: "update-current-page-meta",
-                  meta: enrichedMeta,
-                });
-
-                resolve();
+                if (enrichedMeta) {
+                  this.ui.viewDispatch({
+                    type: "update-current-page-meta",
+                    meta: enrichedMeta,
+                  });
+                }
               })
               .catch((e) => {
                 this.flashNotification(
@@ -1103,6 +1108,24 @@ export class Client {
       type: "page-loaded",
       meta: doc.meta,
     });
+
+    // Fetch (possibly) enriched meta data asynchronously
+    await this.clientSystem.getObjectByRef<
+      PageMeta
+    >(
+      this.currentPage,
+      "page",
+      this.currentPage,
+    ).then((enrichedMeta) => {
+      if (!enrichedMeta) {
+        // Nothing in the store, revert to default
+        enrichedMeta = doc.meta;
+      }
+      this.ui.viewDispatch({
+        type: "update-current-page-meta",
+        meta: enrichedMeta,
+      });
+    }).catch(console.error);
 
     const editorState = createEditorState(
       this,

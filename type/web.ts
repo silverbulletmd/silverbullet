@@ -1,10 +1,9 @@
 import { Manifest } from "../lib/manifest.ts";
-import { PageMeta } from "../plug-api/types.ts";
+import { PageDecoration, PageMeta } from "../plug-api/types.ts";
 import { AppCommand } from "../lib/command.ts";
 import { defaultSettings } from "$common/settings.ts";
 import {
   ActionButton,
-  Decoration,
   EmojiConfig,
   FilterOption,
   Notification,
@@ -22,10 +21,10 @@ export type BuiltinSettings = {
   maximumAttachmentSize?: number;
   defaultLinkStyle?: string;
   actionButtons: ActionButton[];
+  pageDecorations?: PageDecoration[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
   emoji?: EmojiConfig;
-  decorations?: Decoration[];
 };
 
 export type PanelConfig = {

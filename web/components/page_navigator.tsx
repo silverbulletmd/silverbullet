@@ -1,5 +1,5 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption, Decoration } from "$lib/web.ts";
+import { FilterOption } from "$lib/web.ts";
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { PageMeta } from "../../plug-api/types.ts";
 import { isFederationPath } from "$sb/lib/resolve.ts";
@@ -65,7 +65,7 @@ export function PageNavigator({
       }
       options.push({
         ...pageMeta,
-        name: (pageMeta.pageDecorations?.prefix ?? "") + pageMeta.name,
+        name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
         description,
         orderId: orderId,
       });

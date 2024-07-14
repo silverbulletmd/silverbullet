@@ -48,6 +48,11 @@ shortcuts:
 - command: "{[Upload: File]}"
   priority: 1 # Make sure this appears at the top of the list in the command palette
 
+# Page decorations
+pageDecorations:
+- where: 'tags = "plug"'
+  prefix: "🔌 "
+
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |
    dist

@@ -7,20 +7,9 @@ import {
 import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "$sb/lib/resolve.ts";
-import { readSetting } from "$sb/lib/settings_page.ts";
-import { editor } from "$sb/syscalls.ts"
-import type { Decoration } from "$lib/web.ts";
-
-let decorations: Decoration[] = [];
-
+import { decoration } from "$sb/syscalls.ts";
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  try {
-    await updateDecoratorConfig();
-  } catch (err: any) {
-    await editor.flashNotification(err.message, "error");
-  }
-
   // Try to match [[wikilink]]
   let isWikilink = true;
   let match = /\[\[([^\]@$#:\{}]*)$/.exec(completeEvent.linePrefix);
@@ -89,14 +78,16 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   }
 
   const folder = folderName(completeEvent.pageName);
+
+  allPages = await decoration.applyDecorationsToPages(allPages as PageMeta[]);
+
   return {
     from: completeEvent.pos - match[1].length,
     options: allPages.map((pageMeta) => {
       const completions: any[] = [];
       let namePrefix = "";
-      const decor = decorations.find(d => pageMeta.tags?.some((t: any) => d.tag === t));
-      if (decor) {
-        namePrefix = decor.prefix;
+      if ((pageMeta as PageMeta).pageDecoration?.prefix) {
+        namePrefix = pageMeta.pageDecoration?.prefix;
       }
       if (isWikilink) {
         if (pageMeta.displayName) {
@@ -157,7 +148,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   };
 }
 
-
 function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
   const name = fileMeta.name.substring(0, fileMeta.name.length - 3);
   return {
@@ -168,18 +158,4 @@ function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
     created: new Date(fileMeta.created).toISOString(),
     lastModified: new Date(fileMeta.lastModified).toISOString(),
   } as PageMeta;
-}
-
-let lastConfigUpdate = 0;
-
-async function updateDecoratorConfig() {
-  // Update at most every 5 seconds
-  if (Date.now() < lastConfigUpdate + 5000) return;
-  lastConfigUpdate = Date.now();
-  const decoratorConfig = await readSetting("decorations");
-  if (!decoratorConfig) {
-    return;
-  }
-
-  decorations = decoratorConfig;
 }

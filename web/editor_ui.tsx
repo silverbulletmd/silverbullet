@@ -78,7 +78,7 @@ export class MainUI {
     useEffect(() => {
       if (viewState.currentPage) {
         document.title =
-          (viewState.currentPageMeta?.pageDecorations?.prefix ?? "") +
+          (viewState.currentPageMeta?.pageDecoration?.prefix ?? "") +
           viewState.currentPage;
       }
     }, [viewState.currentPage, viewState.currentPageMeta]);
@@ -316,7 +316,8 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.currentPageMeta?.pageDecorations?.prefix ??
+          pageNamePrefix={viewState.currentPageMeta?.pageDecoration
+            ?.prefix ??
             ""}
         />
         <div id="sb-main">

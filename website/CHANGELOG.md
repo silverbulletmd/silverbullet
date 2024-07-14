@@ -6,7 +6,9 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new since 0.8.1 yet!
+* [[Page Decorations]] are here (initial implementation by [Deepak Narayan](https://github.com/silverbulletmd/silverbullet/pull/940), later refined by Zef)
+* **Fix:** very large spaces would let the server blow up when saving snapshots. This is now fixed.
+* **Fix:** Conflict copies could no longer be edited, whoops (initial fix by [Semyon Novikov](https://github.com/silverbulletmd/silverbullet/pull/939), later refined by Zef)
 
 ---
 

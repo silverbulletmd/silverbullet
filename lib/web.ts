@@ -33,9 +33,3 @@ export type ActionButton = {
 export type EmojiConfig = {
   aliases: string[][];
 };
-
-export type Decoration = {
-  tag: string;
-  prefix: string;
-};
-

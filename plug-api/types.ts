@@ -16,10 +16,20 @@ export type PageMeta = ObjectValue<
     name: string;
     created: string; // indexing it as a string
     lastModified: string; // indexing it as a string
-    lastOpened?: number;
     perm: "ro" | "rw";
+    lastOpened?: number;
+    pageDecoration?: PageDecoration;
   } & Record<string, any>
 >;
+
+/**
+ * Decorates a page when it matches certain criteria
+ */
+export type PageDecoration = {
+  where?: string;
+  whereParsed?: QueryExpression;
+  prefix: string;
+};
 
 export type AttachmentMeta = ObjectValue<
   {

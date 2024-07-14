@@ -70,7 +70,7 @@ export function cleanWikiLinkPlugin(client: Client) {
           p.name == url
         );
         const linkText = alias ||
-          (pageMeta?.pageDecorations?.prefix ?? "") +
+          (pageMeta?.pageDecoration?.prefix ?? "") +
             (url.includes("/") ? url.split("/").pop()! : url);
 
         // And replace it with a widget

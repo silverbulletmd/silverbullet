@@ -212,14 +212,9 @@ body {
   align-items: baseline;
   flex: 0 0 auto;
   text-align: left;
-  padding: 1px;
-  margin-right: 3px;
+  padding-top: 3px;
   font-family: var(--ui-font);
-
-  &:empty {
-    margin-right: 0;
-    padding: 0;
-  }
+  white-space: pre-wrap;
 }
 
 .sb-panel {
