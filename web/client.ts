@@ -249,6 +249,9 @@ export class Client {
       type: "settings-loaded",
       settings: this.settings,
     });
+    this.clientSystem.slashCommandHook.buildAllCommands(
+      this.clientSystem.system,
+    );
   }
 
   private async initSync() {

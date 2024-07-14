@@ -16,10 +16,15 @@ export type Notification = {
 export type PanelMode = number;
 
 export type Shortcut = {
+  // Command we're creating the shortcut for
+  command: string;
+  // (Re)bind to keyboard shortcut
   key?: string;
   mac?: string;
+  // Bind to slash command
+  slashCommand?: string;
+  // Tweak priority in command palette
   priority?: number;
-  command: string;
 };
 
 export type ActionButton = {

@@ -1,5 +1,5 @@
 #meta
-
+/ind
 This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a page reload.
 
 ```yaml
@@ -41,12 +41,19 @@ actionButtons:
 #  description: "Go to the previous page"
 #  mobile: true # Only show on mobile devices, set to false to show only on desktop
 
-# Override keyboard shortcuts and command priority
+# Create keyboard or slash command shortcuts for commands
 shortcuts:
-- command: "Navigate: Center Cursor" # But a command name is also supported
+# Map a key to a command
+- command: "{[Navigate: Center Cursor]}"
   key: "Alt-x"
+# Map a slash command (e.g. `/indent`) to a command
+- command: "{[Outline: Move Right]}"
+  slashCommand: "indent"
+- command: "{[Outline: Move Left]}"
+  slashCommand: "outdent"
+# Bump a command's priority in the command palette
 - command: "{[Upload: File]}"
-  priority: 1 # Make sure this appears at the top of the list in the command palette
+  priority: 1
 
 # Page decorations
 pageDecorations:

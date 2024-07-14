@@ -13,6 +13,7 @@ import {
 } from "../../plug-api/types.ts";
 import { safeRun } from "$lib/async.ts";
 import { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
+import { parseCommand } from "$common/command.ts";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
@@ -47,6 +48,26 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             return plug.invoke(name, [cmd]);
           },
         });
+      }
+    }
+    if (this.editor.settings?.shortcuts) {
+      // Add slash commands for shortcuts that configure them
+      for (const shortcut of this.editor.settings.shortcuts) {
+        if (shortcut.slashCommand) {
+          const parsedCommand = parseCommand(shortcut.command);
+          this.slashCommands.set(shortcut.slashCommand, {
+            slashCommand: {
+              name: shortcut.slashCommand,
+              description: parsedCommand.alias || parsedCommand.name,
+            },
+            run: () => {
+              return this.editor.runCommandByName(
+                parsedCommand.name,
+                parsedCommand.args,
+              );
+            },
+          });
+        }
       }
     }
   }
