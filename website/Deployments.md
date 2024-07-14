@@ -496,7 +496,7 @@ cargo install deno --locked
 - Now we proceed to install SilverBullet
 
 ```shell
-deno install -f --name silverbullet -A https://get.silverbullet.md
+deno install -f -g --name silverbullet --no-lock -A https://get.silverbullet.md
 ```
 
 ### How to run SilverBullet at boot with systemd

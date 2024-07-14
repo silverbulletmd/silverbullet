@@ -4,7 +4,7 @@ export async function upgradeCommand() {
   console.log("Now going to attempt an upgrade...");
 
   const command = new Deno.Command("deno", {
-    args: ["cache", "--reload", Deno.mainModule],
+    args: ["cache", "--no-lock", "--reload", Deno.mainModule],
     stdout: "inherit",
     stderr: "inherit",
   });
@@ -17,7 +17,7 @@ export async function upgradeCommand() {
     "So, that's done. Now let's see if this actually did anything...",
   );
   const vp = new Deno.Command("deno", {
-    args: ["run", "-A", Deno.mainModule, "version"],
+    args: ["run", "--no-lock", "-A", Deno.mainModule, "version"],
   });
   const versionStatus = await vp.output();
   if (!versionStatus.success) {
