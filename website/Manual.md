@@ -28,7 +28,7 @@ SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements
 # Core Concepts
 These are the core concepts used in SilverBullet:
 * [[Spaces]]
-* [[Pages]]
+* [[Pages]] (and [[Meta Pages]])
   * [[Frontmatter]]
   * [[Page Name Rules]]
 * [[Folders]]
@@ -59,13 +59,18 @@ The main ways to roam your space, beside following page links, are:
   * [[Attributes]]
 * [[Live Queries]]
 * [[Templates]]
-* [[Federation]]: it is possible to “sync in” content from outside sources, such as [[Libraries]]
+* [[Libraries]]
+* [[Federation]]
+* [[Space Script]] & [[Space Style]]
+
+# Customization
+* [[SETTINGS]]
+* [[Shortcuts]]
+* [[Page Decorations]]
+* [[Space Style]]
 
 # Extending SilverBullet
-A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]].
+A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]]. A lighter, but also powerful way to extend SilverBullet is through [[Space Script]].
 
 # Contributing
 SilverBullet is free and open-source software. You can contribute to it [via Github](https://github.com/silverbulletmd/silverbullet). For some details on how to do this, have a look at [[Development]].
-
-# Personalization
-Want to tweak something? [[SETTINGS]] gives you a few settings you can tweak.
