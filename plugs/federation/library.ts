@@ -7,7 +7,11 @@ import { federatedPathToLocalPath, wildcardPathToRegex } from "./util.ts";
 import { confirm } from "$sb/syscalls/editor.ts";
 
 type LibraryDef = {
-  source: string;
+  /**
+   * @deprecated Use `import` instead
+   */
+  source?: string;
+  import: string;
   exclude?: string[];
 };
 
@@ -38,11 +42,15 @@ export async function updateLibraries(): Promise<UpdateStats> {
   const updateStats: UpdateStats = { libraries: 0, items: 0 };
   const libraries = (await readSetting("libraries", [])) as LibraryDef[];
   for (const lib of libraries) {
-    if (!lib.source) {
+    // Handle deprecated 'source' field
+    if (lib.source) {
+      lib.import = lib.source;
+    }
+    if (!lib.import) {
       console.warn("Library source not set, skipping", lib);
       continue;
     }
-    const pageUri = parsePageRef(lib.source).page;
+    const pageUri = parsePageRef(lib.import).page;
 
     if (!pageUri.startsWith("!")) {
       console.warn(

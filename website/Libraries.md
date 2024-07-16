@@ -14,14 +14,14 @@ When you set up a fresh space, the [[Library/Core]] is automatically configured:
 
 ```yaml
 libraries:
-- source: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!silverbullet.md/Library/Core/*]]"
 ```
 
 If you would like to _exclude_ specific pages, for instance [[Library/Core/Widget/Table of Contents]], you can do so using the library’s `exclude` attribute
 
 ```yaml
 libraries:
-- source: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!silverbullet.md/Library/Core/*]]"
   exclude:
   - "[[!silverbullet.md/Library/Core/Widget/Table of Contents]]"
 ```

@@ -1,13 +1,13 @@
 export const SETTINGS_TEMPLATE = `#meta
 
-This page contains settings for configuring SilverBullet. A list of built-in settings [[!silverbullet.md/SETTINGS|can be found here]].
+This page contains settings for configuring SilverBullet. A list of settings and their documentation [[!silverbullet.md/SETTINGS|can be found here]].
 
-To update \`libraries\` specified here: {[Libraries: Update]}
+To update the [[!silverbullet.md/Libraries|libraries]] specified below, run {[Libraries: Update]}
 
 \`\`\`yaml
 indexPage: index
 libraries:
-- source: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!silverbullet.md/Library/Core/*]]"
 \`\`\`
 `;
 

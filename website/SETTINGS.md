@@ -1,5 +1,5 @@
 #meta
-/ind
+
 This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a page reload.
 
 ```yaml
@@ -7,7 +7,7 @@ This page contains settings for configuring SilverBullet and its Plugs. Changing
 indexPage: "[[SilverBullet]]"
 libraries:
 # The "Core" library is recommended for all users
-- source: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!silverbullet.md/Library/Core/*]]"
   # You can exclude items from the import using exclude (also supports wildcards):
   # exclude:
   # - [[!silverbullet.md/Table of Contents]]
