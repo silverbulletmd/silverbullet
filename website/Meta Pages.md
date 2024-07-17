@@ -7,4 +7,5 @@ The most obvious example is [[SETTINGS]], which is not really a page that you ca
 # How are meta pages identified?
 Meta pages at a technical level are [[Pages]] like any other, the only technical difference is that they are either tagged with `#template` or `#meta`. This is picked up by the [[Page Picker]] and [[Meta Picker]].
 
-That’s it.
+# How do you link to meta pages?
+You can link to a meta page like any other page, that is using the `[[page name]]` syntax. However, in the context of regular content, meta pages will not appear in auto complete. To get auto completion for meta pages, you can use the `[[^page name]]` caret syntax. More information: [[Links#Caret page links]].
