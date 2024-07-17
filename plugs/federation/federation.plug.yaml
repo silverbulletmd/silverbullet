@@ -5,22 +5,22 @@ functions:
   readFile:
     path: ./federation.ts:readFile
     pageNamespace:
-      pattern: "!.+"
+      pattern: "^!.+"
       operation: readFile
   writeFile:
     path: ./federation.ts:writeFile
     pageNamespace:
-      pattern: "!.+"
+      pattern: "^!.+"
       operation: writeFile
   deleteFile:
     path: ./federation.ts:deleteFile
     pageNamespace:
-      pattern: "!.+"
+      pattern: "^!.+"
       operation: deleteFile
   getFileMeta:
     path: ./federation.ts:getFileMeta
     pageNamespace:
-      pattern: "!.+"
+      pattern: "^!.+"
       operation: getFileMeta
 
   # Library management commands
