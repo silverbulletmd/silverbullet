@@ -35,8 +35,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   const prefix = match[1];
 
-  console.log("Completing", prefix);
-
   let allPages: (PageMeta | AttachmentMeta)[] = [];
 
   if (prefix.startsWith("^")) {
