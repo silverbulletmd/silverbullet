@@ -2,12 +2,6 @@ name: federation
 requiredPermissions:
   - fetch
 functions:
-  listFiles:
-   path: ./federation.ts:listFiles
-   env: server
-   pageNamespace:
-     pattern: "!.+"
-     operation: listFiles
   readFile:
     path: ./federation.ts:readFile
     pageNamespace:

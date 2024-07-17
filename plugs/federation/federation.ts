@@ -1,31 +1,20 @@
 import "$sb/lib/native_fetch.ts";
 import { federatedPathToUrl } from "$sb/lib/resolve.ts";
-import { readFederationConfigs } from "./config.ts";
 import { datastore } from "$sb/syscalls.ts";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { wildcardPathToRegex } from "./util.ts";
 
-async function responseToFileMeta(
+function responseToFileMeta(
   r: Response,
   name: string,
-): Promise<FileMeta> {
-  const federationConfigs = await readFederationConfigs();
-
-  // Default permission is "ro" unless explicitly set otherwise
-  let perm: "ro" | "rw" = "ro";
-  const federationConfig = federationConfigs.find((config) =>
-    name.startsWith(config.uri)
-  );
-  if (federationConfig?.perm) {
-    perm = federationConfig.perm;
-  }
+): FileMeta {
   return {
     name: name,
     size: r.headers.get("Content-length")
       ? +r.headers.get("Content-length")!
       : 0,
     contentType: r.headers.get("Content-type")!,
-    perm,
+    perm: "ro",
     created: +(r.headers.get("X-Created") || "0"),
     lastModified: +(r.headers.get("X-Last-Modified") || "0"),
   };
@@ -39,23 +28,6 @@ type FileListingCacheEntry = {
   items: FileMeta[];
   lastUpdated: number;
 };
-
-export async function listFiles(): Promise<FileMeta[]> {
-  let fileMetas: FileMeta[] = [];
-  // Fetch them all in parallel
-  try {
-    await Promise.all((await readFederationConfigs()).map(async (config) => {
-      const items = await listFilesCached(config.uri);
-      fileMetas = fileMetas.concat(items);
-    }));
-
-    // console.log("All of em: ", fileMetas);
-    return fileMetas;
-  } catch (e: any) {
-    console.error("Error listing federation files", e);
-    return [];
-  }
-}
 
 export async function listFilesCached(
   uri: string,
@@ -145,7 +117,7 @@ export async function readFile(
   if (r.status === 503) {
     throw new Error("Offline");
   }
-  const fileMeta = await responseToFileMeta(r, name);
+  const fileMeta = responseToFileMeta(r, name);
   if (r.status === 404) {
     throw Error("Not found");
   }
@@ -223,7 +195,7 @@ export async function getFileMeta(name: string): Promise<FileMeta> {
   if (r.status === 503) {
     throw new Error("Offline");
   }
-  const fileMeta = await responseToFileMeta(r, name);
+  const fileMeta = responseToFileMeta(r, name);
   if (!r.ok) {
     throw new Error("Not found");
   }

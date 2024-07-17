@@ -115,6 +115,12 @@ export class MainUI {
             completer={client.miniEditorComplete.bind(client)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
+            onModeSwitch={(mode) => {
+              dispatch({ type: "stop-navigate" });
+              setTimeout(() => {
+                dispatch({ type: "start-navigate", mode });
+              });
+            }}
             onNavigate={(page) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {

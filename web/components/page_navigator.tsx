@@ -2,7 +2,6 @@ import { FilterList } from "./filter.tsx";
 import { FilterOption } from "$lib/web.ts";
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { PageMeta } from "../../plug-api/types.ts";
-import { isFederationPath } from "$sb/lib/resolve.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
@@ -10,6 +9,7 @@ const tagRegex = new RegExp(mdTagRegex.source, "g");
 export function PageNavigator({
   allPages,
   onNavigate,
+  onModeSwitch,
   completer,
   vimMode,
   mode,
@@ -21,6 +21,7 @@ export function PageNavigator({
   darkMode: boolean;
   mode: "page" | "meta";
   onNavigate: (page: string | undefined) => void;
+  onModeSwitch: (mode: "page" | "meta") => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
 }) {
@@ -40,10 +41,6 @@ export function PageNavigator({
     if (currentPage && currentPage === pageMeta.name) {
       // ... then we put it all the way to the end
       orderId = Infinity;
-    }
-    // And deprioritize federated pages too
-    if (isFederationPath(pageMeta.name)) {
-      orderId = Math.round(orderId / 10); // Just 10x lower the timestamp to push them down, should work
     }
 
     if (mode === "page") {
@@ -100,6 +97,11 @@ export function PageNavigator({
       phrasePreprocessor={(phrase) => {
         phrase = phrase.replaceAll(tagRegex, "").trim();
         return phrase;
+      }}
+      onKeyPress={(key, text) => {
+        if (mode === "page" && key === "^" && text === "^") {
+          onModeSwitch("meta");
+        }
       }}
       preFilter={(options, phrase) => {
         if (mode === "page") {
