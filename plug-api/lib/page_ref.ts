@@ -23,6 +23,7 @@ export type PageRef = {
   pos?: number;
   anchor?: string;
   header?: string;
+  meta?: boolean;
 };
 
 const posRegex = /@(\d+)$/;
@@ -36,6 +37,11 @@ export function parsePageRef(name: string): PageRef {
     name = name.slice(2, -2);
   }
   const pageRef: PageRef = { page: name };
+  if (pageRef.page.startsWith("^")) {
+    // A carrot prefix means we're looking for a meta page, but that doesn't matter for most use cases
+    pageRef.page = pageRef.page.slice(1);
+    pageRef.meta = true;
+  }
   const posMatch = pageRef.page.match(posRegex);
   if (posMatch) {
     pageRef.pos = parseInt(posMatch[1]);

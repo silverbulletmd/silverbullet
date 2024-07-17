@@ -21,6 +21,9 @@ Deno.test("Page utility functions", () => {
     pos: 1,
   });
 
+  // Meta page
+  assertEquals(parsePageRef("^foo"), { page: "foo", meta: true });
+
   // Edge cases
   assertEquals(parsePageRef(""), { page: "" });
   assertEquals(parsePageRef("user@domain.com"), { page: "user@domain.com" });

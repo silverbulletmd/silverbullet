@@ -69,9 +69,13 @@ export function cleanWikiLinkPlugin(client: Client) {
         const pageMeta = client.ui.viewState.allPages.find((p) =>
           p.name == url
         );
+        let cleanLinkText = url.includes("/") ? url.split("/").pop()! : url;
+        if (cleanLinkText.startsWith("^")) {
+          // Hide the ^ prefix
+          cleanLinkText = cleanLinkText.slice(1);
+        }
         const linkText = alias ||
-          (pageMeta?.pageDecoration?.prefix ?? "") +
-            (url.includes("/") ? url.split("/").pop()! : url);
+          ((pageMeta?.pageDecoration?.prefix ?? "") + cleanLinkText);
 
         // And replace it with a widget
         widgets.push(

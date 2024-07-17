@@ -3,11 +3,22 @@ import {
   CompleteEvent,
   FileMeta,
   PageMeta,
+  QueryExpression,
 } from "$sb/types.ts";
 import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "$sb/lib/resolve.ts";
 import { decoration } from "$sb/syscalls.ts";
+
+// A meta page is a page tagged with either #template or #meta
+const isMetaPageFilter: QueryExpression = ["or", ["=", ["attr", "tags"], [
+  "string",
+  "template",
+]], ["=", [
+  "attr",
+  "tags",
+], ["string", "meta"]]];
+
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {
   // Try to match [[wikilink]]
@@ -22,16 +33,29 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
+  const prefix = match[1];
+
   let allPages: (PageMeta | AttachmentMeta)[] = [];
 
-  if (
+  if (prefix.startsWith("^")) {
+    // A carrot prefix means we're looking for a meta page
+    allPages = await queryObjects<PageMeta>("page", {
+      filter: isMetaPageFilter,
+    }, 5);
+    // Let's prefix the names with a caret to make them match
+    allPages = allPages.map((page) => ({
+      ...page,
+      name: "^" + page.name,
+    }));
+  } // Let's try to be smart about the types of completions we're offering based on the context
+  else if (
     completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
     // either a render [[bla]] clause
     /(render\s+|template\()\[\[/.test(
       completeEvent.linePrefix,
     )
   ) {
-    // We're in a template context, let's only complete templates
+    // We're quite certainly in a template context, let's only complete templates
     allPages = await queryObjects<PageMeta>("template", {}, 5);
   } else if (
     completeEvent.parentNodes.find((node) =>
@@ -44,10 +68,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   } else {
     // Otherwise, just complete non-meta pages
     allPages = await queryObjects<PageMeta>("page", {
-      filter: ["and", ["!=", ["attr", "tags"], ["string", "template"]], ["!=", [
-        "attr",
-        "tags",
-      ], ["string", "meta"]]],
+      filter: ["not", isMetaPageFilter],
     }, 5);
     // and attachments
     allPages = allPages.concat(
@@ -55,34 +76,29 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     );
   }
 
-  const prefix = match[1];
   if (prefix.startsWith("!")) {
-    // Federation prefix, let's first see if we're matching anything from federation that is locally synced
-    const prefixMatches = allPages.filter((pageMeta) =>
-      pageMeta.name.startsWith(prefix)
-    );
-    if (prefixMatches.length === 0) {
-      // Ok, nothing synced in via federation, let's see if this URI is complete enough to try to fetch index.json
-      if (prefix.includes("/")) {
-        // Yep
-        const domain = prefix.split("/")[0];
-        // Cached listing
-        const federationPages = (await listFilesCached(domain)).filter((fm) =>
-          fm.name.endsWith(".md")
-        ).map(fileMetaToPageMeta);
-        if (federationPages.length > 0) {
-          allPages = allPages.concat(federationPages);
-        }
+    // Federation!
+    // Let's see if this URI is complete enough to try to fetch index.json
+    if (prefix.includes("/")) {
+      // Yep
+      const domain = prefix.split("/")[0];
+      // Cached listing
+      const federationPages = (await listFilesCached(domain)).filter((fm) =>
+        fm.name.endsWith(".md")
+      ).map(fileMetaToPageMeta);
+      if (federationPages.length > 0) {
+        allPages = allPages.concat(federationPages);
       }
     }
   }
 
   const folder = folderName(completeEvent.pageName);
 
+  // Decorate the pages
   allPages = await decoration.applyDecorationsToPages(allPages as PageMeta[]);
 
   return {
-    from: completeEvent.pos - match[1].length,
+    from: completeEvent.pos - prefix.length,
     options: allPages.map((pageMeta) => {
       const completions: any[] = [];
       let namePrefix = "";
@@ -90,10 +106,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         namePrefix = pageMeta.pageDecoration?.prefix;
       }
       if (isWikilink) {
+        // A [[wikilink]]
         if (pageMeta.displayName) {
           const decoratedName = namePrefix + pageMeta.displayName;
           completions.push({
-            label: `${pageMeta.displayName}`,
+            label: pageMeta.displayName,
             displayLabel: decoratedName,
             boost: new Date(pageMeta.lastModified).getTime(),
             apply: pageMeta.tag === "template"
@@ -107,7 +124,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           for (const alias of pageMeta.aliases) {
             const decoratedName = namePrefix + alias;
             completions.push({
-              label: `${alias}`,
+              label: alias,
               displayLabel: decoratedName,
               boost: new Date(pageMeta.lastModified).getTime(),
               apply: pageMeta.tag === "template"
@@ -120,12 +137,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         }
         const decoratedName = namePrefix + pageMeta.name;
         completions.push({
-          label: `${pageMeta.name}`,
+          label: pageMeta.name,
           displayLabel: decoratedName,
           boost: new Date(pageMeta.lastModified).getTime(),
           type: "page",
         });
       } else {
+        // A markdown link []()
         let labelText = pageMeta.name;
         let boost = new Date(pageMeta.lastModified).getTime();
         // Relative path if in the same folder or a subfolder
