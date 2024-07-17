@@ -6,10 +6,16 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new since 0.8.2 just yet.
+
+---
+
+## 0.8.2
 * [[Page Decorations]] are here (initial implementation by [Deepak Narayan](https://github.com/silverbulletmd/silverbullet/pull/940), later refined by Zef)
 * New type of [[Shortcuts|shortcut]]: `slashCommand`
 * Naming is hard. Renamed the `source` attribute of [[Libraries]] to `import`. egacy references to `source` will keep working.
 * Added support for [[Links#Caret page links]] making it slightly more convenient to link to [[Meta Pages]]
+* **Fix:** Remove redundant vertical space for some tables (by [Eric Yang](https://github.com/silverbulletmd/silverbullet/pull/952))
 * **Fix:** very large spaces would let the server blow up when saving snapshots. This is now fixed.
 * **Fix:** Conflict copies could no longer be edited, whoops (initial fix by [Semyon Novikov](https://github.com/silverbulletmd/silverbullet/pull/939), later refined by Zef)
 * **Fix**: `silverbullet upgrade` should now work again (or at least on the next upgrade)
