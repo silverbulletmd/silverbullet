@@ -436,4 +436,24 @@ Deno.test("Test query parser", () => {
       filter: ["*", ["number", 1], ["-", ["number", 2]]],
     },
   );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where 10.2`)!,
+    ),
+    {
+      querySource: "page",
+      filter: ["number", 10.2],
+    },
+  );
+
+  assertEquals(
+    astToKvQuery(
+      wrapQueryParse(`page where 10.2 > 2.2`)!,
+    ),
+    {
+      querySource: "page",
+      filter: [">", ["number", 10.2], ["number", 2.2]],
+    },
+  );
 });

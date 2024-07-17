@@ -141,7 +141,7 @@ Bool {
   Order { "order by" }
   Regex { "/" ( ![/\\\n\r] | "\\" _ )+ "/" }
 
-  Number { std.digit+ }
+  Number { std.digit+ | std.digit+ "." std.digit+ }
 
   BooleanKW { "true" | "false" }
 
