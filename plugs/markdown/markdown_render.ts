@@ -437,7 +437,7 @@ function render(
         body: [
           {
             name: "tr",
-            body: cleanTags(mapRender(t.children!)),
+            body: cleanTags(mapRender(t.children!), true),
           },
         ],
       };
@@ -470,7 +470,7 @@ function render(
       }
       return {
         name: "tr",
-        body: cleanTags(mapRender(newChildren)),
+        body: cleanTags(mapRender(newChildren), true),
       };
     }
     case "Attribute":
