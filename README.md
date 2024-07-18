@@ -23,7 +23,7 @@ SilverBullet...
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use Slash Commands to perform common text editing operations.
 * Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for Objects, Live Queries and Live Templates.
-* Robust extension mechanism using plugs.
+* Robust extension mechanism using [plugs](https://silverbullet.md/Plugs).
 * **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
 * SilverBullet is [open source, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
