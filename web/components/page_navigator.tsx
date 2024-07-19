@@ -19,9 +19,9 @@ export function PageNavigator({
   allPages: PageMeta[];
   vimMode: boolean;
   darkMode: boolean;
-  mode: "page" | "meta";
+  mode: "page" | "meta" | "all";
   onNavigate: (page: string | undefined) => void;
-  onModeSwitch: (mode: "page" | "meta") => void;
+  onModeSwitch: (mode: "page" | "meta" | "all") => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPage?: string;
 }) {
@@ -66,7 +66,7 @@ export function PageNavigator({
         description,
         orderId: orderId,
       });
-    } else {
+    } else if (mode === "meta") {
       // Special behavior for #template and #meta pages
       options.push({
         ...pageMeta,
@@ -75,6 +75,19 @@ export function PageNavigator({
         // And use the full path as the description
         description: pageMeta.name,
         hint: pageMeta.tags![0],
+        orderId: orderId,
+      });
+    } else {
+      // In mode "all" just show the full path and all tags
+      let description: string | undefined;
+      if (pageMeta.tags) {
+        description = (description || "") +
+          pageMeta.tags.map((tag) => `#${tag}`).join(" ");
+      }
+      options.push({
+        ...pageMeta,
+        name: pageMeta.name,
+        description,
         orderId: orderId,
       });
     }
@@ -86,9 +99,11 @@ export function PageNavigator({
   } else if (currentPage && currentPage.includes(" ")) {
     completePrefix = currentPage.split(" ")[0] + " ";
   }
+  
+  const pageNoun = mode === "meta" ? mode : "page";
   return (
     <FilterList
-      placeholder={mode === "page" ? "Page" : "#template or #meta page"}
+      placeholder={mode === "page" ? "Page" : (mode === "meta" ? "#template or #meta page" : "Any page, also hidden")}
       label="Open"
       options={options}
       vimMode={vimMode}
@@ -99,8 +114,19 @@ export function PageNavigator({
         return phrase;
       }}
       onKeyPress={(key, text) => {
-        if (mode === "page" && key === "^" && text === "^") {
-          onModeSwitch("meta");
+        // Pages cannot start with ^, as documented in Page Name Rules
+        if (key === "^" && text === "^") {
+          switch(mode) {
+            case "page":
+              onModeSwitch("meta");
+              break;
+            case "meta":
+              onModeSwitch("all");
+              break;
+            case "all":
+              onModeSwitch("page");
+              break;
+          }
         }
       }}
       preFilter={(options, phrase) => {
@@ -123,19 +149,23 @@ export function PageNavigator({
             return !pageMeta.tags?.includes("template") &&
               !pageMeta.tags?.includes("meta");
           });
-          return options;
-        } else {
+        } else if (mode === "meta") {
           // Filter on pages tagged with "template" or "meta"
           options = options.filter((pageMeta) => {
             return pageMeta.tags?.includes("template") ||
               pageMeta.tags?.includes("meta");
           });
-          return options;
         }
+
+        if (mode !== "all") {
+          // Filter out hidden pages
+          options = options.filter((page) => !(page.pageDecoration?.hide === true));
+        }
+        return options;
       }}
       allowNew={true}
-      helpText={`Press <code>Enter</code> to open the selected ${mode}, or <code>Shift-Enter</code> to create a new ${mode} with this exact name.`}
-      newHint={`Create ${mode}`}
+      helpText={`Press <code>Enter</code> to open the selected ${pageNoun}, or <code>Shift-Enter</code> to create a new ${pageNoun} with this exact name.`}
+      newHint={`Create ${pageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
         onNavigate(opt?.ref || opt?.name);

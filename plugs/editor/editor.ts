@@ -22,6 +22,10 @@ export async function openMetaNavigator() {
   await editor.openPageNavigator("meta");
 }
 
+export async function openAllNavigator() {
+  await editor.openPageNavigator("all");
+}
+
 export async function toggleDarkMode() {
   let darkMode = await clientStore.get("darkMode");
   darkMode = !darkMode;

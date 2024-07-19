@@ -32,6 +32,11 @@ functions:
       key: "Ctrl-Shift-k"
       mac: "Cmd-Shift-k"
 
+  openAllNavigator:
+    path: editor.ts:openAllNavigator
+    command:
+      name: "Navigate: All Pages Picker"
+
   # Page operations
   deletePage:
     path: "./page.ts:deletePage"
@@ -201,7 +206,6 @@ functions:
     events:
       - unfurl:title-unfurl
 
-
   # Title-based link unfurl
   youtubeUnfurlOptions:
     path: ./link.ts:youtubeUnfurlOptions
@@ -212,7 +216,6 @@ functions:
     path: ./link.ts:youtubeUnfurl
     events:
       - unfurl:youtube-unfurl
-
 
   embedWidget:
     path: ./embed.ts:embedWidget

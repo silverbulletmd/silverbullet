@@ -29,8 +29,8 @@ This will prefix all pages tagged with `#person` with a 🧑 emoji.
 Here on silverbullet.md, we have a decoration like this for pages tagged with #plug: [[Plugs/Emoji]] and [[Plugs/Git]] for instance.
 
 # Supported decorations
-For now there’s just one:
 
 * `prefix`: A (visual) string prefix (often an emoji) to add to all page names. This prefix will appear in the top bar as well as in (live preview) links to this page. For example, the name of this page is actually “Page Decorations”, but when you link to it, you’ll see it’s prefixed with a 🎄: [[Page Decorations]]
+* `hide` When this is set to `true`, the page will not be shown in [[Page Picker]], [[Meta Picker]], or suggested for completion of [[Links]]. It will otherwise behave as normal - will be [[Plugs/Index|indexed]] and found in [[Live Queries]]. The page can be opened through [[All Pages Picker]], or linked normally when the full name is typed out without completion.
 
-Again — later, more such decorations may be added.
+Later, more such decorations may be added.

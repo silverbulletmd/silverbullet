@@ -28,6 +28,7 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
 * `Escape`: closes the page picker UI
+* Typing `^` when filter phrase is empty will cycle to the next picker, first [[Meta Picker]], then [[All Pages Picker]]
 
 # Mouse/touch operation
 You can obviously scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.
