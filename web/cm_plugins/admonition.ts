@@ -9,30 +9,6 @@ const ADMONITION_REGEX =
   /^>( *)(?:\*{2}|\[!)(.*?)(\*{2}|\])( *)(.*)(?:\n([\s\S]*))?/im;
 const ADMONITION_LINE_SPLIT_REGEX = /\n>/gm;
 
-class AdmonitionIconWidget extends WidgetType {
-  constructor(
-    readonly pos: number,
-    readonly type: string,
-    readonly editorView: EditorView,
-  ) {
-    super();
-  }
-
-  toDOM(): HTMLElement {
-    const outerDiv = document.createElement("div");
-    outerDiv.classList.add("sb-admonition-icon");
-    outerDiv.addEventListener("click", () => {
-      this.editorView.dispatch({
-        selection: {
-          anchor: this.pos,
-        },
-      });
-    });
-
-    return outerDiv;
-  }
-}
-
 type AdmonitionFields = {
   preSpaces: string;
   admonitionType: string;
@@ -85,13 +61,6 @@ export function admonitionPlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 
-    // Get admonition styles from stylesheets
-    const allStyles = [...document.styleSheets]
-      .map((styleSheet) => {
-        return [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
-      }).filter(Boolean).join("\n");
-    const admonitionStyles = allStyles.match(/(?<=admonition=").*?(?=")/g);
-
     syntaxTree(state).iterate({
       enter: (node: SyntaxNodeRef) => {
         const { type, from, to } = node;
@@ -111,10 +80,6 @@ export function admonitionPlugin(editor: Client) {
           const { preSpaces, admonitionType, postSyntax, postSpaces } =
             extractedFields;
 
-          if (!admonitionStyles?.includes(admonitionType)) {
-            return;
-          }
-
           // A blockquote is actually rendered as many divs, one per line.
           // We need to keep track of the `from` offsets here, so we can attach css
           // classes to them further down.
@@ -129,10 +94,9 @@ export function admonitionPlugin(editor: Client) {
           // `from` and `to` range info for switching out keyword text with correct
           // icon further down.
           const iconRange = {
-            from: from + 1,
+            from: from + 2,
             to: from + preSpaces.length + 2 + admonitionType.length +
-              postSyntax.length +
-              postSpaces.length + 1,
+              postSyntax.length + 1,
           };
 
           // The first div is the title, attach title css class
@@ -151,13 +115,9 @@ export function admonitionPlugin(editor: Client) {
             ])
           ) {
             widgets.push(
-              Decoration.replace({
-                widget: new AdmonitionIconWidget(
-                  iconRange.from + 1,
-                  admonitionType,
-                  editor.editorView,
-                ),
-                inclusive: true,
+              Decoration.mark({
+                tagName: "span",
+                class: "sb-admonition-type",
               }).range(iconRange.from, iconRange.to),
             );
           }
