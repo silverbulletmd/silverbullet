@@ -30,7 +30,7 @@ import { Client } from "./client.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
-import { smartQuoteKeymap } from "./cm_plugins/smart_quotes.ts";
+import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
 import { ClickEvent } from "../plug-api/types.ts";
 import {
   attachmentExtension,
@@ -345,7 +345,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
 export function createKeyBindings(client: Client): Extension {
   return keymap.of([
     ...createCommandKeyBindings(client),
-    ...smartQuoteKeymap,
+    ...createSmartQuoteKeyBindings(client),
     ...closeBracketsKeymap,
     ...standardKeymap,
     ...completionKeymap,

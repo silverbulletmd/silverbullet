@@ -18,6 +18,7 @@ export type BuiltinSettings = {
   shortcuts?: Shortcut[];
   hideSyncButton?: boolean;
   hideEditButton?: boolean;
+  useSmartQuotes?: boolean;
   maximumAttachmentSize?: number;
   defaultLinkStyle?: string;
   actionButtons: ActionButton[];
