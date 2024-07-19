@@ -160,7 +160,15 @@ export function FilterList({
                 return true;
               case " ": {
                 const text = view.state.sliceDoc();
-                if (completePrefix && text === "") {
+                if (e.shiftKey) {
+                  // Operate on the highlighted option, ignoring prompt
+                  const option = matchingOptions[selectedOption].name;
+                  // Get the folder it's nested in, keeping the trailing /
+                  const folderPath = option.slice(0, option.lastIndexOf("/") + 1);
+                  // If the option wasn't in a folder, make it a folder
+                  setText(folderPath !== "" ? folderPath : option + "/");
+                  return true;
+                } else if (completePrefix && text === "") {
                   setText(completePrefix);
                   // updateFilter(completePrefix);
                   return true;
