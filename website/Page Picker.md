@@ -23,6 +23,9 @@ When entering a filter phrase, the best matches should appear closer to the top,
   * If the currently opened page is nested in a [[Folders|folder]], it will auto complete the current folder name in its place.
   * If the currently opened page name starts with an emoji, it will complete that emoji in its place.
   * Otherwise, it will complete the full page name of the currently open page.
+* `Shift-Space`: auto complete folder from highlighted page:
+  * If the currently highlighted page is nested in a [[Folders|folder]], it will auto complete its folder name
+  * Otherwise, it will auto complete that page name with a `/` added at the end
 * `ArrowUp`/`ArrowDown`: move up and down the highlighted page list
 * `PageUp`/`PageDown`: move up and down 5 entries in the page list in one go
 * `Home`: moves to the start of the list
