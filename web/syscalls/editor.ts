@@ -263,7 +263,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const cm = vimGetCm(client.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
-    "editor.openPageNavigator": (_ctx, mode: "page" | "meta" = "page") => {
+    "editor.openPageNavigator": (_ctx, mode: "page" | "meta" | "all" = "page") => {
       client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {

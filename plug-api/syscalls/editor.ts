@@ -48,7 +48,7 @@ export function navigate(
 }
 
 export function openPageNavigator(
-  mode: "page" | "meta" = "page",
+  mode: "page" | "meta" | "all" = "page",
 ): Promise<void> {
   return syscall("editor.openPageNavigator", mode);
 }

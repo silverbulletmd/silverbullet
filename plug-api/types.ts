@@ -29,6 +29,7 @@ export type PageDecoration = {
   where?: string;
   whereParsed?: QueryExpression;
   prefix: string;
+  hide?: boolean;
 };
 
 export type AttachmentMeta = ObjectValue<

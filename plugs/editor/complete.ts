@@ -76,6 +76,9 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     );
   }
 
+  // Don't complete hidden pages
+  allPages = allPages.filter((page) => !(page.pageDecoration?.hide === true));
+
   if (prefix.startsWith("!")) {
     // Federation!
     // Let's see if this URI is complete enough to try to fetch index.json
