@@ -9,21 +9,28 @@ type ResultObject = {
 const stopWords = ["and", "or", "the", "a", "an"];
 
 // Tokenize text into words
-function tokenize(text: string): string[] {
-  return text.toLowerCase().split(/[^\p{L}]+/u);
+export function tokenize(text: string): string[] {
+  // Capture group in the regex to both separate on ideograms and keep them
+  // Ideograms identified here with ISO 15924 script: Han (Hanzi, Kanji, Hanja)
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}]+|(\p{Script=Han})/u)
+    .filter((w) => w !== "" && w !== undefined); // filter out separators
 }
 
 // Remove stop words from array of words
 function removeStopWords(words: string[]): string[] {
-  return words.filter((word) =>
-    word.length > 2 &&
-    !stopWords.includes(word) && /^\p{L}+$/u.test(word)
+  return words.filter((word) => ((word.length > 2 &&
+    !stopWords.includes(word) && /^\p{L}+$/u.test(word)) ||
+    /\p{Script=Han}/u.test(word))
   );
 }
 
 // Basic stemming function
 function stem(word: string): string {
-  return stemmer(word);
+  if (/\p{Script=Han}/u.test(word)) {
+    return word;
+  } else return stemmer(word);
 }
 
 // Index an array of documents
