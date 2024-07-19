@@ -1,6 +1,6 @@
 #meta
 
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases except `indexPage` which requires a page reload.
+This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases, some require a page reload.
 
 ```yaml
 # Initial page to load when launching SB, can contain template variables
@@ -59,6 +59,9 @@ shortcuts:
 pageDecorations:
 - where: 'tags = "plug"'
   prefix: "🔌 "
+
+# Toggles between “smart” ‘quotes’ (left and right) and "simple" 'quotes' (good ol' ASCII)
+useSmartQuotes: true
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |
