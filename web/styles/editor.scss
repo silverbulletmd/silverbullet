@@ -612,7 +612,8 @@
     border-left-style: solid;
   }
 
-  .sb-admonition-icon {
+  .sb-admonition-type::before {
+    content: "";
     mask: var(--admonition-icon) no-repeat;
     -webkit-mask: var(--admonition-icon) no-repeat;
     mask-size: cover;
@@ -621,8 +622,7 @@
     height: 1.1em;
     display: inline-flex;
     vertical-align: middle;
-    margin-left: 16px;
-    margin-right: 8px;
+    margin-left: 5px;
   }
 
   .sb-frontmatter-marker {

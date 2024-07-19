@@ -364,7 +364,7 @@ tbody tr:nth-of-type(even) {
   background-color: color-mix(in srgb, var(--admonition-color), transparent 90%)
 }
 
-.sb-admonition-icon {
+.sb-admonition-type::before {
   background-color: var(--admonition-color);
 }
 
