@@ -29,7 +29,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     try {
-      const result = await fetch(url, options);
+    const signal = AbortSignal.timeout(5000)
+      const result = await fetch(url, {signal,...options});
       if (result.status === 503) {
         throw new Error("Offline");
       }
