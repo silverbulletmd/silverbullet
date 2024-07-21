@@ -2,6 +2,8 @@ import { SpacePrimitives } from "./space_primitives.ts";
 import { FileMeta } from "../../plug-api/types.ts";
 import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
+const fetchTimeout = 5000
+
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
@@ -29,7 +31,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     try {
-      options.signal = AbortSignal.timeout(5000)
+      options.signal = AbortSignal.timeout(fetchTimeout)
       const result = await fetch(url, options);
       if (result.status === 503) {
         throw new Error("Offline");
