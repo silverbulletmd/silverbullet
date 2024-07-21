@@ -16,6 +16,7 @@ import { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@cod
 import { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff?external=@codemirror/language&target=es2022";
 import { powerShell as powerShellLanguage } from "@codemirror/legacy-modes/mode/powershell?external=@codemirror/language&target=es2022";
 import { perl as perlLanguage } from "@codemirror/legacy-modes/mode/perl?external=@codemirror/language&target=es2022";
+import { ruby as rubyLanguage } from "@codemirror/legacy-modes/mode/ruby?external=@codemirror/language&target=es2022";
 import { tcl as tclLanguage } from "@codemirror/legacy-modes/mode/tcl?external=@codemirror/language&target=es2022";
 import { verilog as verilogLanguage } from "@codemirror/legacy-modes/mode/verilog?external=@codemirror/language&target=es2022";
 import { vhdl as vhdlLanguage } from "@codemirror/legacy-modes/mode/vhdl?external=@codemirror/language&target=es2022";
@@ -103,6 +104,7 @@ export const builtinLanguages: Record<string, Language> = {
   "diff": StreamLanguage.define(diffLanguage),
   "powershell": StreamLanguage.define(powerShellLanguage),
   "perl": StreamLanguage.define(perlLanguage),
+  "ruby": StreamLanguage.define(rubyLanguage),
   "tcl": StreamLanguage.define(tclLanguage),
   "verilog": StreamLanguage.define(verilogLanguage),
   "vhdl": StreamLanguage.define(vhdlLanguage),
