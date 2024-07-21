@@ -329,6 +329,12 @@ functions:
       name: "Editor: Find in Page"
       key: "Ctrl-f"
       mac: "Cmd-f"
+  
+  # Outline helper functions
+  determineItemBounds:
+    path: ./outline.ts:determineItemBounds
+  ensureNewLine:
+    path: ./outline.ts:ensureNewLine
 
   # Undo/redo
   undoCommand:
