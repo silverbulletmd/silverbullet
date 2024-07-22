@@ -68,3 +68,8 @@ void main() {
 }
 ```
 
+```ruby
+class BankAccount
+  attr_accessor :balance, :account_holder
+end
+```
