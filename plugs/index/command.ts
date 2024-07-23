@@ -4,6 +4,7 @@ import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { indexAttachment } from "./attachment.ts";
+import { clearFileIndex } from "./api.ts";
 
 export async function reindexCommand() {
   await editor.flashNotification("Performing full page reindex...");
@@ -74,6 +75,9 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
     return;
   }
   const parsed = await markdown.parseMarkdown(text);
+
+  // First clear the old file index entries
+  await clearFileIndex(name);
 
   if (isTemplate(text)) {
     // console.log("Indexing", name, "as template");
