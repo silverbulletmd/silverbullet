@@ -6,7 +6,13 @@ release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new since 0.8.2 just yet.
+* [[Page Picker#Keyboard shortcuts]]: allow folder completion using Shift-Space (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/961))
+* New [[Page Decorations]]: ability to hide pages from the page picker and auto complete (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/962))
+* The [[Expression Language]] now supports decimal numbers 🤯 (e.g. `3.14`)
+* Added Ruby [[Markdown/Syntax Highlighting]] (by [Bo Jeanes](https://github.com/silverbulletmd/silverbullet/pull/966))
+* **Fix**: Due to some race conditions some situations pages would disappear from the index (e.g. from the [[Page Picker]]), this should now be fixed
+* New [[SETTINGS]]: `pwaOpenLastPage` and `useSmartQuotes` (latter by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/960))
+* **Fix**: CORS issues in Firefox (admonition related) (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/964))
 
 ---
 
