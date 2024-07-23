@@ -1,8 +1,9 @@
 /**
- * Checks if a name looks like a full path (with a file extension), but is not a conflicted file.
+ * Checks if a name looks like a full path (with a file extension), is not a conflicted file and not a search page.
  */
 export function looksLikePathWithExtension(name: string): boolean {
-  return /\.[a-zA-Z0-9]+$/.test(name) && !/\.conflicted\./.test(name);
+  return /\.[a-zA-Z0-9]+$/.test(name) && !/\.conflicted\./.test(name) &&
+    !name.startsWith("🔍 ");
 }
 
 export function validatePageName(name: string) {
