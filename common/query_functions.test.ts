@@ -47,7 +47,7 @@ describe("rewriteRefsAndFederationLinks", () => {
     const template1 =
       "* [ ] My task\n* [ ] [[other@2]] Ignore me\n* [ ] Rewrite me too [[other page]]\n";
     assertEquals(
-      functions.rewriteTaskRefs(template1, "page1"),
+      functions.rewriteRefsAndFederationLinks(template1, "page1"),
       "* [ ] [[page1@2]] My task\n* [ ] [[other@2]] Ignore me\n* [ ] [[page1@44]] Rewrite me too [[other page]]\n",
     );
   });
