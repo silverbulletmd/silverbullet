@@ -42,7 +42,7 @@ describe("pageExists", () => {
   });
 });
 
-describe("$rewriteTaskRefs", () => {
+describe("rewriteRefsAndFederationLinks", () => {
   it("should rewrite all task references to include a page ref", () => {
     const template1 =
       "* [ ] My task\n* [ ] [[other@2]] Ignore me\n* [ ] Rewrite me too [[other page]]\n";

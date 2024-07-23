@@ -8,6 +8,8 @@ import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { traverseTree } from "$sb/lib/tree.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { findNodeOfType } from "$sb/lib/tree.ts";
+import { isFederationPath } from "$sb/lib/resolve.ts";
+import { rewritePageRefs } from "$sb/lib/resolve.ts";
 
 const pageCacheTtl = 10 * 1000; // 10s
 
@@ -55,11 +57,11 @@ export function buildQueryFunctions(
       ]);
     },
     // INTERNAL: Used to rewrite task references in transclusions
-    rewriteTaskRefs(template: string, page: string) {
+    rewriteRefsAndFederationLinks(template: string, page: string) {
       // Rewrite all task references to include a page ref
       // Parse template into a tree
       const tree = parse(extendedMarkdownLanguage, template);
-      // Find tasks
+      // Find tasks and rewrite them
       traverseTree(tree, (node) => {
         if (node.type === "Task") {
           const taskRefWikiLink = findNodeOfType(node, "WikiLinkPage");
@@ -77,8 +79,13 @@ export function buildQueryFunctions(
         }
         return false;
       });
+      // And rewrite federation links as well
+      if (isFederationPath(page)) {
+        rewritePageRefs(tree, page);
+      }
       return renderToText(tree);
     },
+
     // INTERNAL: Used to implement resolving [[links]] in expressions, also supports [[link#header]] and [[link$pos]] as well as [[link$anchor]]
     async readPage(name: string): Promise<string> {
       const cachedPage = pageCache.get(name);

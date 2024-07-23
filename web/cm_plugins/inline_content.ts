@@ -158,7 +158,7 @@ export function inlineImagesPlugin(client: Client) {
                   node.from,
                   client,
                   `widget:${client.currentPage}:${text}`,
-                  `{{rewriteTaskRefs([[${url}]], "${url}")}}`,
+                  `{{rewriteRefsAndFederationLinks([[${url}]], "${url}")}}`,
                   codeWidgetCallback,
                   "sb-markdown-widget sb-markdown-widget-inline",
                 ),
