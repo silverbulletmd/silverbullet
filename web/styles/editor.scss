@@ -49,6 +49,23 @@
   .sb-line-h6 {
     font-size: 1em;
   }
+  h1 {
+    font-size: 1.5em;
+  }
+
+  h2 {
+    font-size: 1.2em;
+  }
+
+  h3 {
+    font-size: 1.1em;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: 1em;
+  }
 
   // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
   .sb-line-h1:has(> span.sb-hashtag:only-child) {
