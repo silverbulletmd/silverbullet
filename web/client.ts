@@ -451,7 +451,7 @@ export class Client {
       );
     });
 
-    if (location.hash === "#boot") {
+    if (location.hash === "#boot" && this.settings.pwaOpenLastPage !== false) {
       (async () => {
         // Cold start PWA load
         const lastPage = await this.stateDataStore.get([

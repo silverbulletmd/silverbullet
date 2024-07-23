@@ -19,6 +19,9 @@ hideSyncButton: false
 # Hide the edit button (available on mobile only)
 hideEditButton: true # defaults to 'false'
 
+# In PWA mode, SilverBullet automatically reopens the last opened page on boot, this can be disabled
+pwaOpenLastPage: true
+
 # Configure the shown action buttons (top right bar)
 actionButtons:
 - icon: home # Use any icon from https://feathericons.com

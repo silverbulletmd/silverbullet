@@ -13,19 +13,25 @@ import {
 
 export type BuiltinSettings = {
   indexPage: string;
-  customStyles?: string | string[];
-  plugOverrides?: Record<string, Partial<Manifest>>;
   shortcuts?: Shortcut[];
-  hideSyncButton?: boolean;
-  hideEditButton?: boolean;
   useSmartQuotes?: boolean;
   maximumAttachmentSize?: number;
-  defaultLinkStyle?: string;
+  // Open the last page that was open when the app was closed
+  pwaOpenLastPage?: boolean;
+  // UI visuals
+  hideEditButton?: boolean;
+  hideSyncButton?: boolean;
   actionButtons: ActionButton[];
   pageDecorations?: PageDecoration[];
   // Format: compatible with docker ignore
   spaceIgnore?: string;
   emoji?: EmojiConfig;
+  // DEPRECATED: Use space styles instead
+  customStyles?: string | string[];
+  // DEPRECATED: Use shortcuts instead
+  plugOverrides?: Record<string, Partial<Manifest>>;
+  // NOTE: Bit niche, maybe delete at some point?
+  defaultLinkStyle?: string;
 };
 
 export type PanelConfig = {
