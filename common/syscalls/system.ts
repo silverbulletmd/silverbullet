@@ -45,6 +45,34 @@ export function systemSyscalls(
       }
       return plug.invoke(functionName, args);
     },
+    "system.invokeFunctionOnServer": (
+      ctx,
+      fullName: string, // plug.function
+      ...args: any[]
+    ) => {
+      const [plugName, functionName] = fullName.split(".");
+      if (!plugName || !functionName) {
+        throw Error(`Invalid function name ${fullName}`);
+      }
+      const plug = system.loadedPlugs.get(plugName);
+      if (!plug) {
+        throw Error(`Plug ${plugName} not found`);
+      }
+      const functionDef = plug.manifest!.functions[functionName];
+      if (!functionDef) {
+        throw Error(`Function ${functionName} not found`);
+      }
+      if (!client) {
+        throw new Error("Not supported");
+      }
+      // Proxy to system env
+      return proxySyscall(
+        ctx,
+        client.httpSpacePrimitives,
+        "system.invokeFunction",
+        [fullName, ...args],
+      );
+    },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
         throw new Error("Not supported");
