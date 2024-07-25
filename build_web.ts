@@ -103,7 +103,7 @@ async function buildCopyBundleAssets() {
     // metafile: true,
     jsx: "automatic",
     jsxFragment: "Fragment",
-    jsxImportSource: "https://esm.sh/preact@10.11.1",
+    jsxImportSource: "https://esm.sh/preact@10.23.1",
     plugins: denoPlugins({
       importMapURL: new URL("./import_map.json", import.meta.url)
         .toString(),

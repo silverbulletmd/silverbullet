@@ -18,7 +18,7 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 
 await new Command()
   .name("silverbullet")
-  .description("Markdown as a platform")
+  .description("Note taking for knowledge hackers")
   .version(version)
   .help({
     colors: false,
@@ -46,10 +46,6 @@ await new Command()
   .option(
     "--sync-only",
     "Run the server as a pure space (file) store only without any backend processing (this disables 'online mode' in the client)",
-  )
-  .option(
-    "--client-encryption",
-    "Enable client-side encryption for spaces",
   )
   .option(
     "--reindex",
@@ -106,4 +102,5 @@ await new Command()
   .command("version", "Get current version")
   .action(versionCommand)
   .parse(Deno.args);
+
 Deno.exit(0);

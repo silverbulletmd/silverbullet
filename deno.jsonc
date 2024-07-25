@@ -29,7 +29,7 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
     "jsx": "react-jsx",
-    "jsxImportSource": "https://esm.sh/preact@10.11.1"
+    "jsxImportSource": "https://esm.sh/preact@10.23.1"
   },
   "importMap": "import_map.json",
   "lint": {

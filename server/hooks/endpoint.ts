@@ -2,6 +2,7 @@ import { Hook, Manifest } from "../../lib/plugos/types.ts";
 import { System } from "../../lib/plugos/system.ts";
 import type { Context, Next } from "hono/mod.ts";
 import { EndpointHookT } from "$lib/manifest.ts";
+import { StatusCode } from "hono/utils/http-status.ts";
 
 export type EndpointRequest = {
   method: string;
@@ -12,7 +13,7 @@ export type EndpointRequest = {
 };
 
 export type EndpointResponse = {
-  status: number;
+  status: StatusCode;
   headers?: { [key: string]: string };
   body: any;
 };

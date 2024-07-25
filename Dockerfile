@@ -1,4 +1,5 @@
-FROM denoland/deno:debian-1.45.2
+FROM denoland/deno:debian-1.45.3
+
 # The volume that will keep the space data
 
 # Either create a volume:
@@ -7,6 +8,7 @@ FROM denoland/deno:debian-1.45.2
 #   docker run -v myspace:/space -p3000:3000 -it zefhemel/silverbullet
 # Or simply mount an existing folder into the container:
 #   docker run -v /path/to/my/folder:/space -p3000:3000 -it zefhemel/silverbullet
+
 VOLUME /space
 
 # Accept TARGETARCH as argument
