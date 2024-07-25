@@ -23,7 +23,6 @@ export async function serveCommand(
     key?: string;
     reindex?: boolean;
     syncOnly?: boolean;
-    clientEncryption?: boolean;
   },
   folder?: string,
 ) {
@@ -31,15 +30,6 @@ export async function serveCommand(
     "127.0.0.1";
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
-
-  const clientEncryption = options.clientEncryption ||
-    !!Deno.env.get("SB_CLIENT_ENCRYPTION");
-
-  if (clientEncryption) {
-    console.log(
-      "Running in client encryption mode, this will implicitly enable sync-only mode",
-    );
-  }
 
   const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
 
@@ -92,7 +82,6 @@ export async function serveCommand(
     syncOnly,
     readOnly,
     shellBackend: backendConfig,
-    clientEncryption,
     enableSpaceScript,
     pagesPath: folder,
   });
@@ -125,14 +114,20 @@ export async function serveCommand(
   const manifestDescription = Deno.env.get("SB_DESCRIPTION");
 
   if (manifestName || manifestDescription) {
-    const manifestData = JSON.parse(clientAssets.readTextFileSync('.client/manifest.json'));
+    const manifestData = JSON.parse(
+      clientAssets.readTextFileSync(".client/manifest.json"),
+    );
     if (manifestName) {
       manifestData.name = manifestData.short_name = manifestName;
     }
     if (manifestDescription) {
       manifestData.description = manifestDescription;
     }
-    clientAssets.writeTextFileSync('.client/manifest.json', 'application/json', JSON.stringify(manifestData));
+    clientAssets.writeTextFileSync(
+      ".client/manifest.json",
+      "application/json",
+      JSON.stringify(manifestData),
+    );
   }
   const httpServer = new HttpServer({
     hostname,

@@ -161,9 +161,6 @@ export class HttpServer {
       ).replace(
         "{{CONTENT}}",
         html,
-      ).replace(
-        "{{CLIENT_ENCRYPTION}}",
-        spaceServer.clientEncryption ? "true" : "false",
       );
     return c.html(
       html,
@@ -262,7 +259,6 @@ export class HttpServer {
               "{{CONFIG_HASH}}",
               base64Encode(
                 JSON.stringify([
-                  spaceServer.clientEncryption,
                   spaceServer.syncOnly,
                   spaceServer.readOnly,
                   spaceServer.enableSpaceScript,

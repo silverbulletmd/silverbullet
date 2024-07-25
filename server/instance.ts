@@ -30,7 +30,6 @@ export type SpaceServerConfig = {
   syncOnly: boolean;
   readOnly: boolean;
   enableSpaceScript: boolean;
-  clientEncryption: boolean;
 };
 
 // Equivalent of Client on the server
@@ -48,7 +47,6 @@ export class SpaceServer {
   // Only set when syncOnly == false
   private serverSystem?: ServerSystem;
   system?: System<SilverBulletHooks>;
-  clientEncryption: boolean;
   syncOnly: boolean;
   readOnly: boolean;
   shellBackend: ShellBackend;
@@ -63,15 +61,9 @@ export class SpaceServer {
     this.hostname = config.hostname;
     this.auth = config.auth;
     this.authToken = config.authToken;
-    this.clientEncryption = !!config.clientEncryption;
     this.syncOnly = config.syncOnly;
     this.readOnly = config.readOnly;
     this.enableSpaceScript = config.enableSpaceScript;
-
-    if (this.clientEncryption) {
-      // Sync only will forced on when encryption is enabled
-      this.syncOnly = true;
-    }
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
 
@@ -143,14 +135,6 @@ export class SpaceServer {
   }
 
   async reloadSettings() {
-    if (!this.clientEncryption) {
-      // Only attempt this when the space is not encrypted
-      this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
-    } else {
-      this.settings = {
-        indexPage: "index",
-        actionButtons: [],
-      };
-    }
+    this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
   }
 }

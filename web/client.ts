@@ -47,9 +47,6 @@ import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
-import {
-  EncryptedSpacePrimitives,
-} from "$common/spaces/encrypted_space_primitives.ts";
 
 import { ensureSpaceIndex } from "$common/space_index.ts";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
@@ -75,27 +72,42 @@ declare global {
       spaceFolderPath: string;
       syncOnly: boolean;
       readOnly: boolean;
-      clientEncryption: boolean;
       enableSpaceScript: boolean;
     };
     client: Client;
   }
 }
 
-// history.scrollRestoration = "manual";
+type WidgetCacheItem = {
+  height: number;
+  html: string;
+  buttons?: CodeWidgetButton[];
+  banner?: string;
+};
 
 export class Client {
+  // Event bus used to communicate between components
+  eventHook = new EventHook();
+
+  space!: Space;
+  settings!: BuiltinSettings;
+
   clientSystem!: ClientSystem;
+  plugSpaceRemotePrimitives!: PlugSpacePrimitives;
+  httpSpacePrimitives!: HttpSpacePrimitives;
+
+  ui!: MainUI;
+  stateDataStore!: DataStore;
+  spaceKV?: KvPrimitives;
+  mq!: DataStoreMQ;
+
+  // CodeMirror editor
   editorView!: EditorView;
   keyHandlerCompartment?: Compartment;
 
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
-
-  plugSpaceRemotePrimitives!: PlugSpacePrimitives;
-  httpSpacePrimitives!: HttpSpacePrimitives;
-  space!: Space;
 
   saveTimeout?: number;
   debouncedUpdateEvent = throttle(() => {
@@ -104,21 +116,12 @@ export class Client {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
+  // Sync related stuff
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
-
   syncService!: ISyncService;
-  settings!: BuiltinSettings;
 
-  // Event bus used to communicate between components
-  eventHook!: EventHook;
-
-  ui!: MainUI;
-  stateDataStore!: DataStore;
-  spaceKV?: KvPrimitives;
-  mq!: DataStoreMQ;
-
-  onLoadPageRef: PageRef;
+  private onLoadPageRef: PageRef;
 
   constructor(
     private parent: Element,
@@ -138,18 +141,15 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
+    // Setup the state data store
     const stateKvPrimitives = new IndexedDBKvPrimitives(
       `${this.dbPrefix}_state`,
     );
     await stateKvPrimitives.init();
-
     this.stateDataStore = new DataStore(stateKvPrimitives);
 
     // Setup message queue
     this.mq = new DataStoreMQ(this.stateDataStore);
-
-    // Event hook
-    this.eventHook = new EventHook();
 
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
@@ -168,11 +168,9 @@ export class Client {
         this.plugSpaceRemotePrimitives,
         this.stateDataStore,
         this.eventHook,
-        (path) => {
-          // TODO: At some point we should remove the data.db exception here
-          return path !== "data.db" &&
-              // Exclude all plug space primitives paths
-              !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
+        (path) => { // isSyncCandidate
+          // Exclude all plug space primitives paths
+          return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
             // Except federated ones
             path.startsWith("!");
         },
@@ -194,7 +192,8 @@ export class Client {
     await this.loadSettings();
 
     await this.loadCaches();
-    // Pinging a remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
+
+    // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
       await this.httpSpacePrimitives.ping();
     } catch (e: any) {
@@ -225,10 +224,12 @@ export class Client {
     await this.initNavigator();
     await this.initSync();
 
+    // We can load custom styles async
     this.loadCustomStyles().catch(console.error);
 
     await this.dispatchAppEvent("editor:init");
 
+    // Regularly sync the currently open file
     setInterval(() => {
       try {
         this.syncService.syncFile(`${this.currentPage}.md`).catch((e: any) => {
@@ -239,6 +240,7 @@ export class Client {
       }
     }, pageSyncInterval);
 
+    // Let's update the local page list cache asynchronously
     this.updatePageListCache().catch(console.error);
   }
 
@@ -262,7 +264,6 @@ export class Client {
     let initialSync = !await this.syncService.hasInitialSyncCompleted();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
-      // console.log("Operations", operations);
       if (operations > 0) {
         // Update the page list
         await this.space.updatePageList();
@@ -280,7 +281,7 @@ export class Client {
             console.error,
           );
         } else { // initialSync
-          // Let's load space scripts, which probably weren't loaded before
+          // Let's load space scripts again, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
           console.log(
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom space script indexers",
@@ -298,20 +299,24 @@ export class Client {
 
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
     });
+
     this.eventHook.addLocalListener("sync:error", (_name) => {
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
     });
+
     this.eventHook.addLocalListener("sync:conflict", (name) => {
       this.flashNotification(
         `Sync: conflict detected for ${name} - conflict copy created`,
         "error",
       );
     });
+
     this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
       this.showProgress(
         Math.round(status.filesProcessed / status.totalFiles * 100),
       );
     });
+
     this.eventHook.addLocalListener(
       "file:synced",
       (meta: FileMeta, direction: string) => {
@@ -399,7 +404,6 @@ export class Client {
       adjustedPosition = true;
     }
     if (pos !== undefined) {
-      // setTimeout(() => {
       this.editorView.dispatch({
         selection: { anchor: pos! },
         effects: EditorView.scrollIntoView(pos!, {
@@ -408,7 +412,6 @@ export class Client {
         }),
       });
       adjustedPosition = true;
-      // });
     }
 
     // If not: just put the cursor at the top of the page, right after the frontmatter
@@ -446,6 +449,7 @@ export class Client {
       // Setup scroll position, cursor position, etc
       this.navigateWithinPage(pageState);
 
+      // Persist this page as the last opened page, we'll use this for cold start PWA loads
       await this.stateDataStore.set(
         ["client", "lastOpenedPage"],
         pageState.page,
@@ -453,17 +457,15 @@ export class Client {
     });
 
     if (location.hash === "#boot" && this.settings.pwaOpenLastPage !== false) {
-      (async () => {
-        // Cold start PWA load
-        const lastPage = await this.stateDataStore.get([
-          "client",
-          "lastOpenedPage",
-        ]);
-        if (lastPage) {
-          console.log("Navigating to last opened page", lastPage);
-          await this.navigate({ page: lastPage });
-        }
-      })().catch(console.error);
+      // Cold start PWA load
+      const lastPage = await this.stateDataStore.get([
+        "client",
+        "lastOpenedPage",
+      ]);
+      if (lastPage) {
+        console.log("Navigating to last opened page", lastPage);
+        await this.navigate({ page: lastPage });
+      }
     }
   }
 
@@ -474,74 +476,6 @@ export class Client {
     );
 
     let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
-
-    if (window.silverBulletConfig.clientEncryption) {
-      console.log("Enabling encryption");
-
-      const encryptedSpacePrimitives = new EncryptedSpacePrimitives(
-        this.httpSpacePrimitives,
-      );
-      remoteSpacePrimitives = encryptedSpacePrimitives;
-      let loggedIn = false;
-      // First figure out if we're online & if the key file exists, if not we need to initialize the space
-      try {
-        if (!await encryptedSpacePrimitives.init()) {
-          console.log(
-            "Space not initialized, will ask for password to initialize",
-          );
-          alert(
-            "You appear to be accessing a new space with encryption enabled, you will now be asked to create a password",
-          );
-          const password = prompt("Choose a password");
-          if (!password) {
-            alert("Cannot do anything without a password, reloading");
-            location.reload();
-            throw new Error("Not initialized");
-          }
-          const password2 = prompt("Confirm password");
-          if (password !== password2) {
-            alert("Passwords don't match, reloading");
-            location.reload();
-            throw new Error("Not initialized");
-          }
-          await encryptedSpacePrimitives.setup(password);
-          // this.stateDataStore.set(["encryptionKey"], password);
-          await this.stateDataStore.set(
-            ["spaceSalt"],
-            encryptedSpacePrimitives.spaceSalt,
-          );
-          loggedIn = true;
-        }
-      } catch (e: any) {
-        if (e.message === "Offline") {
-          console.log(
-            "Offline, will assume encryption space is initialized, fetching salt from data store",
-          );
-          await encryptedSpacePrimitives.init(
-            await this.stateDataStore.get(["spaceSalt"]),
-          );
-        }
-      }
-      if (!loggedIn) {
-        // Let's ask for the password
-        try {
-          await encryptedSpacePrimitives.login(
-            prompt("Password")!,
-          );
-          await this.stateDataStore.set(
-            ["spaceSalt"],
-            encryptedSpacePrimitives.spaceSalt,
-          );
-        } catch (e: any) {
-          console.log("Got this error", e);
-          if (e.message === "Incorrect password") {
-            alert("Incorrect password");
-            location.reload();
-          }
-          throw e;
-        }
-      }
-    }
 
     if (this.readOnlyMode) {
       remoteSpacePrimitives = new ReadOnlySpacePrimitives(
@@ -647,15 +581,14 @@ export class Client {
     );
 
     // Caching a list of known files for the wiki_link highlighter (that checks if a file exists)
+    // And keeping it up to date as we go
     this.eventHook.addLocalListener("file:changed", (fileName: string) => {
       // Make sure this file is in the list of known pages
       this.clientSystem.allKnownFiles.add(fileName);
     });
-
     this.eventHook.addLocalListener("file:deleted", (fileName: string) => {
       this.clientSystem.allKnownFiles.delete(fileName);
     });
-
     this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
@@ -684,6 +617,7 @@ export class Client {
     return this.eventHook.dispatchEvent(name, ...args);
   }
 
+  // Save the current page
   save(immediate = false): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.saveTimeout) {
@@ -778,6 +712,7 @@ export class Client {
   startPageNavigate(mode: "page" | "meta" | "all") {
     // Then show the page navigator
     this.ui.viewDispatch({ type: "start-navigate", mode });
+    // And update the page list cache asynchronously
     this.updatePageListCache().catch(console.error);
   }
 
@@ -812,7 +747,9 @@ export class Client {
     });
   }
 
+  // Progress circle handling
   private progressTimeout?: number;
+
   showProgress(progressPerc: number) {
     this.ui.viewDispatch({
       type: "set-progress",
@@ -831,6 +768,7 @@ export class Client {
     );
   }
 
+  // Various UI elements
   filterBox(
     label: string,
     options: FilterOption[],
@@ -924,6 +862,7 @@ export class Client {
     const line = editorState.doc.lineAt(selection.from);
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
+    // Build up list of parent nodes, some completions need this
     const parentNodes: string[] = [];
     const sTree = syntaxTree(editorState);
     const currentNode = sTree.resolveInner(selection.from);
@@ -940,12 +879,15 @@ export class Client {
       } while (node);
     }
 
+    // Dispatch the event
     const results = await this.dispatchAppEvent(eventName, {
       pageName: this.currentPage,
       linePrefix,
       pos: selection.from,
       parentNodes,
     } as CompleteEvent);
+
+    // Merge results
     let currentResult: CompletionResult | null = null;
     for (const result of results) {
       if (!result) {
@@ -975,7 +917,6 @@ export class Client {
         currentResult = result;
       }
     }
-    // console.log("Compeltion result", actualResult);
     return currentResult;
   }
 
@@ -1001,6 +942,7 @@ export class Client {
     await this.loadPage(this.currentPage);
   }
 
+  // Focus the editor
   focus() {
     const viewState = this.ui.viewState;
     if (
@@ -1102,6 +1044,7 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
+        // Create new page based on a template
         this.clientSystem.system.invokeFunction("template.newPage", [pageName])
           .then(
             () => {
@@ -1132,7 +1075,7 @@ export class Client {
     });
 
     // Fetch (possibly) enriched meta data asynchronously
-    await this.clientSystem.getObjectByRef<
+    this.clientSystem.getObjectByRef<
       PageMeta
     >(
       this.currentPage,
@@ -1298,10 +1241,3 @@ export class Client {
     return this.widgetCache.get(key);
   }
 }
-
-type WidgetCacheItem = {
-  height: number;
-  html: string;
-  buttons?: CodeWidgetButton[];
-  banner?: string;
-};
