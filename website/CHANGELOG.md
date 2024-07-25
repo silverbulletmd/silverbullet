@@ -9,6 +9,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 * [[Page Picker#Keyboard shortcuts]]: allow folder completion using Shift-Space (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/961))
 * New [[Page Decorations]]: ability to hide pages from the page picker and auto complete (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/962))
 * The [[Expression Language]] now supports decimal numbers 🤯 (e.g. `3.14`)
+* Non-existing pages that have been previously linked to (so effectively: broken links) now appear in the [[Page Picker]] (with a “Create page” hint) as well as in [[Links]] auto complete (marked as “Linked but not created”). This should make it easier to “fill in the gaps”: you can liberally create page links, and create those pages later easily via the page picker.
 * Added Ruby [[Markdown/Syntax Highlighting]] (by [Bo Jeanes](https://github.com/silverbulletmd/silverbullet/pull/966))
 * **Fix**: Due to some race conditions some situations pages would disappear from the index (e.g. from the [[Page Picker]]), this should now be fixed
 * New [[SETTINGS]]: `pwaOpenLastPage` and `useSmartQuotes` (latter by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/960))
