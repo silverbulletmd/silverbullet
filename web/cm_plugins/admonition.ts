@@ -1,6 +1,6 @@
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import { Decoration } from "@codemirror/view";
 import { SyntaxNodeRef } from "@lezer/common";
 import { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
