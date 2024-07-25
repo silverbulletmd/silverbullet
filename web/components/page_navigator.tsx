@@ -65,6 +65,7 @@ export function PageNavigator({
         name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
         description,
         orderId: orderId,
+        hint: pageMeta._isBrokenLink ? "Create page" : undefined,
       });
     } else if (mode === "meta") {
       // Special behavior for #template and #meta pages
@@ -99,11 +100,15 @@ export function PageNavigator({
   } else if (currentPage && currentPage.includes(" ")) {
     completePrefix = currentPage.split(" ")[0] + " ";
   }
-  
+
   const pageNoun = mode === "meta" ? mode : "page";
   return (
     <FilterList
-      placeholder={mode === "page" ? "Page" : (mode === "meta" ? "#template or #meta page" : "Any page, also hidden")}
+      placeholder={mode === "page"
+        ? "Page"
+        : (mode === "meta"
+          ? "#template or #meta page"
+          : "Any page, also hidden")}
       label="Open"
       options={options}
       vimMode={vimMode}
@@ -116,7 +121,7 @@ export function PageNavigator({
       onKeyPress={(key, text) => {
         // Pages cannot start with ^, as documented in Page Name Rules
         if (key === "^" && text === "^") {
-          switch(mode) {
+          switch (mode) {
             case "page":
               onModeSwitch("meta");
               break;
@@ -159,7 +164,9 @@ export function PageNavigator({
 
         if (mode !== "all") {
           // Filter out hidden pages
-          options = options.filter((page) => !(page.pageDecoration?.hide === true));
+          options = options.filter((page) =>
+            !(page.pageDecoration?.hide === true)
+          );
         }
         return options;
       }}

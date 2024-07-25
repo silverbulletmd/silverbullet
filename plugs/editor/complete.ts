@@ -9,6 +9,7 @@ import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "$sb/lib/resolve.ts";
 import { decoration } from "$sb/syscalls.ts";
+import type { LinkObject } from "../index/page_links.ts";
 
 // A meta page is a page tagged with either #template or #meta
 const isMetaPageFilter: QueryExpression = ["or", ["=", ["attr", "tags"], [
@@ -66,14 +67,34 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // Include both pages and meta in page completion in ```include and ```template blocks
     allPages = await queryObjects<PageMeta>("page", {}, 5);
   } else {
-    // Otherwise, just complete non-meta pages
-    allPages = await queryObjects<PageMeta>("page", {
-      filter: ["not", isMetaPageFilter],
-    }, 5);
-    // and attachments
-    allPages = allPages.concat(
-      await queryObjects<AttachmentMeta>("attachment", {}, 5),
-    );
+    // This is the most common case, we're combining three types of completions here:
+    allPages = (await Promise.all([
+      // All non-meta pages
+      queryObjects<PageMeta>("page", {
+        filter: ["not", isMetaPageFilter],
+      }, 5),
+      // All attachments
+      queryObjects<AttachmentMeta>("attachment", {}, 5),
+      // And all links to non-existing pages (to augment the existing ones)
+      queryObjects<LinkObject>("link", {
+        filter: ["and", ["attr", "toPage"], ["not", ["call", "pageExists", [[
+          "attr",
+          "toPage",
+        ]]]]],
+        select: [{ name: "toPage" }],
+      }, 5).then((brokenLinks) =>
+        // Rewrite them to PageMeta shaped objects
+        brokenLinks.map((link): PageMeta => ({
+          ref: link.toPage!,
+          tag: "page",
+          tags: ["non-existing"], // Picked up later in completion
+          name: link.toPage!,
+          created: "",
+          lastModified: "",
+          perm: "rw",
+        }))
+      ),
+    ])).flat();
   }
 
   // Don't complete hidden pages
@@ -143,6 +164,9 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           label: pageMeta.name,
           displayLabel: decoratedName,
           boost: new Date(pageMeta.lastModified).getTime(),
+          detail: pageMeta.tags?.includes("non-existing")
+            ? "Linked but not created"
+            : undefined,
           type: "page",
         });
       } else {

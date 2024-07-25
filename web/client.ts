@@ -62,6 +62,7 @@ import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "$sb/lib/tree.ts";
+import type { LinkObject } from "../plugs/index/page_links.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -787,9 +788,27 @@ export class Client {
       return;
     }
     const allPages = await this.clientSystem.queryObjects<PageMeta>("page", {});
+    const allBrokenLinkPages = (await this.clientSystem.queryObjects<
+      LinkObject
+    >("link", {
+      filter: ["and", ["attr", "toPage"], ["not", ["call", "pageExists", [[
+        "attr",
+        "toPage",
+      ]]]]],
+      select: [{ name: "toPage" }],
+    })).map((link): PageMeta => ({
+      ref: link.toPage!,
+      tag: "page",
+      _isBrokenLink: true,
+      name: link.toPage!,
+      created: "",
+      lastModified: "",
+      perm: "rw",
+    }));
+
     this.ui.viewDispatch({
       type: "update-page-list",
-      allPages,
+      allPages: allPages.concat(allBrokenLinkPages),
     });
   }
 
