@@ -2,7 +2,3 @@ name: test
 functions:
   boot:
     path: "./test_func.test.ts:hello"
-  endpoint:
-    path: "./test_func.test.ts:endpoint"
-    http:
-      path: "/"
