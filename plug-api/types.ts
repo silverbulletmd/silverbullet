@@ -274,3 +274,19 @@ export type WidgetContent = {
 export type PageModifiedEvent = {
   changes: TextChange[];
 };
+
+// HTTP Endpoint related types
+export type EndpointRequest = {
+  method: string;
+  fullPath: string;
+  path: string;
+  query: { [key: string]: string };
+  headers: { [key: string]: string };
+  body: any;
+};
+
+export type EndpointResponse = {
+  status?: number;
+  headers?: { [key: string]: string };
+  body: any;
+};

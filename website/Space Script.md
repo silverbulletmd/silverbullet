@@ -133,6 +133,62 @@ silverbullet.registerEventListener({name: "task:stateChange"}, async (event) => 
 });
 ```
 
+## Custom HTTP endpoints
+Using the `registerEventListener` mechanism it is possible to expose custom HTTP endpoint on your SilverBullet’s server under the `/_/` prefix.
+
+Whenever a HTTP request is sent to your SilverBullet server under this prefix, for instance `https://notes.myserver.com/_/hello` a `http:request` event is emitted. If a handler responds to it, this response will be used as the HTTP response.
+
+> **warning** Warning
+> Custom HTTP endpoints are not authenticated. If you want to add authentication, you have to do this manually, e.g. by checking for an “Authorization” header in your code.
+
+For the `http:request` the `data` key takes the shape of a EndpointRequest object, which in TypeScript is defined as follows:
+
+```typescript
+type EndpointRequest = {
+  // The HTTP method, e.g. GET, POST, PUT, DELETE
+  method: string;
+  // The full HTTP request path, e.g. /_/hello
+  fullPath: string;
+  // The cleaned up request path (without the /_ prefix), e.g. /hello
+  path: string;
+  // URL request parameters (?name=Pete)
+  query: Record<string, string>;
+  // Request headers
+  headers: Record<string, string>;
+  // Request body
+  body: any;
+};
+```
+
+The callback function should then return an object in the following shape:
+
+```typescript
+type EndpointResponse = {
+  // HTTP status code, e.g. 200, 404, 500
+  status?: number;
+  // Response headers
+  headers?: Record<string, string>;
+  // Response body, either a string, UInt8Array or JSON object
+  body: any;
+};
+```
+
+### Example
+```space-script
+silverbullet.registerEventListener({name: "http:request"}, (event) => {
+  const req = event.data;
+  if(req.path === "/echo") {
+    // Simply echo back the request
+    return {
+      body: JSON.stringify(req, null, 2)
+    };
+  }
+});
+```
+
+You can try it out here: https://silverbullet.md/_/echo
+
+
 # Custom attribute extractors
 SilverBullet indexes various types of content as [[Objects]]. There are various ways to define [[Attributes]] for these objects, such as the [attribute: my value] syntax. However, using space script you can write your own code to extract attribute values not natively supported using the registerAttributeExtractor API.
 

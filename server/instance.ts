@@ -45,7 +45,7 @@ export class SpaceServer {
   jwtIssuer: JWTIssuer;
 
   // Only set when syncOnly == false
-  private serverSystem?: ServerSystem;
+  serverSystem?: ServerSystem;
   system?: System<SilverBulletHooks>;
   syncOnly: boolean;
   readOnly: boolean;

@@ -33,7 +33,7 @@ export abstract class CommonSystem {
   constructor(
     protected mq: DataStoreMQ,
     protected ds: DataStore,
-    protected eventHook: EventHook,
+    public eventHook: EventHook,
     public readOnlyMode: boolean,
     protected enableSpaceScript: boolean,
   ) {

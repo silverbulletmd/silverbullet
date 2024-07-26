@@ -2,7 +2,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
 import { cors } from "hono/middleware.ts";
 import { type Context, Hono, type HonoRequest, validator } from "hono/mod.ts";
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import { FileMeta } from "$sb/types.ts";
+import { EndpointRequest, EndpointResponse, FileMeta } from "$sb/types.ts";
 import { ShellRequest } from "$type/rpc.ts";
 import { SpaceServer, SpaceServerConfig } from "./instance.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
@@ -174,6 +174,7 @@ export class HttpServer {
   start() {
     // Serve static files (javascript, css, html)
     this.serveStatic();
+    this.serveCustomEndpoints();
     this.addAuth();
     this.addFsRoutes();
 
@@ -207,6 +208,58 @@ export class HttpServer {
     console.log(
       `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
     );
+  }
+
+  // Custom endpoints can be defined in the server
+  serveCustomEndpoints() {
+    this.app.use("/_/*", async (ctx) => {
+      const spaceServer = await this.ensureSpaceServer(ctx.req);
+      const req = ctx.req;
+      const url = new URL(req.url);
+      if (!spaceServer.serverSystem) {
+        return ctx.text("No server system available", 500);
+      }
+
+      try {
+        const responses: EndpointResponse[] = await spaceServer.serverSystem
+          .eventHook.dispatchEvent("http:request", {
+            fullPath: url.pathname,
+            path: url.pathname.slice(2),
+            method: req.method,
+            body: await req.text(),
+            query: Object.fromEntries(
+              url.searchParams.entries(),
+            ),
+            headers: req.header(),
+          } as EndpointRequest);
+        if (responses.length === 0) {
+          return ctx.text("No response from event hook", 500);
+        } else if (responses.length > 1) {
+          return ctx.text("Multiple responses from event hook", 500);
+        }
+        const response = responses[0];
+        if (response.headers) {
+          for (
+            const [key, value] of Object.entries(
+              response.headers,
+            )
+          ) {
+            ctx.header(key, value);
+          }
+        }
+        ctx.status(response.status || 200);
+        if (typeof response.body === "string") {
+          return ctx.text(response.body);
+        } else if (response.body instanceof Uint8Array) {
+          return ctx.body(response.body);
+        } else {
+          return ctx.json(response.body);
+        }
+      } catch (e: any) {
+        console.error("HTTP endpoint error", e);
+        return ctx.text(e.message, 500);
+      }
+    });
   }
 
   serveStatic() {

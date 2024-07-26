@@ -6,7 +6,6 @@ import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
 
 import { ServerSystem } from "../server/server_system.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
-import { EndpointHook } from "../server/hooks/endpoint.ts";
 import { LocalShell } from "../server/shell_backend.ts";
 import { Hono } from "hono/mod.ts";
 import { DataStore } from "$lib/data/datastore.ts";
@@ -71,8 +70,6 @@ export async function runPlug(
   const serverController = new AbortController();
   const app = new Hono();
 
-  const endpointHook = new EndpointHook("/_/");
-
   const ds = new DataStore(kvPrimitives);
   const mq = new DataStoreMQ(ds);
   const eventHook = new EventHook();
@@ -91,9 +88,6 @@ export async function runPlug(
     true,
   );
   await serverSystem.init(true);
-  app.use((context, next) => {
-    return endpointHook.handleRequest(serverSystem.system!, context, next);
-  });
   if (httpHostname && httpServerPort) {
     Deno.serve({
       hostname: httpHostname,
