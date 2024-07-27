@@ -82,7 +82,7 @@ export function PageNavigator({
         hint: pageMeta.tags![0],
         orderId: orderId,
       });
-    } else {
+    } else { // all
       // In mode "all" just show the full path and all tags
       let description: string | undefined;
       if (pageMeta.tags) {
