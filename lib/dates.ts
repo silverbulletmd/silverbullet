@@ -12,7 +12,11 @@ export function niceDate(d: Date): string {
 
 export function niceTime(d: Date): string {
   const isoDate = d.toISOString();
-  let [date, time] = isoDate.split("T");
+  const [_, time] = isoDate.split("T");
   // hh:mm:ss
   return time.split(".")[0];
+}
+
+export function safeTime(d: Date): string {
+  return niceTime(d).replace(/:/g, "-");
 }

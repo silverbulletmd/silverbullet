@@ -1,5 +1,5 @@
 import type { FunctionMap } from "../plug-api/types.ts";
-import { niceDate, niceTime } from "./dates.ts";
+import { niceDate, niceTime, safeTime } from "./dates.ts";
 
 export const builtinFunctions: FunctionMap = {
   // String functions
@@ -83,6 +83,7 @@ export const builtinFunctions: FunctionMap = {
     return niceDate(new Date());
   },
   time: () => niceTime(new Date()),
+  safeTime: () => safeTime(new Date()),
   tomorrow: () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
