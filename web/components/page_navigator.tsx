@@ -69,6 +69,10 @@ export function PageNavigator({
       });
     } else if (mode === "meta") {
       // Special behavior for #template and #meta pages
+      if (pageMeta._isBrokenLink) {
+        // Skip over broken links
+        continue;
+      }
       options.push({
         ...pageMeta,
         // Use the displayName or last bit of the path as the name
