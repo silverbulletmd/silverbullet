@@ -221,10 +221,11 @@ export class HttpServer {
       }
 
       try {
+        const path = url.pathname.slice(2); // Remove the /_
         const responses: EndpointResponse[] = await spaceServer.serverSystem
-          .eventHook.dispatchEvent("http:request", {
+          .eventHook.dispatchEvent(`http:request:${path}`, {
             fullPath: url.pathname,
-            path: url.pathname.slice(2),
+            path,
             method: req.method,
             body: await req.text(),
             query: Object.fromEntries(
@@ -233,9 +234,15 @@ export class HttpServer {
             headers: req.header(),
           } as EndpointRequest);
         if (responses.length === 0) {
-          return ctx.text("No response from event hook", 500);
+          return ctx.text(
+            "No custom endpoint handler is handling this path",
+            404,
+          );
         } else if (responses.length > 1) {
-          return ctx.text("Multiple responses from event hook", 500);
+          return ctx.text(
+            "Multiple endpoint handlers are handling this path, this is not supported",
+            500,
+          );
         }
         const response = responses[0];
         if (response.headers) {
