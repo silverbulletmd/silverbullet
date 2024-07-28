@@ -214,6 +214,19 @@ export function editorSyscalls(client: Client): SysCallMapping {
       }
       client.editorView.focus();
     },
+    "editor.moveCursorToLine": (
+      _ctx,
+      line: number,
+      column = 1,
+      center = false,
+    ) => {
+      // CodeMirror already keeps information about lines
+      const cmLine = client.editorView.state.doc.line(line);
+      // How much to move inside the line, column number starts from 1
+      const offset = Math.max(0, Math.min(cmLine.length, column - 1));
+      // Just reuse the implementation above
+      syscalls["editor.moveCursor"](_ctx, cmLine.from + offset, center);
+    },
     "editor.setSelection": (_ctx, from: number, to: number) => {
       client.editorView.dispatch({
         selection: {
@@ -263,7 +276,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const cm = vimGetCm(client.editorView)!;
       return Vim.handleEx(cm, exCommand);
     },
-    "editor.openPageNavigator": (_ctx, mode: "page" | "meta" | "all" = "page") => {
+    "editor.openPageNavigator": (
+      _ctx,
+      mode: "page" | "meta" | "all" = "page",
+    ) => {
       client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {

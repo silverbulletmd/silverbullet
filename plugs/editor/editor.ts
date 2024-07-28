@@ -44,7 +44,32 @@ export async function moveToPosCommand() {
     return;
   }
   const pos = +posString;
-  await editor.moveCursor(pos);
+  await editor.moveCursor(pos, true); // showing the movement for better UX
+}
+
+export async function moveToLineCommand() {
+  const lineString = await editor.prompt(
+    "Move to line (and optionally column):",
+  );
+  if (!lineString) {
+    return;
+  }
+  // Match sequence of digits at the start, optionally another sequence
+  const numberRegex = /^(\d+)(?:[^\d]+(\d+))?/;
+  const match = lineString.match(numberRegex);
+  if (!match) {
+    await editor.flashNotification(
+      "Could not parse line number in prompt",
+      "error",
+    );
+    return;
+  }
+  let column = 1;
+  const line = parseInt(match[1]);
+  if (match[2]) {
+    column = parseInt(match[2]);
+  }
+  await editor.moveCursorToLine(line, column, true); // showing the movement for better UX
 }
 
 export async function customFlashMessage(_def: any, message: string) {

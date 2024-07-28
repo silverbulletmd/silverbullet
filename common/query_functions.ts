@@ -2,7 +2,7 @@ import { FunctionMap, Query } from "$sb/types.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { parsePageRef, positionOfLine } from "$sb/lib/page_ref.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { traverseTree } from "$sb/lib/tree.ts";
@@ -86,7 +86,7 @@ export function buildQueryFunctions(
       return renderToText(tree);
     },
 
-    // INTERNAL: Used to implement resolving [[links]] in expressions, also supports [[link#header]] and [[link$pos]] as well as [[link$anchor]]
+    // INTERNAL: Used to implement resolving [[links]] in expressions, also supports [[link#header]] and [[link@pos]] as well as [[link$anchor]]
     async readPage(name: string): Promise<string> {
       const cachedPage = pageCache.get(name);
       if (cachedPage) {
@@ -100,6 +100,13 @@ export function buildQueryFunctions(
 
           // Extract page section if pos, anchor, or header are included
           if (pageRef.pos) {
+            if (pageRef.pos instanceof Object) {
+              pageRef.pos = positionOfLine(
+                page,
+                pageRef.pos.line,
+                pageRef.pos.column,
+              );
+            }
             // If the page link includes a position, slice the page from that position
             page = page.slice(pageRef.pos);
           } else if (pageRef.anchor) {

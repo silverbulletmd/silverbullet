@@ -21,14 +21,14 @@ export function validatePageName(name: string) {
 
 export type PageRef = {
   page: string;
-  pos?: number;
+  pos?: number | { line: number; column: number };
   anchor?: string;
   header?: string;
   meta?: boolean;
 };
 
 const posRegex = /@(\d+)$/;
-// Should be kept in sync with the regex in index.plug.yaml
+const linePosRegex = /@[Ll](\d+)(?:[Cc](\d+))?$/; // column is optional, implicit 1
 const anchorRegex = /\$([a-zA-Z\.\-\/]+[\w\.\-\/]*)$/;
 const headerRegex = /#([^#]*)$/;
 
@@ -39,7 +39,7 @@ export function parsePageRef(name: string): PageRef {
   }
   const pageRef: PageRef = { page: name };
   if (pageRef.page.startsWith("^")) {
-    // A carrot prefix means we're looking for a meta page, but that doesn't matter for most use cases
+    // A caret prefix means we're looking for a meta page, but that doesn't matter for most use cases
     pageRef.page = pageRef.page.slice(1);
     pageRef.meta = true;
   }
@@ -48,6 +48,15 @@ export function parsePageRef(name: string): PageRef {
     pageRef.pos = parseInt(posMatch[1]);
     pageRef.page = pageRef.page.replace(posRegex, "");
   }
+  const linePosMatch = pageRef.page.match(linePosRegex);
+  if (linePosMatch) {
+    pageRef.pos = { line: parseInt(linePosMatch[1]), column: 1 };
+    if (linePosMatch[2]) {
+      pageRef.pos.column = parseInt(linePosMatch[2]);
+    }
+    pageRef.page = pageRef.page.replace(linePosRegex, "");
+  }
+
   const anchorMatch = pageRef.page.match(anchorRegex);
   if (anchorMatch) {
     pageRef.anchor = anchorMatch[1];
@@ -58,13 +67,21 @@ export function parsePageRef(name: string): PageRef {
     pageRef.header = headerMatch[1];
     pageRef.page = pageRef.page.replace(headerRegex, "");
   }
+
   return pageRef;
 }
 
 export function encodePageRef(pageRef: PageRef): string {
   let name = pageRef.page;
   if (pageRef.pos) {
-    name += `@${pageRef.pos}`;
+    if (pageRef.pos instanceof Object) {
+      name += `@L${pageRef.pos.line}`;
+      if (pageRef.pos.column !== 1) {
+        name += `C${pageRef.pos.column}`;
+      }
+    } else { // just a number
+      name += `@${pageRef.pos}`;
+    }
   }
   if (pageRef.anchor) {
     name += `$${pageRef.anchor}`;
@@ -73,4 +90,27 @@ export function encodePageRef(pageRef: PageRef): string {
     name += `#${pageRef.header}`;
   }
   return name;
+}
+
+/**
+ * Translate line and column number (counting from 1) to position in text (counting from 0)
+ */
+export function positionOfLine(
+  text: string,
+  line: number,
+  column: number,
+): number {
+  const lines = text.split("\n");
+  let targetLine = "";
+  let targetPos = 0;
+  for (let i = 0; i < line && lines.length; i++) {
+    targetLine = lines[i];
+    targetPos += targetLine.length;
+  }
+  // How much to move inside the line, column number starts from 1
+  const columnOffset = Math.max(
+    0,
+    Math.min(targetLine.length, column - 1),
+  );
+  return targetPos - targetLine.length + columnOffset;
 }
