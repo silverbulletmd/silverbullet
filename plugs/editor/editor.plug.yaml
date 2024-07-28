@@ -92,11 +92,11 @@ functions:
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
     command:
-      name: "Navigate: Move Cursor to Position"
+      name: "Navigate: To Position"
   moveToLine:
     path: "./editor.ts:moveToLineCommand"
     command:
-      name: "Navigate: Move Cursor to Line"
+      name: "Navigate: To Line"
   navigateToPage:
     path: "./navigate.ts:navigateToPage"
     command:
