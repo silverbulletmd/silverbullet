@@ -21,7 +21,7 @@ import { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { parsePageRef, positionOfLine } from "$sb/lib/page_ref.ts";
 
 export type TaskObject = ObjectValue<
   {
@@ -219,10 +219,13 @@ export async function updateTaskState(
   if (page === currentPage) {
     // In current page, just update the task marker with dispatch
     const editorText = await editor.getText();
+    const targetPos = pos instanceof Object
+      ? positionOfLine(editorText, pos.line, pos.column)
+      : pos;
     // Check if the task state marker is still there
     const targetText = editorText.substring(
-      pos + 1,
-      pos + 1 + oldState.length,
+      targetPos + 1,
+      targetPos + 1 + oldState.length,
     );
     if (targetText !== oldState) {
       console.error(
@@ -233,8 +236,8 @@ export async function updateTaskState(
     }
     await editor.dispatch({
       changes: {
-        from: pos + 1,
-        to: pos + 1 + oldState.length,
+        from: targetPos + 1,
+        to: targetPos + 1 + oldState.length,
         insert: newState,
       },
     });
@@ -242,8 +245,11 @@ export async function updateTaskState(
     let text = await space.readPage(page);
 
     const referenceMdTree = await markdown.parseMarkdown(text);
+    const targetPos = pos instanceof Object
+      ? positionOfLine(text, pos.line, pos.column)
+      : pos;
     // Adding +1 to immediately hit the task state node
-    const taskStateNode = nodeAtPos(referenceMdTree, pos + 1);
+    const taskStateNode = nodeAtPos(referenceMdTree, targetPos + 1);
     if (!taskStateNode || taskStateNode.type !== "TaskState") {
       console.error(
         "Reference not a task marker, out of date?",

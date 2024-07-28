@@ -1,5 +1,4 @@
-An attempt at documenting the changes/new features introduced in each
-release.
+An attempt at documenting the changes/new features introduced in each release.
 
 ---
 

@@ -358,7 +358,8 @@ export class Client {
     }
 
     // Was there a pos or anchor set?
-    let pos: number | undefined = pageState.pos;
+    let pos: number | { line: number; column: number } | undefined =
+      pageState.pos;
     if (pageState.anchor) {
       console.log("Navigating to anchor", pageState.anchor);
       const pageText = this.editorView.state.sliceDoc();
@@ -404,6 +405,15 @@ export class Client {
       adjustedPosition = true;
     }
     if (pos !== undefined) {
+      // Translate line and column number to position in text
+      if (pos instanceof Object) {
+        // CodeMirror already keeps information about lines
+        const cmLine = this.editorView.state.doc.line(pos.line);
+        // How much to move inside the line, column number starts from 1
+        const offset = Math.max(0, Math.min(cmLine.length, pos.column - 1));
+        pos = cmLine.from + offset;
+      }
+
       this.editorView.dispatch({
         selection: { anchor: pos! },
         effects: EditorView.scrollIntoView(pos!, {

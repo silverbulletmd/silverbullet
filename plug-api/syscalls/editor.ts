@@ -141,6 +141,14 @@ export function moveCursor(pos: number, center = false): Promise<void> {
   return syscall("editor.moveCursor", pos, center);
 }
 
+export function moveCursorToLine(
+  line: number,
+  column = 1,
+  center = false,
+): Promise<void> {
+  return syscall("editor.moveCursorToLine", line, column, center);
+}
+
 export function insertAtCursor(text: string): Promise<void> {
   return syscall("editor.insertAtCursor", text);
 }

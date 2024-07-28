@@ -93,6 +93,10 @@ functions:
     path: "./editor.ts:moveToPosCommand"
     command:
       name: "Navigate: Move Cursor to Position"
+  moveToLine:
+    path: "./editor.ts:moveToLineCommand"
+    command:
+      name: "Navigate: Move Cursor to Line"
   navigateToPage:
     path: "./navigate.ts:navigateToPage"
     command:
@@ -329,7 +333,7 @@ functions:
       name: "Editor: Find in Page"
       key: "Ctrl-f"
       mac: "Cmd-f"
-  
+
   # Outline helper functions
   determineItemBounds:
     path: ./outline.ts:determineItemBounds

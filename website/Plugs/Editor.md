@@ -20,6 +20,7 @@ The `editor` plug implements foundational editor functionality for SilverBullet.
 * {[Navigate: To This Page]}: navigate to the page under the cursor
 * {[Navigate: Center Cursor]}: center the cursor at the center of the screen
 * {[Navigate: Move Cursor to Position]}: move cursor to a specific (numeric) cursor position (# of characters from the start of the document)
+* {[Navigate: Move Cursor to Line]}: move cursor to a specific line, counting from 1; write two numbers (separated by any non-digit) to also move to a column, counting from 1.
 
 ## Text editing
 * {[Text: Quote Selection]}: turns the selection into a blockquote (`>` prefix)
