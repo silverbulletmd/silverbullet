@@ -1,5 +1,3 @@
-import { number, string } from "zod";
-
 /**
  * Checks if a name looks like a full path (with a file extension), is not a conflicted file and not a search page.
  */
@@ -69,8 +67,6 @@ export function parsePageRef(name: string): PageRef {
     pageRef.header = headerMatch[1];
     pageRef.page = pageRef.page.replace(headerRegex, "");
   }
-
-  console.log("parsePageRef", name, pageRef);
 
   return pageRef;
 }
