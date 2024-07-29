@@ -1,5 +1,8 @@
 Object decorators are an **advanced technique** that can be used to add attributes to [[Objects]] dynamically whose values are _calculated dynamically_ (on-the-fly) based on an [[Expression Language|expression]].
 
+> **warning** Warning
+> This feature is still experimental and may change in the (near) future.
+
 The primary use case is [[Page Decorations]], but it is a powerful mechanism that probably has wider applications. As always, with great power comes great responsibility.
 
 # Syntax
