@@ -74,7 +74,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         filter: ["not", isMetaPageFilter],
       }, 5),
       // All attachments
-      queryObjects<AttachmentMeta>("attachment", {}, 5),
+      queryObjects<AttachmentMeta>("attachment", {
+        // All attachment that do not start with a _ (internal attachments)
+        filter: ["!=~", ["attr", "name"], ["regexp", "^_", ""]],
+      }, 5),
       // And all links to non-existing pages (to augment the existing ones)
       queryObjects<LinkObject>("link", {
         filter: ["and", ["attr", "toPage"], ["not", ["call", "pageExists", [[
