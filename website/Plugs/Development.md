@@ -48,4 +48,6 @@ Once you’re happy with your plug, you can distribute it in various ways:
 - You can put it on github by simply committing the resulting `.plug.js` file there and instructing users to point to by adding
   `- github:yourgithubuser/yourrepo/yourplugname.plug.js` to their `PLUGS` file
 - Add a release in your github repo and instruct users to add the release as `- ghr:yourgithubuser/yourrepo` or if they need a specific release `- ghr:yourgithubuser/yourrepo/release-name`
+  - You need to upload the plug file as asset in the release, with a name matching your repository, e.g, `yourrepo.plug.js`
+  - If your repository name starts with "silverbullet-", like `silverbullet-foo`, both `silverbullet-foo.plug.js` and `foo.plug.js` asset names will be tried
 - You can put it on any other web server, and tell people to load it via https, e.g., `- https://mydomain.com/mypugname.plug.js`.
