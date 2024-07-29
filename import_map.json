@@ -11,7 +11,7 @@
     "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1&target=es2022",
     "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.2?external=@codemirror/state,@lezer/common,@lezer/lr,@codemirror/view,@lezer/highlight,style-mod&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.6.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common&target=es2022",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.29.0?external=@codemirror/state,@lezer/common,style-mod&target=es2022",
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.27.0?external=@codemirror/state,@lezer/common,style-mod&target=es2022",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.17.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
     "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.8.1?external=@codemirror/state,@codemirror/view,@lezer/common,crelt&target=es2022",
     "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/common,@lezer/css&target=es2022",
