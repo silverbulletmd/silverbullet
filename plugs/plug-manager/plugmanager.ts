@@ -38,17 +38,28 @@ export async function updatePlugsCommand() {
     for (const plugUri of plugList) {
       const [protocol, ...rest] = plugUri.split(":");
 
-      const plugNameMatch = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
-      if (!plugNameMatch) {
-        console.error(
-          "Could not extract plug name from ",
-          plugUri,
-          "ignoring...",
-        );
-        continue;
-      }
+      let plugName: string;
+      if (protocol == "ghr") {
+        // For GitHub Release, the plug is expected to be named same as repository
+        plugName = rest[0].split("/")[1]; // skip repo owner
+        // Strip "silverbullet-foo" into "foo" (multiple plugs follow this convention)
+        if (plugName.startsWith("silverbullet-")) {
+          plugName = plugName.slice("silverbullet-".length);
+        }
+      } else {
+        // Other URIs are expected to contain the file .plug.js at the end
+        const plugNameMatch = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
+        if (!plugNameMatch) {
+          console.error(
+            "Could not extract plug name from ",
+            plugUri,
+            "ignoring...",
+          );
+          continue;
+        }
 
-      const plugName = plugNameMatch[1];
+        plugName = plugNameMatch[1];
+      }
 
       const manifests = await events.dispatchEvent(
         `get-plug:${protocol}`,
@@ -141,20 +152,51 @@ export async function getPlugGithubRelease(
   identifier: string,
 ): Promise<string> {
   let [owner, repo, version] = identifier.split("/");
+  let releaseInfo: any = {};
+  let req: Response;
   if (!version || version === "latest") {
-    console.log("fetching the latest version");
-    const req = await fetch(
+    console.log(`Fetching release manifest of latest version for ${repo}`);
+    req = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
     );
-    if (req.status !== 200) {
-      throw new Error(
-        `Could not fetch latest relase manifest from ${identifier}}`,
-      );
-    }
-    const result = await req.json();
-    version = result.name;
+  } else {
+    console.log(`Fetching release manifest of version ${version} for ${repo}`);
+    req = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}`,
+    );
   }
+  if (req.status !== 200) {
+    throw new Error(
+      `Could not fetch release manifest from ${identifier}`,
+    );
+  }
+  releaseInfo = await req.json();
+  version = releaseInfo.tag_name;
+
+  let assetName: string | undefined;
+  const shortName = repo.startsWith("silverbullet-")
+    ? repo.slice("silverbullet-".length)
+    : undefined;
+  for (const asset of releaseInfo.assets ?? []) {
+    if (asset.name === `${repo}.plug.js`) {
+      assetName = asset.name;
+      break;
+    }
+    // Support plug like foo.plug.js are in repo silverbullet-foo
+    if (shortName && asset.name === `${shortName}.plug.js`) {
+      assetName = asset.name;
+      break;
+    }
+  }
+  if (!assetName) {
+    throw new Error(
+      `Could not find "${repo}.plug.js"` +
+        (shortName ? ` or "${shortName}.plug.js"` : "") +
+        ` in release ${version}`,
+    );
+  }
+
   const finalUrl =
-    `//github.com/${owner}/${repo}/releases/download/${version}/${repo}.plug.js`;
+    `//github.com/${owner}/${repo}/releases/download/${version}/${assetName}`;
   return getPlugHTTPS(finalUrl);
 }
