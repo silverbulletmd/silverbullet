@@ -54,8 +54,6 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
     );
     const parsedExpression = expressionToKvQueryExpression(exprAST[1]);
 
-    console.log("Page meta for widget", pageMeta);
-
     if (await evalQueryExpression(parsedExpression, pageMeta, {}, {})) {
       // Match! We're happy
       const templateText = await space.readPage(template.ref);
