@@ -43,7 +43,6 @@ import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
-import { decorationSyscalls } from "./syscalls/decoration.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -169,7 +168,6 @@ export class ClientSystem extends CommonSystem {
       spaceReadSyscalls(this.client),
       systemSyscalls(this.system, false, this, this.client),
       markdownSyscalls(),
-      decorationSyscalls(this.client),
       assetSyscalls(this.system),
       yamlSyscalls(),
       templateSyscalls(this.ds),

@@ -8,7 +8,6 @@ import {
 import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "$sb/lib/resolve.ts";
-import { decoration } from "$sb/syscalls.ts";
 import type { LinkObject } from "../index/page_links.ts";
 
 // A meta page is a page tagged with either #template or #meta
@@ -120,9 +119,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   }
 
   const folder = folderName(completeEvent.pageName);
-
-  // Decorate the pages
-  allPages = await decoration.applyDecorationsToPages(allPages as PageMeta[]);
 
   return {
     from: completeEvent.pos - prefix.length,

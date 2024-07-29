@@ -133,7 +133,7 @@ export function updateObjectDecorators(
         );
       }
     }
-    console.log("Loaded object decorators", newDecorators);
+    console.info(`Loaded ${newDecorators.length} object decorators`);
     ds.objectEnrichers = newDecorators;
   }
 }

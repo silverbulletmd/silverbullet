@@ -58,10 +58,17 @@ shortcuts:
 - command: "{[Upload: File]}"
   priority: 1
 
-# Page decorations
-pageDecorations:
+# Object decorators, see the "Page Decorators" page for more info
+objectDecorators:
 - where: 'tags = "plug"'
-  prefix: "🔌 "
+  attributes:
+     pageDecoration.prefix: "'🔌 '"
+- where: 'tag = "human"'
+  attributes:
+     fullName: 'firstName + " " + lastName'
+- where: 'tags = "notoc"'
+  attributes:
+     pageDecoration.disableTOC: "true"
 
 # Toggles between “smart” ‘quotes’ (left and right) and "simple" 'quotes' (good ol' ASCII)
 useSmartQuotes: true

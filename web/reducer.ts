@@ -1,6 +1,5 @@
 import { PageMeta } from "../plug-api/types.ts";
 import { Action, AppViewState } from "../type/web.ts";
-import { decoratePageMeta } from "./syscalls/decoration.ts";
 
 export default function reducer(
   state: AppViewState,
@@ -47,16 +46,10 @@ export default function reducer(
       };
     }
     case "update-current-page-meta": {
-      if (state.settings.pageDecorations) {
-        decoratePageMeta(
-          action.meta,
-          state.settings.pageDecorations,
-        );
-        // Update in the allPages list as well
-        state.allPages = state.allPages.map((pageMeta) =>
-          pageMeta.name === action.meta.name ? action.meta : pageMeta
-        );
-      }
+      // Update in the allPages list as well
+      state.allPages = state.allPages.map((pageMeta) =>
+        pageMeta.name === action.meta.name ? action.meta : pageMeta
+      );
       return {
         ...state,
         currentPageMeta: action.meta,
@@ -82,12 +75,6 @@ export default function reducer(
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
-        }
-        if (state.settings.pageDecorations) {
-          decoratePageMeta(
-            pageMeta,
-            state.settings.pageDecorations,
-          );
         }
         if (pageMeta.name === state.currentPage) {
           currPageMeta = pageMeta;

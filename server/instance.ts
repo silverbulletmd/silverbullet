@@ -20,9 +20,6 @@ import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 import { BuiltinSettings } from "$type/settings.ts";
-import { parseExpression } from "$common/expression_parser.ts";
-import { QueryExpression } from "$sb/types.ts";
-import { ObjectEnricher } from "$lib/data/datastore.ts";
 
 export type SpaceServerConfig = {
   hostname: string;

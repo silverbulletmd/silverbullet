@@ -13,6 +13,8 @@ In addition, many objects will also contain:
 * `tags`: an optional set of additional, explicitly assigned tags.
 * `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `task where itags = "person"` (although technically that would also match any tags that have the `#person` explicitly assigned).
 
+In addition, an object’s attribute set can be dynamically extended using [[Object Decorators]].
+
 Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
