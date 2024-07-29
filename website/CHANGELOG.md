@@ -5,7 +5,8 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing yet since 0.8.4. Stay tuned!
+* New power-user feature: [[Object Decorators]]. Its primary use case is to apply [[Page Decorations]], but you may find other uses as well. Speaking of which...
+* **Breaking change:**The way [[Page Decorations]] are specified has changed. It has now been replaced with [[Object Decorators]](as just mentioned), which are a more generic mechanism. Your existing `pageDecorations` will stop working. You’ll have to rewrite based on the new format. See [[Page Decorations]] for examples.
 
 ## 0.8.4
 * [[Page Picker#Keyboard shortcuts]]: allow folder completion using Shift-Space (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/961))

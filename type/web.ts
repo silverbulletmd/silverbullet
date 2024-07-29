@@ -1,38 +1,8 @@
-import { Manifest } from "../lib/manifest.ts";
-import { PageDecoration, PageMeta } from "../plug-api/types.ts";
 import { AppCommand } from "../lib/command.ts";
 import { defaultSettings } from "$common/settings.ts";
-import {
-  ActionButton,
-  EmojiConfig,
-  FilterOption,
-  Notification,
-  PanelMode,
-  Shortcut,
-} from "$lib/web.ts";
-
-export type BuiltinSettings = {
-  indexPage: string;
-  shortcuts?: Shortcut[];
-  useSmartQuotes?: boolean;
-  maximumAttachmentSize?: number;
-  // Open the last page that was open when the app was closed
-  pwaOpenLastPage?: boolean;
-  // UI visuals
-  hideEditButton?: boolean;
-  hideSyncButton?: boolean;
-  actionButtons: ActionButton[];
-  pageDecorations?: PageDecoration[];
-  // Format: compatible with docker ignore
-  spaceIgnore?: string;
-  emoji?: EmojiConfig;
-  // DEPRECATED: Use space styles instead
-  customStyles?: string | string[];
-  // DEPRECATED: Use shortcuts instead
-  plugOverrides?: Record<string, Partial<Manifest>>;
-  // NOTE: Bit niche, maybe delete at some point?
-  defaultLinkStyle?: string;
-};
+import { FilterOption, Notification, PanelMode } from "$lib/web.ts";
+import { BuiltinSettings } from "$type/settings.ts";
+import { PageMeta } from "$sb/types.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;

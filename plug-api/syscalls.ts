@@ -16,4 +16,3 @@ export * as YAML from "./syscalls/yaml.ts";
 export * as mq from "./syscalls/mq.ts";
 export * from "./syscall.ts";
 export * as datastore from "./syscalls/datastore.ts";
-export * as decoration from "./syscalls/decoration.ts";

@@ -26,8 +26,6 @@ export type PageMeta = ObjectValue<
  * Decorates a page when it matches certain criteria
  */
 export type PageDecoration = {
-  where?: string;
-  whereParsed?: QueryExpression;
   prefix: string;
   hide?: boolean;
 };

@@ -1,5 +1,8 @@
 import { SilverBulletHooks } from "../lib/manifest.ts";
-import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
+import {
+  ensureAndLoadSettingsAndIndex,
+  updateObjectDecorators,
+} from "$common/settings.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
@@ -10,13 +13,13 @@ import { DataStore } from "$lib/data/datastore.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { System } from "$lib/plugos/system.ts";
-import { BuiltinSettings } from "../type/web.ts";
 import { JWTIssuer } from "./crypto.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
+import { BuiltinSettings } from "$type/settings.ts";
 
 export type SpaceServerConfig = {
   hostname: string;
@@ -136,5 +139,9 @@ export class SpaceServer {
 
   async reloadSettings() {
     this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
+
+    if (this.serverSystem) {
+      updateObjectDecorators(this.settings, this.serverSystem.ds);
+    }
   }
 }

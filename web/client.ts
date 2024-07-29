@@ -14,7 +14,7 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import { AppViewState, BuiltinSettings } from "../type/web.ts";
+import { AppViewState } from "../type/web.ts";
 
 import type {
   AppEvent,
@@ -54,12 +54,16 @@ import { PageRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
-import { ensureAndLoadSettingsAndIndex } from "$common/settings.ts";
+import {
+  ensureAndLoadSettingsAndIndex,
+  updateObjectDecorators,
+} from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "$sb/lib/tree.ts";
 import type { LinkObject } from "../plugs/index/page_links.ts";
+import { BuiltinSettings } from "$type/settings.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -248,6 +252,7 @@ export class Client {
     this.settings = await ensureAndLoadSettingsAndIndex(
       this.space.spacePrimitives,
     );
+    updateObjectDecorators(this.settings, this.stateDataStore);
     this.ui.viewDispatch({
       type: "settings-loaded",
       settings: this.settings,

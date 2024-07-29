@@ -3,8 +3,8 @@ import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import { AppCommand } from "../../lib/command.ts";
 import { FilterOption } from "$lib/web.ts";
-import { BuiltinSettings } from "../../type/web.ts";
 import { parseCommand } from "$common/command.ts";
+import { BuiltinSettings } from "$type/settings.ts";
 
 export function CommandPalette({
   commands,
