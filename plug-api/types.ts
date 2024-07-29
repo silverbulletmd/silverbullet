@@ -23,6 +23,7 @@ export type PageMeta = ObjectValue<
 >;
 
 /**
+ * DEPRECATED
  * Decorates a page when it matches certain criteria
  */
 export type PageDecoration = {

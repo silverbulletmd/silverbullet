@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
-import { DataStore } from "../data/datastore.ts";
+import { cleanupEmptyObjects, DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
 import { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals } from "$std/testing/asserts.ts";
@@ -103,6 +103,65 @@ async function test(db: KvPrimitives) {
     }),
     [{ key: ["kv", "complicated"], value: { random: [] } }],
   );
+
+  // Test object enrichment
+  datastore.objectEnrichers = [
+    { // fullName
+      where: ["=", ["attr", "tags"], ["string", "person"]],
+      attributes: {
+        fullName: ["+", ["+", ["attr", "firstName"], ["string", " "]], [
+          "attr",
+          "lastName",
+        ]],
+      },
+    },
+    {
+      where: ["=", ["attr", "tags"], ["string", "person"]],
+      attributes: {
+        "pageDecoration.prefix.bla.doh": ["+", ["string", "🧑 "], [
+          "attr",
+          "fullName",
+        ]],
+      },
+    },
+    {
+      where: ["=", ["attr", "tags"], ["string", "person"]],
+      attributes: {
+        "existingObjAttribute.another": ["string", "value"],
+      },
+    },
+  ];
+
+  const obj: Record<string, any> = {
+    firstName: "Pete",
+    lastName: "Smith",
+    existingObjAttribute: {
+      something: true,
+    },
+    tags: ["person"],
+  };
+  const pristineCopy = JSON.parse(JSON.stringify(obj));
+
+  datastore.enrichObject(obj);
+  assertEquals(obj.fullName, "Pete Smith");
+  assertEquals(obj.pageDecoration, {
+    prefix: { bla: { doh: "🧑 Pete Smith" } },
+  });
+  assertEquals(obj.existingObjAttribute.something, true);
+  assertEquals(obj.existingObjAttribute.another, "value");
+
+  // And now let's clean it again
+  datastore.cleanEnrichedObject(obj);
+
+  assertEquals(obj, pristineCopy);
+
+  // Validate no async functions are called in the object enrichment
+  datastore.objectEnrichers = [
+    {
+      where: ["call", "$query", []],
+      attributes: {},
+    },
+  ];
 }
 
 Deno.test("Test Deno KV DataStore", async () => {
@@ -121,4 +180,23 @@ Deno.test("Test IndexDB DataStore", {
   await db.init();
   await test(db);
   db.close();
+});
+
+Deno.test("Test cleanupEmptyObjects", () => {
+  const testObject: any = {
+    attribute1: 10,
+    another: { nested: 20, removeMe: {} },
+    list: [],
+    removeMe: {
+      deeply: {},
+    },
+    another2: [1, 2, 3],
+  };
+  cleanupEmptyObjects(testObject);
+  assertEquals(testObject, {
+    attribute1: 10,
+    another: { nested: 20 },
+    list: [],
+    another2: [1, 2, 3],
+  });
 });

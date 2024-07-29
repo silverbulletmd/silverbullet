@@ -2,7 +2,10 @@ import YAML from "js-yaml";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { cleanupJSON } from "../plug-api/lib/json.ts";
-import type { BuiltinSettings } from "../type/web.ts";
+import { BuiltinSettings } from "$type/settings.ts";
+import { DataStore, ObjectEnricher } from "$lib/data/datastore.ts";
+import { parseExpression } from "$common/expression_parser.ts";
+import { QueryExpression } from "$sb/types.ts";
 
 const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
 
@@ -99,4 +102,38 @@ export async function ensureAndLoadSettingsAndIndex(
   const settings: any = parseYamlSettings(settingsText);
   cleanupJSON(settings);
   return { ...defaultSettings, ...settings };
+}
+
+export function updateObjectDecorators(
+  settings: BuiltinSettings,
+  ds: DataStore,
+) {
+  if (settings.objectDecorators) {
+    // Reload object decorators
+    const newDecorators: ObjectEnricher[] = [];
+    for (
+      const decorator of settings.objectDecorators
+    ) {
+      try {
+        const parsedWhere = parseExpression(decorator.where);
+        const parsedDynamicAttributes: Record<string, QueryExpression> = {};
+        for (const [key, value] of Object.entries(decorator.attributes)) {
+          parsedDynamicAttributes[key] = parseExpression(value);
+        }
+        newDecorators.push({
+          where: parsedWhere,
+          attributes: parsedDynamicAttributes,
+        });
+      } catch (e: any) {
+        console.error(
+          "Error parsing object decorator",
+          decorator,
+          "got error",
+          e.message,
+        );
+      }
+    }
+    console.log("Loaded object decorators", newDecorators);
+    ds.objectEnrichers = newDecorators;
+  }
 }
