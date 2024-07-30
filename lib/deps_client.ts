@@ -1,4 +1,4 @@
-// Remember to keep in sync with import_map.json !
+// Remember to keep in sync with deno.json !
 // We have to use different deps for client and server as esbuild doesn't
 // support wildcard exporting. See https://github.com/evanw/esbuild/issues/1420
 export {

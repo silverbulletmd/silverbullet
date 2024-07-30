@@ -12,6 +12,9 @@ const workerRuntimeUrl =
 export type CompileOptions = {
   debug?: boolean;
   runtimeUrl?: string;
+  // path to config file
+  configPath?: string;
+  // path to import map
   importMap?: string;
   // Reload plug import cache
   reload?: boolean;
@@ -103,9 +106,9 @@ setupMessageListener(functionMapping, manifest);
     treeShaking: true,
     plugins: [
       ...denoPlugins({
-        // TODO do this differently
-        importMapURL: options.importMap ||
-          new URL("../import_map.json", import.meta.url).toString(),
+        configPath: options.configPath &&
+          path.resolve(Deno.cwd(), options.configPath),
+        importMapURL: options.importMap,
         loader: "native",
       }),
     ],
