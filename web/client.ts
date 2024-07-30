@@ -1109,9 +1109,12 @@ export class Client {
       }
 
       const bodyEl = this.parent.parentElement;
-      if (bodyEl && enrichedMeta.pageDecoration.cssClass) {
-        bodyEl.className = enrichedMeta.pageDecoration.cssClass.join(" ")
-          .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+      if (bodyEl) {
+        bodyEl.removeAttribute("class");
+        if (enrichedMeta.pageDecoration.cssClass) {
+          bodyEl.className = enrichedMeta.pageDecoration.cssClass.join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+        }
       }
       this.ui.viewDispatch({
         type: "update-current-page-meta",
