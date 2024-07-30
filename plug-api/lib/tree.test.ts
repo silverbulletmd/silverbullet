@@ -9,7 +9,7 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import { assertEquals, assertNotEquals } from "$std/testing/asserts.ts";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 

@@ -1,4 +1,4 @@
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { determineTags, isTemplate } from "./cheap_yaml.ts";
 
 Deno.test("cheap yaml", () => {

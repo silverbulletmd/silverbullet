@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "$std/testing/asserts.ts";
+import { assert, assertEquals } from "@std/assert";
 import { SpacePrimitives } from "./space_primitives.ts";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {

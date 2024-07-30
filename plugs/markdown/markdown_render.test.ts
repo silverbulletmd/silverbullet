@@ -4,7 +4,7 @@ import { System } from "../../lib/plugos/system.ts";
 import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");

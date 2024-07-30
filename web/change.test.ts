@@ -1,5 +1,5 @@
 import { rangeLength, rangesOverlap } from "./change.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 
 Deno.test("rangeLength", () => {
   assertEquals(rangeLength({ from: 4, to: 11 }), 7);

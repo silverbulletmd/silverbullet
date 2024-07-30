@@ -1,5 +1,5 @@
 import { builtinFunctions } from "../../lib/builtin_query_functions.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { renderTemplate } from "./render.ts";
 import { parseTemplate } from "./template_parser.ts";
 

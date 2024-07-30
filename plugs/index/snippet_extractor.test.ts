@@ -1,4 +1,4 @@
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 
 Deno.test("SnippetExtractor", () => {

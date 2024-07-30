@@ -1,5 +1,5 @@
-import * as path from "$std/path/mod.ts";
-import { readAll } from "$std/streams/read_all.ts";
+import * as path from "@std/path";
+import { readAll } from "@std/io/read-all";
 import { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 import { FileMeta } from "../../plug-api/types.ts";

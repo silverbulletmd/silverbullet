@@ -1,6 +1,6 @@
 import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import { System } from "../../lib/plugos/system.ts";
-import { assert, assertEquals } from "$std/testing/asserts.ts";
+import { assert, assertEquals } from "@std/assert";
 import { compileManifest } from "../compile.ts";
 import * as esbuild from "esbuild";
 import {

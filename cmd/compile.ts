@@ -2,7 +2,7 @@ import { path, YAML } from "../lib/deps_server.ts";
 import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
 import { bundleAssets } from "../lib/asset_bundle/builder.ts";
-import { Manifest } from "../lib/plugos/types.ts";
+import type { Manifest } from "../lib/plugos/types.ts";
 import { version } from "../version.ts";
 
 // const workerRuntimeUrl = new URL("./worker_runtime.ts", import.meta.url);

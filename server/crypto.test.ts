@@ -1,6 +1,6 @@
 import { sleep } from "$lib/async.ts";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { JWTIssuer } from "./crypto.ts";
 
 Deno.test("Test JWT crypto", async () => {

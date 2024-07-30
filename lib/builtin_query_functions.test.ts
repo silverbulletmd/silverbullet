@@ -1,6 +1,6 @@
-import { describe, it } from "$std/testing/bdd.ts";
+import { describe, it } from "@std/testing/bdd";
 import { builtinFunctions } from "./builtin_query_functions.ts";
-import { assertEquals, assertThrows } from "$std/testing/asserts.ts";
+import { assertEquals, assertThrows } from "@std/assert";
 
 describe("replace()", () => {
   const { replace } = builtinFunctions;

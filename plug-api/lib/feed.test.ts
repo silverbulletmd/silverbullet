@@ -1,6 +1,6 @@
 import "$sb/lib/syscall_mock.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { extractFeedItems } from "$sb/lib/feed.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 

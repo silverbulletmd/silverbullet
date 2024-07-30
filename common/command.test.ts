@@ -1,4 +1,4 @@
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { parseCommand } from "./command.ts";
 
 Deno.test("Command parser", () => {

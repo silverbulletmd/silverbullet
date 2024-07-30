@@ -1,5 +1,5 @@
-import { walk } from "$std/fs/walk.ts";
-import { resolve } from "$std/path/mod.ts";
+import { walk } from "@std/fs/walk";
+import { resolve } from "@std/path";
 import { mime } from "mimetypes";
 import { FileMeta } from "../plug-api/types.ts";
 

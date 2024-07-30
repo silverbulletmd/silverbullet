@@ -1,5 +1,5 @@
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { ChunkedKvStoreSpacePrimitives } from "./chunked_datastore_space_primitives.ts";
 import { testSpacePrimitives } from "./space_primitives.test.ts";
 

@@ -1,5 +1,6 @@
 import { YAML } from "../../lib/deps_server.ts";
 
+// @ts-ignore: syscall is a global function
 globalThis.syscall = (name: string, ...args: readonly any[]) => {
   switch (name) {
     case "yaml.parse":

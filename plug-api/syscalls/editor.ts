@@ -19,7 +19,7 @@ export function getText(): Promise<string> {
  * This updates the editor text, but in a minimal-diff way:
  * it compares the current editor text with the new text, and only sends the changes to the editor, thereby preserving cursor location
  */
-export function setText(newText: string) {
+export function setText(newText: string): Promise<void> {
   return syscall("editor.setText", newText);
 }
 
@@ -183,36 +183,36 @@ export function vimEx(exCommand: string): Promise<any> {
 }
 
 // Folding
-export function fold() {
+export function fold(): Promise<void> {
   return syscall("editor.fold");
 }
 
-export function unfold() {
+export function unfold(): Promise<void> {
   return syscall("editor.unfold");
 }
 
-export function toggleFold() {
+export function toggleFold(): Promise<void> {
   return syscall("editor.toggleFold");
 }
 
-export function foldAll() {
+export function foldAll(): Promise<void> {
   return syscall("editor.foldAll");
 }
 
-export function unfoldAll() {
+export function unfoldAll(): Promise<void> {
   return syscall("editor.unfoldAll");
 }
 
 // Undo/redo
-export function undo() {
+export function undo(): Promise<void> {
   return syscall("editor.undo");
 }
 
-export function redo() {
+export function redo(): Promise<void> {
   return syscall("editor.redo");
 }
 
-export function openSearchPanel() {
+export function openSearchPanel(): Promise<void> {
   return syscall("editor.openSearchPanel");
 }
 
@@ -220,6 +220,6 @@ export function copyToClipboard(data: string | Blob): Promise<void> {
   return syscall("editor.copyToClipboard", data);
 }
 
-export function deleteLine() {
+export function deleteLine(): Promise<void> {
   return syscall("editor.deleteLine");
 }

@@ -1,5 +1,5 @@
 import { AssetBundle } from "./bundle.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 
 Deno.test("Asset bundle", () => {
   const assetBundle = new AssetBundle();

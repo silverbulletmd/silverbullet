@@ -2,10 +2,10 @@ import { path } from "./lib/deps_server.ts";
 import * as esbuild from "esbuild";
 import { compileManifests } from "./cmd/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
-import { parse } from "$std/flags/mod.ts";
+import { parseArgs } from "@std/cli/parse-args";
 
 if (import.meta.main) {
-  const args = parse(Deno.args, {
+  const args = parseArgs(Deno.args, {
     boolean: ["debug", "watch", "reload", "info"],
     alias: { w: "watch" },
   });

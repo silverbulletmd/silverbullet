@@ -1,4 +1,15 @@
 {
+  "name": "@silverbulletmd/silverbullet",
+  "version": "0.0.1",
+  "exports": {
+    "./syscalls": "./plug-api/syscalls.ts"
+  },
+  "publish": {
+    "exclude": [
+      "website",
+      "CHANGELOG.md"
+    ]
+  },
   "tasks": {
     "clean": "rm -rf dist dist_client_bundle dist_plug_bundle website_build",
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
@@ -59,7 +70,6 @@
     "$common/": "./common/",
     "$lib/": "./lib/",
     "$sb/": "./plug-api/",
-    "$std/": "https://deno.land/std@0.189.0/",
     "$type/": "./type/",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.17.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.6.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common&target=es2022",
@@ -83,6 +93,13 @@
     "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.3.0?external=@lezer/common,@codemirror/language,@lezer/highlight,@lezer/lr&target=es2022",
     "@luca/esbuild-deno-loader": "jsr:@luca/esbuild-deno-loader@^0.10.3",
     "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.2.1?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
+    "@std/assert": "jsr:@std/assert@^1.0.1",
+    "@std/cli": "jsr:@std/cli@^1.0.1",
+    "@std/fs": "jsr:@std/fs@^1.0.0",
+    "@std/io": "jsr:@std/io@^0.224.3",
+    "@std/io/read-all": "jsr:@std/io@^0.224.3/read-all",
+    "@std/path": "jsr:@std/path@^1.0.2",
+    "@std/testing": "jsr:@std/testing@^0.225.3",
     "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.4/",
     "crelt": "https://esm.sh/crelt@1.0.6",
     "denosass": "https://deno.land/x/denosass@1.0.6/mod.ts",

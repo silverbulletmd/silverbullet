@@ -1,18 +1,19 @@
 import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
 import { cors } from "hono/middleware.ts";
 import { type Context, Hono, type HonoRequest, validator } from "hono/mod.ts";
-import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import { EndpointRequest, EndpointResponse, FileMeta } from "$sb/types.ts";
-import { ShellRequest } from "$type/rpc.ts";
-import { SpaceServer, SpaceServerConfig } from "./instance.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
+import type { EndpointRequest, EndpointResponse, FileMeta } from "$sb/types.ts";
+import type { ShellRequest } from "$type/rpc.ts";
+import { SpaceServer } from "./instance.ts";
+import type { SpaceServerConfig } from "./instance.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
 import { base64Encode } from "$lib/crypto.ts";
-import * as path from "$std/path/mod.ts";
+import { basename, dirname, join } from "@std/path";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -600,10 +601,10 @@ export class HttpServer {
         }
       }
 
-      const filename = path.posix.basename(name, mdExt);
+      const filename = basename(name, mdExt);
       if (filename.trim() !== filename) {
-        const newName = path.posix.join(
-          path.posix.dirname(name),
+        const newName = join(
+          dirname(name),
           filename.trim(),
         );
         return c.redirect(`/${newName}`);
@@ -647,7 +648,7 @@ export class HttpServer {
           return c.text("Forbidden", 403);
         }
 
-        const filename = path.posix.basename(name, mdExt);
+        const filename = basename(name, mdExt);
         if (filename.trim() !== filename) {
           return c.text("Malformed filename", 400);
         }

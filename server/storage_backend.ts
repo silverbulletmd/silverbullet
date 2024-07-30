@@ -1,6 +1,6 @@
 import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
 import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { resolve } from "$std/path/mod.ts";
+import { resolve } from "@std/path";
 import { S3SpacePrimitives } from "$common/spaces/s3_space_primitives.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { ChunkedKvStoreSpacePrimitives } from "$common/spaces/chunked_datastore_space_primitives.ts";

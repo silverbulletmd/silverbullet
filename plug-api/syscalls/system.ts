@@ -39,7 +39,7 @@ export function applyAttributeExtractors(
   return syscall("system.applyAttributeExtractors", tags, text, tree);
 }
 
-export function reloadPlugs() {
+export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
 }
 

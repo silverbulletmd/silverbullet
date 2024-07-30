@@ -3,7 +3,7 @@ import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
 import { cleanupEmptyObjects, DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
 import { KvPrimitives } from "../data/kv_primitives.ts";
-import { assertEquals, assertThrows } from "$std/testing/asserts.ts";
+import { assertEquals, assertThrows } from "@std/assert";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import { Query } from "../../plug-api/types.ts";
 

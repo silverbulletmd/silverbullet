@@ -1,6 +1,6 @@
 import { SpaceSync, SyncStatusItem } from "./sync.ts";
 import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 
 Deno.test("Test store", async () => {
   const primaryPath = await Deno.makeTempDir();

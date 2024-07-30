@@ -14,7 +14,7 @@ export function dispatchEvent(
       }, timeout);
     }
     syscall("event.dispatch", eventName, data)
-      .then((r) => {
+      .then((r: any) => {
         if (timeouter !== -1) {
           clearTimeout(timeouter);
         }

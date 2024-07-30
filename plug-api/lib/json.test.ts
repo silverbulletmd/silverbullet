@@ -1,4 +1,4 @@
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { cleanupJSON, deepEqual, deepObjectMerge } from "./json.ts";
 
 Deno.test("utils", () => {
@@ -18,6 +18,9 @@ Deno.test("utils", () => {
   assertEquals(cleanupJSON({ a: [{ "a.b": 1 }] }), {
     a: [{ a: { b: 1 } }],
   });
-  assertEquals(cleanupJSON(new Date("2023-05-13T12:30:00Z")), "2023-05-13T12:30:00.000Z");
+  assertEquals(
+    cleanupJSON(new Date("2023-05-13T12:30:00Z")),
+    "2023-05-13T12:30:00.000Z",
+  );
   assertEquals(cleanupJSON(new Date("2023-05-03T00:00:00Z")), "2023-05-03");
 });

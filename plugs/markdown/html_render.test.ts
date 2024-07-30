@@ -1,4 +1,4 @@
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { renderHtml } from "./html_render.ts";
 
 Deno.test("HTML Render", () => {

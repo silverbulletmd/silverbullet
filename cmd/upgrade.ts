@@ -37,7 +37,7 @@ export async function upgradeCommand() {
 }
 
 // WIP: This is not yet working, but it's a start
-import { dirname } from "$std/path/mod.ts";
+import { dirname } from "@std/path";
 
 const silverBulletReleases =
   "https://github.com/silverbulletmd/silverbullet/releases";

@@ -10,6 +10,6 @@ export function render(
 }
 
 // Refresh all code widgets on the page that support it
-export function refreshAll() {
+export function refreshAll(): Promise<void> {
   return syscall("codeWidget.refreshAll");
 }

@@ -4,7 +4,7 @@ import {
   findNodeOfType,
   renderToText,
 } from "$sb/lib/tree.ts";
-import { assertEquals, assertNotEquals } from "$std/testing/asserts.ts";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { extendedMarkdownLanguage } from "./parser.ts";
 
 const sample1 = `---

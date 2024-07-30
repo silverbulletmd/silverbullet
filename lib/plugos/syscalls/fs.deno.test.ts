@@ -1,5 +1,5 @@
 import { FileMeta } from "../../../plug-api/types.ts";
-import { assert } from "$std/testing/asserts.ts";
+import { assert } from "@std/assert";
 import { path } from "../../deps_server.ts";
 import fileSystemSyscalls from "./fs.deno.ts";
 

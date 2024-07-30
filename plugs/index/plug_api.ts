@@ -1,4 +1,9 @@
-import { KV, KvQuery, ObjectQuery, ObjectValue } from "../../plug-api/types.ts";
+import type {
+  KV,
+  KvQuery,
+  ObjectQuery,
+  ObjectValue,
+} from "../../plug-api/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 import { system } from "$sb/syscalls.ts";
 

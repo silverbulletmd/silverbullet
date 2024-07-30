@@ -1,4 +1,4 @@
-import { resolve } from "$std/path/mod.ts";
+import { resolve } from "@std/path";
 import assets from "../dist/plug_asset_bundle.json" with { type: "json" };
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { KvPrimitives } from "$lib/data/kv_primitives.ts";
