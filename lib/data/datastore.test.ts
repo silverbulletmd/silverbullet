@@ -3,7 +3,7 @@ import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
 import { cleanupEmptyObjects, DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
 import { KvPrimitives } from "../data/kv_primitives.ts";
-import { assertEquals } from "$std/testing/asserts.ts";
+import { assertEquals, assertThrows } from "$std/testing/asserts.ts";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import { Query } from "../../plug-api/types.ts";
 
@@ -124,6 +124,28 @@ async function test(db: KvPrimitives) {
         ]],
       },
     },
+    // Test extending existing array attributes
+    {
+      where: ["boolean", true],
+      attributes: {
+        "listAttribute": ["array", [["string", "newValue1"]]],
+        "nested.listAttribute": ["array", [["string", "newValue1"]]],
+      },
+    },
+    {
+      where: ["boolean", true],
+      attributes: {
+        "listAttribute": ["array", [["string", "newValue2"]]],
+        "nested.listAttribute": ["array", [["string", "newValue2"]]],
+      },
+    },
+    // Test not being able to override existing attributes
+    {
+      where: ["boolean", true],
+      attributes: {
+        "lastName": ["string", "Shouldn't be set"],
+      },
+    },
     {
       where: ["=", ["attr", "tags"], ["string", "person"]],
       attributes: {
@@ -143,12 +165,16 @@ async function test(db: KvPrimitives) {
   const pristineCopy = JSON.parse(JSON.stringify(obj));
 
   datastore.enrichObject(obj);
+  // console.log("Enrhiched", obj);
   assertEquals(obj.fullName, "Pete Smith");
+  assertEquals(obj.lastName, "Smith");
   assertEquals(obj.pageDecoration, {
     prefix: { bla: { doh: "🧑 Pete Smith" } },
   });
   assertEquals(obj.existingObjAttribute.something, true);
   assertEquals(obj.existingObjAttribute.another, "value");
+  assertEquals(obj.listAttribute, ["newValue1", "newValue2"]);
+  assertEquals(obj.nested.listAttribute, ["newValue1", "newValue2"]);
 
   // And now let's clean it again
   datastore.cleanEnrichedObject(obj);
@@ -162,6 +188,10 @@ async function test(db: KvPrimitives) {
       attributes: {},
     },
   ];
+
+  assertThrows(() => {
+    datastore.enrichObject({});
+  });
 }
 
 Deno.test("Test Deno KV DataStore", async () => {

@@ -136,7 +136,8 @@ export class DataStore {
   }
 
   /**
-   * Enriches the object with the attributes defined in the object enrichers on the fly
+   * Enriches the object with the attributes defined in the object enrichers on the fly.
+   * Will add a `$dynamicAttributes` array to the object to keep track of the dynamic attributes set (for cleanup)
    * @param object
    * @returns
    */
@@ -192,7 +193,22 @@ export class DataStore {
               `Enricher dynamic attribute expression cannot be an async function: ${expression}`,
             );
           }
-          objectValue[selectorParts[selectorParts.length - 1]] = value;
+          const lastPart = selectorParts[selectorParts.length - 1];
+          if (objectValue[lastPart] !== undefined) {
+            // The attribute already exists, we should merge the values if we can, or ignore the new value
+            if (Array.isArray(objectValue[lastPart]) && Array.isArray(value)) {
+              // If the attribute already exists and is an array, we should merge the arrays
+              objectValue[lastPart] = [...objectValue[lastPart], ...value];
+            } else {
+              // We can't merge the values, so we just ignore the new value
+            }
+          } else { // New attribute
+            objectValue[lastPart] = value;
+            if (!object.$dynamicAttributes) {
+              object.$dynamicAttributes = [];
+            }
+            object.$dynamicAttributes.push(attributeSelector);
+          }
         }
       }
     }
@@ -204,44 +220,29 @@ export class DataStore {
    * @returns
    */
   cleanEnrichedObject(object: any) {
-    // Check if this object looks like an object value
-    if (!object || typeof object !== "object") {
+    // Check if this is an enriched object
+    if (!object || !object.$dynamicAttributes) {
       // Skip
       return;
     }
 
-    for (const enricher of this.objectEnrichers) {
-      if (
-        evalQueryExpression(
-          enricher.where,
-          object,
-          {}, // We will not support variables in enrichers for now
-          this.functionMap,
-        )
-      ) {
-        // The `where` matches so we should clean this object from the dynamic attributes
-        for (
-          const [attributeSelector, _expression] of Object.entries(
-            enricher.attributes,
-          )
-        ) {
-          // Recursively travel to the attribute based on the selector, which may contain .'s to go deeper
-          let objectValue = object;
-          const selectorParts = attributeSelector.split(".");
-          for (const part of selectorParts.slice(0, -1)) {
-            if (typeof objectValue[part] !== "object") {
-              // This shouldn't happen, but let's back out
-              break;
-            }
-            objectValue = objectValue[part];
-          }
-
-          delete objectValue[selectorParts[selectorParts.length - 1]];
+    for (const attributeSelector of object.$dynamicAttributes) {
+      // Recursively travel to the attribute based on the selector, which may contain .'s to go deeper
+      let objectValue = object;
+      const selectorParts = attributeSelector.split(".");
+      for (const part of selectorParts.slice(0, -1)) {
+        if (typeof objectValue[part] !== "object") {
+          // This shouldn't happen, but let's back out
+          break;
         }
+        objectValue = objectValue[part];
       }
+
+      delete objectValue[selectorParts[selectorParts.length - 1]];
     }
     // Clean up empty objects, this is somewhat questionable, because it also means that if the user intentionally kept empty objects in there, these will be wiped
     cleanupEmptyObjects(object);
+    delete object.$dynamicAttributes;
   }
 }
 
