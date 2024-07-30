@@ -15,7 +15,8 @@ objectDecorators:
      <<attributePath>>: '<<value expression>>'
 ```
 
-**Note:** To make changes take effect you may have to reload your client (just refresh the page).
+> **note** Note
+> For changes to take effect you may have to reload your client (just refresh the page).
 
 A few things of note:
 
@@ -26,8 +27,14 @@ A few things of note:
   * `pageDecoration.prefix`
 * `<<value expression>>` like `<<expression>>` must be a YAML string-encoded expression using the [[Expression Language]], some examples together with the attribute path:
   * `alwaysTen: '10'` (attaches an attribute named `alwaysTen` with the numeric value `10` to all objects matching the `where` clause)
+  * `alwaysTrue: 'true'` (same as `alwaysTen` but with a boolean value)
   * `fullName: 'firstName + " " + lastName'` (attaches a `fullName` attribute that concatenates the `firstName` and `lastName` attributes with a space in between)
   * `nameLength: 'count(name)'` (attaches an attribute `nameLength` with the string length of `name` — not particularly useful, but to demonstrate you can call [[Functions]] here too)
+
+## Rules
+A few rules to keep things civil:
+
+* Dynamic attributes _cannot override already existing attributes_. If the object already has an attribute with the same name, this value will be kept as is.
 * For performance reasons, all expressions (both filter and value expressions) need to be _synchronously evaluatable_.
   * Generally, this means they need to be “simple expressions” that require no expensive calls.
   * Simple expressions include simple things like literals, arithmetic, calling some of the cheap [[Functions]] such as `today()` or string manipulation functions.

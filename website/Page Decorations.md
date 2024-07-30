@@ -25,7 +25,7 @@ For the purposes of [[Page Decorations]], let us limit simply to some useful exa
 ## Example: page prefix
 Let’s say we want to put a 🧑 prefix on every page tagged with `#person`. We can achieve this as follows in our [[^SETTINGS]]:
 ```yaml
-objectDecorations:
+objectDecorators:
 - where: "tags = 'person'"
   pageDecoration.prefix: '"🧑 "'
 ```
@@ -38,7 +38,7 @@ Let’s say that adding this `pageDecoration.disableTOC` to the front matter is 
 You can do this as follows:
 
 ```yaml
-objectDecorations:
+objectDecorators:
 - where: 'tags = "notoc"'
   attributes:
      pageDecoration.disableTOC: "true"
