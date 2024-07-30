@@ -77,6 +77,18 @@ export function cleanWikiLinkPlugin(client: Client) {
         const linkText = alias ||
           ((pageMeta?.pageDecoration?.prefix ?? "") + cleanLinkText);
 
+        let cssClass = fileExists
+          ? "sb-wiki-link-page"
+          : "sb-wiki-link-page-missing";
+
+        if (pageMeta?.pageDecoration?.cssClass) {
+          cssClass += " sb-decorated-object " +
+            pageMeta.pageDecoration.cssClass.join(" ").replaceAll(
+              /[^a-zA-Z0-9-_ ]/g,
+              "",
+            );
+        }
+
         // And replace it with a widget
         widgets.push(
           Decoration.replace({
@@ -87,9 +99,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                   ? `Navigate to ${encodePageRef(pageRef)}`
                   : `Create ${pageRef.page}`,
                 href: `/${encodePageRef(pageRef)}`,
-                cssClass: fileExists
-                  ? "sb-wiki-link-page"
-                  : "sb-wiki-link-page-missing",
+                cssClass,
                 from,
                 callback: (e) => {
                   if (e.altKey) {

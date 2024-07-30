@@ -124,10 +124,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     from: completeEvent.pos - prefix.length,
     options: allPages.map((pageMeta) => {
       const completions: any[] = [];
-      let namePrefix = "";
-      if ((pageMeta as PageMeta).pageDecoration?.prefix) {
-        namePrefix = pageMeta.pageDecoration?.prefix;
-      }
+      const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
+      const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClass || [])
+        .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+
       if (isWikilink) {
         // A [[wikilink]]
         if (pageMeta.displayName) {
@@ -141,6 +141,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
               : `${pageMeta.name}|${pageMeta.displayName}`,
             detail: `displayName for: ${pageMeta.name}`,
             type: "page",
+            cssClass,
           });
         }
         if (Array.isArray(pageMeta.aliases)) {
@@ -155,6 +156,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
                 : `${pageMeta.name}|${alias}`,
               detail: `alias to: ${pageMeta.name}`,
               type: "page",
+              cssClass,
             });
           }
         }
@@ -167,6 +169,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             ? "Linked but not created"
             : undefined,
           type: "page",
+          cssClass,
         });
       } else {
         // A markdown link []()
@@ -182,9 +185,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         }
         completions.push({
           label: labelText,
+          displayLabel: namePrefix + labelText,
           boost: boost,
           apply: labelText.includes(" ") ? "<" + labelText + ">" : labelText,
           type: "page",
+          cssClass,
         });
       }
       return completions;

@@ -328,6 +328,9 @@ export class MainUI {
           pageNamePrefix={viewState.currentPageMeta?.pageDecoration
             ?.prefix ??
             ""}
+          cssClass={viewState.currentPageMeta?.pageDecoration?.cssClass ?
+            viewState.currentPageMeta?.pageDecoration?.cssClass
+            .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "") : ""}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (

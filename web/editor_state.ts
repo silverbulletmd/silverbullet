@@ -105,6 +105,13 @@ export function createEditorState(
             client.clientSystem.slashCommandHook,
           ),
         ],
+        optionClass(completion: any) {
+          if (completion.cssClass) {
+            return "sb-decorated-object " + completion.cssClass;
+          } else {
+            return "";
+          }
+        },
       }),
       inlineImagesPlugin(client),
       codeCopyPlugin(client),

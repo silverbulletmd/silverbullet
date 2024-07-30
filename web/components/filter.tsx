@@ -197,9 +197,10 @@ export function FilterList({
             <div
               key={"" + idx}
               ref={selectedOption === idx ? selectedElementRef : undefined}
-              className={selectedOption === idx
-                ? "sb-selected-option"
-                : "sb-option"}
+              className={(selectedOption === idx
+                ? "sb-option sb-selected-option"
+                : "sb-option") +
+                (option.cssClass ? " sb-decorated-object " + option.cssClass : "")}
               onMouseMove={() => {
                 if (selectedOption !== idx) {
                   setSelectionOption(idx);

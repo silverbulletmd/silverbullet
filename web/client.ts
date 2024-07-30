@@ -1,4 +1,7 @@
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import type { Compartment } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
@@ -42,7 +45,11 @@ import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import type { CodeWidgetButton, FileMeta, PageMeta } from "../plug-api/types.ts";
+import type {
+  CodeWidgetButton,
+  FileMeta,
+  PageMeta,
+} from "../plug-api/types.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
@@ -1099,6 +1106,12 @@ export class Client {
       if (!enrichedMeta) {
         // Nothing in the store, revert to default
         enrichedMeta = doc.meta;
+      }
+
+      const bodyEl = this.parent.parentElement;
+      if (bodyEl && enrichedMeta.pageDecoration.cssClass) {
+        bodyEl.className = enrichedMeta.pageDecoration.cssClass.join(" ")
+          .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
       }
       this.ui.viewDispatch({
         type: "update-current-page-meta",
