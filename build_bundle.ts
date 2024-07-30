@@ -1,4 +1,4 @@
-import { denoPlugins } from "esbuild_deno_loader";
+import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
 
 await Deno.mkdir("dist", { recursive: true });
