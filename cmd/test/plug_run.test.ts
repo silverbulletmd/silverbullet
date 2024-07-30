@@ -22,6 +22,9 @@ Deno.test("Test plug run", {
   await compileManifest(
     join(testFolder, "test_plug_run.plug.yaml"),
     plugFolder,
+    {
+      configPath: new URL("../../deno.json", import.meta.url).pathname,
+    },
   );
   assertEquals(
     await runPlug(

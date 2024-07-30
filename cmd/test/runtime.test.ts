@@ -39,6 +39,9 @@ Deno.test("Run a deno sandbox", {
   const workerPath = await compileManifest(
     new URL("test_runtime.plug.yaml", import.meta.url).pathname,
     tempDir,
+    {
+      configPath: new URL("../../deno.json", import.meta.url).pathname,
+    },
   );
 
   const plug = await system.load(
