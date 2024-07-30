@@ -1,7 +1,7 @@
-import { CompleteEvent } from "../../plug-api/types.ts";
+import type { CompleteEvent } from "../../plug-api/types.ts";
 import { datastore, events } from "$sb/syscalls.ts";
 
-import {
+import type {
   AttributeCompleteEvent,
   AttributeCompletion,
 } from "../index/attributes.ts";

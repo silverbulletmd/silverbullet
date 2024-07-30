@@ -1,7 +1,10 @@
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { MiniEditor } from "./mini_editor.tsx";
-import { ComponentChildren, Ref } from "preact";
+import type { ComponentChildren, Ref } from "preact";
 
 export function Prompt({
   message,

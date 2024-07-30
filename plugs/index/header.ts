@@ -4,7 +4,7 @@ import {
   renderToText,
 } from "$sb/lib/tree.ts";
 import type { CompleteEvent, IndexTreeEvent } from "../../plug-api/types.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";

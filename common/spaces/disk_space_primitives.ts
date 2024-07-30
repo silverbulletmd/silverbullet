@@ -1,8 +1,8 @@
 import * as path from "@std/path";
 import { readAll } from "@std/io/read-all";
-import { SpacePrimitives } from "./space_primitives.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
-import { FileMeta } from "../../plug-api/types.ts";
+import type { FileMeta } from "../../plug-api/types.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";

@@ -7,7 +7,7 @@ import {
   createSandbox as createNoSandbox,
   runWithSystemLock,
 } from "../../lib/plugos/sandboxes/no_sandbox.ts";
-import { SysCallMapping } from "../../lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { sleep } from "../../lib/async.ts";
 
 Deno.test("Run a deno sandbox", {

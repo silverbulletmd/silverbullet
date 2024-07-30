@@ -1,7 +1,7 @@
-import { ClickEvent } from "$sb/types.ts";
+import type { ClickEvent } from "$sb/types.ts";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
-import { Client } from "../client.ts";
+import type { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
 import { resolvePath } from "$sb/lib/resolve.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";

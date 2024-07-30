@@ -1,13 +1,13 @@
 import {
   findNodeOfType,
-  ParseTree,
+  type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
 } from "../../plug-api/lib/tree.ts";
 import { codeWidget } from "$sb/syscalls.ts";
 import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {
-  MarkdownRenderOptions,
+  type MarkdownRenderOptions,
   renderMarkdownToHtml,
 } from "./markdown_render.ts";
 import { validatePageName } from "$sb/lib/page_ref.ts";

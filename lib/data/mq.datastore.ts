@@ -1,11 +1,11 @@
-import {
+import type {
   KV,
   MQMessage,
   MQStats,
   MQSubscribeOptions,
 } from "../../plug-api/types.ts";
-import { MessageQueue } from "./mq.ts";
-import { DataStore } from "./datastore.ts";
+import type { MessageQueue } from "./mq.ts";
+import type { DataStore } from "./datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;

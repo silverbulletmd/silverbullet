@@ -1,17 +1,17 @@
-import { AppCommand } from "$lib/command.ts";
-import { CommandHook } from "./hooks/command.ts";
-import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "../lib/manifest.ts";
+import type { AppCommand } from "$lib/command.ts";
+import type { CommandHook } from "./hooks/command.ts";
+import type { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
+import type { SilverBulletHooks } from "../lib/manifest.ts";
 import { buildQueryFunctions } from "./query_functions.ts";
 import { ScriptEnvironment } from "./space_script.ts";
-import { EventHook } from "./hooks/event.ts";
-import { DataStore } from "$lib/data/datastore.ts";
-import { System } from "$lib/plugos/system.ts";
-import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
-import { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
-import { SlashCommandHook } from "../web/hooks/slash_command.ts";
-import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { ParseTree } from "../plug-api/lib/tree.ts";
+import type { EventHook } from "./hooks/event.ts";
+import type { DataStore } from "$lib/data/datastore.ts";
+import type { System } from "$lib/plugos/system.ts";
+import type { CodeWidgetHook } from "../web/hooks/code_widget.ts";
+import type { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
+import type { SlashCommandHook } from "../web/hooks/slash_command.ts";
+import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import type { ParseTree } from "../plug-api/lib/tree.ts";
 
 const mqTimeout = 10000; // 10s
 const mqTimeoutRetry = 3;

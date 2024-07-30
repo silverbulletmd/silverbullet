@@ -1,5 +1,5 @@
 import { space, system } from "$sb/syscalls.ts";
-import { AttachmentMeta } from "$sb/types.ts";
+import type { AttachmentMeta } from "$sb/types.ts";
 import { indexObjects } from "./api.ts";
 
 // Note: clearFileIndex is not called but since this is the only attachmet:index listener, this should be fine (famous last words)

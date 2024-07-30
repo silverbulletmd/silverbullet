@@ -1,4 +1,4 @@
-import { findNodeOfType, ParseTree, renderToText } from "$sb/lib/tree.ts";
+import { findNodeOfType, type ParseTree, renderToText } from "$sb/lib/tree.ts";
 
 export function stripMarkdown(
   tree: ParseTree,

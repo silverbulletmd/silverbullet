@@ -1,7 +1,7 @@
-import { System } from "../lib/plugos/system.ts";
-import { ParseTree } from "../plug-api/lib/tree.ts";
-import { ScriptObject } from "../plugs/index/script.ts";
-import { AppCommand, CommandDef } from "$lib/command.ts";
+import type { System } from "../lib/plugos/system.ts";
+import type { ParseTree } from "../plug-api/lib/tree.ts";
+import type { ScriptObject } from "../plugs/index/script.ts";
+import type { AppCommand, CommandDef } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
 
 // @ts-ignore: Temporal polyfill

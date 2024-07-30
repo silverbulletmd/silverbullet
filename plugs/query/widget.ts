@@ -5,13 +5,13 @@ import {
   findNodeMatching,
   findNodeOfType,
   findParentMatching,
-  ParseTree,
+  type ParseTree,
   removeParentPointers,
   renderToText,
 } from "$sb/lib/tree.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
-import { CodeWidgetContent } from "../../plug-api/types.ts";
+import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
 import type { ChangeSpec } from "@codemirror/state";

@@ -1,6 +1,6 @@
 import { system } from "$sb/syscalls.ts";
 import { indexObjects } from "./api.ts";
-import { ObjectValue, QueryProviderEvent } from "$sb/types.ts";
+import type { ObjectValue, QueryProviderEvent } from "$sb/types.ts";
 import { applyQuery } from "$sb/lib/query.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 

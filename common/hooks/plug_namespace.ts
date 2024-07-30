@@ -1,8 +1,8 @@
-import { NamespaceOperation } from "$lib/plugos/namespace.ts";
-import { PlugNamespaceHookT } from "$lib/manifest.ts";
-import { Plug } from "../../lib/plugos/plug.ts";
-import { System } from "../../lib/plugos/system.ts";
-import { Hook, Manifest } from "../../lib/plugos/types.ts";
+import type { NamespaceOperation } from "$lib/plugos/namespace.ts";
+import type { PlugNamespaceHookT } from "$lib/manifest.ts";
+import type { Plug } from "../../lib/plugos/plug.ts";
+import type { System } from "../../lib/plugos/system.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
 
 type SpaceFunction = {
   operation: NamespaceOperation;

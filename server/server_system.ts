@@ -1,10 +1,10 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "../lib/manifest.ts";
+import type { SilverBulletHooks } from "../lib/manifest.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 import { CronHook } from "../lib/plugos/hooks/cron.ts";
-import { EventHook } from "../common/hooks/event.ts";
+import type { EventHook } from "../common/hooks/event.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
@@ -17,8 +17,8 @@ import { systemSyscalls } from "$common/syscalls/system.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../lib/plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
-import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { Plug } from "../lib/plugos/plug.ts";
+import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import type { Plug } from "../lib/plugos/plug.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import {
   dataStoreReadSyscalls,
@@ -29,13 +29,13 @@ import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
-import { ShellBackend } from "./shell_backend.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { ShellBackend } from "./shell_backend.ts";
 import { ensureSpaceIndex } from "$common/space_index.ts";
-import { FileMeta } from "../plug-api/types.ts";
+import type { FileMeta } from "../plug-api/types.ts";
 import { CommandHook } from "$common/hooks/command.ts";
 import { CommonSystem } from "$common/common_system.ts";
-import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
 

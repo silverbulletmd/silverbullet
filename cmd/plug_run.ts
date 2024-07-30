@@ -1,7 +1,7 @@
 import { resolve } from "@std/path";
 import assets from "../dist/plug_asset_bundle.json" with { type: "json" };
 import { determineDatabaseBackend } from "../server/db_backend.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DiskSpacePrimitives } from "$common/spaces/disk_space_primitives.ts";
 
 import { ServerSystem } from "../server/server_system.ts";

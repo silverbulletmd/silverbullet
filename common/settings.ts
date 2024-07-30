@@ -1,11 +1,11 @@
 import YAML from "js-yaml";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
-import { SpacePrimitives } from "./spaces/space_primitives.ts";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { cleanupJSON } from "../plug-api/lib/json.ts";
-import { BuiltinSettings } from "$type/settings.ts";
-import { DataStore, ObjectEnricher } from "$lib/data/datastore.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
+import type { DataStore, ObjectEnricher } from "$lib/data/datastore.ts";
 import { parseExpression } from "$common/expression_parser.ts";
-import { QueryExpression } from "$sb/types.ts";
+import type { QueryExpression } from "$sb/types.ts";
 
 const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
 

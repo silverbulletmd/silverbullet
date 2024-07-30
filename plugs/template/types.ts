@@ -1,5 +1,5 @@
-import { ObjectValue } from "../../plug-api/types.ts";
-import { z, ZodEffects } from "zod";
+import type { ObjectValue } from "../../plug-api/types.ts";
+import { z, type ZodEffects } from "zod";
 
 export const CommandConfig = z.object({
   command: z.string().optional(),

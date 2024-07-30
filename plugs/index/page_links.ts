@@ -1,5 +1,5 @@
 import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
-import { IndexTreeEvent, ObjectValue } from "$sb/types.ts";
+import type { IndexTreeEvent, ObjectValue } from "$sb/types.ts";
 import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { indexObjects, queryObjects } from "./api.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

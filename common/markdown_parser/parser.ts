@@ -1,12 +1,12 @@
 import { commandLinkRegex } from "../command.ts";
 import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
-import { styleTags, Tag, tags as t } from "@lezer/highlight";
+import { styleTags, type Tag, tags as t } from "@lezer/highlight";
 import {
-  BlockContext,
-  LeafBlock,
-  LeafBlockParser,
-  Line,
-  MarkdownConfig,
+  type BlockContext,
+  type LeafBlock,
+  type LeafBlockParser,
+  type Line,
+  type MarkdownConfig,
   Strikethrough,
   Subscript,
   Superscript,

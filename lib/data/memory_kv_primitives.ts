@@ -1,5 +1,5 @@
-import { KV, KvKey } from "../../plug-api/types.ts";
-import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+import type { KV, KvKey } from "../../plug-api/types.ts";
+import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 
 const memoryKeySeparator = "\0";
 

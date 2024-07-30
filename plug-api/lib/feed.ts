@@ -1,7 +1,7 @@
 import {
   findNodeMatching,
   findNodeOfType,
-  ParseTree,
+  type ParseTree,
   renderToText,
 } from "./tree.ts";
 

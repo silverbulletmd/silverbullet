@@ -1,6 +1,6 @@
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { editor, space } from "$sb/syscalls.ts";
-import { UploadFile } from "$sb/types.ts";
+import type { UploadFile } from "$sb/types.ts";
 import {
   defaultLinkStyle,
   maximumAttachmentSize,

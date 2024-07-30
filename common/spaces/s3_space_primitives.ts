@@ -2,9 +2,9 @@
 import { S3Client } from "s3_lite_client/mod.ts";
 import type { ClientOptions } from "s3_lite_client/client.ts";
 import { KvMetaSpacePrimitives } from "./kv_meta_space_primitives.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { mime } from "mimetypes";
-import { KV, KvKey } from "../../plug-api/types.ts";
+import type { KV, KvKey } from "../../plug-api/types.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 
 export type S3SpacePrimitivesOptions = ClientOptions;

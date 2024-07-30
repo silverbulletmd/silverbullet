@@ -2,12 +2,12 @@ import type { IndexTreeEvent } from "../../plug-api/types.ts";
 
 import {
   collectNodesOfType,
-  ParseTree,
+  type ParseTree,
   renderToText,
 } from "../../plug-api/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

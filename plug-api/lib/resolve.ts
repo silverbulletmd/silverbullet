@@ -1,4 +1,4 @@
-import { findNodeOfType, ParseTree, traverseTree } from "./tree.ts";
+import { findNodeOfType, type ParseTree, traverseTree } from "./tree.ts";
 
 // [[Wikilinks]] use absolute paths and should pass pathToResolve with a leading / to this function
 // [Markdown links]() are relative unless it has a leading /

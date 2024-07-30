@@ -1,6 +1,6 @@
-import { Manifest as PlugosManifest } from "./plugos/types.ts";
-import { CommandDef } from "./command.ts";
-import { NamespaceOperation } from "./plugos/namespace.ts";
+import type { Manifest as PlugosManifest } from "./plugos/types.ts";
+import type { CommandDef } from "./command.ts";
+import type { NamespaceOperation } from "./plugos/namespace.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;

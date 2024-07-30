@@ -1,7 +1,7 @@
-import { Hook, Manifest } from "../../lib/plugos/types.ts";
-import { System } from "../../lib/plugos/system.ts";
-import { CodeWidgetCallback } from "../../plug-api/types.ts";
-import { PanelWidgetT } from "$lib/manifest.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
+import type { System } from "../../lib/plugos/system.ts";
+import type { CodeWidgetCallback } from "../../plug-api/types.ts";
+import type { PanelWidgetT } from "$lib/manifest.ts";
 
 export class PanelWidgetHook implements Hook<PanelWidgetT> {
   callbacks = new Map<string, CodeWidgetCallback>();

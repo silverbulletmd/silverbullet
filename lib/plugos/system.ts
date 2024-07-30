@@ -1,8 +1,8 @@
-import { Hook } from "./types.ts";
+import type { Hook } from "./types.ts";
 import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
-import { InMemoryManifestCache, ManifestCache } from "./manifest_cache.ts";
+import { InMemoryManifestCache, type ManifestCache } from "./manifest_cache.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;

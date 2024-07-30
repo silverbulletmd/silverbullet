@@ -1,5 +1,5 @@
-import { Plug } from "../plug.ts";
-import { Manifest } from "../types.ts";
+import type { Plug } from "../plug.ts";
+import type { Manifest } from "../types.ts";
 
 export type SandboxFactory<HookT> = (plug: Plug<HookT>) => Sandbox<HookT>;
 

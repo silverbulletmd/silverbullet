@@ -1,6 +1,6 @@
 import {
   findNodeOfType,
-  ParseTree,
+  type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
 } from "./tree.ts";

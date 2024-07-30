@@ -1,5 +1,5 @@
 import { syscall } from "../syscall.ts";
-import { KV, KvKey, KvQuery } from "../types.ts";
+import type { KV, KvKey, KvQuery } from "../types.ts";
 
 export function set(key: KvKey, value: any): Promise<void> {
   return syscall("datastore.set", key, value);

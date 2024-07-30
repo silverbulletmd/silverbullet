@@ -1,12 +1,12 @@
-import { Client } from "../client.ts";
-import { Range } from "@codemirror/state";
+import type { Client } from "../client.ts";
+import type { Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import {
   Decoration,
-  DecorationSet,
-  EditorView,
+  type DecorationSet,
+  type EditorView,
   ViewPlugin,
-  ViewUpdate,
+  type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
 

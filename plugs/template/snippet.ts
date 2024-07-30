@@ -1,4 +1,4 @@
-import {
+import type {
   CompleteEvent,
   SlashCompletionOption,
   SlashCompletions,
@@ -6,7 +6,7 @@ import {
 import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
-import { TemplateObject } from "./types.ts";
+import type { TemplateObject } from "./types.ts";
 import { loadPageObject } from "./page.ts";
 import { renderTemplate } from "./api.ts";
 import {

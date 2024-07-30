@@ -1,12 +1,12 @@
 import { datastore } from "$sb/syscalls.ts";
-import {
+import type {
   KV,
   KvKey,
   KvQuery,
   ObjectQuery,
   ObjectValue,
 } from "../../plug-api/types.ts";
-import { QueryProviderEvent } from "../../plug-api/types.ts";
+import type { QueryProviderEvent } from "../../plug-api/types.ts";
 import { builtins } from "./builtins.ts";
 import { determineType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";

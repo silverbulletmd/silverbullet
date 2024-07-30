@@ -1,5 +1,5 @@
-import { FileMeta } from "../../plug-api/types.ts";
-import { SpacePrimitives } from "./space_primitives.ts";
+import type { FileMeta } from "../../plug-api/types.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
 
 export class FilteredSpacePrimitives implements SpacePrimitives {
   constructor(

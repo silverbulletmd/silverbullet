@@ -5,7 +5,7 @@ import {
   findNodeOfType,
   findParentMatching,
   nodeAtPos,
-  ParseTree,
+  type ParseTree,
 } from "$sb/lib/tree.ts";
 import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";

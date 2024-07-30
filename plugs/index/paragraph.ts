@@ -7,7 +7,7 @@ import {
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 

@@ -1,4 +1,4 @@
-import { SysCallMapping } from "../../lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import YAML from "js-yaml";
 
 type YamlStringifyOptions = {

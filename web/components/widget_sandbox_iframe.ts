@@ -1,5 +1,5 @@
-import { WidgetContent } from "../../plug-api/types.ts";
-import { Client } from "../client.ts";
+import type { WidgetContent } from "../../plug-api/types.ts";
+import type { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
 
 /**

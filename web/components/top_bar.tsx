@@ -1,8 +1,11 @@
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import type { ComponentChildren, FunctionalComponent } from "preact";
-import { Notification } from "$lib/web.ts";
-import { FeatherProps } from "preact-feather/types";
-import { IconBaseProps } from "react-icons/types";
+import type { Notification } from "$lib/web.ts";
+import type { FeatherProps } from "preact-feather/types";
+import type { IconBaseProps } from "react-icons/types";
 import { MiniEditor } from "./mini_editor.tsx";
 
 export type ActionButton = {

@@ -1,5 +1,5 @@
 import { editor, markdown, YAML } from "$sb/syscalls.ts";
-import { CodeWidgetContent } from "$sb/types.ts";
+import type { CodeWidgetContent } from "$sb/types.ts";
 import { stripMarkdown } from "$sb/lib/markdown.ts";
 import { traverseTree } from "$sb/lib/tree.ts";
 

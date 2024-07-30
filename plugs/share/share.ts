@@ -1,7 +1,7 @@
 import { editor, events, markdown, system } from "$sb/syscalls.ts";
 import { findNodeOfType, renderToText } from "../../plug-api/lib/tree.ts";
 import { replaceNodesMatching } from "../../plug-api/lib/tree.ts";
-import { ParseTree } from "../../plug-api/lib/tree.ts";
+import type { ParseTree } from "../../plug-api/lib/tree.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 
 type ShareOption = {

@@ -1,4 +1,4 @@
-import { CodeWidgetCallback, WidgetContent } from "../../plug-api/types.ts";
+import type { CodeWidgetCallback, WidgetContent } from "../../plug-api/types.ts";
 import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";

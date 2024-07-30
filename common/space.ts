@@ -1,8 +1,8 @@
-import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 
-import { AttachmentMeta, FileMeta, PageMeta } from "../plug-api/types.ts";
-import { EventHook } from "./hooks/event.ts";
+import type { AttachmentMeta, FileMeta, PageMeta } from "../plug-api/types.ts";
+import type { EventHook } from "./hooks/event.ts";
 import { safeRun } from "../lib/async.ts";
 
 const pageWatchInterval = 5000;

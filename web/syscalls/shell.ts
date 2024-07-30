@@ -1,4 +1,4 @@
-import { SysCallMapping } from "../../lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
 
 export function shellSyscalls(

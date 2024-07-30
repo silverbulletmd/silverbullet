@@ -1,8 +1,8 @@
-import { Plug } from "../plug.ts";
-import { Sandbox } from "./sandbox.ts";
-import { Manifest } from "../types.ts";
-import { System } from "../system.ts";
-import { SandboxFactory } from "./sandbox.ts";
+import type { Plug } from "../plug.ts";
+import type { Sandbox } from "./sandbox.ts";
+import type { Manifest } from "../types.ts";
+import type { System } from "../system.ts";
+import type { SandboxFactory } from "./sandbox.ts";
 import { PromiseQueue } from "../../async.ts";
 
 /**

@@ -1,11 +1,11 @@
-import { SyscallMeta } from "../../plug-api/types.ts";
-import { SysCallMapping, System } from "../../lib/plugos/system.ts";
+import type { SyscallMeta } from "../../plug-api/types.ts";
+import type { SysCallMapping, System } from "../../lib/plugos/system.ts";
 import type { Client } from "../../web/client.ts";
-import { CommandDef } from "$lib/command.ts";
+import type { CommandDef } from "$lib/command.ts";
 import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
-import { ParseTree } from "../../plug-api/lib/tree.ts";
+import type { ParseTree } from "../../plug-api/lib/tree.ts";
 
 export function systemSyscalls(
   system: System<any>,

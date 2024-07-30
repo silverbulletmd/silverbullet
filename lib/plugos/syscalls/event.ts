@@ -1,5 +1,5 @@
-import { SysCallMapping } from "../system.ts";
-import { EventHookI } from "../eventhook.ts";
+import type { SysCallMapping } from "../system.ts";
+import type { EventHookI } from "../eventhook.ts";
 
 export function eventSyscalls(eventHook: EventHookI): SysCallMapping {
   return {

@@ -1,7 +1,7 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
-import { SilverBulletHooks } from "../lib/manifest.ts";
+import type { SilverBulletHooks } from "../lib/manifest.ts";
 import { CronHook } from "../lib/plugos/hooks/cron.ts";
-import { EventHook } from "../common/hooks/event.ts";
+import type { EventHook } from "../common/hooks/event.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 
 import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
@@ -21,7 +21,7 @@ import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { syncSyscalls } from "./syscalls/sync.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
-import { Space } from "../common/space.ts";
+import type { Space } from "../common/space.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
 import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
@@ -30,18 +30,18 @@ import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "../lib/plugos/syscalls/datastore.ts";
-import { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "$lib/data/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
 import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
 import { deepObjectMerge } from "../plug-api/lib/json.ts";
-import { Query } from "../plug-api/types.ts";
+import type { Query } from "../plug-api/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
-import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;

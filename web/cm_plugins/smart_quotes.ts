@@ -1,7 +1,7 @@
-import { KeyBinding } from "@codemirror/view";
+import type { KeyBinding } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { EditorSelection } from "@codemirror/state";
-import { Client } from "../client.ts";
+import type { Client } from "../client.ts";
 
 const straightQuoteContexts = [
   "CommentBlock",

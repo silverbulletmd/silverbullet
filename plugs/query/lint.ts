@@ -1,9 +1,9 @@
-import { LintEvent } from "../../plug-api/types.ts";
+import type { LintEvent } from "../../plug-api/types.ts";
 import { parseQuery } from "$sb/lib/parse-query.ts";
 import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
 import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { events, space } from "$sb/syscalls.ts";
-import { LintDiagnostic } from "../../plug-api/types.ts";
+import type { LintDiagnostic } from "../../plug-api/types.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 
 export async function lintQuery(

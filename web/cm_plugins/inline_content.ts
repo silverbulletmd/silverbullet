@@ -1,4 +1,4 @@
-import { EditorState, Range } from "@codemirror/state";
+import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
 import { MarkdownWidget } from "./markdown_widget.ts";

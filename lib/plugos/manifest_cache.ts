@@ -1,6 +1,6 @@
-import { KvPrimitives } from "../data/kv_primitives.ts";
-import { Plug } from "./plug.ts";
-import { Manifest } from "./types.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
+import type { Plug } from "./plug.ts";
+import type { Manifest } from "./types.ts";
 
 export interface ManifestCache<T> {
   getManifest(plug: Plug<T>, hash: number): Promise<Manifest<T>>;

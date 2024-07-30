@@ -1,4 +1,4 @@
-import { SysCallMapping, System } from "../system.ts";
+import type { SysCallMapping, System } from "../system.ts";
 
 export default function assetSyscalls(system: System<any>): SysCallMapping {
   return {

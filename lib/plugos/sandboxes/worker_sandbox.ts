@@ -1,8 +1,8 @@
-import { Manifest } from "../types.ts";
-import { ControllerMessage, WorkerMessage } from "../protocol.ts";
-import { Plug } from "../plug.ts";
-import { AssetBundle, AssetJson } from "../../asset_bundle/bundle.ts";
-import { Sandbox } from "./sandbox.ts";
+import type { Manifest } from "../types.ts";
+import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
+import type { Plug } from "../plug.ts";
+import { AssetBundle, type AssetJson } from "../../asset_bundle/bundle.ts";
+import type { Sandbox } from "./sandbox.ts";
 
 /**
  * Represents a "safe" execution environment for plug code

@@ -3,9 +3,9 @@ import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
 import {
   autocompletion,
   closeBracketsKeymap,
-  CompletionContext,
+  type CompletionContext,
   completionKeymap,
-  CompletionResult,
+  type CompletionResult,
 } from "@codemirror/autocomplete";
 import { EditorState } from "@codemirror/state";
 import {
@@ -14,7 +14,7 @@ import {
   keymap,
   placeholder,
   ViewPlugin,
-  ViewUpdate,
+  type ViewUpdate,
 } from "@codemirror/view";
 import { getCM as vimGetCm, Vim, vim } from "@replit/codemirror-vim";
 import { createCommandKeyBindings } from "../editor_state.ts";

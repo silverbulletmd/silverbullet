@@ -1,7 +1,7 @@
 import { FilterList } from "./filter.tsx";
-import { FilterOption } from "$lib/web.ts";
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { PageMeta } from "../../plug-api/types.ts";
+import type { FilterOption } from "$lib/web.ts";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type { PageMeta } from "../../plug-api/types.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");

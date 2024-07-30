@@ -1,6 +1,6 @@
-import { FunctionMap, Query } from "$sb/types.ts";
+import type { FunctionMap, Query } from "$sb/types.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
-import { System } from "$lib/plugos/system.ts";
+import type { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { parsePageRef, positionOfLine } from "$sb/lib/page_ref.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";

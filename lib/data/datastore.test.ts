@@ -2,10 +2,10 @@ import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
 import { cleanupEmptyObjects, DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
-import { KvPrimitives } from "../data/kv_primitives.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals, assertThrows } from "@std/assert";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
-import { Query } from "../../plug-api/types.ts";
+import type { Query } from "../../plug-api/types.ts";
 
 async function test(db: KvPrimitives) {
   const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), {

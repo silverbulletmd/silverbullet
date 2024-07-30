@@ -1,7 +1,7 @@
-import { Manifest } from "./types.ts";
-import { System } from "./system.ts";
-import { AssetBundle } from "../asset_bundle/bundle.ts";
-import { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
+import type { Manifest } from "./types.ts";
+import type { System } from "./system.ts";
+import type { AssetBundle } from "../asset_bundle/bundle.ts";
+import type { Sandbox, SandboxFactory } from "./sandboxes/sandbox.ts";
 
 export class Plug<HookT> {
   readonly runtimeEnv?: string;

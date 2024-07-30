@@ -1,8 +1,8 @@
-import { AppCommand } from "../lib/command.ts";
+import type { AppCommand } from "../lib/command.ts";
 import { defaultSettings } from "$common/settings.ts";
-import { FilterOption, Notification, PanelMode } from "$lib/web.ts";
-import { BuiltinSettings } from "$type/settings.ts";
-import { PageMeta } from "$sb/types.ts";
+import type { FilterOption, Notification, PanelMode } from "$lib/web.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
+import type { PageMeta } from "$sb/types.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;

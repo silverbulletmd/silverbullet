@@ -1,9 +1,9 @@
 import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { YAML } from "$sb/syscalls.ts";
 import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { TagObject } from "./tags.ts";
+import type { TagObject } from "./tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 

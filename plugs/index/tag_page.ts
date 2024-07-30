@@ -1,4 +1,4 @@
-import { FileMeta } from "../../plug-api/types.ts";
+import type { FileMeta } from "../../plug-api/types.ts";
 import { markdown, system } from "$sb/syscalls.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { tagPrefix } from "./constants.ts";

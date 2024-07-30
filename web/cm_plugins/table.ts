@@ -1,4 +1,4 @@
-import { EditorState } from "@codemirror/state";
+import type { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
 import {
@@ -8,7 +8,7 @@ import {
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
-import { ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
+import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";

@@ -1,4 +1,4 @@
-import { QueryExpression } from "$sb/types.ts";
+import type { QueryExpression } from "$sb/types.ts";
 import { parseTreeToAST } from "$sb/lib/tree.ts";
 import { expressionLanguage } from "$common/template/template_parser.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";

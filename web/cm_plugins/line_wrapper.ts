@@ -1,4 +1,4 @@
-import { EditorState, Range } from "@codemirror/state";
+import type { EditorState, Range } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { decoratorStateField } from "./util.ts";

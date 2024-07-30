@@ -1,18 +1,18 @@
-import { Hook, Manifest } from "$lib/plugos/types.ts";
-import { System } from "$lib/plugos/system.ts";
-import {
+import type { Hook, Manifest } from "$lib/plugos/types.ts";
+import type { System } from "$lib/plugos/system.ts";
+import type {
   Completion,
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import { Client } from "../client.ts";
+import type { Client } from "../client.ts";
 import { syntaxTree } from "@codemirror/language";
-import {
+import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
 import { safeRun } from "$lib/async.ts";
-import { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
+import type { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 import { parseCommand } from "$common/command.ts";
 
 export type AppSlashCommand = {

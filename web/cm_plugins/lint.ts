@@ -1,7 +1,7 @@
-import { Diagnostic, linter } from "@codemirror/lint";
+import { type Diagnostic, linter } from "@codemirror/lint";
 import type { Client } from "../client.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { LintEvent } from "../../plug-api/types.ts";
+import type { LintEvent } from "../../plug-api/types.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 
 export function plugLinter(client: Client) {

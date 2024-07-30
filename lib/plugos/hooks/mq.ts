@@ -1,9 +1,9 @@
-import { Hook, Manifest } from "../types.ts";
-import { System } from "../system.ts";
-import { MQMessage } from "../../../plug-api/types.ts";
-import { MessageQueue } from "../../data/mq.ts";
+import type { Hook, Manifest } from "../types.ts";
+import type { System } from "../system.ts";
+import type { MQMessage } from "../../../plug-api/types.ts";
+import type { MessageQueue } from "../../data/mq.ts";
 import { throttle } from "../../async.ts";
-import { MQHookT } from "$lib/manifest.ts";
+import type { MQHookT } from "$lib/manifest.ts";
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: (() => void)[] = [];

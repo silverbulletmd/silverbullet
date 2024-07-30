@@ -1,9 +1,9 @@
 import { editor, space } from "$sb/syscalls.ts";
 import { validatePageName } from "$sb/lib/page_ref.ts";
-import { getBackLinks, LinkObject } from "./page_links.ts";
+import { getBackLinks, type LinkObject } from "./page_links.ts";
 import { queryObjects } from "./api.ts";
 import { absoluteToRelativePath, folderName } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "$sb/types.ts";
+import type { ObjectValue } from "$sb/types.ts";
 
 /**
  * Renames a single page.

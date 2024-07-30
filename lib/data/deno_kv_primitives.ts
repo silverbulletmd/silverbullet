@@ -1,7 +1,7 @@
 /// <reference lib="deno.unstable" />
 
-import { KV, KvKey } from "../../plug-api/types.ts";
-import { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+import type { KV, KvKey } from "../../plug-api/types.ts";
+import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 
 const kvBatchSize = 100;
 

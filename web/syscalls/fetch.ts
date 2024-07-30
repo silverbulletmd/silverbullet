@@ -1,8 +1,8 @@
 import type { SysCallMapping } from "$lib/plugos/system.ts";
 import {
   performLocalFetch,
-  ProxyFetchRequest,
-  ProxyFetchResponse,
+  type ProxyFetchRequest,
+  type ProxyFetchResponse,
 } from "../../lib/proxy_fetch.ts";
 import type { Client } from "../client.ts";
 import { base64Decode, base64Encode } from "$lib/crypto.ts";

@@ -1,6 +1,6 @@
 import {
   addParentPointers,
-  ParseTree,
+  type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
   traverseTreeAsync,

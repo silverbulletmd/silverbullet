@@ -1,6 +1,6 @@
-import { SysCallMapping } from "../../lib/plugos/system.ts";
-import { ShellResponse } from "../../type/rpc.ts";
-import { ShellBackend } from "../shell_backend.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
+import type { ShellResponse } from "../../type/rpc.ts";
+import type { ShellBackend } from "../shell_backend.ts";
 
 export function shellSyscalls(shellBackend: ShellBackend): SysCallMapping {
   return {

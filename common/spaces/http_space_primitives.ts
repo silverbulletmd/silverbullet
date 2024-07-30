@@ -1,5 +1,5 @@
-import { SpacePrimitives } from "./space_primitives.ts";
-import { FileMeta } from "../../plug-api/types.ts";
+import type { SpacePrimitives } from "./space_primitives.ts";
+import type { FileMeta } from "../../plug-api/types.ts";
 import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
 const fetchTimeout = 5000;

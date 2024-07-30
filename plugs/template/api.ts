@@ -1,6 +1,6 @@
 import { markdown, template, YAML } from "$sb/syscalls.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { TemplateObject } from "./types.ts";
+import type { TemplateObject } from "./types.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 
 /**

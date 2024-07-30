@@ -4,7 +4,7 @@ import { parse } from "../markdown_parser/parse_tree.ts";
 import { parser as templateParser } from "./parse-template.js";
 import { parser as expressionParser } from "../markdown_parser/parse-expression.js";
 import { parser as queryParser } from "../markdown_parser/parse-query.js";
-import { AST, parseTreeToAST } from "../../plug-api/lib/tree.ts";
+import { type AST, parseTreeToAST } from "../../plug-api/lib/tree.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
 
 export const templateLanguage = LRLanguage.define({

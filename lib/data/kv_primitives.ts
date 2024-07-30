@@ -1,4 +1,4 @@
-import { KV, KvKey } from "../../plug-api/types.ts";
+import type { KV, KvKey } from "../../plug-api/types.ts";
 
 export type KvQueryOptions = {
   prefix?: KvKey;

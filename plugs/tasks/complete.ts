@@ -1,6 +1,6 @@
-import { CompleteEvent } from "../../plug-api/types.ts";
+import type { CompleteEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "../index/plug_api.ts";
-import { TaskStateObject } from "./task.ts";
+import type { TaskStateObject } from "./task.ts";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
   const taskMatch = /([\-\*]\s+\[)([^\[\]]+)$/.exec(

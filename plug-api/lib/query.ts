@@ -1,4 +1,4 @@
-import { FunctionMap, KV, Query, QueryExpression } from "../types.ts";
+import type { FunctionMap, KV, Query, QueryExpression } from "../types.ts";
 import { evalQueryExpression } from "./query_expression.ts";
 
 /**

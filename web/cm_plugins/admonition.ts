@@ -1,7 +1,7 @@
-import { EditorState } from "@codemirror/state";
+import type { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
-import { SyntaxNodeRef } from "@lezer/common";
+import type { SyntaxNodeRef } from "@lezer/common";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 const ADMONITION_REGEX =

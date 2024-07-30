@@ -1,4 +1,4 @@
-import { SpaceSync, SyncStatusItem } from "$common/spaces/sync.ts";
+import { SpaceSync, type SyncStatusItem } from "$common/spaces/sync.ts";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 

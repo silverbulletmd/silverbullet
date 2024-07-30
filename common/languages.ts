@@ -34,7 +34,7 @@ import {
   objectiveCpp as objectiveCppLanguage,
   scala as scalaLanguage,
 } from "@codemirror/legacy-modes/mode/clike?external=@codemirror/language&target=es2022";
-import { Language, StreamLanguage } from "@codemirror/language";
+import { type Language, StreamLanguage } from "@codemirror/language";
 import {
   javascriptLanguage,
   typescriptLanguage,

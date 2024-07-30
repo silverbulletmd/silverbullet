@@ -1,4 +1,4 @@
-import { SilverBulletHooks } from "../lib/manifest.ts";
+import type { SilverBulletHooks } from "../lib/manifest.ts";
 import {
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,
@@ -6,20 +6,20 @@ import {
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
-import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
+import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { EventHook } from "../common/hooks/event.ts";
 import { DataStore } from "$lib/data/datastore.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { System } from "$lib/plugos/system.ts";
+import type { System } from "$lib/plugos/system.ts";
 import { JWTIssuer } from "./crypto.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
-import { ShellBackend } from "./shell_backend.ts";
+import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
-import { BuiltinSettings } from "$type/settings.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
 
 export type SpaceServerConfig = {
   hostname: string;

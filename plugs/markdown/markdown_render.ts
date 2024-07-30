@@ -2,15 +2,15 @@ import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
-  ParseTree,
+  type ParseTree,
   removeParentPointers,
   renderToText,
   traverseTree,
 } from "$sb/lib/tree.ts";
 import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
-import { Fragment, renderHtml, Tag } from "./html_render.ts";
+import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "$sb/lib/resolve.ts";
-import { PageMeta } from "$sb/types.ts";
+import type { PageMeta } from "$sb/types.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;

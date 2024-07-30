@@ -1,5 +1,5 @@
-import { DataStore } from "$lib/data/datastore.ts";
-import { System } from "$lib/plugos/system.ts";
+import type { DataStore } from "$lib/data/datastore.ts";
+import type { System } from "$lib/plugos/system.ts";
 
 const indexVersionKey = ["$indexVersion"];
 

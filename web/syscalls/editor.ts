@@ -1,4 +1,4 @@
-import { Client } from "../client.ts";
+import type { Client } from "../client.ts";
 import {
   foldAll,
   foldCode,
@@ -7,13 +7,13 @@ import {
   unfoldCode,
 } from "@codemirror/language";
 import { deleteLine, redo, undo } from "@codemirror/commands";
-import { Transaction } from "@codemirror/state";
+import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
-import { SysCallMapping } from "$lib/plugos/system.ts";
+import type { SysCallMapping } from "$lib/plugos/system.ts";
 import type { FilterOption } from "$lib/web.ts";
-import { UploadFile } from "../../plug-api/types.ts";
-import { PageRef } from "$sb/lib/page_ref.ts";
+import type { UploadFile } from "../../plug-api/types.ts";
+import type { PageRef } from "$sb/lib/page_ref.ts";
 import { openSearchPanel } from "@codemirror/search";
 import { diffAndPrepareChanges } from "../cm_util.ts";
 

@@ -9,7 +9,7 @@ import {
   findNodeOfType,
   findParentMatching,
   nodeAtPos,
-  ParseTree,
+  type ParseTree,
   renderToText,
   replaceNodesMatching,
   traverseTreeAsync,
@@ -17,7 +17,7 @@ import {
 import { niceDate } from "$lib/dates.ts";
 import { extractAttributes } from "$sb/lib/attribute.ts";
 import { rewritePageRefs } from "$sb/lib/resolve.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";

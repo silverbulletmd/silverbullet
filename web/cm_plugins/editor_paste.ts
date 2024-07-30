@@ -1,7 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
-import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { Client } from "../client.ts";
-import { UploadFile } from "$sb/types.ts";
+import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import type { Client } from "../client.ts";
+import type { UploadFile } from "$sb/types.ts";
 
 // We use turndown to convert HTML to Markdown
 import TurndownService from "turndown";

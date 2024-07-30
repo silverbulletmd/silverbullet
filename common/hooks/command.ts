@@ -1,15 +1,15 @@
-import { Hook, Manifest } from "../../lib/plugos/types.ts";
-import { System } from "../../lib/plugos/system.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
+import type { System } from "../../lib/plugos/system.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import {
-  FrontmatterConfig,
+  type FrontmatterConfig,
   SnippetConfig,
 } from "../../plugs/template/types.ts";
 import { NewPageConfig } from "../../plugs/template/types.ts";
 import { throttle } from "../../lib/async.ts";
-import { AppCommand, CommandHookEvents } from "../../lib/command.ts";
-import { CommandHookT } from "$lib/manifest.ts";
+import type { AppCommand, CommandHookEvents } from "../../lib/command.ts";
+import type { CommandHookT } from "$lib/manifest.ts";
 
 export class CommandHook extends EventEmitter<CommandHookEvents>
   implements Hook<CommandHookT> {

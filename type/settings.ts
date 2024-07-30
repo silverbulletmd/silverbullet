@@ -1,5 +1,5 @@
-import { ActionButton, EmojiConfig, Shortcut } from "$lib/web.ts";
-import { Manifest } from "$lib/manifest.ts";
+import type { ActionButton, EmojiConfig, Shortcut } from "$lib/web.ts";
+import type { Manifest } from "$lib/manifest.ts";
 
 export type ObjectDecorator = {
     // The expression to match against the object

@@ -1,8 +1,8 @@
 import type { Manifest } from "$lib/plugos/types.ts";
-import { System } from "$lib/plugos/system.ts";
-import { ScriptEnvironment } from "$common/space_script.ts";
-import { EventHookI } from "$lib/plugos/eventhook.ts";
-import { EventHookT } from "$lib/manifest.ts";
+import type { System } from "$lib/plugos/system.ts";
+import type { ScriptEnvironment } from "$common/space_script.ts";
+import type { EventHookI } from "$lib/plugos/eventhook.ts";
+import type { EventHookT } from "$lib/manifest.ts";
 
 // System events:
 // - plug:load (plugName: string)

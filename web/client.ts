@@ -1,38 +1,38 @@
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Compartment } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import { SyntaxNode } from "@lezer/common";
+import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
-import { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "$lib/web.ts";
 import { EventHook } from "../common/hooks/event.ts";
-import { AppCommand } from "$lib/command.ts";
+import type { AppCommand } from "$lib/command.ts";
 import {
-  PageState,
+  type PageState,
   parsePageRefFromURI,
   PathPageNavigator,
 } from "./navigator.ts";
 
-import { AppViewState } from "../type/web.ts";
+import type { AppViewState } from "../type/web.ts";
 
 import type {
   AppEvent,
   CompleteEvent,
   SlashCompletions,
 } from "../plug-api/types.ts";
-import { StyleObject } from "../plugs/index/style.ts";
+import type { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "$lib/async.ts";
 import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
 import {
-  ISyncService,
+  type ISyncService,
   NoSyncSyncService,
   pageSyncInterval,
   SyncService,
 } from "./sync_service.ts";
 import { simpleHash } from "$lib/crypto.ts";
-import { SyncStatus } from "$common/spaces/sync.ts";
+import type { SyncStatus } from "$common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
@@ -41,8 +41,8 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { SpacePrimitives } from "$common/spaces/space_primitives.ts";
-import { CodeWidgetButton, FileMeta, PageMeta } from "../plug-api/types.ts";
+import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import type { CodeWidgetButton, FileMeta, PageMeta } from "../plug-api/types.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
@@ -50,9 +50,9 @@ import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primiti
 
 import { ensureSpaceIndex } from "$common/space_index.ts";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
-import { PageRef } from "../plug-api/lib/page_ref.ts";
+import type { PageRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
-import { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import {
   ensureAndLoadSettingsAndIndex,
@@ -63,7 +63,7 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "$sb/lib/tree.ts";
 import type { LinkObject } from "../plugs/index/page_links.ts";
-import { BuiltinSettings } from "$type/settings.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

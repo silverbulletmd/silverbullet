@@ -1,8 +1,8 @@
-import { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
 import {
   collectNodesMatching,
   collectNodesOfType,
-  ParseTree,
+  type ParseTree,
 } from "$sb/lib/tree.ts";
 import { indexObjects } from "./api.ts";
 

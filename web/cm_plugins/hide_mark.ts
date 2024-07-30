@@ -2,7 +2,7 @@
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
 
-import { EditorState } from "@codemirror/state";
+import type { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import {

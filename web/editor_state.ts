@@ -19,28 +19,28 @@ import {
   dropCursor,
   EditorView,
   highlightSpecialChars,
-  KeyBinding,
+  type KeyBinding,
   keymap,
   ViewPlugin,
-  ViewUpdate,
+  type ViewUpdate,
 } from "@codemirror/view";
 import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
-import { Client } from "./client.ts";
+import type { Client } from "./client.ts";
 import { inlineImagesPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
-import { ClickEvent } from "../plug-api/types.ts";
+import type { ClickEvent } from "../plug-api/types.ts";
 import {
   attachmentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
-import { TextChange } from "./change.ts";
+import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "$common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
-import { Compartment, Extension } from "@codemirror/state";
+import { Compartment, type Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parseCommand } from "$common/command.ts";
 import { safeRun } from "$lib/async.ts";

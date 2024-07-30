@@ -1,10 +1,10 @@
 import { FilterList } from "./filter.tsx";
-import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
-import { AppCommand } from "../../lib/command.ts";
-import { FilterOption } from "$lib/web.ts";
+import type { AppCommand } from "../../lib/command.ts";
+import type { FilterOption } from "$lib/web.ts";
 import { parseCommand } from "$common/command.ts";
-import { BuiltinSettings } from "$type/settings.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
 
 export function CommandPalette({
   commands,

@@ -1,4 +1,4 @@
-import { EditorState } from "@codemirror/state";
+import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";

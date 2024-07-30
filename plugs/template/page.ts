@@ -1,7 +1,7 @@
 import { editor, space, template } from "$sb/syscalls.ts";
-import { PageMeta } from "../../plug-api/types.ts";
+import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
-import { FrontmatterConfig, TemplateObject } from "./types.ts";
+import { FrontmatterConfig, type TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
 
 export async function newPageCommand(

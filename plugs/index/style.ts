@@ -1,6 +1,6 @@
-import { IndexTreeEvent } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
-import { ObjectValue } from "../../plug-api/types.ts";
+import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
