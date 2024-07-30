@@ -5,8 +5,17 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new since 0.8.5 yet!
+
+## 0.8.5
 * New power-user feature: [[Object Decorators]]. Its primary use case is to apply [[Page Decorations]], but you may find other uses as well. Speaking of which...
-* **Breaking change:**The way [[Page Decorations]] are specified has changed. It has now been replaced with [[Object Decorators]](as just mentioned), which are a more generic mechanism. Your existing `pageDecorations` will stop working. You’ll have to rewrite based on the new format. See [[Page Decorations]] for examples.
+* **Breaking change:** The way [[Page Decorations]] are specified has changed. It has now been replaced with [[Object Decorators]](as just mentioned), which are a more generic mechanism. Your existing `pageDecorations` will stop working. You’ll have to rewrite based on the new format. See [[Page Decorations]] for examples.
+* New [[CHANGELOG@L20]] syntax (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/988))
+* [[Library/Core]] library updates (run {[Libraries: Update]} to get it):
+  * [[^Library/Core/Widget/Table of Contents]] widget can now be disabled using a [[Page Decorations|Page Decoration]]
+  * [[Library/Core/Quick Notes]] now orders quick notes in reverse-chronological order
+* **Fix:** Spellchecker correction was broken in Chrome
+* **Fix:** Markdown preview was broken
 
 ## 0.8.4
 * [[Page Picker#Keyboard shortcuts]]: allow folder completion using Shift-Space (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/961))
