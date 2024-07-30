@@ -27,7 +27,8 @@ Let’s say we want to put a 🧑 prefix on every page tagged with `#person`. We
 ```yaml
 objectDecorators:
 - where: "tags = 'person'"
-  pageDecoration.prefix: '"🧑 "'
+  attributes:
+    pageDecoration.prefix: '"🧑 "'
 ```
 
 Note the (perhaps) strange double quoting there, both the `where` and the value for the attributes are [[Expression Language|expressions]] encoded inside of YAML. It’s a bit weird, but it works.
