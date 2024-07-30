@@ -2,7 +2,6 @@ import { PageRef, parsePageRef } from "../plug-api/lib/page_ref.ts";
 import { Client } from "./client.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
-import { builtinFunctions } from "../lib/builtin_query_functions.ts";
 import { safeRun } from "../lib/async.ts";
 
 export type PageState = PageRef & {

@@ -1,7 +1,7 @@
 import { safeRun } from "../lib/async.ts";
 import { Client } from "./client.ts";
 
-const syncMode = window.silverBulletConfig.syncOnly ||
+const syncMode = globalThis.silverBulletConfig.syncOnly ||
   !!localStorage.getItem("syncMode");
 
 safeRun(async () => {
@@ -19,7 +19,8 @@ safeRun(async () => {
     syncMode,
     window.silverBulletConfig.readOnly,
   );
-  window.client = client;
+  // @ts-ignore: on purpose
+  globalThis.client = client;
   await client.init();
 });
 
@@ -35,7 +36,7 @@ if (navigator.serviceWorker) {
     navigator.serviceWorker.ready.then((registration) => {
       registration.active!.postMessage({
         type: "config",
-        config: window.silverBulletConfig,
+        config: globalThis.silverBulletConfig,
       });
     });
   }

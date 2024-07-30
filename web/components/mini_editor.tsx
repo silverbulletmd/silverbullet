@@ -190,7 +190,7 @@ export function MiniEditor(
           ...standardKeymap,
           ...historyKeymap,
           ...completionKeymap,
-          ...createCommandKeyBindings(window.client),
+          ...createCommandKeyBindings(globalThis.client),
         ]),
         EditorView.domEventHandlers({
           click: (e) => {
@@ -253,7 +253,7 @@ export function MiniEditor(
       onBlurred = true;
       if (callbacksRef.current!.onBlur) {
         Promise.resolve(callbacksRef.current!.onBlur(view.state.sliceDoc()))
-          .catch((e) => {
+          .catch(() => {
             // Reset the state
             view.setState(buildEditorState());
           });

@@ -6,6 +6,7 @@
     "install": "deno install -g -f --unstable-kv --unstable-worker-options -A --import-map deno.json silverbullet.ts",
 
     "check": "find . -name '*.ts*' | xargs deno check",
+    "lint": "deno lint",
     "test": "deno test -A --unstable-kv  --unstable-worker-options",
     "bench": "deno bench",
 
@@ -30,7 +31,10 @@
   "lint": {
     "exclude": [
       "dist",
-      "dist_bundle"
+      "dist_client_bundle",
+      "dist_plug_bundle",
+      "cmd/test_space",
+      "cmd/test/test_space"
     ],
     "rules": {
       "exclude": ["no-explicit-any"]

@@ -2,7 +2,6 @@ import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import { SyntaxNodeRef } from "@lezer/common";
-import { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 const ADMONITION_REGEX =
@@ -57,7 +56,7 @@ function extractAdmonitionFields(rawText: string): AdmonitionFields | null {
   return null;
 }
 
-export function admonitionPlugin(editor: Client) {
+export function admonitionPlugin() {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
 
@@ -77,8 +76,7 @@ export function admonitionPlugin(editor: Client) {
             return;
           }
 
-          const { preSpaces, admonitionType, postSyntax, postSpaces } =
-            extractedFields;
+          const { preSpaces, admonitionType, postSyntax } = extractedFields;
 
           // A blockquote is actually rendered as many divs, one per line.
           // We need to keep track of the `from` offsets here, so we can attach css

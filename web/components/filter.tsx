@@ -164,7 +164,10 @@ export function FilterList({
                   // Operate on the highlighted option, ignoring prompt
                   const option = matchingOptions[selectedOption].name;
                   // Get the folder it's nested in, keeping the trailing /
-                  const folderPath = option.slice(0, option.lastIndexOf("/") + 1);
+                  const folderPath = option.slice(
+                    0,
+                    option.lastIndexOf("/") + 1,
+                  );
                   // If the option wasn't in a folder, make it a folder
                   setText(folderPath !== "" ? folderPath : option + "/");
                   return true;
@@ -194,7 +197,7 @@ export function FilterList({
               className={selectedOption === idx
                 ? "sb-selected-option"
                 : "sb-option"}
-              onMouseMove={(e) => {
+              onMouseMove={() => {
                 if (selectedOption !== idx) {
                   setSelectionOption(idx);
                 }

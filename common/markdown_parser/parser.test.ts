@@ -35,11 +35,11 @@ Deno.test("Test parser", () => {
   const links = collectNodesOfType(tree, "WikiLink");
   assertEquals(links.length, 2);
   const nameNode = findNodeOfType(links[0], "WikiLinkPage");
-  assertEquals(nameNode?.children![0].text, "wiki link");
+  assertEquals(nameNode!.children![0].text, "wiki link");
 
   // Check if alias is parsed properly
   const aliasNode = findNodeOfType(links[1], "WikiLinkAlias");
-  assertEquals(aliasNode?.children![0].text, "alias");
+  assertEquals(aliasNode!.children![0].text, "alias");
 
   // Find frontmatter
   let node = findNodeOfType(tree, "FrontMatter");
@@ -65,19 +65,19 @@ Deno.test("Test inline attribute syntax", () => {
   // console.log("Attribute parsed", JSON.stringify(tree, null, 2));
   const attributes = collectNodesOfType(tree, "Attribute");
   let nameNode = findNodeOfType(attributes[0], "AttributeName");
-  assertEquals(nameNode?.children![0].text, "age");
+  assertEquals(nameNode!.children![0].text, "age");
   let valueNode = findNodeOfType(attributes[0], "AttributeValue");
-  assertEquals(valueNode?.children![0].text, "100");
+  assertEquals(valueNode!.children![0].text, "100");
 
   nameNode = findNodeOfType(attributes[1], "AttributeName");
-  assertEquals(nameNode?.children![0].text, "age");
+  assertEquals(nameNode!.children![0].text, "age");
   valueNode = findNodeOfType(attributes[1], "AttributeValue");
-  assertEquals(valueNode?.children![0].text, "200");
+  assertEquals(valueNode!.children![0].text, "200");
 
   nameNode = findNodeOfType(attributes[2], "AttributeName");
-  assertEquals(nameNode?.children![0].text, "array");
+  assertEquals(nameNode!.children![0].text, "array");
   valueNode = findNodeOfType(attributes[2], "AttributeValue");
-  assertEquals(valueNode?.children![0].text, "[1, 2, 3]");
+  assertEquals(valueNode!.children![0].text, "[1, 2, 3]");
 });
 
 Deno.test("Test template directive parsing", () => {

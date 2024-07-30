@@ -343,14 +343,14 @@ export class HttpServer {
     ];
 
     // TODO: This should probably be a POST request
-    this.app.get("/.logout", async (c) => {
+    this.app.get("/.logout", (c) => {
       const url = new URL(c.req.url);
       deleteCookie(c, authCookieName(url.host));
 
       return c.redirect("/.auth");
     });
 
-    this.app.get("/.auth", async (c) => {
+    this.app.get("/.auth", (c) => {
       const html = this.clientAssetBundle.readTextFileSync(".client/auth.html");
 
       return c.html(html);
@@ -402,7 +402,7 @@ export class HttpServer {
           return c.redirect("/.auth?error=1");
         }
       },
-    ).all(async (c) => {
+    ).all((c) => {
       return c.redirect("/.auth");
     });
 

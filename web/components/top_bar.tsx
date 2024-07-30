@@ -19,7 +19,6 @@ export function TopBar({
   unsavedChanges,
   syncFailures,
   isLoading,
-  isMobile,
   notifications,
   onRename,
   actionButtons,
@@ -36,7 +35,6 @@ export function TopBar({
   unsavedChanges: boolean;
   syncFailures: number;
   isLoading: boolean;
-  isMobile: boolean;
   notifications: Notification[];
   darkMode: boolean;
   vimMode: boolean;
@@ -59,7 +57,7 @@ export function TopBar({
       <div className="main">
         <div className="inner">
           <div className="wrapper">
-          <div className="sb-page-prefix">{pageNamePrefix}</div>
+            <div className="sb-page-prefix">{pageNamePrefix}</div>
             <span
               id="sb-current-page"
               className={isLoading

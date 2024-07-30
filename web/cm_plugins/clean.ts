@@ -19,7 +19,7 @@ export function cleanModePlugins(client: Client) {
   return [
     linkPlugin(client),
     blockquotePlugin(),
-    admonitionPlugin(client),
+    admonitionPlugin(),
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),

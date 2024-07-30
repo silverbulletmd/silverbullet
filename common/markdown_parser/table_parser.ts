@@ -21,7 +21,7 @@ function parseRow(
   offset = 0,
 ) {
   let count = 0, first = true, cellStart = -1, cellEnd = -1, esc = false;
-  let parseCell = () => {
+  const parseCell = () => {
     elts!.push(
       cx.elt(
         "TableCell",
@@ -37,7 +37,7 @@ function parseRow(
 
   let inWikilink = false;
   for (let i = startI; i < line.length; i++) {
-    let next = line.charCodeAt(i);
+    const next = line.charCodeAt(i);
     if (next === 91 /* '[' */ && line.charAt(i + 1) === "[") {
       inWikilink = true;
     } else if (
@@ -68,7 +68,7 @@ function parseRow(
 
 function hasPipe(str: string, start: number) {
   for (let i = start; i < str.length; i++) {
-    let next = str.charCodeAt(i);
+    const next = str.charCodeAt(i);
     if (next == 124 /* '|' */) return true;
     if (next == 92 /* '\\' */) i++;
   }
@@ -91,7 +91,7 @@ class TableParser implements LeafBlockParser {
         (line.next == 45 || line.next == 58 || line.next == 124 /* '-:|' */) &&
         delimiterLine.test(lineText = line.text.slice(line.pos))
       ) {
-        let firstRow: Element[] = [],
+        const firstRow: Element[] = [],
           firstCount = parseRow(cx, leaf.content, 0, firstRow, leaf.start);
         if (firstCount == parseRow(cx, lineText, line.pos)) {
           this.rows = [
@@ -110,7 +110,7 @@ class TableParser implements LeafBlockParser {
         }
       }
     } else if (this.rows) { // Line after the second
-      let content: Element[] = [];
+      const content: Element[] = [];
       parseRow(cx, line.text, line.pos, content, cx.lineStart);
       this.rows.push(
         cx.elt(
@@ -167,7 +167,7 @@ export const Table: MarkdownConfig = {
         !hasPipe(line.text, line.basePos)
       ) return false;
       // @ts-ignore: internal
-      let next = cx.scanLine(cx.absoluteLineEnd + 1).text;
+      const next = cx.scanLine(cx.absoluteLineEnd + 1).text;
       return delimiterLine.test(next) &&
         parseRow(cx, line.text, line.basePos) ==
           parseRow(cx, next, line.basePos);

@@ -35,8 +35,8 @@ Deno.test("Batch test", async () => {
     return batch.map((e) => e * 2);
   }, 9);
   assertEquals(multiplied, elements.map((e) => e * 2));
-  const multiplied2 = await batchRequests(elements, async (batch) => {
-    return batch.map((e) => e * 2);
+  const multiplied2 = await batchRequests(elements, (batch) => {
+    return Promise.resolve(batch.map((e) => e * 2));
   }, 10000);
   assertEquals(multiplied2, elements.map((e) => e * 2));
 });

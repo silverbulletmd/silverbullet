@@ -1,4 +1,4 @@
-import { editor, space, system } from "$sb/syscalls.ts";
+import { editor, space } from "$sb/syscalls.ts";
 import { validatePageName } from "$sb/lib/page_ref.ts";
 import { getBackLinks, LinkObject } from "./page_links.ts";
 import { queryObjects } from "./api.ts";

@@ -162,7 +162,6 @@ export function AlwaysShownModal({
   return (
     <dialog
       className="sb-modal-box"
-      // @ts-ignore
       onCancel={(e: Event) => {
         e.preventDefault();
         onCancel?.();

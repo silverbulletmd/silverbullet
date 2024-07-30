@@ -202,7 +202,6 @@ export class MainUI {
           syncFailures={viewState.syncFailures}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
-          isMobile={viewState.isMobile}
           vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
           progressPerc={viewState.progressPerc}

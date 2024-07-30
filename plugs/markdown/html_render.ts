@@ -20,7 +20,7 @@ function htmlEscape(s: string): string {
   let oldS = s;
   do {
     oldS = s;
-    s = s.replace(/  /g, "&nbsp; ");
+    s = s.replace(/ {2}/g, "&nbsp; ");
   } while (s !== oldS);
   return s;
 }

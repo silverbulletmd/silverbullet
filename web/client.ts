@@ -70,16 +70,15 @@ const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 const autoSaveInterval = 1000;
 
 declare global {
-  interface Window {
-    // Injected via index.html
-    silverBulletConfig: {
-      spaceFolderPath: string;
-      syncOnly: boolean;
-      readOnly: boolean;
-      enableSpaceScript: boolean;
-    };
-    client: Client;
-  }
+  // deno-lint-ignore no-var
+  var silverBulletConfig: {
+    spaceFolderPath: string;
+    syncOnly: boolean;
+    readOnly: boolean;
+    enableSpaceScript: boolean;
+  };
+  // deno-lint-ignore no-var
+  var client: Client;
 }
 
 type WidgetCacheItem = {

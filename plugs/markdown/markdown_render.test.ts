@@ -4,6 +4,7 @@ import { System } from "../../lib/plugos/system.ts";
 import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { assertEquals } from "$std/testing/asserts.ts";
 
 Deno.test("Markdown render", async () => {
   const system = new System<any>("server");
@@ -38,10 +39,10 @@ Deno.test("Smart hard break test", () => {
     failOnUnknown: true,
     smartHardBreak: true,
   });
-  // assertEquals(
-  //   html,
-  //   `<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
-  // );
+  assertEquals(
+    html,
+    `<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
+  );
 
   const example2 = `This is going to be a text. With a new line.
 

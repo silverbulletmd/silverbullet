@@ -1,6 +1,6 @@
 import { ScriptEnvironment } from "./space_script.ts";
 
-Deno.test("Space script", async () => {
+Deno.test("Space script", () => {
   const env = new ScriptEnvironment();
   env.evalScript(
     `

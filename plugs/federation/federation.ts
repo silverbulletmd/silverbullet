@@ -149,37 +149,17 @@ function errorResult(
   };
 }
 
-export async function writeFile(
-  name: string,
-  data: Uint8Array,
+export function writeFile(
+  _name: string,
+  _data: Uint8Array,
 ): Promise<FileMeta> {
   throw new Error("Writing federation file, not yet supported");
-  // const url = resolveFederated(name);
-  // console.log("Writing federation file", url);
-
-  // const r = await nativeFetch(url, {
-  //   method: "PUT",
-  //   body: data,
-  // });
-  // const fileMeta = await responseToFileMeta(r, name);
-  // if (!r.ok) {
-  //   throw new Error("Could not write file");
-  // }
-
-  // return fileMeta;
 }
 
-export async function deleteFile(
-  name: string,
+export function deleteFile(
+  _name: string,
 ): Promise<void> {
   throw new Error("Writing federation file, not yet supported");
-
-  // console.log("Deleting federation file", name);
-  // const url = resolveFederated(name);
-  // const r = await nativeFetch(url, { method: "DELETE" });
-  // if (!r.ok) {
-  //   throw Error("Failed to delete file");
-  // }
 }
 
 export async function getFileMeta(name: string): Promise<FileMeta> {

@@ -1,7 +1,7 @@
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import { compileManifest } from "../compile.ts";
 import * as esbuild from "esbuild";
-import assets from "../../dist/plug_asset_bundle.json" assert { type: "json" };
+import assets from "../../dist/plug_asset_bundle.json" with { type: "json" };
 import { assertEquals } from "$std/testing/asserts.ts";
 import { dirname, join } from "$std/path/mod.ts";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";

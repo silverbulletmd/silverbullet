@@ -34,14 +34,6 @@ http://zef.plus
 - And a _third_ one [[Wiki Page]] yo
 `;
 
-const mdTest2 = `
-Hello
-
-* Item 1
-*
-
-Sup`;
-
 const mdTest3 = `
 \`\`\`yaml
 name: something
@@ -74,7 +66,7 @@ Deno.test("Test parsing", () => {
     }
   });
   // console.log(JSON.stringify(mdTree, null, 2));
-  let mdTree3 = parse(extendedMarkdownLanguage, mdTest3);
+  parse(extendedMarkdownLanguage, mdTest3);
   // console.log(JSON.stringify(mdTree3, null, 2));
 });
 

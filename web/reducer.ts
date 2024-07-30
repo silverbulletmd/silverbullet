@@ -20,7 +20,7 @@ export default function reducer(
         },
       };
     case "page-loaded": {
-      const mouseDetected = window.matchMedia("(pointer:fine)").matches;
+      const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
       return {
         ...state,
         isLoading: false,
