@@ -1,6 +1,9 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "$lib/web.ts";
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
@@ -42,7 +45,8 @@ export function PageNavigator({
       // ... then we put it all the way to the end
       orderId = Infinity;
     }
-    const cssClass = (pageMeta.pageDecoration?.cssClass || []).join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
+    const cssClass = (pageMeta.pageDecoration?.cssClasses || []).join(" ")
+      .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
 
     if (mode === "page") {
       // Special behavior for regular pages

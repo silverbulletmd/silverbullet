@@ -81,9 +81,9 @@ export function cleanWikiLinkPlugin(client: Client) {
           ? "sb-wiki-link-page"
           : "sb-wiki-link-page-missing";
 
-        if (pageMeta?.pageDecoration?.cssClass) {
+        if (pageMeta?.pageDecoration?.cssClasses) {
           cssClass += " sb-decorated-object " +
-            pageMeta.pageDecoration.cssClass.join(" ").replaceAll(
+            pageMeta.pageDecoration.cssClasses.join(" ").replaceAll(
               /[^a-zA-Z0-9-_ ]/g,
               "",
             );

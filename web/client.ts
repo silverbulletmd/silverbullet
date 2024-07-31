@@ -1111,8 +1111,8 @@ export class Client {
       const bodyEl = this.parent.parentElement;
       if (bodyEl) {
         bodyEl.removeAttribute("class");
-        if (enrichedMeta.pageDecoration.cssClass) {
-          bodyEl.className = enrichedMeta.pageDecoration.cssClass.join(" ")
+        if (enrichedMeta.pageDecoration.cssClasses) {
+          bodyEl.className = enrichedMeta.pageDecoration.cssClasses.join(" ")
             .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
         }
       }

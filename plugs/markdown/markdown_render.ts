@@ -577,9 +577,9 @@ export function renderMarkdownToHtml(
           const pageMeta = allPages.find((p) => pageRef.page === p.name);
           if (pageMeta) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
-            if (pageMeta.pageDecoration?.cssClass) {
+            if (pageMeta.pageDecoration?.cssClasses) {
               t.attrs!.class += " sb-decorated-object " +
-                pageMeta.pageDecoration.cssClass.join(" ").replaceAll(
+                pageMeta.pageDecoration.cssClasses.join(" ").replaceAll(
                   /[^a-zA-Z0-9-_ ]/g,
                   "",
                 );

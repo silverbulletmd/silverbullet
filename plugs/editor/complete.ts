@@ -125,7 +125,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     options: allPages.map((pageMeta) => {
       const completions: any[] = [];
       const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
-      const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClass || [])
+      const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClasses || [])
         .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
 
       if (isWikilink) {

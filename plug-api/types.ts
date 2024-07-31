@@ -27,7 +27,7 @@ export type PageMeta = ObjectValue<
  */
 export type PageDecoration = {
   prefix?: string;
-  cssClass?: string[];
+  cssClasses?: string[];
   hide?: boolean;
 };
 

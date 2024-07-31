@@ -106,6 +106,7 @@ export function createEditorState(
           ),
         ],
         optionClass(completion: any) {
+          console.log("Calling on", completion);
           if (completion.cssClass) {
             return "sb-decorated-object " + completion.cssClass;
           } else {
