@@ -14,3 +14,4 @@ People have found various simple to more complex ways of achieving this.
 * Using [[Deployments/ngrok]] is likely the easiest solution to exposing your _locally running_ SilverBullet to the Internet. Note that “locally running” can mean your own local machine, but can still refer to running it on a server in your network (like a Raspberry Pi).
 * [[Deployments/Caddy]]: the easiest solution to expose SilverBullet running on a publicly accessible server to the Internet (but local network as well using Tailscale)
 * [[Authelia]] setup hints
+* Deploy directly to the cloud via [[Install/Deno Deploy]]

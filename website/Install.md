@@ -11,7 +11,6 @@ You have a few options here:
 
 1. Installation via [[Install/Docker]] (the awesome container runtime): recommended if you already have Docker installed
 2. Installation via [[Install/Deno]] (the awesome JavaScript runtime): recommended if you intend to hack on SilverBullet itself later on
-3. More advanced: deploy directly to the cloud via [[Install/Deno Deploy]]
 
 # Non-local access
 Once you got a comfortable set running locally, you may want to look at options to expose your setup to your [[Install/Network and Internet]].
