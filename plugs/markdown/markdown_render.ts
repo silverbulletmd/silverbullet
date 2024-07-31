@@ -577,6 +577,13 @@ export function renderMarkdownToHtml(
           const pageMeta = allPages.find((p) => pageRef.page === p.name);
           if (pageMeta) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
+            if (pageMeta.pageDecoration?.cssClass) {
+              t.attrs!.class += " sb-decorated-object " +
+                pageMeta.pageDecoration.cssClass.join(" ").replaceAll(
+                  /[^a-zA-Z0-9-_ ]/g,
+                  "",
+                );
+            }
           }
         }
         if (t.body.length === 0) {
