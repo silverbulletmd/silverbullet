@@ -4,6 +4,7 @@ export type FilterOption = {
   description?: string;
   orderId?: number;
   hint?: string;
+  classes?: string;
 } & Record<string, any>;
 
 export type Notification = {

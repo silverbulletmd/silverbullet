@@ -1,6 +1,9 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "$lib/web.ts";
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
 
@@ -42,6 +45,8 @@ export function PageNavigator({
       // ... then we put it all the way to the end
       orderId = Infinity;
     }
+    const cssClass = (pageMeta.pageDecoration?.cssClasses || []).join(" ")
+      .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
 
     if (mode === "page") {
       // Special behavior for regular pages
@@ -66,6 +71,7 @@ export function PageNavigator({
         description,
         orderId: orderId,
         hint: pageMeta._isBrokenLink ? "Create page" : undefined,
+        cssClass,
       });
     } else if (mode === "meta") {
       // Special behavior for #template and #meta pages
@@ -81,6 +87,7 @@ export function PageNavigator({
         description: pageMeta.name,
         hint: pageMeta.tags![0],
         orderId: orderId,
+        cssClass,
       });
     } else { // all
       // In mode "all" just show the full path and all tags
@@ -94,6 +101,7 @@ export function PageNavigator({
         name: pageMeta.name,
         description,
         orderId: orderId,
+        cssClass,
       });
     }
   }

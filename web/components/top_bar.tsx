@@ -33,6 +33,7 @@ export function TopBar({
   onClick,
   rhs,
   pageNamePrefix,
+  cssClass,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -49,6 +50,7 @@ export function TopBar({
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
   pageNamePrefix?: string;
+  cssClass?: string;
 }) {
   return (
     <div
@@ -63,11 +65,14 @@ export function TopBar({
             <div className="sb-page-prefix">{pageNamePrefix}</div>
             <span
               id="sb-current-page"
-              className={isLoading
+              className={(isLoading
                 ? "sb-loading"
                 : unsavedChanges
                 ? "sb-unsaved"
-                : "sb-saved"}
+                : "sb-saved") + 
+              (cssClass
+                ? " sb-decorated-object " + cssClass
+                : "")}
             >
               <MiniEditor
                 text={pageName ?? ""}

@@ -1,18 +1,46 @@
 ---
-pageDecoration.prefix: "🎄 "
-pageDecoration.disableTOC: true
+pageDecoration:
+  prefix: "🎄 "
+  disableTOC: true
+  cssClasses:
+  - christmas-decoration
 ---
-Page decorations allow you to “decorate” pages in various ways.
+Page decorations allow you to “decorate” pages in various fun ways.
 
 > **warning** Warning
 > This feature is still experimental and may change in the (near) future.
-
+ 
 # Supported decorations
 * `prefix`: A (visual) string prefix (often an emoji) to add to all page names. This prefix will appear in the top bar as well as in (live preview) links to this page. For example, the name of this page is actually “Page Decorations”, but when you link to it, you’ll see it’s prefixed with a 🎄: [[Page Decorations]]
+* `cssClasses`: (list of strings) Attaches one or more CSS classes the page's `<body>` tag, wiki links, auto complete items and [[Page Picker]] entries for more advanced styling through a [[Space Style]] (see below for an example for this page).
 * `hide` When this is set to `true`, the page will not be shown in [[Page Picker]], [[Meta Picker]], or suggested for completion of [[Links]]. It will otherwise behave as normal - will be [[Plugs/Index|indexed]] and found in [[Live Queries]]. The page can be opened through [[All Pages Picker]], or linked normally when the full name is typed out without completion.
 * `disableTOC` (not technically built-in, but a feature of the [[^Library/Core/Widget/Table of Contents]] widget): disable the [[Table of Contents]] for this particular page.
 
-There are two ways to apply decorations to pages:
+An example of using `cssClasses` on this page using [[Space Style]] (note the `pageDecoration.cssClasses` in this page’s [[Frontmatter]]):
+```space-style
+
+/* Style page links */
+a.christmas-decoration {
+  background-color: #b4e46e;
+}
+
+/* Style main editor components */
+body.christmas-decoration #sb-top {
+  background-color: #b4e46e;
+}
+
+/* Style auto complete items */
+.cm-tooltip-autocomplete li.christmas-decoration {
+  background-color: #b4e46e;
+}
+
+/* Style page picker item */
+.sb-result-list .sb-option.christmas-decoration {
+  background-color: #b4e46e;  
+}
+```
+
+There are two ways to _apply_ decorations to pages.
 
 # With [[Frontmatter]] directly
 This is demonstrated in the [[Frontmatter]] at the top of this page, by using the special `pageDecoration` attribute. This is how we get the fancy tree in front of the page name. Sweet.

@@ -60,13 +60,13 @@ shortcuts:
 
 # Object decorators, see the "Page Decorators" page for more info
 objectDecorators:
-- where: 'tags = "plug"'
+- where: 'tag = "page" and tags = "plug"'
   attributes:
      pageDecoration.prefix: "'🔌 '"
 - where: 'tag = "human"'
   attributes:
      fullName: 'firstName + " " + lastName'
-- where: 'tags = "notoc"'
+- where: 'tag = "page" and tags = "notoc"'
   attributes:
      pageDecoration.disableTOC: "true"
 

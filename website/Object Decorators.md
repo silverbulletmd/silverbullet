@@ -29,11 +29,12 @@ A few things of note:
   * `alwaysTen: '10'` (attaches an attribute named `alwaysTen` with the numeric value `10` to all objects matching the `where` clause)
   * `alwaysTrue: 'true'` (same as `alwaysTen` but with a boolean value)
   * `fullName: 'firstName + " " + lastName'` (attaches a `fullName` attribute that concatenates the `firstName` and `lastName` attributes with a space in between)
-  * `nameLength: 'count(name)'` (attaches an attribute `nameLength` with the string length of `name` — not particularly useful, but to demonstrate you can call [[Functions]] here too)
+  * `nameLength: 'count(name)'` (attaches an attribute `nameLength` with the string length of `name` — not particularly useful, but to demonstrate you can call [[Functions]] here too).
 
 ## Rules
-A few rules to keep things civil:
+A few rules and best practices to keep things civil:
 
+* It is recommended to _always filter based on `tag`_ (so by adding e.g. `tag = "page"` to your `where` clause) to limit the radius of impact. Otherwise you may accidentally apply new attributes of all your [[Objects]] (items, tasks, pages, etc.).
 * Dynamic attributes _cannot override already existing attributes_. If the object already has an attribute with the same name, this value will be kept as is.
 * For performance reasons, all expressions (both filter and value expressions) need to be _synchronously evaluatable_.
   * Generally, this means they need to be “simple expressions” that require no expensive calls.

@@ -26,7 +26,8 @@ export type PageMeta = ObjectValue<
  * Decorates a page when it matches certain criteria
  */
 export type PageDecoration = {
-  prefix: string;
+  prefix?: string;
+  cssClasses?: string[];
   hide?: boolean;
 };
 

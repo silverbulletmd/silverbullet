@@ -105,6 +105,14 @@ export function createEditorState(
             client.clientSystem.slashCommandHook,
           ),
         ],
+        optionClass(completion: any) {
+          console.log("Calling on", completion);
+          if (completion.cssClass) {
+            return "sb-decorated-object " + completion.cssClass;
+          } else {
+            return "";
+          }
+        },
       }),
       inlineImagesPlugin(client),
       codeCopyPlugin(client),
