@@ -9,38 +9,41 @@ import type {
 import type {
   DataStore,
   DynamicAttributeDefinitions,
-  ObjectEnricher,
+  ObjectDecorators,
 } from "$lib/data/datastore.ts";
 import { parseExpression } from "$common/expression_parser.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { ConfigObject } from "../plugs/index/config.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
+import type { ActionButton } from "$lib/web.ts";
 
-const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
+const yamlSettingsRegex = /^(```+|~~~+)(ya?ml|space-config)\r?\n([\S\s]+?)\1/m;
 
 export const defaultSettings: BuiltinSettings = {
   indexPage: "index",
   hideSyncButton: false,
   maximumAttachmentSize: 10, // MiB
   defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
-  actionButtons: [
-    {
-      icon: "Home",
-      description: "Go to the index page",
-      command: "Navigate: Home",
-    },
-    {
-      icon: "Book",
-      description: `Open page`,
-      command: "Navigate: Page Picker",
-    },
-    {
-      icon: "Terminal",
-      description: `Run command`,
-      command: "Open Command Palette",
-    },
-  ],
+  actionButtons: [], // Actually defaults to defaultActionButtons
 };
+
+export const defaultActionButtons: ActionButton[] = [
+  {
+    icon: "Home",
+    description: "Go to the index page",
+    command: "Navigate: Home",
+  },
+  {
+    icon: "Book",
+    description: `Open page`,
+    command: "Navigate: Page Picker",
+  },
+  {
+    icon: "Terminal",
+    description: `Run command`,
+    command: "Open Command Palette",
+  },
+];
 
 /**
  * Parses YAML settings from a Markdown string.
@@ -54,7 +57,7 @@ export function parseYamlSettings(settingsMarkdown: string): {
   if (!match) {
     return {};
   }
-  const yaml = match[2]; // The first group captures the code fence to look for same terminator
+  const yaml = match[3];
   try {
     return YAML.load(yaml) as {
       [key: string]: any;
@@ -140,7 +143,7 @@ export async function ensureAndLoadSettingsAndIndex(
   if (system) {
     // If we're not in SB_SYNC_ONLY, we can load settings from the index (ideal case)
     const settings = await loadConfigsFromSystem(system);
-    console.log("Loaded settings from system", settings);
+    // console.log("Loaded settings from system", settings);
     return settings;
   } else {
     // If we are in SB_SYNC_ONLY, this is best effort, and we can only support settings in the SETTINGS.md file
@@ -158,7 +161,7 @@ export function updateObjectDecorators(
 ) {
   if (settings.objectDecorators) {
     // Reload object decorators
-    const newDecorators: ObjectEnricher[] = [];
+    const newDecorators: ObjectDecorators[] = [];
     for (
       const decorator of settings.objectDecorators
     ) {
@@ -176,8 +179,8 @@ export function updateObjectDecorators(
         );
       }
     }
-    console.info(`Loaded ${newDecorators.length} object decorators`);
-    ds.objectEnrichers = newDecorators;
+    // console.info(`Loaded ${newDecorators.length} object decorators`);
+    ds.objectDecorators = newDecorators;
   }
 }
 

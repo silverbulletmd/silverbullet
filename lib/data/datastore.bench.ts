@@ -5,7 +5,7 @@ Deno.bench("DataStore enrichment benchmark with match", (b) => {
     // Dummy datastore with a single object enricher
     const datastore = new DataStore(new MemoryKvPrimitives(), {});
 
-    datastore.objectEnrichers = [
+    datastore.objectDecorators = [
         {
             where: ["=", ["attr", "tags"], ["string", "person"]],
             attributes: {
@@ -34,7 +34,7 @@ Deno.bench("DataStore enrichment benchmark without match", (b) => {
     // Dummy datastore with a single object enricher
     const datastore = new DataStore(new MemoryKvPrimitives(), {});
 
-    datastore.objectEnrichers = [
+    datastore.objectDecorators = [
         {
             where: ["=", ["attr", "tags"], ["string", "person"]],
             attributes: {

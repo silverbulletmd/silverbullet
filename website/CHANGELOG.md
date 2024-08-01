@@ -6,6 +6,8 @@ An attempt at documenting the changes/new features introduced in each release.
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
 * Nothing new since 0.8.5 yet!
+* [[Space Config]] is here! We hear you like Space stuff ([[Space Script]] and [[Space Style]]) so we keep adding more! This allows you to distribute your [[^SETTINGS]] across pages.
+  * Possible side-effect: if you configured a custom `indexPage` and are upgrading, it may be that your initial load brings you back to `index`. Just let the space reindex finish and reload and you should be good.
 
 ## 0.8.5
 * New power-user feature: [[Object Decorators]]. Its primary use case is to apply [[Page Decorations]], but you may find other uses as well. Speaking of which...

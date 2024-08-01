@@ -36,7 +36,6 @@ import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
-import { deepObjectMerge } from "../plug-api/lib/json.ts";
 import type { Query } from "../plug-api/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";

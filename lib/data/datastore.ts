@@ -18,7 +18,7 @@ export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
     public functionMap: FunctionMap = builtinFunctions,
-    public objectEnrichers: ObjectEnricher[] = [],
+    public objectDecorators: ObjectDecorators[] = [],
   ) {
   }
 
@@ -149,7 +149,7 @@ export class DataStore {
       return object;
     }
 
-    for (const enricher of this.objectEnrichers) {
+    for (const enricher of this.objectDecorators) {
       const whereEvalResult = evalQueryExpression(
         enricher.where,
         object,
@@ -273,7 +273,7 @@ export class DataStore {
   }
 }
 
-export type ObjectEnricher = {
+export type ObjectDecorators = {
   // If this expression evaluates to true for the given object
   where: QueryExpression;
   // Dynamically add these attributes to the object, can use "." syntax for deeper attribute definition

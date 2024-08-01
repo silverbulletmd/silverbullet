@@ -1,7 +1,6 @@
 import emojiBlob from "./emoji.json" with { type: "json" };
 import type { CompleteEvent } from "../../plug-api/types.ts";
-import { readSetting } from "$sb/lib/settings_page.ts";
-import { editor } from "$sb/syscalls.ts";
+import { editor, system } from "$sb/syscalls.ts";
 import type { EmojiConfig } from "$lib/web.ts";
 
 let emojiConfig: EmojiConfig = { aliases: [] };
@@ -39,7 +38,7 @@ async function updateConfig() {
   // Update at most every 5 seconds
   if (Date.now() < lastConfigUpdate + 5000) return;
   lastConfigUpdate = Date.now();
-  const config = await readSetting("emoji");
+  const config = await system.getSpaceConfig("emoji");
   if (!config) {
     return;
   }

@@ -105,7 +105,7 @@ async function test(db: KvPrimitives) {
   );
 
   // Test object enrichment
-  datastore.objectEnrichers = [{
+  datastore.objectDecorators = [{
     where: ["boolean", true],
     attributes: {
       pageDecoration: {
@@ -130,7 +130,7 @@ async function test(db: KvPrimitives) {
   // console.log("Enriched page", enrichedPage);
 
   // More complicated case
-  datastore.objectEnrichers = [
+  datastore.objectDecorators = [
     { // fullName
       where: ["=", ["attr", "tags"], ["string", "person"]],
       attributes: {
@@ -247,7 +247,7 @@ async function test(db: KvPrimitives) {
   assertEquals(obj, pristineCopy);
 
   // Validate no async functions are called in the object enrichment
-  datastore.objectEnrichers = [
+  datastore.objectDecorators = [
     {
       where: ["call", "$query", []],
       attributes: {},

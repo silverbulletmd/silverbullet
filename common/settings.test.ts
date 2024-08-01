@@ -21,9 +21,9 @@ foo: bar
 
   assertEquals(
     parseYamlSettings(`
-Tilde delimiters or yml should also work
+Tilde delimiters or space-config should also work
 
-~~~yml
+~~~space-config
 foo: bar
 żółć: 🟡
 ~~~

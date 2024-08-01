@@ -39,6 +39,18 @@ export function applyAttributeExtractors(
   return syscall("system.applyAttributeExtractors", tags, text, tree);
 }
 
+/**
+ * Loads a particular space configuration key (or all of them when no key is spacified)
+ * @param key the key to load, when not specified, all keys are loaded
+ * @returns either the value of the key or all keys as a Record<string, any>
+ */
+export async function getSpaceConfig(
+  key?: string,
+  defaultValue?: any,
+): Promise<any> {
+  return await syscall("system.getSpaceConfig", key) ?? defaultValue;
+}
+
 export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
 }

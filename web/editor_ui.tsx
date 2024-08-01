@@ -19,6 +19,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun, sleep } from "../lib/async.ts";
 import { parseCommand } from "$common/command.ts";
+import { defaultActionButtons } from "$common/settings.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -287,7 +288,9 @@ export class MainUI {
               }]
               : [],
             // Custom action buttons
-            ...viewState.settings.actionButtons
+            ...(viewState.settings.actionButtons.length > 0
+              ? viewState.settings.actionButtons
+              : defaultActionButtons)
               .filter((button) =>
                 (typeof button.mobile === "undefined") ||
                 (button.mobile === viewState.isMobile)

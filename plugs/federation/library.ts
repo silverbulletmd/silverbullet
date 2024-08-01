@@ -1,5 +1,4 @@
-import { editor, space } from "$sb/syscalls.ts";
-import { readSetting } from "$sb/lib/settings_page.ts";
+import { editor, space, system } from "$sb/syscalls.ts";
 import { listFilesCached, readFile } from "./federation.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { invokeFunction } from "$sb/syscalls/system.ts";
@@ -18,7 +17,7 @@ type LibraryDef = {
 export async function updateLibrariesCommand() {
   if (
     await confirm(
-      "Are you sure you want to update all libraries (as specified in SETTINGS)?",
+      "Are you sure you want to update all libraries?",
     )
   ) {
     await editor.flashNotification("Updating all libraries...");
@@ -40,7 +39,8 @@ type UpdateStats = {
 // Run on the server for efficiency and CORS avoidance
 export async function updateLibraries(): Promise<UpdateStats> {
   const updateStats: UpdateStats = { libraries: 0, items: 0 };
-  const libraries = (await readSetting("libraries", [])) as LibraryDef[];
+  const libraries =
+    (await system.getSpaceConfig("libraries", [])) as LibraryDef[];
   for (const lib of libraries) {
     // Handle deprecated 'source' field
     if (lib.source) {
