@@ -13,6 +13,7 @@ import {
   LanguageSupport,
   syntaxHighlighting,
 } from "@codemirror/language";
+import type { EditorSelection } from "@codemirror/state";
 import { EditorState } from "@codemirror/state";
 import {
   drawSelection,
@@ -51,6 +52,7 @@ export function createEditorState(
   pageName: string,
   text: string,
   readOnly: boolean,
+  selection?: EditorSelection,
 ): EditorState {
   let touchCount = 0;
 
@@ -268,6 +270,7 @@ export function createEditorState(
       attachmentExtension(client),
       closeBrackets(),
     ],
+    selection,
   });
 }
 

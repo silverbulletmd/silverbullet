@@ -2,7 +2,12 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { Compartment } from "@codemirror/state";
+import {
+  type ChangeSpec,
+  type Compartment,
+  EditorSelection,
+  type SelectionRange,
+} from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
@@ -71,6 +76,7 @@ import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "$sb/lib/tree.ts";
 import type { LinkObject } from "../plugs/index/page_links.ts";
 import type { BuiltinSettings } from "$type/settings.ts";
+import { merge } from "three-way-merge";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -118,6 +124,9 @@ export class Client {
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
+
+  // Stores the text of a document, before any editor changes are made.
+  private initialPageText: string = "";
 
   saveTimeout?: number;
   debouncedUpdateEvent = throttle(() => {
@@ -1037,6 +1046,7 @@ export class Client {
       this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
+        this.initialPageText = "";
       }
     }
 
@@ -1122,17 +1132,75 @@ export class Client {
       });
     }).catch(console.error);
 
+    let finalText = doc.text;
+    let preservedRanges: SelectionRange[] = [];
+
+    if (!loadingDifferentPage && this.initialPageText) {
+      // Attempt to perform a 3-way merge.
+      const currentDocText = this.editorView.state.sliceDoc(0);
+
+      const result = merge(
+        currentDocText,
+        this.initialPageText,
+        doc.text,
+      );
+
+      if (result.isSuccess()) {
+        finalText = result.joinedResults();
+
+        // Also attempt to preserve the cursor position.
+        const anchorString = "\u{0000}";
+
+        for (const range of editorView.state.selection.ranges) {
+          // Insert anchor at the from position.
+          const anchoredText = currentDocText.slice(0, range.from) +
+            anchorString + currentDocText.slice(range.from);
+          const result = merge(
+            anchoredText,
+            this.initialPageText,
+            doc.text,
+          );
+
+          if (result.isSuccess()) {
+            const newPosition = result.joinedResults().indexOf(anchorString);
+
+            if (newPosition > -1) {
+              preservedRanges.push(
+                EditorSelection.range(
+                  newPosition,
+                  newPosition + (range.to - range.from),
+                ),
+              );
+            }
+          }
+        }
+      } else {
+        // At least keep the old editor ranges.
+        preservedRanges = [...editorView.state.selection.ranges];
+      }
+    }
+
     const editorState = createEditorState(
       this,
       pageName,
-      doc.text,
+      finalText,
       doc.meta.perm === "ro",
+      preservedRanges.length
+        ? EditorSelection.create(preservedRanges)
+        : undefined,
     );
     editorView.setState(editorState);
     if (editorView.contentDOM) {
       this.tweakEditorDOM(editorView.contentDOM);
     }
     this.space.watchPage(pageName);
+
+    this.initialPageText = finalText;
+
+    // Save the page if the merged version and retrieved version don't match
+    if (finalText !== doc.text) {
+      this.save();
+    }
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
