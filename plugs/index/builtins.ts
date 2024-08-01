@@ -120,6 +120,18 @@ export const builtins: Record<string, Record<string, string>> = {
     hide: "!boolean",
     requireMode: "!rw|ro",
   },
+
+  "space-config": {
+    key: "!string",
+    value: "!any",
+  },
+  "space-style": {
+    style: "!string",
+    origin: "!string",
+  },
+  "space-script": {
+    script: "!string",
+  },
 };
 
 export async function loadBuiltinsIntoIndex() {

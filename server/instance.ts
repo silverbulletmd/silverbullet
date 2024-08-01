@@ -138,7 +138,10 @@ export class SpaceServer {
   }
 
   async reloadSettings() {
-    this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
+    this.settings = await ensureAndLoadSettingsAndIndex(
+      this.spacePrimitives,
+      this.system,
+    );
 
     if (this.serverSystem) {
       updateObjectDecorators(this.settings, this.serverSystem.ds);

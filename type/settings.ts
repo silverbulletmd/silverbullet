@@ -25,8 +25,6 @@ export type BuiltinSettings = {
     emoji?: EmojiConfig;
     // DEPRECATED: Use space styles instead
     customStyles?: string | string[];
-    // DEPRECATED: Use shortcuts instead
-    plugOverrides?: Record<string, Partial<Manifest>>;
 
     // NOTE: Bit niche, maybe delete at some point?
     defaultLinkStyle?: string;

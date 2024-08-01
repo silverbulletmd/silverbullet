@@ -124,20 +124,6 @@ export class ClientSystem extends CommonSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
-    this.system.on({
-      plugLoaded: (plug) => {
-        // Apply plug overrides
-        const manifestOverrides = this.client.settings.plugOverrides;
-        if (manifestOverrides && manifestOverrides[plug.manifest!.name]) {
-          plug.manifest = deepObjectMerge(
-            plug.manifest,
-            manifestOverrides[plug.manifest!.name],
-          );
-          // console.log("New manifest", plug.manifest);
-        }
-      },
-    });
-
     this.eventHook.addLocalListener(
       "file:changed",
       async (path: string, _selfUpdate, _oldHash, newHash) => {

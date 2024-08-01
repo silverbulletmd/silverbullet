@@ -4,7 +4,7 @@ This page contains settings for configuring SilverBullet. A list of settings and
 
 To update the [[!silverbullet.md/Libraries|libraries]] specified below, run {[Libraries: Update]}
 
-\`\`\`yaml
+\`\`\`space-config
 indexPage: index
 libraries:
 - import: "[[!silverbullet.md/Library/Core/*]]"

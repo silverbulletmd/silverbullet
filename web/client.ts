@@ -199,8 +199,6 @@ export class Client {
 
     this.clientSystem.init();
 
-    await this.loadSettings();
-
     await this.loadCaches();
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
@@ -228,7 +226,12 @@ export class Client {
       );
     }
 
+    // Load plugs
     await this.loadPlugs();
+
+    // Load settings (after the plugs, specifically the 'index' plug is loaded)
+    await this.loadSettings();
+
     await this.clientSystem.loadSpaceScripts();
 
     await this.initNavigator();
@@ -257,6 +260,7 @@ export class Client {
   async loadSettings() {
     this.settings = await ensureAndLoadSettingsAndIndex(
       this.space.spacePrimitives,
+      this.clientSystem.system,
     );
     updateObjectDecorators(this.settings, this.stateDataStore);
     this.ui.viewDispatch({

@@ -6,31 +6,11 @@ import type { BuiltinSettings } from "$type/settings.ts";
 import type { DataStore, ObjectEnricher } from "$lib/data/datastore.ts";
 import { parseExpression } from "$common/expression_parser.ts";
 import type { QueryExpression } from "$sb/types.ts";
+import type { System } from "$lib/plugos/system.ts";
+import type { ConfigObject } from "../plugs/index/config.ts";
+import { deepObjectMerge } from "$sb/lib/json.ts";
 
 const yamlSettingsRegex = /^(```+|~~~+)ya?ml\r?\n([\S\s]+?)\1/m;
-
-/**
- * Parses YAML settings from a Markdown string.
- * @param settingsMarkdown - The Markdown string containing the YAML settings.
- * @returns An object representing the parsed YAML settings.
- */
-export function parseYamlSettings(settingsMarkdown: string): {
-  [key: string]: any;
-} {
-  const match = yamlSettingsRegex.exec(settingsMarkdown);
-  if (!match) {
-    return {};
-  }
-  const yaml = match[2]; // The first group captures the code fence to look for same terminator
-  try {
-    return YAML.load(yaml) as {
-      [key: string]: any;
-    };
-  } catch (e: any) {
-    console.error("Error parsing SETTINGS as YAML", e.message);
-    return {};
-  }
-}
 
 export const defaultSettings: BuiltinSettings = {
   indexPage: "index",
@@ -57,6 +37,56 @@ export const defaultSettings: BuiltinSettings = {
 };
 
 /**
+ * Parses YAML settings from a Markdown string.
+ * @param settingsMarkdown - The Markdown string containing the YAML settings.
+ * @returns An object representing the parsed YAML settings.
+ */
+export function parseYamlSettings(settingsMarkdown: string): {
+  [key: string]: any;
+} {
+  const match = yamlSettingsRegex.exec(settingsMarkdown);
+  if (!match) {
+    return {};
+  }
+  const yaml = match[2]; // The first group captures the code fence to look for same terminator
+  try {
+    return YAML.load(yaml) as {
+      [key: string]: any;
+    };
+  } catch (e: any) {
+    console.error("Error parsing SETTINGS as YAML", e.message);
+    return {};
+  }
+}
+
+/**
+ * Loads space-configs from a system using the `index` plug.
+ * @param system - The system object
+ * @returns A promise that resolves to merged settings
+ */
+async function loadConfigsFromSystem(
+  system: System<any>,
+): Promise<BuiltinSettings> {
+  if (!system.loadedPlugs.has("index")) {
+    console.warn("Index plug not loaded yet, falling back to default settings");
+    return defaultSettings;
+  }
+  // Query all space-configs
+  const allConfigs: ConfigObject[] = await system.invokeFunction(
+    "index.queryObjects",
+    ["space-config", {}],
+  );
+  let settings: any = { ...defaultSettings };
+  // Now let's intelligently merge them
+  for (const config of allConfigs) {
+    settings = deepObjectMerge(settings, { [config.key]: config.value });
+  }
+  // And clean up the JSON (expand .-separated paths, convert dates to strings)
+  settings = cleanupJSON(settings);
+  return settings;
+}
+
+/**
  * Ensures that the settings and index page exist in the given space.
  * If they don't exist, default settings and index page will be created.
  * @param space - The SpacePrimitives object representing the space.
@@ -64,8 +94,10 @@ export const defaultSettings: BuiltinSettings = {
  */
 export async function ensureAndLoadSettingsAndIndex(
   space: SpacePrimitives,
+  system?: System<any>,
 ): Promise<BuiltinSettings> {
   let settingsText: string | undefined;
+
   try {
     settingsText = new TextDecoder().decode(
       (await space.readFile("SETTINGS.md")).data,
@@ -92,16 +124,26 @@ export async function ensureAndLoadSettingsAndIndex(
         "No index page found, creating default index page",
         e.message,
       );
+      // This should trigger indexing of the configs too
       await space.writeFile(
         "index.md",
         new TextEncoder().encode(INDEX_TEMPLATE),
       );
     }
   }
-
-  const settings: any = parseYamlSettings(settingsText);
-  cleanupJSON(settings);
-  return { ...defaultSettings, ...settings };
+  if (system) {
+    // If we're not in SB_SYNC_ONLY, we can load settings from the index (ideal case)
+    const settings = await loadConfigsFromSystem(system);
+    console.log("Loaded settings from system", settings);
+    return settings;
+  } else {
+    // If we are in SB_SYNC_ONLY, this is best effort, and we can only support settings in the SETTINGS.md file
+    let settings: any = parseYamlSettings(settingsText);
+    settings = cleanupJSON(settings);
+    settings = { ...defaultSettings, ...settings };
+    // console.log("Loaded settings from SETTINGS.md", settings);
+    return settings;
+  }
 }
 
 export function updateObjectDecorators(
@@ -117,8 +159,14 @@ export function updateObjectDecorators(
       try {
         const parsedWhere = parseExpression(decorator.where);
         const parsedDynamicAttributes: Record<string, QueryExpression> = {};
-        for (const [key, value] of Object.entries(decorator.attributes)) {
-          parsedDynamicAttributes[key] = parseExpression(value);
+        for (let [key, value] of Object.entries(decorator.attributes)) {
+          const path = [key];
+          // if the value is an object, let's push in and build up a path
+          while (typeof value === "object") {
+            path.push(Object.keys(value)[0]);
+            value = value[path[path.length - 1]];
+          }
+          parsedDynamicAttributes[path.join(".")] = parseExpression(value);
         }
         newDecorators.push({
           where: parsedWhere,
@@ -135,5 +183,25 @@ export function updateObjectDecorators(
     }
     console.info(`Loaded ${newDecorators.length} object decorators`);
     ds.objectEnrichers = newDecorators;
+  }
+}
+
+function objectAttributeToExpressions(
+  path: string[],
+  value: any,
+): Record<string, QueryExpression> {
+  if (typeof value === "string") {
+    return { [path.join(".")]: parseExpression(value) };
+  } else if (typeof value === "object") {
+    const obj: Record<string, QueryExpression> = {};
+    for (const key of Object.keys(value)) {
+      // obj = {[path.join(".")] = objectAttributeToExpressions(
+      //   [...path, key],
+      //   value[key],
+      // );
+    }
+    return obj;
+  } else {
+    throw new Error("Invalid object attribute");
   }
 }
