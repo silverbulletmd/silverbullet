@@ -1160,6 +1160,7 @@ export class Client {
             this.initialPageText,
             doc.text,
           );
+          let succeeded = false;
 
           if (result.isSuccess()) {
             const newPosition = result.joinedResults().indexOf(anchorString);
@@ -1171,7 +1172,12 @@ export class Client {
                   newPosition + (range.to - range.from),
                 ),
               );
+              succeeded = true;
             }
+          }
+
+          if (!succeeded) {
+            preservedRanges.push(range);
           }
         }
       } else {
