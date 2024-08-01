@@ -6,8 +6,9 @@ import { decoratorStateField } from "./util.ts";
 import type { Client } from "../client.ts";
 import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
 import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { mime } from "mimetypes";
 
-type ImageDimensions = {
+type ContentDimensions = {
   width?: number;
   height?: number;
 };
@@ -16,7 +17,7 @@ class InlineContentWidget extends WidgetType {
   constructor(
     readonly url: string,
     readonly title: string,
-    readonly dim: ImageDimensions | undefined,
+    readonly dim: ContentDimensions | undefined,
     readonly client: Client,
   ) {
     super();
@@ -28,45 +29,95 @@ class InlineContentWidget extends WidgetType {
   }
 
   get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedWidgetHeight(`image:${this.url}`);
+    const cachedHeight = this.client.getCachedWidgetHeight(
+      `content:${this.url}`,
+    );
     return cachedHeight;
   }
 
   toDOM() {
-    const img = document.createElement("img");
-    // console.log("Creating DOM", this.url);
-    const cachedImageHeight = this.client.getCachedWidgetHeight(
-      `image:${this.url}`,
+    const div = document.createElement("div");
+    div.className = "sb-inline-content";
+    div.style.display = "block";
+    const mimeType = mime.getType(
+      this.url.substring(this.url.lastIndexOf(".") + 1),
     );
-    img.onload = () => {
-      // console.log("Loaded", this.url, "with height", img.height);
-      if (img.height !== cachedImageHeight) {
-        this.client.setCachedWidgetHeight(`image:${this.url}`, img.height);
-      }
-    };
-    img.src = this.url;
-    img.alt = this.title;
-    img.title = this.title;
-    img.style.display = "block";
-    img.className = "sb-inline-img";
-    if (this.dim) {
-      img.style.height = this.dim.height ? `${this.dim.height}px` : "";
-      img.style.width = this.dim.width ? `${this.dim.width}px` : "";
-    } else if (cachedImageHeight > 0) {
-      img.height = cachedImageHeight;
+
+    if (!mimeType) {
+      return div;
     }
 
-    return img;
+    if (mimeType.startsWith("image/")) {
+      const img = document.createElement("img");
+      img.src = this.url;
+      img.alt = this.title;
+      this.setDim(img, "load");
+      div.appendChild(img);
+    } else if (mimeType.startsWith("video/")) {
+      const video = document.createElement("video");
+      video.src = this.url;
+      video.title = this.title;
+      video.controls = true;
+      video.autoplay = false;
+      this.setDim(video, "loadeddata");
+      div.appendChild(video);
+    } else if (mimeType.startsWith("audio/")) {
+      const audio = document.createElement("audio");
+      audio.src = this.url;
+      audio.title = this.title;
+      audio.controls = true;
+      audio.autoplay = false;
+      this.setDim(audio, "loadeddata");
+      div.appendChild(audio);
+    } else if (mimeType === "application/pdf") {
+      const embed = document.createElement("object");
+      embed.type = mimeType;
+      embed.data = this.url;
+      embed.style.width = "100%";
+      embed.style.height = "20em";
+      this.setDim(embed, "load");
+      div.appendChild(embed);
+    }
+
+    return div;
+  }
+
+  setDim(el: HTMLElement, event: string) {
+    const cachedContentHeight = this.client.getCachedWidgetHeight(
+      `content:${this.url}`,
+    );
+
+    el.addEventListener(event, () => {
+      if (el.clientHeight !== cachedContentHeight) {
+        this.client.setCachedWidgetHeight(
+          `content:${this.url}`,
+          el.clientHeight,
+        );
+      }
+    });
+
+    el.style.maxWidth = "100%";
+
+    if (this.dim) {
+      if (this.dim.height) {
+        el.style.height = `${this.dim.height}px`;
+      }
+      if (this.dim.width) {
+        el.style.width = `${this.dim.width}px`;
+      }
+    } else if (cachedContentHeight > 0) {
+      el.style.height = cachedContentHeight.toString();
+    }
   }
 }
 
-// Parse an alias, possibly containing image dimensions into an object
+// Parse an alias, possibly containing dimensions into an object
 // Formats supported: "alias", "alias|100", "alias|100x200", "100", "100x200"
 function parseAlias(
   text: string,
-): { alias?: string; dim?: ImageDimensions } {
+): { alias?: string; dim?: ContentDimensions } {
   let alias: string | undefined;
-  let dim: ImageDimensions | undefined;
+  let dim: ContentDimensions | undefined;
   if (text.includes("|")) {
     const [aliasPart, dimPart] = text.split("|");
     alias = aliasPart;
@@ -94,7 +145,7 @@ function parseAlias(
   return { alias, dim };
 }
 
-export function inlineImagesPlugin(client: Client) {
+export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
 
@@ -106,7 +157,7 @@ export function inlineImagesPlugin(client: Client) {
 
         const text = state.sliceDoc(node.from, node.to);
         let [url, alias]: (string | null)[] = [null, null];
-        let dim: ImageDimensions | undefined;
+        let dim: ContentDimensions | undefined;
         let match: RegExpExecArray | null;
         if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
@@ -173,7 +224,7 @@ export function inlineImagesPlugin(client: Client) {
           Decoration.widget({
             widget: new InlineContentWidget(url, alias, dim, client),
             block: true,
-          }).range(node.to),
+          }).range(node.to + 1),
         );
       },
     });

@@ -32,21 +32,27 @@
     background-color: var(--editor-directive-background-color);
   }
 
-  .sb-line-h1, h1 {
+  .sb-line-h1,
+  h1 {
     font-size: 1.5em;
   }
 
-  .sb-line-h2, h2 {
+  .sb-line-h2,
+  h2 {
     font-size: 1.2em;
   }
 
-  .sb-line-h3, h3 {
+  .sb-line-h3,
+  h3 {
     font-size: 1.1em;
   }
 
-  .sb-line-h4, h4,
-  .sb-line-h5, h5,
-  .sb-line-h6, h6 {
+  .sb-line-h4,
+  h4,
+  .sb-line-h5,
+  h5,
+  .sb-line-h6,
+  h6 {
     font-size: 1em;
   }
 
@@ -61,8 +67,9 @@
     }
   }
 
-  .sb-inline-img {
+  .sb-inline-content * {
     max-width: 100%;
+    display: block;
   }
 
   .cm-panels-bottom .cm-vim-panel {
