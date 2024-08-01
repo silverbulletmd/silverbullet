@@ -1,11 +1,11 @@
 import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
-import { cleanupEmptyObjects, DataStore } from "../data/datastore.ts";
 import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals, assertThrows } from "@std/assert";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import type { Query } from "../../plug-api/types.ts";
+import { DataStore } from "$lib/data/datastore.ts";
 
 async function test(db: KvPrimitives) {
   const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]), {
@@ -105,6 +105,31 @@ async function test(db: KvPrimitives) {
   );
 
   // Test object enrichment
+  datastore.objectEnrichers = [{
+    where: ["boolean", true],
+    attributes: {
+      pageDecoration: {
+        prefix: ["string", "🧑 "],
+      },
+      list: ["array", [["number", 2]]],
+    },
+  }];
+
+  const simplePage = {
+    name: "My Page",
+    pageDecoration: {
+      hide: true,
+    },
+    list: [1],
+  };
+  const enrichedPage = datastore.enrichObject(simplePage);
+  assertEquals(enrichedPage.name, "My Page");
+  assertEquals(enrichedPage.pageDecoration.hide, true);
+  assertEquals(enrichedPage.pageDecoration.prefix, "🧑 ");
+  assertEquals(enrichedPage.list, [1, 2]);
+  // console.log("Enriched page", enrichedPage);
+
+  // More complicated case
   datastore.objectEnrichers = [
     { // fullName
       where: ["=", ["attr", "tags"], ["string", "person"]],
@@ -203,7 +228,7 @@ async function test(db: KvPrimitives) {
   const pristineCopy = JSON.parse(JSON.stringify(obj));
 
   obj = datastore.enrichObject(obj);
-  console.log("Enrhiched", obj);
+  // console.log("Enrhiched", obj);
   assertEquals(obj.fullName, "Pete Smith");
   assertEquals(obj.lastName, "Smith");
   assertEquals(obj.pageDecoration.prefix.bla.doh, "🧑 Pete Smith");
@@ -250,23 +275,4 @@ Deno.test("Test IndexDB DataStore", {
   await db.init();
   await test(db);
   db.close();
-});
-
-Deno.test("Test cleanupEmptyObjects", () => {
-  const testObject: any = {
-    attribute1: 10,
-    another: { nested: 20, removeMe: {} },
-    list: [],
-    removeMe: {
-      deeply: {},
-    },
-    another2: [1, 2, 3],
-  };
-  cleanupEmptyObjects(testObject);
-  assertEquals(testObject, {
-    attribute1: 10,
-    another: { nested: 20 },
-    list: [],
-    another2: [1, 2, 3],
-  });
 });

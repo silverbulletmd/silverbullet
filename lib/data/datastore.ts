@@ -9,7 +9,6 @@ import type {
 import { builtinFunctions } from "../builtin_query_functions.ts";
 import type { KvPrimitives } from "./kv_primitives.ts";
 import { evalQueryExpression } from "../../plug-api/lib/query_expression.ts";
-import { string } from "zod";
 import { deepObjectMerge } from "$sb/lib/json.ts";
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
@@ -172,6 +171,13 @@ export class DataStore {
     return object;
   }
 
+  /**
+   * Enriches the object with the attributes defined in the object enrichers on the fly.
+   * @param rootValue
+   * @param currentValue
+   * @param attributeDefinition
+   * @returns
+   */
   private enrichValue(
     rootValue: any,
     currentValue: any,
@@ -195,54 +201,55 @@ export class DataStore {
       }
       return evalResult;
     } else {
-      // If this is an object, we need to recursively enrich the object
+      // This is a nested attribute definition, we need to recursively traverse it
       if (!currentValue) {
         // Define an empty object if the value is undefined
         currentValue = {};
       }
-      // Make a shallo copy of the object
-      const enrichedObject: any = { ...currentValue };
       // Then iterate over all the dynamic attribute definitions
       for (
         const [key, subAttributeDefinition] of Object.entries(
           attributeDefinition,
         )
       ) {
+        // Recurse and see what we get back
         const enrichedValue = this.enrichValue(
           rootValue,
           {},
           subAttributeDefinition,
         );
-        if (enrichedObject[key] === undefined) {
-          if (!enrichedObject.$dynamicAttributes) {
-            enrichedObject.$dynamicAttributes = [];
+        // If there's no value set yet, just set it directly
+        if (currentValue[key] === undefined) {
+          // Track $dynamicAttributes that we set for later cleanup before persisting
+          if (!currentValue.$dynamicAttributes) {
+            currentValue.$dynamicAttributes = new Set<string>();
           }
-          if (!enrichedObject.$dynamicAttributes.includes(key)) {
-            enrichedObject.$dynamicAttributes.push(key);
-          }
-          enrichedObject[key] = enrichedValue;
+          currentValue.$dynamicAttributes.add(key);
+
+          // Set the value
+          currentValue[key] = enrichedValue;
         } else if (Array.isArray(enrichedValue)) {
-          // Let's merge the arrays
-          if (!Array.isArray(enrichedObject[key])) {
+          // If the value is an array, we need to merge it
+          if (!Array.isArray(currentValue[key])) {
             throw new Error(`Cannot enrich array with non-array value: ${key}`);
           }
-          enrichedObject[key] = [...enrichedObject[key], ...enrichedValue];
+          currentValue[key] = [...currentValue[key], ...enrichedValue];
         } else {
-          enrichedObject[key] = deepObjectMerge(
+          currentValue[key] = deepObjectMerge(
             enrichedValue,
             currentValue[key],
             true,
           );
         }
       }
-      return enrichedObject;
+      return currentValue;
     }
   }
 
   /**
    * Reverses the enriching of the object with the attributes defined in objectEnrichers
    * @param object
-   * @returns
+   * @returns nothing, modifies the object in place
    */
   cleanEnrichedObject(object: any) {
     // Check if this is an enriched object
@@ -263,8 +270,6 @@ export class DataStore {
         this.cleanEnrichedObject(value);
       }
     }
-    // Clean up empty objects, this is somewhat questionable, because it also means that if the user intentionally kept empty objects in there, these will be wiped
-    // cleanupEmptyObjects(object);
   }
 }
 
@@ -275,25 +280,6 @@ export type ObjectEnricher = {
   attributes: DynamicAttributeDefinitions;
 };
 
-interface DynamicAttributeDefinitions {
+export interface DynamicAttributeDefinitions {
   [key: string]: QueryExpression | DynamicAttributeDefinitions;
-}
-
-/**
- * Recursively removes empty objects from the object
- * @param object
- */
-export function cleanupEmptyObjects(object: any) {
-  for (const key in object) {
-    // Skip arrays
-    if (Array.isArray(object[key])) {
-      continue;
-    }
-    if (typeof object[key] === "object") {
-      cleanupEmptyObjects(object[key]);
-      if (Object.keys(object[key]).length === 0) {
-        delete object[key];
-      }
-    }
-  }
 }

@@ -1,12 +1,16 @@
 import type { ActionButton, EmojiConfig, Shortcut } from "$lib/web.ts";
-import type { Manifest } from "$lib/manifest.ts";
 
 export type ObjectDecorator = {
     // The expression to match against the object
     where: string;
     // The dynamic attributes to add to the object
-    attributes: Record<string, string>; // attributePath -> expression
+    attributes: DynamicAttributeDefinitionSettings;
 };
+
+export interface DynamicAttributeDefinitionSettings {
+    // Encodes a QueryExpression as a string
+    [key: string]: string | DynamicAttributeDefinitionSettings;
+}
 
 export type BuiltinSettings = {
     indexPage: string;

@@ -2,10 +2,16 @@ import YAML from "js-yaml";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { cleanupJSON } from "../plug-api/lib/json.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
-import type { DataStore, ObjectEnricher } from "$lib/data/datastore.ts";
+import type {
+  BuiltinSettings,
+  DynamicAttributeDefinitionSettings,
+} from "$type/settings.ts";
+import type {
+  DataStore,
+  DynamicAttributeDefinitions,
+  ObjectEnricher,
+} from "$lib/data/datastore.ts";
 import { parseExpression } from "$common/expression_parser.ts";
-import type { QueryExpression } from "$sb/types.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { ConfigObject } from "../plugs/index/config.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
@@ -157,20 +163,9 @@ export function updateObjectDecorators(
       const decorator of settings.objectDecorators
     ) {
       try {
-        const parsedWhere = parseExpression(decorator.where);
-        const parsedDynamicAttributes: Record<string, QueryExpression> = {};
-        for (let [key, value] of Object.entries(decorator.attributes)) {
-          const path = [key];
-          // if the value is an object, let's push in and build up a path
-          while (typeof value === "object") {
-            path.push(Object.keys(value)[0]);
-            value = value[path[path.length - 1]];
-          }
-          parsedDynamicAttributes[path.join(".")] = parseExpression(value);
-        }
         newDecorators.push({
-          where: parsedWhere,
-          attributes: parsedDynamicAttributes,
+          where: parseExpression(decorator.where),
+          attributes: objectAttributeToExpressions(decorator.attributes),
         });
       } catch (e: any) {
         console.error(
@@ -187,21 +182,15 @@ export function updateObjectDecorators(
 }
 
 function objectAttributeToExpressions(
-  path: string[],
-  value: any,
-): Record<string, QueryExpression> {
-  if (typeof value === "string") {
-    return { [path.join(".")]: parseExpression(value) };
-  } else if (typeof value === "object") {
-    const obj: Record<string, QueryExpression> = {};
-    for (const key of Object.keys(value)) {
-      // obj = {[path.join(".")] = objectAttributeToExpressions(
-      //   [...path, key],
-      //   value[key],
-      // );
+  dynamicAttributes: DynamicAttributeDefinitionSettings,
+): DynamicAttributeDefinitions {
+  const result: DynamicAttributeDefinitions = {};
+  for (const [key, value] of Object.entries(dynamicAttributes)) {
+    if (typeof value === "string") {
+      result[key] = parseExpression(value);
+    } else {
+      result[key] = objectAttributeToExpressions(value);
     }
-    return obj;
-  } else {
-    throw new Error("Invalid object attribute");
   }
+  return result;
 }
