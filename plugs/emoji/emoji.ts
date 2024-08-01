@@ -46,7 +46,7 @@ async function updateConfig() {
   // This is simpler to write in SETTINGS and prevents duplicates,
   // which could be supported but probably aren't user's intent
   const errorMsg =
-    "Emoji aliases in SETTINGS should be a map with entries 'name: 😀'";
+    "Emoji aliases in space config should be a map with entries 'name: 😀'";
 
   let aliasMap: Record<string, any> = {};
   if (config.aliases && typeof config.aliases !== "object") {
