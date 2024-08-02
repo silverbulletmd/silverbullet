@@ -27,7 +27,7 @@ import {
 import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
 import type { Client } from "./client.ts";
-import { inlineImagesPlugin } from "./cm_plugins/inline_content.ts";
+import { inlineContentPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
@@ -113,7 +113,7 @@ export function createEditorState(
           }
         },
       }),
-      inlineImagesPlugin(client),
+      inlineContentPlugin(client),
       codeCopyPlugin(client),
       highlightSpecialChars(),
       history(),
