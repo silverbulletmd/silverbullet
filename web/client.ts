@@ -63,6 +63,7 @@ import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import {
   ensureAndLoadSettingsAndIndex,
+  SettingsContainer,
   updateObjectDecorators,
 } from "$common/settings.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
@@ -95,7 +96,7 @@ type WidgetCacheItem = {
   banner?: string;
 };
 
-export class Client {
+export class Client implements SettingsContainer {
   // Event bus used to communicate between components
   eventHook = new EventHook();
 

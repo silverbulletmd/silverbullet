@@ -6,15 +6,14 @@ import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
-import type { SpaceServer } from "../../server/instance.ts";
-import { defaultSettings } from "$common/settings.ts";
+import { SettingsContainer } from "$common/settings.ts";
 
 export function systemSyscalls(
   system: System<any>,
   readOnlyMode: boolean,
   commonSystem: CommonSystem,
+  settingsContainer: SettingsContainer,
   client?: Client,
-  serverInstance?: SpaceServer,
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
@@ -143,8 +142,7 @@ export function systemSyscalls(
       return commonSystem.applyAttributeExtractors(tags, text, tree);
     },
     "system.getSpaceConfig": (_ctx, key?: string): any => {
-      const settings: any = client?.settings || serverInstance?.settings ||
-        defaultSettings;
+      const settings: any = settingsContainer.settings;
       if (key) {
         return settings[key];
       } else {

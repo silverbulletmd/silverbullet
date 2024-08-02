@@ -3,7 +3,7 @@ import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import { FrontmatterConfig, type TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
-import { BuiltinSettings } from "$type/settings.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
 
 export async function newPageCommand(
   _cmdDef: any,

@@ -151,7 +151,7 @@ export class ClientSystem extends CommonSystem {
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this, this.client),
+      systemSyscalls(this.system, false, this, this.client, this.client),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -227,6 +227,7 @@ export class ClientSystem extends CommonSystem {
   }
 
   getObjectByRef<T>(page: string, tag: string, ref: string) {
+    console.log("Calling getObjectByRef", page, tag, ref);
     return this.localSyscall(
       "system.invokeFunction",
       ["index.getObjectByRef", page, tag, ref],

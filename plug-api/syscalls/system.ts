@@ -48,7 +48,7 @@ export async function getSpaceConfig(
   key?: string,
   defaultValue?: any,
 ): Promise<any> {
-  return await syscall("system.getSpaceConfig", key) ?? defaultValue;
+  return (await syscall("system.getSpaceConfig", key)) ?? defaultValue;
 }
 
 export function reloadPlugs(): Promise<void> {

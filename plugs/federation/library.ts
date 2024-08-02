@@ -41,6 +41,7 @@ export async function updateLibraries(): Promise<UpdateStats> {
   const updateStats: UpdateStats = { libraries: 0, items: 0 };
   const libraries =
     (await system.getSpaceConfig("libraries", [])) as LibraryDef[];
+  console.log("Libraries", await system.getSpaceConfig());
   for (const lib of libraries) {
     // Handle deprecated 'source' field
     if (lib.source) {

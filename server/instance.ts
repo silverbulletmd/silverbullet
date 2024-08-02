@@ -1,5 +1,6 @@
 import type { SilverBulletHooks } from "../lib/manifest.ts";
 import {
+  defaultSettings,
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,
 } from "$common/settings.ts";
@@ -42,7 +43,7 @@ export class SpaceServer {
   authToken?: string;
   hostname: string;
 
-  settings?: BuiltinSettings;
+  settings: BuiltinSettings;
   spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;
@@ -66,6 +67,7 @@ export class SpaceServer {
     this.authToken = config.authToken;
     this.syncOnly = config.syncOnly;
     this.readOnly = config.readOnly;
+    this.settings = defaultSettings;
     this.enableSpaceScript = config.enableSpaceScript;
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
@@ -115,6 +117,7 @@ export class SpaceServer {
         eventHook,
         this.readOnly,
         this.enableSpaceScript,
+        this,
       );
       this.serverSystem = serverSystem;
     }

@@ -56,6 +56,16 @@ Convert the argument to a JSON string (for debugging purposes).
 The current page object: {{json(@page)}}
 ```
 
+## yaml(obj)
+Convert the argument to a YAML string (for debugging purposes).
+
+```template
+The current page object:
+~~~yaml
+{{yaml(@page)}}
+~~~
+```
+
 # Space related
 ## pageExists(name)
 Checks if the page `name` exists:

@@ -45,6 +45,10 @@ export const defaultActionButtons: ActionButton[] = [
   },
 ];
 
+export interface SettingsContainer {
+  settings: BuiltinSettings;
+}
+
 /**
  * Parses YAML settings from a Markdown string.
  * @param settingsMarkdown - The Markdown string containing the YAML settings.
