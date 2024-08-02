@@ -13,11 +13,11 @@ function normalizeForwardSlashPath(path: string) {
 }
 
 const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
-let fileListCache: FileMeta[];
-let fileListCacheTime: number;
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
+  fileListCache: FileMeta[] = [];
+  fileListCacheTime: number = 0;
 
   constructor(rootPath: string) {
     this.rootPath = Deno.realPathSync(rootPath);
@@ -93,8 +93,11 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         await file.utime(new Date(), new Date(meta.lastModified));
       }
       file.close();
-      fileListCache = [];
-      fileListCacheTime = 0;
+
+      // Invalidate cache and trigger an update
+      this.fileListCache = [];
+      this.fileListCacheTime = 0;
+      this.updateCacheInBackground();
 
       // Fetch new metadata
       return this.getFileMeta(name);
@@ -125,8 +128,11 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   async deleteFile(name: string): Promise<void> {
     const localPath = this.filenameToPath(name);
     await Deno.remove(localPath);
-    fileListCache = [];
-    fileListCacheTime = 0;
+
+    // Invalidate cache and trigger an update
+    this.fileListCache = [];
+    this.fileListCacheTime = 0;
+    this.updateCacheInBackground();
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
@@ -135,13 +141,13 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
     // If the file list cache is less than 60 seconds old, return it
     if (
-      fileListCache !== undefined && fileListCache.length > 0 &&
-      startTime - fileListCacheTime < 60000
+      this.fileListCache.length > 0 &&
+      startTime - this.fileListCacheTime < 60000
     ) {
       console.log("Returning cached file list");
       // Trigger a background sync, but return the cached list while the cache is being updated
       this.updateCacheInBackground();
-      return fileListCache;
+      return this.fileListCache;
     }
 
     // Otherwise get the file list and wait for it
@@ -150,8 +156,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     const endTime = performance.now();
     console.log("Fetched file list in", endTime - startTime, "ms");
 
-    fileListCache = allFiles;
-    fileListCacheTime = startTime;
+    this.fileListCache = allFiles;
+    this.fileListCacheTime = startTime;
 
     return allFiles;
   }
@@ -189,8 +195,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   private updateCacheInBackground() {
     this.getFileList().then((allFiles) => {
-      fileListCache = allFiles;
-      fileListCacheTime = performance.now();
+      this.fileListCache = allFiles;
+      this.fileListCacheTime = performance.now();
       console.log(
         "Updated file list cache in background, ",
         allFiles.length,
