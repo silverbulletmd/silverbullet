@@ -13,6 +13,8 @@ function normalizeForwardSlashPath(path: string) {
 }
 
 const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
+let fileListCache: FileMeta[];
+let fileListCacheTime: number;
 
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
@@ -91,6 +93,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         await file.utime(new Date(), new Date(meta.lastModified));
       }
       file.close();
+      fileListCache = [];
+      fileListCacheTime = 0;
 
       // Fetch new metadata
       return this.getFileMeta(name);
@@ -121,11 +125,42 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   async deleteFile(name: string): Promise<void> {
     const localPath = this.filenameToPath(name);
     await Deno.remove(localPath);
+    fileListCache = [];
+    fileListCacheTime = 0;
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
+    console.log("Fetching file list");
+    const startTime = performance.now();
+
+    // If the file list cache is less than 60 seconds old, return it
+    if (
+      fileListCache !== undefined && fileListCache.length > 0 &&
+      startTime - fileListCacheTime < 60000
+    ) {
+      console.log("Returning cached file list");
+      // Trigger a background sync, but return the cached list while the cache is being updated
+      this.updateCacheInBackground();
+      return fileListCache;
+    }
+
+    // Otherwise get the file list and wait for it
+    const allFiles: FileMeta[] = await this.getFileList();
+
+    const endTime = performance.now();
+    console.log("Fetched file list in", endTime - startTime, "ms");
+
+    fileListCache = allFiles;
+    fileListCacheTime = startTime;
+
+    return allFiles;
+  }
+
+  private async getFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
     for await (const file of walkPreserveSymlinks(this.rootPath)) {
+      // Uncomment to simulate a slow-ish disk
+      // await new Promise((resolve) => setTimeout(resolve, 1));
       const fullPath = file.path;
       try {
         const s = await Deno.stat(fullPath);
@@ -149,8 +184,21 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         }
       }
     }
-
     return allFiles;
+  }
+
+  private updateCacheInBackground() {
+    this.getFileList().then((allFiles) => {
+      fileListCache = allFiles;
+      fileListCacheTime = performance.now();
+      console.log(
+        "Updated file list cache in background, ",
+        allFiles.length,
+        "files",
+      );
+    }).catch((error) => {
+      console.error("Error updating file list cache in background:", error);
+    });
   }
 }
 
