@@ -2,6 +2,7 @@ import type { CommandDef } from "../../lib/command.ts";
 import type { SyscallMeta } from "../types.ts";
 import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
+import { Config } from "$type/config.ts";
 
 export function invokeFunction(
   name: string,
@@ -53,6 +54,10 @@ export async function getSpaceConfig(
 
 export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
+}
+
+export function reloadConfig(): Promise<Config> {
+  return syscall("system.reloadConfig");
 }
 
 // Returns what runtime environment this plug is run in, e.g. "server" or "client" can be undefined, which would mean a hybrid environment (such as mobile)

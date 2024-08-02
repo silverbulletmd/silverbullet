@@ -4,15 +4,15 @@ export type ObjectDecorator = {
     // The expression to match against the object
     where: string;
     // The dynamic attributes to add to the object
-    attributes: DynamicAttributeDefinitionSettings;
+    attributes: DynamicAttributeDefinitionConfig;
 };
 
-export interface DynamicAttributeDefinitionSettings {
+export interface DynamicAttributeDefinitionConfig {
     // Encodes a QueryExpression as a string
-    [key: string]: string | DynamicAttributeDefinitionSettings;
+    [key: string]: string | DynamicAttributeDefinitionConfig;
 }
 
-export type BuiltinSettings = {
+export type Config = {
     indexPage: string;
     shortcuts?: Shortcut[];
     useSmartQuotes?: boolean;
@@ -27,9 +27,10 @@ export type BuiltinSettings = {
     // Format: compatible with docker ignore
     spaceIgnore?: string;
     emoji?: EmojiConfig;
+
     // DEPRECATED: Use space styles instead
     customStyles?: string | string[];
 
     // NOTE: Bit niche, maybe delete at some point?
     defaultLinkStyle?: string;
-};
+} & Record<string, any>;

@@ -30,7 +30,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     );
   }
 
-  // Also collect CSS from custom styles in settings
+  // Also collect CSS from custom styles in config
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
@@ -54,7 +54,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     const codeText = codeTextNode.children![0].text!;
     let codeOrigin = "";
     if (customStylePages.includes(name)) {
-      codeOrigin = "settings";
+      codeOrigin = "config";
     } else if (name.startsWith("Library/")) {
       codeOrigin = "library";
     } else {

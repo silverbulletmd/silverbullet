@@ -1,6 +1,6 @@
 #meta
 
-This page contains settings for configuring SilverBullet and its Plugs. Some of these changes will go into effect immediately, some require a page reload.
+This page contains configuration of SilverBullet and its plugs. Some of these changes will go into effect immediately, some require a page reload.
 
 ```space-config
 # Initial page to load when launching SB, can contain template variables

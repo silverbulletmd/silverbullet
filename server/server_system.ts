@@ -38,7 +38,7 @@ import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
-import type { SettingsContainer } from "$common/settings.ts";
+import type { ConfigContainer } from "../common/config.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -56,7 +56,7 @@ export class ServerSystem extends CommonSystem {
     eventHook: EventHook,
     readOnlyMode: boolean,
     enableSpaceScript: boolean,
-    private settingsContainer: SettingsContainer,
+    private configContainer: ConfigContainer,
   ) {
     super(mq, ds, eventHook, readOnlyMode, enableSpaceScript);
   }
@@ -126,7 +126,7 @@ export class ServerSystem extends CommonSystem {
         this.system,
         this.readOnlyMode,
         this,
-        this.settingsContainer,
+        this.configContainer,
       ),
       mqSyscalls(this.mq),
       languageSyscalls(),

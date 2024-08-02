@@ -1,7 +1,7 @@
 import type { AppCommand } from "../lib/command.ts";
-import { defaultSettings } from "$common/settings.ts";
+import { defaultConfig } from "../common/config.ts";
 import type { FilterOption, Notification, PanelMode } from "$lib/web.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
+import type { Config } from "./config.ts";
 import type { PageMeta } from "$sb/types.ts";
 
 export type PanelConfig = {
@@ -28,7 +28,7 @@ export type AppViewState = {
   notifications: Notification[];
   recentCommands: Map<string, Date>;
 
-  settings: BuiltinSettings;
+  config: Config;
 
   uiOptions: {
     vimMode: boolean;
@@ -79,7 +79,7 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
-  settings: defaultSettings,
+  config: defaultConfig,
   allPages: [],
   commands: new Map(),
   recentCommands: new Map(),
@@ -103,7 +103,7 @@ export type Action =
   | { type: "sync-change"; syncSuccess: boolean }
   | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
-  | { type: "settings-loaded"; settings: BuiltinSettings }
+  | { type: "config-loaded"; config: Config }
   | { type: "start-navigate"; mode: "page" | "meta" | "all" }
   | { type: "stop-navigate" }
   | {

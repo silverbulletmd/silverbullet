@@ -24,7 +24,7 @@ export async function updateLibrariesCommand() {
     const updateStats: UpdateStats = await invokeFunction(
       "federation.updateLibraries",
     );
-    await editor.reloadSettingsAndCommands();
+    await editor.reloadConfigAndCommands();
     await editor.flashNotification(
       `Updated ${updateStats.libraries} libraries containing a total of ${updateStats.items} items.`,
     );
@@ -40,7 +40,7 @@ type UpdateStats = {
 export async function updateLibraries(): Promise<UpdateStats> {
   const updateStats: UpdateStats = { libraries: 0, items: 0 };
   const libraries =
-    (await system.getSpaceConfig("libraries", [])) as LibraryDef[];
+    ((await system.reloadConfig())?.libraries || []) as LibraryDef[];
   console.log("Libraries", await system.getSpaceConfig());
   for (const lib of libraries) {
     // Handle deprecated 'source' field

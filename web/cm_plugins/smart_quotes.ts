@@ -80,7 +80,7 @@ function keyBindingForQuote(
 }
 
 export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
-  if (client.settings?.useSmartQuotes === false) {
+  if (client.config?.useSmartQuotes === false) {
     return [];
   }
 

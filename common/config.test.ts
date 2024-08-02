@@ -1,14 +1,14 @@
 import { assertEquals } from "@std/assert";
-import { parseYamlSettings } from "./settings.ts";
+import { parseYamlConfig } from "./config.ts";
 
-Deno.test("Settings regex", () => {
-  const exampleSettings = {
+Deno.test("Config regex", () => {
+  const exampleConfig = {
     foo: "bar",
     żółć: "🟡", // make sure Unicode works
   };
 
   assertEquals(
-    parseYamlSettings(`
+    parseYamlConfig(`
 The typical case would be like this
 
 \`\`\`yaml
@@ -16,11 +16,11 @@ foo: bar
 żółć: 🟡
 \`\`\`
 `),
-    exampleSettings,
+    exampleConfig,
   );
 
   assertEquals(
-    parseYamlSettings(`
+    parseYamlConfig(`
 Tilde delimiters or space-config should also work
 
 ~~~space-config
@@ -28,12 +28,12 @@ foo: bar
 żółć: 🟡
 ~~~
 `),
-    exampleSettings,
+    exampleConfig,
   );
 
   assertEquals(
-    parseYamlSettings(`
-\`\`\`yaml-settings
+    parseYamlConfig(`
+\`\`\`yaml-config
 wrong info string
 \`\`\`
 
@@ -45,7 +45,7 @@ missing an end
   );
 
   assertEquals(
-    parseYamlSettings(`
+    parseYamlConfig(`
 The little known feature of longer delimiters
 \`\`\`\`\`yaml
 complexText: |
@@ -56,6 +56,6 @@ foo: bar
 żółć: 🟡
 \`\`\`\`\`
 `),
-    { ...exampleSettings, complexText: "```yaml\n~~~\n````\n" },
+    { ...exampleConfig, complexText: "```yaml\n~~~\n````\n" },
   );
 });

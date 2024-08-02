@@ -62,16 +62,16 @@ import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import {
+  ConfigContainer,
   ensureAndLoadSettingsAndIndex,
-  SettingsContainer,
   updateObjectDecorators,
-} from "$common/settings.ts";
+} from "../common/config.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "$sb/lib/tree.ts";
 import type { LinkObject } from "../plugs/index/page_links.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
+import type { Config } from "../type/config.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -96,12 +96,12 @@ type WidgetCacheItem = {
   banner?: string;
 };
 
-export class Client implements SettingsContainer {
+export class Client implements ConfigContainer {
   // Event bus used to communicate between components
   eventHook = new EventHook();
 
   space!: Space;
-  settings!: BuiltinSettings;
+  config!: Config;
 
   clientSystem!: ClientSystem;
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
@@ -230,8 +230,8 @@ export class Client implements SettingsContainer {
     // Load plugs
     await this.loadPlugs();
 
-    // Load settings (after the plugs, specifically the 'index' plug is loaded)
-    await this.loadSettings();
+    // Load config (after the plugs, specifically the 'index' plug is loaded)
+    await this.loadConfig();
 
     await this.clientSystem.loadSpaceScripts();
 
@@ -258,15 +258,15 @@ export class Client implements SettingsContainer {
     this.updatePageListCache().catch(console.error);
   }
 
-  async loadSettings() {
-    this.settings = await ensureAndLoadSettingsAndIndex(
+  async loadConfig() {
+    this.config = await ensureAndLoadSettingsAndIndex(
       this.space.spacePrimitives,
       this.clientSystem.system,
     );
-    updateObjectDecorators(this.settings, this.stateDataStore);
+    updateObjectDecorators(this.config, this.stateDataStore);
     this.ui.viewDispatch({
-      type: "settings-loaded",
-      settings: this.settings,
+      type: "config-loaded",
+      config: this.config,
     });
     this.clientSystem.slashCommandHook.buildAllCommands(
       this.clientSystem.system,
@@ -482,7 +482,7 @@ export class Client implements SettingsContainer {
       );
     });
 
-    if (location.hash === "#boot" && this.settings.pwaOpenLastPage !== false) {
+    if (location.hash === "#boot" && this.config.pwaOpenLastPage !== false) {
       // Cold start PWA load
       const lastPage = await this.stateDataStore.get([
         "client",
@@ -545,12 +545,12 @@ export class Client implements SettingsContainer {
         (meta) => fileFilterFn(meta.name),
         // Run when a list of files has been retrieved
         async () => {
-          if (!this.settings) {
-            await this.loadSettings();
+          if (!this.config) {
+            await this.loadConfig();
           }
 
-          if (typeof this.settings?.spaceIgnore === "string") {
-            fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+          if (typeof this.config?.spaceIgnore === "string") {
+            fileFilterFn = gitIgnoreCompiler(this.config.spaceIgnore).accepts;
           } else {
             fileFilterFn = () => true;
           }
@@ -995,7 +995,7 @@ export class Client implements SettingsContainer {
     if (!pageRef.page) {
       pageRef.page = cleanPageRef(
         await renderTheTemplate(
-          this.settings.indexPage,
+          this.config.indexPage,
           {},
           {},
           builtinFunctions,
@@ -1169,7 +1169,7 @@ export class Client implements SettingsContainer {
 
     // Sort stylesheets (last declared styles take precedence)
     // Order is 1: Imported styles, 2: Other styles, 3: customStyles from Settings
-    const sortOrder = ["library", "user", "settings"];
+    const sortOrder = ["library", "user", "config"];
     spaceStyles.sort((a, b) =>
       sortOrder.indexOf(a.origin) - sortOrder.indexOf(b.origin)
     );

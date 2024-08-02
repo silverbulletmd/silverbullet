@@ -3,7 +3,7 @@ import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import { FrontmatterConfig, type TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
+import type { Config } from "../../type/config.ts";
 
 export async function newPageCommand(
   _cmdDef: any,
@@ -233,7 +233,7 @@ export async function loadPageObject(pageName?: string): Promise<PageMeta> {
 export function replaceTemplateVars(
   s: string,
   pageMeta: PageMeta,
-  config: BuiltinSettings,
+  config: Config,
 ): Promise<string> {
   return template.renderTemplate(s, {}, { page: pageMeta, config });
 }
