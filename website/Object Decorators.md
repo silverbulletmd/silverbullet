@@ -6,14 +6,16 @@ Object decorators are an **advanced technique** that can be used to add attribut
 The primary use case is [[Page Decorations]], but it is a powerful mechanism that probably has wider applications. As always, with great power comes great responsibility.
 
 # Syntax
-Object decorations are specified in [[^SETTINGS]] using the following syntax:
+Object decorations are specified using [[Space Config]] (either in [[^SETTINGS]] or elsewhere):
 
-```yaml
+~~~markdown
+```space-config
 objectDecorators:
 - where: '<<filter expression>>'
   attributes:
      <<attributePath>>: '<<value expression>>'
 ```
+~~~
 
 > **note** Note
 > For changes to take effect you may have to reload your client (just refresh the page).
@@ -53,15 +55,15 @@ firstName: Stephanie
 lastName: Bee
 ```
 
-This would get you the follow data set:
+This will get you the following data set:
 
 ```query
 human select firstName, lastName
 ```
 
-However, you would like to dynamically compute an additional attribute for all humans, namely `fullName`. This can be done as follows in your [[^SETTINGS]]:
+However, you would like to dynamically compute an additional attribute for all humans, namely `fullName`. This can be done as follows with [[Space Config]]:
 
-```yaml
+```space-config
 objectDecorators:
 - where: 'tag = "human"'
   attributes:
@@ -74,4 +76,4 @@ Which will give you the following:
 human select fullName, firstName, lastName
 ```
 
-Tadaa!
+As the French say: _Voila!_

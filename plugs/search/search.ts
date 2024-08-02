@@ -1,4 +1,7 @@
-import type { IndexTreeEvent, QueryProviderEvent } from "../../plug-api/types.ts";
+import type {
+  IndexTreeEvent,
+  QueryProviderEvent,
+} from "../../plug-api/types.ts";
 import { renderToText } from "$sb/lib/tree.ts";
 import { applyQuery, liftAttributeFilter } from "$sb/lib/query.ts";
 import { editor } from "$sb/syscalls.ts";

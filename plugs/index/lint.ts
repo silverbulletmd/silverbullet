@@ -1,4 +1,4 @@
-import { YAML } from "$sb/syscalls.ts";
+import { jsonschema, YAML } from "$sb/syscalls.ts";
 import type { LintDiagnostic, QueryExpression } from "../../plug-api/types.ts";
 import {
   findNodeOfType,
@@ -9,6 +9,7 @@ import type { LintEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "./api.ts";
 import type { AttributeObject } from "./attributes.ts";
 import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { ConfigSchema } from "$type/config.ts";
 
 export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
@@ -50,7 +51,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
       const codeLang = codeInfo.children![0].text!;
       // All known YAML formats
       if (
-        ["include", "embed", "yaml"].includes(codeLang) ||
+        ["include", "embed", "yaml", "space-config"].includes(codeLang) ||
         codeLang.startsWith("#")
       ) {
         const codeText = findNodeOfType(node, "CodeText");
@@ -64,6 +65,11 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
         );
         if (lintResult) {
           diagnostics.push(lintResult);
+        } else if (codeLang === "space-config") {
+          const configLint = await lintConfig(yamlCode, codeText.from!);
+          if (configLint) {
+            diagnostics.push(configLint);
+          }
         }
         return true;
       }
@@ -111,5 +117,25 @@ async function lintYaml(
         message: e.message,
       };
     }
+  }
+}
+
+async function lintConfig(
+  text: string,
+  startPos: number,
+): Promise<LintDiagnostic | undefined> {
+  try {
+    const parsedYaml = await YAML.parse(text);
+    const result = await jsonschema.validateObject(ConfigSchema, parsedYaml);
+    if (result) {
+      return {
+        from: startPos,
+        to: startPos + text.length,
+        severity: "error",
+        message: result,
+      };
+    }
+  } catch (e: any) {
+    console.error("Error parsing config", e.message);
   }
 }

@@ -46,13 +46,16 @@ import {
 } from "./markdown_parser/parser.ts";
 import { cssLanguage } from "@codemirror/lang-css";
 
+const yamlStreamLanguage = StreamLanguage.define(yamlLanguage);
+
 export const builtinLanguages: Record<string, Language> = {
-  "meta": StreamLanguage.define(yamlLanguage),
-  "yaml": StreamLanguage.define(yamlLanguage),
-  "include": StreamLanguage.define(yamlLanguage),
-  "embed": StreamLanguage.define(yamlLanguage),
-  "data": StreamLanguage.define(yamlLanguage),
-  "toc": StreamLanguage.define(yamlLanguage),
+  "meta": yamlStreamLanguage,
+  "yaml": yamlStreamLanguage,
+  "include": yamlStreamLanguage,
+  "space-config": yamlStreamLanguage,
+  "embed": yamlStreamLanguage,
+  "data": yamlStreamLanguage,
+  "toc": yamlStreamLanguage,
   "javascript": javascriptLanguage,
   "space-script": javascriptLanguage,
   "js": javascriptLanguage,

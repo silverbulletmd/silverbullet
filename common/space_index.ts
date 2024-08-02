@@ -3,8 +3,8 @@ import type { System } from "$lib/plugos/system.ts";
 
 const indexVersionKey = ["$indexVersion"];
 
-// Bump this one every time a full reinxex is needed
-const desiredIndexVersion = 5;
+// Bump this one every time a full reindex is needed
+const desiredIndexVersion = 6;
 
 let indexOngoing = false;
 

@@ -2,6 +2,7 @@ import type { CommandDef } from "../../lib/command.ts";
 import type { SyscallMeta } from "../types.ts";
 import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
+import type { Config } from "$type/config.ts";
 
 export function invokeFunction(
   name: string,
@@ -39,8 +40,24 @@ export function applyAttributeExtractors(
   return syscall("system.applyAttributeExtractors", tags, text, tree);
 }
 
+/**
+ * Loads a particular space configuration key (or all of them when no key is spacified)
+ * @param key the key to load, when not specified, all keys are loaded
+ * @returns either the value of the key or all keys as a Record<string, any>
+ */
+export async function getSpaceConfig(
+  key?: string,
+  defaultValue?: any,
+): Promise<any> {
+  return (await syscall("system.getSpaceConfig", key)) ?? defaultValue;
+}
+
 export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
+}
+
+export function reloadConfig(): Promise<Config> {
+  return syscall("system.reloadConfig");
 }
 
 // Returns what runtime environment this plug is run in, e.g. "server" or "client" can be undefined, which would mean a hybrid environment (such as mobile)

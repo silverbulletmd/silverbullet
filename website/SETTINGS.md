@@ -1,6 +1,6 @@
 #meta
 
-This page contains settings for configuring SilverBullet and its Plugs. Changing any of these will go into effect immediately in most cases, some require a page reload.
+This page contains configuration of SilverBullet and its plugs. Some of these changes will go into effect immediately, some require a page reload.
 
 ```yaml
 # Initial page to load when launching SB, can contain template variables
@@ -52,23 +52,9 @@ shortcuts:
 # Map a slash command (e.g. `/indent`) to a command
 - command: "{[Outline: Move Right]}"
   slashCommand: "indent"
-- command: "{[Outline: Move Left]}"
-  slashCommand: "outdent"
 # Bump a command's priority in the command palette
 - command: "{[Upload: File]}"
   priority: 1
-
-# Object decorators, see the "Page Decorators" page for more info
-objectDecorators:
-- where: 'tag = "page" and tags = "plug"'
-  attributes:
-     pageDecoration.prefix: "'🔌 '"
-- where: 'tag = "human"'
-  attributes:
-     fullName: 'firstName + " " + lastName'
-- where: 'tag = "page" and tags = "notoc"'
-  attributes:
-     pageDecoration.disableTOC: "true"
 
 # Toggles between “smart” ‘quotes’ (left and right) and "simple" 'quotes' (good ol' ASCII)
 useSmartQuotes: true

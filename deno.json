@@ -18,6 +18,7 @@
 
     "check": "find . -name '*.ts*' | xargs deno check",
     "lint": "deno lint",
+    "fmt": "deno fmt",
     "test": "deno test -A --unstable-kv  --unstable-worker-options",
     "bench": "deno bench",
 
@@ -53,12 +54,13 @@
   },
   "fmt": {
     "exclude": [
-      "dist",
-      "dist_bundle",
+      "dist*",
       "website",
       "website_build",
       "test_space",
-      "README.md"
+      "**/*.md",
+      "**/*.js",
+      "**/*.json"
     ]
   },
   "compilerOptions": {
@@ -124,7 +126,7 @@
     "s3_lite_client/": "https://deno.land/x/s3_lite_client@0.4.0/",
     "style-mod": "https://esm.sh/style-mod@4.1.2",
     "turndown": "https://cdn.skypack.dev/turndown@7.2.0",
-    "turndown-plugin-gfm": "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.56",
-    "zod": "https://deno.land/x/zod@v3.23.8/mod.ts"
+    "ajv": "https://esm.sh/ajv@8.17.1?target=es2022",
+    "turndown-plugin-gfm": "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.56"
   }
 }

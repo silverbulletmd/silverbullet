@@ -1,5 +1,4 @@
-import { readSetting } from "$sb/lib/settings_page.ts";
-import { editor, space } from "$sb/syscalls.ts";
+import { editor, space, system } from "$sb/syscalls.ts";
 import type { UploadFile } from "$sb/types.ts";
 import {
   defaultLinkStyle,
@@ -8,7 +7,7 @@ import {
 import { resolvePath } from "$sb/lib/resolve.ts";
 
 export async function saveFile(file: UploadFile) {
-  const maxSize = await readSetting(
+  const maxSize = await system.getSpaceConfig(
     "maximumAttachmentSize",
     maximumAttachmentSize,
   );
@@ -39,7 +38,7 @@ export async function saveFile(file: UploadFile) {
   );
   await space.writeAttachment(attachmentPath, file.content);
 
-  const linkStyle = await readSetting(
+  const linkStyle = await system.getSpaceConfig(
     "defaultLinkStyle",
     defaultLinkStyle,
   );

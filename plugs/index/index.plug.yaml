@@ -137,9 +137,15 @@ functions:
     events:
       - page:index
 
-    # Style
+  # Style
   indexSpaceStyle:
     path: style.ts:indexSpaceStyle
+    events:
+      - page:index
+
+  # Config
+  indexSpaceConfig:
+    path: config.ts:indexSpaceConfig
     events:
       - page:index
 

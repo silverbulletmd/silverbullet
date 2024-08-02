@@ -9,7 +9,6 @@ However, that is all unlikely to happen unless you understand what SilverBullet 
 The biggest hurdle to get over with SilverBullet is that you need to get this thing running. And as of yet, the only way to do that is to install and deploy it yourself. 🤷
 
 * [[Install]]: Installation instructions for various setups
-* [[Deployments]]: various deployment options
 * [[Authelia]]: configuring SilverBullet with [Authelia](https://www.authelia.com/) authentication.
 
 For more additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).

@@ -27,7 +27,7 @@ import {
 import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
 import type { Client } from "./client.ts";
-import { inlineImagesPlugin } from "./cm_plugins/inline_content.ts";
+import { inlineContentPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
@@ -106,7 +106,6 @@ export function createEditorState(
           ),
         ],
         optionClass(completion: any) {
-          console.log("Calling on", completion);
           if (completion.cssClass) {
             return "sb-decorated-object " + completion.cssClass;
           } else {
@@ -114,7 +113,7 @@ export function createEditorState(
           }
         },
       }),
-      inlineImagesPlugin(client),
+      inlineContentPlugin(client),
       codeCopyPlugin(client),
       highlightSpecialChars(),
       history(),
@@ -277,8 +276,8 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
   const overriddenCommands = new Set<string>();
   // Keyboard shortcuts from SETTINGS take precedense
-  if (client.settings?.shortcuts) {
-    for (const shortcut of client.settings.shortcuts) {
+  if (client.config?.shortcuts) {
+    for (const shortcut of client.config.shortcuts) {
       // Figure out if we're using the command link syntax here, if so: parse it out
       const parsedCommand = parseCommand(shortcut.command);
       if (parsedCommand.args.length === 0) {
