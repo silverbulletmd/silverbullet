@@ -3,7 +3,7 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
+import { editor, markdown, space, system, YAML } from "$sb/syscalls.ts";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import type { TemplateObject } from "./types.ts";
@@ -46,12 +46,14 @@ export async function insertSnippetTemplate(
     slashCompletion.pageName || (await editor.getCurrentPage()),
   );
 
+  const config = await system.getSpaceConfig();
+
   const templateText = await space.readPage(slashCompletion.templatePage);
   let { renderedFrontmatter, text: replacementText, frontmatter } =
     await renderTemplate(
       templateText,
       pageObject,
-      { page: pageObject },
+      { page: pageObject, config },
     );
   let snippetTemplate: SnippetConfig;
   try {
