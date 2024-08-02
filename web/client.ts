@@ -1129,6 +1129,11 @@ export class Client {
 
     if (!loadingDifferentPage && this.initialPageText) {
       const fileChanges = diffAndPrepareChanges(this.initialPageText, doc.text);
+      console.log({
+        initialText: this.initialPageText,
+        docText: doc.text,
+        fileChanges,
+      });
       editorView.dispatch({
         changes: fileChanges,
       });
@@ -1153,7 +1158,7 @@ export class Client {
     }
     this.space.watchPage(pageName);
 
-    this.initialPageText = this.editorView.state.sliceDoc(0);
+    this.initialPageText = doc.text;
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
