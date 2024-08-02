@@ -18,6 +18,7 @@
 
     "check": "find . -name '*.ts*' | xargs deno check",
     "lint": "deno lint",
+    "fmt": "deno fmt",
     "test": "deno test -A --unstable-kv  --unstable-worker-options",
     "bench": "deno bench",
 
@@ -53,12 +54,13 @@
   },
   "fmt": {
     "exclude": [
-      "dist",
-      "dist_bundle",
+      "dist*",
       "website",
       "website_build",
       "test_space",
-      "README.md"
+      "**/*.md",
+      "**/*.js",
+      "**/*.json"
     ]
   },
   "compilerOptions": {
