@@ -1,6 +1,6 @@
 import type { SilverBulletHooks } from "../lib/manifest.ts";
 import {
-  ConfigContainer,
+  type ConfigContainer,
   defaultConfig,
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,

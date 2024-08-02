@@ -2,7 +2,7 @@ import type { CommandDef } from "../../lib/command.ts";
 import type { SyscallMeta } from "../types.ts";
 import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
-import { Config } from "$type/config.ts";
+import type { Config } from "$type/config.ts";
 
 export function invokeFunction(
   name: string,

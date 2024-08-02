@@ -7,7 +7,7 @@ import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
 import type { ConfigContainer } from "../config.ts";
-import { Config } from "$type/config.ts";
+import type { Config } from "$type/config.ts";
 
 export function systemSyscalls(
   system: System<any>,
