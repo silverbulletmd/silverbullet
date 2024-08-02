@@ -24,8 +24,14 @@ This page compiles some useful things about your space and may also be useful fo
 ```
 
 # Active [[!silverbullet.md/Space Config]]
-Composed from all the pieces of `space-config` across your space.
+You have space config defined on the following pages:
+```template
+{{#each {space-config select replace(ref, /@.+/, "") as page}}}
+* [[{{page}}]]
+{{/each}}
+```
 
+Composed, this leads to the following active configuration:
 ```template
 ~~~yaml
 {{yaml(@config)}}
