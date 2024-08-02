@@ -60,10 +60,10 @@ export default function reducer(
         ...state,
         syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
-    case "settings-loaded":
+    case "config-loaded":
       return {
         ...state,
-        settings: action.settings,
+        config: action.config,
       };
     case "update-page-list": {
       // Let's move over any "lastOpened" times to the "allPages" list

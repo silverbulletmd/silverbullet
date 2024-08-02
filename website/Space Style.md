@@ -68,3 +68,5 @@ button:hover {
   /* box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0; */
 }
 ```
+
+Another example can be found in [[Page Decorations#Use case: pimp my page]]

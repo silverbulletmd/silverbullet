@@ -17,12 +17,6 @@ import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 
-export const wikiLinkRegex = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g; // [fullMatch, firstMark, url, alias, lastMark]
-export const mdLinkRegex = /!?\[(?<title>[^\]]*)\]\((?<url>.+)\)/g; // [fullMatch, alias, url]
-export const tagRegex =
-  /#[^\d\s!@#$%^&*(),.?":{}|<>\\][^\s!@#$%^&*(),.?":{}|<>\\]*/;
-const pWikiLinkRegex = new RegExp("^" + wikiLinkRegex.source); // Modified regex used only in parser
-
 const WikiLink: MarkdownConfig = {
   defineNodes: [
     { name: "WikiLink", style: ct.WikiLinkTag },
@@ -546,6 +540,7 @@ const NamedAnchor = regexParser({
 
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
+import { pWikiLinkRegex, tagRegex } from "$common/markdown_parser/constants.ts";
 
 // FrontMatter parser
 

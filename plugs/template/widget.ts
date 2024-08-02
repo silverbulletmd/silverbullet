@@ -1,4 +1,4 @@
-import { markdown, space, YAML } from "$sb/syscalls.ts";
+import { markdown, space, system, YAML } from "$sb/syscalls.ts";
 import { loadPageObject, replaceTemplateVars } from "./page.ts";
 import type { CodeWidgetContent, PageMeta } from "../../plug-api/types.ts";
 import { renderTemplate } from "./plug_api.ts";
@@ -26,6 +26,7 @@ export async function includeWidget(
   pageName: string,
 ): Promise<CodeWidgetContent> {
   const pageMeta: PageMeta = await loadPageObject(pageName);
+  const spaceConfig = await system.getSpaceConfig();
 
   try {
     const config: TemplateWidgetConfig = await YAML.parse(bodyText);
@@ -54,13 +55,17 @@ export async function includeWidget(
 
     if (config.value) {
       value = JSON.parse(
-        await replaceTemplateVars(JSON.stringify(config.value), pageMeta),
+        await replaceTemplateVars(
+          JSON.stringify(config.value),
+          pageMeta,
+          spaceConfig,
+        ),
       );
     }
 
     if (config.query) {
       const parsedQuery = await parseQuery(
-        await replaceTemplateVars(config.query, pageMeta),
+        await replaceTemplateVars(config.query, pageMeta, spaceConfig),
       );
       value = await queryParsed(parsedQuery);
     }
@@ -130,13 +135,14 @@ export async function templateWidget(
     // Not a legacy widget, good!
   }
 
+  const config = await system.getSpaceConfig();
   const pageMeta: PageMeta = await loadPageObject(pageName);
 
   try {
     const { text: rendered } = await renderTemplate(
       bodyText,
       pageMeta,
-      { page: pageMeta },
+      { page: pageMeta, config },
     );
 
     return {

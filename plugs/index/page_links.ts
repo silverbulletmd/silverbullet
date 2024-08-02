@@ -6,7 +6,10 @@ import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
 import { updateITags } from "$sb/lib/tags.ts";
 import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
-import { mdLinkRegex, wikiLinkRegex } from "$common/markdown_parser/parser.ts";
+import {
+  mdLinkRegex,
+  wikiLinkRegex,
+} from "$common/markdown_parser/constants.ts";
 
 export type LinkObject = ObjectValue<
   {

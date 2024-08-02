@@ -9,6 +9,7 @@ import type {
 import { builtinFunctions } from "../builtin_query_functions.ts";
 import type { KvPrimitives } from "./kv_primitives.ts";
 import { evalQueryExpression } from "../../plug-api/lib/query_expression.ts";
+import { deepObjectMerge } from "$sb/lib/json.ts";
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
  * in a more user-friendly way
@@ -17,7 +18,7 @@ export class DataStore {
   constructor(
     readonly kv: KvPrimitives,
     public functionMap: FunctionMap = builtinFunctions,
-    public objectEnrichers: ObjectEnricher[] = [],
+    public objectDecorators: ObjectDecorators[] = [],
   ) {
   }
 
@@ -141,14 +142,14 @@ export class DataStore {
    * @param object
    * @returns
    */
-  enrichObject(object: any) {
+  enrichObject(object: any): any {
     // Check if this object looks like an object value
     if (!object || typeof object !== "object") {
       // Skip
-      return;
+      return object;
     }
 
-    for (const enricher of this.objectEnrichers) {
+    for (const enricher of this.objectDecorators) {
       const whereEvalResult = evalQueryExpression(
         enricher.where,
         object,
@@ -164,60 +165,91 @@ export class DataStore {
       if (
         whereEvalResult
       ) {
-        // The `where` matches so we should enrich this object
-        for (
-          const [attributeSelector, expression] of Object.entries(
-            enricher.attributes,
-          )
-        ) {
-          // Recursively travel to the attribute based on the selector, which may contain .'s to go deeper
-          let objectValue = object;
-          const selectorParts = attributeSelector.split(".");
-          for (const part of selectorParts.slice(0, -1)) {
-            if (typeof objectValue[part] !== "object") {
-              // Pre-create the object if it doesn't exist
-              objectValue[part] = {};
-            }
-            objectValue = objectValue[part];
-          }
+        object = this.enrichValue(object, object, enricher.attributes);
+      }
+    }
+    return object;
+  }
 
-          const value = evalQueryExpression(
-            expression,
-            object,
-            {},
-            this.functionMap,
+  /**
+   * Enriches the object with the attributes defined in the object enrichers on the fly.
+   * @param rootValue
+   * @param currentValue
+   * @param attributeDefinition
+   * @returns
+   */
+  private enrichValue(
+    rootValue: any,
+    currentValue: any,
+    attributeDefinition: QueryExpression | DynamicAttributeDefinitions,
+  ): any {
+    if (attributeDefinition === undefined) {
+      return currentValue;
+    } else if (Array.isArray(attributeDefinition)) {
+      // This is QueryExpression, so we're in a leaf node, let's evaluate it and return
+      const evalResult = evalQueryExpression(
+        attributeDefinition as QueryExpression,
+        rootValue,
+        {},
+        this.functionMap,
+      );
+      if (evalResult instanceof Promise) {
+        // For performance reasons we can only allow synchronous where clauses
+        throw new Error(
+          `Enricher where clause cannot be an async function: ${attributeDefinition}`,
+        );
+      }
+      return evalResult;
+    } else {
+      // This is a nested attribute definition, we need to recursively traverse it
+      if (!currentValue) {
+        // Define an empty object if the value is undefined
+        currentValue = {};
+      }
+      // Then iterate over all the dynamic attribute definitions
+      for (
+        const [key, subAttributeDefinition] of Object.entries(
+          attributeDefinition,
+        )
+      ) {
+        // Recurse and see what we get back
+        const enrichedValue = this.enrichValue(
+          rootValue,
+          {},
+          subAttributeDefinition,
+        );
+        // If there's no value set yet, just set it directly
+        if (currentValue[key] === undefined) {
+          // Track $dynamicAttributes that we set for later cleanup before persisting
+          if (!currentValue.$dynamicAttributes) {
+            currentValue.$dynamicAttributes = new Set<string>();
+          }
+          currentValue.$dynamicAttributes.add(key);
+
+          // Set the value
+          currentValue[key] = enrichedValue;
+        } else if (Array.isArray(enrichedValue)) {
+          // If the value is an array, we need to merge it
+          if (!Array.isArray(currentValue[key])) {
+            throw new Error(`Cannot enrich array with non-array value: ${key}`);
+          }
+          currentValue[key] = [...currentValue[key], ...enrichedValue];
+        } else {
+          currentValue[key] = deepObjectMerge(
+            enrichedValue,
+            currentValue[key],
+            true,
           );
-          if (value instanceof Promise) {
-            // For performance reasons we can only allow synchronous expressions
-            throw new Error(
-              `Enricher dynamic attribute expression cannot be an async function: ${expression}`,
-            );
-          }
-          const lastPart = selectorParts[selectorParts.length - 1];
-          if (objectValue[lastPart] !== undefined) {
-            // The attribute already exists, we should merge the values if we can, or ignore the new value
-            if (Array.isArray(objectValue[lastPart]) && Array.isArray(value)) {
-              // If the attribute already exists and is an array, we should merge the arrays
-              objectValue[lastPart] = [...objectValue[lastPart], ...value];
-            } else {
-              // We can't merge the values, so we just ignore the new value
-            }
-          } else { // New attribute
-            objectValue[lastPart] = value;
-            if (!object.$dynamicAttributes) {
-              object.$dynamicAttributes = [];
-            }
-            object.$dynamicAttributes.push(attributeSelector);
-          }
         }
       }
+      return currentValue;
     }
   }
 
   /**
    * Reverses the enriching of the object with the attributes defined in objectEnrichers
    * @param object
-   * @returns
+   * @returns nothing, modifies the object in place
    */
   cleanEnrichedObject(object: any) {
     // Check if this is an enriched object
@@ -226,48 +258,28 @@ export class DataStore {
       return;
     }
 
-    for (const attributeSelector of object.$dynamicAttributes) {
-      // Recursively travel to the attribute based on the selector, which may contain .'s to go deeper
-      let objectValue = object;
-      const selectorParts = attributeSelector.split(".");
-      for (const part of selectorParts.slice(0, -1)) {
-        if (typeof objectValue[part] !== "object") {
-          // This shouldn't happen, but let's back out
-          break;
-        }
-        objectValue = objectValue[part];
-      }
-
-      delete objectValue[selectorParts[selectorParts.length - 1]];
+    // Clean out the dynamic attributes
+    for (const attribute of object.$dynamicAttributes) {
+      delete object[attribute];
     }
-    // Clean up empty objects, this is somewhat questionable, because it also means that if the user intentionally kept empty objects in there, these will be wiped
-    cleanupEmptyObjects(object);
     delete object.$dynamicAttributes;
+
+    // Recursively clean up the object
+    for (const value of Object.values(object)) {
+      if (typeof value === "object") {
+        this.cleanEnrichedObject(value);
+      }
+    }
   }
 }
 
-export type ObjectEnricher = {
+export type ObjectDecorators = {
   // If this expression evaluates to true for the given object
   where: QueryExpression;
   // Dynamically add these attributes to the object, can use "." syntax for deeper attribute definition
-  attributes: Record<string, QueryExpression>;
+  attributes: DynamicAttributeDefinitions;
 };
 
-/**
- * Recursively removes empty objects from the object
- * @param object
- */
-export function cleanupEmptyObjects(object: any) {
-  for (const key in object) {
-    // Skip arrays
-    if (Array.isArray(object[key])) {
-      continue;
-    }
-    if (typeof object[key] === "object") {
-      cleanupEmptyObjects(object[key]);
-      if (Object.keys(object[key]).length === 0) {
-        delete object[key];
-      }
-    }
-  }
+export interface DynamicAttributeDefinitions {
+  [key: string]: QueryExpression | DynamicAttributeDefinitions;
 }

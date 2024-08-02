@@ -1,8 +1,6 @@
----
-tags: meta
----
+#meta
 
-This page lists all templates currently available in your space.
+This page lists all templates currently available in your space. You can also navigate to them via the {[Navigate: Meta Picker]}. More information on templates can be found [[!silverbullet.md/Templates]]
 
 # New Page
 These [[!silverbullet.md/Page Templates]] are available through the {[Page: From Template]} command:

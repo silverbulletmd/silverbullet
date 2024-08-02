@@ -40,7 +40,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       },
     );
     this.initialFileListLoad = Object.keys(this.spaceSnapshot).length === 0;
-    // console.log("Loaded space snapshot", spaceSnapshot);
   }
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
@@ -109,7 +108,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       await this.dispatchEvent("file:listed", newFileList);
-      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
       this.initialFileListLoad = false;
       return newFileList;
     } finally {
@@ -179,7 +177,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
           text,
         });
       }
-      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
       return newMeta;
     } finally {
       this.operationInProgress = false;
@@ -237,7 +234,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       await this.wrapped.deleteFile(name);
       delete this.spaceSnapshot[name];
       await this.dispatchEvent("file:deleted", name);
-      await this.dispatchEvent("file:spaceSnapshotted", this.spaceSnapshot);
     } finally {
       this.operationInProgress = false;
     }

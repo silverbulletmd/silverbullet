@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { cleanupJSON, deepEqual, deepObjectMerge } from "./json.ts";
 
-Deno.test("utils", () => {
+Deno.test("JSON utils", () => {
   assertEquals(deepEqual({ a: 1 }, { a: 1 }), true);
   assertEquals(deepObjectMerge({ a: 1 }, { a: 2 }), { a: 2 });
   assertEquals(

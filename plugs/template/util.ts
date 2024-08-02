@@ -1,5 +1,5 @@
 import type { PageMeta } from "../../plug-api/types.ts";
-import { space, template } from "$sb/syscalls.ts";
+import { space, system, template } from "$sb/syscalls.ts";
 import { cleanTemplate } from "./plug_api.ts";
 
 export function defaultJsonTransformer(v: any): string {
@@ -79,11 +79,15 @@ export async function renderQueryTemplate(
   data: any[],
   renderAll: boolean,
 ): Promise<string> {
+  const config = await system.getSpaceConfig();
   let templateText = await space.readPage(templatePage);
   templateText = await cleanTemplate(templateText);
 
   if (!renderAll) {
     templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
   }
-  return template.renderTemplate(templateText, data, { page: pageMeta });
+  return template.renderTemplate(templateText, data, {
+    page: pageMeta,
+    config,
+  });
 }
