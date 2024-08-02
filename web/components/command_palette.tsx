@@ -1,10 +1,13 @@
 import { FilterList } from "./filter.tsx";
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import type { AppCommand } from "../../lib/command.ts";
 import type { FilterOption } from "$lib/web.ts";
 import { parseCommand } from "$common/command.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
+import type { Config } from "../../type/config.ts";
 
 export function CommandPalette({
   commands,
@@ -13,7 +16,7 @@ export function CommandPalette({
   vimMode,
   darkMode,
   completer,
-  settings,
+  config,
 }: {
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
@@ -21,7 +24,7 @@ export function CommandPalette({
   darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   onTrigger: (command: AppCommand | undefined) => void;
-  settings: BuiltinSettings;
+  config: Config;
 }) {
   const options: FilterOption[] = [];
   const isMac = isMacLike();
@@ -32,8 +35,8 @@ export function CommandPalette({
     let shortcut: { key?: string; mac?: string; priority?: number } =
       def.command;
     // Let's see if there's a shortcut override
-    if (settings.shortcuts) {
-      const commandOverride = settings.shortcuts.find((
+    if (config.shortcuts) {
+      const commandOverride = config.shortcuts.find((
         shortcut,
       ) => {
         const parsedCommand = parseCommand(shortcut.command);

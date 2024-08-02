@@ -1,5 +1,4 @@
 import { clientStore, editor } from "$sb/syscalls.ts";
-import { readSettings } from "$sb/lib/settings_page.ts";
 import { updateMarkdownPreview } from "./preview.ts";
 
 export async function togglePreview() {
@@ -13,6 +12,5 @@ export async function togglePreview() {
 }
 
 async function hideMarkdownPreview() {
-  const setting = await readSettings({ previewOnRHS: true });
-  await editor.hidePanel(setting.previewOnRHS ? "rhs" : "lhs");
+  await editor.hidePanel("rhs");
 }

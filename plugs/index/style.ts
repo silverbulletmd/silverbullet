@@ -2,8 +2,8 @@ import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { readSetting } from "$sb/lib/settings_page.ts";
 import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { system } from "$sb/syscalls.ts";
 
 export type StyleObject = ObjectValue<{
   style: string;
@@ -20,7 +20,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
   if (
     lastCustomStyleRead === null || Date.now() > lastCustomStyleRead + 10000
   ) {
-    customStylePages = await readSetting("customStyles", []);
+    customStylePages = await system.getSpaceConfig("customStyles", []);
     lastCustomStyleRead = Date.now();
     if (!Array.isArray(customStylePages)) {
       customStylePages = [customStylePages];
@@ -30,7 +30,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     );
   }
 
-  // Also collect CSS from custom styles in settings
+  // Also collect CSS from custom styles in config
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
@@ -54,7 +54,7 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     const codeText = codeTextNode.children![0].text!;
     let codeOrigin = "";
     if (customStylePages.includes(name)) {
-      codeOrigin = "settings";
+      codeOrigin = "config";
     } else if (name.startsWith("Library/")) {
       codeOrigin = "library";
     } else {

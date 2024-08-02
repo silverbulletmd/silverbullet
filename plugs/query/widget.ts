@@ -1,4 +1,4 @@
-import { codeWidget, editor, markdown } from "$sb/syscalls.ts";
+import { codeWidget, editor, markdown, system } from "$sb/syscalls.ts";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -20,14 +20,18 @@ export async function widget(
   bodyText: string,
   pageName: string,
 ): Promise<CodeWidgetContent> {
+  const config = await system.getSpaceConfig();
   const pageObject = await loadPageObject(pageName);
   try {
     let resultMarkdown = "";
     const parsedQuery = await parseQuery(
-      await replaceTemplateVars(bodyText, pageObject),
+      await replaceTemplateVars(bodyText, pageObject, config),
     );
 
-    const results = await renderQuery(parsedQuery, { page: pageObject });
+    const results = await renderQuery(parsedQuery, {
+      page: pageObject,
+      config,
+    });
     if (Array.isArray(results)) {
       resultMarkdown = jsonToMDTable(results);
     } else {

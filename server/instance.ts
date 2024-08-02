@@ -1,8 +1,10 @@
 import type { SilverBulletHooks } from "../lib/manifest.ts";
 import {
+  type ConfigContainer,
+  defaultConfig,
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,
-} from "$common/settings.ts";
+} from "../common/config.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
@@ -19,7 +21,7 @@ import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
-import type { BuiltinSettings } from "$type/settings.ts";
+import type { Config } from "../type/config.ts";
 
 export type SpaceServerConfig = {
   hostname: string;
@@ -36,13 +38,13 @@ export type SpaceServerConfig = {
 };
 
 // Equivalent of Client on the server
-export class SpaceServer {
+export class SpaceServer implements ConfigContainer {
   public pagesPath: string;
   auth?: { user: string; pass: string };
   authToken?: string;
   hostname: string;
 
-  settings?: BuiltinSettings;
+  config: Config;
   spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;
@@ -66,6 +68,7 @@ export class SpaceServer {
     this.authToken = config.authToken;
     this.syncOnly = config.syncOnly;
     this.readOnly = config.readOnly;
+    this.config = defaultConfig;
     this.enableSpaceScript = config.enableSpaceScript;
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
@@ -85,9 +88,9 @@ export class SpaceServer {
       ),
       (meta) => fileFilterFn(meta.name),
       async () => {
-        await this.reloadSettings();
-        if (typeof this.settings?.spaceIgnore === "string") {
-          fileFilterFn = gitIgnoreCompiler(this.settings.spaceIgnore).accepts;
+        await this.loadConfig();
+        if (typeof this.config?.spaceIgnore === "string") {
+          fileFilterFn = gitIgnoreCompiler(this.config.spaceIgnore).accepts;
         } else {
           fileFilterFn = () => true;
         }
@@ -115,6 +118,7 @@ export class SpaceServer {
         eventHook,
         this.readOnly,
         this.enableSpaceScript,
+        this,
       );
       this.serverSystem = serverSystem;
     }
@@ -133,15 +137,18 @@ export class SpaceServer {
       this.spacePrimitives = this.serverSystem.spacePrimitives;
     }
 
-    await this.reloadSettings();
+    await this.loadConfig();
     console.log("Booted server with hostname", this.hostname);
   }
 
-  async reloadSettings() {
-    this.settings = await ensureAndLoadSettingsAndIndex(this.spacePrimitives);
+  async loadConfig() {
+    this.config = await ensureAndLoadSettingsAndIndex(
+      this.spacePrimitives,
+      this.system,
+    );
 
     if (this.serverSystem) {
-      updateObjectDecorators(this.settings, this.serverSystem.ds);
+      updateObjectDecorators(this.config, this.serverSystem.ds);
     }
   }
 }

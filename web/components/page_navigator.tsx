@@ -5,7 +5,7 @@ import type {
   CompletionResult,
 } from "@codemirror/autocomplete";
 import type { PageMeta } from "../../plug-api/types.ts";
-import { tagRegex as mdTagRegex } from "$common/markdown_parser/parser.ts";
+import { tagRegex as mdTagRegex } from "$common/markdown_parser/constants.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 

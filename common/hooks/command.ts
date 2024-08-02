@@ -2,11 +2,7 @@ import type { Hook, Manifest } from "../../lib/plugos/types.ts";
 import type { System } from "../../lib/plugos/system.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import type { ObjectValue } from "../../plug-api/types.ts";
-import {
-  type FrontmatterConfig,
-  SnippetConfig,
-} from "../../plugs/template/types.ts";
-import { NewPageConfig } from "../../plugs/template/types.ts";
+import type { FrontmatterConfig } from "../../plugs/template/types.ts";
 import { throttle } from "../../lib/async.ts";
 import type { AppCommand, CommandHookEvents } from "../../lib/command.ts";
 import type { CommandHookT } from "$lib/manifest.ts";
@@ -90,7 +86,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
     for (const page of templateCommands) {
       try {
         if (page.hooks!.newPage) {
-          const newPageConfig = NewPageConfig.parse(page.hooks!.newPage);
+          const newPageConfig = page.hooks!.newPage;
           const cmdDef = {
             name: newPageConfig.command!,
             key: newPageConfig.key,
@@ -104,7 +100,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
           });
         }
         if (page.hooks!.snippet) {
-          const snippetConfig = SnippetConfig.parse(page.hooks!.snippet);
+          const snippetConfig = page.hooks!.snippet;
           const cmdDef = {
             name: snippetConfig.command!,
             key: snippetConfig.key,

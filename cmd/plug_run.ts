@@ -13,6 +13,7 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { EventHook } from "../common/hooks/event.ts";
 import { sleep } from "$lib/async.ts";
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
+import { type ConfigContainer, defaultConfig } from "../common/config.ts";
 
 export async function plugRunCommand(
   {
@@ -73,6 +74,11 @@ export async function runPlug(
   const ds = new DataStore(kvPrimitives);
   const mq = new DataStoreMQ(ds);
   const eventHook = new EventHook();
+  // TODO: Actually load config from the space
+  const configContainer: ConfigContainer = {
+    config: defaultConfig,
+    loadConfig: () => Promise.resolve(),
+  };
 
   const serverSystem = new ServerSystem(
     new AssetBundlePlugSpacePrimitives(
@@ -86,6 +92,7 @@ export async function runPlug(
     eventHook,
     false,
     true,
+    configContainer,
   );
   await serverSystem.init(true);
   if (httpHostname && httpServerPort) {

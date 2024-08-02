@@ -50,9 +50,9 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         });
       }
     }
-    if (this.editor.settings?.shortcuts) {
+    if (this.editor.config?.shortcuts) {
       // Add slash commands for shortcuts that configure them
-      for (const shortcut of this.editor.settings.shortcuts) {
+      for (const shortcut of this.editor.config.shortcuts) {
         if (shortcut.slashCommand) {
           const parsedCommand = parseCommand(shortcut.command);
           this.slashCommands.set(shortcut.slashCommand, {

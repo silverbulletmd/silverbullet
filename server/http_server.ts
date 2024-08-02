@@ -280,7 +280,7 @@ export class HttpServer {
         url.pathname === "/"
       ) {
         // Serve the UI (index.html)
-        const indexPage = parsePageRef(spaceServer.settings?.indexPage!).page;
+        const indexPage = parsePageRef(spaceServer.config?.indexPage!).page;
         return this.renderHtmlPage(spaceServer, indexPage, c);
       }
       try {

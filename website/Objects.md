@@ -181,6 +181,14 @@ This is another meta tag, which is used to index all [[Attributes]] used in your
 attribute where page = @page.name limit 1 
 ```
 
+## space-config
+This stores all configuration picked up as part of [[Space Config]]
+
+```query
+space-config select key
+```
+
+
 # System tags
 The following tags are technically implemented a bit differently than the rest, but they are still available to be queried.
 

@@ -205,7 +205,7 @@ export function attachmentExtension(editor: Client) {
   }
 
   async function saveFile(file: UploadFile) {
-    const maxSize = editor.settings.maximumAttachmentSize ||
+    const maxSize = editor.config.maximumAttachmentSize ||
       maximumAttachmentSize;
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.flashNotification(
@@ -224,7 +224,7 @@ export function attachmentExtension(editor: Client) {
     }
     const attachmentPath = resolvePath(editor.currentPage, finalFileName);
     await editor.space.writeAttachment(attachmentPath, file.content);
-    const linkStyle = editor.settings.defaultLinkStyle ||
+    const linkStyle = editor.config.defaultLinkStyle ||
       defaultLinkStyle.toLowerCase();
     let attachmentMarkdown = "";
     if (linkStyle === "wikilink") {

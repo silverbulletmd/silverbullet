@@ -81,20 +81,30 @@ export function cleanupJSON(a: any): any {
   return expanded;
 }
 
-export function deepObjectMerge(a: any, b: any): any {
+/**
+ * Performs a deep merge of two objects, with b taking precedence over a
+ * @param a
+ * @param b
+ * @returns
+ */
+export function deepObjectMerge(a: any, b: any, reverseArrays = false): any {
   if (typeof a !== typeof b) {
     return b;
   }
   if (typeof a === "object") {
     if (Array.isArray(a) && Array.isArray(b)) {
-      return [...a, ...b];
+      if (reverseArrays) {
+        return [...b, ...a];
+      } else {
+        return [...a, ...b];
+      }
     } else {
       const aKeys = Object.keys(a);
       const bKeys = Object.keys(b);
       const merged = { ...a };
       for (const key of bKeys) {
         if (aKeys.includes(key)) {
-          merged[key] = deepObjectMerge(a[key], b[key]);
+          merged[key] = deepObjectMerge(a[key], b[key], reverseArrays);
         } else {
           merged[key] = b[key];
         }

@@ -19,6 +19,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun, sleep } from "../lib/async.ts";
 import { parseCommand } from "$common/command.ts";
+import { defaultActionButtons } from "../common/config.ts";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -162,7 +163,7 @@ export class MainUI {
             darkMode={viewState.uiOptions.darkMode}
             completer={client.miniEditorComplete.bind(client)}
             recentCommands={viewState.recentCommands}
-            settings={this.client.settings}
+            config={this.client.config}
           />
         )}
         {viewState.showFilterBox && (
@@ -232,7 +233,7 @@ export class MainUI {
           actionButtons={[
             // Sync button
             ...(!window.silverBulletConfig.syncOnly &&
-                !viewState.settings.hideSyncButton)
+                !viewState.config.hideSyncButton)
               // If we support syncOnly, don't show this toggle button
               ? [{
                 icon: featherIcons.RefreshCw,
@@ -264,7 +265,7 @@ export class MainUI {
               }]
               : [],
             // Edit (reader/writer) button ONLY on mobile
-            ...(viewState.isMobile && !viewState.settings.hideEditButton)
+            ...(viewState.isMobile && !viewState.config.hideEditButton)
               ? [{
                 icon: featherIcons.Edit3,
                 description: viewState.uiOptions.forcedROMode
@@ -287,7 +288,9 @@ export class MainUI {
               }]
               : [],
             // Custom action buttons
-            ...viewState.settings.actionButtons
+            ...(viewState.config.actionButtons.length > 0
+              ? viewState.config.actionButtons
+              : defaultActionButtons)
               .filter((button) =>
                 (typeof button.mobile === "undefined") ||
                 (button.mobile === viewState.isMobile)

@@ -15,17 +15,19 @@ Attachments can be linked to in two ways:
 * Via the wiki link syntax: `[[attachment.pdf]]`. These paths are absolute and relative to your space’s root, just like regular page links. That is: on a page `MyFolder/Hello` an attachment link `[[attachment.pdf]]` would link to the file `attachment.pdf` in the space’s root folder.
 
 # Embedding
-Images can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`:
+Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`:
+Images, videos, audio and PDFs are currently supported.
 
 * `![alternate text](image.png)`
 * `![[image.png]]`
 
 These follow the same relative/absolute path rules as links described before.
 
-## Image resizing
+## Media resizing
 
-In addition, images can be _sized_ using the following syntax:
+In addition, media can be _sized_ using the following syntax:
 * Specifying only a width: `![Alt text|300](image.png)` or `![[image.png|300]]`
+* Specifying only a height: `![Alt text|x300](image.png)` or `![[image.png|x300]]`
 * Specifying both width and height: `![Hello|300x300](image.png)` or `![[image.png|300x300]]`
 
 # Management

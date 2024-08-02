@@ -1,8 +1,9 @@
-import { editor, space, template } from "$sb/syscalls.ts";
+import { editor, space, system, template } from "$sb/syscalls.ts";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
-import { FrontmatterConfig, type TemplateObject } from "./types.ts";
+import type { FrontmatterConfig, TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
+import type { Config } from "../../type/config.ts";
 
 export async function newPageCommand(
   _cmdDef: any,
@@ -93,6 +94,7 @@ export async function instantiatePageTemplate(
   customData: any = undefined,
 ): Promise<string | void> {
   const templateText = await space.readPage(templateName!);
+  const config = await system.getSpaceConfig();
 
   console.log(
     "Instantiating page template",
@@ -114,24 +116,17 @@ export async function instantiatePageTemplate(
   const { frontmatter } = await renderTemplate(
     templateText,
     tempPageMeta,
-    { page: tempPageMeta },
+    { page: tempPageMeta, config },
   );
 
-  let frontmatterConfig: FrontmatterConfig;
-  try {
-    frontmatterConfig = FrontmatterConfig.parse(frontmatter!);
-  } catch (e: any) {
-    await editor.flashNotification(
-      `Error parsing template frontmatter for ${templateName}: ${e.message}`,
-    );
-    return;
-  }
+  const frontmatterConfig: FrontmatterConfig = frontmatter;
   const newPageConfig = frontmatterConfig.hooks!.newPage!;
 
   let pageName: string | undefined = intoCurrentPage ||
     await replaceTemplateVars(
       newPageConfig.suggestedName || "",
       tempPageMeta,
+      config,
     );
 
   if (!intoCurrentPage && askName && newPageConfig.confirmName !== false) {
@@ -140,6 +135,7 @@ export async function instantiatePageTemplate(
       await replaceTemplateVars(
         newPageConfig.suggestedName || "",
         tempPageMeta,
+        config,
       ),
     );
     if (!pageName) {
@@ -178,7 +174,7 @@ export async function instantiatePageTemplate(
   const { text: pageText, renderedFrontmatter } = await renderTemplate(
     templateText,
     tempPageMeta,
-    { page: tempPageMeta },
+    { page: tempPageMeta, config },
   );
   let fullPageText = renderedFrontmatter
     ? "---\n" + renderedFrontmatter + "---\n" + pageText
@@ -229,6 +225,7 @@ export async function loadPageObject(pageName?: string): Promise<PageMeta> {
 export function replaceTemplateVars(
   s: string,
   pageMeta: PageMeta,
+  config: Config,
 ): Promise<string> {
-  return template.renderTemplate(s, {}, { page: pageMeta });
+  return template.renderTemplate(s, {}, { page: pageMeta, config });
 }

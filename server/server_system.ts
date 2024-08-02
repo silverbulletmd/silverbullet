@@ -14,6 +14,7 @@ import { Space } from "../common/space.ts";
 import { markdownSyscalls } from "$common/syscalls/markdown.ts";
 import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";
+import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../lib/plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
@@ -38,6 +39,7 @@ import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
+import type { ConfigContainer } from "../common/config.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -55,6 +57,7 @@ export class ServerSystem extends CommonSystem {
     eventHook: EventHook,
     readOnlyMode: boolean,
     enableSpaceScript: boolean,
+    private configContainer: ConfigContainer,
   ) {
     super(mq, ds, eventHook, readOnlyMode, enableSpaceScript);
   }
@@ -97,35 +100,19 @@ export class ServerSystem extends CommonSystem {
 
     this.system.addHook(codeWidgetHook);
 
-    // Look up spaceCache meta data in KV
-    const spaceCache = (await this.ds.get(["$spaceCache"])) || {};
-
     const eventedSpacePrimitives = new EventedSpacePrimitives(
       new PlugSpacePrimitives(
         this.spacePrimitives,
         plugNamespaceHook,
       ),
       this.eventHook,
-      spaceCache,
+      {},
     );
 
     // Disable events until everything is set up
     eventedSpacePrimitives.enabled = false;
 
     this.spacePrimitives = eventedSpacePrimitives;
-
-    this.eventHook.addLocalListener(
-      "file:spaceSnapshotted",
-      async (snapshot: Record<string, any>) => {
-        // console.log("Space snapshot updated");
-        try {
-          await this.ds.set(["$spaceCache"], snapshot);
-        } catch {
-          // This may fail if the space is too large, that's fine, persisting the snapshot is not critical
-          // EXPLIT IGNORE
-        }
-      },
-    );
 
     const space = new Space(this.spacePrimitives, this.eventHook);
 
@@ -136,9 +123,15 @@ export class ServerSystem extends CommonSystem {
       spaceReadSyscalls(space),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      systemSyscalls(this.system, this.readOnlyMode, this),
+      systemSyscalls(
+        this.system,
+        this.readOnlyMode,
+        this,
+        this.configContainer,
+      ),
       mqSyscalls(this.mq),
       languageSyscalls(),
+      jsonschemaSyscalls(),
       templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),

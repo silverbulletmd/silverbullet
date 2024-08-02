@@ -36,13 +36,13 @@ import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
-import { deepObjectMerge } from "../plug-api/lib/json.ts";
 import type { Query } from "../plug-api/types.ts";
 import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
+import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -124,20 +124,6 @@ export class ClientSystem extends CommonSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.system.addHook(this.slashCommandHook);
 
-    this.system.on({
-      plugLoaded: (plug) => {
-        // Apply plug overrides
-        const manifestOverrides = this.client.settings.plugOverrides;
-        if (manifestOverrides && manifestOverrides[plug.manifest!.name]) {
-          plug.manifest = deepObjectMerge(
-            plug.manifest,
-            manifestOverrides[plug.manifest!.name],
-          );
-          // console.log("New manifest", plug.manifest);
-        }
-      },
-    });
-
     this.eventHook.addLocalListener(
       "file:changed",
       async (path: string, _selfUpdate, _oldHash, newHash) => {
@@ -166,7 +152,7 @@ export class ClientSystem extends CommonSystem {
       eventSyscalls(this.eventHook),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this, this.client),
+      systemSyscalls(this.system, false, this, this.client, this.client),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -174,6 +160,7 @@ export class ClientSystem extends CommonSystem {
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
+      jsonschemaSyscalls(),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)
@@ -242,6 +229,7 @@ export class ClientSystem extends CommonSystem {
   }
 
   getObjectByRef<T>(page: string, tag: string, ref: string) {
+    console.log("Calling getObjectByRef", page, tag, ref);
     return this.localSyscall(
       "system.invokeFunction",
       ["index.getObjectByRef", page, tag, ref],

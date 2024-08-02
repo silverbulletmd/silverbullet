@@ -17,7 +17,10 @@ While a custom language, it takes a lot of inspiration from JavaScript and SQL, 
   * `.` for the current object
   * `attr` for the current object’s attribute with the name `attr`
   * `<expression>.attr` to access an attribute from the object that `<expression>` evaluates to
-* variables: `@page`
+* variables:
+  * `@page` points to the currently open page
+  * `@config` contains the space’s current [[Space Config]]
+  * Variables defined through `#let` or `#each` directives in [[Template Language]]
 
 ## Examples
 ```template

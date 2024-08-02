@@ -2,11 +2,11 @@ Transclusions are an extension of the [[Markdown]] syntax enabling inline embedd
 
 The general syntax is `![[path]]`. Two types of transclusions are currently supported:
 
-# Images
+# Media
 Syntax: `![[path/to/image.jpg]]` see [[Attachments#Embedding]] for more details.
 
-Image resizing is also supported:
-![[Attachments#Image resizing]]
+Media resizing is also supported:
+![[Attachments#Media resizing]]
 # Pages
 Syntax:
 * `![[page name]]` embed an entire page

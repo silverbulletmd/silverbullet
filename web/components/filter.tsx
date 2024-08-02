@@ -200,7 +200,9 @@ export function FilterList({
               className={(selectedOption === idx
                 ? "sb-option sb-selected-option"
                 : "sb-option") +
-                (option.cssClass ? " sb-decorated-object " + option.cssClass : "")}
+                (option.cssClass
+                  ? " sb-decorated-object " + option.cssClass
+                  : "")}
               onMouseMove={() => {
                 if (selectedOption !== idx) {
                   setSelectionOption(idx);

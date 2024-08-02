@@ -76,6 +76,7 @@ export function templateVariableComplete(completeEvent: CompleteEvent) {
   }
 
   allVariables.add("page");
+  allVariables.add("config");
   allCompletions = allCompletions.concat(
     [...allVariables].map((key) => ({
       label: `@${key}`,

@@ -21,7 +21,7 @@ export function Panel({
       type: "html",
       html: config.html,
       script: config.script,
-      theme: document.getElementsByTagName("html")[0].dataset.theme
+      theme: document.getElementsByTagName("html")[0].dataset.theme,
     });
   }
 
@@ -31,7 +31,7 @@ export function Panel({
       return;
     }
 
-    iframe.addEventListener("load", updateContent)
+    iframe.addEventListener("load", updateContent);
     updateContent();
 
     return () => {
@@ -89,7 +89,12 @@ export function Panel({
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
-      <iframe srcDoc={panelHtml} ref={iFrameRef} style={{ visibility: 'hidden' }} onLoad={() => iFrameRef.current!.style.visibility = "visible" }/>
+      <iframe
+        srcDoc={panelHtml}
+        ref={iFrameRef}
+        style={{ visibility: "hidden" }}
+        onLoad={() => iFrameRef.current!.style.visibility = "visible"}
+      />
     </div>
   );
 }
