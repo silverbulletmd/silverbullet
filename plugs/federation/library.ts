@@ -4,15 +4,7 @@ import { parsePageRef } from "$sb/lib/page_ref.ts";
 import { invokeFunction } from "$sb/syscalls/system.ts";
 import { federatedPathToLocalPath, wildcardPathToRegex } from "./util.ts";
 import { confirm } from "$sb/syscalls/editor.ts";
-
-type LibraryDef = {
-  /**
-   * @deprecated Use `import` instead
-   */
-  source?: string;
-  import: string;
-  exclude?: string[];
-};
+import type { LibraryDef } from "$type/config.ts";
 
 export async function updateLibrariesCommand() {
   if (

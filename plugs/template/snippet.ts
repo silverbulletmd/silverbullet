@@ -13,7 +13,7 @@ import {
   extractFrontmatter,
   prepareFrontmatterDispatch,
 } from "$sb/lib/frontmatter.ts";
-import { SnippetConfig } from "./types.ts";
+import type { SnippetConfig } from "./types.ts";
 import { deepObjectMerge } from "$sb/lib/json.ts";
 
 export async function snippetSlashComplete(
@@ -55,20 +55,7 @@ export async function insertSnippetTemplate(
       pageObject,
       { page: pageObject, config },
     );
-  let snippetTemplate: SnippetConfig;
-  try {
-    snippetTemplate = SnippetConfig.parse(frontmatter.hooks!.snippet!);
-  } catch (e: any) {
-    console.error(
-      `Invalid template configuration for ${slashCompletion.templatePage}:`,
-      e.message,
-    );
-    await editor.flashNotification(
-      `Invalid template configuration for ${slashCompletion.templatePage}, won't insert snippet`,
-      "error",
-    );
-    return;
-  }
+  const snippetTemplate: SnippetConfig = frontmatter.hooks.snippet;
 
   let cursorPos = await editor.getCursor();
 

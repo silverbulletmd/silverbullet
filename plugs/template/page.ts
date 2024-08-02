@@ -1,7 +1,7 @@
 import { editor, space, system, template } from "$sb/syscalls.ts";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
-import { FrontmatterConfig, type TemplateObject } from "./types.ts";
+import type { FrontmatterConfig, TemplateObject } from "./types.ts";
 import { renderTemplate } from "./api.ts";
 import type { Config } from "../../type/config.ts";
 
@@ -119,15 +119,7 @@ export async function instantiatePageTemplate(
     { page: tempPageMeta, config },
   );
 
-  let frontmatterConfig: FrontmatterConfig;
-  try {
-    frontmatterConfig = FrontmatterConfig.parse(frontmatter!);
-  } catch (e: any) {
-    await editor.flashNotification(
-      `Error parsing template frontmatter for ${templateName}: ${e.message}`,
-    );
-    return;
-  }
+  const frontmatterConfig: FrontmatterConfig = frontmatter;
   const newPageConfig = frontmatterConfig.hooks!.newPage!;
 
   let pageName: string | undefined = intoCurrentPage ||

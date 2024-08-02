@@ -1,103 +1,215 @@
-import type { ObjectValue } from "../../plug-api/types.ts";
-import { z, type ZodEffects } from "zod";
+import type { ObjectValue } from "$sb/types.ts";
 
-export const CommandConfig = z.object({
-  command: z.string().optional(),
-  key: z.string().optional(),
-  mac: z.string().optional(),
-});
-
-export type CommandConfig = z.infer<typeof CommandConfig>;
+export type CommandConfig = {
+  command?: string;
+  key?: string;
+  mac?: string;
+};
 
 /**
  * Used for creating new pages using {[Page: From Template]} command
  */
-export const NewPageConfig = refineCommand(
-  z.object({
-    // Suggested name for the new page, can use template placeholders
-    suggestedName: z.string().optional(),
-    // Suggest (or auto use) this template for a specific prefix
-    forPrefix: z.string().optional(),
-    // Confirm the name before creating
-    confirmName: z.boolean().optional(),
-    // If the page already exists, open it instead of creating a new one
-    openIfExists: z.boolean().optional(),
-  }).strict().merge(CommandConfig),
-);
-
-export type NewPageConfig = z.infer<typeof NewPageConfig>;
+export type NewPageConfig = CommandConfig & {
+  // Suggested name for the new page, can use template placeholders
+  suggestedName?: string;
+  // Suggest (or auto use) this template for a specific prefix
+  forPrefix?: string;
+  // Confirm the name before creating
+  confirmName?: boolean;
+  // If the page already exists, open it instead of creating a new one
+  openIfExists?: boolean;
+};
 
 /**
  * Represents a snippet
  */
+export type SnippetConfig = CommandConfig & {
+  slashCommand: string; // trigger
+  order?: number; // order in the list
+  // Regex match to apply (implicitly makes the body the regex replacement)
+  matchRegex?: string;
+  // Deprecated: use matchRegex instead (for backwards compatibility)
+  match?: string;
+  insertAt?: "cursor" | "line-start" | "line-end" | "page-start" | "page-end"; // defaults to cursor
+};
 
-export const SnippetConfig = refineCommand(
-  z.object({
-    slashCommand: z.string(), // trigger
-    order: z.number().optional(), // order in the list
-    // Regex match to apply (implicitly makes the body the regex replacement)
-    matchRegex: z.string().optional(),
-    // Deprecated: use matchRegex instead (for backwards compatibility)
-    match: z.string().optional(),
-    insertAt: z.enum([
-      "cursor",
-      "line-start",
-      "line-end",
-      "page-start",
-      "page-end",
-    ]).optional(), // defaults to cursor
-  }).strict().merge(CommandConfig),
-);
+export type WidgetConfig = {
+  where: string;
+  order?: number;
+};
 
-/**
- * Ensures that 'command' is present if either 'key' or 'mac' is present for a particular object
- * @param o object to 'refine' with this constraint
- * @returns
- */
-function refineCommand<T extends typeof CommandConfig>(o: T): ZodEffects<T> {
-  return o.refine((data) => {
-    // Check if either 'key' or 'mac' is present
-    const hasKeyOrMac = data.key !== undefined || data.mac !== undefined;
-    // Ensure 'command' is present if either 'key' or 'mac' is present
-    return !hasKeyOrMac || data.command !== undefined;
-  }, {
-    message:
-      "Attribute 'command' is required when specifying a key binding via 'key' and/or 'mac'.",
-  });
-}
+export type HooksConfig = {
+  top?: WidgetConfig;
+  bottom?: WidgetConfig;
+  newPage?: NewPageConfig;
+  snippet?: SnippetConfig;
+};
 
-export type SnippetConfig = z.infer<typeof SnippetConfig>;
-
-export const WidgetConfig = z.object({
-  where: z.string(),
-  priority: z.number().optional(),
-});
-
-export type WidgetConfig = z.infer<typeof WidgetConfig>;
-
-export const HooksConfig = z.object({
-  top: WidgetConfig.optional(),
-  bottom: WidgetConfig.optional(),
-  newPage: NewPageConfig.optional(),
-  snippet: SnippetConfig.optional(),
-}).strict();
-
-export type HooksConfig = z.infer<typeof HooksConfig>;
-
-export const FrontmatterConfig = z.object({
+export type FrontmatterConfig = {
   // Used for matching in page navigator
-  displayName: z.string().optional(),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
+  displayName?: string;
+  tags?: string | string[];
 
   // For use in the template selector slash commands and other avenues
-
-  description: z.string().optional(),
+  description?: string;
   // Frontmatter can be encoded as an object (in which case we'll serialize it) or as a string
-  frontmatter: z.union([z.record(z.unknown()), z.string()]).optional(),
+  frontmatter?: Record<string, unknown> | string;
 
-  hooks: HooksConfig.optional(),
-});
-
-export type FrontmatterConfig = z.infer<typeof FrontmatterConfig>;
+  hooks?: HooksConfig;
+};
 
 export type TemplateObject = ObjectValue<FrontmatterConfig>;
+import type { JSONSchemaType } from "ajv";
+
+export const CommandConfigSchema: JSONSchemaType<CommandConfig> = {
+  type: "object",
+  properties: {
+    command: { type: "string", nullable: true },
+    key: { type: "string", nullable: true },
+    mac: { type: "string", nullable: true },
+  },
+  required: [],
+  additionalProperties: false,
+};
+
+export const NewPageConfigSchema: JSONSchemaType<NewPageConfig> = {
+  type: "object",
+  properties: {
+    command: { type: "string", nullable: true },
+    key: { type: "string", nullable: true },
+    mac: { type: "string", nullable: true },
+    suggestedName: { type: "string", nullable: true },
+    forPrefix: { type: "string", nullable: true },
+    confirmName: { type: "boolean", nullable: true },
+    openIfExists: { type: "boolean", nullable: true },
+  },
+  required: [],
+  additionalProperties: false,
+};
+
+export const SnippetConfigSchema: JSONSchemaType<SnippetConfig> = {
+  type: "object",
+  properties: {
+    command: { type: "string", nullable: true },
+    key: { type: "string", nullable: true },
+    mac: { type: "string", nullable: true },
+    slashCommand: { type: "string" },
+    order: { type: "number", nullable: true },
+    matchRegex: { type: "string", nullable: true },
+    match: { type: "string", nullable: true },
+    insertAt: {
+      type: "string",
+      enum: [
+        "cursor",
+        "line-start",
+        "line-end",
+        "page-start",
+        "page-end",
+      ],
+      nullable: true,
+    },
+  },
+  required: ["slashCommand"],
+  additionalProperties: false,
+};
+
+export const WidgetConfigSchema: JSONSchemaType<WidgetConfig> = {
+  type: "object",
+  properties: {
+    where: { type: "string" },
+    order: { type: "number", nullable: true },
+  },
+  required: ["where"],
+  additionalProperties: false,
+};
+
+export const HooksConfigSchema: JSONSchemaType<HooksConfig> = {
+  type: "object",
+  properties: {
+    top: {
+      type: "object",
+      properties: WidgetConfigSchema.properties,
+      required: ["where"],
+      nullable: true,
+    },
+    bottom: {
+      type: "object",
+      properties: WidgetConfigSchema.properties,
+      required: ["where"],
+      nullable: true,
+    },
+    newPage: {
+      type: "object",
+      properties: NewPageConfigSchema.properties,
+      required: [],
+      nullable: true,
+    },
+    snippet: {
+      type: "object",
+      properties: SnippetConfigSchema.properties,
+      required: ["slashCommand"],
+      nullable: true,
+    },
+  },
+  required: [],
+  additionalProperties: false,
+};
+
+export const FrontmatterConfigSchema = {
+  type: "object",
+  properties: {
+    displayName: { type: "string", nullable: true },
+    tags: {
+      oneOf: [
+        { type: "string" },
+        { type: "array", items: { type: "string" } },
+        { type: "null" },
+      ],
+    },
+    description: { type: "string", nullable: true },
+    frontmatter: {
+      oneOf: [
+        { type: "object", additionalProperties: true },
+        { type: "string" },
+        { type: "null" },
+      ],
+    },
+    hooks: {
+      type: "object",
+      properties: HooksConfigSchema.properties,
+      required: [],
+      nullable: true,
+    },
+  },
+  required: [],
+  additionalProperties: true,
+};
+
+export const TemplateObjectSchema = {
+  type: "object",
+  properties: {
+    displayName: { type: "string", nullable: true },
+    tags: {
+      oneOf: [
+        { type: "string" },
+        { type: "array", items: { type: "string" } },
+        { type: "null" },
+      ],
+    },
+    description: { type: "string", nullable: true },
+    frontmatter: {
+      oneOf: [
+        { type: "object", additionalProperties: true },
+        { type: "string" },
+        { type: "null" },
+      ],
+    },
+    hooks: {
+      type: "object",
+      properties: HooksConfigSchema.properties,
+      required: [],
+      nullable: true,
+    },
+  },
+  additionalProperties: true,
+};

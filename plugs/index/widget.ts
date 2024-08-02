@@ -3,7 +3,7 @@ import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
 import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
-import { type TemplateObject, WidgetConfig } from "../template/types.ts";
+import type { TemplateObject } from "../template/types.ts";
 import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
 import { evalQueryExpression } from "$sb/lib/query_expression.ts";
 import { renderTemplate } from "../template/plug_api.ts";
@@ -48,7 +48,7 @@ export async function renderTemplateWidgets(side: "top" | "bottom"): Promise<
       );
       continue;
     }
-    const blockDef = WidgetConfig.parse(template.hooks[side]!);
+    const blockDef = template.hooks[side]!;
     const exprAST = parseTreeToAST(
       await language.parseLanguage("expression", blockDef.where!),
     );

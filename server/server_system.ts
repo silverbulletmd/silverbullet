@@ -14,6 +14,7 @@ import { Space } from "../common/space.ts";
 import { markdownSyscalls } from "$common/syscalls/markdown.ts";
 import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
 import { systemSyscalls } from "$common/syscalls/system.ts";
+import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import { sandboxFetchSyscalls } from "../lib/plugos/syscalls/fetch.ts";
 import { shellSyscalls } from "./syscalls/shell.ts";
@@ -130,6 +131,7 @@ export class ServerSystem extends CommonSystem {
       ),
       mqSyscalls(this.mq),
       languageSyscalls(),
+      jsonschemaSyscalls(),
       templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),

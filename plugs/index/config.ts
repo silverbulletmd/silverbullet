@@ -1,6 +1,5 @@
-import type { IndexTreeEvent } from "../../plug-api/types.ts";
-import { findNodeOfType, traverseTreeAsync } from "../../plug-api/lib/tree.ts";
-import type { ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
 import { indexObjects } from "./api.ts";
 import { YAML } from "$sb/syscalls.ts";
 

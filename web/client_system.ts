@@ -42,6 +42,7 @@ import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
+import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -159,6 +160,7 @@ export class ClientSystem extends CommonSystem {
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
+      jsonschemaSyscalls(),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)
