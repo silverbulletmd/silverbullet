@@ -2,8 +2,9 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { Compartment } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import type { ChangeSet, Compartment } from "@codemirror/state";
+import { EditorView, type ViewUpdate } from "@codemirror/view";
+import { rebaseUpdates } from "@codemirror/collab";
 import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
@@ -72,6 +73,7 @@ import { findNodeMatching } from "$sb/lib/tree.ts";
 import type { LinkObject } from "../plugs/index/page_links.ts";
 import type { BuiltinSettings } from "$type/settings.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
+import { editor } from "$sb/syscalls.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -136,6 +138,8 @@ export class Client {
   syncService!: ISyncService;
 
   private onLoadPageRef: PageRef;
+
+  private localChanges: ChangeSet[] = [];
 
   constructor(
     private parent: Element,
@@ -1129,21 +1133,13 @@ export class Client {
 
     if (!loadingDifferentPage && this.initialPageText) {
       const fileChanges = diffAndPrepareChanges(this.initialPageText, doc.text);
-      console.log({
-        initialText: this.initialPageText,
-        docText: doc.text,
-        fileChanges,
-      });
+
       editorView.dispatch({
         changes: fileChanges,
       });
 
-      // Save the page if the merged version and retrieved version don't match
-      const mergedText = this.editorView.state.sliceDoc(0);
-
-      if (mergedText !== doc.text) {
-        this.save();
-      }
+      // Clear local changes
+      this.localChanges = [];
     } else {
       const editorState = createEditorState(
         this,
