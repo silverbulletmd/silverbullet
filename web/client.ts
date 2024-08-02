@@ -3,7 +3,6 @@ import type {
   CompletionResult,
 } from "@codemirror/autocomplete";
 import {
-  type ChangeSpec,
   type Compartment,
   EditorSelection,
   type SelectionRange,
