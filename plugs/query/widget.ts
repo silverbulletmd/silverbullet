@@ -20,6 +20,7 @@ import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
 import type { ChangeSpec } from "@codemirror/state";
+import { nodeAtPos } from "$sb/lib/tree.ts";
 
 export async function widget(
   bodyText: string,
@@ -90,18 +91,21 @@ export async function editButton(bodyText: string) {
 export async function bakeButton(bodyText: string) {
   try {
     const text = await editor.getText();
+
+    const pos = text.indexOf(bodyText);
     const tree = await markdown.parseMarkdown(text);
     addParentPointers(tree);
 
+    const textNode = nodeAtPos(tree, pos);
     // Need to find it in page to make the replacement, see editButton for comment about finding by content
-    const textNode = findNodeMatching(tree, (n) => n.text === bodyText);
     if (!textNode) {
       throw new Error(`Could not find node to bake`);
     }
     const blockNode = findParentMatching(
       textNode,
-      (n) => n.type === "FencedCode",
+      (n) => n.type === "FencedCode" || n.type === "Image",
     );
+
     if (!blockNode) {
       removeParentPointers(textNode);
       console.error("baked node", textNode);
@@ -135,18 +139,27 @@ export async function bakeAllWidgets() {
 
 /**
  * Create change description to replace a widget source with its markdown output
- * @param codeBlockNode node of type FencedCode for a markdown widget (eg. query, template, toc)
+ * @param nodeToReplace node of type FencedCode or Image for a markdown widget (eg. query, template, toc)
  * @returns single replacement for the editor, or null if the widget didn't render to markdown
  */
 async function changeForBake(
-  codeBlockNode: ParseTree,
+  nodeToReplace: ParseTree,
 ): Promise<ChangeSpec | null> {
-  const lang = renderToText(
-    findNodeOfType(codeBlockNode, "CodeInfo") ?? undefined,
-  );
-  const body = renderToText(
-    findNodeOfType(codeBlockNode, "CodeText") ?? undefined,
-  );
+  const lang = nodeToReplace.type === "FencedCode"
+    ? renderToText(findNodeOfType(nodeToReplace, "CodeInfo") ?? undefined)
+    : nodeToReplace.type === "Image"
+    ? "template"
+    : undefined;
+
+  let body: string | undefined = undefined;
+  if (nodeToReplace.type === "FencedCode") {
+    body = renderToText(findNodeOfType(nodeToReplace, "CodeText") ?? undefined);
+  } else if (nodeToReplace.type === "Image") {
+    const text = renderToText(nodeToReplace).slice(1);
+    body = `{{${text}}}`;
+  }
+  console.log(lang, body);
+
   if (!lang || body === undefined) {
     return null;
   }
@@ -158,15 +171,15 @@ async function changeForBake(
   );
   if (
     !content || !content.markdown === undefined ||
-    codeBlockNode.from === undefined ||
-    codeBlockNode.to === undefined
+    nodeToReplace.from === undefined ||
+    nodeToReplace.to === undefined
   ) { // Check attributes for undefined because 0 or empty string could be valid
     return null;
   }
 
   return {
-    from: codeBlockNode.from,
-    to: codeBlockNode.to,
+    from: nodeToReplace.from,
+    to: nodeToReplace.to,
     insert: content.markdown,
   };
 }

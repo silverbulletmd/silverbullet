@@ -27,6 +27,7 @@ export class MarkdownWidget extends WidgetType {
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
     readonly className: string,
+    readonly orignalText?: string,
   ) {
     super();
   }
@@ -262,13 +263,14 @@ export class MarkdownWidget extends WidgetType {
           ]).catch(console.error);
         });
       } else {
+        const bodyText = this.orignalText || this.bodyText;
         div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
           "click",
           (e) => {
             e.stopPropagation();
             this.client.clientSystem.localSyscall("system.invokeFunction", [
               button.invokeFunction,
-              this.bodyText,
+              bodyText,
             ]).then((newContent: string | undefined) => {
               if (newContent) {
                 div.innerText = newContent;

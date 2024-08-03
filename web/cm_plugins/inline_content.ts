@@ -216,9 +216,10 @@ export function inlineContentPlugin(client: Client) {
                   `{{rewriteRefsAndFederationLinks([[${url}]], "${url}")}}`,
                   codeWidgetCallback,
                   "sb-markdown-widget sb-markdown-widget-inline",
+                  text,
                 ),
                 block: true,
-              }).range(node.to),
+              }).range(node.to + 1),
             );
             return;
           }
