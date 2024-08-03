@@ -6,6 +6,9 @@ export function deepEqual(a: any, b: any): boolean {
   if (typeof a !== typeof b) {
     return false;
   }
+  if (a === null || b === null) {
+    return false;
+  }
   if (typeof a === "object") {
     if (Array.isArray(a) && Array.isArray(b)) {
       if (a.length !== b.length) {
