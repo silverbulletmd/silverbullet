@@ -7,7 +7,6 @@ import {
 import {
   addParentPointers,
   collectNodesOfType,
-  findNodeMatching,
   findNodeOfType,
   findParentMatching,
   type ParseTree,
