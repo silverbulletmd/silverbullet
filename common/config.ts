@@ -97,8 +97,7 @@ async function loadConfigsFromSystem(
     fullConfig = deepObjectMerge(fullConfig, { [config.key]: config.value });
   }
   // And clean up the JSON (expand .-separated paths, convert dates to strings)
-  fullConfig = cleanupJSON(fullConfig);
-  return fullConfig;
+  return cleanupJSON(fullConfig);
 }
 
 /**

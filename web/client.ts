@@ -271,6 +271,7 @@ export class Client implements ConfigContainer {
     this.clientSystem.slashCommandHook.buildAllCommands(
       this.clientSystem.system,
     );
+    this.eventHook.dispatchEvent("config:loaded", this.config);
   }
 
   private async initSync() {

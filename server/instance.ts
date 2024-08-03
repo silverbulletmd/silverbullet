@@ -149,6 +149,7 @@ export class SpaceServer implements ConfigContainer {
 
     if (this.serverSystem) {
       updateObjectDecorators(this.config, this.serverSystem.ds);
+      this.serverSystem.eventHook.dispatchEvent("config:loaded", this.config);
     }
   }
 }
