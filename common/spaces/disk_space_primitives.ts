@@ -18,6 +18,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
   fileListCache: FileMeta[] = [];
   fileListCacheTime: number = 0;
+  fileListCacheUpdating: boolean = false;
 
   constructor(rootPath: string) {
     this.rootPath = Deno.realPathSync(rootPath);
@@ -144,7 +145,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       this.fileListCache.length > 0 &&
       startTime - this.fileListCacheTime < 60000
     ) {
-      console.log("Returning cached file list");
       // Trigger a background sync, but return the cached list while the cache is being updated
       this.updateCacheInBackground();
       return this.fileListCache;
@@ -154,7 +154,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     const allFiles: FileMeta[] = await this.getFileList();
 
     const endTime = performance.now();
-    console.log("Fetched file list in", endTime - startTime, "ms");
+    console.log("Fetched uncached file list in", endTime - startTime, "ms");
 
     this.fileListCache = allFiles;
     this.fileListCacheTime = startTime;
@@ -194,6 +194,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   private updateCacheInBackground() {
+    if (this.fileListCacheUpdating) {
+      return;
+    }
+    this.fileListCacheUpdating = true;
     this.getFileList().then((allFiles) => {
       this.fileListCache = allFiles;
       this.fileListCacheTime = performance.now();
@@ -202,8 +206,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         allFiles.length,
         "files",
       );
+      this.fileListCacheUpdating = false;
     }).catch((error) => {
       console.error("Error updating file list cache in background:", error);
+      this.fileListCacheUpdating = false;
     });
   }
 }
