@@ -97,6 +97,13 @@ export function deepObjectMerge(a: any, b: any, reverseArrays = false): any {
   if (typeof a !== typeof b) {
     return b;
   }
+  if (a === undefined || a === null) {
+    return b;
+  }
+  if (b === undefined || b === null) {
+    return a;
+  }
+
   if (typeof a === "object") {
     if (Array.isArray(a) && Array.isArray(b)) {
       if (reverseArrays) {
