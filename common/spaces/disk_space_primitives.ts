@@ -18,7 +18,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
   fileListCache: FileMeta[] = [];
   fileListCacheTime: number = 0;
-  fileListCacheUpdating: boolean = false;
+  fileListCacheUpdating: AbortController | null = null;
 
   constructor(rootPath: string) {
     this.rootPath = Deno.realPathSync(rootPath);
@@ -195,10 +195,16 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   private updateCacheInBackground() {
     if (this.fileListCacheUpdating) {
-      return;
+      // Cancel the existing background update, so we never return stale data
+      this.fileListCacheUpdating.abort();
     }
-    this.fileListCacheUpdating = true;
-    this.getFileList().then((allFiles) => {
+
+    const abortController = new AbortController();
+    this.fileListCacheUpdating = abortController;
+
+    const updatePromise = this.getFileList().then((allFiles) => {
+      if (abortController.signal.aborted) return;
+
       this.fileListCache = allFiles;
       this.fileListCacheTime = performance.now();
       console.log(
@@ -206,11 +212,19 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         allFiles.length,
         "files",
       );
-      this.fileListCacheUpdating = false;
     }).catch((error) => {
-      console.error("Error updating file list cache in background:", error);
-      this.fileListCacheUpdating = false;
+      if (abortController.signal.aborted) return;
+
+      if (error.name !== "AbortError") {
+        console.error("Error updating file list cache in background:", error);
+      }
+    }).finally(() => {
+      if (this.fileListCacheUpdating === abortController) {
+        this.fileListCacheUpdating = null;
+      }
     });
+
+    return updatePromise;
   }
 }
 
