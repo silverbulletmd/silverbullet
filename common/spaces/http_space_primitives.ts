@@ -2,7 +2,7 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
 
-const fetchTimeout = 5000;
+const defaultFetchTimeout = 30000; // 30 seconds
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -15,6 +15,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   public async authenticatedFetch(
     url: string,
     options: RequestInit,
+    fetchTimeout: number = defaultFetchTimeout,
   ): Promise<Response> {
     if (!options.headers) {
       options.headers = {};
@@ -199,11 +200,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   // Used to check if the server is reachable and the user is authenticated
   // If not: throws an error or invokes a redirect
   async ping() {
-    await this.authenticatedFetch(`${this.url}/index.json`, {
+    await this.authenticatedFetch(`${this.url}/ping`, {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
+    }, 5000);
   }
 }
