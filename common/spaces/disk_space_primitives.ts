@@ -17,7 +17,7 @@ const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
   fileListCache: FileMeta[] = [];
-  fileListCacheTime: number = 0;
+  fileListCacheTime = 0;
   fileListCacheUpdating: AbortController | null = null;
 
   constructor(rootPath: string) {
@@ -137,7 +137,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    console.log("Fetching file list");
+    // console.log("Fetching file list");
     const startTime = performance.now();
 
     // If the file list cache is less than 60 seconds old, return it
@@ -154,7 +154,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     const allFiles: FileMeta[] = await this.getFileList();
 
     const endTime = performance.now();
-    console.log("Fetched uncached file list in", endTime - startTime, "ms");
+    console.info("Fetched uncached file list in", endTime - startTime, "ms");
 
     this.fileListCache = allFiles;
     this.fileListCacheTime = startTime;
@@ -207,10 +207,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
       this.fileListCache = allFiles;
       this.fileListCacheTime = performance.now();
-      console.log(
-        "Updated file list cache in background, ",
+      console.info(
+        "Updated file list cache in background:",
         allFiles.length,
-        "files",
+        "files found",
       );
     }).catch((error) => {
       if (abortController.signal.aborted) return;
