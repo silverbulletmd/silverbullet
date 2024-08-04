@@ -200,7 +200,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   // Used to check if the server is reachable and the user is authenticated
   // If not: throws an error or invokes a redirect
   async ping() {
-    await this.authenticatedFetch(`${this.url}/ping`, {
+    await this.authenticatedFetch(`${this.url}/.ping`, {
       method: "GET",
       headers: {
         Accept: "application/json",
