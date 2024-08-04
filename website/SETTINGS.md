@@ -2,7 +2,7 @@
 
 This page contains configuration of SilverBullet and its plugs. Some of these changes will go into effect immediately, some require a page reload.
 
-```yaml
+```space-config
 # Initial page to load when launching SB, can contain template variables
 indexPage: "[[SilverBullet]]"
 libraries:
