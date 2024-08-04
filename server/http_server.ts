@@ -497,6 +497,13 @@ export class HttpServer {
       }
     });
 
+    // Simple ping health endpoint
+    this.app.get("/.ping", (c) => {
+      return c.text("OK", 200, {
+        "Cache-Control": "no-cache",
+      });
+    });
+
     // RPC shell
     this.app.post("/.rpc/shell", async (c) => {
       const req = c.req;
