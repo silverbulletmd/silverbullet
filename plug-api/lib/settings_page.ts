@@ -1,4 +1,5 @@
 import { system } from "$sb/syscalls.ts";
+import { readYamlPage } from "$sb/lib/yaml_page.ts";
 
 /**
  * Retrieves a setting from the space configuration.
@@ -11,5 +12,20 @@ export async function readSetting(
   key: string,
   defaultValue?: any,
 ): Promise<any> {
-  return await system.getSpaceConfig(key) ?? defaultValue;
+  try {
+    return await system.getSpaceConfig(key) ?? defaultValue;
+  } catch {
+    // We're running an old version of SilverBullet, fallback to reading from SETTINGS page
+    try {
+      const allSettings = (await readYamlPage("SETTINGS")) || {};
+      const val = allSettings[key];
+      return val === undefined ? defaultValue : val;
+    } catch (e: any) {
+      if (e.message === "Not found") {
+        // No settings yet, return default values for all
+        return defaultValue;
+      }
+      throw e;
+    }
+  }
 }
