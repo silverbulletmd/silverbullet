@@ -18,6 +18,10 @@ Deno.test("Test plug run", {
 
   const plugFolder = join(testSpaceFolder, "_plug");
   await Deno.mkdir(plugFolder, { recursive: true });
+  await Deno.writeFile(
+    `${testSpaceFolder}/SETTINGS.md`,
+    new TextEncoder().encode("```space-config\nindexPage: index\n```"),
+  );
 
   await compileManifest(
     join(testFolder, "test_plug_run.plug.yaml"),
