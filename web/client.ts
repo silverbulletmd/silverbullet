@@ -8,7 +8,7 @@ import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "../common/hooks/event.ts";
 import type { AppCommand } from "$lib/command.ts";
 import {
@@ -17,7 +17,7 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState } from "../type/web.ts";
+import type { AppViewState } from "./type.ts";
 
 import type {
   AppEvent,

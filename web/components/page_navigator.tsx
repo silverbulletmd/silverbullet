@@ -1,5 +1,5 @@
 import { FilterList } from "./filter.tsx";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type {
   CompletionContext,
   CompletionResult,

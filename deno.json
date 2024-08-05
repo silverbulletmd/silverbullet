@@ -18,7 +18,8 @@
     "./lib/markdown": "./plug-api/lib/markdown.ts",
     "./lib/tags": "./plug-api/lib/tags.ts",
     "./type/config": "./type/config.ts",
-    "./type/rpc": "./type/rpc.ts"
+    "./type/rpc": "./type/rpc.ts",
+    "./type/client": "./type/client.ts"
   },
   "publish": {
     "exclude": [
@@ -103,6 +104,7 @@
     "@silverbulletmd/silverbullet/lib/tags": "./plug-api/lib/tags.ts",
     "@silverbulletmd/silverbullet/type/config": "./type/config.ts",
     "@silverbulletmd/silverbullet/type/rpc": "./type/rpc.ts",
+    "@silverbulletmd/silverbullet/type/client": "./type/client.ts",
     "$common/": "./common/",
     "$lib/": "./lib/",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.17.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
