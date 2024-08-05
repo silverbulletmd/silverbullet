@@ -1,7 +1,7 @@
-import type { QueryExpression } from "$sb/types.ts";
-import { parseTreeToAST } from "$sb/lib/tree.ts";
+import type { QueryExpression } from "@silverbulletmd/silverbullet/types";
+import { parseTreeToAST } from "@silverbulletmd/silverbullet/lib/tree";
 import { expressionLanguage } from "$common/template/template_parser.ts";
-import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
+import { expressionToKvQueryExpression } from "../plug-api/lib/parse_query.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 
 export function parseExpression(s: string): QueryExpression {

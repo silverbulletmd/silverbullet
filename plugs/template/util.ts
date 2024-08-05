@@ -1,5 +1,5 @@
 import type { PageMeta } from "../../plug-api/types.ts";
-import { space, system, template } from "$sb/syscalls.ts";
+import { space, system, template } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanTemplate } from "./plug_api.ts";
 
 export function defaultJsonTransformer(v: any): string {

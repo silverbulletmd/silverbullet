@@ -6,11 +6,14 @@ import {
   removeParentPointers,
   renderToText,
   traverseTree,
-} from "$sb/lib/tree.ts";
-import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  encodePageRef,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
-import { isLocalPath } from "$sb/lib/resolve.ts";
-import type { PageMeta } from "$sb/types.ts";
+import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
+import type { PageMeta } from "@silverbulletmd/silverbullet/types";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;

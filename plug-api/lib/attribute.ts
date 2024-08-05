@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
 } from "./tree.ts";
 
-import { cleanupJSON } from "$sb/lib/json.ts";
+import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
 
 import { system, YAML } from "../syscalls.ts";
 

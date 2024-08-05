@@ -13,7 +13,7 @@ import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "$lib/plugos/system.ts";
 import type { FilterOption } from "$lib/web.ts";
 import type { UploadFile } from "../../plug-api/types.ts";
-import type { PageRef } from "$sb/lib/page_ref.ts";
+import type { PageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { openSearchPanel } from "@codemirror/search";
 import { diffAndPrepareChanges } from "../cm_util.ts";
 

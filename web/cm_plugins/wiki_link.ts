@@ -1,10 +1,13 @@
-import type { ClickEvent } from "$sb/types.ts";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/types";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
-import { resolvePath } from "$sb/lib/resolve.ts";
-import { encodePageRef, parsePageRef } from "$sb/lib/page_ref.ts";
+import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  encodePageRef,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.

@@ -1,10 +1,10 @@
-import { editor, space, system } from "$sb/syscalls.ts";
-import type { UploadFile } from "$sb/types.ts";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
+import type { UploadFile } from "@silverbulletmd/silverbullet/types";
 import {
   defaultLinkStyle,
   maximumAttachmentSize,
 } from "../../web/constants.ts";
-import { resolvePath } from "$sb/lib/resolve.ts";
+import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export async function saveFile(file: UploadFile) {
   const maxSize = await system.getSpaceConfig(

@@ -1,11 +1,19 @@
-import { markdown, space, system, YAML } from "$sb/syscalls.ts";
+import {
+  markdown,
+  space,
+  system,
+  YAML,
+} from "@silverbulletmd/silverbullet/syscalls";
 import { loadPageObject, replaceTemplateVars } from "./page.ts";
 import type { CodeWidgetContent, PageMeta } from "../../plug-api/types.ts";
 import { renderTemplate } from "./plug_api.ts";
-import { renderToText } from "$sb/lib/tree.ts";
-import { rewritePageRefs, rewritePageRefsInString } from "$sb/lib/resolve.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  rewritePageRefs,
+  rewritePageRefsInString,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { queryParsed } from "../query/api.ts";
-import { parseQuery } from "$sb/lib/parse-query.ts";
+import { parseQuery } from "../../plug-api/lib/parse_query.ts";
 
 type TemplateWidgetConfig = {
   // Pull the template from a page

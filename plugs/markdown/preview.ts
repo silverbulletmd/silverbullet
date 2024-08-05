@@ -1,6 +1,15 @@
-import { asset, clientStore, editor, markdown, system } from "$sb/syscalls.ts";
+import {
+  asset,
+  clientStore,
+  editor,
+  markdown,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandCodeWidgets } from "./api.ts";
 
 export async function updateMarkdownPreview() {

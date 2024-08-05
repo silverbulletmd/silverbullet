@@ -1,4 +1,9 @@
-import { codeWidget, editor, markdown, system } from "$sb/syscalls.ts";
+import {
+  codeWidget,
+  editor,
+  markdown,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -8,8 +13,8 @@ import {
   type ParseTree,
   removeParentPointers,
   renderToText,
-} from "$sb/lib/tree.ts";
-import { parseQuery } from "$sb/lib/parse-query.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { parseQuery } from "../../plug-api/lib/parse_query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";

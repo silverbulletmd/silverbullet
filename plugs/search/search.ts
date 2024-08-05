@@ -2,12 +2,15 @@ import type {
   IndexTreeEvent,
   QueryProviderEvent,
 } from "../../plug-api/types.ts";
-import { renderToText } from "$sb/lib/tree.ts";
-import { applyQuery, liftAttributeFilter } from "$sb/lib/query.ts";
-import { editor } from "$sb/syscalls.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  applyQuery,
+  liftAttributeFilter,
+} from "@silverbulletmd/silverbullet/lib/query";
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
-import { evalQueryExpression } from "$sb/lib/query_expression.ts";
+import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expression";
 import { PromiseQueue } from "$lib/async.ts";
 
 const searchPrefix = "🔍 ";

@@ -1,4 +1,4 @@
-import { datastore } from "$sb/syscalls.ts";
+import { datastore } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   KV,
   KvKey,

@@ -1,6 +1,6 @@
 import { type PageRef, parsePageRef } from "../plug-api/lib/page_ref.ts";
 import type { Client } from "./client.ts";
-import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { safeRun } from "../lib/async.ts";
 

@@ -1,4 +1,4 @@
-import { syscall } from "$sb/syscall.ts";
+import { syscall } from "../syscall.ts";
 
 export function validateObject(
   schema: any,

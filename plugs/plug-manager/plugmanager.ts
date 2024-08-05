@@ -1,5 +1,10 @@
-import { editor, events, space, system } from "$sb/syscalls.ts";
-import { readYamlPage } from "$sb/lib/yaml_page.ts";
+import {
+  editor,
+  events,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import { readYamlPage } from "@silverbulletmd/silverbullet/lib/yaml_page";
 import { builtinPlugNames } from "../builtin_plugs.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 

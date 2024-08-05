@@ -1,5 +1,12 @@
-import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
-import type { IndexEvent, MQMessage } from "$sb/types.ts";
+import {
+  editor,
+  events,
+  markdown,
+  mq,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import type { IndexEvent, MQMessage } from "@silverbulletmd/silverbullet/types";
 import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";

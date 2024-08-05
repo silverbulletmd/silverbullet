@@ -1,6 +1,6 @@
 import { type AST, parseTreeToAST } from "./tree.ts";
 import type { Query, QueryExpression } from "../types.ts";
-import { language } from "$sb/syscalls.ts";
+import { language } from "@silverbulletmd/silverbullet/syscalls";
 
 export function astToKvQuery(
   node: AST,

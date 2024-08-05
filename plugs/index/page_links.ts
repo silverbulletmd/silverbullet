@@ -1,10 +1,23 @@
-import { findNodeOfType, renderToText, traverseTree } from "$sb/lib/tree.ts";
-import type { IndexTreeEvent, ObjectValue } from "$sb/types.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import {
+  findNodeOfType,
+  renderToText,
+  traverseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import type {
+  IndexTreeEvent,
+  ObjectValue,
+} from "@silverbulletmd/silverbullet/types";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects, queryObjects } from "./api.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { updateITags } from "$sb/lib/tags.ts";
-import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  looksLikePathWithExtension,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
   mdLinkRegex,

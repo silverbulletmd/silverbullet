@@ -11,7 +11,10 @@ import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;

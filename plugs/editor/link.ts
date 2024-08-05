@@ -1,5 +1,9 @@
 import { nodeAtPos } from "../../plug-api/lib/tree.ts";
-import { editor, events, markdown } from "$sb/syscalls.ts";
+import {
+  editor,
+  events,
+  markdown,
+} from "@silverbulletmd/silverbullet/syscalls";
 import { extractYoutubeVideoId } from "./embed.ts";
 
 type UnfurlOption = {

@@ -2,15 +2,15 @@ import {
   collectNodesMatching,
   collectNodesOfType,
   renderToText,
-} from "$sb/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   CompleteEvent,
   IndexTreeEvent,
   ObjectValue,
 } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 
 type HeaderObject = ObjectValue<
   {

@@ -1,4 +1,4 @@
-import { YAML } from "$sb/syscalls.ts";
+import { YAML } from "@silverbulletmd/silverbullet/syscalls";
 import type { WidgetContent } from "../../plug-api/types.ts";
 
 type EmbedConfig = {

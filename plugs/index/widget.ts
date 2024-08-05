@@ -1,14 +1,23 @@
-import { codeWidget, editor, language, markdown, space } from "$sb/syscalls.ts";
-import { parseTreeToAST, renderToText } from "$sb/lib/tree.ts";
+import {
+  codeWidget,
+  editor,
+  language,
+  markdown,
+  space,
+} from "@silverbulletmd/silverbullet/syscalls";
+import {
+  parseTreeToAST,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { loadPageObject } from "../template/page.ts";
 import { queryObjects } from "./api.ts";
 import type { TemplateObject } from "../template/types.ts";
-import { expressionToKvQueryExpression } from "$sb/lib/parse-query.ts";
-import { evalQueryExpression } from "$sb/lib/query_expression.ts";
+import { expressionToKvQueryExpression } from "../../plug-api/lib/parse_query.ts";
+import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expression";
 import { renderTemplate } from "../template/plug_api.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export async function refreshWidgets() {
   await codeWidget.refreshAll();

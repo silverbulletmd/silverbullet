@@ -3,7 +3,13 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { editor, markdown, space, system, YAML } from "$sb/syscalls.ts";
+import {
+  editor,
+  markdown,
+  space,
+  system,
+  YAML,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { AttributeCompletion } from "../index/attributes.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import type { TemplateObject } from "./types.ts";
@@ -12,9 +18,9 @@ import { renderTemplate } from "./api.ts";
 import {
   extractFrontmatter,
   prepareFrontmatterDispatch,
-} from "$sb/lib/frontmatter.ts";
+} from "@silverbulletmd/silverbullet/lib/frontmatter";
 import type { SnippetConfig } from "./types.ts";
-import { deepObjectMerge } from "$sb/lib/json.ts";
+import { deepObjectMerge } from "@silverbulletmd/silverbullet/lib/json";
 
 export async function snippetSlashComplete(
   completeEvent: CompleteEvent,
