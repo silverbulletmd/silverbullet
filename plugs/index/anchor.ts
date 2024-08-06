@@ -1,12 +1,12 @@
-import { collectNodesOfType } from "$sb/lib/tree.ts";
+import { collectNodesOfType } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   CompleteEvent,
   IndexTreeEvent,
   ObjectValue,
   QueryExpression,
-} from "$sb/types.ts";
+} from "@silverbulletmd/silverbullet/types";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 type AnchorObject = ObjectValue<{
   name: string;

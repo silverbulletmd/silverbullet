@@ -3,7 +3,7 @@ import type {
   ObjectValue,
   QueryExpression,
 } from "../../plug-api/types.ts";
-import { events } from "$sb/syscalls.ts";
+import { events } from "@silverbulletmd/silverbullet/syscalls";
 import { queryObjects } from "./api.ts";
 import { determineTags } from "$lib/cheap_yaml.ts";
 

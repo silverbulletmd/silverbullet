@@ -1,7 +1,10 @@
 import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
-import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
+import {
+  findNodeOfType,
+  traverseTreeAsync,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
-import { YAML } from "$sb/syscalls.ts";
+import { YAML } from "@silverbulletmd/silverbullet/syscalls";
 
 export type ConfigObject = ObjectValue<{
   key: string;

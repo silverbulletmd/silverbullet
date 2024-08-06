@@ -47,11 +47,11 @@ export function federatedPathToUrl(path: string): string {
   return path;
 }
 
-export function isFederationPath(path: string) {
+export function isFederationPath(path: string): boolean {
   return path.startsWith("!");
 }
 
-export function isLocalPath(path: string) {
+export function isLocalPath(path: string): boolean {
   return !path.includes("://") && !path.startsWith("mailto:");
 }
 
@@ -90,13 +90,13 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
 export function rewritePageRefsInString(
   bodyText: string,
   containerPageName: string,
-) {
+): string {
   return bodyText.replaceAll(/\[\[(.+)\]\]/g, (_match, pageRefName) => {
     return `[[${resolvePath(containerPageName, "/" + pageRefName)}]]`;
   });
 }
 
-export function cleanPageRef(pageRef: string) {
+export function cleanPageRef(pageRef: string): string {
   if (pageRef.startsWith("[[") && pageRef.endsWith("]]")) {
     return pageRef.slice(2, -2);
   } else {
@@ -104,11 +104,11 @@ export function cleanPageRef(pageRef: string) {
   }
 }
 
-export function folderName(path: string) {
+export function folderName(path: string): string {
   return path.split("/").slice(0, -1).join("/");
 }
 
-export function absoluteToRelativePath(page: string, linkTo: string) {
+export function absoluteToRelativePath(page: string, linkTo: string): string {
   // Remove leading /
   page = page.startsWith("/") ? page.slice(1) : page;
   linkTo = linkTo.startsWith("/") ? linkTo.slice(1) : linkTo;
@@ -127,7 +127,7 @@ export function absoluteToRelativePath(page: string, linkTo: string) {
   return [...splitPage, ...splitLink].join("/");
 }
 
-export function relativeToAbsolutePath(page: string, linkTo: string) {
+export function relativeToAbsolutePath(page: string, linkTo: string): string {
   // Remove leading /
   page = page.startsWith("/") ? page.slice(1) : page;
   linkTo = linkTo.startsWith("/") ? linkTo.slice(1) : linkTo;

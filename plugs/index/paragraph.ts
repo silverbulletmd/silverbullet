@@ -6,10 +6,10 @@ import {
   renderToText,
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import type { ObjectValue } from "../../plug-api/types.ts";
-import { updateITags } from "$sb/lib/tags.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<

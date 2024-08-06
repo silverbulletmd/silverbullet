@@ -4,8 +4,12 @@ import { Decoration, WidgetType } from "@codemirror/view";
 import { MarkdownWidget } from "./markdown_widget.ts";
 import { decoratorStateField } from "./util.ts";
 import type { Client } from "../client.ts";
-import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import {
+  isFederationPath,
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { mime } from "mimetypes";
 
 type ContentDimensions = {

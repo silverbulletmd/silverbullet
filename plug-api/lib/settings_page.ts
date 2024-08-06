@@ -1,5 +1,5 @@
-import { system } from "$sb/syscalls.ts";
-import { readYamlPage } from "$sb/lib/yaml_page.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
+import { readYamlPage } from "@silverbulletmd/silverbullet/lib/yaml_page";
 
 /**
  * Retrieves a setting from the space configuration.

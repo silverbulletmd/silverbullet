@@ -1,7 +1,10 @@
-import { system } from "$sb/syscalls.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { indexObjects } from "./api.ts";
-import type { ObjectValue, QueryProviderEvent } from "$sb/types.ts";
-import { applyQuery } from "$sb/lib/query.ts";
+import type {
+  ObjectValue,
+  QueryProviderEvent,
+} from "@silverbulletmd/silverbullet/types";
+import { applyQuery } from "@silverbulletmd/silverbullet/lib/query";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 
 export const builtinPseudoPage = ":builtin:";

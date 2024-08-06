@@ -7,7 +7,7 @@ import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
 import type { ConfigContainer } from "../config.ts";
-import type { Config } from "$type/config.ts";
+import type { Config } from "@silverbulletmd/silverbullet/type/config";
 
 export function systemSyscalls(
   system: System<any>,
@@ -115,18 +115,13 @@ export function systemSyscalls(
       // Reload scripts locally
       await commonSystem.loadSpaceScripts();
       if (client) {
-        // And we are in a hybrud mode, tell the server to do the same
-        if (system.env === "client") {
-          console.info(
-            "Sending syscall to server to trigger space script reload",
-          );
-          await proxySyscall(
-            {},
-            client.httpSpacePrimitives,
-            "system.loadSpaceScripts",
-            [],
-          );
-        }
+        // Reload scripts remotely
+        await proxySyscall(
+          {},
+          client.httpSpacePrimitives,
+          "system.loadSpaceScripts",
+          [],
+        );
       }
     },
     "system.loadSpaceStyles": async () => {

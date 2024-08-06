@@ -1,15 +1,20 @@
-import type { FunctionMap, Query } from "$sb/types.ts";
+import type { FunctionMap, Query } from "@silverbulletmd/silverbullet/types";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import type { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
-import { parsePageRef, positionOfLine } from "$sb/lib/page_ref.ts";
+import {
+  parsePageRef,
+  positionOfLine,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
-import { traverseTree } from "$sb/lib/tree.ts";
-import { renderToText } from "$sb/lib/tree.ts";
-import { findNodeOfType } from "$sb/lib/tree.ts";
-import { isFederationPath } from "$sb/lib/resolve.ts";
-import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { traverseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import { findNodeOfType } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  isFederationPath,
+  rewritePageRefs,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 
 const pageCacheTtl = 10 * 1000; // 10s
 

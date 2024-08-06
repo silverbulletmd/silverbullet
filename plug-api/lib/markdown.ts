@@ -1,4 +1,8 @@
-import { findNodeOfType, type ParseTree, renderToText } from "$sb/lib/tree.ts";
+import {
+  findNodeOfType,
+  type ParseTree,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
 
 export function stripMarkdown(
   tree: ParseTree,

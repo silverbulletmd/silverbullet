@@ -1,4 +1,4 @@
-import { editor, space } from "$sb/syscalls.ts";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
 
 function countWords(str: string): number {
   const matches = str.match(/[\w\d\'-]+/gi);

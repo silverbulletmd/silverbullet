@@ -9,7 +9,7 @@ import type {
 import { builtinFunctions } from "../builtin_query_functions.ts";
 import type { KvPrimitives } from "./kv_primitives.ts";
 import { evalQueryExpression } from "../../plug-api/lib/query_expression.ts";
-import { deepObjectMerge } from "$sb/lib/json.ts";
+import { deepObjectMerge } from "@silverbulletmd/silverbullet/lib/json";
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
  * in a more user-friendly way

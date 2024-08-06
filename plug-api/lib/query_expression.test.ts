@@ -1,4 +1,4 @@
-import { evalQueryExpression } from "$sb/lib/query_expression.ts";
+import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expression";
 import { assert, assertEquals } from "@std/assert";
 
 Deno.test("Test query expression evaluation", async () => {

@@ -54,9 +54,11 @@ export abstract class CommonSystem {
         console.log(
           "Loaded",
           Object.keys(this.scriptEnv.functions).length,
-          "functions and",
+          "functions,",
           Object.keys(this.scriptEnv.commands).length,
-          "commands from space-script",
+          "commands,",
+          Object.keys(this.scriptEnv.eventHandlers).length,
+          "event handlers from space-script",
         );
       } catch (e: any) {
         console.error("Error loading space-script:", e.message);

@@ -5,7 +5,7 @@ import type {
 } from "@codemirror/autocomplete";
 import type { FunctionalComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../fuse_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";

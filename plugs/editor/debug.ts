@@ -1,4 +1,4 @@
-import { debug, editor, markdown } from "$sb/syscalls.ts";
+import { debug, editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function parsePageCommand() {
   console.log(

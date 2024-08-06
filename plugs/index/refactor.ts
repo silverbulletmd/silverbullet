@@ -1,9 +1,12 @@
-import { editor, space } from "$sb/syscalls.ts";
-import { validatePageName } from "$sb/lib/page_ref.ts";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { getBackLinks, type LinkObject } from "./page_links.ts";
 import { queryObjects } from "./api.ts";
-import { absoluteToRelativePath, folderName } from "$sb/lib/resolve.ts";
-import type { ObjectValue } from "$sb/types.ts";
+import {
+  absoluteToRelativePath,
+  folderName,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/types";
 
 /**
  * Renames a single page.

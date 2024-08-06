@@ -1,15 +1,15 @@
-import { jsonschema, YAML } from "$sb/syscalls.ts";
+import { jsonschema, YAML } from "@silverbulletmd/silverbullet/syscalls";
 import type { LintDiagnostic, QueryExpression } from "../../plug-api/types.ts";
 import {
   findNodeOfType,
   renderToText,
   traverseTreeAsync,
-} from "$sb/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { LintEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "./api.ts";
 import type { AttributeObject } from "./attributes.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { ConfigSchema } from "$type/config.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { ConfigSchema } from "@silverbulletmd/silverbullet/type/config";
 
 export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];

@@ -1,7 +1,7 @@
 import type { UploadFile } from "../types.ts";
 import { syscall } from "../syscall.ts";
 import type { PageRef } from "../lib/page_ref.ts";
-import type { FilterOption } from "../../lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");

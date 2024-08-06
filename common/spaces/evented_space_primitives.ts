@@ -1,4 +1,4 @@
-import type { FileMeta } from "$sb/types.ts";
+import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { EventHook } from "$common/hooks/event.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 

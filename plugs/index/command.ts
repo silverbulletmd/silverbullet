@@ -1,8 +1,14 @@
-import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
-import type { IndexEvent, MQMessage } from "$sb/types.ts";
+import {
+  editor,
+  events,
+  markdown,
+  mq,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import type { IndexEvent, MQMessage } from "@silverbulletmd/silverbullet/types";
 import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
-import { plugPrefix } from "$common/spaces/constants.ts";
 import { indexAttachment } from "./attachment.ts";
 import { clearFileIndex } from "./api.ts";
 
@@ -47,7 +53,7 @@ export async function reindexSpace(noClear = false) {
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
     let name: string = message.body;
-    if (name.startsWith(plugPrefix)) {
+    if (name.startsWith("_plug/")) {
       continue;
     }
     console.log(`Indexing file ${name}`);

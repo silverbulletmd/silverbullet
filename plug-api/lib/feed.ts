@@ -9,7 +9,7 @@ import {
  * Feed parsing functionality (WIP)
  */
 
-import { extractAttributes } from "$sb/lib/attribute.ts";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 
 export type FeedItem = {
   id: string;

@@ -1,4 +1,4 @@
-import { clientStore, editor } from "$sb/syscalls.ts";
+import { clientStore, editor } from "@silverbulletmd/silverbullet/syscalls";
 
 // Run on "editor:init"
 export async function setEditorMode() {

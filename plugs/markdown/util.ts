@@ -2,9 +2,9 @@ import {
   findNodeOfType,
   renderToText,
   replaceNodesMatching,
-} from "$sb/lib/tree.ts";
-import { markdown } from "$sb/syscalls.ts";
-import { isLocalPath } from "$sb/lib/resolve.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { markdown } from "@silverbulletmd/silverbullet/syscalls";
+import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export function encodePageUrl(name: string): string {
   return name;

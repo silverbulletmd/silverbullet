@@ -1,4 +1,4 @@
-import { clientStore, editor } from "$sb/syscalls.ts";
+import { clientStore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { updateMarkdownPreview } from "./preview.ts";
 
 export async function togglePreview() {

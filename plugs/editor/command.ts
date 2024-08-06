@@ -1,4 +1,4 @@
-import { system } from "$sb/syscalls.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "../../plug-api/types.ts";
 
 export async function commandComplete(completeEvent: CompleteEvent) {

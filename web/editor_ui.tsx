@@ -4,11 +4,7 @@ import { FilterList } from "./components/filter.tsx";
 import { PageNavigator } from "./components/page_navigator.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
-import {
-  type Action,
-  type AppViewState,
-  initialViewState,
-} from "../type/web.ts";
+import { type Action, type AppViewState, initialViewState } from "./type.ts";
 import * as featherIcons from "preact-feather";
 import * as mdi from "./filtered_material_icons.ts";
 import { h, render as preactRender } from "preact";

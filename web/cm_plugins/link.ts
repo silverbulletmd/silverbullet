@@ -1,4 +1,7 @@
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../client.ts";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";

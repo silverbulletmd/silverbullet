@@ -1,14 +1,24 @@
 import type { ClickEvent } from "../../plug-api/types.ts";
-import { editor, markdown, system } from "$sb/syscalls.ts";
+import {
+  editor,
+  markdown,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
   findNodeOfType,
   findParentMatching,
   nodeAtPos,
   type ParseTree,
-} from "$sb/lib/tree.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
-import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  looksLikePathWithExtension,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(

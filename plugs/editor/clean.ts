@@ -1,4 +1,4 @@
-import { debug, editor } from "$sb/syscalls.ts";
+import { debug, editor } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function cleanCommand() {
   if (

@@ -1,6 +1,6 @@
-import "$sb/lib/syscall_mock.ts";
+import "./syscall_mock.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { assertEquals } from "@std/assert";
 import { renderToText } from "./tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";

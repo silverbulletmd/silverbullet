@@ -2,8 +2,12 @@ import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
 import { cors } from "hono/middleware.ts";
 import { type Context, Hono, type HonoRequest, validator } from "hono/mod.ts";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import type { EndpointRequest, EndpointResponse, FileMeta } from "$sb/types.ts";
-import type { ShellRequest } from "$type/rpc.ts";
+import type {
+  EndpointRequest,
+  EndpointResponse,
+  FileMeta,
+} from "@silverbulletmd/silverbullet/types";
+import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
 import { SpaceServer } from "./instance.ts";
 import type { SpaceServerConfig } from "./instance.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
@@ -11,7 +15,10 @@ import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
-import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
+import {
+  looksLikePathWithExtension,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
 import { basename, dirname, join } from "@std/path";
 

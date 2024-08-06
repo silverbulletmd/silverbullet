@@ -1,7 +1,7 @@
-import { editor, markdown, YAML } from "$sb/syscalls.ts";
-import type { CodeWidgetContent } from "$sb/types.ts";
-import { stripMarkdown } from "$sb/lib/markdown.ts";
-import { traverseTree } from "$sb/lib/tree.ts";
+import { editor, markdown, YAML } from "@silverbulletmd/silverbullet/syscalls";
+import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/types";
+import { stripMarkdown } from "@silverbulletmd/silverbullet/lib/markdown";
+import { traverseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 type Header = {
   name: string;
