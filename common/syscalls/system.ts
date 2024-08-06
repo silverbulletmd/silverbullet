@@ -115,6 +115,7 @@ export function systemSyscalls(
       // Reload scripts locally
       await commonSystem.loadSpaceScripts();
       if (client) {
+        // Reload scripts remotely
         await proxySyscall(
           {},
           client.httpSpacePrimitives,
