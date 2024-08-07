@@ -36,7 +36,7 @@ Depending on where code is run (client or server), a slightly different JavaScri
 * `silverbullet.registerCommand(def, callback)`: registers a custom command (see [[#Custom commands]]).
 * `silverbullet.registerEventListener`: registers an event listener (see [[#Custom event listeners]]).
 * `silverbullet.registerAttributeExtractor(def, callback)`: registers a custom attribute extractor.
-* `syscall(name, args...)`: invoke a syscall (see [[#Syscalls]]).
+* Various SilverBullet syscalls, see [[#Syscalls]]
 
 Many standard JavaScript APIs are available, such as:
 
@@ -59,7 +59,7 @@ Even though a [[Functions#readPage(name)]] function already exist, you could imp
 
 ```space-script
 silverbullet.registerFunction({name: "myReadPage"}, async (name) => {
-  const pageContent = await syscall("space.readPage", name);
+  const pageContent = await space.readPage(name);
   return pageContent;
 })
 ```
@@ -79,7 +79,7 @@ Here is an example of defining a custom command using space script:
 
 ```space-script
 silverbullet.registerCommand({name: "My First Command"}, async () => {
-  await syscall("editor.flashNotification", "Hello there!");
+  await editor.flashNotification("Hello there!");
 });
 ```
 
@@ -123,7 +123,7 @@ silverbullet.registerEventListener({name: "task:stateChange"}, async (event) => 
   const {from, to, newState} = event.data;
   if(newState !== " ") {
     // Now dispatch an editor change to add the completion date at the end of the task
-    await syscall("editor.dispatch", {
+    await editor.dispatch({
       changes: {
         from: to, // insert at the end of the task
         insert: " ✅ " + Temporal.Now.plainDateISO().toString(),
@@ -204,7 +204,7 @@ Note that indexing happens on every page save. You have to run {[Space: Reindex]
 ## Example
 Let’s say you want to use the syntax `✅ 2024-02-27` in a task to signify when that task was completed and strip it from the task name. Here’s an example:
 
-* [x] I’ve done this ✅ 2024-02-27
+* [x] I’ve done this ✅ 2024-08-07
 
 The following attribute extractor will accomplish this: 
 
@@ -236,16 +236,6 @@ Result:
 # Syscalls
 The primary way to interact with the SilverBullet environment is using “syscalls”. Syscalls expose SilverBullet functionality largely available both on the client and server in a safe way.
 
-In your space script, a syscall is invoked via `syscall(name, arg1, arg2)` and usually returns a [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) with the result.
+In your space script, all syscalls are exposed via the global environment, and all return a [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) with the result.
 
-Here are all available syscalls:
-
-```template
-{{#each @module in {syscall select replace(name, /\.\w+$/, "") as name}}}
-## {{@module.name}}
-{{#each {syscall where @module.name = replace(name, /\.\w+$/, "")}}}
-* `{{name}}`
-{{/each}}
-
-{{/each}}
-```
+[A full list of syscall are documented here](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~)

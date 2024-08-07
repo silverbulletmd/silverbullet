@@ -3,6 +3,7 @@ import type { ParseTree } from "../plug-api/lib/tree.ts";
 import type { ScriptObject } from "../plugs/index/script.ts";
 import type { AppCommand, CommandDef } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
+import * as syscalls from "@silverbulletmd/silverbullet/syscalls";
 
 // @ts-ignore: Temporal polyfill
 Date.prototype.toTemporalInstant = toTemporalInstant;
@@ -95,15 +96,23 @@ export class ScriptEnvironment {
   // Internal API
   evalScript(script: string, system: System<any>) {
     try {
+      const syscallArgs = [];
+      const syscallValues = [];
+      for (const [tl, value] of Object.entries(syscalls)) {
+        syscallArgs.push(tl);
+        syscallValues.push(value);
+      }
       const fn = Function(
         "silverbullet",
         "syscall",
+        ...syscallArgs,
         script,
       );
       fn.call(
         {},
         this,
         (name: string, ...args: any[]) => system.syscall({}, name, args),
+        ...syscallValues,
       );
     } catch (e: any) {
       throw new Error(
@@ -113,6 +122,10 @@ export class ScriptEnvironment {
   }
 
   async loadFromSystem(system: System<any>) {
+    // Install global syscall function on globalThis
+    (globalThis as any).syscall = (name: string, ...args: any[]) =>
+      system.syscall({}, name, args);
+
     if (!system.loadedPlugs.has("index")) {
       console.warn("Index plug not found, skipping loading space scripts");
       return;
