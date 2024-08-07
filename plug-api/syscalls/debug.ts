@@ -1,5 +1,12 @@
 import { syscall } from "../syscall.ts";
 
+/**
+ * Exposes various debugging utilities.
+ */
+
+/**
+ * Completely wipes the client state, both cached files as well as databases (best effort)
+ */
 export function resetClient(): Promise<void> {
   return syscall("debug.resetClient");
 }

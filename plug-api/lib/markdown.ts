@@ -4,6 +4,9 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 
+/**
+ * Strips markdown from a ParseTree
+ */
 export function stripMarkdown(
   tree: ParseTree,
 ): string {

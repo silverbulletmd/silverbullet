@@ -136,7 +136,9 @@ export async function extractFrontmatter(
   return data;
 }
 
-// Updates the front matter of a markdown document and returns the text as a rendered string
+/**
+ * Updates the front matter of a markdown document and returns the text as a rendered string
+ */
 export async function prepareFrontmatterDispatch(
   tree: ParseTree,
   data: string | Record<string, any>,

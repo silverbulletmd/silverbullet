@@ -1,11 +1,12 @@
+import type { AST } from "@silverbulletmd/silverbullet/lib/tree";
 import { syscall } from "../syscall.ts";
 
 /**
- * Renders
- * @param template
- * @param obj
- * @param globals
- * @returns
+ * Renders a template with the given object and globals.
+ * @param template the text of the template to render
+ * @param obj the object to render the template with
+ * @param globals the globals to render the template with
+ * @returns the rendered template
  */
 export function renderTemplate(
   template: string,
@@ -15,8 +16,13 @@ export function renderTemplate(
   return syscall("template.renderTemplate", template, obj, globals);
 }
 
+/**
+ * Parses a template into an AST.
+ * @param template the text of the template to parse
+ * @returns an AST representation of the template
+ */
 export function parseTemplate(
   template: string,
-): Promise<string> {
+): Promise<AST> {
   return syscall("template.parseTemplate", template);
 }

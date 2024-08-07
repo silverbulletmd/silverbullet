@@ -1,4 +1,9 @@
-// Compares two objects deeply
+/**
+ * Performs a deep comparison of two objects, returning true if they are equal
+ * @param a first object
+ * @param b second object
+ * @returns
+ */
 export function deepEqual(a: any, b: any): boolean {
   if (a === b) {
     return true;
@@ -40,7 +45,10 @@ export function deepEqual(a: any, b: any): boolean {
   return false;
 }
 
-// Converts a Date object to a date string in the format YYYY-MM-DD if it just contains a date (and no significant time), or a full ISO string otherwise
+/**
+ * Converts a Date object to a date string in the format YYYY-MM-DD if it just contains a date (and no significant time), or a full ISO string otherwise
+ * @param d the date to convert
+ */
 export function cleanStringDate(d: Date): string {
   // If no significant time, return a date string only
   if (
@@ -54,9 +62,13 @@ export function cleanStringDate(d: Date): string {
   }
 }
 
-// Processes a JSON (typically coming from parse YAML frontmatter) in two ways:
-// 1. Expands property names in an object containing a .-separated path
-// 2. Converts dates to strings in sensible ways
+/**
+ * Processes a JSON (typically coming from parse YAML frontmatter) in two ways:
+ * 1. Expands property names in an object containing a .-separated path
+ * 2. Converts dates to strings in sensible ways
+ * @param a
+ * @returns
+ */
 export function cleanupJSON(a: any): any {
   if (!a) {
     return a;

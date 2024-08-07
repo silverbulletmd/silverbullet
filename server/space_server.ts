@@ -22,20 +22,7 @@ import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 import type { Config } from "../type/config.ts";
-
-export type SpaceServerConfig = {
-  hostname: string;
-  namespace: string;
-  // Enable username/password auth
-  auth?: { user: string; pass: string };
-  // Additional API auth token
-  authToken?: string;
-  pagesPath: string;
-  shellBackend: string;
-  syncOnly: boolean;
-  readOnly: boolean;
-  enableSpaceScript: boolean;
-};
+import type { ServerOptions } from "./http_server.ts";
 
 // Equivalent of Client on the server
 export class SpaceServer implements ConfigContainer {
@@ -58,24 +45,24 @@ export class SpaceServer implements ConfigContainer {
   enableSpaceScript: boolean;
 
   constructor(
-    config: SpaceServerConfig,
+    options: ServerOptions,
     private plugAssetBundle: AssetBundle,
     private kvPrimitives: KvPrimitives,
   ) {
-    this.pagesPath = config.pagesPath;
-    this.hostname = config.hostname;
-    this.auth = config.auth;
-    this.authToken = config.authToken;
-    this.syncOnly = config.syncOnly;
-    this.readOnly = config.readOnly;
+    this.pagesPath = options.pagesPath;
+    this.hostname = options.hostname;
+    this.auth = options.auth;
+    this.authToken = options.authToken;
+    this.syncOnly = options.syncOnly;
+    this.readOnly = options.readOnly;
     this.config = defaultConfig;
-    this.enableSpaceScript = config.enableSpaceScript;
+    this.enableSpaceScript = options.enableSpaceScript;
 
     this.jwtIssuer = new JWTIssuer(kvPrimitives);
 
-    this.shellBackend = config.readOnly
+    this.shellBackend = options.readOnly
       ? new NotSupportedShell() // No shell for read only mode
-      : determineShellBackend(config);
+      : determineShellBackend(options);
   }
 
   async init() {

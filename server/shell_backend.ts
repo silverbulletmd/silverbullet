@@ -1,5 +1,5 @@
-import type { SpaceServerConfig } from "./instance.ts";
 import type { ShellRequest, ShellResponse } from "../type/rpc.ts";
+import type { ServerOptions } from "./http_server.ts";
 
 /**
  * Configuration via environment variables:
@@ -7,12 +7,12 @@ import type { ShellRequest, ShellResponse } from "../type/rpc.ts";
  */
 
 export function determineShellBackend(
-  spaceServerConfig: SpaceServerConfig,
+  serverOptions: ServerOptions,
 ): ShellBackend {
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
   switch (backendConfig) {
     case "local":
-      return new LocalShell(spaceServerConfig.pagesPath);
+      return new LocalShell(serverOptions.pagesPath);
     default:
       console.info(
         "Running in shellless mode, meaning shell commands are disabled",

@@ -14,6 +14,10 @@ export function parseLanguage(
   return syscall("language.parseLanguage", language, code);
 }
 
+/**
+ * Lists all supported languages in fenced code blocks
+ * @returns a list of all supported languages
+ */
 export function listLanguages(): Promise<string[]> {
   return syscall("language.listLanguages");
 }
