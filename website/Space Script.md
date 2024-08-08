@@ -55,7 +55,7 @@ The `silverbullet.registerFunction` API takes two arguments:
 * `callback`: the callback function to invoke (can be `async` or not)
 
 ## Example
-Even though a [[Functions#readPage(name)]] function already exist, you could implement it in space script as follows (let’s name it `myReadPage`) using the `syscall` API (detailed further in [[#Syscalls]]):
+Even though a [[Functions#readPage(name)]] function already exist, you could implement it in space script as follows (let’s name it `myReadPage`) using the [space.readPage](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~/space.readPage) syscall:
 
 ```space-script
 silverbullet.registerFunction({name: "myReadPage"}, async (name) => {
@@ -64,7 +64,7 @@ silverbullet.registerFunction({name: "myReadPage"}, async (name) => {
 })
 ```
 
-Note: this could be written more succinctly, but this demonstrates how to use `async` and `await` in space script as well.
+**Note:** this could be written more succinctly, but this demonstrates how to use `async` and `await` in space script as well.
 
 This function can be invoked as follows:
 
