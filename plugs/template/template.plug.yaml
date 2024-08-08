@@ -48,6 +48,14 @@ functions:
     codeWidget: template
     renderMode: markdown
 
+  transclusionWidget:
+    path: widget.ts:transclusionWidget
+    codeWidget: transclusion
+    renderMode: markdown
+
+  navigateButton:
+    path: widget.ts:navigateButton
+
   # API invoked when a new page is created
   newPage:
     path: page.ts:newPage

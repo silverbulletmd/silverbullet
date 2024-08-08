@@ -19,7 +19,10 @@ import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
 import { renderQuery } from "./api.ts";
 import type { ChangeSpec } from "@codemirror/state";
-import { nodeAtPos } from "$sb/lib/tree.ts";
+import {
+  findNodeMatching,
+  nodeAtPos,
+} from "@silverbulletmd/silverbullet/lib/tree";
 
 export async function widget(
   bodyText: string,
@@ -90,13 +93,12 @@ export async function editButton(bodyText: string) {
 export async function bakeButton(bodyText: string) {
   try {
     const text = await editor.getText();
-
-    const pos = text.indexOf(bodyText);
     const tree = await markdown.parseMarkdown(text);
     addParentPointers(tree);
 
-    const textNode = nodeAtPos(tree, pos);
     // Need to find it in page to make the replacement, see editButton for comment about finding by content
+    const textNode = findNodeMatching(tree, (n) => n.text === bodyText) ||
+      nodeAtPos(tree, text.indexOf(bodyText));
     if (!textNode) {
       throw new Error(`Could not find node to bake`);
     }
@@ -104,7 +106,6 @@ export async function bakeButton(bodyText: string) {
       textNode,
       (n) => n.type === "FencedCode" || n.type === "Image",
     );
-
     if (!blockNode) {
       removeParentPointers(textNode);
       console.error("baked node", textNode);
@@ -147,17 +148,15 @@ async function changeForBake(
   const lang = nodeToReplace.type === "FencedCode"
     ? renderToText(findNodeOfType(nodeToReplace, "CodeInfo") ?? undefined)
     : nodeToReplace.type === "Image"
-    ? "template"
+    ? "transclusion"
     : undefined;
 
   let body: string | undefined = undefined;
   if (nodeToReplace.type === "FencedCode") {
     body = renderToText(findNodeOfType(nodeToReplace, "CodeText") ?? undefined);
   } else if (nodeToReplace.type === "Image") {
-    const text = renderToText(nodeToReplace).slice(1);
-    body = `{{${text}}}`;
+    body = renderToText(nodeToReplace);
   }
-  console.log(lang, body);
 
   if (!lang || body === undefined) {
     return null;

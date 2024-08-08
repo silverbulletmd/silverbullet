@@ -160,8 +160,7 @@ export function inlineContentPlugin(client: Client) {
         }
 
         const text = state.sliceDoc(node.from, node.to);
-        let [url, alias]: (string | null)[] = [null, null];
-        let dim: ContentDimensions | undefined;
+        let [url, alias]: (string | undefined)[] = [undefined, undefined];
         let match: RegExpExecArray | null;
         if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
@@ -172,10 +171,12 @@ export function inlineContentPlugin(client: Client) {
           if (!isFederationPath(url)) {
             url = "/" + url;
           }
-        } else {
+        }
+        if (!url) {
           return;
         }
 
+        let dim: ContentDimensions | undefined;
         if (alias) {
           const { alias: parsedAlias, dim: parsedDim } = parseAlias(alias);
           if (parsedAlias) {
@@ -187,7 +188,11 @@ export function inlineContentPlugin(client: Client) {
         }
 
         if (isLocalPath(url)) {
-          url = resolvePath(client.currentPage, decodeURI(url), true);
+          url = resolvePath(
+            client.currentPage,
+            decodeURI(url),
+            true,
+          );
           const pageRef = parsePageRef(url);
           if (
             isFederationPath(pageRef.page) ||
@@ -195,17 +200,11 @@ export function inlineContentPlugin(client: Client) {
           ) {
             // This is a page reference, let's inline the content
             const codeWidgetCallback = client.clientSystem.codeWidgetHook
-              .codeWidgetCallbacks.get("template");
+              .codeWidgetCallbacks.get("transclusion");
 
             if (!codeWidgetCallback) {
               return;
             }
-
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-iframe",
-              }).range(node.to),
-            );
 
             widgets.push(
               Decoration.widget({
@@ -213,10 +212,9 @@ export function inlineContentPlugin(client: Client) {
                   node.from,
                   client,
                   `widget:${client.currentPage}:${text}`,
-                  `{{rewriteRefsAndFederationLinks([[${url}]], "${url}")}}`,
+                  text,
                   codeWidgetCallback,
                   "sb-markdown-widget sb-markdown-widget-inline",
-                  text,
                 ),
                 block: true,
               }).range(node.to + 1),
@@ -227,7 +225,12 @@ export function inlineContentPlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new InlineContentWidget(url, alias, dim, client),
+            widget: new InlineContentWidget(
+              url,
+              alias,
+              dim,
+              client,
+            ),
             block: true,
           }).range(node.to + 1),
         );
