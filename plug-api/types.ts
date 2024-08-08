@@ -172,7 +172,7 @@ export type CodeWidgetButton = {
   widgetTarget?: boolean;
   description: string;
   svg: string;
-  invokeFunction: string;
+  invokeFunction: string[];
 };
 
 export type LintDiagnostic = {

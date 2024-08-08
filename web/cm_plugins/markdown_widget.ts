@@ -27,7 +27,6 @@ export class MarkdownWidget extends WidgetType {
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
     readonly className: string,
-    readonly orignalText?: string,
   ) {
     super();
   }
@@ -258,20 +257,19 @@ export class MarkdownWidget extends WidgetType {
         div.addEventListener("click", () => {
           console.log("Widget clicked");
           this.client.clientSystem.localSyscall("system.invokeFunction", [
-            button.invokeFunction,
+            button.invokeFunction[0],
             this.from,
           ]).catch(console.error);
         });
       } else {
-        const bodyText = this.orignalText || this.bodyText;
         div.querySelector(`button[data-button="${i}"]`)!.addEventListener(
           "click",
           (e) => {
             e.stopPropagation();
-            this.client.clientSystem.localSyscall("system.invokeFunction", [
+            this.client.clientSystem.localSyscall(
+              "system.invokeFunction",
               button.invokeFunction,
-              bodyText,
-            ]).then((newContent: string | undefined) => {
+            ).then((newContent: string | undefined) => {
               if (newContent) {
                 div.innerText = newContent;
               }
