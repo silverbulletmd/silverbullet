@@ -257,7 +257,7 @@ export class MarkdownWidget extends WidgetType {
         div.addEventListener("click", () => {
           console.log("Widget clicked");
           this.client.clientSystem.localSyscall("system.invokeFunction", [
-            button.invokeFunction,
+            button.invokeFunction[0],
             this.from,
           ]).catch(console.error);
         });
@@ -266,10 +266,10 @@ export class MarkdownWidget extends WidgetType {
           "click",
           (e) => {
             e.stopPropagation();
-            this.client.clientSystem.localSyscall("system.invokeFunction", [
+            this.client.clientSystem.localSyscall(
+              "system.invokeFunction",
               button.invokeFunction,
-              this.bodyText,
-            ]).then((newContent: string | undefined) => {
+            ).then((newContent: string | undefined) => {
               if (newContent) {
                 div.innerText = newContent;
               }
