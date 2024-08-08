@@ -5,7 +5,11 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new since 0.9.0 yet, stay tuned!
+* Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013))
+* SETTINGS is now first indexed, when a full space reindex needs to happen.
+* Internal refactor, and more leverage of [JSR](https://jsr.io/). The SilverBullet [plug API](https://jsr.io/@silverbulletmd/silverbullet) is now published on JSR as well, and soon this will be the preferred way of importing the plug APIs.
+* In [[Space Script]], all syscalls are now exposed via “globals”, so they can be called using e.g. `editor.flashNotification("hello")` instead of `syscall("editor.flashNotification", "hello")`. The old way still works, but the new way is way cleaner.
+* And these syscalls are now [fully documented](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~)
 
 ## 0.9.0
 This is a more major version bump due to [[Space Config]], which is a bigger architectural change. It shouldn’t break anything for existing users — but you know — famous last words.
