@@ -74,6 +74,8 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
 import type { LinkObject } from "../plugs/index/page_links.ts";
+import type { BuiltinSettings } from "$type/settings.ts";
+import { diffAndPrepareChanges } from "./cm_util.ts";
 import type { Config } from "../type/config.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
@@ -122,6 +124,9 @@ export class Client implements ConfigContainer {
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
+
+  // Stores the text of a document, before any editor changes are made.
+  private initialPageText: string = "";
 
   saveTimeout?: number;
   debouncedUpdateEvent = throttle(() => {
@@ -1046,6 +1051,7 @@ export class Client implements ConfigContainer {
       this.space.unwatchPage(previousPage);
       if (previousPage !== pageName) {
         await this.save(true);
+        this.initialPageText = "";
       }
     }
 
@@ -1131,17 +1137,38 @@ export class Client implements ConfigContainer {
       });
     }).catch(console.error);
 
-    const editorState = createEditorState(
-      this,
-      pageName,
-      doc.text,
-      doc.meta.perm === "ro",
-    );
-    editorView.setState(editorState);
-    if (editorView.contentDOM) {
-      this.tweakEditorDOM(editorView.contentDOM);
+    if (!loadingDifferentPage && this.initialPageText) {
+      const fileChanges = diffAndPrepareChanges(this.initialPageText, doc.text);
+      console.log({
+        initialText: this.initialPageText,
+        docText: doc.text,
+        fileChanges,
+      });
+      editorView.dispatch({
+        changes: fileChanges,
+      });
+
+      // Save the page if the merged version and retrieved version don't match
+      const mergedText = this.editorView.state.sliceDoc(0);
+
+      if (mergedText !== doc.text) {
+        this.save();
+      }
+    } else {
+      const editorState = createEditorState(
+        this,
+        pageName,
+        doc.text,
+        doc.meta.perm === "ro",
+      );
+      editorView.setState(editorState);
+      if (editorView.contentDOM) {
+        this.tweakEditorDOM(editorView.contentDOM);
+      }
     }
     this.space.watchPage(pageName);
+
+    this.initialPageText = doc.text;
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
