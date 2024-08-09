@@ -1,6 +1,11 @@
 import { syscall } from "../syscall.ts";
 
 /**
+ * Exposes the SilverBullet event bus.
+ * @module
+ */
+
+/**
  * Triggers an event on the SilverBullet event bus.
  * This can be used to implement an RPC-style system too, because event handlers can return values,
  * which are then accumulated in an array and returned to the caller.

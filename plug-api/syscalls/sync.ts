@@ -2,6 +2,7 @@ import { syscall } from "../syscall.ts";
 
 /**
  * Syscalls that interact with the sync engine (when the client runs in Sync mode)
+ * @module
  */
 
 /**

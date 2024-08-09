@@ -1,6 +1,11 @@
 import { syscall } from "../syscall.ts";
 
 /**
+ * YAML operations
+ * @module
+ */
+
+/**
  * Parses a YAML string into a JavaScript object.
  * @param text the YAML text to parse
  * @returns a JavaScript object representation of the YAML text

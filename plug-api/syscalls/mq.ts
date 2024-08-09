@@ -3,6 +3,7 @@ import type { MQStats } from "../types.ts";
 
 /**
  * Implements a simple Message Queue system.
+ * @module
  */
 
 /**

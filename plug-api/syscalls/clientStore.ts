@@ -3,6 +3,7 @@ import { syscall } from "../syscall.ts";
 /**
  * Implements a very simple (string) key value store for the client.
  * Generally should only be used to set some client-specific states, such as preferences.
+ * @module
  */
 
 /**

@@ -3,6 +3,7 @@ import type { KV, KvKey, KvQuery } from "../types.ts";
 
 /**
  * Exposes a key value story with query capabilities.
+ * @module
  */
 
 /**

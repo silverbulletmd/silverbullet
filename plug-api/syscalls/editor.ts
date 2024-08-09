@@ -6,6 +6,7 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 /**
  * Exposes various editor utilities.
  * Important: These syscalls are only available in the client.
+ * @module
  */
 
 /**

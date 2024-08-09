@@ -5,6 +5,11 @@ import { syscall } from "../syscall.ts";
 import type { Config } from "../../type/config.ts";
 
 /**
+ * System level syscalls
+ * @module
+ */
+
+/**
  * Invoke a plug function
  * @param name a string representing the name of the function to invoke ("plug.functionName")
  * @param args arguments to pass to the function

@@ -2,6 +2,11 @@ import { syscall } from "../syscall.ts";
 import type { AttachmentMeta, FileMeta, PageMeta } from "../types.ts";
 
 /**
+ * Exposes the space with its pages, attachments and plugs.
+ * @module
+ */
+
+/**
  * Lists all pages (files ending in .md) in the space.
  * @param unfiltered
  * @returns a list of all pages in the space represented as PageMeta objects
