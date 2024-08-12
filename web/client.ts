@@ -1134,11 +1134,6 @@ export class Client implements ConfigContainer {
 
     if (!loadingDifferentPage && this.initialPageText) {
       const fileChanges = diffAndPrepareChanges(this.initialPageText, doc.text);
-      console.log({
-        initialText: this.initialPageText,
-        docText: doc.text,
-        fileChanges,
-      });
       editorView.dispatch({
         changes: fileChanges,
       });
@@ -1163,7 +1158,7 @@ export class Client implements ConfigContainer {
     }
     this.space.watchPage(pageName);
 
-    this.initialPageText = doc.text;
+    this.initialPageText = this.editorView.state.sliceDoc(0);
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
