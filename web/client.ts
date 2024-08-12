@@ -2,9 +2,8 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { ChangeSet, Compartment } from "@codemirror/state";
-import { EditorView, type ViewUpdate } from "@codemirror/view";
-import { rebaseUpdates } from "@codemirror/collab";
+import type { Compartment } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
@@ -138,8 +137,6 @@ export class Client implements ConfigContainer {
   syncService!: ISyncService;
 
   private onLoadPageRef: PageRef;
-
-  private localChanges: ChangeSet[] = [];
 
   constructor(
     private parent: Element,
@@ -1137,13 +1134,21 @@ export class Client implements ConfigContainer {
 
     if (!loadingDifferentPage && this.initialPageText) {
       const fileChanges = diffAndPrepareChanges(this.initialPageText, doc.text);
-
+      console.log({
+        initialText: this.initialPageText,
+        docText: doc.text,
+        fileChanges,
+      });
       editorView.dispatch({
         changes: fileChanges,
       });
 
-      // Clear local changes
-      this.localChanges = [];
+      // Save the page if the merged version and retrieved version don't match
+      const mergedText = this.editorView.state.sliceDoc(0);
+
+      if (mergedText !== doc.text) {
+        this.save();
+      }
     } else {
       const editorState = createEditorState(
         this,
