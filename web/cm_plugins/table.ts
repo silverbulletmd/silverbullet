@@ -5,6 +5,7 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
+  shouldRenderWidgets,
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
@@ -88,6 +89,8 @@ export function tablePlugin(editor: Client) {
         const { from, to, name } = node;
         if (name !== "Table") return;
         if (isCursorInRange(state, [from, to])) return;
+
+        if (!shouldRenderWidgets(editor)) return;
 
         const tableText = state.sliceDoc(from, to);
         const lineStrings = tableText.split("\n");

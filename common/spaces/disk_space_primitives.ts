@@ -207,11 +207,11 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
       this.fileListCache = allFiles;
       this.fileListCacheTime = performance.now();
-      console.info(
-        "Updated file list cache in background:",
-        allFiles.length,
-        "files found",
-      );
+      // console.info(
+      //   "Updated file list cache in background:",
+      //   allFiles.length,
+      //   "files found",
+      // );
     }).catch((error) => {
       if (abortController.signal.aborted) return;
 

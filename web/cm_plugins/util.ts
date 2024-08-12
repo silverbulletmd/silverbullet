@@ -8,6 +8,8 @@ import {
 } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import type { Client } from "../client.ts";
+
 type LinkOptions = {
   text: string;
   href?: string;
@@ -16,6 +18,7 @@ type LinkOptions = {
   from: number;
   callback: (e: MouseEvent) => void;
 };
+
 export class LinkWidget extends WidgetType {
   constructor(
     readonly options: LinkOptions,
@@ -172,3 +175,9 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  * Decoration to simply hide anything.
  */
 export const invisibleDecoration = Decoration.replace({});
+
+export function shouldRenderWidgets(client: Client) {
+  const currentPageMeta = client.ui.viewState.currentPageMeta;
+  return !currentPageMeta?.tags?.includes("template") &&
+    currentPageMeta?.pageDecoration?.renderWidgets !== false;
+}

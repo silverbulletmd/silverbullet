@@ -2,7 +2,12 @@ import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
 import { MarkdownWidget } from "./markdown_widget.ts";
-import { decoratorStateField } from "./util.ts";
+import {
+  decoratorStateField,
+  invisibleDecoration,
+  isCursorInRange,
+  shouldRenderWidgets,
+} from "./util.ts";
 import type { Client } from "../client.ts";
 import {
   isFederationPath,
@@ -152,6 +157,9 @@ function parseAlias(
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
+    if (!shouldRenderWidgets(client)) {
+      return Decoration.set([]);
+    }
 
     syntaxTree(state).iterate({
       enter: (node) => {
@@ -232,8 +240,12 @@ export function inlineContentPlugin(client: Client) {
               client,
             ),
             block: true,
-          }).range(node.to + 1),
+          }).range(node.to),
         );
+
+        if (!isCursorInRange(state, [node.from, node.to])) {
+          widgets.push(invisibleDecoration.range(node.from, node.to));
+        }
       },
     });
 
