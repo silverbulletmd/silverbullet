@@ -1,11 +1,11 @@
 import type { CompleteEvent, IndexTreeEvent } from "../../plug-api/types.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { indexObjects, queryObjects } from "./api.ts";
 import {
   addParentPointers,
   collectNodesOfType,
   findParentMatching,
-} from "$sb/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { ObjectValue } from "../../plug-api/types.ts";
 
 export type TagObject = ObjectValue<{

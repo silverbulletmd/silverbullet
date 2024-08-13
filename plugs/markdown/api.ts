@@ -4,14 +4,14 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
 } from "../../plug-api/lib/tree.ts";
-import { codeWidget } from "$sb/syscalls.ts";
+import { codeWidget } from "@silverbulletmd/silverbullet/syscalls";
 import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
 } from "./markdown_render.ts";
-import { validatePageName } from "$sb/lib/page_ref.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree

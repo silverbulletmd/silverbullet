@@ -1,7 +1,7 @@
-import { editor, markdown, YAML } from "$sb/syscalls.ts";
-import type { CodeWidgetContent } from "$sb/types.ts";
-import { stripMarkdown } from "$sb/lib/markdown.ts";
-import { traverseTree } from "$sb/lib/tree.ts";
+import { editor, markdown, YAML } from "@silverbulletmd/silverbullet/syscalls";
+import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/types";
+import { stripMarkdown } from "@silverbulletmd/silverbullet/lib/markdown";
+import { traverseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 type Header = {
   name: string;
@@ -82,19 +82,19 @@ export async function widget(
         description: "Bake result",
         svg:
           `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-align-left"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>`,
-        invokeFunction: "query.bakeButton",
+        invokeFunction: ["query.bakeButton", bodyText],
       },
       {
         description: "Edit",
         svg:
           `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
-        invokeFunction: "query.editButton",
+        invokeFunction: ["query.editButton", bodyText],
       },
       {
         description: "Reload",
         svg:
           `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
-        invokeFunction: "index.refreshWidgets",
+        invokeFunction: ["index.refreshWidgets"],
       },
     ],
   };

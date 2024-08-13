@@ -29,6 +29,7 @@ export type PageDecoration = {
   prefix?: string;
   cssClasses?: string[];
   hide?: boolean;
+  renderWidgets?: boolean; // Defaults to true
 };
 
 export type AttachmentMeta = ObjectValue<
@@ -172,7 +173,7 @@ export type CodeWidgetButton = {
   widgetTarget?: boolean;
   description: string;
   svg: string;
-  invokeFunction: string;
+  invokeFunction: string[];
 };
 
 export type LintDiagnostic = {

@@ -14,8 +14,8 @@ import type {
 import { parseExpression } from "$common/expression_parser.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { ConfigObject } from "../plugs/index/config.ts";
-import { deepObjectMerge } from "$sb/lib/json.ts";
-import type { ActionButton } from "$lib/web.ts";
+import { deepObjectMerge } from "@silverbulletmd/silverbullet/lib/json";
+import type { ActionButton } from "@silverbulletmd/silverbullet/type/client";
 
 const yamlConfigRegex = /^(```+|~~~+)(ya?ml|space-config)\r?\n([\S\s]+?)\1/m;
 
@@ -97,8 +97,7 @@ async function loadConfigsFromSystem(
     fullConfig = deepObjectMerge(fullConfig, { [config.key]: config.value });
   }
   // And clean up the JSON (expand .-separated paths, convert dates to strings)
-  fullConfig = cleanupJSON(fullConfig);
-  return fullConfig;
+  return cleanupJSON(fullConfig);
 }
 
 /**

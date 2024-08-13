@@ -1,8 +1,14 @@
-import { editor, events, markdown, mq, space, system } from "$sb/syscalls.ts";
-import type { IndexEvent, MQMessage } from "$sb/types.ts";
+import {
+  editor,
+  events,
+  markdown,
+  mq,
+  space,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
+import type { IndexEvent, MQMessage } from "@silverbulletmd/silverbullet/types";
 import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
-import { plugPrefix } from "$common/spaces/constants.ts";
 import { indexAttachment } from "./attachment.ts";
 import { clearFileIndex } from "./api.ts";
 
@@ -24,8 +30,12 @@ export async function reindexSpace(noClear = false) {
   }
   // Load builtins
   await system.invokeFunction("index.loadBuiltinsIntoIndex");
+  // Pre-index SETTINGS page to get useful settings
+  console.log("Indexing SETTINGS page");
+  await indexPage("SETTINGS");
 
   const files = await space.listFiles();
+  console.log("Queing", files.length, "pages to be indexed.");
 
   // Queue all file names to be indexed
   await mq.batchSend("indexQueue", files.map((file) => file.name));
@@ -43,29 +53,32 @@ export async function reindexSpace(noClear = false) {
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
     let name: string = message.body;
-    if (name.startsWith(plugPrefix)) {
+    if (name.startsWith("_plug/")) {
       continue;
     }
     console.log(`Indexing file ${name}`);
     if (name.endsWith(".md")) {
       name = name.slice(0, -3);
-      const text = await space.readPage(name);
-      const parsed = await markdown.parseMarkdown(text);
-      if (isTemplate(text)) {
-        console.log("Indexing", name, "as template");
-        await events.dispatchEvent("page:indexTemplate", {
-          name,
-          tree: parsed,
-        });
-      } else {
-        await events.dispatchEvent("page:index", {
-          name,
-          tree: parsed,
-        });
-      }
+      await indexPage(name);
     } else {
       await indexAttachment(name);
     }
+  }
+}
+
+async function indexPage(name: string) {
+  const text = await space.readPage(name);
+  const parsed = await markdown.parseMarkdown(text);
+  if (isTemplate(text)) {
+    await events.dispatchEvent("page:indexTemplate", {
+      name,
+      tree: parsed,
+    });
+  } else {
+    await events.dispatchEvent("page:index", {
+      name,
+      tree: parsed,
+    });
   }
 }
 

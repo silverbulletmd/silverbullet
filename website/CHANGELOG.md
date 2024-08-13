@@ -5,15 +5,25 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* [[Transclusions]] now support audio, video and PDFs in addition to images (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1008))
+* Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013))
+* SETTINGS is now first indexed, when a full space reindex needs to happen.
+* Internal refactor, and more leverage of [JSR](https://jsr.io/). The SilverBullet [plug API](https://jsr.io/@silverbulletmd/silverbullet) is now published on JSR as well, and soon this will be the preferred way of importing the plug APIs.
+* In [[Space Script]], all syscalls are now exposed via “globals”, so they can be called using e.g. `editor.flashNotification("hello")` instead of `syscall("editor.flashNotification", "hello")`. The old way still works, but the new way is way cleaner.
+* And these syscalls are now [fully documented](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~)
+
+## 0.9.0
+This is a more major version bump due to [[Space Config]], which is a bigger architectural change. It shouldn’t break anything for existing users — but you know — famous last words.
+
 * [[Space Config]] is here! We hear you like Space stuff ([[Space Script]] and [[Space Style]]) so we keep adding more! This allows you to distribute your [[^SETTINGS]] across pages. A few things of note:
   * This is quite a _deep architectural change_ so I may have accidentally broken things I didn’t intend to, please report issues.
   * There is now a `@config` global variable that you can reference from anywhere containing the space’s currently active full configuration
   * There is now linting (checking) of `space-config` blocks, checking that you use built-in configuration keys correctly and reporting errors if not. Later this will be extended to allow plugs and space scripts to define custom validators as well (based on JSON schema).
   * Possible side-effect: if you configured a custom `indexPage` and are upgrading, it may be that your initial load brings you back to `index`. Just let the space reindex finish and reload and you should be good.
   * **Plug developers**: If you were using the `readSetting` library call, please switch to using the new `system.getSpaceConfig()` syscall instead once this is released. `readSetting` read the `SETTINGS` page only, this may now no longer give the full picture.
+* [[Transclusions]] now support audio, video and PDFs in addition to images (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1008))
 * New [[^Library/Core/Page/Space Overview]] library page part of the [[Library/Core]] Library that lists all of your [[Space Config]], [[Space Style]] and [[Space Script]] as well as some other fun stats.
 * Support for adding CSS classes in [[Page Decorations]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/945)). Check out [[Page Decorations#Use case: pimp my page]] 🤣
+* Added caching to file listings (useful for large spaces or slow disks) (by [Justyn Shull](https://github.com/silverbulletmd/silverbullet/pull/1012))
 
 ## 0.8.5
 * New power-user feature: [[Object Decorators]]. Its primary use case is to apply [[Page Decorations]], but you may find other uses as well. Speaking of which...

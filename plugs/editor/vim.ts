@@ -1,5 +1,5 @@
-import { readCodeBlockPage } from "$sb/lib/yaml_page.ts";
-import { clientStore, editor } from "$sb/syscalls.ts";
+import { readCodeBlockPage } from "@silverbulletmd/silverbullet/lib/yaml_page";
+import { clientStore, editor } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function toggleVimMode() {
   let vimMode = await clientStore.get("vimMode");

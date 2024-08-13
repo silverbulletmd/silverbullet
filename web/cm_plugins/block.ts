@@ -25,13 +25,6 @@ export function cleanBlockPlugin() {
               }).range(node.from),
             );
           }
-
-          if (
-            node.name === "Image" &&
-            !isCursorInRange(state, [node.from, node.to])
-          ) {
-            widgets.push(invisibleDecoration.range(node.from, node.to));
-          }
         },
       });
       return Decoration.set(widgets, true);

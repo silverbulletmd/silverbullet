@@ -5,12 +5,15 @@ import type {
   CodeWidgetCallback,
 } from "../../plug-api/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
-import { isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { parsePageRef } from "../../plug-api/lib/page_ref.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
 const activeWidgets = new Set<MarkdownWidget>();
 
@@ -254,7 +257,7 @@ export class MarkdownWidget extends WidgetType {
         div.addEventListener("click", () => {
           console.log("Widget clicked");
           this.client.clientSystem.localSyscall("system.invokeFunction", [
-            button.invokeFunction,
+            button.invokeFunction[0],
             this.from,
           ]).catch(console.error);
         });
@@ -263,10 +266,10 @@ export class MarkdownWidget extends WidgetType {
           "click",
           (e) => {
             e.stopPropagation();
-            this.client.clientSystem.localSyscall("system.invokeFunction", [
+            this.client.clientSystem.localSyscall(
+              "system.invokeFunction",
               button.invokeFunction,
-              this.bodyText,
-            ]).then((newContent: string | undefined) => {
+            ).then((newContent: string | undefined) => {
               if (newContent) {
                 div.innerText = newContent;
               }

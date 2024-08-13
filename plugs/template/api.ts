@@ -1,7 +1,11 @@
-import { markdown, template, YAML } from "$sb/syscalls.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import {
+  markdown,
+  template,
+  YAML,
+} from "@silverbulletmd/silverbullet/syscalls";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import type { TemplateObject } from "./types.ts";
-import { renderToText } from "$sb/lib/tree.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
 /**
  * Strips the template from its frontmatter and renders it.

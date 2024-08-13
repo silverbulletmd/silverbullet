@@ -1,4 +1,15 @@
 /**
+ * Represents a reference to a page, with optional position, anchor and header.
+ */
+export type PageRef = {
+  page: string;
+  pos?: number | { line: number; column: number };
+  anchor?: string;
+  header?: string;
+  meta?: boolean;
+};
+
+/**
  * Checks if a name looks like a full path (with a file extension), is not a conflicted file and not a search page.
  */
 export function looksLikePathWithExtension(name: string): boolean {
@@ -6,6 +17,9 @@ export function looksLikePathWithExtension(name: string): boolean {
     !name.startsWith("🔍 ");
 }
 
+/**
+ * Checks if a name looks like a full path (with a file extension), is not a conflicted file and not a search page.
+ */
 export function validatePageName(name: string) {
   // Page can not be empty and not end with a file extension (e.g. "bla.md")
   if (name === "") {
@@ -19,19 +33,16 @@ export function validatePageName(name: string) {
   }
 }
 
-export type PageRef = {
-  page: string;
-  pos?: number | { line: number; column: number };
-  anchor?: string;
-  header?: string;
-  meta?: boolean;
-};
-
 const posRegex = /@(\d+)$/;
 const linePosRegex = /@[Ll](\d+)(?:[Cc](\d+))?$/; // column is optional, implicit 1
 const anchorRegex = /\$([a-zA-Z\.\-\/]+[\w\.\-\/]*)$/;
 const headerRegex = /#([^#]*)$/;
 
+/**
+ * Parses a page reference string into a PageRef object.
+ * @param name the name of the page reference to parse
+ * @returns the parsed PageRef object
+ */
 export function parsePageRef(name: string): PageRef {
   // Normalize the page name
   if (name.startsWith("[[") && name.endsWith("]]")) {
@@ -71,6 +82,11 @@ export function parsePageRef(name: string): PageRef {
   return pageRef;
 }
 
+/**
+ * The inverse of parsePageRef, encodes a PageRef object into a string.
+ * @param pageRef the page reference to encode
+ * @returns a string representation of the page reference
+ */
 export function encodePageRef(pageRef: PageRef): string {
   let name = pageRef.page;
   if (pageRef.pos) {

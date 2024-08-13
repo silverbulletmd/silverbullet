@@ -5,12 +5,12 @@ import {
   type ParseTree,
   renderToText,
 } from "../../plug-api/lib/tree.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
-import { rewritePageRefs } from "$sb/lib/resolve.ts";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
+import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { updateITags } from "$sb/lib/tags.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 
 export type ItemObject = ObjectValue<
   {

@@ -1,4 +1,4 @@
-import { editor, sync } from "$sb/syscalls.ts";
+import { editor, sync } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function syncSpaceCommand() {
   await editor.flashNotification("Syncing space...");

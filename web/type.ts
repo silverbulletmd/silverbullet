@@ -1,8 +1,8 @@
 import type { AppCommand } from "../lib/command.ts";
 import { defaultConfig } from "../common/config.ts";
-import type { FilterOption, Notification, PanelMode } from "$lib/web.ts";
-import type { Config } from "./config.ts";
-import type { PageMeta } from "$sb/types.ts";
+import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
+import type { Config } from "../type/config.ts";
+import type { PageMeta } from "@silverbulletmd/silverbullet/types";
 
 export type PanelConfig = {
   mode?: PanelMode;

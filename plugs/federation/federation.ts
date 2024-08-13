@@ -1,6 +1,6 @@
-import "$sb/lib/native_fetch.ts";
-import { federatedPathToUrl } from "$sb/lib/resolve.ts";
-import { datastore } from "$sb/syscalls.ts";
+import "@silverbulletmd/silverbullet/lib/native_fetch";
+import { federatedPathToUrl } from "@silverbulletmd/silverbullet/lib/resolve";
+import { datastore } from "@silverbulletmd/silverbullet/syscalls";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { wildcardPathToRegex } from "./util.ts";
 

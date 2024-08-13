@@ -1,17 +1,23 @@
 import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
 import { cors } from "hono/middleware.ts";
-import { type Context, Hono, type HonoRequest, validator } from "hono/mod.ts";
+import { type Context, Hono, validator } from "hono/mod.ts";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import type { EndpointRequest, EndpointResponse, FileMeta } from "$sb/types.ts";
-import type { ShellRequest } from "$type/rpc.ts";
-import { SpaceServer } from "./instance.ts";
-import type { SpaceServerConfig } from "./instance.ts";
+import type {
+  EndpointRequest,
+  EndpointResponse,
+  FileMeta,
+} from "@silverbulletmd/silverbullet/types";
+import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
+import { SpaceServer } from "./space_server.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
-import { looksLikePathWithExtension, parsePageRef } from "$sb/lib/page_ref.ts";
+import {
+  looksLikePathWithExtension,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
 import { basename, dirname, join } from "@std/path";
 
@@ -26,7 +32,15 @@ export type ServerOptions = {
   certFile?: string;
   keyFile?: string;
 
-  configs: Map<string, SpaceServerConfig>;
+  // Enable username/password auth
+  auth?: { user: string; pass: string };
+  // Additional API auth token
+  authToken?: string;
+  pagesPath: string;
+  shellBackend: string;
+  syncOnly: boolean;
+  readOnly: boolean;
+  enableSpaceScript: boolean;
 };
 
 export class HttpServer {
@@ -39,11 +53,11 @@ export class HttpServer {
   keyFile: string | undefined;
   certFile: string | undefined;
 
-  spaceServers = new Map<string, Promise<SpaceServer>>();
+  // Available after start()
+  spaceServer!: SpaceServer;
   baseKvPrimitives: KvPrimitives;
-  configs: Map<string, SpaceServerConfig>;
 
-  constructor(options: ServerOptions) {
+  constructor(private options: ServerOptions) {
     this.app = new Hono();
     this.clientAssetBundle = options.clientAssetBundle;
     this.plugAssetBundle = options.plugAssetBundle;
@@ -52,60 +66,6 @@ export class HttpServer {
     this.keyFile = options.keyFile;
     this.certFile = options.certFile;
     this.baseKvPrimitives = options.baseKvPrimitives;
-    this.configs = options.configs;
-  }
-
-  async bootSpaceServer(config: SpaceServerConfig): Promise<SpaceServer> {
-    const spaceServer = new SpaceServer(
-      config,
-      this.plugAssetBundle,
-      new PrefixedKvPrimitives(this.baseKvPrimitives, [
-        config.namespace,
-      ]),
-    );
-    await spaceServer.init();
-
-    return spaceServer;
-  }
-
-  determineConfig(req: HonoRequest): [string, SpaceServerConfig] {
-    const url = new URL(req.url);
-    let hostname = url.host; // hostname:port
-
-    // First try a full match
-    let config = this.configs.get(hostname);
-    if (config) {
-      return [hostname, config];
-    }
-
-    // Then rip off the port and try again
-    hostname = hostname.split(":")[0];
-    config = this.configs.get(hostname);
-    if (config) {
-      return [hostname, config];
-    }
-
-    // If all else fails, try the wildcard
-    config = this.configs.get("*");
-
-    if (config) {
-      return ["*", config];
-    }
-
-    throw new Error(`No space server config found for hostname ${hostname}`);
-  }
-
-  ensureSpaceServer(req: HonoRequest): Promise<SpaceServer> {
-    const [matchedHostname, config] = this.determineConfig(req);
-    const spaceServer = this.spaceServers.get(matchedHostname);
-    if (spaceServer) {
-      return spaceServer;
-    }
-    // And then boot the thing, async
-    const spaceServerPromise = this.bootSpaceServer(config);
-    // But immediately write the promise to the map so that we don't boot it twice
-    this.spaceServers.set(matchedHostname, spaceServerPromise);
-    return spaceServerPromise;
   }
 
   // Replaces some template variables in index.html in a rather ad-hoc manner, but YOLO
@@ -172,19 +132,26 @@ export class HttpServer {
     );
   }
 
-  start() {
+  async start() {
     // Serve static files (javascript, css, html)
     this.serveStatic();
     this.serveCustomEndpoints();
     this.addAuth();
     this.addFsRoutes();
 
+    // Boot space server
+    this.spaceServer = new SpaceServer(
+      this.options,
+      this.plugAssetBundle,
+      new PrefixedKvPrimitives(this.baseKvPrimitives, ["*"]), // * for backwards compatibility reasons
+    );
+    await this.spaceServer.init();
+
     // Fallback, serve the UI index.html
-    this.app.use("*", async (c) => {
-      const spaceServer = await this.ensureSpaceServer(c.req);
+    this.app.use("*", (c) => {
       const url = new URL(c.req.url);
       const pageName = decodeURI(url.pathname.slice(1));
-      return this.renderHtmlPage(spaceServer, pageName, c);
+      return this.renderHtmlPage(this.spaceServer, pageName, c);
     });
 
     this.abortController = new AbortController();
@@ -214,16 +181,16 @@ export class HttpServer {
   // Custom endpoints can be defined in the server
   serveCustomEndpoints() {
     this.app.use("/_/*", async (ctx) => {
-      const spaceServer = await this.ensureSpaceServer(ctx.req);
       const req = ctx.req;
       const url = new URL(req.url);
-      if (!spaceServer.serverSystem) {
+      if (!this.spaceServer.serverSystem) {
         return ctx.text("No server system available", 500);
       }
 
       try {
         const path = url.pathname.slice(2); // Remove the /_
-        const responses: EndpointResponse[] = await spaceServer.serverSystem
+        const responses: EndpointResponse[] = await this.spaceServer
+          .serverSystem
           .eventHook.dispatchEvent(`http:request:${path}`, {
             fullPath: url.pathname,
             path,
@@ -271,17 +238,17 @@ export class HttpServer {
   }
 
   serveStatic() {
-    this.app.use("*", async (c, next) => {
+    this.app.use("*", (c, next): Promise<void | Response> => {
       const req = c.req;
-      const spaceServer = await this.ensureSpaceServer(req);
       const url = new URL(req.url);
       // console.log("URL", url);
       if (
         url.pathname === "/"
       ) {
         // Serve the UI (index.html)
-        const indexPage = parsePageRef(spaceServer.config?.indexPage!).page;
-        return this.renderHtmlPage(spaceServer, indexPage, c);
+        const indexPage =
+          parsePageRef(this.spaceServer.config?.indexPage!).page;
+        return this.renderHtmlPage(this.spaceServer, indexPage, c);
       }
       try {
         const assetName = url.pathname.slice(1);
@@ -294,7 +261,7 @@ export class HttpServer {
             utcDateString(this.clientAssetBundle.getMtime(assetName)) &&
           assetName !== "service_worker.js"
         ) {
-          return c.body(null, 304);
+          return Promise.resolve(c.body(null, 304));
         }
         c.status(200);
         c.header("Content-type", this.clientAssetBundle.getMimeType(assetName));
@@ -320,18 +287,19 @@ export class HttpServer {
               "{{CONFIG_HASH}}",
               base64Encode(
                 JSON.stringify([
-                  spaceServer.syncOnly,
-                  spaceServer.readOnly,
-                  spaceServer.enableSpaceScript,
+                  this.spaceServer.syncOnly,
+                  this.spaceServer.readOnly,
+                  this.spaceServer.enableSpaceScript,
                 ]),
               ),
             );
           }
-          return c.body(data);
+          return Promise.resolve(c.body(data));
         } // else e.g. HEAD, OPTIONS, don't send body
       } catch {
         return next();
       }
+      return Promise.resolve();
     });
   }
 
@@ -374,16 +342,14 @@ export class HttpServer {
         const url = new URL(c.req.url);
         const { username, password } = req.valid("form");
 
-        const spaceServer = await this.ensureSpaceServer(req);
-
         const {
           user: expectedUser,
           pass: expectedPassword,
-        } = spaceServer.auth!;
+        } = this.spaceServer.auth!;
 
         if (username === expectedUser && password === expectedPassword) {
           // Generate a JWT and set it as a cookie
-          const jwt = await spaceServer.jwtIssuer.createJWT(
+          const jwt = await this.spaceServer.jwtIssuer.createJWT(
             { username },
             authenticationExpirySeconds,
           );
@@ -410,8 +376,7 @@ export class HttpServer {
     // Check auth
     this.app.use("*", async (c, next) => {
       const req = c.req;
-      const spaceServer = await this.ensureSpaceServer(req);
-      if (!spaceServer.auth && !spaceServer.authToken) {
+      if (!this.spaceServer.auth && !this.spaceServer.authToken) {
         // Auth disabled in this config, skip
         return next();
       }
@@ -428,12 +393,12 @@ export class HttpServer {
       if (!excludedPaths.includes(url.pathname)) {
         const authCookie = getCookie(c, authCookieName(host));
 
-        if (!authCookie && spaceServer.authToken) {
+        if (!authCookie && this.spaceServer.authToken) {
           // Attempt Bearer Authorization based authentication
           const authHeader = req.header("Authorization");
           if (authHeader && authHeader.startsWith("Bearer ")) {
             const authToken = authHeader.slice("Bearer ".length);
-            if (authToken === spaceServer.authToken) {
+            if (authToken === this.spaceServer.authToken) {
               // All good, let's proceed
               return next();
             } else {
@@ -448,12 +413,13 @@ export class HttpServer {
           console.log("Unauthorized access, redirecting to auth page");
           return redirectToAuth();
         }
-        const { user: expectedUser } = spaceServer.auth!;
+        const { user: expectedUser } = this.spaceServer.auth!;
 
         try {
-          const verifiedJwt = await spaceServer.jwtIssuer.verifyAndDecodeJWT(
-            authCookie,
-          );
+          const verifiedJwt = await this.spaceServer.jwtIssuer
+            .verifyAndDecodeJWT(
+              authCookie,
+            );
           if (verifiedJwt.username !== expectedUser) {
             throw new Error("Username mismatch");
           }
@@ -483,12 +449,11 @@ export class HttpServer {
     // File list
     this.app.get("/index.json", async (c) => {
       const req = c.req;
-      const spaceServer = await this.ensureSpaceServer(req);
       if (req.header("X-Sync-Mode")) {
         // Only handle direct requests for a JSON representation of the file list
-        const files = await spaceServer.spacePrimitives.fetchFileList();
+        const files = await this.spaceServer.spacePrimitives.fetchFileList();
         return c.json(files, 200, {
-          "X-Space-Path": spaceServer.pagesPath,
+          "X-Space-Path": this.spaceServer.pagesPath,
         });
       } else {
         // Otherwise, redirect to the UI
@@ -497,14 +462,20 @@ export class HttpServer {
       }
     });
 
+    // Simple ping health endpoint
+    this.app.get("/.ping", (c) => {
+      return c.text("OK", 200, {
+        "Cache-Control": "no-cache",
+      });
+    });
+
     // RPC shell
     this.app.post("/.rpc/shell", async (c) => {
       const req = c.req;
-      const spaceServer = await this.ensureSpaceServer(req);
       const body = await req.json();
       try {
         const shellCommand: ShellRequest = body;
-        const shellResponse = await spaceServer.shellBackend.handle(
+        const shellResponse = await this.spaceServer.shellBackend.handle(
           shellCommand,
         );
         return c.json(shellResponse);
@@ -519,15 +490,14 @@ export class HttpServer {
       const req = c.req;
       const syscall = req.param("syscall")!;
       const plugName = req.param("plugName")!;
-      const spaceServer = await this.ensureSpaceServer(req);
       const body = await req.json();
       try {
-        if (spaceServer.syncOnly) {
+        if (this.spaceServer.syncOnly) {
           return c.text("Sync only mode, no syscalls allowed", 400);
         }
         const args: string[] = body;
         try {
-          const result = await spaceServer.system!.syscall(
+          const result = await this.spaceServer.system!.syscall(
             { plug: plugName === "_" ? undefined : plugName },
             syscall,
             args,
@@ -552,7 +522,6 @@ export class HttpServer {
     this.app.get(filePathRegex, async (c) => {
       const req = c.req;
       const name = req.param("path")!;
-      const spaceServer = await this.ensureSpaceServer(req);
       console.log("Requested file", name);
 
       if (
@@ -613,12 +582,12 @@ export class HttpServer {
       try {
         if (req.header("X-Get-Meta")) {
           // Getting meta via GET request
-          const fileData = await spaceServer.spacePrimitives.getFileMeta(
+          const fileData = await this.spaceServer.spacePrimitives.getFileMeta(
             name,
           );
           return c.text("", 200, this.fileMetaToHeaders(fileData));
         }
-        const fileData = await spaceServer.spacePrimitives.readFile(name);
+        const fileData = await this.spaceServer.spacePrimitives.readFile(name);
         const lastModifiedHeader = new Date(fileData.meta.lastModified)
           .toUTCString();
         if (
@@ -638,8 +607,7 @@ export class HttpServer {
       async (c) => {
         const req = c.req;
         const name = req.param("path")!;
-        const spaceServer = await this.ensureSpaceServer(req);
-        if (spaceServer.readOnly) {
+        if (this.spaceServer.readOnly) {
           return c.text("Read only mode, no writes allowed", 405);
         }
         console.log("Writing file", name);
@@ -656,7 +624,7 @@ export class HttpServer {
         const body = await req.arrayBuffer();
 
         try {
-          const meta = await spaceServer.spacePrimitives.writeFile(
+          const meta = await this.spaceServer.spacePrimitives.writeFile(
             name,
             new Uint8Array(body),
           );
@@ -669,8 +637,7 @@ export class HttpServer {
     ).delete(async (c) => {
       const req = c.req;
       const name = req.param("path")!;
-      const spaceServer = await this.ensureSpaceServer(req);
-      if (spaceServer.readOnly) {
+      if (this.spaceServer.readOnly) {
         return c.text("Read only mode, no writes allowed", 405);
       }
       console.log("Deleting file", name);
@@ -679,7 +646,7 @@ export class HttpServer {
         return c.text("Forbidden", 403);
       }
       try {
-        await spaceServer.spacePrimitives.deleteFile(name);
+        await this.spaceServer.spacePrimitives.deleteFile(name);
         return c.text("OK");
       } catch (e: any) {
         console.error("Error deleting attachment", e);
@@ -693,8 +660,7 @@ export class HttpServer {
       proxyPathRegex,
       async (c, next) => {
         const req = c.req;
-        const spaceServer = await this.ensureSpaceServer(req);
-        if (spaceServer.readOnly) {
+        if (this.spaceServer.readOnly) {
           return c.text("Read only mode, no federation proxy allowed", 405);
         }
         let url = req.param("uri")!.slice(1);

@@ -1,19 +1,17 @@
-import { editor, space, system } from "$sb/syscalls.ts";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import { listFilesCached, readFile } from "./federation.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
-import { invokeFunction } from "$sb/syscalls/system.ts";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { federatedPathToLocalPath, wildcardPathToRegex } from "./util.ts";
-import { confirm } from "$sb/syscalls/editor.ts";
-import type { LibraryDef } from "$type/config.ts";
+import type { LibraryDef } from "@silverbulletmd/silverbullet/type/config";
 
 export async function updateLibrariesCommand() {
   if (
-    await confirm(
+    await editor.confirm(
       "Are you sure you want to update all libraries?",
     )
   ) {
     await editor.flashNotification("Updating all libraries...");
-    const updateStats: UpdateStats = await invokeFunction(
+    const updateStats: UpdateStats = await system.invokeFunction(
       "federation.updateLibraries",
     );
     await editor.reloadConfigAndCommands();

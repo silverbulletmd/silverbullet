@@ -4,10 +4,10 @@ import type {
   FileMeta,
   PageMeta,
   QueryExpression,
-} from "$sb/types.ts";
+} from "@silverbulletmd/silverbullet/types";
 import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
-import { folderName } from "$sb/lib/resolve.ts";
+import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { LinkObject } from "../index/page_links.ts";
 
 // A meta page is a page tagged with either #template or #meta

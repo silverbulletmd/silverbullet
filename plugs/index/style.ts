@@ -2,8 +2,8 @@ import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { cleanPageRef } from "$sb/lib/resolve.ts";
-import { system } from "$sb/syscalls.ts";
+import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export type StyleObject = ObjectValue<{
   style: string;

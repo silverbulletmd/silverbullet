@@ -1,5 +1,9 @@
-import { editor, events, markdown } from "$sb/syscalls.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
+import {
+  editor,
+  events,
+  markdown,
+} from "@silverbulletmd/silverbullet/syscalls";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import type { PublishEvent } from "../../plug-api/types.ts";
 
 export async function publishShareOptions() {

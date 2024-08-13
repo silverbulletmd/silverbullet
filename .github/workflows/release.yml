@@ -7,6 +7,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
@@ -18,6 +21,8 @@ jobs:
         run: deno task build
       - name: Bundle
         run: deno task bundle
+      - name: Publish to JSR
+        run: deno publish
       - name: Release
         uses: softprops/action-gh-release@v1
         env:

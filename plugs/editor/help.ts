@@ -1,4 +1,4 @@
-import { editor } from "$sb/syscalls.ts";
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { version } from "../../version.ts";
 
 export async function versionCommand() {

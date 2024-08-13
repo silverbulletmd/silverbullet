@@ -11,4 +11,7 @@ if (typeof self === "undefined") {
   };
 }
 
-export const syscall = (globalThis as any).syscall;
+// Late binding syscall
+export function syscall(name: string, ...args: any[]): Promise<any> {
+  return (globalThis as any).syscall(name, ...args);
+}

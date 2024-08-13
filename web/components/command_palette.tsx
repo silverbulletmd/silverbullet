@@ -5,7 +5,7 @@ import type {
 } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import type { AppCommand } from "../../lib/command.ts";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { parseCommand } from "$common/command.ts";
 import type { Config } from "../../type/config.ts";
 

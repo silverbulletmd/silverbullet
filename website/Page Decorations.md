@@ -15,6 +15,7 @@ Page decorations allow you to “decorate” pages in various fun ways.
 * `cssClasses`: (list of strings) Attaches one or more CSS classes the page's `<body>` tag, wiki links, auto complete items and [[Page Picker]] entries for more advanced styling through a [[Space Style]] (see [[#Use case: pimp my page]] for an example).
 * `hide` When this is set to `true`, the page will not be shown in [[Page Picker]], [[Meta Picker]], or suggested for completion of [[Links]]. It will otherwise behave as normal - will be [[Plugs/Index|indexed]] and found in [[Live Queries]]. The page can be opened through [[All Pages Picker]], or linked normally when the full name is typed out without completion.
 * `disableTOC` (not technically built-in, but a feature of the [[^Library/Core/Widget/Table of Contents]] widget): disable the [[Table of Contents]] for this particular page.
+* `renderWidgets`: when set to `false` disables the [[Live Preview]] rendering of elements like [[Transclusions]], [[Live Queries]], [[Live Templates]] for this page.
 
 There are two ways to apply decorations:
 

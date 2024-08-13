@@ -1,5 +1,5 @@
 import type { CompleteEvent } from "../../plug-api/types.ts";
-import { events, language } from "$sb/syscalls.ts";
+import { events, language } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   AttributeCompleteEvent,
   AttributeCompletion,

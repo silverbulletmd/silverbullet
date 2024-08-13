@@ -1,4 +1,4 @@
-import type { ActionButton, EmojiConfig, Shortcut } from "$lib/web.ts";
+import type { ActionButton, EmojiConfig, Shortcut } from "./client.ts";
 
 export type ObjectDecorator = {
   // The expression to match against the object

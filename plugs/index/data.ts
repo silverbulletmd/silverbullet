@@ -1,10 +1,13 @@
-import { YAML } from "$sb/syscalls.ts";
-import { collectNodesOfType, findNodeOfType } from "$sb/lib/tree.ts";
+import { YAML } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  collectNodesOfType,
+  findNodeOfType,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import type { TagObject } from "./tags.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { updateITags } from "$sb/lib/tags.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 
 type DataObject = ObjectValue<
   {

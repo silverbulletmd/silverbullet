@@ -6,12 +6,12 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
+  shouldRenderWidgets,
 } from "./util.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
-import { isTemplate } from "../../lib/cheap_yaml.ts";
 
-export function fencedCodePlugin(editor: Client) {
+export function fencedCodePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
@@ -23,15 +23,15 @@ export function fencedCodePlugin(editor: Client) {
           }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
-          const codeWidgetCallback = editor.clientSystem.codeWidgetHook
+          const codeWidgetCallback = client.clientSystem.codeWidgetHook
             .codeWidgetCallbacks
             .get(lang);
-          const renderMode = editor.clientSystem.codeWidgetHook.codeWidgetModes
+          const renderMode = client.clientSystem.codeWidgetHook.codeWidgetModes
             .get(
               lang,
             );
           // Only custom render when we have a custom renderer, and the current page is not a template
-          if (codeWidgetCallback && !isTemplate(state.sliceDoc(0, from))) {
+          if (codeWidgetCallback && shouldRenderWidgets(client)) {
             // We got a custom renderer!
             const lineStrings = text.split("\n");
 
@@ -81,8 +81,8 @@ export function fencedCodePlugin(editor: Client) {
             const widget = renderMode === "markdown"
               ? new MarkdownWidget(
                 from + lineStrings[0].length + 1,
-                editor,
-                `widget:${editor.currentPage}:${bodyText}`,
+                client,
+                `widget:${client.currentPage}:${bodyText}`,
                 bodyText,
                 codeWidgetCallback,
                 "sb-markdown-widget",
@@ -90,7 +90,7 @@ export function fencedCodePlugin(editor: Client) {
               : new IFrameWidget(
                 from + lineStrings[0].length + 1,
                 to - lineStrings[lineStrings.length - 1].length - 1,
-                editor,
+                client,
                 lineStrings.slice(1, lineStrings.length - 1).join("\n"),
                 codeWidgetCallback,
               );

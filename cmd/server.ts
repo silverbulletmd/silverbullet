@@ -8,7 +8,6 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" with {
 import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
-import type { SpaceServerConfig } from "../server/instance.ts";
 import { runPlug } from "../cmd/plug_run.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { sleep } from "$lib/async.ts";
@@ -73,19 +72,6 @@ export async function serveCommand(
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
   const enableSpaceScript = Deno.env.get("SB_SPACE_SCRIPT") !== "off";
 
-  const configs = new Map<string, SpaceServerConfig>();
-  configs.set("*", {
-    hostname,
-    namespace: "*",
-    auth: userCredentials,
-    authToken: Deno.env.get("SB_AUTH_TOKEN"),
-    syncOnly,
-    readOnly,
-    shellBackend: backendConfig,
-    enableSpaceScript,
-    pagesPath: folder,
-  });
-
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
 
   if (readOnly) {
@@ -137,9 +123,16 @@ export async function serveCommand(
     baseKvPrimitives,
     keyFile: options.key,
     certFile: options.cert,
-    configs,
+
+    auth: userCredentials,
+    authToken: Deno.env.get("SB_AUTH_TOKEN"),
+    syncOnly,
+    readOnly,
+    shellBackend: backendConfig,
+    enableSpaceScript,
+    pagesPath: folder,
   });
-  httpServer.start();
+  await httpServer.start();
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {

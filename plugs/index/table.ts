@@ -3,7 +3,7 @@ import {
   collectNodesMatching,
   collectNodesOfType,
   type ParseTree,
-} from "$sb/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
 
 type TableRowObject =

@@ -3,7 +3,7 @@ import {
   collectNodesOfType,
   findNodeOfType,
   renderToText,
-} from "$sb/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { extendedMarkdownLanguage } from "./parser.ts";
 

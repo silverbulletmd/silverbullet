@@ -8,7 +8,7 @@ import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "../common/hooks/event.ts";
 import type { AppCommand } from "$lib/command.ts";
 import {
@@ -17,7 +17,7 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState } from "../type/web.ts";
+import type { AppViewState } from "./type.ts";
 
 import type {
   AppEvent,
@@ -39,11 +39,14 @@ import type { SyncStatus } from "$common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
-import { encodePageRef, validatePageName } from "$sb/lib/page_ref.ts";
+import {
+  encodePageRef,
+  validatePageName,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
-import { cleanPageRef } from "$sb/lib/resolve.ts";
+import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import type {
   CodeWidgetButton,
@@ -69,7 +72,7 @@ import {
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
-import { findNodeMatching } from "$sb/lib/tree.ts";
+import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
 import type { LinkObject } from "../plugs/index/page_links.ts";
 import type { Config } from "../type/config.ts";
 import { diff3Merge } from "node-diff3";
@@ -276,6 +279,7 @@ export class Client implements ConfigContainer {
     this.clientSystem.slashCommandHook.buildAllCommands(
       this.clientSystem.system,
     );
+    this.eventHook.dispatchEvent("config:loaded", this.config);
   }
 
   private async initSync() {

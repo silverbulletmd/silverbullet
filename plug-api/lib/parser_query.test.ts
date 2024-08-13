@@ -1,7 +1,7 @@
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { type AST, collectNodesOfType, parseTreeToAST } from "./tree.ts";
 import { assert, assertEquals } from "@std/assert";
-import { astToKvQuery } from "$sb/lib/parse-query.ts";
+import { astToKvQuery } from "./parse_query.ts";
 import { languageFor } from "$common/languages.ts";
 
 function wrapQueryParse(query: string): AST | null {

@@ -11,9 +11,9 @@ import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "$lib/plugos/system.ts";
-import type { FilterOption } from "$lib/web.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type { UploadFile } from "../../plug-api/types.ts";
-import type { PageRef } from "$sb/lib/page_ref.ts";
+import type { PageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { openSearchPanel } from "@codemirror/search";
 import { diffAndPrepareChanges } from "../cm_util.ts";
 
@@ -60,6 +60,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.reloadConfigAndCommands": async () => {
       await client.loadConfig();
+
       await client.clientSystem.system.localSyscall(
         "system.loadSpaceScripts",
         [],

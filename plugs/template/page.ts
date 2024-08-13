@@ -1,4 +1,9 @@
-import { editor, space, system, template } from "$sb/syscalls.ts";
+import {
+  editor,
+  space,
+  system,
+  template,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { getObjectByRef, queryObjects } from "../index/plug_api.ts";
 import type { FrontmatterConfig, TemplateObject } from "./types.ts";

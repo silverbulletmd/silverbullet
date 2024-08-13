@@ -1,16 +1,21 @@
 import type { IndexTreeEvent } from "../../plug-api/types.ts";
-import { editor, markdown, space, YAML } from "$sb/syscalls.ts";
+import {
+  editor,
+  markdown,
+  space,
+  YAML,
+} from "@silverbulletmd/silverbullet/syscalls";
 
 import type { LintDiagnostic, PageMeta } from "../../plug-api/types.ts";
-import { extractFrontmatter } from "$sb/lib/frontmatter.ts";
-import { extractAttributes } from "$sb/lib/attribute.ts";
+import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { indexObjects } from "./api.ts";
 import {
   findNodeOfType,
   renderToText,
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
-import { updateITags } from "$sb/lib/tags.ts";
+import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {

@@ -3,6 +3,10 @@ import { cleanupJSON, deepEqual, deepObjectMerge } from "./json.ts";
 
 Deno.test("JSON utils", () => {
   assertEquals(deepEqual({ a: 1 }, { a: 1 }), true);
+  assertEquals(deepEqual({ a: null }, { a: null }), true);
+  assertEquals(deepEqual({ a: {} }, { a: null }), false);
+  assertEquals(deepEqual({ a: {} }, { a: undefined }), false);
+  assertEquals(deepEqual({ a: null }, { a: {} }), false);
   assertEquals(deepObjectMerge({ a: 1 }, { a: 2 }), { a: 2 });
   assertEquals(
     deepObjectMerge({ list: [1, 2, 3] }, { list: [4, 5, 6] }),

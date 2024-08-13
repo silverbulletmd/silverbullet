@@ -1,5 +1,5 @@
-import { editor, space } from "$sb/syscalls.ts";
-import { isFederationPath } from "$sb/lib/resolve.ts";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import { isFederationPath } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();

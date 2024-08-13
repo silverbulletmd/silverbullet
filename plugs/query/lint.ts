@@ -1,8 +1,14 @@
 import type { LintEvent } from "../../plug-api/types.ts";
-import { parseQuery } from "$sb/lib/parse-query.ts";
-import { cleanPageRef, resolvePath } from "$sb/lib/resolve.ts";
-import { findNodeOfType, traverseTreeAsync } from "$sb/lib/tree.ts";
-import { events, space, system } from "$sb/syscalls.ts";
+import { parseQuery } from "../../plug-api/lib/parse_query.ts";
+import {
+  cleanPageRef,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  findNodeOfType,
+  traverseTreeAsync,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { events, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { LintDiagnostic } from "../../plug-api/types.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 

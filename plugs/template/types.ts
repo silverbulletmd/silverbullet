@@ -1,4 +1,4 @@
-import type { ObjectValue } from "$sb/types.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/types";
 
 export type CommandConfig = {
   command?: string;

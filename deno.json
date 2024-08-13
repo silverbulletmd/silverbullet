@@ -1,8 +1,25 @@
 {
   "name": "@silverbulletmd/silverbullet",
-  "version": "0.0.1",
+  "version": "0.9.0",
   "exports": {
-    "./syscalls": "./plug-api/syscalls.ts"
+    "./syscall": "./plug-api/syscall.ts",
+    "./syscalls": "./plug-api/syscalls.ts",
+    "./types": "./plug-api/types.ts",
+    "./lib/json": "./plug-api/lib/json.ts",
+    "./lib/tree": "./plug-api/lib/tree.ts",
+    "./lib/attribute": "./plug-api/lib/attribute.ts",
+    "./lib/parse_query": "./plug-api/lib/parse_query.ts",
+    "./lib/page_ref": "./plug-api/lib/page_ref.ts",
+    "./lib/resolve": "./plug-api/lib/resolve.ts",
+    "./lib/query_expression": "./plug-api/lib/query_expression.ts",
+    "./lib/yaml_page": "./plug-api/lib/yaml_page.ts",
+    "./lib/query": "./plug-api/lib/query.ts",
+    "./lib/frontmatter": "./plug-api/lib/frontmatter.ts",
+    "./lib/markdown": "./plug-api/lib/markdown.ts",
+    "./lib/tags": "./plug-api/lib/tags.ts",
+    "./type/config": "./type/config.ts",
+    "./type/rpc": "./type/rpc.ts",
+    "./type/client": "./type/client.ts"
   },
   "publish": {
     "exclude": [
@@ -49,7 +66,7 @@
       "cmd/test/test_space"
     ],
     "rules": {
-      "exclude": ["no-explicit-any"]
+      "exclude": ["no-explicit-any", "no-slow-types"]
     }
   },
   "fmt": {
@@ -69,10 +86,27 @@
     "jsxImportSource": "https://esm.sh/preact@10.23.1"
   },
   "imports": {
+    "@silverbulletmd/silverbullet/syscall": "./plug-api/syscall.ts",
+    "@silverbulletmd/silverbullet/syscalls": "./plug-api/syscalls.ts",
+    "@silverbulletmd/silverbullet/types": "./plug-api/types.ts",
+    "@silverbulletmd/silverbullet/lib/json": "./plug-api/lib/json.ts",
+    "@silverbulletmd/silverbullet/lib/tree": "./plug-api/lib/tree.ts",
+    "@silverbulletmd/silverbullet/lib/attribute": "./plug-api/lib/attribute.ts",
+    "@silverbulletmd/silverbullet/lib/parse_query": "./plug-api/lib/parse_query.ts",
+    "@silverbulletmd/silverbullet/lib/page_ref": "./plug-api/lib/page_ref.ts",
+    "@silverbulletmd/silverbullet/lib/resolve": "./plug-api/lib/resolve.ts",
+    "@silverbulletmd/silverbullet/lib/query_expression": "./plug-api/lib/query_expression.ts",
+    "@silverbulletmd/silverbullet/lib/yaml_page": "./plug-api/lib/yaml_page.ts",
+    "@silverbulletmd/silverbullet/lib/native_fetch": "./plug-api/lib/native_fetch.ts",
+    "@silverbulletmd/silverbullet/lib/query": "./plug-api/lib/query.ts",
+    "@silverbulletmd/silverbullet/lib/frontmatter": "./plug-api/lib/frontmatter.ts",
+    "@silverbulletmd/silverbullet/lib/markdown": "./plug-api/lib/markdown.ts",
+    "@silverbulletmd/silverbullet/lib/tags": "./plug-api/lib/tags.ts",
+    "@silverbulletmd/silverbullet/type/config": "./type/config.ts",
+    "@silverbulletmd/silverbullet/type/rpc": "./type/rpc.ts",
+    "@silverbulletmd/silverbullet/type/client": "./type/client.ts",
     "$common/": "./common/",
     "$lib/": "./lib/",
-    "$sb/": "./plug-api/",
-    "$type/": "./type/",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.17.0?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.6.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common&target=es2022",
     "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.2.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/common,@lezer/css&target=es2022",

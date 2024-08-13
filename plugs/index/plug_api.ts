@@ -5,7 +5,7 @@ import type {
   ObjectValue,
 } from "../../plug-api/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
-import { system } from "$sb/syscalls.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export function indexObjects<T>(
   page: string,

@@ -2,10 +2,19 @@ import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
 import { MarkdownWidget } from "./markdown_widget.ts";
-import { decoratorStateField } from "./util.ts";
+import {
+  decoratorStateField,
+  invisibleDecoration,
+  isCursorInRange,
+  shouldRenderWidgets,
+} from "./util.ts";
 import type { Client } from "../client.ts";
-import { isFederationPath, isLocalPath, resolvePath } from "$sb/lib/resolve.ts";
-import { parsePageRef } from "$sb/lib/page_ref.ts";
+import {
+  isFederationPath,
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { mime } from "mimetypes";
 
 type ContentDimensions = {
@@ -148,6 +157,9 @@ function parseAlias(
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
+    if (!shouldRenderWidgets(client)) {
+      return Decoration.set([]);
+    }
 
     syntaxTree(state).iterate({
       enter: (node) => {
@@ -156,8 +168,7 @@ export function inlineContentPlugin(client: Client) {
         }
 
         const text = state.sliceDoc(node.from, node.to);
-        let [url, alias]: (string | null)[] = [null, null];
-        let dim: ContentDimensions | undefined;
+        let [url, alias]: (string | undefined)[] = [undefined, undefined];
         let match: RegExpExecArray | null;
         if ((match = /!?\[([^\]]*)\]\((.+)\)/g.exec(text))) {
           [/* fullMatch */, alias, url] = match;
@@ -168,10 +179,12 @@ export function inlineContentPlugin(client: Client) {
           if (!isFederationPath(url)) {
             url = "/" + url;
           }
-        } else {
+        }
+        if (!url) {
           return;
         }
 
+        let dim: ContentDimensions | undefined;
         if (alias) {
           const { alias: parsedAlias, dim: parsedDim } = parseAlias(alias);
           if (parsedAlias) {
@@ -183,7 +196,11 @@ export function inlineContentPlugin(client: Client) {
         }
 
         if (isLocalPath(url)) {
-          url = resolvePath(client.currentPage, decodeURI(url), true);
+          url = resolvePath(
+            client.currentPage,
+            decodeURI(url),
+            true,
+          );
           const pageRef = parsePageRef(url);
           if (
             isFederationPath(pageRef.page) ||
@@ -191,17 +208,11 @@ export function inlineContentPlugin(client: Client) {
           ) {
             // This is a page reference, let's inline the content
             const codeWidgetCallback = client.clientSystem.codeWidgetHook
-              .codeWidgetCallbacks.get("template");
+              .codeWidgetCallbacks.get("transclusion");
 
             if (!codeWidgetCallback) {
               return;
             }
-
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-iframe",
-              }).range(node.to),
-            );
 
             widgets.push(
               Decoration.widget({
@@ -209,12 +220,12 @@ export function inlineContentPlugin(client: Client) {
                   node.from,
                   client,
                   `widget:${client.currentPage}:${text}`,
-                  `{{rewriteRefsAndFederationLinks([[${url}]], "${url}")}}`,
+                  text,
                   codeWidgetCallback,
                   "sb-markdown-widget sb-markdown-widget-inline",
                 ),
                 block: true,
-              }).range(node.to),
+              }).range(node.to + 1),
             );
             return;
           }
@@ -222,10 +233,19 @@ export function inlineContentPlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new InlineContentWidget(url, alias, dim, client),
+            widget: new InlineContentWidget(
+              url,
+              alias,
+              dim,
+              client,
+            ),
             block: true,
-          }).range(node.to + 1),
+          }).range(node.to),
         );
+
+        if (!isCursorInRange(state, [node.from, node.to])) {
+          widgets.push(invisibleDecoration.range(node.from, node.to));
+        }
       },
     });
 
