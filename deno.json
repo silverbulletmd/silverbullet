@@ -114,6 +114,7 @@
     "hono/": "https://deno.land/x/hono@v3.12.2/",
     "js-yaml": "https://esm.sh/js-yaml@4.1.0",
     "mimetypes": "https://deno.land/x/mimetypes@v1.0.0/mod.ts",
+    "node-diff3": "https://esm.sh/node-diff3@3.1.2",
     "porter-stemmer": "https://esm.sh/porter-stemmer@0.9.1",
     "preact": "https://esm.sh/preact@10.23.1",
     "preact-feather": "https://esm.sh/preact-feather@4.2.1?external=preact",
@@ -124,7 +125,6 @@
     "react-icons/types": "https://deno.land/x/react_icons@1.0.9/mod.ts",
     "s3_lite_client/": "https://deno.land/x/s3_lite_client@0.4.0/",
     "style-mod": "https://esm.sh/style-mod@4.1.2",
-    "three-way-merge": "https://esm.sh/three-way-merge@0.1.0",
     "turndown": "https://cdn.skypack.dev/turndown@7.2.0",
     "ajv": "https://esm.sh/ajv@8.17.1?target=es2022",
     "turndown-plugin-gfm": "https://cdn.skypack.dev/@joplin/turndown-plugin-gfm@1.0.56"
