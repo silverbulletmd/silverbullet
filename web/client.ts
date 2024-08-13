@@ -1144,9 +1144,9 @@ export class Client implements ConfigContainer {
       let currentDocText = this.editorView.state.sliceDoc();
 
       const merged = diff3Merge(
-        currentDocText.split(""),
-        this.initialPageText.split(""),
-        doc.text.split(""),
+        [...(currentDocText.match(/[\S]+|[^\S]/g) || [])],
+        [...(this.initialPageText.match(/[\S]+|[^\S]/g) || [])],
+        [...(doc.text.match(/[\S]+|[^\S]/g) || [])],
       );
 
       let mergedText = "";
