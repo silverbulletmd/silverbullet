@@ -246,8 +246,12 @@ export class HttpServer {
         url.pathname === "/"
       ) {
         // Serve the UI (index.html)
-        const indexPage =
-          parsePageRef(this.spaceServer.config?.indexPage!).page;
+        let indexPage = "index";
+        try {
+          indexPage = parsePageRef(this.spaceServer.config?.indexPage!).page;
+        } catch (e: any) {
+          console.error("Error parsing index page from config", e);
+        }
         return this.renderHtmlPage(this.spaceServer, indexPage, c);
       }
       try {
