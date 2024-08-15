@@ -182,6 +182,16 @@ export function FilterList({
                 break;
               }
             }
+            if (e.ctrlKey && e.key === "n") {
+              setSelectionOption(
+                Math.min(matchingOptions.length - 1, selectedOption + 1),
+              );
+              return true;
+            }
+            if (e.ctrlKey && e.key === "p") {
+              setSelectionOption(Math.max(0, selectedOption - 1));
+              return true;
+            }
             return false;
           }}
         />
