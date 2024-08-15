@@ -158,6 +158,7 @@ export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     if (!shouldRenderWidgets(client)) {
+      console.info("Not rendering widgets");
       return Decoration.set([]);
     }
 
@@ -225,8 +226,13 @@ export function inlineContentPlugin(client: Client) {
                   "sb-markdown-widget sb-markdown-widget-inline",
                 ),
                 block: true,
-              }).range(node.to + 1),
+              }).range(node.to),
             );
+
+            if (!isCursorInRange(state, [node.from, node.to])) {
+              widgets.push(invisibleDecoration.range(node.from, node.to));
+            }
+
             return;
           }
         }

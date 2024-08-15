@@ -229,7 +229,6 @@ export class ClientSystem extends CommonSystem {
   }
 
   getObjectByRef<T>(page: string, tag: string, ref: string) {
-    console.log("Calling getObjectByRef", page, tag, ref);
     return this.localSyscall(
       "system.invokeFunction",
       ["index.getObjectByRef", page, tag, ref],
