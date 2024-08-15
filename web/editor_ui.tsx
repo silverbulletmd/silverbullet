@@ -15,7 +15,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun, sleep } from "../lib/async.ts";
 import { parseCommand } from "$common/command.ts";
-import { defaultActionButtons } from "../common/config.ts";
+import { defaultActionButtons } from "@silverbulletmd/silverbullet/type/config";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;

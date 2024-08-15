@@ -3,6 +3,21 @@ import Ajv from "ajv";
 
 const ajv = new Ajv();
 
+ajv.addFormat("email", {
+  validate: (data: string) => {
+    // TODO: Implement email validation
+    return data.includes("@");
+  },
+  async: false,
+});
+
+ajv.addFormat("page-ref", {
+  validate: (data: string) => {
+    return data.startsWith("[[") && data.endsWith("]]");
+  },
+  async: false,
+});
+
 export function jsonschemaSyscalls(): SysCallMapping {
   return {
     "jsonschema.validateObject": (
@@ -16,8 +31,19 @@ export function jsonschemaSyscalls(): SysCallMapping {
       } else {
         let text = ajv.errorsText(validate.errors);
         text = text.replaceAll("/", ".");
-        text = text.replace(/^data\./, "");
+        text = text.replace(/^data[\.\s]/, "");
         return text;
+      }
+    },
+    "jsonschema.validateSchema": (
+      _ctx,
+      schema: any,
+    ): undefined | string => {
+      const valid = ajv.validateSchema(schema);
+      if (valid) {
+        return;
+      } else {
+        return ajv.errorsText(ajv.errors);
       }
     },
   };

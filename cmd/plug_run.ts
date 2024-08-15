@@ -13,7 +13,10 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { EventHook } from "../common/hooks/event.ts";
 import { sleep } from "$lib/async.ts";
 import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import { type ConfigContainer, defaultConfig } from "../common/config.ts";
+import {
+  type ConfigContainer,
+  defaultConfig,
+} from "@silverbulletmd/silverbullet/type/config";
 
 export async function plugRunCommand(
   {

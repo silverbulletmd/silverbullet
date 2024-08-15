@@ -1,7 +1,5 @@
 import type { SilverBulletHooks } from "../lib/manifest.ts";
 import {
-  type ConfigContainer,
-  defaultConfig,
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,
 } from "../common/config.ts";
@@ -21,7 +19,11 @@ import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
-import type { Config } from "../type/config.ts";
+import {
+  type Config,
+  type ConfigContainer,
+  defaultConfig,
+} from "../type/config.ts";
 import type { ServerOptions } from "./http_server.ts";
 
 // Equivalent of Client on the server

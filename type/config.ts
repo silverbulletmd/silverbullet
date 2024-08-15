@@ -1,5 +1,11 @@
 import type { ActionButton, EmojiConfig, Shortcut } from "./client.ts";
 
+export interface ConfigContainer {
+  config: Config;
+
+  loadConfig(): Promise<void>;
+}
+
 export type ObjectDecorator = {
   // The expression to match against the object
   where: string;
@@ -38,6 +44,8 @@ export type Config = {
   spaceIgnore?: string;
   emoji?: EmojiConfig;
 
+  schema: SchemaConfig;
+
   // DEPRECATED: Use space styles instead
   customStyles?: string | string[];
 
@@ -45,10 +53,15 @@ export type Config = {
   defaultLinkStyle?: string;
 } & Record<string, any>;
 
-export const ConfigSchema = {
+type SchemaConfig = {
+  tag: Record<string, any>; // any = JSONSchema
+  config: Record<string, any>; // any = JSONSchema
+};
+
+const configSchema = {
   type: "object",
   properties: {
-    indexPage: { type: "string" },
+    indexPage: { type: "string", format: "page-ref" },
     shortcuts: {
       type: "array",
       items: {
@@ -74,10 +87,10 @@ export const ConfigSchema = {
       items: {
         type: "object",
         properties: {
-          import: { type: "string" },
+          import: { type: "string", format: "page-ref" },
           exclude: {
             type: "array",
-            items: { type: "string" },
+            items: { type: "string", format: "page-ref" },
             nullable: true,
           },
         },
@@ -140,3 +153,34 @@ export const ConfigSchema = {
   additionalProperties: true,
   required: [],
 };
+
+export const defaultConfig: Config = {
+  indexPage: "index",
+  hideSyncButton: false,
+  maximumAttachmentSize: 10, // MiB
+  defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
+  actionButtons: [], // Actually defaults to defaultActionButtons
+
+  schema: {
+    config: configSchema,
+    tag: {},
+  },
+};
+
+export const defaultActionButtons: ActionButton[] = [
+  {
+    icon: "Home",
+    description: "Go to the index page",
+    command: "Navigate: Home",
+  },
+  {
+    icon: "Book",
+    description: `Open page`,
+    command: "Navigate: Page Picker",
+  },
+  {
+    icon: "Terminal",
+    description: `Run command`,
+    command: "Open Command Palette",
+  },
+];

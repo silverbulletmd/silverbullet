@@ -39,7 +39,7 @@ import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
-import type { ConfigContainer } from "../common/config.ts";
+import type { ConfigContainer } from "../type/config.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 

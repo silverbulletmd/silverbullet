@@ -1,4 +1,8 @@
-import { jsonschema, YAML } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  jsonschema,
+  system,
+  YAML,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { LintDiagnostic, QueryExpression } from "../../plug-api/types.ts";
 import {
   findNodeOfType,
@@ -9,12 +13,16 @@ import type { LintEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "./api.ts";
 import type { AttributeObject } from "./attributes.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { ConfigSchema } from "@silverbulletmd/silverbullet/type/config";
+import {
+  cleanupJSON,
+  deepObjectMerge,
+} from "@silverbulletmd/silverbullet/lib/json";
 
 export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   const frontmatter = await extractFrontmatter(tree);
   const tags = ["page", ...frontmatter.tags || []];
+  const schemaConfig = await system.getSpaceConfig("schema");
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
       // Query all readOnly attributes for pages with this tag set
@@ -33,10 +41,23 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
           select: [{ name: "name" }],
         },
       );
+
+      // Check if we have schema for this
+      let schema = {
+        type: "object",
+        additionalProperties: true,
+      };
+      for (const tag of tags) {
+        if (schemaConfig.tag[tag]) {
+          schema = deepObjectMerge(schema, schemaConfig.tag[tag]);
+        }
+      }
+
       const lintResult = await lintYaml(
         renderToText(node),
         node.from!,
         readOnlyAttributes.map((a) => a.name),
+        schema,
       );
       if (lintResult) {
         diagnostics.push(lintResult);
@@ -59,17 +80,64 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
           return true;
         }
         const yamlCode = renderToText(codeText);
-        const lintResult = await lintYaml(
-          yamlCode,
-          codeText.from!,
-        );
+        let lintResult: LintDiagnostic | undefined;
+        if (codeLang === "space-config") {
+          // First validate that config schema itself is valid
+          let schemaResult = await jsonschema.validateSchema(
+            schemaConfig.config,
+          );
+          if (schemaResult) {
+            lintResult = {
+              from: codeText.from!,
+              to: codeText.to!,
+              severity: "error",
+              message: "[CONFIG SCHEMA ERROR]: " + schemaResult,
+            };
+          }
+          // Lint the actual YAML
+          if (!lintResult) {
+            // First do a regular YAML lint based on the schema
+            lintResult = await lintYaml(
+              yamlCode,
+              codeText.from!,
+              [],
+              schemaConfig.config,
+            );
+          }
+          // Then check the tag schemas
+          if (!lintResult) {
+            // Quickly parse YAML again
+            let parsed = await YAML.parse(yamlCode);
+            parsed = cleanupJSON(parsed);
+            // If tag schemas are defined, validate them
+            if (parsed.schema?.tag) {
+              for (
+                let [tagName, tagSchema] of Object.entries(parsed.schema.tag)
+              ) {
+                tagSchema = deepObjectMerge({ type: "object" }, tagSchema);
+                schemaResult = await jsonschema.validateSchema(tagSchema);
+                if (schemaResult) {
+                  lintResult = {
+                    from: codeText.from!,
+                    to: codeText.to!,
+                    severity: "error",
+                    message: `[TAG ${tagName} SCHEMA ERROR]: ${schemaResult}`,
+                  };
+                  break;
+                }
+              }
+            }
+          }
+        } else {
+          // Regular YAML lint
+          lintResult = await lintYaml(
+            yamlCode,
+            codeText.from!,
+            [],
+          );
+        }
         if (lintResult) {
           diagnostics.push(lintResult);
-        } else if (codeLang === "space-config") {
-          const configLint = await lintConfig(yamlCode, codeText.from!);
-          if (configLint) {
-            diagnostics.push(configLint);
-          }
         }
         return true;
       }
@@ -83,18 +151,42 @@ const errorRegex = /\((\d+):(\d+)\)/;
 
 async function lintYaml(
   yamlText: string,
-  from: number,
+  startPos: number,
   readOnlyKeys: string[] = [],
+  schema?: any,
 ): Promise<LintDiagnostic | undefined> {
   try {
-    const parsed = await YAML.parse(yamlText);
+    let parsed = await YAML.parse(yamlText);
+    parsed = cleanupJSON(parsed);
     for (const key of readOnlyKeys) {
       if (parsed[key]) {
         return {
-          from,
-          to: from + yamlText.length,
+          from: startPos,
+          to: startPos + yamlText.length,
           severity: "error",
           message: `Cannot set read-only attribute "${key}"`,
+        };
+      }
+    }
+    if (schema) {
+      // First validate the schema itself
+      const schemaResult = await jsonschema.validateSchema(schema);
+      if (schemaResult) {
+        return {
+          from: startPos,
+          to: startPos + yamlText.length,
+          severity: "error",
+          message: "[SCHEMA ERROR]: " + schemaResult,
+        };
+      }
+      // Then validate the object
+      const result = await jsonschema.validateObject(schema, parsed);
+      if (result) {
+        return {
+          from: startPos,
+          to: startPos + yamlText.length,
+          severity: "error",
+          message: result,
         };
       }
     }
@@ -104,7 +196,7 @@ async function lintYaml(
       console.log("YAML error", e.message);
       const line = parseInt(errorMatch[1], 10) - 1;
       const yamlLines = yamlText.split("\n");
-      let pos = from;
+      let pos = startPos;
       for (let i = 0; i < line; i++) {
         pos += yamlLines[i].length + 1;
       }
@@ -117,25 +209,5 @@ async function lintYaml(
         message: e.message,
       };
     }
-  }
-}
-
-async function lintConfig(
-  text: string,
-  startPos: number,
-): Promise<LintDiagnostic | undefined> {
-  try {
-    const parsedYaml = await YAML.parse(text);
-    const result = await jsonschema.validateObject(ConfigSchema, parsedYaml);
-    if (result) {
-      return {
-        from: startPos,
-        to: startPos + text.length,
-        severity: "error",
-        message: result,
-      };
-    }
-  } catch (e: any) {
-    console.error("Error parsing config", e.message);
   }
 }

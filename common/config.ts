@@ -2,9 +2,10 @@ import YAML from "js-yaml";
 import { INDEX_TEMPLATE, SETTINGS_TEMPLATE } from "./PAGE_TEMPLATES.ts";
 import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { cleanupJSON } from "../plug-api/lib/json.ts";
-import type {
-  Config,
-  DynamicAttributeDefinitionConfig,
+import {
+  type Config,
+  defaultConfig,
+  type DynamicAttributeDefinitionConfig,
 } from "../type/config.ts";
 import type {
   DataStore,
@@ -15,41 +16,8 @@ import { parseExpression } from "$common/expression_parser.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { ConfigObject } from "../plugs/index/config.ts";
 import { deepObjectMerge } from "@silverbulletmd/silverbullet/lib/json";
-import type { ActionButton } from "@silverbulletmd/silverbullet/type/client";
 
 const yamlConfigRegex = /^(```+|~~~+)(ya?ml|space-config)\r?\n([\S\s]+?)\1/m;
-
-export const defaultConfig: Config = {
-  indexPage: "index",
-  hideSyncButton: false,
-  maximumAttachmentSize: 10, // MiB
-  defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
-  actionButtons: [], // Actually defaults to defaultActionButtons
-};
-
-export const defaultActionButtons: ActionButton[] = [
-  {
-    icon: "Home",
-    description: "Go to the index page",
-    command: "Navigate: Home",
-  },
-  {
-    icon: "Book",
-    description: `Open page`,
-    command: "Navigate: Page Picker",
-  },
-  {
-    icon: "Terminal",
-    description: `Run command`,
-    command: "Open Command Palette",
-  },
-];
-
-export interface ConfigContainer {
-  config: Config;
-
-  loadConfig(): Promise<void>;
-}
 
 /**
  * Parses YAML config from a Markdown string.
@@ -94,7 +62,9 @@ async function loadConfigsFromSystem(
   let fullConfig: any = { ...defaultConfig };
   // Now let's intelligently merge them
   for (const config of allConfigs) {
-    fullConfig = deepObjectMerge(fullConfig, { [config.key]: config.value });
+    let configObject = { [config.key]: config.value };
+    configObject = cleanupJSON(configObject);
+    fullConfig = deepObjectMerge(fullConfig, configObject);
   }
   // And clean up the JSON (expand .-separated paths, convert dates to strings)
   return cleanupJSON(fullConfig);
@@ -111,6 +81,7 @@ export async function ensureAndLoadSettingsAndIndex(
   system?: System<any>,
 ): Promise<Config> {
   let configText: string | undefined;
+  let config = defaultConfig;
 
   try {
     configText = new TextDecoder().decode(
@@ -147,15 +118,20 @@ export async function ensureAndLoadSettingsAndIndex(
   }
   if (system) {
     // If we're NOT in SB_SYNC_ONLY, we can load settings from the index (ideal case)
-    return loadConfigsFromSystem(system);
+    config = await loadConfigsFromSystem(system);
   } else {
     // If we are in SB_SYNC_ONLY, this is best effort, and we can only support settings in the SETTINGS.md file
-    let config: any = parseYamlConfig(configText);
+    config = parseYamlConfig(configText) as Config;
     config = cleanupJSON(config);
     config = { ...defaultConfig, ...config };
     // console.log("Loaded settings from SETTINGS.md", config);
-    return config;
   }
+  // Some essential sanity checking
+  if (typeof config.indexPage !== "string") {
+    console.warn("indexPage is not a string, falling back to default");
+    config.indexPage = "index";
+  }
+  return config;
 }
 
 export function updateObjectDecorators(

@@ -12,3 +12,14 @@ export function validateObject(
 ): Promise<string | undefined> {
   return syscall("jsonschema.validateObject", schema, object);
 }
+
+/**
+ * Validates a JSON schema.
+ * @param schema the JSON schema to validate
+ * @returns an error message if the schema is invalid, or undefined if it is valid
+ */
+export function validateSchema(
+  schema: any,
+): Promise<string | undefined> {
+  return syscall("jsonschema.validateSchema", schema);
+}
