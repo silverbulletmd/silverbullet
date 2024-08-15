@@ -15,7 +15,8 @@ export async function query(
 }
 
 /**
- * Renders a query either as a result array, or as a rendered template when the `render` clause is defined
+ * Renders a query either as a result array, or as a rendered template when the `render` clause is defined.
+ * Runs on the server side (except in sync mode)
  * @param parsedQuery
  * @param variables
  * @returns Promise<any[] | string>: a string if the query has a `render` clause, or an array of results

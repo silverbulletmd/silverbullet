@@ -17,7 +17,6 @@ import { parseQuery } from "../../plug-api/lib/parse_query.ts";
 import { loadPageObject, replaceTemplateVars } from "../template/page.ts";
 import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../template/util.ts";
-import { renderQuery } from "./api.ts";
 import type { ChangeSpec } from "@codemirror/state";
 import {
   findNodeMatching,
@@ -36,10 +35,14 @@ export async function widget(
       await replaceTemplateVars(bodyText, pageObject, config),
     );
 
-    const results = await renderQuery(parsedQuery, {
-      page: pageObject,
-      config,
-    });
+    const results = await system.invokeFunction(
+      "query.renderQuery",
+      parsedQuery,
+      {
+        page: pageObject,
+        config,
+      },
+    );
     if (Array.isArray(results)) {
       resultMarkdown = jsonToMDTable(results);
     } else {
