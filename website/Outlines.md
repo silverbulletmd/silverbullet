@@ -1,3 +1,5 @@
+#level/intermediate
+
 While SilverBullet is not a “proper” outliner, it does offer a number of useful commands to manage outlines.
 
 An outline is simply a (nested) bulleted list, for instance:

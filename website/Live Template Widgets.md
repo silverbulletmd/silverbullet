@@ -1,3 +1,5 @@
+#level/hardcore
+
 Live Template Widgets allow you to automatically render templated markdown widgets at the top or bottom of pages matching specific criteria.
 
 > **warning** Warning

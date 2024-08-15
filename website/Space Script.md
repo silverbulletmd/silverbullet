@@ -1,3 +1,5 @@
+#level/hardcore
+
 Space Script allows you to extend SilverBullet with JavaScript from within your space using `space-script` [[Blocks]]. It’s script... in (your) [[Spaces|space]]. Get it?
 
 > **warning** **Security**

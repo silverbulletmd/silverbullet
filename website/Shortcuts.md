@@ -1,3 +1,5 @@
+#level/intermediate
+
 SilverBullet enables you to configure some custom shortcuts in [[SETTINGS]] via the `shortcuts` attribute that trigger [[Commands]] in various ways.
 
 Supported types of shortcuts:

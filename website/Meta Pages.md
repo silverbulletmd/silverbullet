@@ -1,3 +1,5 @@
+#level/intermediate
+
 Meta pages are pages not core to your content, but function as a way to configure your [[Spaces|space]]. You can think of them as “tooling” pages. 
 
 The most obvious example is [[SETTINGS]], which is not really a page that you care about day-to-day, but only want to tweak when you’re working on your space as a tool. 

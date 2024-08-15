@@ -1,3 +1,5 @@
+#level/intermediate
+
 SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries|query]] this database in (potentially) useful ways.
 
 By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the {[Space: Reindex]} command).
@@ -23,9 +25,7 @@ Every object has a main `tag`, which signifies the type of object being describe
 Here are the currently built-in tags:
 
 ## page
-Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, e.g.:
-
-#example-tag #another-tag
+Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, for instance check the very first line of this page that says `#level/intermediate`.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
@@ -33,10 +33,10 @@ In addition to `ref` and `tags`, the `page` tag defines a bunch of additional at
 page where name = @page.name
 ```
 
-Note that you can also query this page using the `example-tag` directly:
+Note that you can also query this page using the `level/intermediate` directly:
 
 ```query
-example-tag
+level/intermediate
 ```
 
 ## table

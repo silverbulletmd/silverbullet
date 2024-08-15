@@ -1,5 +1,6 @@
 ---
 status: Complete
+tags: level/beginner
 ---
 Frontmatter is a common format to attach additional metadata (data about data) to markdown documents.
 

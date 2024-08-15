@@ -1,3 +1,5 @@
+#level/beginner
+
 While SilverBullet for sure is aimed at primarily text-based content, life can not fully be represented in text always. Therefore, SilverBullet supports attachments. Attachments, like [[Pages]] ultimately are — once again — just files on disk.
 
 # Uploading

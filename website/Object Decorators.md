@@ -1,3 +1,5 @@
+#level/hardcore
+
 Object decorators are an **advanced technique** that can be used to add attributes to [[Objects]] dynamically whose values are _calculated dynamically_ (on-the-fly) based on an [[Expression Language|expression]].
 
 > **warning** Warning

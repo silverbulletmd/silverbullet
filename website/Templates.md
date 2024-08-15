@@ -1,3 +1,5 @@
+#level/intermediate
+
 Templates are pieces of (markdown) text that contain placeholders (named _directives_) that are replaced once instantiated. Templates are written in SilverBullet’s [[Template Language]].
 
 Like everything else, templates are kept in your space. They’re effectively regular [[Pages]], and are [[Tags|tagged]] with the `template` tag.

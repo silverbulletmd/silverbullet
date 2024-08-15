@@ -1,3 +1,5 @@
+#level/intermediate
+
 Attribute syntax can contribute additional [[Metadata]] to various [[Objects]], including:
 
 * Pages

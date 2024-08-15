@@ -1,3 +1,5 @@
+#level/beginner
+
 The primary thing you’ll be doing in SilverBullet (hopefully) is creating and editing pages. Pages are written in [[Markdown]], can contain [[Metadata]] and are kept on the server as text files.
 
 Page _names_ are relatively free-form, but have to adhere to a few [[Page Name Rules]].

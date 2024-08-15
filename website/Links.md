@@ -1,3 +1,5 @@
+#level/beginner
+
 You can create three types of links in SilverBullet:
 
 * External links, using the `[title](URL)` syntax, for instance: [SilverBullet community](https://community.silverbullet.md).

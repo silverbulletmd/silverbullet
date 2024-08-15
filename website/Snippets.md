@@ -1,3 +1,5 @@
+#level/intermediate
+
 Snippets allow you to define custom [[Commands]] and [[Slash Commands]] that expand snippet-style templates inline.
 
 # Definition

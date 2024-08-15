@@ -1,3 +1,5 @@
+#level/intermediate
+
 Live Templates are a type of [[Blocks|block]] that render [[Templates]] written in [[Template Language]] inline in a page.
 
 There are two variants of Live Templates:

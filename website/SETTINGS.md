@@ -9,9 +9,9 @@ libraries:
 # The "Core" library is recommended for all users
 - import: "[[!silverbullet.md/Library/Core/*]]"
   # You can exclude items from the import using exclude (also supports wildcards):
-  # exclude:
-  # - [[!silverbullet.md/Table of Contents]]
-  # - [[!silverbullet.md/Library/Core/Widget/*]]
+  #exclude:
+  # - "[[!silverbullet.md/Table of Contents]]"
+  # - "[[!silverbullet.md/Library/Core/Widget/*]]""
 
 ## UI TWEAKS
 # Hide the sync button

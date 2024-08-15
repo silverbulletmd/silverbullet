@@ -1,3 +1,5 @@
+#level/beginner
+
 The idea of markdown is that you write plain text with some additional markup that even without further processing (like rendering it to HTML, or [[Live Preview]]) you could just read and understand. It was inspired by conventions used in plain-text e-mails, before e-mail supported rich formatting.
 
 # Basic markup

@@ -1,3 +1,5 @@
+#level/intermediate
+
 Page templates enable you to define templates for creating new pages. They can be invoked in a few ways:
 
 * Explicitly using the {[Page: From Template]} command

@@ -1,3 +1,5 @@
+#level/hardcore
+
 Space Style is [[Space Script]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Blocks]].
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. 

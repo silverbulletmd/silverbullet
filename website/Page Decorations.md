@@ -5,6 +5,8 @@ pageDecoration:
   cssClasses:
   - christmas-decoration
 ---
+#level/intermediate
+
 Page decorations allow you to “decorate” pages in various fun ways.
 
 > **warning** Warning
