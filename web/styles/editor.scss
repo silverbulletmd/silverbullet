@@ -1,3 +1,5 @@
+@use "./partials/spacing";
+
 .cm-focused {
   outline: none !important;
 }
@@ -23,6 +25,8 @@
     &.sb-line-h4,
     &.sb-line-h5,
     &.sb-line-h6 {
+      @include spacing.headline;
+
       font-weight: bold;
       padding: 2px;
     }
@@ -58,6 +62,8 @@
 
   // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
   .sb-line-h1:has(> span.sb-hashtag:only-child) {
+    margin-block: 0;
+
     font-size: 1em;
     padding: 0;
     font-weight: normal;
@@ -352,7 +358,7 @@
   }
 
   .sb-task-deadline {
-    background-color: rgba(22, 22, 22, 0.07)
+    background-color: rgba(22, 22, 22, 0.07);
   }
 
   .sb-line-frontmatter-outside,
@@ -411,7 +417,6 @@
     padding: 8px;
     white-space: nowrap;
   }
-
 
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {
@@ -584,7 +589,6 @@
       button:last-of-type {
         margin-right: 2px;
       }
-
     }
   }
 
