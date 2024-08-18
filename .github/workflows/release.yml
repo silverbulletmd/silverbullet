@@ -8,7 +8,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
       - name: Setup repo
