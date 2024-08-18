@@ -105,7 +105,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURI(name)}`,
+      `${this.url}/${encodeURIComponent(name)}`,
       {
         method: "GET",
         headers: {
@@ -139,7 +139,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURI(name)}`,
+      `${this.url}/${encodeURIComponent(name)}`,
       {
         method: "PUT",
         headers,
@@ -152,7 +152,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async deleteFile(name: string): Promise<void> {
     const req = await this.authenticatedFetch(
-      `${this.url}/${encodeURI(name)}`,
+      `${this.url}/${encodeURIComponent(name)}`,
       {
         method: "DELETE",
       },
@@ -164,7 +164,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async getFileMeta(name: string): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURI(name)}`,
+      `${this.url}/${encodeURIComponent(name)}`,
       // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
       // so we'll use GET instead with a magic header which the server may or may not use to omit the body.
       {

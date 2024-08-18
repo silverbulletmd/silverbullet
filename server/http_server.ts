@@ -19,7 +19,6 @@ import {
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
-import { basename, dirname, join } from "@std/path";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -150,7 +149,7 @@ export class HttpServer {
     // Fallback, serve the UI index.html
     this.app.use("*", (c) => {
       const url = new URL(c.req.url);
-      const pageName = decodeURI(url.pathname.slice(1));
+      const pageName = decodeURIComponent(url.pathname.slice(1));
       return this.renderHtmlPage(this.spaceServer, pageName, c);
     });
 
@@ -574,15 +573,6 @@ export class HttpServer {
         }
       }
 
-      const filename = basename(name, mdExt);
-      if (filename.trim() !== filename) {
-        const newName = join(
-          dirname(name),
-          filename.trim(),
-        );
-        return c.redirect(`/${newName}`);
-      }
-
       try {
         if (req.header("X-Get-Meta")) {
           // Getting meta via GET request
@@ -618,11 +608,6 @@ export class HttpServer {
         if (name.startsWith(".")) {
           // Don't expose hidden files
           return c.text("Forbidden", 403);
-        }
-
-        const filename = basename(name, mdExt);
-        if (filename.trim() !== filename) {
-          return c.text("Malformed filename", 400);
         }
 
         const body = await req.arrayBuffer();

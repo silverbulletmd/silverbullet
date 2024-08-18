@@ -57,18 +57,18 @@ export class PathPageNavigator {
       window.history.replaceState(
         cleanState,
         "",
-        `/${currentState.page}`,
+        `/${encodeURIComponent(currentState.page)}`,
       );
       window.history.pushState(
         pageRef,
         "",
-        `/${pageRef.page}`,
+        `/${encodeURIComponent(pageRef.page)}`,
       );
     } else {
       window.history.replaceState(
         pageRef,
         "",
-        `/${pageRef.page}`,
+        `/${encodeURIComponent(pageRef.page)}`,
       );
     }
     globalThis.dispatchEvent(
@@ -143,12 +143,12 @@ export class PathPageNavigator {
 }
 
 export function parsePageRefFromURI(): PageRef {
-  const pageRef = parsePageRef(decodeURI(
+  const pageRef = parsePageRef(decodeURIComponent(
     location.pathname.substring(1),
   ));
 
   if (location.hash) {
-    pageRef.header = decodeURI(location.hash.substring(1));
+    pageRef.header = decodeURIComponent(location.hash.substring(1));
   }
 
   return pageRef;
