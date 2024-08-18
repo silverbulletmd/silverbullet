@@ -5,11 +5,19 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Initial version of [[Schema]] support
-* Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013))
-* SETTINGS is now first indexed, when a full space reindex needs to happen.
+* Nothing new since 0.9.1
+
+## 0.9.1
+* Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013)) as well as some other transclusion-related fixes
+* At long last, date and time functions and attributes now return local time instead of UTC
+  * _Local_ means the time of the place where code runs, so this may be your server or client depending on the [[Client Modes]]. Ideally you set the timezones the same on both.
+* In [[Space Script]], all syscalls are now exposed via “globals”, so they can be called directly using e.g. `editor.flashNotification("hello")` instead of `syscall("editor.flashNotification", "hello")`. The old way still works, but the new way is way cleaner.
+* [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) of [[Schema]] support. This is still very nascent, future iterations are to come.
+* SETTINGS is now indexed first, when a full space reindex needs to happen.
+* New {[Page: Rename Linked Page]} command
+* [[Live Queries]] are now also server-side rendered, just like [[Live Templates]]
+* `Ctrl-n` and `Ctrl-p` shortcuts now work in the filter box (by [Ruibin Xing](https://github.com/silverbulletmd/silverbullet/pull/1036))
 * Internal refactor, and more leverage of [JSR](https://jsr.io/). The SilverBullet [plug API](https://jsr.io/@silverbulletmd/silverbullet) is now published on JSR as well, and soon this will be the preferred way of importing the plug APIs.
-* In [[Space Script]], all syscalls are now exposed via “globals”, so they can be called using e.g. `editor.flashNotification("hello")` instead of `syscall("editor.flashNotification", "hello")`. The old way still works, but the new way is way cleaner.
 * And these syscalls are now [fully documented](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~)
 
 ## 0.9.0
