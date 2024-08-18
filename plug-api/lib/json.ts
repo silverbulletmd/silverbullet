@@ -1,3 +1,5 @@
+import { localDateString } from "$lib/dates.ts";
+
 /**
  * Performs a deep comparison of two objects, returning true if they are equal
  * @param a first object
@@ -58,7 +60,7 @@ export function cleanStringDate(d: Date): string {
       String(d.getMonth() + 1).padStart(2, "0") + "-" +
       String(d.getDate()).padStart(2, "0");
   } else {
-    return d.toISOString();
+    return localDateString(d);
   }
 }
 

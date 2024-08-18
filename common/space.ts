@@ -4,6 +4,7 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import type { AttachmentMeta, FileMeta, PageMeta } from "../plug-api/types.ts";
 import type { EventHook } from "./hooks/event.ts";
 import { safeRun } from "../lib/async.ts";
+import { localDateString } from "$lib/dates.ts";
 
 const pageWatchInterval = 5000;
 
@@ -195,8 +196,8 @@ export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
       ref: name,
       tag: "page",
       name,
-      created: new Date(fileMeta.created).toISOString(),
-      lastModified: new Date(fileMeta.lastModified).toISOString(),
+      created: localDateString(new Date(fileMeta.created)),
+      lastModified: localDateString(new Date(fileMeta.lastModified)),
     } as PageMeta;
   } catch (e) {
     console.error("Failed to convert fileMeta to pageMeta", fileMeta, e);
@@ -212,8 +213,8 @@ export function fileMetaToAttachmentMeta(
       ...fileMeta,
       ref: fileMeta.name,
       tag: "attachment",
-      created: new Date(fileMeta.created).toISOString(),
-      lastModified: new Date(fileMeta.lastModified).toISOString(),
+      created: localDateString(new Date(fileMeta.created)),
+      lastModified: localDateString(new Date(fileMeta.lastModified)),
     } as AttachmentMeta;
   } catch (e) {
     console.error("Failed to convert fileMeta to attachmentMeta", fileMeta, e);

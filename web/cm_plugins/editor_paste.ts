@@ -17,6 +17,7 @@ import {
 import { defaultLinkStyle, maximumAttachmentSize } from "../constants.ts";
 import { safeRun } from "$lib/async.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
+import { localDateString } from "$lib/dates.ts";
 
 const turndownService = new TurndownService({
   hr: "---",
@@ -187,8 +188,7 @@ export function attachmentExtension(editor: Client) {
     }
     const fileType = file.type;
     const ext = fileType.split("/")[1];
-    const fileName = new Date()
-      .toISOString()
+    const fileName = localDateString(new Date())
       .split(".")[0]
       .replace("T", "_")
       .replaceAll(":", "-");

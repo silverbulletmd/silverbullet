@@ -9,6 +9,7 @@ import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { LinkObject } from "../index/page_links.ts";
+import { localDateString } from "$lib/dates.ts";
 
 // A meta page is a page tagged with either #template or #meta
 const isMetaPageFilter: QueryExpression = ["or", ["=", ["attr", "tags"], [
@@ -204,7 +205,7 @@ function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
     ref: fileMeta.name,
     tag: "page",
     name,
-    created: new Date(fileMeta.created).toISOString(),
-    lastModified: new Date(fileMeta.lastModified).toISOString(),
+    created: localDateString(new Date(fileMeta.created)),
+    lastModified: localDateString(new Date(fileMeta.lastModified)),
   } as PageMeta;
 }
