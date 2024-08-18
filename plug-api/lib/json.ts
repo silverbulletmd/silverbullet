@@ -1,5 +1,3 @@
-import { localDateString } from "$lib/dates.ts";
-
 /**
  * Performs a deep comparison of two objects, returning true if they are equal
  * @param a first object
