@@ -37,23 +37,28 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (result.status === 503) {
         throw new Error("Offline");
       }
+      // Attempting to handle various authentication proxies
       if (result.redirected) {
-        if (result.status === 401) {
+        if (result.status === 401 || result.status === 403) {
           console.log(
             "Received unauthorized status and got a redirect via the API so will redirect to URL",
             result.url,
           );
-          alert("You are not authenticated, redirecting to login page...");
+          alert("You are not authenticated, redirecting to: " + result.url);
           location.href = result.url;
           throw new Error("Not authenticated");
         } else {
+          alert("Received a redirect, redirecting to URL: " + result.url);
           location.href = result.url;
           throw new Error("Redirected");
         }
       }
-      if (result.status === 401) {
+      if (result.status === 401 || result.status === 403) {
+        alert(
+          "You are not authenticated, going to reload and hope that that kicks off authentication",
+        );
         location.reload();
-        throw new Error("Not authenticated, got 403");
+        throw new Error("Not authenticated, got 401");
       }
       return result;
     } catch (e: any) {
