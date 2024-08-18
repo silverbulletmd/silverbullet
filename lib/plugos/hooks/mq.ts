@@ -52,12 +52,13 @@ export class MQHook implements Hook<MQHookT> {
         const subscriptions = functionDef.mqSubscriptions;
         for (const subscriptionDef of subscriptions) {
           const queue = subscriptionDef.queue;
-          // console.log("Subscribing to queue", queue);
+          // console.log("Subscribing to queue", queue, subscriptionDef);
           this.subscriptions.push(
             this.mq.subscribe(
               queue,
               {
                 batchSize: subscriptionDef.batchSize,
+                pollInterval: subscriptionDef.pollInterval,
               },
               async (messages: MQMessage[]) => {
                 try {

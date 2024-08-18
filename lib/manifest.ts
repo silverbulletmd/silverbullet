@@ -30,6 +30,7 @@ export type EventHookT = {
 type MQSubscription = {
   queue: string;
   batchSize?: number;
+  pollInterval?: number;
   autoAck?: boolean;
 };
 export type MQHookT = {
