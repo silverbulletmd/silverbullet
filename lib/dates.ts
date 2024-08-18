@@ -3,7 +3,7 @@ export function niceDate(d: Date): string {
 }
 
 export function niceTime(d: Date): string {
-  return localDateString(d).split("T")[1];
+  return localDateString(d).split("T")[1].split(".")[0];
 }
 
 export function safeTime(d: Date): string {
