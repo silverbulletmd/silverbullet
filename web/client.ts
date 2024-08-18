@@ -1015,10 +1015,10 @@ export class Client implements ConfigContainer {
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
-        `${location.origin}/${encodePageRef(pageRef)}`,
+        `${location.origin}/${encodeURIComponent(encodePageRef(pageRef))}`,
       );
       const win = globalThis.open(
-        `${location.origin}/${encodePageRef(pageRef)}`,
+        `${location.origin}/${encodeURIComponent(encodePageRef(pageRef))}`,
         "_blank",
       );
       if (win) {

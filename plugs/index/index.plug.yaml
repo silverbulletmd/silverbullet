@@ -164,13 +164,19 @@ functions:
     command:
       name: "Page: Rename"
       mac: Cmd-Alt-r
-      key: Ctrl-Alt-r
       page: ""
       requireMode: rw
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:
       name: "Page: Batch Rename Prefix"
+      requireMode: rw
+  renamePageLinkCommand:
+    path: "./refactor.ts:renamePageLinkCommand"
+    command:
+      name: "Page: Rename Linked Page"
+      mac: Cmd-Ctrl-Alt-r
+      key: Ctrl-Shift-Alt-r
       requireMode: rw
 
   # Refactoring Commands
