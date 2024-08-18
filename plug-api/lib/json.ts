@@ -60,7 +60,7 @@ export function cleanStringDate(d: Date): string {
       String(d.getMonth() + 1).padStart(2, "0") + "-" +
       String(d.getDate()).padStart(2, "0");
   } else {
-    return localDateString(d);
+    return d.toISOString();
   }
 }
 

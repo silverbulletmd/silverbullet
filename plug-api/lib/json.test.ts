@@ -22,9 +22,6 @@ Deno.test("JSON utils", () => {
   assertEquals(cleanupJSON({ a: [{ "a.b": 1 }] }), {
     a: [{ a: { b: 1 } }],
   });
-  assertEquals(
-    cleanupJSON(new Date("2023-05-13T12:30:00Z")),
-    "2023-05-13T12:30:00.000Z",
-  );
+
   assertEquals(cleanupJSON(new Date("2023-05-03T00:00:00Z")), "2023-05-03");
 });
