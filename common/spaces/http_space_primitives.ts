@@ -1,6 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
@@ -110,7 +111,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURIComponent(name)}`,
+      `${this.url}/${encodePageURI(name)}`,
       {
         method: "GET",
         headers: {
@@ -144,7 +145,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURIComponent(name)}`,
+      `${this.url}/${encodePageURI(name)}`,
       {
         method: "PUT",
         headers,
@@ -157,7 +158,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async deleteFile(name: string): Promise<void> {
     const req = await this.authenticatedFetch(
-      `${this.url}/${encodeURIComponent(name)}`,
+      `${this.url}/${encodePageURI(name)}`,
       {
         method: "DELETE",
       },
@@ -169,7 +170,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   async getFileMeta(name: string): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodeURIComponent(name)}`,
+      `${this.url}/${encodePageURI(name)}`,
       // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
       // so we'll use GET instead with a magic header which the server may or may not use to omit the body.
       {

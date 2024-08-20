@@ -1,5 +1,16 @@
-import { encodePageRef, parsePageRef, validatePageName } from "./page_ref.ts";
-import { assertEquals, AssertionError, assertThrows } from "@std/assert";
+import {
+  decodePageURI,
+  encodePageRef,
+  encodePageURI,
+  parsePageRef,
+  validatePageName,
+} from "./page_ref.ts";
+import {
+  assert,
+  assertEquals,
+  AssertionError,
+  assertThrows,
+} from "@std/assert";
 
 Deno.test("Page utility functions", () => {
   // Base cases
@@ -78,4 +89,16 @@ Deno.test("Page utility functions", () => {
       Error,
     );
   }
+});
+
+Deno.test("Page URI encoding", () => {
+  assertEquals(encodePageURI("foo"), "foo");
+  assertEquals(encodePageURI("folder/foo"), "folder/foo");
+  assertEquals(encodePageURI("hello there"), "hello%20there");
+  assertEquals(encodePageURI("hello?there"), "hello%3Fthere");
+  // Now ensure all these cases are reversible
+  assertEquals(decodePageURI("foo"), "foo");
+  assertEquals(decodePageURI("folder/foo"), "folder/foo");
+  assertEquals(decodePageURI("hello%20there"), "hello there");
+  assertEquals(decodePageURI("hello%3Fthere"), "hello?there");
 });

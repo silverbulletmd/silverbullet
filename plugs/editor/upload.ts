@@ -5,6 +5,7 @@ import {
   maximumAttachmentSize,
 } from "../../web/constants.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 export async function saveFile(file: UploadFile) {
   const maxSize = await system.getSpaceConfig(
@@ -46,7 +47,7 @@ export async function saveFile(file: UploadFile) {
   if (linkStyle === "wikilink") {
     attachmentMarkdown = `[[${attachmentPath}]]`;
   } else {
-    attachmentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
+    attachmentMarkdown = `[${finalFileName}](${encodePageURI(finalFileName)})`;
   }
   if (file.contentType.startsWith("image/")) {
     attachmentMarkdown = "!" + attachmentMarkdown;

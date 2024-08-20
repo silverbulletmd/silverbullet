@@ -130,3 +130,21 @@ export function positionOfLine(
   );
   return targetPos - targetLine.length + columnOffset;
 }
+
+/**
+ * Encodes a page name for use in a URI. Basically does encodeURIComponent, but puts slashes back in place.
+ * @param page page name to encode
+ * @returns
+ */
+export function encodePageURI(page: string): string {
+  return encodeURIComponent(page).replace(/%2F/g, "/");
+}
+
+/**
+ * Decodes a page name from a URI.
+ * @param page page name to decode
+ * @returns
+ */
+export function decodePageURI(page: string): string {
+  return decodeURIComponent(page);
+}

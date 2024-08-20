@@ -2,7 +2,10 @@ import type { FileContent } from "$common/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "$lib/crypto.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
-import { looksLikePathWithExtension } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  decodePageURI,
+  looksLikePathWithExtension,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 
 const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
 
@@ -124,7 +127,7 @@ async function handleLocalFileRequest(
   request: Request,
   pathname: string,
 ): Promise<Response> {
-  const path = decodeURIComponent(pathname.slice(1));
+  const path = decodePageURI(pathname.slice(1));
   const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
   if (data) {
     // console.log("Serving from space", path);

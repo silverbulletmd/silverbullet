@@ -41,6 +41,7 @@ import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitive
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import {
   encodePageRef,
+  encodePageURI,
   validatePageName,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
@@ -1015,10 +1016,10 @@ export class Client implements ConfigContainer {
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
-        `${location.origin}/${encodeURIComponent(encodePageRef(pageRef))}`,
+        `${location.origin}/${encodePageURI(encodePageRef(pageRef))}`,
       );
       const win = globalThis.open(
-        `${location.origin}/${encodeURIComponent(encodePageRef(pageRef))}`,
+        `${location.origin}/${encodePageURI(encodePageRef(pageRef))}`,
         "_blank",
       );
       if (win) {

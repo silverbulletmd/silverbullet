@@ -15,6 +15,7 @@ import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 import {
+  decodePageURI,
   looksLikePathWithExtension,
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
@@ -149,7 +150,7 @@ export class HttpServer {
     // Fallback, serve the UI index.html
     this.app.use("*", (c) => {
       const url = new URL(c.req.url);
-      const pageName = decodeURIComponent(url.pathname.slice(1));
+      const pageName = decodePageURI(url.pathname.slice(1));
       return this.renderHtmlPage(this.spaceServer, pageName, c);
     });
 

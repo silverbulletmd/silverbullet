@@ -1,4 +1,8 @@
-import { type PageRef, parsePageRef } from "../plug-api/lib/page_ref.ts";
+import {
+  encodePageURI,
+  type PageRef,
+  parsePageRef,
+} from "../plug-api/lib/page_ref.ts";
 import type { Client } from "./client.ts";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
@@ -57,18 +61,18 @@ export class PathPageNavigator {
       window.history.replaceState(
         cleanState,
         "",
-        `/${encodeURIComponent(currentState.page)}`,
+        `/${encodePageURI(currentState.page)}`,
       );
       window.history.pushState(
         pageRef,
         "",
-        `/${encodeURIComponent(pageRef.page)}`,
+        `/${encodePageURI(pageRef.page)}`,
       );
     } else {
       window.history.replaceState(
         pageRef,
         "",
-        `/${encodeURIComponent(pageRef.page)}`,
+        `/${encodePageURI(pageRef.page)}`,
       );
     }
     globalThis.dispatchEvent(

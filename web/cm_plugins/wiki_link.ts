@@ -6,6 +6,7 @@ import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageRef,
+  encodePageURI,
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 
@@ -101,7 +102,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                 title: fileExists
                   ? `Navigate to ${encodePageRef(pageRef)}`
                   : `Create ${pageRef.page}`,
-                href: `/${encodeURIComponent(encodePageRef(pageRef))}`,
+                href: `/${encodePageURI(encodePageRef(pageRef))}`,
                 cssClass,
                 from,
                 callback: (e) => {
