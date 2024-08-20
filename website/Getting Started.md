@@ -35,7 +35,7 @@ You will notice this whole page section is wrapped in a strange type of block. T
 
 SilverBullet has more tricks up its sleeve, we are just getting started. Consider [[Live Queries]] which allow you to query [[Objects]] in your space easily. [[Live Templates]] are another source of 🤯.
 
-As a quick taster, check this out: here’s a list of (max 5) pages in your space ordered by the date of last modification. t updates (somewhat) dynamically. Create some new pages and come back here to see that it works:
+As a quick taster, check this out: here’s a list of (max 5) pages in your space ordered by the date of last modification. It updates (somewhat) dynamically. Create some new pages and come back here to see that it works:
 
 ```query
 page select name order by lastModified limit 5
