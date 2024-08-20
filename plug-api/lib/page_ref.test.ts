@@ -5,12 +5,7 @@ import {
   parsePageRef,
   validatePageName,
 } from "./page_ref.ts";
-import {
-  assert,
-  assertEquals,
-  AssertionError,
-  assertThrows,
-} from "@std/assert";
+import { assertEquals, AssertionError, assertThrows } from "@std/assert";
 
 Deno.test("Page utility functions", () => {
   // Base cases
