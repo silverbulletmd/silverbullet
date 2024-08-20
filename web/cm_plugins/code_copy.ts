@@ -26,7 +26,7 @@ class CodeCopyWidget extends WidgetType {
 
   toDOM() {
     const wrap = document.createElement("span");
-    wrap.setAttribute("aria-hidden", "true");
+    // wrap.setAttribute("aria-hidden", "true");
     wrap.className = "sb-actions";
 
     const button = wrap.appendChild(document.createElement("button"));
@@ -69,10 +69,10 @@ function codeCopyDecoration(
       to,
       enter: (node) => {
         if (node.name == "FencedCode") {
-          const textNode = node.node.getChild("CodeText");
+          const textNodes = node.node.getChildren("CodeText");
           const infoNode = node.node.getChild("CodeInfo");
 
-          if (!textNode) {
+          if (textNodes.length === 0) {
             return;
           }
 
@@ -87,7 +87,11 @@ function codeCopyDecoration(
             return;
           }
 
-          const text = view.state.doc.sliceString(textNode.from, textNode.to);
+          // Accumulate the text content of the code block
+          let text = "";
+          for (const textNode of textNodes) {
+            text += view.state.doc.sliceString(textNode.from, textNode.to);
+          }
           const deco = Decoration.widget({
             widget: new CodeCopyWidget(text, client),
             side: 0,
