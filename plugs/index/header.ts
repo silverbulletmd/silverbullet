@@ -43,7 +43,6 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
     const extractedAttributes = await extractAttributes(
       ["header", ...tags],
       n,
-      true,
     );
     const name = n.children!.slice(1).map(renderToText).join("").trim();
 

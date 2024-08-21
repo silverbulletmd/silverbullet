@@ -541,6 +541,8 @@ const NamedAnchor = regexParser({
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
 import { pWikiLinkRegex, tagRegex } from "$common/markdown_parser/constants.ts";
+import { parse } from "$common/markdown_parser/parse_tree.ts";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 // FrontMatter parser
 
@@ -661,3 +663,7 @@ export const extendedMarkdownLanguage = markdown({
     },
   ],
 }).language;
+
+export function parseMarkdown(text: string): ParseTree {
+  return parse(extendedMarkdownLanguage, text);
+}
