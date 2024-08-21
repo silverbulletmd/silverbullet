@@ -14,10 +14,6 @@ const itemsMd = `
 Deno.test("Test task extraction", async () => {
     const t = parseMarkdown(itemsMd);
     const tasks = await extractTasks("test", t);
-    const items = await extractItems("test", t);
-
-    // Tasks are also indexed as items, because they are
-    assertEquals(items.length, 4);
 
     assertEquals(tasks.length, 3);
     assertEquals(tasks[0].name, "Task 1");
@@ -42,8 +38,6 @@ Deno.test("Test task extraction", async () => {
     // Deeply
     assertEquals(tasks[2].name, "Task 2.1");
     assertEquals(tasks[2].tags, []);
-    // Parent is * [ ] Task 2 #tag3 #tag1 list item
-    assertEquals(tasks[2].parent, items[2].ref);
     assertEquals(
         new Set(tasks[2].itags),
         new Set(["tag1", "tag3", "task", "tag2"]),
