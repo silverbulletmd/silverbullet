@@ -1,4 +1,4 @@
-import diff, { DELETE, INSERT } from "fast-diff";
+import diff, { DELETE, EQUAL, INSERT } from "fast-diff";
 import type { ChangeSpec } from "@codemirror/state";
 
 export function diffAndPrepareChanges(
@@ -14,10 +14,12 @@ export function diffAndPrepareChanges(
   for (const part of diffs) {
     if (part[0] === INSERT) {
       changes.push({ from: startIndex, insert: part[1] });
+    } else if (part[0] === EQUAL) {
+      startIndex += part[1].length;
     } else if (part[0] === DELETE) {
       changes.push({ from: startIndex, to: startIndex + part[1].length });
+      startIndex += part[1].length;
     }
-    startIndex += part[1].length;
   }
   return changes;
 }
