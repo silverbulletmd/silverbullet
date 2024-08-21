@@ -7,6 +7,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 
 * Slashes in page names are no no longer URL encoded (in the URL)
 * `task` and `item` [[Objects]] now have a `parent` attribute when nested, and inherit their ancestors’ tags in `itags` — see [[Objects#item]] for an example.
+* When a file is changed on disk, a diff is now applied, meaning the cursor position is maintained and the change can be undoe via the regular undo (by [[jcgurango](https://github.com/jcgurango)](https://github.com/silverbulletmd/silverbullet/pull/1056))
 
 ## 0.9.1
 * Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013)) as well as some other transclusion-related fixes
