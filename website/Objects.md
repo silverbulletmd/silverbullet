@@ -55,9 +55,31 @@ table
 
 Table headers will be normalized by converting them to lowercase and replacing all non alphanumeric characters with `_`.
 
-## task
+## item
+List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
 
-task
+Here is an example of a #quote item using a custom [[Attributes|attribute]]:
+
+* “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
+
+And then queried via the #quote tag:
+
+```query 
+quote where page = @page.name and tag = "item" select name, by
+```
+
+When items are nested, they will contain a `parent` attrite with a reference to their parent. In addition, `itags` will also inherit their ancestors’ tags. For instance:
+
+* Root item #root-tag
+  * Sub item #sub-tag
+    * Leaf item
+
+The `Leaf item` will be indexed as follows:
+```query
+item where page = @page.name and name = "Leaf item" select name, parent, itags
+```
+
+## task
 Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using [[Tags]] in the task name, e.g.
 
 * [ ] My task #upnext 
@@ -76,6 +98,9 @@ Although you may want to render it using a template such as [[Library/Core/Query
 upnext render [[Library/Core/Query/Task]]
 ```
 
+Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
+
+
 ## taskstate
 [[Plugs/Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
@@ -93,20 +118,6 @@ Indexes all pages tagged with `#template`. See [[Templates]] for more informatio
 
 ```query
 template select name limit 5
-```
-
-
-## item
-List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
-
-Here is an example of a #quote item using a custom [[Attributes|attribute]]:
-
-* “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
-
-And then queried via the #quote tag:
-
-```query 
-quote where page = @page.name and tag = "item" select name, by
 ```
 
 ## paragraph

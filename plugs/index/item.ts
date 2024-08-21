@@ -34,7 +34,7 @@ export type ItemObject = ObjectValue<
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
   const items = await extractItems(name, tree);
-  console.log("Found", items, "item(s)");
+  // console.log("Found", items, "item(s)");
   await indexObjects(name, items);
 }
 
@@ -50,6 +50,12 @@ export async function extractItems(name: string, tree: ParseTree) {
 
     if (!n.children) {
       // Weird, let's jump out
+      return true;
+    }
+
+    // Is this a task?
+    if (n.children.find((n) => n.type === "Task")) {
+      // Skip tasks
       return true;
     }
 
