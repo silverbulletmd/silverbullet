@@ -21,16 +21,25 @@ import {
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
 import { niceDate } from "$lib/dates.ts";
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
+import {
+  cleanAttributes,
+  extractAttributes,
+} from "@silverbulletmd/silverbullet/lib/attribute";
 import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "../index/plug_api.ts";
-import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  cleanHashTags,
+  extractHashTags,
+  updateITags,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
   parsePageRef,
   positionOfLine,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { enrichItemFromParents } from "../index/item.ts";
+import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 
 export type TaskObject = ObjectValue<
   {
@@ -57,7 +66,10 @@ function getDeadline(deadlineNode: ParseTree): string {
 const completeStates = ["x", "X"];
 const incompleteStates = [" "];
 
-export async function indexTasks({ name, tree }: IndexTreeEvent) {
+export async function extractTasks(
+  name: string,
+  tree: ParseTree,
+): Promise<TaskObject[]> {
   const tasks: ObjectValue<TaskObject>[] = [];
   const taskStates = new Map<string, { count: number; firstPos: number }>();
   const frontmatter = await extractFrontmatter(tree);
@@ -66,6 +78,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
     if (n.type !== "Task") {
       return false;
     }
+    const listItemNode = n.parent!;
     const state = n.children![0].children![1].text!;
     if (!incompleteStates.includes(state) && !completeStates.includes(state)) {
       let currentState = taskStates.get(state);
@@ -76,6 +89,7 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       currentState.count++;
     }
     const complete = completeStates.includes(state);
+
     const task: TaskObject = {
       ref: `${name}@${n.from}`,
       tag: "task",
@@ -99,30 +113,27 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
         // Remove this node from the tree
         return null;
       }
-      if (tree.type === "Hashtag") {
-        // Push the tag to the list, removing the initial #
-        const tagName = tree.children![0].text!.substring(1);
-        if (!task.tags) {
-          task.tags = [];
-        }
-        task.tags.push(tagName);
-        tree.children = [];
-      }
     });
 
-    // Extract attributes and remove from tree
+    // Extract tags and attributes
+    task.tags = extractHashTags(n);
     const extractedAttributes = await extractAttributes(
       ["task", ...task.tags || []],
       n,
-      true,
     );
-    task.name = n.children!.slice(1).map(renderToText).join("").trim();
+
+    // Then clean them out
+    const clonedNode = deepClone(n, ["parent"]);
+    cleanHashTags(clonedNode);
+    cleanAttributes(clonedNode);
+    task.name = clonedNode.children!.slice(1).map(renderToText).join("").trim();
 
     for (const [key, value] of Object.entries(extractedAttributes)) {
       task[key] = value;
     }
 
     updateITags(task, frontmatter);
+    await enrichItemFromParents(listItemNode, task, name, frontmatter);
 
     tasks.push(task);
     return true;
@@ -141,10 +152,15 @@ export async function indexTasks({ name, tree }: IndexTreeEvent) {
       })),
     );
   }
+  return tasks;
+}
+
+export async function indexTasks({ name, tree }: IndexTreeEvent) {
+  const extractedTasks = await extractTasks(name, tree);
 
   // Index tasks themselves
-  if (tasks.length > 0) {
-    await indexObjects(name, tasks);
+  if (extractTasks.length > 0) {
+    await indexObjects(name, extractedTasks);
   }
 }
 

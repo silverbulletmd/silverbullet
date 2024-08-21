@@ -1,6 +1,9 @@
 import "./syscall_mock.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
+import {
+  cleanAttributes,
+  extractAttributes,
+} from "@silverbulletmd/silverbullet/lib/attribute";
 import { assertEquals } from "@std/assert";
 import { renderToText } from "./tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
@@ -19,22 +22,22 @@ const cleanedInlineAttributeSample = `
 # My document
 Top level attributes:   
 
-* [ ] Attribute in a task [tag:: foo]
-* Regular item [tag:: bar]
+* [ ] Attribute in a task 
+* Regular item 
 
-1. Itemized list [tag:: baz]
+1. Itemized list 
 `;
 
 Deno.test("Test attribute extraction", async () => {
   const tree = parse(extendedMarkdownLanguage, inlineAttributeSample);
-  const toplevelAttributes = await extractAttributes(["test"], tree, false);
+  const toplevelAttributes = await extractAttributes(["test"], tree);
   // console.log("All attributes", toplevelAttributes);
   assertEquals(toplevelAttributes.name, "sup");
   assertEquals(toplevelAttributes.age, 42);
   assertEquals(toplevelAttributes.children, ["pete", "john", "mary"]);
   // Check if the attributes are still there
   assertEquals(renderToText(tree), inlineAttributeSample);
-  // Now once again with cleaning
-  await extractAttributes(["test"], tree, true);
+  // And now clean
+  cleanAttributes(tree);
   assertEquals(renderToText(tree), cleanedInlineAttributeSample);
 });

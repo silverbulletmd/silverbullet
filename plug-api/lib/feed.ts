@@ -9,7 +9,10 @@ import {
  * Feed parsing functionality (WIP)
  */
 
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
+import {
+  cleanAttributes,
+  extractAttributes,
+} from "@silverbulletmd/silverbullet/lib/attribute";
 
 export type FeedItem = {
   id: string;
@@ -29,7 +32,6 @@ export async function extractFeedItems(tree: ParseTree): Promise<FeedItem[]> {
   for (const node of tree.children!) {
     if (node.type === "FrontMatter") {
       // Not interested
-      console.log("Ignoring", node);
       continue;
     }
     if (node.type === "HorizontalRule") {
@@ -51,7 +53,8 @@ async function nodesToFeedItem(nodes: ParseTree[]): Promise<FeedItem> {
   const wrapperNode: ParseTree = {
     children: nodes,
   };
-  const attributes = await extractAttributes(["feed"], wrapperNode, true);
+  const attributes = await extractAttributes(["feed"], wrapperNode);
+  cleanAttributes(wrapperNode);
   let id = attributes.id;
   delete attributes.id;
   if (!id) {

@@ -139,3 +139,39 @@ export function deepObjectMerge(a: any, b: any, reverseArrays = false): any {
   }
   return b;
 }
+
+export function deepClone<T>(obj: T, ignoreKeys: string[] = []): T {
+  // Handle null, undefined, or primitive types (string, number, boolean, symbol, bigint)
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+
+  // Handle Date
+  if (obj instanceof Date) {
+    return new Date(obj.getTime()) as any;
+  }
+
+  // Handle Array
+  if (Array.isArray(obj)) {
+    const arrClone: any[] = [];
+    for (let i = 0; i < obj.length; i++) {
+      arrClone[i] = deepClone(obj[i], ignoreKeys);
+    }
+    return arrClone as any;
+  }
+
+  // Handle Object
+  if (obj instanceof Object) {
+    const objClone: { [key: string]: any } = {};
+    for (const key in obj) {
+      if (ignoreKeys.includes(key)) {
+        objClone[key] = obj[key];
+      } else if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        objClone[key] = deepClone(obj[key], ignoreKeys);
+      }
+    }
+    return objClone as T;
+  }
+
+  throw new Error("Unsupported data type.");
+}

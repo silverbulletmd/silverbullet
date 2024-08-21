@@ -27,7 +27,6 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   const toplevelAttributes = await extractAttributes(
     ["page", ...frontmatter.tags || []],
     tree,
-    false,
   );
 
   // Push them all into the page object
