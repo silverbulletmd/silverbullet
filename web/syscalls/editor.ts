@@ -6,7 +6,7 @@ import {
   unfoldAll,
   unfoldCode,
 } from "@codemirror/language";
-import { deleteLine, redo, undo } from "@codemirror/commands";
+import { deleteLine, isolateHistory, redo, undo } from "@codemirror/commands";
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
@@ -30,6 +30,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const allChanges = diffAndPrepareChanges(currentText, newText);
       client.editorView.dispatch({
         changes: allChanges,
+        annotations: isolateHistory.of("full"),
       });
     },
     "editor.getCursor": (): number => {

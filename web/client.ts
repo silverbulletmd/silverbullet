@@ -75,6 +75,7 @@ import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
 import type { LinkObject } from "../plugs/index/page_links.ts";
 import type { Config, ConfigContainer } from "../type/config.ts";
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -1131,17 +1132,21 @@ export class Client implements ConfigContainer {
       });
     }).catch(console.error);
 
-    const editorState = createEditorState(
-      this,
-      pageName,
-      doc.text,
-      doc.meta.perm === "ro",
-    );
-    editorView.setState(editorState);
-    if (editorView.contentDOM) {
-      this.tweakEditorDOM(editorView.contentDOM);
+    if (loadingDifferentPage) {
+      const editorState = createEditorState(
+        this,
+        pageName,
+        doc.text,
+        doc.meta.perm === "ro",
+      );
+      editorView.setState(editorState);
+      if (editorView.contentDOM) {
+        this.tweakEditorDOM(editorView.contentDOM);
+      }
+      this.space.watchPage(pageName);
+    } else {
+      await editor.setText(doc.text);
     }
-    this.space.watchPage(pageName);
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
