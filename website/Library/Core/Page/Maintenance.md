@@ -2,19 +2,17 @@
 
 We would like to keep our space clean, these are some tools that help you do that.
 
-# Broken links
-This shows all internal links that are broken.
+# Aspiring pages
+This shows all page links that link to a page that does not (yet) exist. These could be broken links or just pages _aspiring_ to be created.
 
 ```template
-{{#let @brokenLinks = {
-  link where toPage and not pageExists(toPage)
-}}}
+{{#let @brokenLinks = {aspiring-page}}}
 {{#if @brokenLinks}}
 {{#each @brokenLinks}}
-* [[{{ref}}]]: broken link to [[{{toPage}}]]
+* [[{{ref}}]]: broken link to [[{{name}}]]
 {{/each}}
 {{else}}
-No broken links, all good!
+No aspiring pages, all good!
 {{/if}}
 {{/let}}
 ```

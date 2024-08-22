@@ -70,12 +70,12 @@ export function PageNavigator({
         name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
         description,
         orderId: orderId,
-        hint: pageMeta._isBrokenLink ? "Create page" : undefined,
+        hint: pageMeta._isAspiring ? "Create page" : undefined,
         cssClass,
       });
     } else if (mode === "meta") {
       // Special behavior for #template and #meta pages
-      if (pageMeta._isBrokenLink) {
+      if (pageMeta._isAspiring) {
         // Skip over broken links
         continue;
       }

@@ -188,6 +188,16 @@ export function queryObjects<T>(
   }, ttlSecs);
 }
 
+export function queryDeleteObjects<T>(
+  tag: string,
+  query: ObjectQuery,
+): Promise<void> {
+  return datastore.queryDelete({
+    ...query,
+    prefix: [indexKey, tag],
+  });
+}
+
 export async function query(
   query: KvQuery,
   variables?: Record<string, any>,

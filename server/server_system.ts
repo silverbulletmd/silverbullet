@@ -120,7 +120,7 @@ export class ServerSystem extends CommonSystem {
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
-      spaceReadSyscalls(space),
+      spaceReadSyscalls(space, this.allKnownFiles),
       assetSyscalls(this.system),
       yamlSyscalls(),
       systemSyscalls(
@@ -169,6 +169,7 @@ export class ServerSystem extends CommonSystem {
     this.eventHook.addLocalListener(
       "file:changed",
       async (path, localChange) => {
+        this.allKnownFiles.add(path);
         if (!localChange) {
           console.log("Outside file change: reindexing", path);
           // Change made outside of editor, trigger reindex
@@ -190,6 +191,7 @@ export class ServerSystem extends CommonSystem {
       },
     );
 
+    // Keep allKnownFiles up to date
     this.eventHook.addLocalListener(
       "file:listed",
       (allFiles: FileMeta[]) => {
@@ -200,6 +202,13 @@ export class ServerSystem extends CommonSystem {
             this.allKnownFiles.add(f.name);
           }
         });
+      },
+    );
+    this.eventHook.addLocalListener(
+      "file:deleted",
+      (path: string) => {
+        // Update list of known pages and attachments
+        this.allKnownFiles.delete(path);
       },
     );
 
