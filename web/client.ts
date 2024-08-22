@@ -1132,7 +1132,8 @@ export class Client implements ConfigContainer {
       });
     }).catch(console.error);
 
-    if (loadingDifferentPage) {
+    // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
+    if (loadingDifferentPage || doc.meta.perm === "ro") {
       const editorState = createEditorState(
         this,
         pageName,
@@ -1145,6 +1146,7 @@ export class Client implements ConfigContainer {
       }
       this.space.watchPage(pageName);
     } else {
+      // Just apply minimal patches so that the cursor is preserved
       await editor.setText(doc.text);
     }
 
