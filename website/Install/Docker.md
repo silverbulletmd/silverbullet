@@ -51,7 +51,7 @@ docker kill silverbullet
 # Remove the old container
 docker rm silverbullet
 # Start a fresh one (same command as before)
-docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PW/space:/space zefhemel/silverbullet
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PWD/space:/space zefhemel/silverbullet
 ```
 
 Since this is somewhat burdensome, it is recommended you use a tool like [watchtower](https://github.com/containrrr/watchtower) to automatically update your docker images and restart them. However, if we go there — we may as well use a tool like _docker compose_ to manage your containers, no?
