@@ -1,6 +1,25 @@
 name: federation
 requiredPermissions:
   - fetch
+config:
+  schema.config.properties:
+    libraries:
+      type: array
+      items:
+        type: object
+        properties:
+          import:
+            type: string
+            format: page-ref
+          exclude:
+            type: array
+            items:
+              type: string
+              format: page-ref
+            nullable: true
+        required:
+          - import
+      nullable: true
 functions:
   readFile:
     path: ./federation.ts:readFile

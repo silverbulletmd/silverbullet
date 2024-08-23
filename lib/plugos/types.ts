@@ -29,6 +29,11 @@ export interface Manifest<HookT> {
    * see: common/manifest.ts#SilverBulletHooks
    */
   functions: Record<string, FunctionDef<HookT>>;
+
+  /**
+   * A map of configuration options for the plug (to be merged with the system configuration).
+   */
+  config?: any;
 }
 
 /** Associates hooks with a function. This is the generic base structure, that identifies the function. Hooks are defined by the type parameter. */

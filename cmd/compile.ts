@@ -43,6 +43,11 @@ export async function compileManifest(
   );
   manifest.assets = assetsBundle.toJSON();
 
+  // Normalize the edge case of a plug with no functions
+  if (!manifest.functions) {
+    manifest.functions = {};
+  }
+
   const jsFile = `
 import { setupMessageListener } from "${
     options.runtimeUrl || workerRuntimeUrl

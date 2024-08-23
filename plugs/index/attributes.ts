@@ -3,16 +3,16 @@ import type {
   ObjectValue,
   QueryExpression,
 } from "../../plug-api/types.ts";
-import { events } from "@silverbulletmd/silverbullet/syscalls";
+import { events, system } from "@silverbulletmd/silverbullet/syscalls";
 import { queryObjects } from "./api.ts";
 import { determineTags } from "$lib/cheap_yaml.ts";
+import type { TagObject } from "./tags.ts";
 
 export type AttributeObject = ObjectValue<{
   name: string;
   attributeType: string;
   tagName: string;
   page: string;
-  readOnly: boolean;
 }>;
 
 export type AttributeCompleteEvent = {
@@ -49,21 +49,60 @@ export async function objectAttributeCompleter(
     attributeCompleteEvent.source === ""
       ? undefined
       : ["=", ["attr", "tagName"], ["string", attributeCompleteEvent.source]];
-  const allAttributes = await queryObjects<AttributeObject>("attribute", {
+  const schema = await system.getSpaceConfig("schema");
+  const allAttributes = (await queryObjects<AttributeObject>("attribute", {
     filter: attributeFilter,
     distinct: true,
     select: [{ name: "name" }, { name: "attributeType" }, { name: "tag" }, {
-      name: "readOnly",
-    }, { name: "tagName" }],
-  }, 5);
-  return allAttributes.map((value) => {
+      name: "tagName",
+    }],
+  }, 5)).map((value) => {
     return {
       name: value.name,
       source: value.tagName,
       attributeType: value.attributeType,
-      readOnly: value.readOnly,
+      readOnly: false,
     } as AttributeCompletion;
   });
+  // Add attributes from the direct schema
+  addAttributeCompletionsForTag(
+    schema,
+    attributeCompleteEvent.source,
+    allAttributes,
+  );
+  // Look up the tag so we can check the parent as well
+  const sourceTags = await queryObjects<TagObject>("tag", {
+    filter: ["=", ["attr", "name"], ["string", attributeCompleteEvent.source]],
+  });
+  if (sourceTags.length > 0) {
+    addAttributeCompletionsForTag(schema, sourceTags[0].parent, allAttributes);
+  }
+
+  return allAttributes;
+}
+
+function addAttributeCompletionsForTag(
+  schema: any,
+  tag: string,
+  allAttributes: AttributeCompletion[],
+) {
+  if (schema.tag[tag]) {
+    for (
+      const [name, value] of Object.entries(
+        schema.tag[tag].properties as Record<
+          string,
+          any
+        >,
+      )
+    ) {
+      allAttributes.push({
+        name,
+        source: tag,
+        attributeType: value.type || "any",
+        readOnly: value.readOnly,
+      });
+    }
+  }
 }
 
 /**

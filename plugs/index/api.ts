@@ -1,4 +1,4 @@
-import { datastore } from "@silverbulletmd/silverbullet/syscalls";
+import { datastore, system } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   KV,
   KvKey,
@@ -7,7 +7,6 @@ import type {
   ObjectValue,
 } from "../../plug-api/types.ts";
 import type { QueryProviderEvent } from "../../plug-api/types.ts";
-import { builtins } from "./builtins.ts";
 import { determineType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 
@@ -79,11 +78,12 @@ export async function clearIndex(): Promise<void> {
 /**
  * Indexes entities in the data store
  */
-export function indexObjects<T>(
+export async function indexObjects<T>(
   page: string,
   objects: ObjectValue<T>[],
 ): Promise<void> {
   const kvs: KV<T>[] = [];
+  const schema = await system.getSpaceConfig("schema");
   const allAttributes = new Map<string, string>(); // tag:name -> attributeType
   for (const obj of objects) {
     if (!obj.tag) {
@@ -92,6 +92,8 @@ export function indexObjects<T>(
     }
     // Index as all the tag + any additional tags specified
     const allTags = [obj.tag, ...obj.tags || []];
+    const tagSchemaProperties =
+      schema.tag[obj.tag] && schema.tag[obj.tag].properties || {};
     for (const tag of allTags) {
       // The object itself
       kvs.push({
@@ -99,41 +101,32 @@ export function indexObjects<T>(
         value: obj,
       });
       // Index attributes
-      const builtinAttributes = builtins[tag];
-      if (!builtinAttributes) {
-        // This is not a builtin tag, so we index all attributes (almost, see below)
-        attributeLabel: for (
-          const [attrName, attrValue] of Object.entries(
-            obj as Record<string, any>,
-          )
-        ) {
-          if (attrName.startsWith("$")) {
-            continue;
-          }
-          // Check for all tags attached to this object if they're builtins
-          // If so: if `attrName` is defined in the builtin, use the attributeType from there (mostly to preserve readOnly aspects)
-          for (const otherTag of allTags) {
-            const builtinAttributes = builtins[otherTag];
-            if (builtinAttributes && builtinAttributes[attrName]) {
-              allAttributes.set(
-                `${tag}:${attrName}`,
-                builtinAttributes[attrName],
-              );
-              continue attributeLabel;
-            }
-          }
-          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
-        }
-      } else if (tag !== "attribute") {
-        // For builtin tags, only index custom ones
+      const schemaAttributes = schema.tag[tag] && schema.tag[tag].properties;
+      if (!schemaAttributes) {
+        // There is no schema definition for this tag, so we index all attributes
         for (
           const [attrName, attrValue] of Object.entries(
             obj as Record<string, any>,
           )
         ) {
-          // console.log("Indexing", tag, attrName, attrValue);
-          // Skip builtins and internal attributes
-          if (builtinAttributes[attrName] || attrName.startsWith("$")) {
+          if (attrName.startsWith("$") || tagSchemaProperties[attrName]) {
+            continue;
+          }
+
+          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
+        }
+      } else {
+        // For tags with schemas, only index attributes that are not in the schema
+        for (
+          const [attrName, attrValue] of Object.entries(
+            obj as Record<string, any>,
+          )
+        ) {
+          // Skip schema-defined and internal attributes
+          if (
+            schemaAttributes[attrName] || tagSchemaProperties[attrName] ||
+            attrName.startsWith("$")
+          ) {
             continue;
           }
           allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
@@ -144,7 +137,6 @@ export function indexObjects<T>(
   if (allAttributes.size > 0) {
     [...allAttributes].forEach(([key, value]) => {
       const [tagName, name] = key.split(":");
-      const attributeType = value.startsWith("!") ? value.substring(1) : value;
       kvs.push({
         key: ["attribute", cleanKey(key, page)],
         value: {
@@ -152,8 +144,7 @@ export function indexObjects<T>(
           tag: "attribute",
           tagName,
           name,
-          attributeType,
-          readOnly: value.startsWith("!"),
+          attributeType: value,
           page,
         } as T,
       });
@@ -230,11 +221,15 @@ export async function objectSourceProvider({
 }
 
 export async function discoverSources() {
+  const schema = await system.getSpaceConfig("schema");
+  // Query all tags we indexed
   return (await datastore.query({
     prefix: [indexKey, "tag"],
     select: [{ name: "name" }],
     distinct: true,
   })).map((
     { value },
-  ) => value.name);
+  ) => value.name)
+    // And concatenate all the tags from the schema
+    .concat(Object.keys(schema.tag));
 }
