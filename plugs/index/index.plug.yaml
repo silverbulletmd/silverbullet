@@ -295,6 +295,27 @@ config:
           type: number
           readOnly: true
           nullable: true
+    aspiring-page:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - aspiring-page
+        name:
+          type: string
+          readOnly: true
+        page:
+          type: string
+          readOnly: true
+        pos:
+          type: number
+          readOnly: true
     attachment:
       type: object
       additionalProperties: true
@@ -413,44 +434,6 @@ config:
         context:
           type: string
           readOnly: true
-    attribute:
-      type: object
-      properties:
-        ref:
-          type: string
-          readOnly: true
-        tag:
-          type: string
-          readOnly: true
-          enum:
-            - attribute
-        tags:
-          type: array
-          readOnly: true
-          items:
-            type: string
-          nullable: true
-        itags:
-          type: array
-          readOnly: true
-          items:
-            type: string
-          nullable: true
-        name:
-          type: string
-          readOnly: true
-        attributeType:
-          type: string
-          readOnly: true
-        tagName:
-          type: string
-          readOnly: true
-        page:
-          type: string
-          readOnly: true
-        context:
-          type: string
-          readOnly: true
     anchor:
       type: object
       properties:
@@ -500,6 +483,14 @@ config:
         name:
           type: string
         page:
+          type: string
+        toFile:
+          type: string
+          nullable: true
+        toPage:
+          type: string
+          nullable: true
+        snippet:
           type: string
         pos:
           type: number
@@ -585,10 +576,16 @@ config:
           type: string
         pageName:
           type: string
+        description:
+          type: string
         pos:
           type: number
         hooks:
           type: object
+        frontmatter:
+          type:
+          - object
+          - string
     table:
       type: object
       properties:

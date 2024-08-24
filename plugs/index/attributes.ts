@@ -24,7 +24,7 @@ export type AttributeCompletion = {
   name: string;
   source: string;
   attributeType: string;
-  readOnly: boolean;
+  readOnly?: boolean;
 };
 
 export function determineType(v: any): string {
@@ -61,7 +61,6 @@ export async function objectAttributeCompleter(
       name: value.name,
       source: value.tagName,
       attributeType: value.attributeType,
-      readOnly: false,
     } as AttributeCompletion;
   });
   // Add attributes from the direct schema

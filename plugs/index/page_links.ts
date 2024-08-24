@@ -229,7 +229,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           page: name,
           pos: link.pos,
           name: link.toPage,
-        });
+        } as AspiringPageObject);
       }
     }
   }

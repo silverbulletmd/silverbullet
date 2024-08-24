@@ -5,7 +5,12 @@ config:
     syscall:
       type: object
       properties:
-        ref: refProperty
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
         name:
           type: string
         argCount:
@@ -17,7 +22,12 @@ config:
     command:
       type: object
       properties:
-        ref: refProperty
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
         name:
           type: string
         priority:
@@ -38,7 +48,12 @@ config:
     space-config:
       type: object
       properties:
-        ref: refProperty
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
         key:
           type: string
         value:
@@ -52,7 +67,12 @@ config:
     space-style:
       type: object
       properties:
-        ref: refProperty
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
         style:
           type: string
         origin:
@@ -60,7 +80,12 @@ config:
     space-script:
       type: object
       properties:
-        ref: refProperty
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
         script:
           type: string
   # Built-in configuration schemas

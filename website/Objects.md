@@ -192,13 +192,6 @@ Here are the tags used/defined in this page:
 tag where page = @page.name select name, parent
 ```
 
-## attribute
-This is another meta tag, which is used to index all [[Attributes]] used in your space. This is used by e.g. attribute completion in various contexts. You likely don’t need to use this tag directly, but it’s there.
-
-```query
-attribute where page = @page.name limit 1 
-```
-
 ## space-config
 This stores all configuration picked up as part of [[Space Config]]
 
