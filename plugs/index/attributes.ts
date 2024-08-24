@@ -8,9 +8,16 @@ import { queryObjects } from "./api.ts";
 import { determineTags } from "$lib/cheap_yaml.ts";
 import type { TagObject } from "./tags.ts";
 
-export type AttributeObject = ObjectValue<{
+export type SimpleJSONType = {
+  type?: "string" | "number" | "boolean" | "any" | "array" | "object" | "null";
+  items?: SimpleJSONType;
+  properties?: Record<string, SimpleJSONType>;
+  anyOf?: SimpleJSONType[];
+};
+
+export type AdhocAttributeObject = ObjectValue<{
   name: string;
-  attributeType: string;
+  schema: SimpleJSONType;
   tagName: string;
   page: string;
 }>;
@@ -23,19 +30,10 @@ export type AttributeCompleteEvent = {
 export type AttributeCompletion = {
   name: string;
   source: string;
+  // String version of JSON schema
   attributeType: string;
   readOnly?: boolean;
 };
-
-export function determineType(v: any): string {
-  const t = typeof v;
-  if (t === "object") {
-    if (Array.isArray(v)) {
-      return "array";
-    }
-  }
-  return t;
-}
 
 /**
  * Triggered by the `attribute:complete:*` event (that is: gimme all attribute completions)
@@ -50,17 +48,17 @@ export async function objectAttributeCompleter(
       ? undefined
       : ["=", ["attr", "tagName"], ["string", attributeCompleteEvent.source]];
   const schema = await system.getSpaceConfig("schema");
-  const allAttributes = (await queryObjects<AttributeObject>("attribute", {
+  const allAttributes = (await queryObjects<AdhocAttributeObject>("ah-attr", {
     filter: attributeFilter,
     distinct: true,
-    select: [{ name: "name" }, { name: "attributeType" }, { name: "tag" }, {
+    select: [{ name: "name" }, { name: "schema" }, { name: "tag" }, {
       name: "tagName",
     }],
   }, 5)).map((value) => {
     return {
       name: value.name,
       source: value.tagName,
-      attributeType: value.attributeType,
+      attributeType: jsonTypeToString(value.schema),
     } as AttributeCompletion;
   });
   // Add attributes from the direct schema
@@ -97,7 +95,7 @@ function addAttributeCompletionsForTag(
       allAttributes.push({
         name,
         source: tag,
-        attributeType: value.type || "any",
+        attributeType: jsonTypeToString(value),
         readOnly: value.readOnly,
       });
     }
@@ -188,4 +186,67 @@ export function attributeCompletionsToCMCompletion(
       type: "attribute",
     }),
   );
+}
+
+/**
+ * Attempt some reasonable stringification of a JSON schema
+ * @param schema
+ * @returns
+ */
+export function jsonTypeToString(schema: SimpleJSONType): string {
+  if (schema.anyOf) {
+    return schema.anyOf.map(jsonTypeToString).join(" | ");
+  } else if (schema.type === "array") {
+    if (schema.items) {
+      return `${jsonTypeToString(schema.items)}[]`;
+    } else {
+      return "any[]";
+    }
+  } else if (schema.type === "object") {
+    if (schema.properties) {
+      return `{${
+        Object.entries(schema.properties).map(([k, v]) =>
+          `${k}: ${jsonTypeToString(v)};`
+        ).join(" ")
+      }}`;
+    } else {
+      return "{}";
+    }
+  }
+  return schema.type!;
+}
+
+export function determineType(v: any): SimpleJSONType {
+  const t = typeof v;
+  if (t === "undefined" || v === null) {
+    return { type: "null" };
+  } else if (t === "object") {
+    if (Array.isArray(v)) {
+      if (v.length === 0) {
+        return {
+          type: "array",
+        };
+      } else {
+        return {
+          type: "array",
+          items: determineType(v[0]),
+        };
+      }
+    } else {
+      return {
+        type: "object",
+        properties: Object.fromEntries(
+          Object.entries(v).map(([k, v]) => [k, determineType(v)]),
+        ),
+      };
+    }
+  } else if (t === "number") {
+    return { type: "number" };
+  } else if (t === "boolean") {
+    return { type: "boolean" };
+  } else if (t === "string") {
+    return { type: "string" };
+  } else {
+    return { type: "any" };
+  }
 }

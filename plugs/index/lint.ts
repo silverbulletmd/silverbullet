@@ -11,7 +11,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { LintEvent } from "../../plug-api/types.ts";
 import { queryObjects } from "./api.ts";
-import type { AttributeObject } from "./attributes.ts";
+import type { AdhocAttributeObject } from "./attributes.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
   cleanupJSON,
@@ -26,8 +26,8 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
       // Query all readOnly attributes for pages with this tag set
-      const readOnlyAttributes = await queryObjects<AttributeObject>(
-        "attribute",
+      const readOnlyAttributes = await queryObjects<AdhocAttributeObject>(
+        "ah-attr",
         {
           filter: ["and", ["=", ["attr", "tagName"], [
             "array",

@@ -108,8 +108,8 @@ export async function extractFrontmatter(
         ) {
           return null;
         }
-      } catch (e: any) {
-        console.warn("Could not parse frontmatter", e.message);
+      } catch {
+        // console.warn("Could not parse frontmatter", e.message);
       }
     }
 

@@ -264,6 +264,21 @@ config:
           readOnly: true
         pageDecoration:
           type: object
+          properties:
+            prefix:
+              type: string
+              nullable: true
+            cssClasses:
+              type: array
+              items:
+                type: string
+              nullable: true
+            hide:
+              type: boolean
+              nullable: true
+            renderWidgets:
+              type: boolean
+              nullable: true
           nullable: true
         displayName:
           type: string
@@ -563,10 +578,11 @@ config:
           enum:
             - template
         tags:
-          type: array
-          items:
-            type: string
-          nullable: true
+          anyOf:
+            - type: array
+              items:
+                type: string
+            - type: string
         itags:
           type: array
           items:
@@ -583,9 +599,9 @@ config:
         hooks:
           type: object
         frontmatter:
-          type:
-          - object
-          - string
+          anyOf:
+            - type: object
+            - type: string
     table:
       type: object
       properties:

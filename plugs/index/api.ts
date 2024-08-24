@@ -7,7 +7,7 @@ import type {
   ObjectValue,
 } from "../../plug-api/types.ts";
 import type { QueryProviderEvent } from "../../plug-api/types.ts";
-import { determineType } from "./attributes.ts";
+import { determineType, type SimpleJSONType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 
 const indexKey = "idx";
@@ -84,7 +84,7 @@ export async function indexObjects<T>(
 ): Promise<void> {
   const kvs: KV<T>[] = [];
   const schema = await system.getSpaceConfig("schema");
-  const allAttributes = new Map<string, string>(); // tag:name -> attributeType
+  const allAttributes = new Map<string, SimpleJSONType>();
   for (const obj of objects) {
     if (!obj.tag) {
       console.error("Object has no tag", obj, "this shouldn't happen");
@@ -138,14 +138,14 @@ export async function indexObjects<T>(
     [...allAttributes].forEach(([key, value]) => {
       const [tagName, name] = key.split(":");
       kvs.push({
-        key: ["attribute", cleanKey(key, page)],
+        key: ["ah-attr", cleanKey(key, page)],
         value: {
           ref: key,
-          tag: "attribute",
+          tag: "ah-attr",
           tagName,
           name,
-          attributeType: value,
           page,
+          schema: value,
         } as T,
       });
     });
