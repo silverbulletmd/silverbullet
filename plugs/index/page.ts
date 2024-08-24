@@ -1,8 +1,10 @@
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/types";
 import {
   editor,
+  jsonschema,
   markdown,
   space,
+  system,
   YAML,
 } from "@silverbulletmd/silverbullet/syscalls";
 
@@ -17,6 +19,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import type { AspiringPageObject } from "./page_links.ts";
+import { deepObjectMerge } from "@silverbulletmd/silverbullet/lib/json";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {
@@ -61,13 +64,38 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   updateITags(combinedPageMeta, frontmatter);
 
-  // console.log("Page object", combinedPageMeta);
-  await indexObjects<PageMeta>(name, [combinedPageMeta]);
-
   // Make sure this page is no (longer) in the aspiring pages list
   await queryDeleteObjects<AspiringPageObject>("aspiring-page", {
     filter: ["=", ["attr", "name"], ["string", name]],
   });
+
+  const tagSchema = (await system.getSpaceConfig("schema")).tag;
+  // Validate the page meta against schemas, and only index the tags that validate
+  for (const tag of combinedPageMeta.tags) {
+    let schema = tagSchema[tag];
+    if (schema) {
+      schema = deepObjectMerge({ type: "object" }, schema);
+      const validationError = await jsonschema.validateObject(
+        schema,
+        combinedPageMeta,
+      );
+      if (validationError) {
+        console.warn(
+          "Validation failed for",
+          combinedPageMeta,
+          "for tag",
+          tag,
+          ". Error:",
+          validationError,
+          ". Removing tag until this is resolved.",
+        );
+        combinedPageMeta.tags.splice(combinedPageMeta.tags.indexOf(tag), 1);
+      }
+    }
+  }
+
+  // console.log("Page object", combinedPageMeta);
+  await indexObjects<PageMeta>(name, [combinedPageMeta]);
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {

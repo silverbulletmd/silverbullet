@@ -245,8 +245,6 @@ config:
         tag:
           type: string
           readOnly: true
-          enum:
-            - page
         tags:
           anyOf:
             - type: array
@@ -320,8 +318,6 @@ config:
         tag:
           type: string
           readOnly: true
-          enum:
-            - aspiring-page
         name:
           type: string
           readOnly: true
@@ -341,8 +337,6 @@ config:
         tag:
           type: string
           readOnly: true
-          enum:
-            - attachment
         tags:
           type: array
           readOnly: true
@@ -386,8 +380,6 @@ config:
         tag:
           type: string
           readOnly: true
-          enum:
-            - item
         tags:
           type: array
           items:
@@ -423,8 +415,6 @@ config:
         tag:
           type: string
           readOnly: true
-          enum:
-            - tag
         tags:
           type: array
           readOnly: true
@@ -457,8 +447,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - anchor
         tags:
           type: array
           items:
@@ -483,8 +471,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - link
         tags:
           type: array
           items:
@@ -521,8 +507,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - header
         tags:
           type: array
           items:
@@ -549,8 +533,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - paragraph
         tags:
           type: array
           items:
@@ -575,8 +557,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - template
         tags:
           anyOf:
             - type: array
@@ -610,8 +590,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - table
         tags:
           type: array
           items:

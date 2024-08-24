@@ -82,11 +82,14 @@ schema.config.properties.myFullName.type: string
 Now, if you would accidentally change `myFullName` into a number or boolean value, you would get a validation error.
 
 # Validation
-At the moment, validation only occurs in the editor in [[Space Config]] and [[Frontmatter]] blocks and shows any violations as highlighted errors.
+Validation happens during linting in the editor (visually, with squiggly lines for errors) and indexing (at the database level). Therefore, changes to your schema will only go into effect when either of those two things kick in.
 
-Even if data does not pass validation, it is still stored in the data store so it does not (currently) _enforce_ the format.
+For pages, during indexing, specified [[Frontmatter]] is validated against schema specified for its tags. If validation fails for one of these tags, that _tag will be removed_ from its `tags` attribute and therefore **not** be indexed as such. This guarantees that the schema is enforced and any object follows the schema.
 
-This may change in the future.
+For instance, in the example mentioned in [[#Example]], if the `lastName` of either of the two `#contact` tagged pages is removed (which would mean it no longer matches the schema constraints), this object will no longer be indexed as a `contact` and thus not appear in query results for it. However, since the page still follows the regular `page` tag schema, it will still appear in `page` query results.
+
+> **note** Note
+> If you would like to enforce a newly introduced or updated schema on your entire space, you will have to run a full {[Space: Reindex]}.
 
 # Supported types
 All standard JSON Schema types are supported. Likely you are interested in:

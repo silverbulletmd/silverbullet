@@ -53,8 +53,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - task
         tags:
           type: array
           items:
@@ -90,8 +88,6 @@ config:
           readOnly: true
         tag:
           type: string
-          enum:
-            - taskstate
         tags:
           type: array
           items:
