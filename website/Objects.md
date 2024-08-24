@@ -39,6 +39,14 @@ Note that you can also query this page using the `level/intermediate` directly:
 level/intermediate
 ```
 
+## aspiring-page
+[[Aspiring Pages]] are pages that are linked to, but not yet created.
+
+```query
+aspiring-page
+```
+
+
 ## table
 Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tags]] in any of its cells.
 
@@ -47,7 +55,6 @@ Markdown table rows are indexed using the `table` tag, any additional tags can b
 | This is some key | The value contains a #table-tag |
 | Some Row | This is an example row in between two others |
 | Another key | This time without a tag |
-
 
 ```query
 table
@@ -153,10 +160,10 @@ In addition, the `snippet` attribute attempts to capture a little bit of context
 
 _Note_: this is the data source used for the {[Mentions: Toggle]} feature as well page {[Page: Rename]}.
 
-Here is a query that shows all links that appear in this particular page:
+Here is a query that shows some links that appear in this particular page:
 
 ```query
-link where page = @page.name
+link where page = @page.name limit 5
 ```
 
 ## anchor
@@ -183,13 +190,6 @@ Here are the tags used/defined in this page:
 
 ```query
 tag where page = @page.name select name, parent
-```
-
-## attribute
-This is another meta tag, which is used to index all [[Attributes]] used in your space. This is used by e.g. attribute completion in various contexts. You likely don’t need to use this tag directly, but it’s there.
-
-```query
-attribute where page = @page.name limit 1 
 ```
 
 ## space-config

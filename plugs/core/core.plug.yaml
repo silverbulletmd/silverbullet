@@ -1,0 +1,109 @@
+name: core
+config:
+  # Built-in schemas
+  schema.tag:
+    syscall:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        argCount:
+          type: number
+        requiredPermissions:
+          type: array
+          items:
+            type: string
+    command:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        priority:
+          type: number
+        key:
+          type: string
+          nullable: true
+        mac:
+          type: string
+          nullable: true
+        hide:
+          type: boolean
+          nullable: true
+        requireMode:
+          type: string
+          enum: ["ro", "rw"]
+          nullable: true
+    space-config:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+        key:
+          type: string
+        value:
+          type:
+            - number
+            - string
+            - boolean
+            - object
+            - array
+            - null
+    space-style:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+        style:
+          type: string
+        origin:
+          type: string
+    space-script:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+        script:
+          type: string
+  # Built-in configuration schemas
+  schema.config.properties:
+    indexPage:
+      type: string
+      format: page-ref
+    maximumAttachmentSize:
+      type: number
+      nullable: true
+    objectDecorators:
+      type: array
+      items:
+        type: object
+        required:
+          - where
+          - attributes
+      nullable: true
+    spaceIgnore:
+      type: string
+      nullable: true

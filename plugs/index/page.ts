@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/types";
 import {
   editor,
   markdown,
@@ -9,13 +9,14 @@ import {
 import type { LintDiagnostic, PageMeta } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import { indexObjects } from "./api.ts";
+import { indexObjects, queryDeleteObjects } from "./api.ts";
 import {
   findNodeOfType,
   renderToText,
   traverseTreeAsync,
-} from "../../plug-api/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import type { AspiringPageObject } from "./page_links.ts";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {
@@ -62,6 +63,11 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   // console.log("Page object", combinedPageMeta);
   await indexObjects<PageMeta>(name, [combinedPageMeta]);
+
+  // Make sure this page is no (longer) in the aspiring pages list
+  await queryDeleteObjects<AspiringPageObject>("aspiring-page", {
+    filter: ["=", ["attr", "name"], ["string", name]],
+  });
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {

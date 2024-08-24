@@ -1,11 +1,5 @@
 name: index
 functions:
-  loadBuiltinsIntoIndex:
-    path: builtins.ts:loadBuiltinsIntoIndex
-    env: server
-    events:
-      - system:ready
-
   # Public API
   batchSet:
     path: api.ts:batchSet
@@ -21,7 +15,6 @@ functions:
   getObjectByRef:
     path: api.ts:getObjectByRef
     env: server
-
   objectSourceProvider:
     path: api.ts:objectSourceProvider
     events:
@@ -239,3 +232,397 @@ functions:
     path: builtins.ts:commandSourceProvider
     events:
       - query:command
+config:
+   # Schema for the built-in tags indexed by this plug
+  schema.tag:
+    page:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - page
+        tags:
+          anyOf:
+            - type: array
+              items:
+                type: string
+            - type: string
+        itags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        pageDecoration:
+          type: object
+          properties:
+            prefix:
+              type: string
+              nullable: true
+            cssClasses:
+              type: array
+              items:
+                type: string
+              nullable: true
+            hide:
+              type: boolean
+              nullable: true
+            renderWidgets:
+              type: boolean
+              nullable: true
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        aliases:
+          type: array
+          items:
+            type: string
+          nullable: true
+        created:
+          type: string
+          readOnly: true
+        contentType:
+          type: string
+          readOnly: true
+        size:
+          type: number
+          readOnly: true
+        lastModified:
+          type: string
+          readOnly: true
+        perm:
+          type: string
+          readOnly: true
+          enum:
+            - ro
+            - rw
+        lastOpened:
+          type: number
+          readOnly: true
+          nullable: true
+    aspiring-page:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - aspiring-page
+        name:
+          type: string
+          readOnly: true
+        page:
+          type: string
+          readOnly: true
+        pos:
+          type: number
+          readOnly: true
+    attachment:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - attachment
+        tags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        created:
+          readOnly: true
+          type: string
+        contentType:
+          type: string
+          readOnly: true
+        size:
+          type: number
+          readOnly: true
+        lastModified:
+          type: string
+          readOnly: true
+        perm:
+          type: string
+          readOnly: true
+          enum:
+            - ro
+            - rw
+    item:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - item
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        page:
+          type: string
+          readOnly: true
+        parent:
+          type: string
+          readOnly: true
+        pos:
+          type: number
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+    tag:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          readOnly: true
+          enum:
+            - tag
+        tags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        page:
+          type: string
+          readOnly: true
+        parent:
+          type: string
+          readOnly: true
+        context:
+          type: string
+          readOnly: true
+    anchor:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - anchor
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+        page:
+          type: string
+        pos:
+          type: number
+    link:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - link
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+        page:
+          type: string
+        toFile:
+          type: string
+          nullable: true
+        toPage:
+          type: string
+          nullable: true
+        snippet:
+          type: string
+        pos:
+          type: number
+        alias:
+          type: string
+        asTemplate:
+          type: boolean
+    header:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - header
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+        page:
+          type: string
+        pos:
+          type: number
+        level:
+          type: string
+    paragraph:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - paragraph
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        text:
+          type: string
+        page:
+          type: string
+        pos:
+          type: number
+    template:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - template
+        tags:
+          anyOf:
+            - type: array
+              items:
+                type: string
+            - type: string
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        page:
+          type: string
+        pageName:
+          type: string
+        description:
+          type: string
+        pos:
+          type: number
+        hooks:
+          type: object
+        frontmatter:
+          anyOf:
+            - type: object
+            - type: string
+    table:
+      type: object
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+          enum:
+            - table
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        page:
+          type: string
+        pos:
+          type: number

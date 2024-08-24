@@ -73,7 +73,7 @@ import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
-import type { LinkObject } from "../plugs/index/page_links.ts";
+import type { AspiringPageObject } from "../plugs/index/page_links.ts";
 import type { Config, ConfigContainer } from "../type/config.ts";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
@@ -754,19 +754,15 @@ export class Client implements ConfigContainer {
       return;
     }
     const allPages = await this.clientSystem.queryObjects<PageMeta>("page", {});
-    const allBrokenLinkPages = (await this.clientSystem.queryObjects<
-      LinkObject
-    >("link", {
-      filter: ["and", ["attr", "toPage"], ["not", ["call", "pageExists", [[
-        "attr",
-        "toPage",
-      ]]]]],
-      select: [{ name: "toPage" }],
-    })).map((link): PageMeta => ({
-      ref: link.toPage!,
+    const allAspiringPages = (await this.clientSystem.queryObjects<
+      AspiringPageObject
+    >("aspiring-page", {
+      select: [{ name: "name" }],
+    })).map((aspiringPage): PageMeta => ({
+      ref: aspiringPage.name,
       tag: "page",
-      _isBrokenLink: true,
-      name: link.toPage!,
+      _isAspiring: true,
+      name: aspiringPage.name,
       created: "",
       lastModified: "",
       perm: "rw",
@@ -774,7 +770,7 @@ export class Client implements ConfigContainer {
 
     this.ui.viewDispatch({
       type: "update-page-list",
-      allPages: allPages.concat(allBrokenLinkPages),
+      allPages: allPages.concat(allAspiringPages),
     });
   }
 

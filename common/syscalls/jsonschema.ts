@@ -25,14 +25,18 @@ export function jsonschemaSyscalls(): SysCallMapping {
       schema: any,
       object: any,
     ): undefined | string => {
-      const validate = ajv.compile(schema);
-      if (validate(object)) {
-        return;
-      } else {
-        let text = ajv.errorsText(validate.errors);
-        text = text.replaceAll("/", ".");
-        text = text.replace(/^data[\.\s]/, "");
-        return text;
+      try {
+        const validate = ajv.compile(schema);
+        if (validate(object)) {
+          return;
+        } else {
+          let text = ajv.errorsText(validate.errors);
+          text = text.replaceAll("/", ".");
+          text = text.replace(/^data[\.\s]/, "");
+          return text;
+        }
+      } catch (e) {
+        return e.message;
       }
     },
     "jsonschema.validateSchema": (

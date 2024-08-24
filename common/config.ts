@@ -54,12 +54,20 @@ async function loadConfigsFromSystem(
     console.warn("Index plug not loaded yet, falling back to default config");
     return defaultConfig;
   }
+  // We'll start witht the default config
+  let fullConfig: any = { ...defaultConfig };
+  // Then merge in all plug-based configs
+  for (const plugDef of system.loadedPlugs.values()) {
+    if (plugDef.manifest?.config) {
+      const plugConfig = cleanupJSON(plugDef.manifest.config);
+      fullConfig = deepObjectMerge(fullConfig, plugConfig);
+    }
+  }
   // Query all space-configs
   const allConfigs: ConfigObject[] = await system.invokeFunction(
     "index.queryObjects",
     ["space-config", {}],
   );
-  let fullConfig: any = { ...defaultConfig };
   // Now let's intelligently merge them
   for (const config of allConfigs) {
     let configObject = { [config.key]: config.value };

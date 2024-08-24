@@ -1,4 +1,16 @@
 name: emoji
+config:
+  schema.config.properties:
+    emoji:
+      type: object
+      properties:
+        aliases:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - aliases
+      nullable: true
 functions:
   emojiCompleter:
     path: "./emoji.ts:emojiCompleter"

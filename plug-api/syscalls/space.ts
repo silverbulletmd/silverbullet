@@ -158,3 +158,7 @@ export function writeFile(
 export function deleteFile(name: string): Promise<void> {
   return syscall("space.deleteFile", name);
 }
+
+export function fileExists(name: string): Promise<boolean> {
+  return syscall("space.fileExists", name);
+}

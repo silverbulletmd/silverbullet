@@ -28,8 +28,6 @@ export async function reindexSpace(noClear = false) {
     // Executed this way to not have to embed the search plug code here
     await system.invokeFunction("index.clearIndex");
   }
-  // Load builtins
-  await system.invokeFunction("index.loadBuiltinsIntoIndex");
   // Pre-index SETTINGS page to get useful settings
   console.log("Indexing SETTINGS page");
   await indexPage("SETTINGS");

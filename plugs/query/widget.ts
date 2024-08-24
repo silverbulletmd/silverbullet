@@ -44,7 +44,11 @@ export async function widget(
       },
     );
     if (Array.isArray(results)) {
-      resultMarkdown = jsonToMDTable(results);
+      if (results.length === 0) {
+        resultMarkdown = "No results";
+      } else {
+        resultMarkdown = jsonToMDTable(results);
+      }
     } else {
       resultMarkdown = results;
     }

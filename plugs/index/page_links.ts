@@ -23,6 +23,7 @@ import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "$common/markdown_parser/constants.ts";
+import { space } from "@silverbulletmd/silverbullet/syscalls";
 
 export type LinkObject = ObjectValue<
   {
@@ -49,6 +50,19 @@ export type LinkObject = ObjectValue<
     toPage?: never;
   }
 >;
+
+/**
+ * Represents a page that does not yet exist, but is being linked to. A page "aspiring" to be created.
+ */
+export type AspiringPageObject = ObjectValue<{
+  // ref: page@pos
+  // The page the link appears on
+  page: string;
+  // And the position
+  pos: number;
+  // The page the link points to
+  name: string;
+}>;
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
@@ -194,8 +208,35 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
     return false;
   });
+
   // console.log("Found", links, "page link(s)");
-  await indexObjects(name, links);
+  if (links.length > 0) {
+    await indexObjects(name, links);
+  }
+
+  // Now let's check which are aspiring pages
+  const aspiringPages: ObjectValue<AspiringPageObject>[] = [];
+  for (const link of links) {
+    if (link.toPage) {
+      // No federated links, nothing with template directives
+      if (link.toPage.startsWith("!") || link.toPage.includes("{{")) {
+        continue;
+      }
+      if (!await space.fileExists(`${link.toPage}.md`)) {
+        aspiringPages.push({
+          ref: `${name}@${link.pos}`,
+          tag: "aspiring-page",
+          page: name,
+          pos: link.pos,
+          name: link.toPage,
+        } as AspiringPageObject);
+      }
+    }
+  }
+
+  if (aspiringPages.length > 0) {
+    await indexObjects(name, aspiringPages);
+  }
 }
 
 export async function getBackLinks(

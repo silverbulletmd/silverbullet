@@ -8,7 +8,7 @@ import type {
 import { listFilesCached } from "../federation/federation.ts";
 import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { LinkObject } from "../index/page_links.ts";
+import type { AspiringPageObject } from "../index/page_links.ts";
 import { localDateString } from "$lib/dates.ts";
 
 // A meta page is a page tagged with either #template or #meta
@@ -79,19 +79,16 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         filter: ["!=~", ["attr", "name"], ["regexp", "^_", ""]],
       }, 5),
       // And all links to non-existing pages (to augment the existing ones)
-      queryObjects<LinkObject>("link", {
-        filter: ["and", ["attr", "toPage"], ["not", ["call", "pageExists", [[
-          "attr",
-          "toPage",
-        ]]]]],
-        select: [{ name: "toPage" }],
-      }, 5).then((brokenLinks) =>
+      queryObjects<AspiringPageObject>("aspiring-page", {
+        distinct: true,
+        select: [{ name: "name" }],
+      }, 5).then((aspiringPages) =>
         // Rewrite them to PageMeta shaped objects
-        brokenLinks.map((link): PageMeta => ({
-          ref: link.toPage!,
+        aspiringPages.map((aspiringPage): PageMeta => ({
+          ref: aspiringPage.name,
           tag: "page",
           tags: ["non-existing"], // Picked up later in completion
-          name: link.toPage!,
+          name: aspiringPage.name,
           created: "",
           lastModified: "",
           perm: "rw",
