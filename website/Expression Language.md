@@ -95,7 +95,7 @@ Simple boolean expression: {{"pete" = "pete" or "hank" = "pete"}}
 * `in` member of a list (e.g. `prop in ["foo", "bar"]`)
 * `+` addition (can also concatenate strings), e.g. `10 + 12` or `name + "!!!"`
 * `-` subtraction, e.g. `10 - 12`
-* `/` addition, e.g. `10 / 12`
+* `/` division, e.g. `10 / 12`
 * `*` multiplication, e.g. `10 * 12`
 * `%` modulo, e.g. `10 % 12`
 * `not <expression>` or `!<expression>` to negate the truthiness value
