@@ -227,3 +227,21 @@ body {
     margin: 0;
   }
 }
+
+.sb-preview {
+  position: relative;
+}
+
+.sb-markdown-toolbar {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.2s;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.sb-markdown-toolbar:hover {
+  opacity: 1;
+}
