@@ -56,7 +56,8 @@ export function buildQueryFunctions(
     },
     // INTERNAL: Used for implementing the { query } syntax in expressions
     $query(query: Query, variables: Record<string, any>) {
-      return system.invokeFunction("query.renderQuery", [
+      return system.localSyscall("system.invokeFunction", [
+        "query.renderQuery",
         query,
         variables,
       ]);
