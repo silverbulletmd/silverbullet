@@ -6,7 +6,7 @@ An attempt at documenting the changes/new features introduced in each release.
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 * Nothing yet since 0.9.3. Stay tuned!
 
-## 0.9.3
+## 0.9.4
 * Slashes in page names are no no longer URL encoded (in the URL)
 * `task` and `item` [[Objects]] now have a `parent` attribute when nested, and inherit their ancestors’ tags in `itags` — see [[Objects#item]] for an example.
 * When a page changed on disk, it now does a diff-based reload, largely retaining local changes, edit history and cursor position  (by [jcgurango](https://github.com/silverbulletmd/silverbullet/pull/1056))
