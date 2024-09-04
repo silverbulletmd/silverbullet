@@ -1,6 +1,6 @@
 {
   "name": "@silverbulletmd/silverbullet",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "exports": {
     "./syscall": "./plug-api/syscall.ts",
     "./syscalls": "./plug-api/syscalls.ts",

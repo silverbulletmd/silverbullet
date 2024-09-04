@@ -4,12 +4,17 @@ An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
+* Nothing yet since 0.9.3. Stay tuned!
 
+## 0.9.3
 * Slashes in page names are no no longer URL encoded (in the URL)
 * `task` and `item` [[Objects]] now have a `parent` attribute when nested, and inherit their ancestors’ tags in `itags` — see [[Objects#item]] for an example.
-* When a file is changed on disk, a diff is now applied, meaning the cursor position is maintained and the change can be undoe via the regular undo (by [[jcgurango](https://github.com/jcgurango)](https://github.com/silverbulletmd/silverbullet/pull/1056))
+* When a page changed on disk, it now does a diff-based reload, largely retaining local changes, edit history and cursor position  (by [jcgurango](https://github.com/silverbulletmd/silverbullet/pull/1056))
+* The default generated SETTINGS uses `yaml` again until more plugs are updated to support [[Space Config]]
+* Markdown preview now has a print button that appears on hover (by [Ruibin Xing](https://github.com/silverbulletmd/silverbullet/pull/1065))
+* Some more iterations on the [[Schema]] feature (still experimental)
 
-## 0.9.1
+## 0.9.2
 * Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013)) as well as some other transclusion-related fixes
 * At long last, date and time functions and attributes now return local time instead of UTC
   * _Local_ means the time of the place where code runs, so this may be your server or client depending on the [[Client Modes]]. Ideally you set the timezones the same on both.
