@@ -22,7 +22,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   const frontmatter = await extractFrontmatter(tree);
   const tags = ["page", ...frontmatter.tags || []];
-  const schemaConfig = await system.getSpaceConfig("schema");
+  const schemaConfig = await system.getSpaceConfig("schema", {});
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
       // Query all readOnly attributes for pages with this tag set
@@ -110,7 +110,7 @@ export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
             let parsed = await YAML.parse(yamlCode);
             parsed = cleanupJSON(parsed);
             // If tag schemas are defined, validate them
-            if (parsed.schema?.tag) {
+            if (parsed?.schema?.tag) {
               for (
                 let [tagName, tagSchema] of Object.entries(parsed.schema.tag)
               ) {

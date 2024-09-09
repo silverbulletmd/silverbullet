@@ -141,7 +141,7 @@ export function systemSyscalls(
       return commonSystem.applyAttributeExtractors(tags, text, tree);
     },
     "system.getSpaceConfig": (_ctx, key?: string): any => {
-      const config: any = configContainer.config;
+      const config: any = configContainer.config || {};
       if (key) {
         return config[key];
       } else {
