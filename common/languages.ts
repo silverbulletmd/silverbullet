@@ -45,6 +45,7 @@ import {
   highlightingQueryParser,
 } from "./markdown_parser/parser.ts";
 import { cssLanguage } from "@codemirror/lang-css";
+import { nixLanguage } from "@replit/codemirror-lang-nix";
 
 const yamlStreamLanguage = StreamLanguage.define(yamlLanguage);
 
@@ -114,6 +115,7 @@ export const builtinLanguages: Record<string, Language> = {
   "dockerfile": StreamLanguage.define(dockerfileLanguage),
   "cmake": StreamLanguage.define(cmakeLanguage),
   "erlang": StreamLanguage.define(erlangLanguage),
+  "nix": nixLanguage,
   "query": LRLanguage.define({
     name: "query",
     parser: highlightingQueryParser,
