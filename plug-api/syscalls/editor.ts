@@ -123,6 +123,10 @@ export function openUrl(url: string, existingWindow = false): Promise<void> {
   return syscall("editor.openUrl", url, existingWindow);
 }
 
+export function newWindow(): Promise<void> {
+  return syscall("editor.newWindow");
+}
+
 /**
  * This is calling the `go()` method from the History Web API.
  * @param delta Position in history to move to relative to the current page,

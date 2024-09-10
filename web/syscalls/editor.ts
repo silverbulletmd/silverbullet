@@ -81,6 +81,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
         location.href = url;
       }
     },
+    "editor.newWindow": () => {
+      globalThis.open(
+        location.href,
+        "rnd" + Math.random(),
+        `width=${globalThis.innerWidth},heigh=${globalThis.innerHeight}`,
+      );
+    },
     "editor.goHistory": (_ctx, delta: number) => {
       window.history.go(delta);
     },

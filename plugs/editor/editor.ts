@@ -97,3 +97,7 @@ export function redoCommand() {
 export function deleteLineCommand() {
   return editor.deleteLine();
 }
+
+export function newWindowCommand() {
+  return editor.newWindow();
+}

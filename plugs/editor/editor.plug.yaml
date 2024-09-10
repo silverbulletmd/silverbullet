@@ -72,6 +72,12 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
+  newWindow:
+    path: editor.ts:newWindowCommand
+    command:
+      name: "Editor: New Window"
+      key: "Ctrl-n"
+      mac: "Cmd-n"
 
   openCommandPalette:
     path: editor.ts:openCommandPalette
