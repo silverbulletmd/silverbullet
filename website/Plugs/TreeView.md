@@ -5,6 +5,5 @@ author: Joe Krill
 tags: plug
 ---
 
-```template
-{{[[!raw.githubusercontent.com/joekrill/silverbullet-treeview/main/README]]}}
+![[!raw.githubusercontent.com/joekrill/silverbullet-treeview/main/README]]
 ```
