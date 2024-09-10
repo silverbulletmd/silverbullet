@@ -1,5 +1,10 @@
 import customMarkdownStyle from "./style.ts";
-import { history, indentWithTab, standardKeymap } from "@codemirror/commands";
+import {
+  history,
+  indentWithTab,
+  isolateHistory,
+  standardKeymap,
+} from "@codemirror/commands";
 import {
   autocompletion,
   closeBrackets,
@@ -247,6 +252,12 @@ export function createEditorState(
         class {
           update(update: ViewUpdate): void {
             if (update.docChanged) {
+              // Find if there's a history isolate in the transaction, if so it came from a local reload and we don't do anything
+              if (
+                update.transactions.some((t) => t.annotation(isolateHistory))
+              ) {
+                return;
+              }
               const changes: TextChange[] = [];
               update.changes.iterChanges((fromA, toA, fromB, toB, inserted) =>
                 changes.push({
